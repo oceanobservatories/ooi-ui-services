@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/asascience-open/ooi-ui-services.svg?branch=master)](https://travis-ci.org/asascience-open/ooi-ui-services)
+
 ooi-ui-services
 ===============
 
