@@ -57,3 +57,5 @@ docs/_build/
 
 # Project-Specific
 *_local.yml
+
+*.swp
