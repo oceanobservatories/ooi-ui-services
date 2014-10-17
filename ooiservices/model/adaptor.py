@@ -36,6 +36,7 @@ class FileAdaptor(BaseAdaptor):
         Creates the document and persists it to the file system
         '''
         doc_id = doc.get('id', uuid.uuid4().hex)
+        doc['id'] = doc_id
         filepath = self._get_file_handle(doc_id)
         if os.path.exists(filepath):
             raise IOError("Document already exists with id %s" % doc_id)
