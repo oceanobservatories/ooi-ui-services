@@ -23,7 +23,7 @@ class BaseController(Resource):
         """
         Implement _model to instantiate Model to be used by this controller
         """
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def __init__(self):
         """
