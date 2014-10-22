@@ -22,7 +22,7 @@ class PlatformModel(BaseModel):
         BaseModel.__init__(self)
 
 
-	def _check(self):
+    def _check(self):
         '''
         Will be used to check the parcel that the contents is worth using.
         '''
