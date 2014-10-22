@@ -14,35 +14,35 @@ __author__ = "Matt Campbell"
 class PlatformModel(BaseModel):
 
 
-	__cols__ = ['id']
+    __cols__ = ['id']
 
-	id = None
+    id = None
 
-	def __init__(self):
-		BaseModel.__init__(self)
+    def __init__(self):
+        BaseModel.__init__(self)
 
 
 	def _check(self):
-		'''
-		Will be used to check the parcel that the contents is worth using.
-		'''
-		pass
+        '''
+        Will be used to check the parcel that the contents is worth using.
+        '''
+        pass
 
-	'''
-	External CRUD implementation from BaseModel
-	'''
+        '''
+    External CRUD implementation from BaseModel
+    '''
     def create(self, obj):
         createResult = adapter.create(obj)
         return createResult
 
     def read(self, id):
         readResult = adapter.read(id)
-		return readResult
+        return readResult
 
     def update(self, obj):
-		updateResult = adapter.update(obj)
-		return updateResult
+        updateResult = adapter.update(obj)
+        return updateResult
 
     def delete(self, id):
-		deleteResult = adapter.delete(id)
-		return deleteResult
+        deleteResult = adapter.delete(id)
+        return deleteResult
