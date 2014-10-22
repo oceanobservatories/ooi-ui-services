@@ -54,3 +54,15 @@ class BaseModel(object):
             doc[col] = getattr(self, col, None) # 
         return doc
 
+    # abstract CRUD methods
+    def create(self, obj):
+        raise NotImplementedError()
+
+    def read(self, id):
+        raise NotImplementedError()
+
+    def update(self, obj):
+        raise NotImplementedError()
+
+    def delete(self, id):
+        raise NotImplementedError()
