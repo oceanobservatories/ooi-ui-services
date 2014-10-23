@@ -13,9 +13,10 @@ __author__ = "Matt Campbell"
 
 class PlatformModel(BaseModel):
 
-
+    '''
+    At this point __cols__ is simply a model place holder.
+    '''
     __cols__ = ['id']
-
     id = None
 
     def __init__(self):
@@ -24,7 +25,7 @@ class PlatformModel(BaseModel):
 
     def _check(self):
         '''
-        Will be used to check the parcel that the contents is worth using.
+        Will be used to check if the parcel's contents is worth using.
         '''
         pass
 
@@ -32,17 +33,21 @@ class PlatformModel(BaseModel):
     External CRUD implementation from BaseModel
     '''
     def create(self, obj):
-        createResult = adapter.create(obj)
+        createResult = {'id' : 'create method'}
+        #createResult = adapter.create(obj)
         return createResult
 
     def read(self, id):
-        readResult = adapter.read(id)
+        readResult = {'id' : 'read method'}
+        #readResult = adapter.read(id)
         return readResult
 
     def update(self, obj):
-        updateResult = adapter.update(obj)
+        updateResult = {'id' : 'update method'}
+        #updateResult = adapter.update(obj)
         return updateResult
 
     def delete(self, id):
-        deleteResult = adapter.delete(id)
+        deleteResult = {'id' : 'delete method'}
+        #deleteResult = adapter.delete(id)
         return deleteResult
