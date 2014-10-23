@@ -28,7 +28,7 @@ class PlatformModel(BaseModel):
         '''
         pass
 
-        '''
+    '''
     External CRUD implementation from BaseModel
     '''
     def create(self, obj):
