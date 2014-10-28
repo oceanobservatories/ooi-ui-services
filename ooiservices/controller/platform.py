@@ -1,6 +1,6 @@
-from controller.base import BaseController
+from ooiservices.controller.base import BaseController
 
-from model.base import BaseModel
+from ooiservices.model.base import BaseModel
 
 __author__ = "Brian McKenna"
 

@@ -28,5 +28,6 @@ class ServicesTestCase(unittest.TestCase):
         '''
         Removes the directory
         '''
-        shutil.rmtree(self.output_dir)
+        if os.path.exists(self.output_dir):
+            shutil.rmtree(self.output_dir)
 
