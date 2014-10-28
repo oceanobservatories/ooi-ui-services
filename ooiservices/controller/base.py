@@ -1,7 +1,7 @@
 from flask import request
 from flask.ext.restful import Resource
 
-from model.base import BaseModel
+from ooiservices.model.base import BaseModel
 
 __author__ = "Brian McKenna"
 
