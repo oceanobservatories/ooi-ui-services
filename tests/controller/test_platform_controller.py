@@ -13,6 +13,7 @@ class TestPlatformController(ServicesTestCase):
         '''
         Initializes the application
         '''
+        ServicesTestCase.setUp(self)
         app.config['TESTING'] = True
         self.app = app.test_client()
 
