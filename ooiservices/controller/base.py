@@ -40,7 +40,7 @@ class BaseController(Resource):
         adapter = None
 
         # instantiate model(adapter)
-        model = _model(adapter)
+        model = BaseModel()
         assert isinstance(model, BaseModel)
 
     def get(self, id):

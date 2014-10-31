@@ -4,65 +4,52 @@
 ooiservices.model.base.py
 
 The class for the BaseModel
-'''
 
 '''
-Notes
 
+#TODO: import SQLiteAdapter will need to be externalized in the config file.
+import config
+from adaptor import SQLiteAdaptor as SQL
 
-
-
-'''
 
 class BaseModel(object):
-    '''
-    The base model class
 
-    Usage:
-    model = BaseModel(id="id", name="name")
-    '''
-    __cols__ = ['id', 'name']
-    id   = None
-    name = None
+    sql = SQL(config.dbName)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, tableName=None):
         '''
         Instantiates new base model
         '''
-
         # A really obscure bug that causes a severe headache down the road
         object.__init__(self)
+        self.tbl = tableName
 
-        for key, val in kwargs.iteritems():
-            if key not in self.__cols__:
-                # TODO: maybe log an error or something
-                continue 
-            setattr(self, key, val) 
-
-    def __repr__(self):
-        '''
-        Standard representation
-        '''
-        return '<%s:%s>' % (self.__class__.__name__, self.to_doc()) 
-
-    def to_doc(self):
-        '''
-        Returns python dictionary of the attributes of this instance
-        '''
-        doc = {}
-        for col in self.__cols__:
-            doc[col] = getattr(self, col, None) # 
-        return doc
-
-    # abstract CRUD methods
+    #CRUD methods
     def create(self, obj):
-        raise NotImplementedError()
-
-    def read(self, id):
-        raise NotImplementedError()
+        columns = ', '.join(obj.keys())
+        placeholders = ':'+', :'.join(obj.keys())
+        query = 'INSERT INTO %s (%s) VALUES (%s);' % (self.tbl, columns, placeholders)
+        feedback = self.sql.perform(query, obj)
+        return feedback
+    
+    def read(self, obj_id=None):
+        if obj_id:
+            query = 'SELECT * FROM %s WHERE id=\'%s\';' % (self.tbl, obj_id)
+        else:
+            query = 'SELECT * FROM %s;' % (self.tbl)
+        answer = self.sql.perform(query)
+        return answer
 
     def update(self, obj):
-        raise NotImplementedError()
+        obj_id = obj.get('id')
+        #Don't want to include the id in the data set to update.
+        del obj['id']
+        update_set = ', '.join('%s=%r' % (key, val) for (key, val) in obj.items())
+        query = 'UPDATE %s SET %s WHERE id=\'%s\';' % (self.tbl, update_set, obj_id)
+        feedback = self.sql.perform(query)
+        return feedback
 
-    def delete(self, id):
-        raise NotImplementedError()
+    def delete(self, obj_id):
+        query = 'DELETE FROM %s WHERE id=\'%s\';' % (self.tbl, obj_id)
+        feedback = self.sql.perform(query)
+        return feedback
