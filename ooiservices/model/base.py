@@ -8,7 +8,7 @@ The class for the BaseModel
 '''
 
 #TODO: import SQLiteAdapter will need to be externalized in the config file.
-import config
+import ooiservices.config
 from adaptor import SQLiteAdaptor as SQL
 
 
