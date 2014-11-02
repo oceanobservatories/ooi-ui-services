@@ -12,19 +12,27 @@ class PlatformController(BaseController):
 #    def _model(adapter):
 #        return BaseModel() # TODO
 
+    plat = PlatformModel()
+    
     def __init__(self):
         super(BaseController, self).__init__()
     
     def get(self, id):
-        plat = PlatformModel()
-        return 'GET OK (%s)' % (plat.read(id))
+        return 'GET OK (%s)' % (self.plat.read(id))
+    
+    def put(self, id):
+        args = request.args
+        return 'PUT OK - id: %s' % (self.plat.update(id))
+    
+    def delete(self, id):
+        return 'DELETE OK - id: %s' % (self.plat.delete(id))
 
     class List(Resource):
-    
+        plat = PlatformModel()
+        
         def get(self):
-            plat = PlatformModel()
-            return 'GET OK (%s)' % (plat.read())
+            return 'GET OK (%s)' % (self.plat.read())
         
         def post(self):
             args = request.form
-            return 'POST OK'
+            return 'POST OK (%s)' % (self.plat.read())
