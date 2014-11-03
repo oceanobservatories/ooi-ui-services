@@ -34,7 +34,7 @@ class SqlModel(BaseModel):
     
     def read(self, obj_id=None):
         if obj_id:
-            query = 'SELECT * FROM %s WHERE id=\'%s\';' % (self.tbl, obj_id)
+            query = 'SELECT * FROM %s WHERE array_code=\'%s\';' % (self.tbl, obj_id)
         else:
             query = 'SELECT * FROM %s;' % (self.tbl)
         answer = self.sql.perform(query)
@@ -45,11 +45,11 @@ class SqlModel(BaseModel):
         #Don't want to include the id in the data set to update.
         del obj['id']
         update_set = ', '.join('%s=%r' % (key, val) for (key, val) in obj.items())
-        query = 'UPDATE %s SET %s WHERE id=\'%s\';' % (self.tbl, update_set, obj_id)
+        query = 'UPDATE %s SET %s WHERE array_code=\'%s\';' % (self.tbl, update_set, obj_id)
         feedback = self.sql.perform(query)
         return feedback
     
     def delete(self, obj_id):
-        query = 'DELETE FROM %s WHERE id=\'%s\';' % (self.tbl, obj_id)
+        query = 'DELETE FROM %s WHERE array_code=\'%s\';' % (self.tbl, obj_id)
         feedback = self.sql.perform(query)
         return feedback
