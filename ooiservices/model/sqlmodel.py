@@ -18,8 +18,8 @@ class SqlModel(BaseModel):
     
     def __init__(self, tableName=None):
         '''
-            Instantiates new base model
-            '''
+        Instantiates new base model
+        '''
         # A really obscure bug that causes a severe headache down the road
         BaseModel.__init__(self)
         self.tbl = tableName
