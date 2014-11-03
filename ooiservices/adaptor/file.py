@@ -1,20 +1,17 @@
 #!/usr/bin/env python
 '''
-ooiservices.model.adaptor
+ooiservices.adaptor.file
 
-Definitions for the BaseAdaptor and the FileAdaptor mock
+Definitions for the FileAdaptor mock
 '''
+
+
+from ooiservices.adaptor.base import BaseAdaptor
 
 import uuid
 import os
 import json
 import sqlite3 as lite
-
-class BaseAdaptor:
-    '''
-    Base class for adaptor implementations
-    '''
-    pass
 
 class FileAdaptor(BaseAdaptor):
     '''
@@ -73,47 +70,3 @@ class FileAdaptor(BaseAdaptor):
         os.unlink(filepath)
         return True
 
-
-class SQLiteAdaptor(object):
-    __author__ = 'Matt Campbell'
-    db = None
-
-    def __init__(self,dbName):
-        object.__init__(self)
-        self.db = dbName
-
-    def get_db(self):
-        if self.db:
-            conn = lite.connect(self.db)
-            return conn
-
-    def perform(self, query, obj=None):
-        #Create a factory to return dictionary
-        def dict_factory(cursor, row):
-            d = {}
-            for idx, col in enumerate(cursor.description):
-                d[col[0]] = row[idx]
-            return d
-        conn = self.get_db()
-        conn.row_factory = dict_factory
-        c = conn.cursor()
-        
-        try:
-            if lite.complete_statement(query):
-                if obj:
-                    c.execute(query, obj)
-                else:
-                    c.execute(query)
-
-            result = c.fetchall()
-            #possibly condition commit to only insert/update/delete.
-            conn.commit()
-
-        except lite.Error, e:
-            result = '%s' % e.args[0]
-            print query
-
-        finally:
-            if conn:
-                conn.close()
-        return result
