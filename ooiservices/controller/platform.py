@@ -25,7 +25,3 @@ class PlatformController(BaseController):
         
         def get(self):
             return self.plat.read()
-        
-        def post(self):
-            args = request.form
-            return self.plat.read()
