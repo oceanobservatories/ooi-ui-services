@@ -41,8 +41,8 @@
                 "GS01SUMO-SB001-05-WAVSSA999"
             ], 
             "site_id": "01", 
-            "lat": 89.2796, 
-            "lon": -54.4704
+            "lat": -54.4704, 
+            "lon": 89.2796
         }, 
         "HYPM": {
             "status": "na", 
@@ -58,8 +58,8 @@
                 "GS02HYPM-WF004-05-VEL3DL999"
             ], 
             "site_id": "02", 
-            "lat": 89.2796, 
-            "lon": -54.407
+            "lat": -54.407, 
+            "lon": 89.2796
         }, 
         "FLMB": {
             "status": "na", 
@@ -82,8 +82,8 @@
                 "GS03FLMB-RI001-17-CTDMOH999"
             ], 
             "site_id": "03", 
-            "lat": 88.894, 
-            "lon": -54.0814
+            "lat": -54.0814, 
+            "lon": 88.894
         }, 
         "FLMA": {
             "status": "na", 
@@ -106,8 +106,8 @@
                 "GS03FLMA-RI001-17-CTDMOH999"
             ], 
             "site_id": "03", 
-            "lat": 89.6652, 
-            "lon": -54.0814
+            "lat": -54.0814, 
+            "lon": 89.6652
         }, 
         "MOAS": {
             "status": "na", 
@@ -142,8 +142,8 @@
                 "GP02HYPM-WF004-05-VEL3DL999"
             ], 
             "site_id": "02", 
-            "lat": 144.798, 
-            "lon": 50.0706
+            "lat": 50.0706, 
+            "lon": 144.798
         }, 
         "FLMA": {
             "status": "na", 
@@ -166,8 +166,8 @@
                 "GP03FLMA-RI001-17-CTDMOH999"
             ], 
             "site_id": "03", 
-            "lat": 144.254, 
-            "lon": 49.9795
+            "lat": 49.9795, 
+            "lon": 144.254
         }, 
         "FLMB": {
             "status": "na", 
@@ -190,8 +190,8 @@
                 "GP03FLMB-RI001-17-CTDMOH999"
             ], 
             "site_id": "03", 
-            "lat": 144.401, 
-            "lon": 50.3316
+            "lat": 50.3316, 
+            "lon": 144.401
         }, 
         "MOAS": {
             "status": "na", 
@@ -221,8 +221,8 @@
                 "RS01SLBS-MJ01A-12-VEL3DB101"
             ], 
             "site_id": "01", 
-            "lat": 125.352, 
-            "lon": 44.554
+            "lat": 44.554, 
+            "lon": 125.352
         }, 
         "ECAL": {
             "status": "na", 
@@ -234,8 +234,8 @@
                 "RS03ECAL-MJ03E-09-OBSBBA302"
             ], 
             "site_id": "03", 
-            "lat": 129.981, 
-            "lon": 45.948
+            "lat": 45.948, 
+            "lon": 129.981
         }, 
         "AXVM": {
             "status": "na", 
@@ -271,8 +271,8 @@
                 "RS03AXVM-SF03A-4F-PCO2WA301"
             ], 
             "site_id": "03", 
-            "lat": 129.603, 
-            "lon": 46.067
+            "lat": 46.067, 
+            "lon": 129.603
         }, 
         "SUM2": {
             "status": "na", 
@@ -284,8 +284,8 @@
                 "RS01SUM2-MJ01B-12-ADCPSK101"
             ], 
             "site_id": "01", 
-            "lat": 125.147, 
-            "lon": 44.57
+            "lat": 44.57, 
+            "lon": 125.147
         }, 
         "AXBS": {
             "status": "na", 
@@ -296,8 +296,8 @@
                 "RS03AXBS-MJ03A-12-VEL3DB301"
             ], 
             "site_id": "03", 
-            "lat": 129.618, 
-            "lon": 46.1082
+            "lat": 46.1082, 
+            "lon": 129.618
         }, 
         "INT1": {
             "status": "na", 
@@ -310,8 +310,8 @@
                 "RS03INT1-MJ03C-10-TRHPHA301"
             ], 
             "site_id": "03", 
-            "lat": 130.015, 
-            "lon": 45.9357
+            "lat": 45.9357, 
+            "lon": 130.015
         }, 
         "SUM1": {
             "status": "na", 
@@ -325,8 +325,8 @@
                 "RS01SUM1-LJ01B-12-VEL3DB104"
             ], 
             "site_id": "01", 
-            "lat": 125.15, 
-            "lon": 44.568
+            "lat": 44.568, 
+            "lon": 125.15
         }, 
         "INT2": {
             "status": "na", 
@@ -336,8 +336,8 @@
                 "RS03INT2-MJ03D-12-VEL3DB304"
             ], 
             "site_id": "03", 
-            "lat": 130.014, 
-            "lon": 45.9357
+            "lat": 45.9357, 
+            "lon": 130.014
         }, 
         "SBVM": {
             "status": "na", 
@@ -373,8 +373,8 @@
                 "RS01SBVM-SF01A-4F-PCO2WA101"
             ], 
             "site_id": "01", 
-            "lat": 125.352, 
-            "lon": 44.554
+            "lat": 44.554, 
+            "lon": 125.352
         }, 
         "CCAL": {
             "status": "na", 
@@ -384,8 +384,8 @@
                 "RS03CCAL-MJ03F-06-OBSBBA301"
             ], 
             "site_id": "03", 
-            "lat": 130.02, 
-            "lon": 45.9762
+            "lat": 45.9762, 
+            "lon": 130.02
         }, 
         "ASHS": {
             "status": "na", 
@@ -397,8 +397,8 @@
                 "RS03ASHS-MJ03B-07-TMPSFA301"
             ], 
             "site_id": "03", 
-            "lat": 130.014, 
-            "lon": 45.9362
+            "lat": 45.9362, 
+            "lon": 130.014
         }
     }, 
     "CE": {
@@ -455,8 +455,8 @@
                 "CE02SHBP-MJ01C-07-ZPLSCB101"
             ], 
             "site_id": "02", 
-            "lat": 124.31, 
-            "lon": 44.64
+            "lat": 44.64, 
+            "lon": 124.31
         }, 
         "ISSM": {
             "status": "na", 
@@ -503,8 +503,8 @@
                 "CE06ISSM-SB001-01-VELPTA999"
             ], 
             "site_id": "01", 
-            "lat": 124.1, 
-            "lon": 44.66
+            "lat": 44.66, 
+            "lon": 124.1
         }, 
         "SHSM": {
             "status": "na", 
@@ -548,8 +548,8 @@
                 "CE07SHSM-SB001-06-WAVSSA999"
             ], 
             "site_id": "02", 
-            "lat": 124.31, 
-            "lon": 44.64
+            "lat": 44.64, 
+            "lon": 124.31
         }, 
         "OSHY": {
             "status": "na", 
@@ -575,8 +575,8 @@
                 "CE04OSHY-SF01B-2B-PHSENA108"
             ], 
             "site_id": "04", 
-            "lat": 124.95, 
-            "lon": 44.37
+            "lat": 44.37, 
+            "lon": 124.95
         }, 
         "OSSM": {
             "status": "na", 
@@ -619,8 +619,8 @@
                 "CE09OSSM-SB001-06-WAVSSA999"
             ], 
             "site_id": "04", 
-            "lat": 124.95, 
-            "lon": 44.37
+            "lat": 44.37, 
+            "lon": 124.95
         }, 
         "SHSP": {
             "status": "na", 
@@ -643,8 +643,8 @@
                 "CE07SHSP-SP001-09-PARADJ999"
             ], 
             "site_id": "02", 
-            "lat": 124.31, 
-            "lon": 44.64
+            "lat": 44.64, 
+            "lon": 124.31
         }, 
         "ISSP": {
             "status": "na", 
@@ -667,8 +667,8 @@
                 "CE06ISSP-SP001-10-PARADJ999"
             ], 
             "site_id": "01", 
-            "lat": 124.1, 
-            "lon": 44.66
+            "lat": 44.66, 
+            "lon": 124.1
         }, 
         "OSPM": {
             "status": "na", 
@@ -680,8 +680,8 @@
                 "CE09OSPM-WF001-05-PARADK999"
             ], 
             "site_id": "09", 
-            "lat": 124.97, 
-            "lon": 46.85
+            "lat": 46.85, 
+            "lon": 124.97
         }, 
         "OSBP": {
             "status": "na", 
@@ -697,8 +697,8 @@
                 "CE04OSBP-LJ01C-12-CAMDSB106"
             ], 
             "site_id": "04", 
-            "lat": 124.95, 
-            "lon": 44.37
+            "lat": 44.37, 
+            "lon": 124.95
         }
     }, 
     "GA": {
@@ -727,8 +727,8 @@
                 "GA01SUMO-SB001-05-WAVSSA999"
             ], 
             "site_id": "01", 
-            "lat": 42.5104, 
-            "lon": -42.991
+            "lat": -42.991, 
+            "lon": 42.5104
         }, 
         "HYPM": {
             "status": "na", 
@@ -744,8 +744,8 @@
                 "GA02HYPM-WF004-05-VEL3DL999"
             ], 
             "site_id": "02", 
-            "lat": 42.5104, 
-            "lon": -42.9222
+            "lat": -42.9222, 
+            "lon": 42.5104
         }, 
         "FLMB": {
             "status": "na", 
@@ -768,8 +768,8 @@
                 "GA03FLMB-RI001-17-CTDMOH999"
             ], 
             "site_id": "03", 
-            "lat": 42.1303, 
-            "lon": -42.5073
+            "lat": -42.5073, 
+            "lon": 42.1303
         }, 
         "FLMA": {
             "status": "na", 
@@ -792,8 +792,8 @@
                 "GA03FLMA-RI001-17-CTDMOH999"
             ], 
             "site_id": "03", 
-            "lat": 42.8905, 
-            "lon": -42.5073
+            "lat": -42.5073, 
+            "lon": 42.8905
         }, 
         "MOAS": {
             "status": "na", 
@@ -827,8 +827,8 @@
                 "CP01CNSP-SP001-10-PARADJ999"
             ], 
             "site_id": "01", 
-            "lat": 70.78, 
-            "lon": 40.14
+            "lat": 40.14, 
+            "lon": 70.78
         }, 
         "ISSM": {
             "status": "na", 
@@ -854,8 +854,8 @@
                 "CP03ISSM-SB001-03-PCO2AA999"
             ], 
             "site_id": "03", 
-            "lat": 70.88, 
-            "lon": 40.36
+            "lat": 40.36, 
+            "lon": 70.88
         }, 
         "OSPM": {
             "status": "na", 
@@ -867,8 +867,8 @@
                 "CP04OSPM-WF001-05-PARADK999"
             ], 
             "site_id": "04", 
-            "lat": 70.88, 
-            "lon": 39.94
+            "lat": 39.94, 
+            "lon": 70.88
         }, 
         "PMUI": {
             "status": "na", 
@@ -881,8 +881,8 @@
                 "CP02PMUI-WF001-05-PARADK999"
             ], 
             "site_id": "02", 
-            "lat": 70.78, 
-            "lon": 40.37
+            "lat": 40.37, 
+            "lon": 70.78
         }, 
         "PMUO": {
             "status": "na", 
@@ -895,8 +895,8 @@
                 "CP02PMUO-WF001-05-PARADK999"
             ], 
             "site_id": "02", 
-            "lat": 70.78, 
-            "lon": 39.94
+            "lat": 39.94, 
+            "lon": 70.78
         }, 
         "PMCI": {
             "status": "na", 
@@ -909,8 +909,8 @@
                 "CP02PMCI-WF001-05-PARADK999"
             ], 
             "site_id": "02", 
-            "lat": 70.88, 
-            "lon": 40.23
+            "lat": 40.23, 
+            "lon": 70.88
         }, 
         "OSSM": {
             "status": "na", 
@@ -936,8 +936,8 @@
                 "CP04OSSM-SB001-03-PCO2AA999"
             ], 
             "site_id": "04", 
-            "lat": 70.88, 
-            "lon": 39.94
+            "lat": 39.94, 
+            "lon": 70.88
         }, 
         "ISSP": {
             "status": "na", 
@@ -952,8 +952,8 @@
                 "CP03ISSP-SP001-10-PARADJ999"
             ], 
             "site_id": "03", 
-            "lat": 70.88, 
-            "lon": 40.36
+            "lat": 40.36, 
+            "lon": 70.88
         }, 
         "PMCO": {
             "status": "na", 
@@ -966,8 +966,8 @@
                 "CP02PMCO-WF001-05-PARADK999"
             ], 
             "site_id": "02", 
-            "lat": 70.88, 
-            "lon": 40.1
+            "lat": 40.1, 
+            "lon": 70.88
         }, 
         "CNSM": {
             "status": "na", 
@@ -996,8 +996,8 @@
                 "CP01CNSM-SB001-05-FDCHPA999"
             ], 
             "site_id": "01", 
-            "lat": 70.78, 
-            "lon": 40.14
+            "lat": 40.14, 
+            "lon": 70.78
         }, 
         "MOAS": {
             "status": "na", 
@@ -1077,8 +1077,8 @@
                 "GI01SUMO-SB001-05-WAVSSA999"
             ], 
             "site_id": "01", 
-            "lat": 38.2581, 
-            "lon": 60.6136
+            "lat": 60.6136, 
+            "lon": 38.2581
         }, 
         "HYPM": {
             "status": "na", 
@@ -1090,8 +1090,8 @@
                 "GI02HYPM-WF002-05-VEL3DL999"
             ], 
             "site_id": "02", 
-            "lat": 38.2581, 
-            "lon": 60.5732
+            "lat": 60.5732, 
+            "lon": 38.2581
         }, 
         "FLMB": {
             "status": "na", 
@@ -1114,8 +1114,8 @@
                 "GI03FLMB-RI001-17-CTDMOH999"
             ], 
             "site_id": "03", 
-            "lat": 38.0755, 
-            "lon": 60.4582
+            "lat": 60.4582, 
+            "lon": 38.0755
         }, 
         "FLMA": {
             "status": "na", 
@@ -1138,8 +1138,8 @@
                 "GI03FLMA-RI001-17-CTDMOH999"
             ], 
             "site_id": "03", 
-            "lat": 38.4407, 
-            "lon": 60.4582
+            "lat": 60.4582, 
+            "lon": 38.4407
         }, 
         "MOAS": {
             "status": "na", 
