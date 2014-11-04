@@ -94,6 +94,7 @@ class SQLiteAdaptor(object):
             for idx, col in enumerate(cursor.description):
                 d[col[0]] = row[idx]
             return d
+
         conn = self.get_db()
         conn.row_factory = dict_factory
         c = conn.cursor()

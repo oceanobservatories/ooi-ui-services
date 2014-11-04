@@ -11,4 +11,4 @@ __author__ = "Matt Campbell"
 class PlatformModel(SqlModel):
 
     def __init__(self):
-        SqlModel.__init__(self, 'platform')
+        SqlModel.__init__(self, 'ooi_platforms')

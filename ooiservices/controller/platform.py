@@ -18,21 +18,10 @@ class PlatformController(BaseController):
         super(BaseController, self).__init__()
     
     def get(self, id):
-        return 'GET OK (%s)' % (self.plat.read(id))
+        return self.plat.read(id)
     
-    def put(self, id):
-        args = request.args
-        return 'PUT OK - id: %s' % (self.plat.update(id))
-    
-    def delete(self, id):
-        return 'DELETE OK - id: %s' % (self.plat.delete(id))
-
     class List(Resource):
         plat = PlatformModel()
         
         def get(self):
-            return 'GET OK (%s)' % (self.plat.read())
-        
-        def post(self):
-            args = request.form
-            return 'POST OK (%s)' % (self.plat.read())
+            return self.plat.read()
