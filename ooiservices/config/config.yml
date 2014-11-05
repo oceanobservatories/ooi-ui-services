@@ -5,5 +5,10 @@
 # from ooiservices.config import DataSource
 # children of this configuration are in a dictionary
 # db_name = DataSource['DBName']
+<<<<<<< HEAD
 DataSource:
   DBName: db/sample.db
+=======
+DataSource: 
+  DBName: db/test.db
+>>>>>>> 84a69f0... Adds configuration management through YAML
