@@ -3,16 +3,15 @@
 '''
 ooiservices.model.sqlite
 
-SqlModel
+SQLModel
 '''
 
-#TODO: import SQLiteAdapter will need to be externalized in the config file.
 
-import ooiservices.config as config
-from ooiservices.model.adaptor import SQLiteAdaptor as SQL
+from ooiservices import config
+from ooiservices.adaptor.sqlite import SQLiteAdaptor as SQL
 from ooiservices.model.base import BaseModel
 
-class SqlModel(BaseModel):
+class SQLModel(BaseModel):
     
     sql = SQL(config.dbName)
     

@@ -4,11 +4,11 @@ ooiservices.model.platform.py
 
 '''
 
-from ooiservices.model.sqlmodel import SqlModel
+from ooiservices.model.sqlmodel import SQLModel
 
 __author__ = "Matt Campbell"
 
-class PlatformModel(SqlModel):
+class PlatformModel(SQLModel):
 
     def __init__(self):
-        SqlModel.__init__(self, 'platform')
+        SQLModel.__init__(self, 'platform')

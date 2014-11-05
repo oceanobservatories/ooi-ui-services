@@ -12,7 +12,7 @@ import ooiservices.config as config
 from ooiservices.model.adaptor import SQLiteAdaptor as SQL
 from ooiservices.model.base import BaseModel
 
-class SqlModel(BaseModel):
+class SQLModel(BaseModel):
     
     sql = SQL(config.dbName)
     
