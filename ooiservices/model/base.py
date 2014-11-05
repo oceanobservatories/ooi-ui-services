@@ -3,15 +3,7 @@
 '''
 ooiservices.model.base.py
 
-The class for the BaseModel
-'''
-
-'''
-Notes
-
-
-
-
+BaseModel
 '''
 
 class BaseModel(object):
