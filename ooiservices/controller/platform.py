@@ -47,7 +47,7 @@ class PlatformController(BaseController):
     def delete(self, id):
         return self.plat.delete(id)
    
-   class List(Resource):
+    class List(Resource):
         plat = PlatformModel()
         
         def get(self):
