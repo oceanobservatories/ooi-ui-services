@@ -41,6 +41,13 @@ class PlatformController(BaseController):
         return self.plat.delete(id)
 
     class List(Resource):
+            result = self.plat.update(doc)
+        return result
+
+    def delete(self, id):
+        return self.plat.delete(id)
+   
+   class List(Resource):
         plat = PlatformModel()
         
         def get(self):
