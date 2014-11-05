@@ -34,18 +34,17 @@ class PlatformController(BaseController):
             for item in params:
                 doc[item[0]] = item[1]
         doc['id'] = id
-            result = self.plat.update(doc)
+        result = self.plat.update(doc)
         return result
 
     def delete(self, id):
         return self.plat.delete(id)
    
-   class List(Resource):
+    class List(Resource):
         plat = PlatformModel()
         
         def get(self):
             result = self.plat.read()
             #Formats the json dict to be used by the view:
             formatted_result = self.plat.filter_ooi_platforms(result)
-
             return formatted_result
