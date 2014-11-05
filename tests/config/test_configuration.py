@@ -20,4 +20,4 @@ class TestConfiguration(ServicesTestCase):
         '''
 
         from ooiservices.config import DataSource
-        assert DataSource['DBName'] == 'db/test.db'
+        assert DataSource['DBName'] == 'db/sample.db'
