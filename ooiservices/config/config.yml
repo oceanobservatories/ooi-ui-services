@@ -1,0 +1,9 @@
+# Configuration 
+#
+# This represents a top level configuration and can be imported with
+# 
+# from ooiservices.config import DataSource
+# children of this configuration are in a dictionary
+# db_name = DataSource['DBName']
+DataSource: 
+  DBName: db/test.db
