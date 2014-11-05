@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 '''
-ooiservices.model.sqlmodel
+ooiservices.model.sqlite
 
 SQLModel
 '''
@@ -11,18 +11,17 @@ from ooiservices.config import DataSource
 from ooiservices.adaptor.sqlite import SQLiteAdaptor as SQL
 from ooiservices.model.base import BaseModel
 
-class SqlModel(BaseModel):
+class SQLModel(BaseModel):
     
     sql = SQL(DataSource['DBName'])
     
-    def __init__(self, tableName=None, whereParam='id'):
+    def __init__(self, tableName=None):
         '''
-        Instantiates new base model
-        '''
+            Instantiates new base model
+            '''
         # A really obscure bug that causes a severe headache down the road
         BaseModel.__init__(self)
         self.tbl = tableName
-        self.whereParam = whereParam
     
     #CRUD methods
     def create(self, obj):
@@ -33,13 +32,10 @@ class SqlModel(BaseModel):
         return feedback
     
     def read(self, obj_id=None):
-        '''
-        Modified to (temporarily) support interim UI specification for output
-        '''
         if obj_id:
-            query = 'SELECT * FROM %s WHERE %s=\'%s\';' % (self.tbl, self.whereParam, obj_id)
+            query = 'SELECT * FROM %s WHERE id=\'%s\';' % (self.tbl, obj_id)
         else:
-            query = 'SELECT * FROM %s ORDER BY %s;' % (self.tbl, self.whereParam)
+            query = 'SELECT * FROM %s;' % (self.tbl)
         answer = self.sql.perform(query)
         return answer
     
@@ -48,11 +44,12 @@ class SqlModel(BaseModel):
         #Don't want to include the id in the data set to update.
         del obj['id']
         update_set = ', '.join('%s=%r' % (key, val) for (key, val) in obj.items())
-        query = 'UPDATE %s SET %s WHERE %s=\'%s\';' % (self.tbl, update_set, self.whereParam, obj_id)
+        query = 'UPDATE %s SET %s WHERE id=\'%s\';' % (self.tbl, update_set, obj_id)
         feedback = self.sql.perform(query)
         return feedback
     
     def delete(self, obj_id):
-        query = 'DELETE FROM %s WHERE %s=\'%s\';' % (self.tbl, self.whereParam, obj_id)
+        query = 'DELETE FROM %s WHERE id=\'%s\';' % (self.tbl, obj_id)
         feedback = self.sql.perform(query)
         return feedback
+

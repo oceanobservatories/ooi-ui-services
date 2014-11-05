@@ -1,10 +1,3 @@
-#!/usr/bin/env python
-'''
-ooiservices.controller.base.py
-
-BaseController
-'''
-
 from flask import request
 from flask.ext.restful import Resource
 
@@ -40,7 +33,8 @@ class BaseController(Resource):
         - Model instantiation must be provided by subclass using Adapter
         - HTTP methods are bound to the Model CRUD methods
         """
-        Resource.__init__(self)
+
+        super(Resource, self).__init__()
 
         # TODO get adapter from config
         adapter = None
