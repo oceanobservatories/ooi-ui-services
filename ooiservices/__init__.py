@@ -1,13 +1,13 @@
-#!/usr/bin/env python
-'''
-ooiservices
-
-Initializes the application and necessary application logic
-'''
 from flask import Flask
+from flask.ext import restful
 
+from ooiservices.controller.platform import PlatformController
 
 app = Flask(__name__)
+api = restful.Api(app)
 
-import ooiservices.routes # initialize the routes
+# endpoints
+api.add_resource(PlatformController.List, '/platforms')
+api.add_resource(PlatformController, '/platforms/<string:id>')
+
 
