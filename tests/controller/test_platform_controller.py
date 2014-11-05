@@ -23,6 +23,6 @@ class TestPlatformController(ServicesTestCase):
         '''
         try:
             rv = self.app.get('/platforms')
-            json.loads(rv)
+            json.loads(rv.data)
         except ValueError:
             print("data was not valid JSON")
