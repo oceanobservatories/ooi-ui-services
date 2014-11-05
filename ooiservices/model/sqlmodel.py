@@ -7,13 +7,13 @@ SQLModel
 '''
 
 
-from ooiservices import config
+from ooiservices.config import DataSource
 from ooiservices.adaptor.sqlite import SQLiteAdaptor as SQL
 from ooiservices.model.base import BaseModel
 
 class SQLModel(BaseModel):
     
-    sql = SQL(config.dbName)
+    sql = SQL(DataSource['DBName'])
     
     def __init__(self, tableName=None):
         '''
