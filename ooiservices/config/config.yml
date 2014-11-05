@@ -5,5 +5,5 @@
 # from ooiservices.config import DataSource
 # children of this configuration are in a dictionary
 # db_name = DataSource['DBName']
-DataSource: 
-  DBName: db/test.db
+DataSource:
+  DBName: db/sample.db

@@ -16,7 +16,7 @@ class TestPlatformController(ServicesTestCase):
         ServicesTestCase.setUp(self)
         app.config['TESTING'] = True
         self.app = app.test_client()
-
+    
     def test_context(self):
         '''
         Test that the app context initializes successfully
