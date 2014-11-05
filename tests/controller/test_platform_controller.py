@@ -4,7 +4,7 @@ tests.controller.test_platform_controller
 
 Test for the platform controller
 '''
-
+import json
 from ooiservices.app import app
 from tests.services_test_case import ServicesTestCase
 
@@ -21,6 +21,8 @@ class TestPlatformController(ServicesTestCase):
         '''
         Test that the app context initializes successfully
         '''
-        base_doc = '[{"site_id": 1, "id": "1", "name": "TEST1"}, {"site_id": 2, "id": "2", "name": "TEST2"}]'
-        rv = self.app.get('/platforms')
-        #assert base_doc == rv.data
+        try:
+            rv = self.app.get('/platforms')
+            json.loads(rv)
+        except ValueError:
+            print("data was not valid JSON")
