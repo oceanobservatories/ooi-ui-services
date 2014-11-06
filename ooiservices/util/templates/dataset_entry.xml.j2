@@ -1,0 +1,22 @@
+<dataset type="EDDTableFromNcCFFiles" datasetID="{{dataset_id}}" active="true">
+    <reloadEveryNMinutes>15</reloadEveryNMinutes>
+    <fileDir>{{dataset_dir}}</fileDir>
+    <recursive>false</recursive>
+    <fileNameRegex>.*\.nc</fileNameRegex>
+    <metadataFrom>last</metadataFrom>
+    <preExtractRegex></preExtractRegex>
+    <postExtractRegex></postExtractRegex>
+    <extractRegex></extractRegex>
+    <columnNameForExtract></columnNameForExtract>
+    <sortFilesBySourceNames></sortFilesBySourceNames>
+    <fileTableInMemory>false</fileTableInMemory>
+
+    {% for var_name, data_type in data_vars.iteritems() %}
+    <dataVariable>
+        <sourceName>{{ var_name }}</sourceName>
+        <destinationName>{{ var_name }}</destinationName>
+        <dataType>{{ data_type }}</dataType>
+    </dataVariable>
+    {% endfor %}
+</dataset>
+
