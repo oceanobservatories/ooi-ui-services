@@ -10,6 +10,21 @@
     <columnNameForExtract></columnNameForExtract>
     <sortFilesBySourceNames></sortFilesBySourceNames>
     <fileTableInMemory>false</fileTableInMemory>
+    <addAttributes>
+        <att name="cdm_data_type">Other</att>
+        <att name="featureType">point</att>
+        <att name="Conventions">Unidata Dataset Discovery v1.0, COARDS, CF-1.6</att>
+        <att name="keywords">OOI</att>
+        <att name="keywords_vocabulary">GCMD Science Keywords</att>
+        <att name="Metadata_Conventions">Unidata Dataset Discovery v1.0, COARDS, CF-1.6</att>
+        <att name="sourceUrl">(local files)</att>
+        <att name="infoUrl">http://rucool.marine.rutgers.edu</att>
+        <!-- title=datasetID -->
+        <att name="title">{{dataset_id}}</att>
+        <!-- Data Provider Institution from http://gliders.ioos.us -->
+        <att name="institution">Ocean Obervatories Initiative</att>
+
+    </addAttributes>
 
     {% for var_name, data_type in data_vars.iteritems() %}
     <dataVariable>

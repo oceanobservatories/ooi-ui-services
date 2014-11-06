@@ -21,3 +21,5 @@ six==1.8.0
 stevedore==0.15
 wsgiref==0.1.2
 PyYAML==3.11
+Jinja2==2.7.3
+lxml==3.4.0
