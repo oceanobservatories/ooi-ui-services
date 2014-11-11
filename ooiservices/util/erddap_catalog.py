@@ -15,7 +15,11 @@ import numpy as np
 
 class ERDDAPCatalog:
     '''
-    ERDDAP Catalog
+    ERDDAP Catalog Generation
+
+    Example:
+      catalog = ERDDAPCatalog(catalog_path, 'w')
+      entry = ERDDAPCatalogEntry('dataset_id', self.output_dir, netcdf_file)
     '''
 
     def __init__(self, catalog_path, mode='r'):
@@ -69,7 +73,7 @@ class ERDDAPCatalog:
         # Truncate the file and create the baseline catalog
         template = self.jenv.get_template('datasets.xml.j2')
         buf = template.render()
-        with open(self.catalog_path, self.mode) as f:
+        with open(self.catalog_path, 'w') as f:
             f.write(buf)
 
 
