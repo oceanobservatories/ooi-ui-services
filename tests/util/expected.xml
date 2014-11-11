@@ -20,7 +20,7 @@
         <att name="keywords_vocabulary">GCMD Science Keywords</att>
         <att name="Metadata_Conventions">Unidata Dataset Discovery v1.0, COARDS, CF-1.6</att>
         <att name="sourceUrl">(local files)</att>
-        <att name="infoUrl">http://rucool.marine.rutgers.edu</att>
+        <att name="infoUrl">http://www.oceanobservatories.org</att>
         <!-- title=datasetID -->
         <att name="title">dataset_id</att>
         <!-- Data Provider Institution from http://gliders.ioos.us -->
