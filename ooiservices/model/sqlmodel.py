@@ -56,3 +56,4 @@ class SqlModel(BaseModel):
         query = 'DELETE FROM %s WHERE %s=\'%s\';' % (self.tbl, self.whereParam, obj_id)
         feedback = self.sql.perform(query)
         return feedback
+

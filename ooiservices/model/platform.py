@@ -30,10 +30,19 @@ class PlatformModel(SqlModel):
         '''
         Places the contents of the row into the json document
         '''
-        
-        instr_constant = 'PHSENE002'
+
+        '''
+        CP02PMUI-WFP01
+
+        CP   = array_code
+        02   = site_prefix
+        PMUI = site_suffix
+        WFP  = node_type_code
+        01   = node_site_seq
+        '''
 
         array_code     = row['array_code']
+        site_prefix    = row['site_prefix']
         site_suffix    = row['site_suffix']
         lat            = row['latitude']
         lon            = row['longitude']
@@ -42,19 +51,19 @@ class PlatformModel(SqlModel):
         node_site_seq  = row['node_site_sequence']
         port_num       = row['port_number']
 
+
+        platform = array_code + site_prefix.zfill(2) + site_suffix + '-' + node_type_code + node_site_seq
+        app.logger.info(platform)
         instr = array_code + site_suffix + '-' + node_type_code + node_site_seq + '-' + port_num + '-' + instr_constant
 
         if array_code not in doc:
             doc[array_code] = {}
 
-        if site_suffix not in doc[array_code]:
-            doc[array_code][site_suffix] = {}
-            doc[array_code][site_suffix]['lat'] = lat
-            doc[array_code][site_suffix]['lon'] = lon
-            doc[array_code][site_suffix]['site_id'] = site_id
-            doc[array_code][site_suffix]['instruments'] = []
-
-        if instr not in doc[array_code][site_suffix]['instruments']:
-            doc[array_code][site_suffix]['instruments'].append(instr)
-
+        if platform not in doc[array_code]:
+            doc[array_code][platform] = {}
+            doc[array_code][platform]['lat'] = lat
+            doc[array_code][platform]['lon'] = lon
+            doc[array_code][platform]['site_id'] = site_id
+            doc[array_code][platform]['instruments'] = []
+            doc[array_code][platform]['status'] = 'na'
 

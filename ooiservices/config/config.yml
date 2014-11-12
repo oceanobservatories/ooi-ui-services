@@ -7,3 +7,6 @@
 # db_name = DataSource['DBName']
 DataSource:
   DBName: db/sample.db
+
+ERDDAPURL: http://erddap.ooi.rutgers.edu/erddap
+
