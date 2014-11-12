@@ -16,4 +16,8 @@ from ooiservices.controller.platform import PlatformObjectController, PlatformLi
 api.add_resource(PlatformListController, '/platforms')
 api.add_resource(PlatformObjectController, '/platforms/<string:id>')
 
-
+'''
+Return:
+Instrument profile id
+'''
+api.add_resource(PlatformController.Contents, '/platforms/contents/<string:id>')
