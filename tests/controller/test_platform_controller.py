@@ -17,12 +17,14 @@ class TestPlatformController(ServicesTestCase):
         app.config['TESTING'] = True
         self.app = app.test_client()
     
-    def test_context(self):
+    def test_platform_listing(self):
         '''
         Test that the app context initializes successfully
         '''
-        try:
-            rv = self.app.get('/platforms')
-            json.loads(rv.data)
-        except ValueError:
-            print("data was not valid JSON")
+        rv = self.app.get('/platforms')
+        json.loads(rv.data) # Assert data is JSON
+        with open('tests/controller/expected_platforms.json', 'r') as f:
+            expected = f.read()
+
+        assert expected == rv.data
+
