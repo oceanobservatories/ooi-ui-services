@@ -6,6 +6,7 @@ ooiservices.model.platform.py
 PlatformModel
 '''
 
+from ooiservices import app
 from ooiservices.model.sqlmodel import SqlModel
 
 __author__ = "Matt Campbell"
@@ -20,56 +21,40 @@ class PlatformModel(SqlModel):
         interim helper to reformat query output to OOI UI input format
         '''
         doc = {}
-        arrays = []
-        current_array = ''
-        instr_constant = 'PHSENE002'
-        for element in input:
-            array_code = element['array_code']
-            site_suffix = element['site_suffix']
-            lat = element['latitude']
-            lon = element['longitude']
-            site_id = element['site_prefix']
-            node_type_code = element['node_type_code']
-            node_site_seq = element['node_site_sequence']
-            port_num = element['port_number']
-            instr = current_array + site_suffix + '-' + node_type_code + node_site_seq + '-' + port_num + '-' + instr_constant
-            if current_array != array_code:
-                if array_code not in arrays:
-                    arrays.append(array_code)
-                    current_array = array_code
-                    doc[current_array] = {}
-                    instruments = []
-                    doc[current_array][site_suffix] = {}
-                    doc[current_array][site_suffix]['lat'] = lat
-                    doc[current_array][site_suffix]['lon'] = lon
-                    doc[current_array][site_suffix]['site_id'] = site_id
-                    instruments.append(instr)
-                    doc[current_array][site_suffix]['instruments'] = instruments[:]
-            else:
-                if site_suffix in doc[current_array]:
-                    if 'instruments' in doc[current_array][site_suffix]:
-                        instruments = doc[current_array][site_suffix]['instruments'][:]
-                    if instr not in instruments:
-                        instruments.append(instr)
-                        doc[current_array][site_suffix]['instruments'] = instruments
-                else:
-                    doc[current_array][site_suffix] = {}
-                    doc[current_array][site_suffix]['lat'] = lat
-                    doc[current_array][site_suffix]['lon'] = lon
-                    doc[current_array][site_suffix]['site_id'] = site_id
-                    instruments = []
-                    instruments.append(instr)
-                    doc[current_array][site_suffix]['instruments'] = instruments
-        '''
-        # create summary (debug/test only)
-        temp = {}
-        total_arrays = len(arrays)
-        temp['number_of_arrays'] = total_arrays
-        for array in arrays:
-        temp[array] = len(doc[array])
-        for key, value in doc[array].iteritems():
-        subtitle = array + ' - ' + key + ' instruments'
-        temp[subtitle] = len(doc[array][key]['instruments'])
-        doc['summary'] = temp
-        '''
+        for row in input:
+            self.read_row(doc, row)
+
         return doc
+
+    def read_row(self, doc, row):
+        '''
+        Places the contents of the row into the json document
+        '''
+        
+        instr_constant = 'PHSENE002'
+
+        array_code     = row['array_code']
+        site_suffix    = row['site_suffix']
+        lat            = row['latitude']
+        lon            = row['longitude']
+        site_id        = row['site_prefix']
+        node_type_code = row['node_type_code']
+        node_site_seq  = row['node_site_sequence']
+        port_num       = row['port_number']
+
+        instr = array_code + site_suffix + '-' + node_type_code + node_site_seq + '-' + port_num + '-' + instr_constant
+
+        if array_code not in doc:
+            doc[array_code] = {}
+
+        if site_suffix not in doc[array_code]:
+            doc[array_code][site_suffix] = {}
+            doc[array_code][site_suffix]['lat'] = lat
+            doc[array_code][site_suffix]['lon'] = lon
+            doc[array_code][site_suffix]['site_id'] = site_id
+            doc[array_code][site_suffix]['instruments'] = []
+
+        if instr not in doc[array_code][site_suffix]['instruments']:
+            doc[array_code][site_suffix]['instruments'].append(instr)
+
+
