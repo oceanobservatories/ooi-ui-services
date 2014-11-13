@@ -8,5 +8,5 @@
 DataSource:
   DBName: db/sample.db
 
-ERDDAPURL: http://erddap.ooi.rutgers.edu/erddap
+ERDDAPURL: http://localhost:8080/erddap
 
