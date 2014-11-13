@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-#!/usr/bin/env python
 '''
 ooiservices.model.platform.py
 
@@ -30,7 +29,7 @@ class PlatformModel(SqlModel):
         '''
         Places the contents of the row into the json document
         '''
-        
+
         instr_constant = 'PHSENE002'
 
         array_code     = row['array_code']
@@ -56,5 +55,3 @@ class PlatformModel(SqlModel):
 
         if instr not in doc[array_code][site_suffix]['instruments']:
             doc[array_code][site_suffix]['instruments'].append(instr)
-
-

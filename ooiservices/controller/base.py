@@ -20,7 +20,7 @@ class BaseController(Resource):
     Provides two abstract HTTP routes:
         ObjectController implements methods GET/PUT/DELETE (requires id of object)
         ListController implements methods GET/POST (accepts filters via query_string)
-    
+
     Resources should be added to Flask app via:
         restful.Api.add_resource(FooListController, '/foos')
         restful.Api.add_resource(FooObjectController, '/foos/<string:id>')
