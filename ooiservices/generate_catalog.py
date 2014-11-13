@@ -43,23 +43,34 @@ class DatasetCrawler:
             raise IOError("Platform directory path %s does not exist" % platform_directory)
 
         for directory in os.listdir(platform_directory):
-            if re.match(r'[A-Z0-9]{9}', directory):
-                self.generate_catalog(os.path.join(platform_directory, directory))
+            if re.match(r'[0-9]{2}[-_][A-Z0-9]{9}', directory):
+                self.crawl_instrument_directory(os.path.join(platform_directory, directory))
 
-    def generate_catalog(self, instrument_directory):
+    def crawl_instrument_directory(self, instrument_directory):
         '''
         Generates the catalog by looking at the netcdf file
         '''
         if not os.path.exists(instrument_directory):
-            raise IOError("Platform directory path %s does not exist" % instrument_directory)
+            raise IOError("Instrument directory path %s does not exist" % instrument_directory)
 
-        for file_path in os.listdir(instrument_directory):
-            if file_path.endswith('.nc'):
-                self.add_to_catalog(os.path.join(instrument_directory, file_path))
-                # We want to break early so we only look at one file
-                # ERDDAP takes care of the rest
+        for directory in os.listdir(instrument_directory):
+            if os.path.isdir(os.path.join(instrument_directory, directory)):
+                self.crawl_file_directory(os.path.join(instrument_directory, directory))
 
+    def crawl_file_directory(self, file_directory):
+        '''
+
+        '''
+        if not os.path.exists(file_directory):
+            raise IOError("File directory path %s does not exist" % instrument_directory)
+
+
+        for netcdf_file in os.listdir(file_directory):
+
+            if netcdf_file.endswith('.nc'):
+                self.add_to_catalog(os.path.join(file_directory, netcdf_file))
                 break
+
 
     def add_to_catalog(self, netcdf_file):
         '''
@@ -69,14 +80,15 @@ class DatasetCrawler:
         base_dir = os.path.dirname(netcdf_file)
 
         path_tree = netcdf_file.split('/')
-        instrument = path_tree[-2]
-        platform = path_tree[-3]
+        processed_prefix = path_tree[-2]
+        instrument = path_tree[-3]
+        platform = path_tree[-4]
 
 
         ref_des = '_'.join([platform, instrument])
         stream_name = path_tree[-1].split('__')[0]
 
-        dataset_id = '_'.join([ref_des, stream_name])
+        dataset_id = '_'.join([ref_des, stream_name, processed_prefix])
         dataset_id = re.sub(r'-', '_', dataset_id)
 
         entry = ERDDAPCatalogEntry(dataset_id, base_dir, netcdf_file)

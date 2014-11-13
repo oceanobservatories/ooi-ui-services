@@ -79,7 +79,7 @@ def parse_row(doc, row):
             'lon' : lon
         }
 
-    erddap_ref_code = array_code + site_prefix.zfill(2) + site_suffix + '_' + node_type_code + node_site_seq.zfill(3) + '_' + instrument_class + instrument_series + instrument_req
+    erddap_ref_code = array_code + site_prefix.zfill(2) + site_suffix + '_' + node_type_code + node_site_seq.zfill(3) + '_' + port_number.zfill(2) + '_' + instrument_class + instrument_series + instrument_req
     stream_doc = get_streams(erddap_ref_code)
     doc[array_code][platform]['instruments'][ref_code] = stream_doc
 
