@@ -92,6 +92,7 @@ class ERDDAPCatalogEntry:
         self.dataset_dir = dataset_dir
         # Load the netcdf file
         self.nc = Dataset(netcdf_file, 'r')
+        self.data_vars = {}
         # Get the path to the templates folder relative to this package 
         template_path = pkg_resources.resource_filename(__name__, 'templates')
         self.jenv = Environment(loader=FileSystemLoader(template_path), trim_blocks=True, lstrip_blocks=True)
