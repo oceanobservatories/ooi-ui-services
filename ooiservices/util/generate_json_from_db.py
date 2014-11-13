@@ -64,6 +64,9 @@ def parse_row(doc, row):
     if site in SITES:
         lat = SITES[site]['lat']
         lon = SITES[site]['lon']
+    elif site == 'CP05MOAS' and 'GL' in node_type_code:
+        lat = 40.0833
+        lon = -70.25
     else:
         lat = -999
         lon = -999
