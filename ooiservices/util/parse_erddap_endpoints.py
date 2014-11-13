@@ -6,6 +6,7 @@
 import requests
 import json
 import re
+import time
 from ooiservices import app
 
 #base_url = "http://erddap.ooi.rutgers.edu/erddap"
@@ -14,15 +15,12 @@ base_url = ERDDAPURL
 
 
 meta_outline = None
+cache_update = None
 
 def getStreamIdsForRef(ref):
     ref = re.sub(r'-', '_', ref)
-    global meta_outline
-    if meta_outline is None:
-        url = base_url+"/info/index.json"
-        meta_outline = requests.get(url)
-        meta_outline = meta_outline.json()
     stream_list = []
+    meta_outline = get_meta_outline()
     for row in meta_outline["table"]["rows"]:
         dataset_id = row[-1]
         if dataset_id.startswith(ref):
@@ -33,6 +31,20 @@ def getStreamIdsForRef(ref):
 
     return stream_list
 
+def get_meta_outline():
+    global meta_outline
+    global cache_update
+    if meta_outline is None:
+        cahce_update = time.time()
+        url = base_url+"/info/index.json"
+        meta_outline = requests.get(url)
+        meta_outline = meta_outline.json()
+    if cache_update < (time.time() + 60):
+        cahce_update = time.time()
+        url = base_url+"/info/index.json"
+        meta_outline = requests.get(url)
+        meta_outline = meta_outline.json()
+    return meta_outline
 
 def getAttribsForRef(ref,stream):
     variable_list = []
