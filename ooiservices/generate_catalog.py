@@ -55,14 +55,25 @@ class DatasetCrawler:
 
         for directory in os.listdir(instrument_directory):
             if os.path.isdir(os.path.join(instrument_directory, directory)):
-                self.crawl_file_directory(os.path.join(instrument_directory, directory))
+                self.crawl_stream_directory(os.path.join(instrument_directory, directory))
+    
+    def crawl_stream_directory(self, stream_directory):
+        '''
+        Generates the catalog by looking at the netcdf file
+        '''
+        if not os.path.exists(stream_directory):
+            raise IOError("Stream directory path %s does not exist" % stream_directory)
+
+        for directory in os.listdir(stream_directory):
+            if os.path.isdir(os.path.join(stream_directory, directory)):
+                self.crawl_file_directory(os.path.join(stream_directory, directory))
 
     def crawl_file_directory(self, file_directory):
         '''
 
         '''
         if not os.path.exists(file_directory):
-            raise IOError("File directory path %s does not exist" % instrument_directory)
+            raise IOError("File directory path %s does not exist" % file_directory)
 
 
         for netcdf_file in os.listdir(file_directory):
@@ -81,12 +92,12 @@ class DatasetCrawler:
 
         path_tree = netcdf_file.split('/')
         processed_prefix = path_tree[-2]
-        instrument = path_tree[-3]
-        platform = path_tree[-4]
+        stream_name = path_tree[-3]
+        instrument = path_tree[-4]
+        platform = path_tree[-5]
 
 
         ref_des = '_'.join([platform, instrument])
-        stream_name = path_tree[-1].split('__')[0]
 
         dataset_id = '_'.join([ref_des, stream_name, processed_prefix])
         dataset_id = re.sub(r'-', '_', dataset_id)
