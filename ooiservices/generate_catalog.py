@@ -91,8 +91,10 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('catalog_path', help='Path to the datasets.xml file')
-    parser.add_argument('netcdf_file', help='A sample netcdf file to parse for metadata')
+    parser.add_argument('datasets_root', help='Datasets root')
+    parser.add_argument('-w', '--wipe', action='store_true', help='Remove the existing datasets.xml')
     args = parser.parse_args()
 
-    add_to_catalog(args.catalog_path, args.netcdf_file)
+    dc = DatasetCrawler(args.catalog_path, args.wipe)
+    dc.crawl_datasets(args.datasets_root)
 
