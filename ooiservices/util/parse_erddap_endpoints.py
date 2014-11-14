@@ -10,7 +10,7 @@ import time
 from ooiservices import app
 
 #base_url = "http://erddap.ooi.rutgers.edu/erddap"
-from config import ERDDAPURL
+from ooiservices.config import ERDDAPURL
 base_url = ERDDAPURL
 
 
@@ -64,6 +64,20 @@ def getAttribsForRef(ref,stream):
     if variable_list:
         app.logger.error(repr(variable_list))
     return variable_list
+
+def get_times_for_stream(ref, stream):
+    url = '%s/info/%s_%s/index.json' % (base_url, ref, stream)
+    response = requests.get(url)
+    if response.status_code != 200:
+        return {}
+    retval = {}
+    metadata = response.json()
+    for row in metadata['table']['rows']:
+        if row[1] == 'NC_GLOBAL' and 'time_coverage_start' in row[2]:
+            retval['time_coverage_start'] = row[4]
+        if row[1] == 'NC_GLOBAL' and 'time_coverage_end' in row[2]:
+            retval['time_coverage_end'] = row[4]
+    return retval
 
 
 # In[173]:
