@@ -5,5 +5,15 @@
 # from ooiservices.config import DataSource
 # children of this configuration are in a dictionary
 # db_name = DataSource['DBName']
+# use Adaptor default: SQLiteAdaptor until postgres database populated
 DataSource:
   DBName: db/sample.db
+
+Adaptors:
+  default: SQLiteAdaptor
+  PostgresAdaptor:
+    database: database
+    username: username
+    password: password
+    host: host
+    port: port
