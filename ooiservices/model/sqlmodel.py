@@ -50,7 +50,7 @@ class SqlModel(BaseModel):
         if obj_id:
             query = 'SELECT * FROM %s WHERE %s=\'%s\';' % (self.tbl, self.where_param, obj_id)
         else:
-            query = 'SELECT * FROM %s;' % (self.tbl)
+            query = 'SELECT * FROM %s ORDER BY %s;' % (self.tbl, self.where_param)
 
         answer = self.sql.perform(query)
 
