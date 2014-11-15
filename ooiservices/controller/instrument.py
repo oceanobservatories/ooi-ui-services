@@ -18,5 +18,5 @@ class InstrumentController(BaseController):
         BaseController.__init__(self)
 
     def get(self):
-        args = request.args
-        return 'GET OK (list)'
+        result = self.inst.read()
+        return result

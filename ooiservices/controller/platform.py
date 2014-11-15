@@ -14,9 +14,9 @@ from flask import request
 __author__ = "Brian McKenna"
 
 class PlatformObjectController(ObjectController):
-    
+
     plat = PlatformModel()
-    
+
     def __init__(self):
         ObjectController.__init__(self)
 
@@ -25,6 +25,8 @@ class PlatformObjectController(ObjectController):
         # TODO: return HTTP 204 if no result
         #Formats the json dict to be used by the view:
         formatted_result = self.plat.filter_ooi_platforms(result)
+        if formatted_result is None:
+            formatted_result = result
         return formatted_result
 
     def put(self, id):
@@ -42,9 +44,9 @@ class PlatformObjectController(ObjectController):
         return self.plat.delete(id)
 
 class PlatformListController(ListController):
-   
+
     plat = PlatformModel()
-        
+
     def get(self):
         result = self.plat.read()
         #Formats the json dict to be used by the view:

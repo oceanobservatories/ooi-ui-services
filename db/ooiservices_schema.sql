@@ -1,0 +1,26 @@
+CREATE TABLE platforms (
+    id          VARCHAR(20) NOT NULL,
+    array_code  VARCHAR(20) NOT NULL,
+    site_name   VARCHAR(20) NOT NULL,
+    node_name   VARCHAR(20) NOT NULL,
+
+    /* geography geography(POINT, 4326), */
+
+    PRIMARY KEY (id)
+);
+
+CREATE TABLE instruments (
+    id          VARCHAR(20) NOT NULL,
+    platform_id VARCHAR(20) NOT NULL,
+    port        VARCHAR(20) NOT NULL,
+    inst_class  VARCHAR(20) NOT NULL,
+    inst_series VARCHAR(20) NOT NULL,
+    inst_seq    VARCHAR(20) NOT NULL,
+
+    PRIMARY KEY (id)
+    /*FOREIGN KEY (platform_id) REFERENCES platforms(id)*/
+);
+
+
+INSERT INTO platforms VALUES ('AA#AAAA-AACCC', 'AA', '##AAAA', 'AACCC');
+INSERT INTO instruments VALUES ('##-CCCCCA###', 'AA#AAAA-AACCC', '##', 'CCCCC', 'A', '###');

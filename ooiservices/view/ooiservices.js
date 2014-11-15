@@ -1,10 +1,11 @@
-function getPlatform (array_code) {
-    if (array_code) {
-        var url_val = "http://localhost:5000/" + array_code + "/platforms";
+var BASE_URL = 'http://localhost:5000/';
+function getPlatform (platform_id) {
+    if (platform_id) {
+        var url_val = BASE_URL + "platforms/" + platform_id;
     } else {
-        var url_val = "http://localhost:5000/platforms";
+        var url_val = BASE_URL + "platforms";
     }
-    jQuery.ajax({
+    $.ajax({
          type: "GET",
          url: url_val,
          contentType: "application/json; charset=utf-8",
@@ -12,21 +13,18 @@ function getPlatform (array_code) {
          success: function (data, status, jqXHR) {
                return document.write(JSON.stringify(data));
          },
-
          error: function (jqXHR, status) {
              return document.write(jqXHR.responseText);
          }
-
     });
 }
-
-function getInstrument (platform_id) {
-    if (platform_id) {
-        var url_val = "http://localhost:5000/" + platform_id + "/instrument";
+function getInstrument (instrument_id) {
+    if (instrument_id) {
+        var url_val = BASE_URL + "instrument/" + instrument_id;
     } else {
-        var url_val = "http://localhost:5000/instrument";
+        var url_val = BASE_URL + "instrument";
     }
-    jQuery.ajax({
+    $.ajax({
          type: "GET",
          url: url_val,
          contentType: "application/json; charset=utf-8",
@@ -34,10 +32,8 @@ function getInstrument (platform_id) {
          success: function (data, status, jqXHR) {
                return document.write(JSON.stringify(data));
          },
-
          error: function (jqXHR, status) {
              return document.write(jqXHR.responseText);
          }
-
     });
 }

@@ -7,12 +7,7 @@ Definitions for the SQLiteAdaptor
 
 __author__ = 'Matt Campbell'
 
-import uuid
-import os
-import json
 import sqlite3 as lite
-
-
 
 class SQLiteAdaptor(object):
     db = None
@@ -36,7 +31,7 @@ class SQLiteAdaptor(object):
         conn = self.get_db()
         conn.row_factory = dict_factory
         c = conn.cursor()
-        
+
         try:
             if lite.complete_statement(query):
                 if obj:
@@ -56,4 +51,3 @@ class SQLiteAdaptor(object):
             if conn:
                 conn.close()
         return result
-

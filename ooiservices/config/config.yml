@@ -1,9 +1,19 @@
-# Configuration 
+# Configuration
 #
 # This represents a top level configuration and can be imported with
-# 
+#
 # from ooiservices.config import DataSource
 # children of this configuration are in a dictionary
 # db_name = DataSource['DBName']
+
+#Database configuration
 DataSource:
-  DBName: db/sample.db
+    #supported DB:
+    # DBType: sqlite
+    # DBType: psql
+    DBType: psql
+    DBName: ooi_psql_test
+    userName: postgres
+    password:
+    host: localhost
+    port: 5432

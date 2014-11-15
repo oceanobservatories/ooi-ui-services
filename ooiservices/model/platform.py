@@ -19,11 +19,13 @@ class PlatformModel(SqlModel):
         '''
         interim helper to reformat query output to OOI UI input format
         '''
-        doc = {}
-        for row in input:
-            self.read_row(doc, row)
-
-        return doc
+        try:
+            doc = {}
+            for row in input:
+                self.read_row(doc, row)
+            return doc
+        except:
+            return None
 
     def read_row(self, doc, row):
         '''

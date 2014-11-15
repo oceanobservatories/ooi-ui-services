@@ -6,15 +6,20 @@ ooiservices.model.sqlmodel
 SQLModel
 '''
 
-
 from ooiservices.config import DataSource
+from ooiservices.adaptor.postgres import PostgresAdaptor as PSQL
 from ooiservices.adaptor.sqlite import SQLiteAdaptor as SQL
 from ooiservices.model.base import BaseModel
 
 class SqlModel(BaseModel):
-    
-    sql = SQL(DataSource['DBName'])
-    
+
+    if (DataSource['DBType'] == 'sqlite'):
+        sql = SQL(DataSource['DBName'])
+    elif (DataSource['DBType'] == 'psql'):
+        sql = PSQL(DataSource['DBName'], DataSource['userName'],DataSource['password'], DataSource['host'], DataSource['port'])
+    else:
+        raise 'DB Unsupported'
+
     def __init__(self, table_name=None, where_param='id'):
         '''
         Instantiates new base model
@@ -23,7 +28,7 @@ class SqlModel(BaseModel):
         BaseModel.__init__(self)
         self.tbl = table_name
         self.where_param = where_param
-    
+
     #CRUD methods
     def create(self, obj):
         '''
@@ -36,7 +41,7 @@ class SqlModel(BaseModel):
         query = 'INSERT INTO %s (%s) VALUES (%s);' % (self.tbl, columns, placeholders)
         feedback = self.sql.perform(query, obj)
         return feedback
-    
+
     def read(self, obj_id=None):
         '''
         Modified to (temporarily) support interim UI specification for output
@@ -45,12 +50,12 @@ class SqlModel(BaseModel):
         if obj_id:
             query = 'SELECT * FROM %s WHERE %s=\'%s\';' % (self.tbl, self.where_param, obj_id)
         else:
-            query = 'SELECT * FROM %s ORDER BY %s;' % (self.tbl, self.where_param)
+            query = 'SELECT * FROM %s;' % (self.tbl)
 
         answer = self.sql.perform(query)
 
         return answer
-    
+
     def update(self, obj):
         obj_id = obj.get('id')
         #Don't want to include the id in the data set to update.
@@ -59,9 +64,8 @@ class SqlModel(BaseModel):
         query = 'UPDATE %s SET %s WHERE %s=\'%s\';' % (self.tbl, update_set, self.where_param, obj_id)
         feedback = self.sql.perform(query)
         return feedback
-    
+
     def delete(self, obj_id):
         query = 'DELETE FROM %s WHERE %s=\'%s\';' % (self.tbl, self.where_param, obj_id)
         feedback = self.sql.perform(query)
         return feedback
-
