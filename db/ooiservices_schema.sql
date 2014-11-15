@@ -3,6 +3,7 @@ CREATE TABLE ooi_platforms (
     array_code  VARCHAR(20) NOT NULL,
     site_name   VARCHAR(20) NOT NULL,
     node_name   VARCHAR(20) NOT NULL,
+    geo_loc     POINT,
 
     /* geography geography(POINT, 4326), */
 
@@ -22,5 +23,5 @@ CREATE TABLE ooi_instruments (
 );
 
 
-INSERT INTO ooi_platforms VALUES ('AA#AAAA-AACCC', 'AA', '##AAAA', 'AACCC');
+INSERT INTO ooi_platforms VALUES ('AA#AAAA-AACCC', 'AA', '##AAAA', 'AACCC', (41.4333, 71.5000));
 INSERT INTO ooi_instruments VALUES ('##-CCCCCA###', 'AA#AAAA-AACCC', '##', 'CCCCC', 'A', '###');
