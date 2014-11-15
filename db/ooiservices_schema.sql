@@ -22,5 +22,5 @@ CREATE TABLE ooi_instruments (
 );
 
 
-INSERT INTO platforms VALUES ('AA#AAAA-AACCC', 'AA', '##AAAA', 'AACCC');
-INSERT INTO instruments VALUES ('##-CCCCCA###', 'AA#AAAA-AACCC', '##', 'CCCCC', 'A', '###');
+INSERT INTO ooi_platforms VALUES ('AA#AAAA-AACCC', 'AA', '##AAAA', 'AACCC');
+INSERT INTO ooi_instruments VALUES ('##-CCCCCA###', 'AA#AAAA-AACCC', '##', 'CCCCC', 'A', '###');
