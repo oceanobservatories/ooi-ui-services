@@ -1,4 +1,4 @@
-CREATE TABLE platforms (
+CREATE TABLE ooi_platforms (
     id          VARCHAR(20) NOT NULL,
     array_code  VARCHAR(20) NOT NULL,
     site_name   VARCHAR(20) NOT NULL,
@@ -9,7 +9,7 @@ CREATE TABLE platforms (
     PRIMARY KEY (id)
 );
 
-CREATE TABLE instruments (
+CREATE TABLE ooi_instruments (
     id          VARCHAR(20) NOT NULL,
     platform_id VARCHAR(20) NOT NULL,
     port        VARCHAR(20) NOT NULL,

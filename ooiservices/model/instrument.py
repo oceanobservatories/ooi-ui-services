@@ -13,4 +13,4 @@ __author__ = "Matt Campbell"
 class InstrumentModel(SqlModel):
 
     def __init__(self):
-        SqlModel.__init__(self, table_name='instruments')
+        SqlModel.__init__(self, table_name='ooi_instruments')
