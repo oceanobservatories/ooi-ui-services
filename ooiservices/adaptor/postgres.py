@@ -24,8 +24,6 @@ class PostgresAdaptor(object):
         self.password = password
         self.host = host
         self.port = port
-        if not (self.database and self.username and self.password and self.host and self.port):
-            raise Exception('<PostgresAdaptor> required config setting empty')
 
     def get_db(self):
         try:
