@@ -12,6 +12,7 @@ before_install:
 install:
   - pip install -r requirements.txt
 before_script:
+  - psql -U postgres -c "create extension postgis;"
   - psql -c 'create database ooi_psql_test;' -U postgres
   - psql ooi_psql_test < db/ooiservices_schema.sql
 script:

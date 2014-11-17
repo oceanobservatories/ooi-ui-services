@@ -13,7 +13,7 @@ __author__ = "Matt Campbell"
 class PlatformModel(SqlModel):
 
     def __init__(self):
-        SqlModel.__init__(self, table_name='ooi_platforms', where_param='array_code')
+        SqlModel.__init__(self, table_name='platforms', where_param='id')
 
     def filter_ooi_platforms(self, input):
         '''

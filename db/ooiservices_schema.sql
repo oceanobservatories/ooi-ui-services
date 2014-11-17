@@ -1,26 +1,33 @@
-CREATE TABLE ooi_platforms (
+/* __author__ = 'Matt Campbell'
+    Requires: postgis
+*/
+
+CREATE TABLE arrays (
     id          VARCHAR(20) NOT NULL,
-    array_code  VARCHAR(20) NOT NULL,
-    site_name   VARCHAR(20) NOT NULL,
-    node_name   VARCHAR(20) NOT NULL,
-    lat         FLOAT,
-    lon         FLOAT,
+    geography       BOX,
 
     PRIMARY KEY (id)
 );
 
-CREATE TABLE ooi_instruments (
+CREATE TABLE platforms (
+    id          VARCHAR(20) NOT NULL,
+    array_id    VARCHAR(20) NOT NULL,
+    geography   geography(POINT,4326),
+
+    PRIMARY KEY (id),
+    FOREIGN KEY (array_id) REFERENCES arrays(id)
+);
+
+CREATE TABLE instruments (
     id          VARCHAR(20) NOT NULL,
     platform_id VARCHAR(20) NOT NULL,
-    port        VARCHAR(20) NOT NULL,
-    inst_class  VARCHAR(20) NOT NULL,
-    inst_series VARCHAR(20) NOT NULL,
-    inst_seq    VARCHAR(20) NOT NULL,
+    geography   geography(POINT,4326),
 
-    PRIMARY KEY (id)
-    /*FOREIGN KEY (platform_id) REFERENCES platforms(id)*/
+    PRIMARY KEY (id),
+    FOREIGN KEY (platform_id) REFERENCES platforms(id)
 );
 
-
-INSERT INTO ooi_platforms VALUES ('AA#AAAA-AACCC', 'AA', '##AAAA', 'AACCC', 41.4333, 71.5000);
-INSERT INTO ooi_instruments VALUES ('##-CCCCCA###', 'AA#AAAA-AACCC', '##', 'CCCCC', 'A', '###');
+/* sample content */
+INSERT INTO arrays VALUES ('AA', (ST_MakeEnvelope(41.45373, -71.47099, 41.45541, -71.47041, 4326)));
+INSERT INTO platforms VALUES ('AA0AAAA-AACCC', 'AA', ST_Point(41.45443, -71.47041));
+INSERT INTO instruments VALUES ('##-CCCCCA###', 'AA0AAAA-AACCC', ST_Point(41.45443, -71.47041));

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-ooiservices.model.instrument.py
+ooiservices.model.array.py
 
 InstrumentModel
 '''
@@ -10,7 +10,7 @@ from ooiservices.model.sqlmodel import SqlModel
 
 __author__ = "Matt Campbell"
 
-class InstrumentModel(SqlModel):
+class ArrayModel(SqlModel):
 
     def __init__(self):
-        SqlModel.__init__(self, table_name='instruments', where_param='id')
+        SqlModel.__init__(self, table_name='arrays')
