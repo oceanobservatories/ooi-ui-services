@@ -16,14 +16,17 @@ class BaseController(Resource):
 
     """
     Implements Flask-RESTful Resource
-    Provides HTTP methods GET/POST/DELETE/PUT
+
+    Provides two abstract HTTP routes:
+        ObjectController implements methods GET/PUT/DELETE (requires id of object)
+        ListController implements methods GET/POST (accepts filters via query_string)
     
     Resources should be added to Flask app via:
-        restful.Api.add_resource(FooController.List, '/foos')
-        restful.Api.add_resource(FooController, '/foos/<string:id>')
+        restful.Api.add_resource(FooListController, '/foos')
+        restful.Api.add_resource(FooObjectController, '/foos/<string:id>')
     where:
-        /foos accepts GET to return list of all objects and POST to create objects
-        /foos/<id> acts on specific object and accepts GET/PUT/DELETE
+        /foos accepts GET to return list of all objects and POST to create object(s)
+        /foos/<id> acts on specific object and implements GET/PUT/DELETE
     """
 
     def _model(adapter):
@@ -49,22 +52,23 @@ class BaseController(Resource):
         model = BaseModel()
         assert isinstance(model, BaseModel)
 
+class ObjectController(BaseController):
+
     def get(self, id):
-        return 'GET OK - id: %s' % id
+        raise NotImplementedError()
 
     def put(self, id):
-        args = request.args
-        return 'PUT OK - id: %s' % id
+        raise NotImplementedError()
 
     def delete(self, id):
-        return 'DELETE OK - id: %s' % id
+        raise NotImplementedError()
 
-    class List(Resource):
 
-        def get(self):
-            args = request.args
-            return 'GET OK (list)'
+class ListController(BaseController):
 
-        def post(self):
-            args = request.form
-            return 'POST OK'
+    def get(self):
+        raise NotImplementedError()
+
+    def post(self):
+        raise NotImplementedError()
+
