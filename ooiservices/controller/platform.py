@@ -6,22 +6,23 @@ PlatformController
 
 '''
 
-from ooiservices.controller.base import BaseController
+from ooiservices.controller.base import ObjectController, ListController
 from ooiservices.model.platform import PlatformModel
 from flask.ext.restful import Resource
 from flask import request
 
 __author__ = "Brian McKenna"
 
-class PlatformController(BaseController):
+class PlatformObjectController(ObjectController):
     
     plat = PlatformModel()
     
     def __init__(self):
-        BaseController.__init__(self)
+        ObjectController.__init__(self)
 
     def get(self, id):
         result = self.plat.read(id)
+        # TODO: return HTTP 204 if no result
         #Formats the json dict to be used by the view:
         formatted_result = self.plat.filter_ooi_platforms(result)
         return formatted_result
@@ -39,12 +40,13 @@ class PlatformController(BaseController):
 
     def delete(self, id):
         return self.plat.delete(id)
+
+class PlatformListController(ListController):
    
-    class List(Resource):
-        plat = PlatformModel()
+    plat = PlatformModel()
         
-        def get(self):
-            result = self.plat.read()
-            #Formats the json dict to be used by the view:
-            formatted_result = self.plat.filter_ooi_platforms(result)
-            return formatted_result
+    def get(self):
+        result = self.plat.read()
+        #Formats the json dict to be used by the view:
+        formatted_result = self.plat.filter_ooi_platforms(result)
+        return formatted_result
