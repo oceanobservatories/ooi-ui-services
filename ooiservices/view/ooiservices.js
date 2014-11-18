@@ -14,14 +14,22 @@ function getForm(url_val) {
     });
 }
 function getArrays () {
-    var url_val = BASE_URL + "arrays";
+    var url_val = BASE_URL + "array";
+    getForm(url_val);
+}
+function getPlatform (platform_id) {
+    var url_val = BASE_URL + "platform/" + platform_id;
+    getForm(url_val);
+}
+function getInstrument (instrument_id) {
+    var url_val = BASE_URL + "instrument/" + instrument_id;
     getForm(url_val);
 }
 function getPlatformsAtArray (array_id) {
-    var url_val = BASE_URL + "platforms?array_id=" + array_id;
+    var url_val = BASE_URL + "platform?array_id=" + array_id;
     getForm(url_val);
 }
 function getInstrumentsAtPlatform (platform_id) {
-   var url_val = BASE_URL + "instruments?platform_id=" + platform_id;
+   var url_val = BASE_URL + "instrument?platform_id=" + platform_id;
     getForm(url_val);
 }
