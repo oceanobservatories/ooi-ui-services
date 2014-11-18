@@ -16,11 +16,11 @@ from ooiservices.controller.array import ArrayObjectController, ArrayListControl
 
 
 # endpoints
-api.add_resource(ArrayListController, '/arrays')
-api.add_resource(ArrayObjectController, '/arrays/<string:id>')
+api.add_resource(ArrayListController, '/array')
+api.add_resource(ArrayObjectController, '/array/<string:id>')
 
-api.add_resource(PlatformListController, '/platforms')
-api.add_resource(PlatformObjectController, '/platforms/<string:id>')
+api.add_resource(PlatformListController, '/platform')
+api.add_resource(PlatformObjectController, '/platform/<string:id>')
 
-api.add_resource(InstrumentListController, '/instruments')
-api.add_resource(InstrumentObjectController, '/instruments/<string:id>')
+api.add_resource(InstrumentListController, '/instrument')
+api.add_resource(InstrumentObjectController, '/instrument/<string:id>')
