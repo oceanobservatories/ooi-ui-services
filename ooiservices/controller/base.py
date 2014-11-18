@@ -9,6 +9,7 @@ from flask import request
 from flask.ext.restful import Resource
 
 from ooiservices.model.base import BaseModel
+from flask import make_response
 
 __author__ = "Brian McKenna"
 
@@ -63,6 +64,8 @@ class ObjectController(BaseController):
     def delete(self, id):
         raise NotImplementedError()
 
+    def response_HTTP204(self):
+        return make_response('', 204)
 
 class ListController(BaseController):
 
