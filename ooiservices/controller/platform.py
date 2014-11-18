@@ -6,9 +6,9 @@ PlatformController
 
 '''
 
-from ooiservices.controller.base import ObjectController, ListController
+from ooiservices.controller.base import ObjectController
+from ooiservices.controller.base import ListController
 from ooiservices.model.platform import PlatformModel
-from flask.ext.restful import Resource
 from flask import request
 
 __author__ = "Brian McKenna"
@@ -22,6 +22,8 @@ class PlatformObjectController(ObjectController):
 
     def get(self, id):
         result = self.platform.read(id)
+        if not result:
+            return self.response_HTTP204()
         return result
 
     def put(self, id):
