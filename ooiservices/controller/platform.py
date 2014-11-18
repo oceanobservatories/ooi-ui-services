@@ -22,7 +22,7 @@ class PlatformObjectController(ObjectController):
 
     def get(self, id):
         result = self.platform.read(id)
-        if not result:
+        if result is not None:
             return self.response_HTTP204()
         return result
 
