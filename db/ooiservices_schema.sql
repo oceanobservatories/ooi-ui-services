@@ -4,7 +4,7 @@
 
 CREATE TABLE arrays (
     id          VARCHAR(20) NOT NULL,
-    geography       BOX,
+    geography   BOX,
 
     PRIMARY KEY (id)
 );

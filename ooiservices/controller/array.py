@@ -12,12 +12,20 @@ from flask.ext.restful import Resource
 
 __author__ = "Matt Campbell"
 
-class ArrayController(ObjectController):
+class ArrayObjectController(ObjectController):
 
     newArray = ArrayModel()
 
     def __init__(self):
         ObjectController.__init__(self)
+
+    def get(self, id):
+        result = self.newArray.read(id)
+        return result
+
+class ArrayListController(ListController):
+
+    newArray = ArrayModel()
 
     def get(self):
         result = self.newArray.read()

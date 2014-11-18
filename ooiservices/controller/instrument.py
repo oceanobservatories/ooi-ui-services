@@ -5,18 +5,26 @@ ooiservices.controller.instrument
 InstrumentController
 '''
 
-from ooiservices.controller.base import BaseController
+from ooiservices.controller.base import ObjectController, ListController
 from ooiservices.model.instrument import InstrumentModel
 
 __author__ = "Matt Campbell"
 
-class InstrumentController(BaseController):
+class InstrumentObjectController(ObjectController):
 
-    inst = InstrumentModel()
+    newInstrument = InstrumentModel()
 
     def __init__(self):
         BaseController.__init__(self)
 
+    def get(self,id):
+        result = self.newInstrument.read(id)
+        return result
+
+class InstrumentListController(ListController):
+
+    newInstrument = InstrumentModel()
+
     def get(self):
-        result = self.inst.read()
+        result = self.newInstrument.read()
         return result

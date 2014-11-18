@@ -15,19 +15,14 @@ __author__ = "Brian McKenna"
 
 class PlatformObjectController(ObjectController):
 
-    plat = PlatformModel()
+    platform = PlatformModel()
 
     def __init__(self):
         ObjectController.__init__(self)
 
     def get(self, id):
-        result = self.plat.read(id)
-        # TODO: return HTTP 204 if no result
-        #Formats the json dict to be used by the view:
-        formatted_result = self.plat.filter_ooi_platforms(result)
-        if formatted_result is None:
-            formatted_result = result
-        return formatted_result
+        result = self.platform.read(id)
+        return result
 
     def put(self, id):
         args = request.args
@@ -37,18 +32,16 @@ class PlatformObjectController(ObjectController):
             for item in params:
                 doc[item[0]] = item[1]
         doc['id'] = id
-        result = self.plat.update(doc)
+        result = self.platform.update(doc)
         return result
 
     def delete(self, id):
-        return self.plat.delete(id)
+        return self.platform.delete(id)
 
 class PlatformListController(ListController):
 
-    plat = PlatformModel()
+    platform = PlatformModel()
 
     def get(self):
-        result = self.plat.read()
-        #Formats the json dict to be used by the view:
-        formatted_result = self.plat.filter_ooi_platforms(result)
-        return formatted_result
+        result = self.platform.read()
+        return result
