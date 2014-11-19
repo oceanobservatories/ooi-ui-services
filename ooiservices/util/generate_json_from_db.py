@@ -33,7 +33,7 @@ def generate():
     
 
     c = conn.cursor()
-    for row in c.execute('SELECT * FROM ooi_instruments;'):
+    for row in c.execute('SELECT * FROM ooi_instruments ORDER BY ref_code;'):
         parse_row(doc, row)
 
     with open('ooiservices/static/expected_platforms.json', 'w') as f:
