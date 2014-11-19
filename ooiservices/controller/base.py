@@ -10,6 +10,7 @@ from flask.ext.restful import Resource
 
 from ooiservices.model.base import BaseModel
 from flask import make_response
+from flask import jsonify
 
 __author__ = "Brian McKenna"
 
@@ -53,6 +54,21 @@ class BaseController(Resource):
         model = BaseModel()
         assert isinstance(model, BaseModel)
 
+    def response_HTTP204(self):
+        return make_response('', 204)
+
+    def response_HTTP404(self):
+        return make_response(jsonify({'error': 'Not Found' } ), 404)
+
+    def process_args(self,model, args, key):
+        result = None
+        if key in args:
+            value = request.args.get(key, '')
+            self.model.where_param = key
+            result = self.model.read(value)
+        return result
+
+
 class ObjectController(BaseController):
 
     def get(self, id):
@@ -63,9 +79,6 @@ class ObjectController(BaseController):
 
     def delete(self, id):
         raise NotImplementedError()
-
-    def response_HTTP204(self):
-        return make_response('', 204)
 
 class ListController(BaseController):
 
