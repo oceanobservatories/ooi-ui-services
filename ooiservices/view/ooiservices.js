@@ -1,35 +1,47 @@
 var BASE_URL = 'http://localhost:5000/';
-function getForm(url_val) {
-    $.ajax({
+function getForm(url_val, callback) {
+    jQuery.ajax({
          type: "GET",
          url: url_val,
          contentType: "application/json; charset=utf-8",
          dataType: "json",
-         success: function (data, status, jqXHR) {
-               return document.write(JSON.stringify(data));
+         success: function (data) {
+            result = JSON.stringify(data, null, 2)
+            callback(result);
          },
          error: function (jqXHR, status) {
-             return document.write(jqXHR.responseText);
+            return document.write(jqXHR.responseText);
          }
     });
 }
 function getArrays () {
     var url_val = BASE_URL + "array";
-    getForm(url_val);
+    getForm(url_val, function(result) {
+        $("#out").html(result);
+    });
+
 }
 function getPlatform (platform_id) {
     var url_val = BASE_URL + "platform/" + platform_id;
-    getForm(url_val);
+    getForm(url_val, function(result) {
+        $("#out").html(result);
+    });
 }
 function getInstrument (instrument_id) {
     var url_val = BASE_URL + "instrument/" + instrument_id;
-    getForm(url_val);
+    getForm(url_val, function(result) {
+        $("#out").html(result);
+    });
 }
 function getPlatformsAtArray (array_id) {
     var url_val = BASE_URL + "platform?array_id=" + array_id;
-    getForm(url_val);
+    getForm(url_val, function(result) {
+        $("#out").html(result);
+    });
 }
 function getInstrumentsAtPlatform (platform_id) {
    var url_val = BASE_URL + "instrument?platform_id=" + platform_id;
-    getForm(url_val);
+   getForm(url_val, function(result) {
+        $("#out").html(result);
+    });
 }
