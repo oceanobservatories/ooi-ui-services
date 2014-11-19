@@ -42,8 +42,15 @@ class PlatformObjectController(ObjectController):
 
 class PlatformListController(ListController):
 
-    platform = PlatformModel()
+    model = PlatformModel()
 
     def get(self):
-        result = self.platform.read()
+        args = request.args
+        if args:
+            result = self.process_args(self.model, args,'array_id')
+        else:
+            result = self.model.read()
+        if not result:
+            return self.response_HTTP204()
         return result
+
