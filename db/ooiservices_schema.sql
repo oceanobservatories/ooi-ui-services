@@ -4,7 +4,8 @@
 
 CREATE TABLE arrays (
     id          VARCHAR(30) NOT NULL,
-    geography   BOX,
+    description VARCHAR(255),
+    geography   geography(POINT,4326),
 
     PRIMARY KEY (id)
 );
@@ -12,6 +13,7 @@ CREATE TABLE arrays (
 CREATE TABLE platforms (
     id          VARCHAR(30) NOT NULL,
     array_id    VARCHAR(30) NOT NULL,
+    description VARCHAR(255),
     geography   geography(POINT,4326),
 
     PRIMARY KEY (id),
@@ -21,6 +23,7 @@ CREATE TABLE platforms (
 CREATE TABLE instruments (
     id          VARCHAR(30) NOT NULL,
     platform_id VARCHAR(30) NOT NULL,
+    description VARCHAR(255),
     geography   geography(POINT,4326),
 
     PRIMARY KEY (id),
