@@ -41,6 +41,13 @@ class BaseController(Resource):
     def response_HTTP500(self):
         return make_response(jsonify({'error': 'internal server error'} ), 500)
 
+    def process_args(self,model, args, key):
+        result = None
+        if key in args:
+            value = request.args.get(key, '')
+            self.model.where_param = key
+            result = self.model.read(value)
+        return result
 
 
 class ObjectController(BaseController):
