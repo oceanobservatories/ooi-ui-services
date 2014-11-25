@@ -13,7 +13,7 @@ DataSource:
     # DBType: psql
     DBType: psql
     DBName: ooi_psql_test
-    userName: ednadonoughe
+    userName: postgres
     password:
     host: localhost
     port: 5432
