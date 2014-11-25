@@ -40,7 +40,8 @@ class ErddapObjectController(ObjectController):
                 result = self.model.delete(id)
                 if not result:
                     result = self.response_HTTP204()
-        except:
+        except Exception as e:
+            #print '%s' % e
             result = self.response_HTTP500()
         return result
 
