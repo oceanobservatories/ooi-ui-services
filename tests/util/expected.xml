@@ -22,7 +22,7 @@
         <att name="sourceUrl">(local files)</att>
         <att name="infoUrl">http://www.oceanobservatories.org</att>
         <!-- title=datasetID -->
-        <att name="title">dataset_id</att>
+        <att name="title">title</att>
         <!-- Data Provider Institution from http://gliders.ioos.us -->
         <att name="institution">Ocean Obervatories Initiative</att>
 
