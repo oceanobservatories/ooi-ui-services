@@ -16,7 +16,7 @@ class SqlModel(BaseModel):
     if (DataSource['DBType'] == 'sqlite'):
         sql = SQL(DataSource['DBName'])
     elif (DataSource['DBType'] == 'psql'):
-        sql = PSQL(DataSource['DBName'], DataSource['userName'],DataSource['password'], DataSource['host'], DataSource['port'])
+        sql = PSQL(DataSource['DBName'], DataSource['user'],DataSource['password'], DataSource['host'], DataSource['port'])
     else:
         raise 'DB Unsupported'
 
