@@ -7,6 +7,7 @@ ooiservices.util.generate_json_from_db
 import sqlite3
 import json
 from ooiservices.util.parse_erddap_endpoints import getStreamIdsForRef, getAttribsForRef
+from ooiservices.config import DataSource
 
 VALID_SITES = [
     'CP02PMCI',
@@ -25,7 +26,7 @@ SITES = {
 }
 
 def generate():
-    refdes_db = 'notebooks/ref_des.db'
+    refdes_db = DataSource['DBName']
 
 
     conn = sqlite3.connect(refdes_db)
@@ -33,15 +34,16 @@ def generate():
     
 
     c = conn.cursor()
-    for row in c.execute('SELECT * FROM ooi_instruments ORDER BY ref_code;'):
-        parse_row(doc, row)
+    # I use a list because I needed to make more SQL executions in the iteration
+    for row in list(c.execute('SELECT * FROM ooi_instruments ORDER BY ref_code;')):
+        parse_row(doc, row, c)
 
     with open('ooiservices/static/expected_platforms.json', 'w') as f:
         f.write(json.dumps(doc))
 
     return doc
 
-def parse_row(doc, row):
+def parse_row(doc, row, c):
     ref_code          = row[0]
     array_code        = row[1]
     site_prefix       = row[2]
@@ -52,12 +54,19 @@ def parse_row(doc, row):
     instrument_class  = row[7]
     instrument_series = row[8]
     instrument_req    = row[9]
+    display_name      = row[12]
     site = array_code + site_prefix.zfill(2) + site_suffix
 
     if site not in VALID_SITES:
         return
 
     platform = array_code + site_prefix.zfill(2) + site_suffix + '-' + node_type_code + node_site_seq.zfill(3)
+    response = list(c.execute('SELECT * FROM ooi_platforms WHERE ref_code=?', (platform,)))
+    if response:
+        platform_display_name = response[0][-1]
+    else:
+        platform_display_name = 'Unknown'
+
     if array_code not in doc:
         doc[array_code] = {}
 
@@ -75,20 +84,24 @@ def parse_row(doc, row):
         doc[array_code][platform] = {
             'instruments' : {},
             'status' : 'na',
+            'display_name' : platform_display_name,
             'lat' : lat,
             'lon' : lon
         }
 
-    erddap_ref_code = array_code + site_prefix.zfill(2) + site_suffix + '_' + node_type_code + node_site_seq.zfill(3) + '_' + port_number.zfill(2) + '_' + instrument_class + instrument_series + instrument_req
+    erddap_ref_code = array_code + site_prefix.zfill(2) + site_suffix + '_' + node_type_code + node_site_seq.zfill(3) + '_' + port_number.zfill(2) + '_' + instrument_class + instrument_series + instrument_req.zfill(3)
     stream_doc = get_streams(erddap_ref_code)
-    doc[array_code][platform]['instruments'][ref_code] = stream_doc
+    doc[array_code][platform]['instruments'][ref_code] = {"streams": stream_doc, "display_name" : display_name}
 
 def get_streams(ref_code):
     stream_doc = {}
     stream_list = getStreamIdsForRef(ref_code) 
     for stream in stream_list:
-        stream_doc[stream] = getAttribsForRef(ref_code, stream)
+        varnames = getAttribsForRef(ref_code, stream)
+        if varnames:
+            stream_doc[stream] = varnames
     return stream_doc
 
 if __name__ == '__main__':
     generate()
+

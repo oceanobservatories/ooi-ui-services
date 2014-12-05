@@ -51,6 +51,9 @@ def getAttribsForRef(ref,stream):
     
     url = base_url + "/info/" + ref + '_' + stream + "/index.json"
     ref_outline = requests.get(url)
+    if not ref_outline.status_code == 200:
+        app.logger.error("Failed to make connection to ERDDAP at %s" % url)
+        return []
     
     d = ref_outline.json()['table']
     cols = d['columnNames']

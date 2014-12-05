@@ -6,7 +6,8 @@
 # children of this configuration are in a dictionary
 # db_name = DataSource['DBName']
 DataSource:
-  DBName: db/sample.db
+  DBName: db/ref_des.db
 
-ERDDAPURL: http://localhost:8080/erddap
+# Configure this to http://localhost:4000 if you're running ERDDAP locally
+ERDDAPURL: http://erddap.ooi.rutgers.edu/erddap
 

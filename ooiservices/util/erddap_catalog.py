@@ -83,13 +83,14 @@ class ERDDAPCatalogEntry:
     dataset_dir = '' # Directory where the netcdf file(s) are located
     data_vars   = {} # name, type value pairs
 
-    def __init__(self, dataset_id, dataset_dir, netcdf_file):
+    def __init__(self, dataset_id, dataset_title, dataset_dir, netcdf_file):
         '''
         Initializes the catalog entry to the specified attributes and opens the
         netcdf file
         '''
         self.dataset_id = dataset_id
         self.dataset_dir = dataset_dir
+        self.dataset_title = dataset_title
         # Load the netcdf file
         self.nc = Dataset(netcdf_file, 'r')
         self.data_vars = {}
@@ -147,7 +148,8 @@ class ERDDAPCatalogEntry:
         Returns the XML for the dataset entry in ERDDAP's datasets.xml
         '''
         template = self.jenv.get_template('dataset_entry.xml.j2')
-        return template.render(dataset_id=self.dataset_id, 
+        return template.render(dataset_title=self.dataset_title,
+                               dataset_id=self.dataset_id, 
                                dataset_dir=self.dataset_dir, 
                                data_vars=self.data_vars)
 

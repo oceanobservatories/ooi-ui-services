@@ -9,6 +9,8 @@ Manage script for specific services related tasks
 from flask.ext.script import Manager
 from ooiservices import app
 from ooiservices.util.erddap_catalog import ERDDAPCatalog, ERDDAPCatalogEntry
+from ooiservices.config import DataSource
+import sqlite3
 import os
 import re
 
@@ -21,6 +23,9 @@ class DatasetCrawler:
         self.catalog_path = catalog_path
         if wipe_catalog and os.path.exists(self.catalog_path):
             os.remove(self.catalog_path)
+
+        refdes_db = DataSource['DBName']
+        self.conn = sqlite3.connect(refdes_db)
 
     def crawl_datasets(self, dataset_root_path):
         '''
@@ -82,6 +87,31 @@ class DatasetCrawler:
                 self.add_to_catalog(os.path.join(file_directory, netcdf_file))
                 break
 
+    def get_dataset_title(self, reference_designator):
+        '''
+        Returns the approved vocabulary title given a reference designator
+        '''
+        query = 'SELECT display_name FROM ooi_instruments WHERE ref_code=?'
+        rows = list(self.conn.execute(query, (reference_designator,)))
+        if not rows:
+            return None
+
+        platform_title = self.get_platorm_title(reference_designator[:14])
+        display_name = rows[0][0]
+        if platform_title:
+            display_name = platform_title + ' ' + display_name
+        return display_name
+
+    def get_platorm_title(self, platform_designator):
+        '''
+        Returns the proper display name given a platform reference designator
+        '''
+        query = 'SELECT display_name FROM ooi_platforms WHERE ref_code=?'
+        rows = list(self.conn.execute(query, (platform_designator,)))
+        if not rows:
+            return None
+        display_name = rows[0][0]
+        return display_name
 
     def add_to_catalog(self, netcdf_file):
         '''
@@ -101,8 +131,10 @@ class DatasetCrawler:
 
         dataset_id = '_'.join([ref_des, stream_name, processed_prefix])
         dataset_id = re.sub(r'-', '_', dataset_id)
+        dataset_title = self.get_dataset_title(re.sub(r'_', '-', ref_des)) or ref_des
+        dataset_title = dataset_title + ' ' + stream_name
 
-        entry = ERDDAPCatalogEntry(dataset_id, base_dir, netcdf_file)
+        entry = ERDDAPCatalogEntry(dataset_id, dataset_title, base_dir, netcdf_file)
         with entry:
             entry.read_vars()
 
