@@ -7,13 +7,13 @@ InstrumentController
 
 from ooiservices.controller.base import ObjectController
 from ooiservices.controller.base import ListController
-from ooiservices.model.instrument import InstrumentModel
+from ooiservices.model.instrument_deployment import InstrumentDeploymentModel
 from flask import request
 
-__author__ = "Matt Campbell"
 
-class InstrumentObjectController(ObjectController):
+class InstrumentDeploymentController(ObjectController):
     model = None
+
     def __init__(self):
         ObjectController.__init__(self)
 
@@ -23,7 +23,7 @@ class InstrumentObjectController(ObjectController):
             return self.response_HTTP204()
         return result
 
-class InstrumentListController(ListController):
+class InstrumentDeploymentListController(ListController):
     model = None
 
     def get(self):
@@ -36,11 +36,13 @@ class InstrumentListController(ListController):
             return self.response_HTTP204()
         return result
 
+
 def initialize_model():
     '''
     Initializes the model for the controllers
     this function is to be called by app
     '''
-    InstrumentObjectController.model = InstrumentModel()
-    InstrumentListController.model = InstrumentModel()
+    InstrumentDeploymentController.model = InstrumentDeploymentModel()
+    InstrumentDeploymentListController.model = InstrumentDeploymentModel()
+
 

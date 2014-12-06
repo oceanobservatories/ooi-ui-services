@@ -14,20 +14,27 @@ from flask.ext.restful import Resource
 __author__ = "Matt Campbell"
 
 class StreamObjectController(ObjectController):
+    model = None
 
-    newStream = StreamModel()
 
     def __init__(self):
         ObjectController.__init__(self)
 
     def get(self, id):
-        result = self.newStream.read(id)
+        result = self.model.read(id)
         return result
 
 class StreamListController(ListController):
-
-    newStream = StreamModel()
+    model = None
 
     def get(self):
-        result = self.newStream.read()
+        result = self.model.read()
         return result
+
+def initialize_model():
+    '''
+    Initializes the model for the controllers
+    this function is to be called by app
+    '''
+    StreamObjectController.model = StreamModel()
+    StreamListController.model = StreamModel()

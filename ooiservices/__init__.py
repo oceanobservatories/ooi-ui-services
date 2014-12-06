@@ -7,9 +7,12 @@ Initializes the application and necessary application logic
 from flask import Flask
 
 
+
 app = Flask(__name__)
 
+
 import ooiservices.routes # initialize the routes
+
 
 #This line should be moved to a defaults.py in the future
 app.config['LOG_FILE'] = True
@@ -27,4 +30,5 @@ if app.config.get('LOG_FILE') == True:
     app.logger.addHandler(stream_handler)
     app.logger.setLevel(logging.DEBUG)
     app.logger.info('Application Process Started')
+
 

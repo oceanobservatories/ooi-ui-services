@@ -11,13 +11,5 @@ class TestConfiguration(ServicesTestCase):
     '''
     Unit Tests for configurations
     '''
+    pass
 
-    def test_configuration_string(self):
-        '''
-        A temporary test that validates that the configuration
-        yaml file is being parsed and that it's contents are being
-        set to the globals of the config module
-        '''
-
-        from ooiservices.config import DataSource
-        assert DataSource['DBName'] == 'ooi_psql_test'
