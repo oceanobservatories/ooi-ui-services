@@ -6,25 +6,25 @@ PlatformController
 
 '''
 
-from ooiservices.controller.base import BaseController
+from ooiservices.controller.base import ObjectController
+from ooiservices.controller.base import ListController
 from ooiservices.model.platform import PlatformModel
-from flask.ext.restful import Resource
 from flask import request
 
 __author__ = "Brian McKenna"
 
-class PlatformController(BaseController):
-    
-    plat = PlatformModel()
-    
+class PlatformObjectController(ObjectController):
+    model = None
+
+
     def __init__(self):
-        BaseController.__init__(self)
+        ObjectController.__init__(self)
 
     def get(self, id):
-        result = self.plat.read(id)
-        #Formats the json dict to be used by the view:
-        formatted_result = self.plat.filter_ooi_platforms(result)
-        return formatted_result
+        result = self.platform.read(id)
+        if not result:
+            return self.response_HTTP204()
+        return result
 
     def put(self, id):
         args = request.args
@@ -34,17 +34,32 @@ class PlatformController(BaseController):
             for item in params:
                 doc[item[0]] = item[1]
         doc['id'] = id
-        result = self.plat.update(doc)
+        result = self.platform.update(doc)
         return result
 
     def delete(self, id):
-        return self.plat.delete(id)
-   
-    class List(Resource):
-        plat = PlatformModel()
-        
-        def get(self):
-            result = self.plat.read()
-            #Formats the json dict to be used by the view:
-            formatted_result = self.plat.filter_ooi_platforms(result)
-            return formatted_result
+        return self.platform.delete(id)
+
+class PlatformListController(ListController):
+    model = None
+
+
+    def get(self):
+        args = request.args
+        if args:
+            result = self.process_args(self.model, args,'array_id')
+        else:
+            result = self.model.read()
+        if not result:
+            return self.response_HTTP204()
+        return result
+
+
+def initialize_model():
+    '''
+    Initializes the model for the controllers
+    this function is to be called by app
+    '''
+    PlatformObjectController.model = PlatformModel()
+    PlatformListController.model = PlatformModel()
+

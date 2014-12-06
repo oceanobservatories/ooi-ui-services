@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 '''
-ooiservices.model.platform.py
+ooiservices.model.array.py
 
-PlatformModel
+InstrumentModel
 '''
 
 from ooiservices import app
@@ -10,7 +10,7 @@ from ooiservices.model.sqlmodel import SqlModel
 
 __author__ = "Matt Campbell"
 
-class PlatformModel(SqlModel):
-    table_name = 'platforms'
-    where_params = ['id']
+class ArrayModel(SqlModel):
+    table_name = 'arrays'
+    where_params = ['id', 'array_code']
 
