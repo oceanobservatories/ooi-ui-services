@@ -8,42 +8,66 @@ Usage:
         psql <dbname> < <path_to>ooiservices_schema.sql
 */
 CREATE TABLE arrays (
-    id          VARCHAR(30) NOT NULL,
-    description VARCHAR(255),
+    id          SERIAL PRIMARY KEY
+    array_code  TEXT,
+    description TEXT,
     geography   geography,
     PRIMARY KEY (id)
 );
 CREATE TABLE platforms (
-    id          VARCHAR(30) NOT NULL,
-    array_id    VARCHAR(30) NOT NULL,
-    description VARCHAR(255),
-    geography   geography,
-    PRIMARY KEY (id),
-    FOREIGN KEY (array_id) REFERENCES arrays(id)
-);
-CREATE TABLE platform_deployments (
-    id          VARCHAR(30) NOT NULL,
-    platform_id VARCHAR(30) NOT NULL,
-    start_date  DATE NOT NULL,
-    end_date    DATE,
-    PRIMARY KEY(id),
-    FOREIGN KEY (platform_id) REFERENCES platforms(id)
+    id          SERIAL PRIMARY KEY,
+    name        TEXT,
+    description TEXT,
+    location    TEXT,
+    manufacturer TEXT,
+    series      TEXT,
+    is_mobile   BOOLEAN NOT NULL,
+    serial_no   TEXT,
+    asset_id    INT NOT NULL
 );
 CREATE TABLE instruments (
-    id          VARCHAR(30) NOT NULL,
-    platform_id VARCHAR(30) NOT NULL,
-    description VARCHAR(255),
-    geography   geography,
-    PRIMARY KEY (id),
-    FOREIGN KEY (platform_id) REFERENCES platforms(id)
+    id          SERIAL PRIMARY KEY,
+    name        TEXT,
+    description TEXT,
+    location    TEXT,
+    manufacturer TEXT,
+    series      TEXT,
+    serial_number TEXT,
+    display_name TEXT,
+    model_id    INT NOT NULL,
+    asset_id    INT NOT NULL,
+    depth_rating REAL
 );
-CREATE TABLE instrument_deployments (
-    id          VARCHAR(30) NOT NULL,
-    instrument_id VARCHAR(30) NOT NULL,
+CREATE TABLE deployments (
+    id          SERIAL PRIMARY KEY,
+    start_date  DATE,
+    end_date    DATE,
+    cruise_id   INT
+);
+CREATE TABLE platform_deployments (
+    id          SERIAL PRIMARY KEY,
     start_date  DATE NOT NULL,
     end_date    DATE,
-    PRIMARY KEY(id),
-    FOREIGN KEY (instrument_id) REFERENCES instruments(id)
+    platform_id INT REFERENCES platforms(id),
+    reference_designator TEXT NOT NULL,
+    lat         REAL,
+    lon         REAL,
+    array_id    INT REFERENCES arrays(id) NOT NULL,
+    deployment_id INT REFERENCES deployments(id) NOT NULL,
+    display_name TEXT,
+);
+CREATE TABLE instrument_deployments (
+    id          SERIAL PRIMARY KEY,
+    display_name TEXT,
+    start_date  DATE,
+    end_date    DATE,
+    platform_deployment_id INT REFERENCES platform_deployments(id),
+    instrument_id INT REFERENCES instruments(id),
+    reference_designator TEXT,
+    lat         REAL,
+    lon         REAL,
+    depth       REAL,
+    deployment_id INT REFERENCES deployments(id),
 );
 CREATE TABLE streams (
     id          VARCHAR(30) NOT NULL,
