@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 '''
-tests.controller.test_platform_controller
+tests.controller.test_array_controller
 
-Test for the platform controller
+Test for the array controller
 '''
 import json
 from ooiservices.app import app

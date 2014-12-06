@@ -15,6 +15,7 @@ from ooiservices.controller.platform import PlatformObjectController, PlatformLi
 from ooiservices.controller.instrument import InstrumentObjectController, InstrumentListController, initialize_model as initialize_instrument
 from ooiservices.controller.array import ArrayObjectController, ArrayListController, initialize_model as initialize_array
 from ooiservices.controller.instrument_deployment import InstrumentDeploymentController, InstrumentDeploymentListController, initialize_model as initialize_instrument_deployment
+from ooiservices.controller.platform_deployment import PlatformDeploymentController, PlatformDeploymentListController, initialize_model as initialize_platform_deployment
 
 
 # initialize model
@@ -25,6 +26,7 @@ def initialize_model():
         initialize_instrument()
         initialize_array()
         initialize_instrument_deployment()
+        initialize_platform_deployment()
         g.model_initialized = True
 
 
@@ -40,4 +42,7 @@ api.add_resource(InstrumentObjectController, '/instruments/<string:id>')
 
 api.add_resource(InstrumentDeploymentListController, '/instrument_deployments')
 api.add_resource(InstrumentDeploymentController, '/instrument_deployments/<string:id>')
+
+api.add_resource(PlatformDeploymentListController, '/platform_deployments')
+api.add_resource(PlatformDeploymentController, '/platform_deployments/<string:id>')
 
