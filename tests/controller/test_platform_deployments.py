@@ -5,7 +5,7 @@ tests.controller.test_platform_deployment_controller
 Test for the platform deployment controller
 '''
 import json
-from ooiservices.app import app
+from ooiservices import app
 from tests.services_test_case import ServicesTestCase
 
 class TestPlatformDeploymentController(ServicesTestCase):

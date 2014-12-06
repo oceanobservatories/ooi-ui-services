@@ -5,7 +5,7 @@ tests.controller.test_array_controller
 Test for the array controller
 '''
 import json
-from ooiservices.app import app
+from ooiservices import app
 from tests.services_test_case import ServicesTestCase
 
 class TestArrayController(ServicesTestCase):
