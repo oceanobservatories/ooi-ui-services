@@ -67,22 +67,29 @@ class SqlModel(BaseModel):
         return answer
 
     def update(self, obj):
+        '''
+        Updates a single document
+        '''
         obj_id = obj.get('id')
         #Don't want to include the id in the data set to update.
         del obj['id']
-        update_set = ', '.join('%s=%r' % (key, val) for (key, val) in obj.items())
-        query = 'UPDATE %s SET %s WHERE %s=\'%s\';' % (self.tbl, update_set, self.where_param, obj_id)
-        feedback = self.sql.perform(query)
-        return feedback
+        update_clause, query_params = self._build_update_clause(obj)
+        query = 'UPDATE ' + self.tbl + ' SET ' + update_clause + ' WHERE id=' + str(obj_id) + ';'
+        feedback = self.sql.perform(query, query_params)
+        return self.read({'id' : obj_id})[0]
 
     def delete(self, obj_id):
-        query = 'DELETE FROM %s WHERE %s=\'%s\';' % (self.tbl, self.where_param, obj_id)
-        feedback = self.sql.perform(query)
+        '''
+        Deletes a single document
+        '''
+        query = 'DELETE FROM ' + self.tbl + ' WHERE id=%s'
+        feedback = self.sql.perform(query, (obj_id,))
         return feedback
     
     def _build_where_clause(self, query_params):
         '''
-        Returns the WHERE clause and the tuple of items to pass in with the string
+        Returns the WHERE clause and the tuple of items to pass in with the
+        string
         '''
         raw_clauses = []
         query_items = []
@@ -95,6 +102,18 @@ class SqlModel(BaseModel):
                 raise ModelException("%s is not a valid where parameter" % field)
         raw_clause = ' AND '.join(raw_clauses)
         return raw_clause, query_items
+
+    def _build_update_clause(self, obj):
+        '''
+        Returns a tuple of the key/value part of the UPDATE clause and the
+        query params
+        '''
+        raw_clauses = []
+        for field, value in obj.iteritems():
+            raw_clauses.append(field + '=%s')
+        raw_clause = ', '.join(raw_clauses)
+        return raw_clause, obj.values()
+
 
     def _get_latest_id(self):
         query = 'SELECT id FROM ' + self.tbl + ' ORDER BY id DESC LIMIT 1'

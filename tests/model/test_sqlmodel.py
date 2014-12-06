@@ -61,6 +61,24 @@ class TestSQLModel(ServicesTestCase):
         with pytest.raises(ModelException):
             doc = sql_model.read({'blah' : 'doesnt exist'})
 
+    def test_update(self):
+        sql_model = SqlModel('test', ['id', 'reference_id'])
+        retval = sql_model.create({'value' : 'hi', 'reference_id' : random.randint(0,100)})
+
+        retval = sql_model.update({'id' : retval['id'], 'value' : 'different'})
+        assert retval['value'] == 'different'
+
+        retval = sql_model.read({'id' : retval['id']})[0]
+        assert retval['value'] == 'different'
+
+    def test_delete(self):
+        sql_model = SqlModel('test', ['id', 'reference_id'])
+        retval = sql_model.create({'value' : 'hi', 'reference_id' : random.randint(0,100)})
+        sql_model.delete(retval['id'])
+
+        result = sql_model.read({'id' : retval['id']})
+        assert len(result) == 0
+        
             
 
 
