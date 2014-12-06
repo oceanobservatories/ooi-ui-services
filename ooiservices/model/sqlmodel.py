@@ -15,14 +15,12 @@ from ooiservices.model.base import BaseModel
 class SqlModel(BaseModel):
 
 
-    def __init__(self, table_name=None, where_params=['id']):
+    def __init__(self):
         '''
         Instantiates new base model
         '''
         # A really obscure bug that causes a severe headache down the road
         BaseModel.__init__(self)
-        self.tbl = table_name
-        self.where_params = where_params
         if (DataSource['DBType'] == 'sqlite'):
             self.sql = SQL(DataSource['DBName'])
             self.holder = '?'
@@ -44,7 +42,7 @@ class SqlModel(BaseModel):
 
         columns = ', '.join(obj.keys())
         empties = ', '.join([self.holder for col in obj])
-        query = 'INSERT INTO ' + self.tbl + ' (' + columns + ') VALUES (' + empties + ');'
+        query = 'INSERT INTO ' + self.table_name + ' (' + columns + ') VALUES (' + empties + ');'
         feedback = self.sql.perform(query, obj.values())
 
 
@@ -59,10 +57,10 @@ class SqlModel(BaseModel):
 
         if query_params:
             where_clause, query_items = self._build_where_clause(query_params)
-            query = 'SELECT * FROM ' + self.tbl + ' WHERE ' + where_clause
+            query = 'SELECT * FROM ' + self.table_name + ' WHERE ' + where_clause
             answer = self.sql.perform(query, query_items)
         else:
-            query = 'SELECT * FROM %s;' % (self.tbl)
+            query = 'SELECT * FROM %s;' % (self.table_name)
 
             answer = self.sql.perform(query)
 
@@ -76,7 +74,7 @@ class SqlModel(BaseModel):
         #Don't want to include the id in the data set to update.
         del obj['id']
         update_clause, query_params = self._build_update_clause(obj)
-        query = 'UPDATE ' + self.tbl + ' SET ' + update_clause + ' WHERE id=' + str(obj_id) + ';'
+        query = 'UPDATE ' + self.table_name + ' SET ' + update_clause + ' WHERE id=' + str(obj_id) + ';'
         feedback = self.sql.perform(query, query_params)
         return self.read({'id' : obj_id})[0]
 
@@ -84,7 +82,7 @@ class SqlModel(BaseModel):
         '''
         Deletes a single document
         '''
-        query = 'DELETE FROM ' + self.tbl + ' WHERE id=' + self.holder
+        query = 'DELETE FROM ' + self.table_name + ' WHERE id=' + self.holder
         feedback = self.sql.perform(query, (obj_id,))
         return feedback
     
@@ -118,7 +116,7 @@ class SqlModel(BaseModel):
 
 
     def _get_latest_id(self):
-        query = 'SELECT id FROM ' + self.tbl + ' ORDER BY id DESC LIMIT 1'
+        query = 'SELECT id FROM ' + self.table_name + ' ORDER BY id DESC LIMIT 1'
         results = self.sql.perform(query)
         if not results:
             return 0 # the very first

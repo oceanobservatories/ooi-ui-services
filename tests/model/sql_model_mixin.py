@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 '''
-tests.model.test_sqlmodel
+tests.model.sql_model_mixin
 
-Tests for the SqlModel
+Mixin for SQL Model testing
 '''
 
 from ooiservices.config import DataSource
@@ -14,9 +14,6 @@ from tests.services_test_case import ServicesTestCase
 from ooiservices.util.breakpoint import breakpoint
 import random
 import pytest
-
-postgres = pytest.mark.postgres
-sqlite_test = pytest.mark.sqlite_test
 
 class TestModel(SqlModel):
     table_name = 'test'
@@ -66,45 +63,3 @@ class SQLModelMixin(object):
 
         result = sql_model.read({'id' : retval['id']})
         assert len(result) == 0
-
-        
-            
-
-@sqlite_test
-class TestSQLModel(ServicesTestCase, SQLModelMixin):
-    def setUp(self):
-        '''
-        Creates a test table to work with as a mock model
-        '''
-        ServicesTestCase.setUp(self)
-        assert DataSource['DBType'] == 'sqlite'
-        self.sql = SQL(DataSource['DBName'])
-
-        self.sql.perform('CREATE TABLE IF NOT EXISTS test(id SERIAL PRIMARY KEY, value TEXT, reference_id INT);')
-
-    def tearDown(self):
-        '''
-        Drops the table we created
-        '''
-
-        self.sql.perform('DROP TABLE IF EXISTS test;')
-
-@postgres
-class TestPostgresSQLModel(ServicesTestCase, SQLModelMixin):
-    def setUp(self):
-        '''
-        Creates a test table to work with as a mock model
-        '''
-        ServicesTestCase.setUp(self)
-        assert DataSource['DBType'] == 'psql'
-        self.sql = PSQL(DataSource['DBName'], DataSource['user'],DataSource['password'], DataSource['host'], DataSource['port'])
-
-        self.sql.perform('CREATE TABLE IF NOT EXISTS test(id SERIAL PRIMARY KEY, value TEXT, reference_id INT);')
-
-    def tearDown(self):
-        '''
-        Drops the table we created
-        '''
-
-        self.sql.perform('DROP TABLE IF EXISTS test;')
-
