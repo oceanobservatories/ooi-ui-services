@@ -13,14 +13,19 @@ api = restful.Api(app)
 from ooiservices.controller.platform import PlatformObjectController, PlatformListController
 from ooiservices.controller.instrument import InstrumentObjectController, InstrumentListController
 from ooiservices.controller.array import ArrayObjectController, ArrayListController
+from ooiservices.controller.instrument_deployment import InstrumentDeploymentController, InstrumentDeploymentListController
 
 
 # endpoints
-api.add_resource(ArrayListController, '/array')
-api.add_resource(ArrayObjectController, '/array/<string:id>')
+api.add_resource(ArrayListController, '/arrays')
+api.add_resource(ArrayObjectController, '/arrays/<string:id>')
 
-api.add_resource(PlatformListController, '/platform')
-api.add_resource(PlatformObjectController, '/platform/<string:id>')
+api.add_resource(PlatformListController, '/platforms')
+api.add_resource(PlatformObjectController, '/platforms/<string:id>')
 
-api.add_resource(InstrumentListController, '/instrument')
-api.add_resource(InstrumentObjectController, '/instrument/<string:id>')
+api.add_resource(InstrumentListController, '/instruments')
+api.add_resource(InstrumentObjectController, '/instruments/<string:id>')
+
+api.add_resource(InstrumentDeploymentListController, '/instrument_deployments')
+api.add_resource(InstrumentDeploymentController, '/instrument_deployments/<string:id>')
+
