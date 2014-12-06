@@ -34,6 +34,19 @@ class PostgresAdaptor(object):
         except:
             raise Exception('<PostgresAdaptor> get_db failed to connect; check config settings')
 
+    def try_fetch(self, c):
+        '''
+        Returns either the result set OR None if there are no results to fetch in the case of DML
+        '''
+        try:
+            result = c.fetchall()
+        except psycopg2.DatabaseError as e:
+            if 'no results to fetch' in e.message:
+                return None
+            raise
+        return result
+
+
     def perform(self, query, arg_list=None):
         #Create a cursor_factory to return dictionary
         conn = self.get_db()
@@ -45,7 +58,8 @@ class PostgresAdaptor(object):
             else:
                 c.execute(query)
 
-            result = c.fetchall()
+            result = self.try_fetch(c)
+
             conn.commit()
 
         except psycopg2.DatabaseError, e:

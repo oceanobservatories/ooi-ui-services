@@ -12,8 +12,7 @@ from flask import request
 
 
 class InstrumentDeploymentController(ObjectController):
-
-    model = InstrumentDeploymentModel()
+    model = None
 
     def __init__(self):
         ObjectController.__init__(self)
@@ -25,8 +24,7 @@ class InstrumentDeploymentController(ObjectController):
         return result
 
 class InstrumentDeploymentListController(ListController):
-
-    model = InstrumentDeploymentModel()
+    model = None
 
     def get(self):
         args = request.args
@@ -37,4 +35,14 @@ class InstrumentDeploymentListController(ListController):
         if not result:
             return self.response_HTTP204()
         return result
+
+
+def initialize_model():
+    '''
+    Initializes the model for the controllers
+    this function is to be called by app
+    '''
+    InstrumentDeploymentController.model = InstrumentDeploymentModel()
+    InstrumentDeploymentListController.model = InstrumentDeploymentModel()
+
 

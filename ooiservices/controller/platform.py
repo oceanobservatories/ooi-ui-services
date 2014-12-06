@@ -14,8 +14,8 @@ from flask import request
 __author__ = "Brian McKenna"
 
 class PlatformObjectController(ObjectController):
+    model = None
 
-    platform = PlatformModel()
 
     def __init__(self):
         ObjectController.__init__(self)
@@ -41,8 +41,8 @@ class PlatformObjectController(ObjectController):
         return self.platform.delete(id)
 
 class PlatformListController(ListController):
+    model = None
 
-    model = PlatformModel()
 
     def get(self):
         args = request.args
@@ -53,4 +53,13 @@ class PlatformListController(ListController):
         if not result:
             return self.response_HTTP204()
         return result
+
+
+def initialize_model():
+    '''
+    Initializes the model for the controllers
+    this function is to be called by app
+    '''
+    PlatformObjectController.model = PlatformModel()
+    PlatformListController.model = PlatformModel()
 
