@@ -8,15 +8,14 @@
 
 #Database configuration
 DataSource:
-    #supported DB:
   DBType: sqlite
   DBName: db/test.db
-    #DBType: psql
-    #DBName: handlebars
-    #user: luke
-    #password:
-    #host: localhost
-    #port: 5432
+  #DBType: psql
+  #DBName: handlebars
+  #user: 
+  #password:
+  #host: localhost
+  #port: 5432
 
 # Specifies the Model Adaptor to use
 # Options include:

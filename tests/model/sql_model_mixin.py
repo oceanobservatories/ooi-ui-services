@@ -8,8 +8,6 @@ Mixin for SQL Model testing
 from ooiservices.config import DataSource
 from ooiservices.exceptions import ModelException
 from ooiservices.model.sqlmodel import SqlModel
-from ooiservices.adaptor.postgres import PostgresAdaptor as PSQL
-from ooiservices.adaptor.sqlite import SQLiteAdaptor as SQL
 from tests.services_test_case import ServicesTestCase
 from ooiservices.util.breakpoint import breakpoint
 import random
