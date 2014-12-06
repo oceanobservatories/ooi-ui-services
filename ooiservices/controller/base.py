@@ -40,9 +40,13 @@ class BaseController(Resource):
 
 
 class ObjectController(BaseController):
+    model = None
 
     def get(self, id):
-        raise NotImplementedError()
+        result = self.model.read({'id' : id})
+        if not result:
+            return self.response_HTTP204()
+        return result[0]
 
     def put(self, id):
         raise NotImplementedError()
@@ -51,9 +55,11 @@ class ObjectController(BaseController):
         raise NotImplementedError()
 
 class ListController(BaseController):
+    model = None
 
     def get(self):
-        raise NotImplementedError()
+        result = self.model.read(request.args)
+        return result
 
     def post(self):
         raise NotImplementedError()
