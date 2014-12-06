@@ -7,26 +7,22 @@ InstrumentController
 
 from ooiservices.controller.base import ObjectController, ListController
 from ooiservices.model.array import ArrayModel
-from flask import request
-from flask.ext.restful import Resource
 
 __author__ = "Matt Campbell"
 
 class ArrayObjectController(ObjectController):
-
-    newArray = ArrayModel()
-
-    def __init__(self):
-        ObjectController.__init__(self)
+    # Instantiate the model during import
+    array_model = ArrayModel()
 
     def get(self, id):
-        result = self.newArray.read(id)
+        result = self.array_model.read(id)
         return result
 
 class ArrayListController(ListController):
-
-    newArray = ArrayModel()
+    # Instantiate the model during import
+    array_model = ArrayModel()
 
     def get(self):
-        result = self.newArray.read()
+        result = self.array_model.read()
         return result
+

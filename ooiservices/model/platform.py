@@ -15,7 +15,7 @@ class PlatformModel(SqlModel):
     def __init__(self):
         SqlModel.__init__(self, table_name='platforms', where_param='id')
 
-    class PlatformDeployment(SqlModel):
+class PlatformDeployment(SqlModel):
 
-        def __init__(self):
-            SqlModel.__init__(self, table_name='platform_deployments', where_param='id')
+    def __init__(self):
+        SqlModel.__init__(self, table_name='platform_deployments', where_param='id')

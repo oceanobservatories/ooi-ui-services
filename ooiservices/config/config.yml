@@ -12,8 +12,20 @@ DataSource:
     # DBType: sqlite
     # DBType: psql
     DBType: psql
-    DBName: ooi_psql_test
-    user: postgres
+    DBName: handlebars
+    user: luke
     password:
     host: localhost
     port: 5432
+
+# Specifies the Model Adaptor to use
+# Options include:
+#   - SQL
+#   - uFrame
+#   - Hybrid
+Adaptor: SQL
+
+uFrame:
+  host:
+  port:
+
