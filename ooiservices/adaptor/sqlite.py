@@ -21,6 +21,15 @@ class SQLiteAdaptor(object):
             conn = lite.connect(self.db)
             return conn
 
+    def try_fetch(self, c):
+        try:
+            result = c.fetchall()
+        except lite.Error as e:
+            raise
+        return result
+
+
+
     def perform(self, query, obj=None):
         #Create a factory to return dictionary
         def dict_factory(cursor, row):
@@ -33,19 +42,17 @@ class SQLiteAdaptor(object):
         c = conn.cursor()
 
         try:
-            if lite.complete_statement(query):
-                if obj:
-                    c.execute(query, obj)
-                else:
-                    c.execute(query)
+            if obj:
+                c.execute(query, obj)
+            else:
+                c.execute(query)
 
-            result = c.fetchall()
+            result = self.try_fetch(c)
             #possibly condition commit to only insert/update/delete.
             conn.commit()
 
         except lite.Error, e:
-            result = '%s' % e.args[0]
-            print query
+            raise
 
         finally:
             if conn:

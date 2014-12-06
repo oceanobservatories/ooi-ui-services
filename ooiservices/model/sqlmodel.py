@@ -14,12 +14,6 @@ from ooiservices.model.base import BaseModel
 
 class SqlModel(BaseModel):
 
-    if (DataSource['DBType'] == 'sqlite'):
-        sql = SQL(DataSource['DBName'])
-    elif (DataSource['DBType'] == 'psql'):
-        sql = PSQL(DataSource['DBName'], DataSource['user'],DataSource['password'], DataSource['host'], DataSource['port'])
-    else:
-        raise 'DB Unsupported'
 
     def __init__(self, table_name=None, where_params=['id']):
         '''
@@ -29,6 +23,14 @@ class SqlModel(BaseModel):
         BaseModel.__init__(self)
         self.tbl = table_name
         self.where_params = where_params
+        if (DataSource['DBType'] == 'sqlite'):
+            self.sql = SQL(DataSource['DBName'])
+            self.holder = '?'
+        elif (DataSource['DBType'] == 'psql'):
+            self.sql = PSQL(DataSource['DBName'], DataSource['user'],DataSource['password'], DataSource['host'], DataSource['port'])
+            self.holder = '%s'
+        else:
+            raise ModelException('Unsupported Database: %s' % DataSource['DBType'])
 
     #CRUD methods
     def create(self, obj):
@@ -41,7 +43,7 @@ class SqlModel(BaseModel):
             obj['id'] = self._get_latest_id() + 1
 
         columns = ', '.join(obj.keys())
-        empties = ', '.join(['%s' for col in obj])
+        empties = ', '.join([self.holder for col in obj])
         query = 'INSERT INTO ' + self.tbl + ' (' + columns + ') VALUES (' + empties + ');'
         feedback = self.sql.perform(query, obj.values())
 
@@ -82,7 +84,7 @@ class SqlModel(BaseModel):
         '''
         Deletes a single document
         '''
-        query = 'DELETE FROM ' + self.tbl + ' WHERE id=%s'
+        query = 'DELETE FROM ' + self.tbl + ' WHERE id=' + self.holder
         feedback = self.sql.perform(query, (obj_id,))
         return feedback
     
@@ -96,7 +98,7 @@ class SqlModel(BaseModel):
 
         for field, value in query_params.iteritems():
             if field in self.where_params:
-                raw_clauses.append(field + '=%s')
+                raw_clauses.append(field + '=' + self.holder)
                 query_items.append(value)
             else:
                 raise ModelException("%s is not a valid where parameter" % field)
@@ -110,7 +112,7 @@ class SqlModel(BaseModel):
         '''
         raw_clauses = []
         for field, value in obj.iteritems():
-            raw_clauses.append(field + '=%s')
+            raw_clauses.append(field + '=' + self.holder)
         raw_clause = ', '.join(raw_clauses)
         return raw_clause, obj.values()
 
