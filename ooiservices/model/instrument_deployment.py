@@ -9,4 +9,4 @@ from ooiservices.model.sqlmodel import SqlModel
 
 class InstrumentDeploymentModel(SqlModel):
     table_name = 'instrument_deployments'
-    where_params = ['id']
+    where_params = ['id', 'reference_designator']

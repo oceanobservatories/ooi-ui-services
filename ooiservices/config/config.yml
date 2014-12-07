@@ -11,7 +11,7 @@ DataSource:
   DBType: sqlite
   DBName: db/test.db
   #DBType: psql
-  #DBName: handlebars
+  #DBName: ooi
   #user: 
   #password:
   #host: localhost
