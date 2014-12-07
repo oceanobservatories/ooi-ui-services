@@ -67,6 +67,12 @@ class SQLiteAdaptor(object):
 
         return result
 
+    def close(self):
+        '''
+        Closes the database connection
+        '''
+        self.conn.close()
+
 def dict_factory(cursor, row):
     '''
     Factory method for the cursor
