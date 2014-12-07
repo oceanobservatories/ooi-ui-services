@@ -19,13 +19,13 @@ class SqlModel(BaseModel):
         '''
         Instantiates new base model
         '''
+        from ooiservices import get_db
         # A really obscure bug that causes a severe headache down the road
         BaseModel.__init__(self)
+        self.sql = get_db()
         if (DataSource['DBType'] == 'sqlite'):
-            self.sql = SQL(DataSource['DBName'])
             self.holder = '?'
         elif (DataSource['DBType'] == 'psql'):
-            self.sql = PSQL(DataSource['DBName'], DataSource['user'],DataSource['password'], DataSource['host'], DataSource['port'])
             self.holder = '%s'
         else:
             raise ModelException('Unsupported Database: %s' % DataSource['DBType'])

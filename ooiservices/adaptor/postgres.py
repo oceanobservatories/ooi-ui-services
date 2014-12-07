@@ -24,11 +24,12 @@ class PostgresAdaptor(object):
         self.password = password
         self.host = host
         self.port = port
+        self.get_db()
 
     def get_db(self):
         try:
-            conn = psycopg2.connect(database=self.database, user=self.username, password=self.password, host=self.host, port=self.port)
-            return conn
+            self.conn = psycopg2.connect(database=self.database, user=self.username, password=self.password, host=self.host, port=self.port)
+            return self.conn
         except psycopg2.DatabaseError, e:
             raise Exception('<PostgresAdaptor> connect failed (check config): %s: ' % e)
         except:
@@ -48,25 +49,28 @@ class PostgresAdaptor(object):
 
 
     def perform(self, query, arg_list=None):
-        #Create a cursor_factory to return dictionary
-        conn = self.get_db()
+        '''
+        Executes the SQL Query
+        '''
         try:
 
-            c = conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            cursor = self.conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
             if arg_list:
-                c.execute(query, arg_list)
+                cursor.execute(query, arg_list)
             else:
-                c.execute(query)
+                cursor.execute(query)
 
-            result = self.try_fetch(c)
+            result = self.try_fetch(cursor)
 
-            conn.commit()
+            self.conn.commit()
 
-        except psycopg2.DatabaseError, e:
+        except psycopg2.DatabaseError as e:
             raise Exception('<PostgresAdaptor> perform failed: %s: ' % e)
 
-        finally:
-            if conn:
-                conn.close()
-
         return result
+
+    def close(self):
+        '''
+        Closes the database connection
+        '''
+        self.conn.close()
