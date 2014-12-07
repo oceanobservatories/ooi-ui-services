@@ -11,6 +11,7 @@ from ooiservices.adaptor.sqlite import SQLiteAdaptor as SQL
 from tests.services_test_case import ServicesTestCase
 from tests.model.sql_model_mixin import SQLModelMixin
 from ooiservices.util.breakpoint import breakpoint
+from ooiservices import app, get_db
 import random
 import pytest
 
@@ -24,9 +25,15 @@ class TestPostgresSQLModel(ServicesTestCase, SQLModelMixin):
         '''
         ServicesTestCase.setUp(self)
         assert DataSource['DBType'] == 'psql'
-        self.sql = PSQL(DataSource['DBName'], DataSource['user'],DataSource['password'], DataSource['host'], DataSource['port'])
-
+        # Initialize the application context so we can make a database
+        # connection
+        app.config['TESTING'] = True
+        self.app = app.test_client()
+        self.app_context = app.app_context()
+        self.app_context.__enter__()
+        self.sql = get_db()
         self.sql.perform('CREATE TABLE IF NOT EXISTS test(id SERIAL PRIMARY KEY, value TEXT, reference_id INT);')
+
 
     def tearDown(self):
         '''
@@ -34,4 +41,5 @@ class TestPostgresSQLModel(ServicesTestCase, SQLModelMixin):
         '''
 
         self.sql.perform('DROP TABLE IF EXISTS test;')
+        self.app_context.__exit__(None, None, None)
 

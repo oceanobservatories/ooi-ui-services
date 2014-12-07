@@ -4,7 +4,9 @@ ooiservices
 
 Initializes the application and necessary application logic
 '''
-from flask import Flask
+from flask import Flask, g
+from ooiservices.config import DataSource
+from ooiservices.exceptions import ModelException
 
 
 
@@ -31,4 +33,21 @@ if app.config.get('LOG_FILE') == True:
     app.logger.setLevel(logging.DEBUG)
     app.logger.info('Application Process Started')
 
+def get_db():
+    from ooiservices.adaptor.postgres import PostgresAdaptor as PSQL
+    from ooiservices.adaptor.sqlite import SQLiteAdaptor as SQL
+    db = getattr(g, 'database', None)
+    if db is None:
+        if (DataSource['DBType'] == 'sqlite'):
+            db = g.database = SQL(DataSource['DBName'])
+        elif (DataSource['DBType'] == 'psql'):
+            db = g.database = PSQL(DataSource['DBName'], DataSource['user'],DataSource['password'], DataSource['host'], DataSource['port'])
+        else:
+            raise ModelException('Unsupported Database: %s' % DataSource['DBType'])
+    return db
 
+@app.teardown_appcontext
+def close_connection(exception):
+    db = getattr(g, 'database', None)
+    if db is not None:
+        db.close()
