@@ -16,7 +16,7 @@ class TestERDDAPCatalog(ServicesTestCase):
         catalog_path = os.path.join(self.output_dir, 'catalog.xml')
         catalog = ERDDAPCatalog(catalog_path, 'w')
 
-        entry = ERDDAPCatalogEntry('dataset_id', self.output_dir, 'tests/samples/optaa_dj_dcl_instrument_recovered__24344093-28e1-4e10-af0f-0bbffb278c71.nc')
+        entry = ERDDAPCatalogEntry('dataset_id', 'title', self.output_dir, 'tests/samples/optaa_dj_dcl_instrument_recovered__24344093-28e1-4e10-af0f-0bbffb278c71.nc')
         with entry:
             entry.read_vars()
 
@@ -25,7 +25,7 @@ class TestERDDAPCatalog(ServicesTestCase):
         with open(catalog.catalog_path, 'r') as f:
             result = f.read()
 
-        with open('tests/util/expected.xml') as f:
+        with open('tests/util/expected.xml', 'r') as f:
             expected = f.read()
 
         result += '\n' # ugh newlines
