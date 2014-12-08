@@ -151,6 +151,8 @@ if __name__ == '__main__':
     parser.add_argument('-w', '--wipe', action='store_true', help='Remove the existing datasets.xml')
     args = parser.parse_args()
 
-    dc = DatasetCrawler(args.catalog_path, args.wipe)
-    dc.crawl_datasets(args.datasets_root)
+    from ooiservices import app
+    with app.app_context():
+        dc = DatasetCrawler(args.catalog_path, args.wipe)
+        dc.crawl_datasets(args.datasets_root)
 
