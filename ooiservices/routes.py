@@ -16,6 +16,7 @@ from ooiservices.controller.instrument import InstrumentObjectController, Instru
 from ooiservices.controller.array import ArrayObjectController, ArrayListController
 from ooiservices.controller.erddap import ErddapObjectController
 from ooiservices.controller.parameter import ParameterListController
+from ooiservices.controller.stream import StreamObjectController, StreamListController
 
 # endpoints
 api.add_resource(ArrayListController, '/arrays')
@@ -41,5 +42,7 @@ api.add_resource(ParameterListController, '/parameters')
 api.add_resource(InstrumentListController, '/instrument')
 api.add_resource(InstrumentObjectController, '/instrument/<string:id>')
 
-
 api.add_resource(ErddapObjectController, '/erddap/<string:id>')
+
+api.add_resource(StreamListController, '/stream')
+api.add_resource(StreamObjectController, '/stream/<string:id>')
