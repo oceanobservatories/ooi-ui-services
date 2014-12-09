@@ -9,6 +9,7 @@ __author__ = 'Edna Donoughe'
 
 import psycopg2
 import psycopg2.extras
+from psycopg2.extensions import AsIs
 
 class PostgresAdaptor(object):
     database = None
@@ -34,18 +35,17 @@ class PostgresAdaptor(object):
         except:
             raise Exception('<PostgresAdaptor> get_db failed to connect; check config settings')
 
-    def perform(self, query, arg_list=None):
+    def perform(self, query, *args):
         #Create a cursor_factory to return dictionary
         conn = self.get_db()
         try:
 
-            c = conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            if arg_list:
-                c.execute(query, arg_list)
-            else:
-                c.execute(query)
+            cursor = conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            print(query)
+            for item in args:
+                cursor.execute(query, (AsIs(item),))
 
-            result = c.fetchall()
+            result = cursor.fetchall()
             conn.commit()
 
         except psycopg2.DatabaseError, e:
