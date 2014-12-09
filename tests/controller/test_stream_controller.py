@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 '''
+<<<<<<< HEAD
 tests.controller.test_stream_controller
 
 Test for the stream controller
@@ -43,4 +44,3 @@ class TestStreamController(ServicesTestCase):
         assert len(response) == 4
         assert 'CP02PMCO_WFP01_05_PARADK000_parad_k__stc_imodem_instrument_unprocessed' in response
         assert 'CP02PMCI_SBS01_00_000000000_cg_stc_eng_stc_unprocessed' not in response
-
