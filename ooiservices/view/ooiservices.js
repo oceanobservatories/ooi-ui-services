@@ -33,6 +33,12 @@ function getInstrument (instrument_id) {
         $("#out").html(result);
     });
 }
+function getStream (stream_id) {
+    var url_var = BASE_URL + "stream/" + stream_id;
+    getForm(url_val, function(result) {
+        $("#out").html(result);
+    });
+}
 function getPlatformsAtArray (array_id) {
     var url_val = BASE_URL + "platform?array_id=" + array_id;
     getForm(url_val, function(result) {
@@ -42,6 +48,12 @@ function getPlatformsAtArray (array_id) {
 function getInstrumentsAtPlatform (platform_id) {
    var url_val = BASE_URL + "instrument?platform_id=" + platform_id;
    getForm(url_val, function(result) {
+        $("#out").html(result);
+    });
+}
+function getStreamAtInstrument (instrument_id) {
+    var url_val = BASE_URL + "stream?instrument_id" + platform_id;
+    getForm(url_val, function(result){
         $("#out").html(result);
     });
 }
