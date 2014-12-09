@@ -1,8 +1,6 @@
 #!/usr/bin/env python
-
 '''
 ooiservices.model.sqlmodel
-
 SQLModel
 '''
 #Wrapper functions for jsonp output
@@ -38,36 +36,21 @@ class SqlModel(BaseModel):
         else:
             raise ModelException('Unsupported Database: %s' % DataSource['DBType'])
 
-    '''
-        mjc - Trying this out for the read method.
-        Acquired from:
-        http://flask.pocoo.org/snippets/79/
-        on:
-        12/09/2014
-    '''
     #CRUD methods
     def create(self, obj):
-        '''
-        Inserts a new row into the table based on the obj should be a
-        dictionary like where the keys are the column headers.
-        '''
         columns = ', '.join(obj.keys())
         placeholders = ':'+', :'.join(obj.keys())
         query = 'INSERT INTO ' + self.tbl + ' ( ' + columns + ' ) VALUES ( ' + self.holder + ' );'
         feedback = self.sql.perform(query, placeholders)
         return feedback
 
-    def read(self, query_params=None):
-        '''
-        Modified to (temporarily) support interim UI specification for output
-        '''
+    def read(self, obj_id=None):
         if obj_id:
-            query = 'SELECT * FROM ' + self.tbl + ' WHERE %s = ' + self.holder + ';' % (self.where_param)
+            query = 'SELECT * FROM ' + self.tbl + ' WHERE ' + self.where_param + ' = \'' + self.holder + '\';'
             answer = self.sql.perform(query, obj_id)
         else:
             query = 'SELECT * FROM ' + self.tbl + ';'
             answer = self.sql.perform(query, None)
-
         return answer
 
     def update(self, obj):
@@ -78,11 +61,11 @@ class SqlModel(BaseModel):
         #Don't want to include the id in the data set to update.
         del obj['id']
         update_set = ', '.join('%s=%r' % (key, val) for (key, val) in obj.items())
-        query = 'UPDATE ' + self.tbl + ' SET ' + update_set + ' WHERE %s =' + self.holder + ';' % (self.where_param)
+        query = 'UPDATE ' + self.tbl + ' SET ' + update_set + ' WHERE ' + self.where_param + ' = \'' + self.holder + '\';'
         feedback = self.sql.perform(query, obj_id)
         return feedback
 
     def delete(self, obj_id):
-        query = 'DELETE FROM ' + self.tbl + ' WHERE %s =' +self.holder + ';' % (self.where_param)
+        query = 'DELETE FROM ' + self.tbl + ' WHERE %s =' + self.holder + ';' % (self.where_param)
         feedback = self.sql.perform(query, obj_id)
         return feedback
