@@ -6,9 +6,6 @@ ooiservices.model.sqlmodel
 SQLModel
 '''
 #Wrapper functions for jsonp output
-from functools import wraps
-from flask import request, current_app
-
 from ooiservices.exceptions import ModelException
 from ooiservices.config import DataSource
 from ooiservices.model.adaptor.postgres import PostgresAdaptor as PSQL
@@ -48,20 +45,6 @@ class SqlModel(BaseModel):
         on:
         12/09/2014
     '''
-    def _jsonp(func):
-        """Wraps JSONified output for JSONP requests."""
-        @wraps(func)
-        def decorated_function(*args, **kwargs):
-            callback = request.args.get('callback', False)
-            if callback:
-                data = str(func(*args, **kwargs).data)
-                content = str(callback) + '(' + data + ')'
-                mimetype = 'application/javascript'
-                return current_app.response_class(content, mimetype=mimetype)
-            else:
-                return func(*args, **kwargs)
-        return decorated_function
-
     #CRUD methods
     def create(self, obj):
         '''
@@ -84,6 +67,7 @@ class SqlModel(BaseModel):
         else:
             query = 'SELECT * FROM ' + self.tbl + ';'
             answer = self.sql.perform(query, None)
+
         return answer
 
     def update(self, obj):
