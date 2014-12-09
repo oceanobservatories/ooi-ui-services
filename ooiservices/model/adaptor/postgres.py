@@ -41,7 +41,7 @@ class PostgresAdaptor(object):
         try:
 
             cursor = conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
-            print(query)
+
             for item in args:
                 cursor.execute(query, (AsIs(item),))
 
