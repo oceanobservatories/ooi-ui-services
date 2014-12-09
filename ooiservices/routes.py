@@ -39,10 +39,10 @@ api.add_resource(StreamController, '/streams/<string:id>')
 
 api.add_resource(ParameterListController, '/parameters')
 
-api.add_resource(InstrumentListController, '/instrument')
-api.add_resource(InstrumentObjectController, '/instrument/<string:id>')
+api.add_resource(InstrumentListController, '/instruments')
+api.add_resource(InstrumentObjectController, '/instruments/<string:id>')
 
 api.add_resource(ErddapObjectController, '/erddap/<string:id>')
 
-api.add_resource(StreamListController, '/stream')
-api.add_resource(StreamObjectController, '/stream/<string:id>')
+api.add_resource(StreamListController, '/streams')
+api.add_resource(StreamObjectController, '/streams/<string:id>')
