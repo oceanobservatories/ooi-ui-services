@@ -28,4 +28,7 @@ uFrame:
   host:
   port:
 
+
 ERDDAPURL: http://erddap.ooi.rutgers.edu/erddap
+DATASETS_FILE: ../datasets.yml
+TOUCH_FILE: /var/cache/erddap/reset

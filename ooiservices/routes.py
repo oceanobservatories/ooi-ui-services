@@ -4,7 +4,7 @@ ooiservices.routes
 
 Routing for the service endpoints
 '''
-from flask import g
+from flask import g, Response
 from flask.ext import restful
 from ooiservices import app
 
@@ -18,6 +18,7 @@ from ooiservices.controller.instrument_deployment import InstrumentDeploymentCon
 from ooiservices.controller.platform_deployment import PlatformDeploymentController, PlatformDeploymentListController, initialize_model as initialize_platform_deployment
 from ooiservices.controller.stream import StreamListController, StreamController
 from ooiservices.controller.parameter import ParameterListController
+from ooiservices.generate_catalog import service_generate_catalog
 
 
 # initialize model
@@ -52,3 +53,10 @@ api.add_resource(StreamListController, '/streams')
 api.add_resource(StreamController, '/streams/<string:id>')
 
 api.add_resource(ParameterListController, '/parameters')
+
+@app.route('/generate_catalog')
+def generate_catalog():
+    service_generate_catalog()
+    response = Response(response='{"status":"ok"}', status=200)
+    return response
+

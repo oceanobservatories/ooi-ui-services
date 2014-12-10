@@ -9,12 +9,13 @@ Manage script for specific services related tasks
 from flask.ext.script import Manager
 from ooiservices import app
 from ooiservices.util.erddap_catalog import ERDDAPCatalog, ERDDAPCatalogEntry
-from ooiservices.config import DataSource
+from ooiservices.config import DataSource, DATASETS_FILE, TOUCH_FILE
 from ooiservices.model.instrument_deployment import InstrumentDeploymentModel
 from ooiservices.model.platform_deployment import PlatformDeploymentModel
 import sqlite3
 import os
 import re
+import yaml
 
 manager = Manager(app)
 
@@ -141,6 +142,21 @@ class DatasetCrawler:
 
         catalog.add_entry(entry)
         app.logger.info("Created dataset entry for %s", dataset_id)
+
+def service_generate_catalog():
+    with open(DATASETS_FILE, 'r') as f:
+        doc = yaml.load(f.read())
+    catalog_path = doc['CATALOG']
+    datasets_root = doc['DATASETS_DIR']
+    dc = DatasetCrawler(catalog_path, True)
+    dc.crawl_datasets(datasets_root)
+
+    # Touch the reset file
+    if os.path.exists(TOUCH_FILE):
+        os.remove(TOUCH_FILE)
+    with open(TOUCH_FILE, 'w') as f:
+        pass
+
 
 if __name__ == '__main__':
 
