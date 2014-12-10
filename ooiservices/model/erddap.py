@@ -7,7 +7,7 @@ ErddapModel
 
 from ooiservices.model.base import BaseModel
 from ooiservices.model.cachemodel import CacheModel
-from ooiservices.adaptor.rest import RestAdaptor
+from ooiservices.model.adaptor.rest import RestAdaptor
 from flask import request, Response
 
 __author__ = "Edna Donoughe"

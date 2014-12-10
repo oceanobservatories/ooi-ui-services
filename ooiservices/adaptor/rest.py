@@ -5,7 +5,7 @@ ooiservices.adaptor.rest.py
 RestAdaptor
 '''
 
-from ooiservices.adaptor.base import BaseAdaptor
+from ooiservices.model.adaptor.base import BaseAdaptor
 from flask import Response, jsonify, json
 import requests
 
