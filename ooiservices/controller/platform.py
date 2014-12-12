@@ -46,20 +46,10 @@ class PlatformListController(ListController):
 
     def get(self):
         args = request.args
-        if args:
+        if args and not 'callback':
             result = self.process_args(self.model, args,'array_id')
         else:
             result = self.model.read()
         if not result:
             return self.response_HTTP204()
         return result
-
-
-def initialize_model():
-    '''
-    Initializes the model for the controllers
-    this function is to be called by app
-    '''
-    PlatformObjectController.model = PlatformModel()
-    PlatformListController.model = PlatformModel()
-
