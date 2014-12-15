@@ -46,7 +46,7 @@ class PlatformListController(ListController):
 
     def get(self):
         args = request.args
-        if args and not 'callback':
+        if args:
             result = self.process_args(self.model, args,'array_id')
         else:
             result = self.model.read()
