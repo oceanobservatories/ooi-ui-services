@@ -8,7 +8,7 @@ ErddapController
 
 from ooiservices.controller.base import ObjectController
 from ooiservices.controller.base import ListController
-from ooiservices.model.erddap import ErddapModel
+from ooiservices.model.adaptor.erddap import ErddapModel
 
 __author__ = "Edna Donoughe"
 

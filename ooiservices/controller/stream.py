@@ -8,7 +8,6 @@ StreamListController
 
 from ooiservices.controller.base import ObjectController, ListController
 from ooiservices.model.stream import StreamModel
-from ooiservices.config import ERDDAPURL
 from ooiservices import app
 from flask import request
 from flask.ext.restful import Resource
@@ -20,7 +19,7 @@ import requests
 CACHE_UPDATE = None
 META_OUTLINE = None
 
-class StreamController(ObjectController):
+class StreamObjectController(ObjectController):
 
     model = StreamModel()
 
