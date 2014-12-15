@@ -28,7 +28,7 @@ class InstrumentListController(ListController):
 
     def get(self):
         args = request.args
-        if args and not 'callback':
+        if args:
             result = self.process_args(self.model, args,'platform_id')
         else:
             result = self.model.read()
