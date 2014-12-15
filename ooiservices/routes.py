@@ -30,21 +30,18 @@ api.add_resource(PlatformObjectController, '/platforms/<string:id>')
 api.add_resource(InstrumentListController, '/instruments')
 api.add_resource(InstrumentObjectController, '/instruments/<string:id>')
 
+'''
+TODO: Implement this controller
 api.add_resource(InstrumentDeploymentListController, '/instrument_deployments')
 api.add_resource(InstrumentDeploymentController, '/instrument_deployments/<string:id>')
 
 api.add_resource(PlatformDeploymentListController, '/platform_deployments')
 api.add_resource(PlatformDeploymentController, '/platform_deployments/<string:id>')
-
-api.add_resource(StreamListController, '/streams')
-api.add_resource(StreamController, '/streams/<string:id>')
-
-api.add_resource(ParameterListController, '/parameters')
-
-api.add_resource(InstrumentListController, '/instruments')
-api.add_resource(InstrumentObjectController, '/instruments/<string:id>')
-
-api.add_resource(ErddapObjectController, '/erddap/<string:id>')
+'''
 
 api.add_resource(StreamListController, '/streams')
 api.add_resource(StreamObjectController, '/streams/<string:id>')
+
+api.add_resource(ParameterListController, '/parameters')
+
+api.add_resource(ErddapObjectController, '/erddap/<string:id>')

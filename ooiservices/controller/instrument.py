@@ -35,12 +35,3 @@ class InstrumentListController(ListController):
         if not result:
             return self.response_HTTP204()
         return result
-
-def initialize_model():
-    '''
-    Initializes the model for the controllers
-    this function is to be called by app
-    '''
-    InstrumentObjectController.model = InstrumentModel()
-    InstrumentListController.model = InstrumentModel()
-
