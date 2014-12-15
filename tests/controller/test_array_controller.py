@@ -22,28 +22,27 @@ class TestArrayController(ServicesTestCase):
         response = json.loads(rv.data)
 
         # Rearrange the response by array_code
-        response = { r['array_code'] : r for r in response }
+        response = { r['id'] : r for r in response }
         assert 'CP' in response
 
     def test_array_where(self):
-        rv = self.app.get('/arrays?array_code=CP')
+        rv = self.app.get('/arrays?array_id=CP')
         response = json.loads(rv.data)
 
         # Rearrange the response by array_code
-        response = { r['array_code'] : r for r in response }
+        response = { r['id'] : r for r in response }
         assert 'CP' in response
 
-        rv = self.app.get('/arrays?array_code=OP')
+        rv = self.app.get('/arrays?array_id=OP')
         response = json.loads(rv.data)
 
         assert len(response) == 0
 
     def test_array_get(self):
-        rv = self.app.get('/arrays/1')
+        rv = self.app.get('/arrays/CP')
         response = json.loads(rv.data)
 
-        assert response['id'] == 1
-        assert response['array_code'] == 'CP'
+        assert response['id'] == 'CP'
 
         # Assert not found
         rv = self.app.get('/arrays/9000')
