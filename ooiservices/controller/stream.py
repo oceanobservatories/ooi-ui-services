@@ -22,45 +22,27 @@ META_OUTLINE = None
 
 class StreamController(ObjectController):
 
-    def get(self, id):
+    model = StreamModel()
+
+    def __init__(self):
+        ObjectController.__init__(self)
+
+    def get(self,id):
         result = self.model.read(id)
+        if not result:
+            return self.response_HTTP204()
         return result
 
 class StreamListController(ListController):
 
+    model = StreamModel()
+
     def get(self):
-        stream_list = get_stream_list()
-        if request.args.get('reference_designator', None):
-            ref_def = request.args.get('reference_designator')
-            ref_def = re.sub(r'-', '_', ref_def)
-            stream_list = [ s for s in stream_list if ref_def in s['Dataset ID'] ]
-
-        return stream_list
-
-def get_stream_list():
-    index = get_index()
-    streams = []
-    columns = index['table']['columnNames']
-    for row in index['table']['rows']:
-        stream = {}
-        for i, ele in enumerate(row):
-            stream[columns[i]] = ele
-        stream['id'] = stream['Dataset ID']
-        streams.append(stream)
-    return streams
-
-def get_index():
-    global META_OUTLINE
-    global CACHE_UPDATE
-    if META_OUTLINE is None:
-        cahce_update = time.time()
-        url = ERDDAPURL+"/info/index.json"
-        META_OUTLINE = requests.get(url)
-        META_OUTLINE = META_OUTLINE.json()
-    if CACHE_UPDATE < (time.time() + 60):
-        cahce_update = time.time()
-        url = ERDDAPURL+"/info/index.json"
-        META_OUTLINE = requests.get(url)
-        META_OUTLINE = META_OUTLINE.json()
-    return META_OUTLINE
-
+        args = request.args
+        if args:
+            result = self.process_args(self.model, args,'stream_id')
+        else:
+            result = self.model.read()
+        if not result:
+            return self.response_HTTP204()
+        return result
