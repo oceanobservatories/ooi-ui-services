@@ -13,7 +13,9 @@ from flask import request
 __author__ = "Matt Campbell"
 
 class InstrumentObjectController(ObjectController):
-    model = None
+
+    model = InstrumentModel()
+
     def __init__(self):
         ObjectController.__init__(self)
 
@@ -24,7 +26,8 @@ class InstrumentObjectController(ObjectController):
         return result
 
 class InstrumentListController(ListController):
-    model = None
+
+    model = InstrumentModel()
 
     def get(self):
         args = request.args

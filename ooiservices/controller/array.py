@@ -4,26 +4,29 @@ ooiservices.controller.array
 
 InstrumentController
 '''
-from flask import request
+
 from ooiservices.controller.base import ObjectController, ListController
 from ooiservices.model.array import ArrayModel
+from flask import request
+from flask.ext.restful import Resource
 
 __author__ = "Matt Campbell"
 
-array_model = None
-
 class ArrayObjectController(ObjectController):
-    array_model = None
+
+    newArray = ArrayModel()
+
+    def __init__(self):
+        ObjectController.__init__(self)
 
     def get(self, id):
-        result = self.array_model.read({'id' : id})
-        if not result:
-            return self.response_HTTP204()
-        return result[0]
+        result = self.newArray.read(id)
+        return result
 
 class ArrayListController(ListController):
-    array_model = None
+
+    newArray = ArrayModel()
 
     def get(self):
-        result = self.array_model.read(request.args)
+        result = self.newArray.read()
         return result

@@ -31,6 +31,28 @@ class BaseController(Resource):
         /foos/<id> acts on specific object and implements GET/PUT/DELETE
     """
 
+    def _model(adapter):
+        """
+        Implement _model to instantiate Model to be used by this controller
+        """
+        raise NotImplementedError()
+
+    def __init__(self):
+        """
+        Controller requires a Model (providing the CRUD methods)
+        Model requires an Adapter (providing persistence)
+        - Adapter must be specified via configuration file (Application scoped)
+        - Model instantiation must be provided by subclass using Adapter
+        - HTTP methods are bound to the Model CRUD methods
+        """
+        Resource.__init__(self)
+
+        # TODO get adapter from config
+        adapter = None
+
+        # instantiate model(adapter)
+        model = BaseModel()
+        assert isinstance(model, BaseModel)
 
     def response_HTTP204(self):
         return make_response('', 204)
@@ -38,15 +60,18 @@ class BaseController(Resource):
     def response_HTTP404(self):
         return make_response(jsonify({'error': 'Not Found' } ), 404)
 
+    def process_args(self,model, args, key):
+        result = None
+        if key in args:
+            value = request.args.get(key, '')
+            self.model.where_param = key
+            result = self.model.read(value)
+        return result
 
 class ObjectController(BaseController):
-    model = None
 
     def get(self, id):
-        result = self.model.read({'id' : id})
-        if not result:
-            return self.response_HTTP204()
-        return result[0]
+        raise NotImplementedError()
 
     def put(self, id):
         raise NotImplementedError()
@@ -55,11 +80,9 @@ class ObjectController(BaseController):
         raise NotImplementedError()
 
 class ListController(BaseController):
-    model = None
 
     def get(self):
-        result = self.model.read(request.args)
-        return result
+        raise NotImplementedError()
 
     def post(self):
         raise NotImplementedError()
