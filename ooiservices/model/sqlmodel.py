@@ -4,7 +4,6 @@ ooiservices.model.sqlmodel
 SQLModel
 '''
 #Wrapper functions for jsonp output
-from ooiservices.exceptions import ModelException
 from ooiservices.config import DataSource
 from ooiservices.model.adaptor.postgres import PostgresAdaptor as PSQL
 from ooiservices.model.adaptor.sqlite import SQLiteAdaptor as SQL
@@ -21,20 +20,14 @@ class SqlModel(BaseModel):
     else:
         raise 'DB Unsupported'
 
-    def __init__(self):
+    def __init__(self, table_name=None, where_param='id'):
         '''
         Instantiates new base model
         '''
-        from ooiservices import get_db
         # A really obscure bug that causes a severe headache down the road
         BaseModel.__init__(self)
-        self.sql = get_db()
-        if (DataSource['DBType'] == 'sqlite'):
-            self.holder = '?'
-        elif (DataSource['DBType'] == 'psql'):
-            self.holder = '%s'
-        else:
-            raise ModelException('Unsupported Database: %s' % DataSource['DBType'])
+        self.tbl = table_name
+        self.where_param = where_param
 
     #CRUD methods
     def create(self, obj):
@@ -54,9 +47,6 @@ class SqlModel(BaseModel):
         return answer
 
     def update(self, obj):
-        '''
-        Updates a single document
-        '''
         obj_id = obj.get('id')
         #Don't want to include the id in the data set to update.
         del obj['id']

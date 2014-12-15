@@ -11,6 +11,6 @@ from ooiservices.model.sqlmodel import SqlModel
 __author__ = "Matt Campbell"
 
 class ArrayModel(SqlModel):
-    table_name = 'arrays'
-    where_params = ['id', 'array_code']
 
+    def __init__(self):
+        SqlModel.__init__(self, table_name='arrays')

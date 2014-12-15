@@ -15,13 +15,3 @@ class PlatformDeploymentController(ObjectController):
 
 class PlatformDeploymentListController(ListController):
     pass
-
-
-def initialize_model():
-    '''
-    Initializes the model for the controllers
-    this function is to be called by app
-    '''
-    PlatformDeploymentController.model = PlatformDeploymentModel()
-    PlatformDeploymentListController.model = PlatformDeploymentModel()
-

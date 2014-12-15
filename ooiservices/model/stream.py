@@ -11,9 +11,10 @@ from ooiservices.model.sqlmodel import SqlModel
 __author__ = "Matt Campbell"
 
 class StreamModel(SqlModel):
-    table_name = 'streams'
-    where_params = ['id']
 
-class Parameter(SqlModel):
-    table_name = 'parameters'
-    where_params = ['id']
+    def __init__(self):
+        SqlModel.__init__(self, table_name='streams')
+
+    class Parameter(SqlModel):
+        def __init__(self):
+            SqlModel.__init__(self, table_name='stream_parameters')

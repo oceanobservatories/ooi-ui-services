@@ -27,11 +27,3 @@ class ArrayListController(ListController):
     def get(self):
         result = self.array_model.read(request.args)
         return result
-
-def initialize_model():
-    '''
-    Initializes the model for the controllers
-    this function is to be called by app
-    '''
-    ArrayObjectController.array_model = ArrayModel()
-    ArrayListController.array_model = ArrayModel()
