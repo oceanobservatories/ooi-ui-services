@@ -11,8 +11,30 @@ from ooiservices.model.instrument_deployment import InstrumentDeploymentModel
 from flask import request
 
 
-class InstrumentDeploymentController(ObjectController):
-    pass
+class InstrumentDeploymentObjectController(ObjectController):
+
+    model = InstrumentDeploymentModel()
+
+    def __init__(self):
+        ObjectController.__init__(self)
+
+    def get(self,id):
+        result = self.model.read(id)
+        if not result:
+            return self.response_HTTP204()
+        return result
+
 
 class InstrumentDeploymentListController(ListController):
-    pass
+
+    model = InstrumentDeploymentModel()
+
+    def get(self):
+        args = request.args
+        if args:
+            result = self.process_args(self.model, args,'instrument_id')
+        else:
+            result = self.model.read()
+        if not result:
+            return self.response_HTTP204()
+        return result
