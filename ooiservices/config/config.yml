@@ -8,27 +8,25 @@
 
 #Database configuration
 DataSource:
-  DBType: sqlite
-  DBName: db/test.db
-  #DBType: psql
-  #DBName: ooi
-  #user: 
-  #password:
-  #host: localhost
-  #port: 5432
+    #supported DB:
+    # DBType: sqlite
+    # DBType: psql
+    DBType: psql
+    DBName: ooi_psql_test
+    userName: postgres
+    password:
+    host: localhost
+    port: 5432
 
-# Specifies the Model Adaptor to use
-# Options include:
-#   - SQL
-#   - uFrame
-#   - Hybrid
-Adaptor: SQL
+settings:
+  erddap:
+    base_url: "http://erddap.ooi.rutgers.edu/erddap/search/index.json"
+    timeout_connect: 5    # (int) connect timeout (should be greater than 3 secs)
+    timeout_read: 45      # (int) read timeout (adjust to accommodate latency)
 
-uFrame:
-  host:
-  port:
-
-
-ERDDAPURL: http://erddap.ooi.rutgers.edu/erddap
-DATASETS_FILE: ../datasets.yml
-TOUCH_FILE: /var/cache/erddap/reset
+  cache:
+    port: 11211           # (int) port for memcache daemon (default)
+    host: 'localhost'     # (str) host for memcache daemon '127.0.0.1'
+    expiry: 300           # (int) cache key expiry in seconds (5 minutes, adjust to 10 minutes on server)
+    min_compress_len: 0   # (int)
+    debug: 2              # (int) debug level
