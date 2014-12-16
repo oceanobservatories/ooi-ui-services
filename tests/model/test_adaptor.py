@@ -5,7 +5,7 @@ tests.model.test_adaptor
 The base class for the Services Test Case
 '''
 
-from ooiservices.adaptor.file import FileAdaptor
+from ooiservices.model.adaptor.file import FileAdaptor
 from tests.services_test_case import ServicesTestCase
 
 import os
