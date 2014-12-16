@@ -7,13 +7,9 @@ Tests for the SqlModel
 
 
 from ooiservices.config import DataSource
-from ooiservices.adaptor.postgres import PostgresAdaptor as PSQL
-from ooiservices.adaptor.sqlite import SQLiteAdaptor as SQL
 from tests.services_test_case import ServicesTestCase
 from tests.model.sql_model_mixin import SQLModelMixin
-from ooiservices.util.breakpoint import breakpoint
 from ooiservices import app, get_db
-import random
 import pytest
 
 sqlite_test = pytest.mark.sqlite_test

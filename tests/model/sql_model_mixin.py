@@ -5,11 +5,8 @@ tests.model.sql_model_mixin
 Mixin for SQL Model testing
 '''
 
-from ooiservices.config import DataSource
 from ooiservices.exceptions import ModelException
 from ooiservices.model.sqlmodel import SqlModel
-from tests.services_test_case import ServicesTestCase
-from ooiservices.util.breakpoint import breakpoint
 import random
 import pytest
 
