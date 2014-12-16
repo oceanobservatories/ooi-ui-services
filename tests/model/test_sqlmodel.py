@@ -8,8 +8,8 @@ Tests for the SqlModel
 from ooiservices.config import DataSource
 from ooiservices.exceptions import ModelException
 from ooiservices.model.sqlmodel import SqlModel
-from ooiservices.adaptor.postgres import PostgresAdaptor as PSQL
-from ooiservices.adaptor.sqlite import SQLiteAdaptor as SQL
+from ooiservices.model.adaptor.postgres import PostgresAdaptor as PSQL
+from ooiservices.model.adaptor.sqlite import SQLiteAdaptor as SQL
 from tests.services_test_case import ServicesTestCase
 from ooiservices.util.breakpoint import breakpoint
 import random
@@ -67,8 +67,8 @@ class SQLModelMixin(object):
         result = sql_model.read({'id' : retval['id']})
         assert len(result) == 0
 
-        
-            
+
+
 
 @sqlite_test
 class TestSQLModel(ServicesTestCase, SQLModelMixin):
