@@ -25,18 +25,13 @@ class TestArrayController(ServicesTestCase):
         response = { r['id'] : r for r in response }
         assert 'CP' in response
 
-    def test_array_where(self):
-        rv = self.app.get('/arrays?array_id=CP')
+    def test_array_list(self):
+        rv = self.app.get('/arrays')
         response = json.loads(rv.data)
 
         # Rearrange the response by array_code
         response = { r['id'] : r for r in response }
         assert 'CP' in response
-
-        rv = self.app.get('/arrays?array_id=OP')
-        response = json.loads(rv.data)
-
-        assert len(response) == 0
 
     def test_array_get(self):
         rv = self.app.get('/arrays/CP')
