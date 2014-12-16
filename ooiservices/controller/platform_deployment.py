@@ -39,7 +39,7 @@ class PlatformDeploymentObjectController(ObjectController):
 
 class PlatformDeploymentListController(ListController):
 
-        model = PlatformDeploymentModel()
+    model = PlatformDeploymentModel()
 
     def get(self):
         args = request.args
