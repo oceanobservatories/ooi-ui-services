@@ -59,6 +59,7 @@ class PostgresAdaptor(object):
         '''
         Get cursor factory (to return dictionary), execute query and return result
         '''
+        result = None
         try:
             with self._getcursor() as cursor:
                 for item in args:

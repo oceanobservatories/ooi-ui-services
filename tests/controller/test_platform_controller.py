@@ -22,12 +22,12 @@ class TestPlatformController(ServicesTestCase):
         data = json.loads(rv.data)
 
         assert 'id' in data[0]
-        assert 'platform_id' in data[0]
+        assert 'array_id' in data[0]
         assert 'name' in data[0]
 
     def test_invalid_response(self):
 
-        rv = self.app.get('/platforms?id=notreal')
+        rv = self.app.get('/platforms?array_id=notreal')
         assert rv.status_code == 204
 
     def test_failed_response(self):
