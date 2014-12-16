@@ -6,7 +6,7 @@ Definitions for the FileAdaptor mock
 '''
 
 
-from ooiservices.adaptor.base import BaseAdaptor
+from ooiservices.model.adaptor.base import BaseAdaptor
 
 import uuid
 import os
