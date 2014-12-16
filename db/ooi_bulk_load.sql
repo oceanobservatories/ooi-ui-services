@@ -1,770 +1,849 @@
---
--- PostgreSQL database dump
---
-
-SET statement_timeout = 0;
-SET lock_timeout = 0;
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = on;
-SET check_function_bodies = false;
-SET client_min_messages = warning;
-
---
--- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: -
---
-
-CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
-
-
---
--- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: -
---
-
-COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
-
-
---
--- Name: postgis; Type: EXTENSION; Schema: -; Owner: -
---
-
-CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
-
-
---
--- Name: EXTENSION postgis; Type: COMMENT; Schema: -; Owner: -
---
-
-COMMENT ON EXTENSION postgis IS 'PostGIS geometry, geography, and raster spatial types and functions';
-
-
-SET search_path = public, pg_catalog;
-
-SET default_tablespace = '';
-
-SET default_with_oids = false;
-
---
--- Name: arrays; Type: TABLE; Schema: public; Owner: -; Tablespace: 
---
-
-CREATE TABLE arrays (
-    id integer NOT NULL,
-    array_code text,
-    description text,
-    geography geography(Polygon,4326),
-    name text
-);
-
-
---
--- Name: arrays_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE arrays_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: arrays_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE arrays_id_seq OWNED BY arrays.id;
-
-
---
--- Name: deployments; Type: TABLE; Schema: public; Owner: -; Tablespace: 
---
-
-CREATE TABLE deployments (
-    id integer NOT NULL,
-    start_date date,
-    end_date date,
-    cruise_id integer
-);
-
-
---
--- Name: deployments_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE deployments_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: deployments_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE deployments_id_seq OWNED BY deployments.id;
-
-
---
--- Name: instrument_deployments; Type: TABLE; Schema: public; Owner: -; Tablespace: 
---
-
-CREATE TABLE instrument_deployments (
-    id integer NOT NULL,
-    display_name text,
-    start_date date,
-    end_date date,
-    platform_deployment_id integer,
-    instrument_id integer,
-    reference_designator text,
-    lat real,
-    lon real,
-    depth real,
-    deployment_id integer
-);
-
-
---
--- Name: instrument_deployments_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE instrument_deployments_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: instrument_deployments_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE instrument_deployments_id_seq OWNED BY instrument_deployments.id;
-
-
---
--- Name: instruments; Type: TABLE; Schema: public; Owner: -; Tablespace: 
---
-
-CREATE TABLE instruments (
-    id integer NOT NULL,
-    name text,
-    description text,
-    location text,
-    manufacturer text,
-    series text,
-    serial_number text,
-    display_name text,
-    model_id integer NOT NULL,
-    asset_id integer NOT NULL,
-    depth_rating real
-);
-
-
---
--- Name: instruments_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE instruments_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: instruments_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE instruments_id_seq OWNED BY instruments.id;
-
-
---
--- Name: platform_deployments; Type: TABLE; Schema: public; Owner: -; Tablespace: 
---
-
-CREATE TABLE platform_deployments (
-    id integer NOT NULL,
-    start_date date,
-    end_date date,
-    platform_id integer,
-    reference_designator text NOT NULL,
-    lat real,
-    lon real,
-    array_id integer,
-    deployment_id integer,
-    display_name text
-);
-
-
---
--- Name: platform_deployments_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE platform_deployments_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: platform_deployments_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE platform_deployments_id_seq OWNED BY platform_deployments.id;
-
-
---
--- Name: platforms; Type: TABLE; Schema: public; Owner: -; Tablespace: 
---
-
-CREATE TABLE platforms (
-    id integer NOT NULL,
-    name text,
-    description text,
-    location text,
-    manufacturer text,
-    series text,
-    is_mobile boolean NOT NULL,
-    serial_no text,
-    asset_id integer NOT NULL
-);
-
-
---
--- Name: platforms_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE platforms_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: platforms_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE platforms_id_seq OWNED BY platforms.id;
-
-
---
--- Name: stream_parameters; Type: TABLE; Schema: public; Owner: -; Tablespace: 
---
-
-CREATE TABLE stream_parameters (
-    id integer NOT NULL,
-    stream_id integer,
-    name text,
-    short_name text,
-    long_name text,
-    standard_name text,
-    units text,
-    data_type text
-);
-
-
---
--- Name: stream_parameters_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE stream_parameters_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: stream_parameters_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE stream_parameters_id_seq OWNED BY stream_parameters.id;
-
-
---
--- Name: streams; Type: TABLE; Schema: public; Owner: -; Tablespace: 
---
-
-CREATE TABLE streams (
-    id integer NOT NULL,
-    name text,
-    instrument_id integer,
-    description text
-);
-
-
---
--- Name: streams_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE streams_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: streams_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE streams_id_seq OWNED BY streams.id;
-
-
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY arrays ALTER COLUMN id SET DEFAULT nextval('arrays_id_seq'::regclass);
-
-
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY deployments ALTER COLUMN id SET DEFAULT nextval('deployments_id_seq'::regclass);
-
-
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY instrument_deployments ALTER COLUMN id SET DEFAULT nextval('instrument_deployments_id_seq'::regclass);
-
-
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY instruments ALTER COLUMN id SET DEFAULT nextval('instruments_id_seq'::regclass);
-
-
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY platform_deployments ALTER COLUMN id SET DEFAULT nextval('platform_deployments_id_seq'::regclass);
-
-
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY platforms ALTER COLUMN id SET DEFAULT nextval('platforms_id_seq'::regclass);
-
-
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY stream_parameters ALTER COLUMN id SET DEFAULT nextval('stream_parameters_id_seq'::regclass);
-
-
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY streams ALTER COLUMN id SET DEFAULT nextval('streams_id_seq'::regclass);
-
-
---
--- Data for Name: arrays; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY arrays (id, array_code, description, geography, name) FROM stdin;
-1	CP	\N	\N	Coastal Pioneer
-\.
-
-
---
--- Name: arrays_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
---
-
-SELECT pg_catalog.setval('arrays_id_seq', 1, true);
-
-
---
--- Data for Name: deployments; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY deployments (id, start_date, end_date, cruise_id) FROM stdin;
-\.
-
-
---
--- Name: deployments_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
---
-
-SELECT pg_catalog.setval('deployments_id_seq', 1, false);
-
-
---
--- Data for Name: instrument_deployments; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY instrument_deployments (id, display_name, start_date, end_date, platform_deployment_id, instrument_id, reference_designator, lat, lon, depth, deployment_id) FROM stdin;
-1	Velocity Profiler (short range)	\N	\N	14	\N	CP02PMCI-RII01-02-ADCPTG000	40.2299995	70.8799973	\N	\N
-2	Engineering Data	\N	\N	14	\N	CP02PMCI-RII01-00-ENG000000	40.2299995	70.8799973	\N	\N
-3	Engineering Data	\N	\N	13	\N	CP02PMCI-SBS01-00-ENG000000	40.2299995	70.8799973	\N	\N
-4	3-Axis Motion Package	\N	\N	13	\N	CP02PMCI-SBS01-01-MOPAK0000	40.2299995	70.8799973	\N	\N
-5	Engineering Data	\N	\N	15	\N	CP02PMCI-WFP01-00-ENG000000	40.2299995	70.8799973	\N	\N
-6	Photosynthetically Available Radiation	\N	\N	15	\N	CP02PMCI-WFP01-05-PARADK000	40.2299995	70.8799973	\N	\N
-7	3-Wavelength Fluorometer	\N	\N	15	\N	CP02PMCI-WFP01-04-FLORTK000	40.2299995	70.8799973	\N	\N
-8	CTD Profiler	\N	\N	15	\N	CP02PMCI-WFP01-03-CTDPFK000	40.2299995	70.8799973	\N	\N
-9	Dissolved Oxygen Fast Response	\N	\N	15	\N	CP02PMCI-WFP01-02-DOFSTK000	40.2299995	70.8799973	\N	\N
-10	3-D Single Point Velocity Meter	\N	\N	15	\N	CP02PMCI-WFP01-01-VEL3DK000	40.2299995	70.8799973	\N	\N
-11	Velocity Profiler (short range)	\N	\N	17	\N	CP02PMCO-RII01-02-ADCPTG000	40.0999985	70.8799973	\N	\N
-12	Engineering Data	\N	\N	17	\N	CP02PMCO-RII01-00-ENG000000	40.0999985	70.8799973	\N	\N
-13	Engineering Data	\N	\N	16	\N	CP02PMCO-SBS01-00-ENG000000	40.0999985	70.8799973	\N	\N
-14	3-Axis Motion Package	\N	\N	16	\N	CP02PMCO-SBS01-01-MOPAK0000	40.0999985	70.8799973	\N	\N
-15	Dissolved Oxygen Fast Response	\N	\N	18	\N	CP02PMCO-WFP01-02-DOFSTK000	40.0999985	70.8799973	\N	\N
-16	Engineering Data	\N	\N	18	\N	CP02PMCO-WFP01-00-ENG000000	40.0999985	70.8799973	\N	\N
-17	3-D Single Point Velocity Meter	\N	\N	18	\N	CP02PMCO-WFP01-01-VEL3DK000	40.0999985	70.8799973	\N	\N
-18	CTD Profiler	\N	\N	18	\N	CP02PMCO-WFP01-03-CTDPFK000	40.0999985	70.8799973	\N	\N
-19	3-Wavelength Fluorometer	\N	\N	18	\N	CP02PMCO-WFP01-04-FLORTK000	40.0999985	70.8799973	\N	\N
-20	Photosynthetically Available Radiation	\N	\N	18	\N	CP02PMCO-WFP01-05-PARADK000	40.0999985	70.8799973	\N	\N
-21	Engineering Data	\N	\N	8	\N	CP02PMUI-RII01-00-ENG000000	40.3699989	70.7799988	\N	\N
-22	Velocity Profiler (short range)	\N	\N	8	\N	CP02PMUI-RII01-02-ADCPTG000	40.3699989	70.7799988	\N	\N
-23	3-Axis Motion Package	\N	\N	7	\N	CP02PMUI-SBS01-01-MOPAK0000	40.3699989	70.7799988	\N	\N
-24	Engineering Data	\N	\N	7	\N	CP02PMUI-SBS01-00-ENG000000	40.3699989	70.7799988	\N	\N
-25	Dissolved Oxygen Fast Response	\N	\N	9	\N	CP02PMUI-WFP01-02-DOFSTK000	40.3699989	70.7799988	\N	\N
-26	Engineering Data	\N	\N	9	\N	CP02PMUI-WFP01-00-ENG000000	40.3699989	70.7799988	\N	\N
-27	Photosynthetically Available Radiation	\N	\N	9	\N	CP02PMUI-WFP01-05-PARADK000	40.3699989	70.7799988	\N	\N
-28	3-Wavelength Fluorometer	\N	\N	9	\N	CP02PMUI-WFP01-04-FLORTK000	40.3699989	70.7799988	\N	\N
-29	CTD Profiler	\N	\N	9	\N	CP02PMUI-WFP01-03-CTDPFK000	40.3699989	70.7799988	\N	\N
-30	3-D Single Point Velocity Meter	\N	\N	9	\N	CP02PMUI-WFP01-01-VEL3DK000	40.3699989	70.7799988	\N	\N
-31	Velocity Profiler (short range)	\N	\N	11	\N	CP02PMUO-RII01-02-ADCPSL000	39.9399986	70.7799988	\N	\N
-32	Engineering Data	\N	\N	11	\N	CP02PMUO-RII01-00-ENG000000	39.9399986	70.7799988	\N	\N
-33	Engineering Data	\N	\N	10	\N	CP02PMUO-SBS01-00-ENG000000	39.9399986	70.7799988	\N	\N
-34	3-Axis Motion Package	\N	\N	10	\N	CP02PMUO-SBS01-01-MOPAK0000	39.9399986	70.7799988	\N	\N
-35	CTD Profiler	\N	\N	12	\N	CP02PMUO-WFP01-03-CTDPFK000	39.9399986	70.7799988	\N	\N
-36	Engineering Data	\N	\N	12	\N	CP02PMUO-WFP01-00-ENG000000	39.9399986	70.7799988	\N	\N
-37	3-Wavelength Fluorometer	\N	\N	12	\N	CP02PMUO-WFP01-04-FLORTK000	39.9399986	70.7799988	\N	\N
-38	Photosynthetically Available Radiation	\N	\N	12	\N	CP02PMUO-WFP01-05-PARADK000	39.9399986	70.7799988	\N	\N
-39	Dissolved Oxygen Fast Response	\N	\N	12	\N	CP02PMUO-WFP01-02-DOFSTK000	39.9399986	70.7799988	\N	\N
-40	3-D Single Point Velocity Meter	\N	\N	12	\N	CP02PMUO-WFP01-01-VEL3DK000	39.9399986	70.7799988	\N	\N
-41	Engineering Data	\N	\N	5	\N	CP04OSPM-SBS11-00-ENG000000	39.9399986	70.8799973	\N	\N
-42	3-Axis Motion Package	\N	\N	5	\N	CP04OSPM-SBS11-02-MOPAK0000	39.9399986	70.8799973	\N	\N
-43	3-D Single Point Velocity Meter	\N	\N	6	\N	CP04OSPM-WFP01-01-VEL3DK000	39.9399986	70.8799973	\N	\N
-44	CTD Profiler	\N	\N	6	\N	CP04OSPM-WFP01-03-CTDPFK000	39.9399986	70.8799973	\N	\N
-45	Engineering Data	\N	\N	6	\N	CP04OSPM-WFP01-00-ENG000000	39.9399986	70.8799973	\N	\N
-46	3-Wavelength Fluorometer	\N	\N	6	\N	CP04OSPM-WFP01-04-FLORTK000	39.9399986	70.8799973	\N	\N
-47	Photosynthetically Available Radiation	\N	\N	6	\N	CP04OSPM-WFP01-05-PARADK000	39.9399986	70.8799973	\N	\N
-48	Dissolved Oxygen Fast Response	\N	\N	6	\N	CP04OSPM-WFP01-02-DOFSTK000	39.9399986	70.8799973	\N	\N
-49	Engineering Data	\N	\N	25	\N	CP05MOAS-AV001-00-ENG000000	-999	-999	\N	\N
-50	Photosynthetically Available Radiation	\N	\N	25	\N	CP05MOAS-AV001-06-PARADN000	-999	-999	\N	\N
-51	Nitrate	\N	\N	25	\N	CP05MOAS-AV001-04-NUTNRN000	-999	-999	\N	\N
-52	\N	\N	\N	25	\N	CP05MOAS-AV001-03-CTDAVN000	-999	-999	\N	\N
-53	3-Wavelength Fluorometer	\N	\N	25	\N	CP05MOAS-AV001-01-FLORTN000	-999	-999	\N	\N
-54	Dissolved Oxygen Stable Response	\N	\N	25	\N	CP05MOAS-AV001-02-DOSTAN000	-999	-999	\N	\N
-55	Velocity Profiler (short range)	\N	\N	25	\N	CP05MOAS-AV001-05-ADCPAN000	-999	-999	\N	\N
-56	3-Wavelength Fluorometer	\N	\N	26	\N	CP05MOAS-AV002-01-FLORTN000	-999	-999	\N	\N
-57	\N	\N	\N	26	\N	CP05MOAS-AV002-03-CTDAVN000	-999	-999	\N	\N
-58	Nitrate	\N	\N	26	\N	CP05MOAS-AV002-04-NUTNRN000	-999	-999	\N	\N
-59	Velocity Profiler (short range)	\N	\N	26	\N	CP05MOAS-AV002-05-ADCPAN000	-999	-999	\N	\N
-60	Photosynthetically Available Radiation	\N	\N	26	\N	CP05MOAS-AV002-06-PARADN000	-999	-999	\N	\N
-61	Engineering Data	\N	\N	26	\N	CP05MOAS-AV002-00-ENG000000	-999	-999	\N	\N
-62	Dissolved Oxygen Stable Response	\N	\N	26	\N	CP05MOAS-AV002-02-DOSTAN000	-999	-999	\N	\N
-63	3-Wavelength Fluorometer	\N	\N	19	\N	CP05MOAS-GL001-02-FLORTM000	-999	-999	\N	\N
-64	Engineering Data	\N	\N	19	\N	CP05MOAS-GL001-00-ENG000000	-999	-999	\N	\N
-65	Photosynthetically Available Radiation	\N	\N	19	\N	CP05MOAS-GL001-05-PARADM000	-999	-999	\N	\N
-66	Dissolved Oxygen Stable Response	\N	\N	19	\N	CP05MOAS-GL001-04-DOSTAM000	-999	-999	\N	\N
-67	CTD Profiler	\N	\N	19	\N	CP05MOAS-GL001-03-CTDGVM000	-999	-999	\N	\N
-68	Velocity Profiler (short range)	\N	\N	19	\N	CP05MOAS-GL001-01-ADCPAM000	-999	-999	\N	\N
-69	Velocity Profiler (short range)	\N	\N	20	\N	CP05MOAS-GL002-01-ADCPAM000	-999	-999	\N	\N
-70	Photosynthetically Available Radiation	\N	\N	20	\N	CP05MOAS-GL002-05-PARADM000	-999	-999	\N	\N
-71	Dissolved Oxygen Stable Response	\N	\N	20	\N	CP05MOAS-GL002-04-DOSTAM000	-999	-999	\N	\N
-72	CTD Profiler	\N	\N	20	\N	CP05MOAS-GL002-03-CTDGVM000	-999	-999	\N	\N
-73	3-Wavelength Fluorometer	\N	\N	20	\N	CP05MOAS-GL002-02-FLORTM000	-999	-999	\N	\N
-74	Engineering Data	\N	\N	20	\N	CP05MOAS-GL002-00-ENG000000	-999	-999	\N	\N
-75	CTD Profiler	\N	\N	21	\N	CP05MOAS-GL003-03-CTDGVM000	-999	-999	\N	\N
-76	Dissolved Oxygen Stable Response	\N	\N	21	\N	CP05MOAS-GL003-04-DOSTAM000	-999	-999	\N	\N
-77	Velocity Profiler (short range)	\N	\N	21	\N	CP05MOAS-GL003-01-ADCPAM000	-999	-999	\N	\N
-78	Engineering Data	\N	\N	21	\N	CP05MOAS-GL003-00-ENG000000	-999	-999	\N	\N
-79	Photosynthetically Available Radiation	\N	\N	21	\N	CP05MOAS-GL003-05-PARADM000	-999	-999	\N	\N
-80	3-Wavelength Fluorometer	\N	\N	21	\N	CP05MOAS-GL003-02-FLORTM000	-999	-999	\N	\N
-81	Photosynthetically Available Radiation	\N	\N	22	\N	CP05MOAS-GL004-05-PARADM000	-999	-999	\N	\N
-82	Velocity Profiler (short range)	\N	\N	22	\N	CP05MOAS-GL004-01-ADCPAM000	-999	-999	\N	\N
-83	3-Wavelength Fluorometer	\N	\N	22	\N	CP05MOAS-GL004-02-FLORTM000	-999	-999	\N	\N
-84	CTD Profiler	\N	\N	22	\N	CP05MOAS-GL004-03-CTDGVM000	-999	-999	\N	\N
-85	Dissolved Oxygen Stable Response	\N	\N	22	\N	CP05MOAS-GL004-04-DOSTAM000	-999	-999	\N	\N
-86	Engineering Data	\N	\N	22	\N	CP05MOAS-GL004-00-ENG000000	-999	-999	\N	\N
-87	Photosynthetically Available Radiation	\N	\N	23	\N	CP05MOAS-GL005-05-PARADM000	-999	-999	\N	\N
-88	Dissolved Oxygen Stable Response	\N	\N	23	\N	CP05MOAS-GL005-04-DOSTAM000	-999	-999	\N	\N
-89	Engineering Data	\N	\N	23	\N	CP05MOAS-GL005-00-ENG000000	-999	-999	\N	\N
-90	CTD Profiler	\N	\N	23	\N	CP05MOAS-GL005-03-CTDGVM000	-999	-999	\N	\N
-91	3-Wavelength Fluorometer	\N	\N	23	\N	CP05MOAS-GL005-02-FLORTM000	-999	-999	\N	\N
-92	Velocity Profiler (short range)	\N	\N	23	\N	CP05MOAS-GL005-01-ADCPAM000	-999	-999	\N	\N
-93	3-Wavelength Fluorometer	\N	\N	24	\N	CP05MOAS-GL006-02-FLORTM000	-999	-999	\N	\N
-94	Dissolved Oxygen Stable Response	\N	\N	24	\N	CP05MOAS-GL006-04-DOSTAM000	-999	-999	\N	\N
-95	Photosynthetically Available Radiation	\N	\N	24	\N	CP05MOAS-GL006-05-PARADM000	-999	-999	\N	\N
-96	Engineering Data	\N	\N	24	\N	CP05MOAS-GL006-00-ENG000000	-999	-999	\N	\N
-97	CTD Profiler	\N	\N	24	\N	CP05MOAS-GL006-03-CTDGVM000	-999	-999	\N	\N
-98	Velocity Profiler (short range)	\N	\N	24	\N	CP05MOAS-GL006-01-ADCPAM000	-999	-999	\N	\N
-\.
-
-
---
--- Name: instrument_deployments_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
---
-
-SELECT pg_catalog.setval('instrument_deployments_id_seq', 98, true);
-
-
---
--- Data for Name: instruments; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY instruments (id, name, description, location, manufacturer, series, serial_number, display_name, model_id, asset_id, depth_rating) FROM stdin;
-\.
-
-
---
--- Name: instruments_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
---
-
-SELECT pg_catalog.setval('instruments_id_seq', 1, false);
-
-
---
--- Data for Name: platform_deployments; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY platform_deployments (id, start_date, end_date, platform_id, reference_designator, lat, lon, array_id, deployment_id, display_name) FROM stdin;
-5	\N	\N	\N	CP04OSPM-SBS11	39.9333344	-70.8784332	1	\N	Pioneer Offshore Profiler Mooring - Surface Buoy
-6	\N	\N	\N	CP04OSPM-WFP01	39.9333344	-70.8784332	1	\N	Pioneer Offshore Profiler Mooring - Wire-Following Profiler
-7	\N	\N	\N	CP02PMUI-SBS01	40.8973999	-70.6860123	1	\N	Pioneer Upstream Inshore Profiler Mooring - Surface Buoy
-8	\N	\N	\N	CP02PMUI-RII01	40.8973999	-70.6860123	1	\N	Pioneer Upstream Inshore Profiler Mooring - Mooring Riser
-9	\N	\N	\N	CP02PMUI-WFP01	40.8973999	-70.6860123	1	\N	Pioneer Upstream Inshore Profiler Mooring - Wire-Following Profiler
-10	\N	\N	\N	CP02PMUO-SBS01	39.9430199	-70.7700119	1	\N	Pioneer Upstream Offshore Profiler Mooring - Surface Buoy
-11	\N	\N	\N	CP02PMUO-RII01	39.9430199	-70.7700119	1	\N	Pioneer Upstream Offshore Profiler Mooring - Surface Buoy
-12	\N	\N	\N	CP02PMUO-WFP01	39.9430199	-70.7700119	1	\N	Pioneer Upstream Offshore Profiler Mooring - Wire-Following Profiler
-13	\N	\N	\N	CP02PMCI-SBS01	40.226532	-70.8779526	1	\N	Pioneer Central Inshore Profiler Mooring - Surface Buoy
-14	\N	\N	\N	CP02PMCI-RII01	40.226532	-70.8779526	1	\N	Pioneer Central Inshore Profiler Mooring - Mooring Riser
-15	\N	\N	\N	CP02PMCI-WFP01	40.226532	-70.8779526	1	\N	Pioneer Central Inshore Profiler Mooring - Wire-Following Profiler
-16	\N	\N	\N	CP02PMCO-SBS01	40.1012344	-70.8876801	1	\N	Pioneer Central Offshore Profiler Mooring - Surface Buoy
-17	\N	\N	\N	CP02PMCO-RII01	40.1012344	-70.8876801	1	\N	Pioneer Central Offshore Profiler Mooring - Mooring Riser
-18	\N	\N	\N	CP02PMCO-WFP01	40.1012344	-70.8876801	1	\N	Pioneer Central Offshore Profiler Mooring - Wire-Following Profiler
-19	\N	\N	\N	CP05MOAS-GL001	40.0833015	-70.25	1	\N	Pioneer Mobile Coastal Glider #1
-20	\N	\N	\N	CP05MOAS-GL002	40.0833015	-70.25	1	\N	Pioneer Mobile Coastal Glider #2
-21	\N	\N	\N	CP05MOAS-GL003	40.0833015	-70.25	1	\N	Pioneer Mobile Coastal Glider #3
-22	\N	\N	\N	CP05MOAS-GL004	40.0833015	-70.25	1	\N	Pioneer Mobile Coastal Glider #4
-23	\N	\N	\N	CP05MOAS-GL005	40.0833015	-70.25	1	\N	Pioneer Mobile Coastal Glider #5
-24	\N	\N	\N	CP05MOAS-GL006	40.0833015	-70.25	1	\N	Pioneer Mobile Coastal Glider #6
-25	\N	\N	\N	CP05MOAS-AV001	40.0833015	-70.25	1	\N	Pioneer Mobile AUV #1
-26	\N	\N	\N	CP05MOAS-AV002	40.0833015	-70.25	1	\N	Pioneer Mobile AUV #2
-\.
-
-
---
--- Name: platform_deployments_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
---
-
-SELECT pg_catalog.setval('platform_deployments_id_seq', 26, true);
-
-
---
--- Data for Name: platforms; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY platforms (id, name, description, location, manufacturer, series, is_mobile, serial_no, asset_id) FROM stdin;
-\.
-
-
---
--- Name: platforms_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
---
-
-SELECT pg_catalog.setval('platforms_id_seq', 1, false);
-
-
---
--- Data for Name: spatial_ref_sys; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY spatial_ref_sys (srid, auth_name, auth_srid, srtext, proj4text) FROM stdin;
-\.
-
-
---
--- Data for Name: stream_parameters; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY stream_parameters (id, stream_id, name, short_name, long_name, standard_name, units, data_type) FROM stdin;
-\.
-
-
---
--- Name: stream_parameters_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
---
-
-SELECT pg_catalog.setval('stream_parameters_id_seq', 1, false);
-
-
---
--- Data for Name: streams; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY streams (id, name, instrument_id, description) FROM stdin;
-\.
-
-
---
--- Name: streams_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
---
-
-SELECT pg_catalog.setval('streams_id_seq', 1, false);
-
-
---
--- Name: arrays_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
---
-
-ALTER TABLE ONLY arrays
-    ADD CONSTRAINT arrays_pkey PRIMARY KEY (id);
-
-
---
--- Name: deployments_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
---
-
-ALTER TABLE ONLY deployments
-    ADD CONSTRAINT deployments_pkey PRIMARY KEY (id);
-
-
---
--- Name: instrument_deployments_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
---
-
-ALTER TABLE ONLY instrument_deployments
-    ADD CONSTRAINT instrument_deployments_pkey PRIMARY KEY (id);
-
-
---
--- Name: instruments_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
---
-
-ALTER TABLE ONLY instruments
-    ADD CONSTRAINT instruments_pkey PRIMARY KEY (id);
-
-
---
--- Name: platform_deployments_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
---
-
-ALTER TABLE ONLY platform_deployments
-    ADD CONSTRAINT platform_deployments_pkey PRIMARY KEY (id);
-
-
---
--- Name: platforms_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
---
-
-ALTER TABLE ONLY platforms
-    ADD CONSTRAINT platforms_pkey PRIMARY KEY (id);
-
-
---
--- Name: stream_parameters_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
---
-
-ALTER TABLE ONLY stream_parameters
-    ADD CONSTRAINT stream_parameters_pkey PRIMARY KEY (id);
-
-
---
--- Name: streams_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
---
-
-ALTER TABLE ONLY streams
-    ADD CONSTRAINT streams_pkey PRIMARY KEY (id);
-
-
---
--- Name: instrument_deployments_deployment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY instrument_deployments
-    ADD CONSTRAINT instrument_deployments_deployment_id_fkey FOREIGN KEY (deployment_id) REFERENCES deployments(id);
-
-
---
--- Name: instrument_deployments_instrument_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY instrument_deployments
-    ADD CONSTRAINT instrument_deployments_instrument_id_fkey FOREIGN KEY (instrument_id) REFERENCES instruments(id);
-
-
---
--- Name: instrument_deployments_platform_deployment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY instrument_deployments
-    ADD CONSTRAINT instrument_deployments_platform_deployment_id_fkey FOREIGN KEY (platform_deployment_id) REFERENCES platform_deployments(id);
-
-
---
--- Name: platform_deployments_array_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY platform_deployments
-    ADD CONSTRAINT platform_deployments_array_id_fkey FOREIGN KEY (array_id) REFERENCES arrays(id);
-
-
---
--- Name: platform_deployments_deployment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY platform_deployments
-    ADD CONSTRAINT platform_deployments_deployment_id_fkey FOREIGN KEY (deployment_id) REFERENCES deployments(id);
-
-
---
--- Name: platform_deployments_platform_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY platform_deployments
-    ADD CONSTRAINT platform_deployments_platform_id_fkey FOREIGN KEY (platform_id) REFERENCES platforms(id);
-
-
---
--- Name: stream_parameters_stream_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY stream_parameters
-    ADD CONSTRAINT stream_parameters_stream_id_fkey FOREIGN KEY (stream_id) REFERENCES streams(id);
-
-
---
--- Name: streams_instrument_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY streams
-    ADD CONSTRAINT streams_instrument_id_fkey FOREIGN KEY (instrument_id) REFERENCES instruments(id);
-
-
---
--- Name: public; Type: ACL; Schema: -; Owner: -
---
-
-REVOKE ALL ON SCHEMA public FROM PUBLIC;
-REVOKE ALL ON SCHEMA public FROM luke;
-GRANT ALL ON SCHEMA public TO luke;
-GRANT ALL ON SCHEMA public TO PUBLIC;
-
-
---
--- PostgreSQL database dump complete
---
-
+/* Array list - 11/18/2014 */
+INSERT INTO arrays VALUES ('GS', '55S', (-54.0814, -89.6652));
+INSERT INTO arrays VALUES ('GA', 'Argentine', (-42.5073, -42.8905));
+INSERT INTO arrays VALUES ('GI', 'Irminger Sea', (60.4582, -38.4407));
+INSERT INTO arrays VALUES ('GP', 'PAPA Mooring', (49.9795, -144.254));
+INSERT INTO arrays VALUES ('CP', 'Pioneer', (40.1, -70.88));
+INSERT INTO arrays VALUES ('CE', 'Endurance', (44.37, -124.95));
+
+
+/* Platform List */
+INSERT INTO platforms VALUES ('GS01SUMO-SM001', 'GS');
+INSERT INTO platforms VALUES ('GS01SUMO-SBD11', 'GS');
+INSERT INTO platforms VALUES ('GS01SUMO-SBD12', 'GS');
+INSERT INTO platforms VALUES ('GS01SUMO-RID16', 'GS');
+INSERT INTO platforms VALUES ('GS01SUMO-RII11', 'GS');
+INSERT INTO platforms VALUES ('GS02HYPM-GP001', 'GS');
+INSERT INTO platforms VALUES ('GS02HYPM-WFP02', 'GS');
+INSERT INTO platforms VALUES ('GS02HYPM-WFP03', 'GS');
+INSERT INTO platforms VALUES ('GS02HYPM-MPC04', 'GS');
+INSERT INTO platforms VALUES ('GS02HYPM-RIS01', 'GS');
+INSERT INTO platforms VALUES ('GS03FLMA-FM001', 'GS');
+INSERT INTO platforms VALUES ('GS03FLMA-RIS01', 'GS');
+INSERT INTO platforms VALUES ('GS03FLMA-RIS02', 'GS');
+INSERT INTO platforms VALUES ('GS03FLMB-FM001', 'GS');
+INSERT INTO platforms VALUES ('GS03FLMB-RIS01', 'GS');
+INSERT INTO platforms VALUES ('GS03FLMB-RIS02', 'GS');
+INSERT INTO platforms VALUES ('GS05MOAS-GL001', 'GS');
+INSERT INTO platforms VALUES ('GS05MOAS-GL002', 'GS');
+INSERT INTO platforms VALUES ('GS05MOAS-GL003', 'GS');
+INSERT INTO platforms VALUES ('GS05MOAS-PG001', 'GS');
+INSERT INTO platforms VALUES ('GS05MOAS-PG002', 'GS');
+INSERT INTO platforms VALUES ('GA01SUMO-SM001', 'GA');
+INSERT INTO platforms VALUES ('GA01SUMO-SBD11', 'GA');
+INSERT INTO platforms VALUES ('GA01SUMO-SBD12', 'GA');
+INSERT INTO platforms VALUES ('GA01SUMO-RID16', 'GA');
+INSERT INTO platforms VALUES ('GA01SUMO-RII11', 'GA');
+INSERT INTO platforms VALUES ('GA02HYPM-GP001', 'GA');
+INSERT INTO platforms VALUES ('GA02HYPM-WFP02', 'GA');
+INSERT INTO platforms VALUES ('GA02HYPM-WFP03', 'GA');
+INSERT INTO platforms VALUES ('GA02HYPM-MPC04', 'GA');
+INSERT INTO platforms VALUES ('GA02HYPM-RIS01', 'GA');
+INSERT INTO platforms VALUES ('GA03FLMA-FM001', 'GA');
+INSERT INTO platforms VALUES ('GA03FLMA-RIS01', 'GA');
+INSERT INTO platforms VALUES ('GA03FLMA-RIS02', 'GA');
+INSERT INTO platforms VALUES ('GA03FLMB-FM001', 'GA');
+INSERT INTO platforms VALUES ('GA03FLMB-RIS01', 'GA');
+INSERT INTO platforms VALUES ('GA03FLMB-RIS02', 'GA');
+INSERT INTO platforms VALUES ('GA05MOAS-GL001', 'GA');
+INSERT INTO platforms VALUES ('GA05MOAS-GL002', 'GA');
+INSERT INTO platforms VALUES ('GA05MOAS-GL003', 'GA');
+INSERT INTO platforms VALUES ('GA05MOAS-PG001', 'GA');
+INSERT INTO platforms VALUES ('GA05MOAS-PG002', 'GA');
+INSERT INTO platforms VALUES ('GI01SUMO-SM001', 'GI');
+INSERT INTO platforms VALUES ('GI01SUMO-SBD11', 'GI');
+INSERT INTO platforms VALUES ('GI01SUMO-SBD12', 'GI');
+INSERT INTO platforms VALUES ('GI01SUMO-RID16', 'GI');
+INSERT INTO platforms VALUES ('GI01SUMO-RII11', 'GI');
+INSERT INTO platforms VALUES ('GI02HYPM-GP001', 'GI');
+INSERT INTO platforms VALUES ('GI02HYPM-WFP02', 'GI');
+INSERT INTO platforms VALUES ('GI02HYPM-MPC04', 'GI');
+INSERT INTO platforms VALUES ('GI02HYPM-RIS01', 'GI');
+INSERT INTO platforms VALUES ('GI03FLMA-FM001', 'GI');
+INSERT INTO platforms VALUES ('GI03FLMA-RIS01', 'GI');
+INSERT INTO platforms VALUES ('GI03FLMA-RIS02', 'GI');
+INSERT INTO platforms VALUES ('GI03FLMB-FM001', 'GI');
+INSERT INTO platforms VALUES ('GI03FLMB-RIS01', 'GI');
+INSERT INTO platforms VALUES ('GI03FLMB-RIS02', 'GI');
+INSERT INTO platforms VALUES ('GI05MOAS-GL001', 'GI');
+INSERT INTO platforms VALUES ('GI05MOAS-GL002', 'GI');
+INSERT INTO platforms VALUES ('GI05MOAS-GL003', 'GI');
+INSERT INTO platforms VALUES ('GI05MOAS-PG001', 'GI');
+INSERT INTO platforms VALUES ('GI05MOAS-PG002', 'GI');
+INSERT INTO platforms VALUES ('CP01CNSM-HM001', 'CP');
+INSERT INTO platforms VALUES ('CP01CNSM-SBD11', 'CP');
+INSERT INTO platforms VALUES ('CP01CNSM-SBD12', 'CP');
+INSERT INTO platforms VALUES ('CP01CNSM-RID26', 'CP');
+INSERT INTO platforms VALUES ('CP01CNSM-RID27', 'CP');
+INSERT INTO platforms VALUES ('CP01CNSM-MFD35', 'CP');
+INSERT INTO platforms VALUES ('CP01CNSM-MFD37', 'CP');
+INSERT INTO platforms VALUES ('CP01CNSM-MFD00', 'CP');
+INSERT INTO platforms VALUES ('CP01CNSP-CP001', 'CP');
+INSERT INTO platforms VALUES ('CP01CNSP-PL001', 'CP');
+INSERT INTO platforms VALUES ('CP01CNSP-SP001', 'CP');
+INSERT INTO platforms VALUES ('CP03ISSM-HM001', 'CP');
+INSERT INTO platforms VALUES ('CP03ISSM-SBD11', 'CP');
+INSERT INTO platforms VALUES ('CP03ISSM-SBD12', 'CP');
+INSERT INTO platforms VALUES ('CP03ISSM-RID26', 'CP');
+INSERT INTO platforms VALUES ('CP03ISSM-RID27', 'CP');
+INSERT INTO platforms VALUES ('CP03ISSM-MFD35', 'CP');
+INSERT INTO platforms VALUES ('CP03ISSM-MFD37', 'CP');
+INSERT INTO platforms VALUES ('CP03ISSM-MFD00', 'CP');
+INSERT INTO platforms VALUES ('CP03ISSP-CP001', 'CP');
+INSERT INTO platforms VALUES ('CP03ISSP-PL001', 'CP');
+INSERT INTO platforms VALUES ('CP03ISSP-SP001', 'CP');
+INSERT INTO platforms VALUES ('CP04OSSM-HM001', 'CP');
+INSERT INTO platforms VALUES ('CP04OSSM-SBD11', 'CP');
+INSERT INTO platforms VALUES ('CP04OSSM-SBD12', 'CP');
+INSERT INTO platforms VALUES ('CP04OSSM-RID26', 'CP');
+INSERT INTO platforms VALUES ('CP04OSSM-RID27', 'CP');
+INSERT INTO platforms VALUES ('CP04OSSM-MFD35', 'CP');
+INSERT INTO platforms VALUES ('CP04OSSM-MFD37', 'CP');
+INSERT INTO platforms VALUES ('CP04OSSM-MFD00', 'CP');
+INSERT INTO platforms VALUES ('CP04OSPM-PM001', 'CP');
+INSERT INTO platforms VALUES ('CP04OSPM-SBS11', 'CP');
+INSERT INTO platforms VALUES ('CP04OSPM-WFP01', 'CP');
+INSERT INTO platforms VALUES ('CP02PMUI-PM001', 'CP');
+INSERT INTO platforms VALUES ('CP02PMUI-SBS01', 'CP');
+INSERT INTO platforms VALUES ('CP02PMUI-RII01', 'CP');
+INSERT INTO platforms VALUES ('CP02PMUI-WFP01', 'CP');
+INSERT INTO platforms VALUES ('CP02PMUO-PM001', 'CP');
+INSERT INTO platforms VALUES ('CP02PMUO-SBS01', 'CP');
+INSERT INTO platforms VALUES ('CP02PMUO-RII01', 'CP');
+INSERT INTO platforms VALUES ('CP02PMUO-WFP01', 'CP');
+INSERT INTO platforms VALUES ('CP02PMCI-PM001', 'CP');
+INSERT INTO platforms VALUES ('CP02PMCI-SBS01', 'CP');
+INSERT INTO platforms VALUES ('CP02PMCI-RII01', 'CP');
+INSERT INTO platforms VALUES ('CP02PMCI-WFP01', 'CP');
+INSERT INTO platforms VALUES ('CP02PMCO-PM001', 'CP');
+INSERT INTO platforms VALUES ('CP02PMCO-SBS01', 'CP');
+INSERT INTO platforms VALUES ('CP02PMCO-RII01', 'CP');
+INSERT INTO platforms VALUES ('CP02PMCO-WFP01', 'CP');
+INSERT INTO platforms VALUES ('CP05MOAS-GL001', 'CP');
+INSERT INTO platforms VALUES ('CP05MOAS-GL002', 'CP');
+INSERT INTO platforms VALUES ('CP05MOAS-GL003', 'CP');
+INSERT INTO platforms VALUES ('CP05MOAS-GL004', 'CP');
+INSERT INTO platforms VALUES ('CP05MOAS-GL005', 'CP');
+INSERT INTO platforms VALUES ('CP05MOAS-GL006', 'CP');
+INSERT INTO platforms VALUES ('CP05MOAS-AV001', 'CP');
+INSERT INTO platforms VALUES ('CP05MOAS-AV002', 'CP');
+INSERT INTO platforms VALUES ('CE04OSSM-SM001', 'CE');
+INSERT INTO platforms VALUES ('CE04OSSM-SBD11', 'CE');
+INSERT INTO platforms VALUES ('CE04OSSM-SBD12', 'CE');
+INSERT INTO platforms VALUES ('CE04OSSM-RID26', 'CE');
+INSERT INTO platforms VALUES ('CE04OSSM-RID27', 'CE');
+INSERT INTO platforms VALUES ('CE04OSHY-GP001', 'CE');
+INSERT INTO platforms VALUES ('CE04OSHY-PC01B', 'CE');
+INSERT INTO platforms VALUES ('CE04OSHY-SF01B', 'CE');
+INSERT INTO platforms VALUES ('CE04OSHY-DP01B', 'CE');
+INSERT INTO platforms VALUES ('CE04OSBP-BP001', 'CE');
+INSERT INTO platforms VALUES ('CE04OSBP-LJ01C', 'CE');
+INSERT INTO platforms VALUES ('CE04OSBP-LV01C', 'CE');
+INSERT INTO platforms VALUES ('CE02SHSM-SM001', 'CE');
+INSERT INTO platforms VALUES ('CE02SHSM-SBD11', 'CE');
+INSERT INTO platforms VALUES ('CE02SHSM-SBD12', 'CE');
+INSERT INTO platforms VALUES ('CE02SHSM-RID26', 'CE');
+INSERT INTO platforms VALUES ('CE02SHSM-RID27', 'CE');
+INSERT INTO platforms VALUES ('CE02SHSP-CP001', 'CE');
+INSERT INTO platforms VALUES ('CE02SHSP-SP001', 'CE');
+INSERT INTO platforms VALUES ('CE02SHBP-BP001', 'CE');
+INSERT INTO platforms VALUES ('CE02SHBP-MJ01C', 'CE');
+INSERT INTO platforms VALUES ('CE02SHBP-LJ01D', 'CE');
+INSERT INTO platforms VALUES ('CE01ISSM-LM001', 'CE');
+INSERT INTO platforms VALUES ('CE01ISSM-SBD17', 'CE');
+INSERT INTO platforms VALUES ('CE01ISSM-RID16', 'CE');
+INSERT INTO platforms VALUES ('CE01ISSM-MFD35', 'CE');
+INSERT INTO platforms VALUES ('CE01ISSM-MFD37', 'CE');
+INSERT INTO platforms VALUES ('CE01ISSM-MFD00', 'CE');
+INSERT INTO platforms VALUES ('CE01ISSP-CP001', 'CE');
+INSERT INTO platforms VALUES ('CE01ISSP-PL001', 'CE');
+INSERT INTO platforms VALUES ('CE01ISSP-SP001', 'CE');
+INSERT INTO platforms VALUES ('CE09OSSM-HM001', 'CE');
+INSERT INTO platforms VALUES ('CE09OSSM-SBD11', 'CE');
+INSERT INTO platforms VALUES ('CE09OSSM-SBD12', 'CE');
+INSERT INTO platforms VALUES ('CE09OSSM-RID26', 'CE');
+INSERT INTO platforms VALUES ('CE09OSSM-RID27', 'CE');
+INSERT INTO platforms VALUES ('CE09OSSM-MFD35', 'CE');
+INSERT INTO platforms VALUES ('CE09OSSM-MFD37', 'CE');
+INSERT INTO platforms VALUES ('CE090SSM-MFD00', 'CE');
+INSERT INTO platforms VALUES ('CE09OSSM-MFD00', 'CE');
+INSERT INTO platforms VALUES ('CE09OSPM-PM001', 'CE');
+INSERT INTO platforms VALUES ('CE09OSPM-WF001', 'CE');
+INSERT INTO platforms VALUES ('CE07SHSM-HM001', 'CE');
+INSERT INTO platforms VALUES ('CE07SHSM-SBD11', 'CE');
+INSERT INTO platforms VALUES ('CE07SHSM-SBD12', 'CE');
+INSERT INTO platforms VALUES ('CE07SHSM-RID26', 'CE');
+INSERT INTO platforms VALUES ('CE07SHSM-RID27', 'CE');
+INSERT INTO platforms VALUES ('CE07SHSM-MFD35', 'CE');
+INSERT INTO platforms VALUES ('CE07SHSM-MFD37', 'CE');
+INSERT INTO platforms VALUES ('CE07SHSM-MFD00', 'CE');
+INSERT INTO platforms VALUES ('CE07SHSP-CP001', 'CE');
+INSERT INTO platforms VALUES ('CE07SHSP-PL001', 'CE');
+INSERT INTO platforms VALUES ('CE07SHSP-SP001', 'CE');
+INSERT INTO platforms VALUES ('CE06ISSM-LM001', 'CE');
+INSERT INTO platforms VALUES ('CE06ISSM-SBD17', 'CE');
+INSERT INTO platforms VALUES ('CE06ISSM-RID16', 'CE');
+INSERT INTO platforms VALUES ('CE06ISSM-MFD35', 'CE');
+INSERT INTO platforms VALUES ('CE06ISSM-MFD37', 'CE');
+INSERT INTO platforms VALUES ('CE06ISSM-MFD00', 'CE');
+INSERT INTO platforms VALUES ('CE06ISSP-CP001', 'CE');
+INSERT INTO platforms VALUES ('CE06ISSP-PL001', 'CE');
+INSERT INTO platforms VALUES ('CE06ISSP-SP001', 'CE');
+INSERT INTO platforms VALUES ('CE05MOAS-GL001', 'CE');
+INSERT INTO platforms VALUES ('CE05MOAS-GL002', 'CE');
+INSERT INTO platforms VALUES ('CE05MOAS-GL003', 'CE');
+INSERT INTO platforms VALUES ('CE05MOAS-GL004', 'CE');
+INSERT INTO platforms VALUES ('CE05MOAS-GL005', 'CE');
+INSERT INTO platforms VALUES ('CE05MOAS-GL006', 'CE');
+
+/* Instrument List */
+INSERT INTO instruments VALUES ('GS01SUMO-SBD11-01-MOPAK0000', 'GS01SUMO-SBD11');
+INSERT INTO instruments VALUES ('GS01SUMO-SBD11-06-METBKA000', 'GS01SUMO-SBD11');
+INSERT INTO instruments VALUES ('GS01SUMO-SBD11-04-DOSTAD000', 'GS01SUMO-SBD11');
+INSERT INTO instruments VALUES ('GS01SUMO-SBD11-05-SPKIRB000', 'GS01SUMO-SBD11');
+INSERT INTO instruments VALUES ('GS01SUMO-SBD11-08-NUTNRB000', 'GS01SUMO-SBD11');
+INSERT INTO instruments VALUES ('GS01SUMO-SBD12-06-METBKA000', 'GS01SUMO-SBD12');
+INSERT INTO instruments VALUES ('GS01SUMO-SBD12-04-PCO2AA000', 'GS01SUMO-SBD12');
+INSERT INTO instruments VALUES ('GS01SUMO-SBD12-05-WAVSSA000', 'GS01SUMO-SBD12');
+INSERT INTO instruments VALUES ('GS01SUMO-SBD12-08-FDCHPA000', 'GS01SUMO-SBD12');
+INSERT INTO instruments VALUES ('GS01SUMO-SBD12-01-OPTAAD000', 'GS01SUMO-SBD12');
+INSERT INTO instruments VALUES ('GS01SUMO-SBD12-02-FLORTD000', 'GS01SUMO-SBD12');
+INSERT INTO instruments VALUES ('GS01SUMO-RID16-00-ACOMM0000', 'GS01SUMO-RID16');
+INSERT INTO instruments VALUES ('GS01SUMO-RID16-03-CTDBPF000', 'GS01SUMO-RID16');
+INSERT INTO instruments VALUES ('GS01SUMO-RID16-02-FLORTD000', 'GS01SUMO-RID16');
+INSERT INTO instruments VALUES ('GS01SUMO-RID16-04-VELPTA000', 'GS01SUMO-RID16');
+INSERT INTO instruments VALUES ('GS01SUMO-RID16-01-OPTAAD000', 'GS01SUMO-RID16');
+INSERT INTO instruments VALUES ('GS01SUMO-RID16-03-DOSTAD000', 'GS01SUMO-RID16');
+INSERT INTO instruments VALUES ('GS01SUMO-RID16-05-PCO2WB000', 'GS01SUMO-RID16');
+INSERT INTO instruments VALUES ('GS01SUMO-RID16-07-NUTNRB000', 'GS01SUMO-RID16');
+INSERT INTO instruments VALUES ('GS01SUMO-RID16-08-SPKIRB000', 'GS01SUMO-RID16');
+INSERT INTO instruments VALUES ('GS01SUMO-RII11-02-CTDMOQ001', 'GS01SUMO-RII11');
+INSERT INTO instruments VALUES ('GS01SUMO-RII11-02-PHSENE002', 'GS01SUMO-RII11');
+INSERT INTO instruments VALUES ('GS01SUMO-RII11-02-CTDBPP003', 'GS01SUMO-RII11');
+INSERT INTO instruments VALUES ('GS01SUMO-RII11-02-DOSTAD102', 'GS01SUMO-RII11');
+INSERT INTO instruments VALUES ('GS01SUMO-RII11-02-FLORDG103', 'GS01SUMO-RII11');
+INSERT INTO instruments VALUES ('GS01SUMO-RII11-02-PCO2WC104', 'GS01SUMO-RII11');
+INSERT INTO instruments VALUES ('GS01SUMO-RII11-02-CTDMOQ004', 'GS01SUMO-RII11');
+INSERT INTO instruments VALUES ('GS01SUMO-RII11-02-CTDBPP201', 'GS01SUMO-RII11');
+INSERT INTO instruments VALUES ('GS01SUMO-RII11-02-DOSTAD202', 'GS01SUMO-RII11');
+INSERT INTO instruments VALUES ('GS01SUMO-RII11-02-FLORDG203', 'GS01SUMO-RII11');
+INSERT INTO instruments VALUES ('GS01SUMO-RII11-02-PCO2WC204', 'GS01SUMO-RII11');
+INSERT INTO instruments VALUES ('GS01SUMO-RII11-02-CTDMOQ005', 'GS01SUMO-RII11');
+INSERT INTO instruments VALUES ('GS01SUMO-RII11-02-PHSENE006', 'GS01SUMO-RII11');
+INSERT INTO instruments VALUES ('GS01SUMO-RII11-02-CTDBPP007', 'GS01SUMO-RII11');
+INSERT INTO instruments VALUES ('GS01SUMO-RII11-02-DOSTAD302', 'GS01SUMO-RII11');
+INSERT INTO instruments VALUES ('GS01SUMO-RII11-02-FLORDG303', 'GS01SUMO-RII11');
+INSERT INTO instruments VALUES ('GS01SUMO-RII11-02-PCO2WC304', 'GS01SUMO-RII11');
+INSERT INTO instruments VALUES ('GS01SUMO-RII11-02-CTDMOQ008', 'GS01SUMO-RII11');
+INSERT INTO instruments VALUES ('GS01SUMO-RII11-02-CTDMOQ009', 'GS01SUMO-RII11');
+INSERT INTO instruments VALUES ('GS01SUMO-RII11-02-CTDMOQ010', 'GS01SUMO-RII11');
+INSERT INTO instruments VALUES ('GS01SUMO-RII11-02-ADCPSN011', 'GS01SUMO-RII11');
+INSERT INTO instruments VALUES ('GS01SUMO-RII11-02-CTDMOQ012', 'GS01SUMO-RII11');
+INSERT INTO instruments VALUES ('GS01SUMO-RII11-02-CTDMOR013', 'GS01SUMO-RII11');
+INSERT INTO instruments VALUES ('GS01SUMO-RII11-02-CTDMOR014', 'GS01SUMO-RII11');
+INSERT INTO instruments VALUES ('GS01SUMO-RII11-02-CTDMOR015', 'GS01SUMO-RII11');
+INSERT INTO instruments VALUES ('GS02HYPM-WFP02-01-FLORDL000', 'GS02HYPM-WFP02');
+INSERT INTO instruments VALUES ('GS02HYPM-WFP02-03-DOSTAL000', 'GS02HYPM-WFP02');
+INSERT INTO instruments VALUES ('GS02HYPM-WFP02-04-CTDPFL000', 'GS02HYPM-WFP02');
+INSERT INTO instruments VALUES ('GS02HYPM-WFP02-05-VEL3DL000', 'GS02HYPM-WFP02');
+INSERT INTO instruments VALUES ('GS02HYPM-WFP03-01-FLORDL000', 'GS02HYPM-WFP03');
+INSERT INTO instruments VALUES ('GS02HYPM-WFP03-03-DOSTAL000', 'GS02HYPM-WFP03');
+INSERT INTO instruments VALUES ('GS02HYPM-WFP03-04-CTDPFL000', 'GS02HYPM-WFP03');
+INSERT INTO instruments VALUES ('GS02HYPM-WFP03-05-VEL3DL000', 'GS02HYPM-WFP03');
+INSERT INTO instruments VALUES ('GS02HYPM-MPC04-01-ZPLSGA000', 'GS02HYPM-MPC04');
+INSERT INTO instruments VALUES ('GS02HYPM-RIS01-01-CTDMOG000', 'GS02HYPM-RIS01');
+INSERT INTO instruments VALUES ('GS03FLMA-RIS01-01-FLORTD   ', 'GS03FLMA-RIS01');
+INSERT INTO instruments VALUES ('GS03FLMA-RIS01-02-PHSENE   ', 'GS03FLMA-RIS01');
+INSERT INTO instruments VALUES ('GS03FLMA-RIS01-03-DOSTAD   ', 'GS03FLMA-RIS01');
+INSERT INTO instruments VALUES ('GS03FLMA-RIS02-01-ADCPSL   ', 'GS03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMA-RIS02-02-ACOMM0   ', 'GS03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMA-RIS02-03-CTDMOG   ', 'GS03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMA-RIS02-04-CTDMOG   ', 'GS03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMA-RIS02-05-CTDMOG   ', 'GS03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMA-RIS02-06-CTDMOG   ', 'GS03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMA-RIS02-07-CTDMOG   ', 'GS03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMA-RIS02-08-CTDMOG   ', 'GS03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMA-RIS02-09-CTDMOG   ', 'GS03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMA-RIS02-10-CTDMOG   ', 'GS03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMA-RIS02-11-CTDMOG   ', 'GS03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMA-RIS02-12-CTDMOH   ', 'GS03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMA-RIS02-13-CTDMOH   ', 'GS03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMA-RIS02-14-CTDMOH   ', 'GS03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMB-RIS01-01-FLORTD   ', 'GS03FLMB-RIS01');
+INSERT INTO instruments VALUES ('GS03FLMB-RIS01-02-PHSENE   ', 'GS03FLMB-RIS01');
+INSERT INTO instruments VALUES ('GS03FLMB-RIS01-03-DOSTAD   ', 'GS03FLMB-RIS01');
+INSERT INTO instruments VALUES ('GS03FLMB-RIS02-01-ADCPSL   ', 'GS03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMB-RIS02-02-ACOMM0   ', 'GS03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMB-RIS02-03-CTDMOG   ', 'GS03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMB-RIS02-04-CTDMOG   ', 'GS03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMB-RIS02-05-CTDMOG   ', 'GS03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMB-RIS02-06-CTDMOG   ', 'GS03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMB-RIS02-07-CTDMOG   ', 'GS03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMB-RIS02-08-CTDMOG   ', 'GS03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMB-RIS02-09-CTDMOG   ', 'GS03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMB-RIS02-10-CTDMOG   ', 'GS03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMB-RIS02-11-CTDMOG   ', 'GS03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMB-RIS02-12-CTDMOH   ', 'GS03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMB-RIS02-13-CTDMOH   ', 'GS03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GS03FLMB-RIS02-14-CTDMOH   ', 'GS03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GS05MOAS-GL001-01-FLORDM000', 'GS05MOAS-GL001');
+INSERT INTO instruments VALUES ('GS05MOAS-GL001-02-DOSTAM000', 'GS05MOAS-GL001');
+INSERT INTO instruments VALUES ('GS05MOAS-GL001-03-ACOMMM000', 'GS05MOAS-GL001');
+INSERT INTO instruments VALUES ('GS05MOAS-GL001-04-CTDGVM000', 'GS05MOAS-GL001');
+INSERT INTO instruments VALUES ('GS05MOAS-GL002-01-FLORDM000', 'GS05MOAS-GL002');
+INSERT INTO instruments VALUES ('GS05MOAS-GL002-02-DOSTAM000', 'GS05MOAS-GL002');
+INSERT INTO instruments VALUES ('GS05MOAS-GL002-03-ACOMMM000', 'GS05MOAS-GL002');
+INSERT INTO instruments VALUES ('GS05MOAS-GL002-04-CTDGVM000', 'GS05MOAS-GL002');
+INSERT INTO instruments VALUES ('GS05MOAS-GL003-01-FLORDM000', 'GS05MOAS-GL003');
+INSERT INTO instruments VALUES ('GS05MOAS-GL003-02-DOSTAM000', 'GS05MOAS-GL003');
+INSERT INTO instruments VALUES ('GS05MOAS-GL003-03-ACOMMM000', 'GS05MOAS-GL003');
+INSERT INTO instruments VALUES ('GS05MOAS-GL003-04-CTDGVM000', 'GS05MOAS-GL003');
+INSERT INTO instruments VALUES ('GS05MOAS-PG001-01-CTDGVM000', 'GS05MOAS-PG001');
+INSERT INTO instruments VALUES ('GS05MOAS-PG001-02-DOSTAM000', 'GS05MOAS-PG001');
+INSERT INTO instruments VALUES ('GS05MOAS-PG001-03-NUTNRM000', 'GS05MOAS-PG001');
+INSERT INTO instruments VALUES ('GS05MOAS-PG002-01-CTDGVM000', 'GS05MOAS-PG002');
+INSERT INTO instruments VALUES ('GS05MOAS-PG002-02-FLORDM000', 'GS05MOAS-PG002');
+INSERT INTO instruments VALUES ('GS05MOAS-PG002-03-OPTAAM000', 'GS05MOAS-PG002');
+INSERT INTO instruments VALUES ('GS05MOAS-PG002-04-PARADM000', 'GS05MOAS-PG002');
+INSERT INTO instruments VALUES ('GA01SUMO-SBD11-01-MOPAK0000', 'GA01SUMO-SBD11');
+INSERT INTO instruments VALUES ('GA01SUMO-SBD11-06-METBKA000', 'GA01SUMO-SBD11');
+INSERT INTO instruments VALUES ('GA01SUMO-SBD11-04-DOSTAD000', 'GA01SUMO-SBD11');
+INSERT INTO instruments VALUES ('GA01SUMO-SBD11-05-SPKIRB000', 'GA01SUMO-SBD11');
+INSERT INTO instruments VALUES ('GA01SUMO-SBD11-08-NUTNRB000', 'GA01SUMO-SBD11');
+INSERT INTO instruments VALUES ('GA01SUMO-SBD12-06-METBKA000', 'GA01SUMO-SBD12');
+INSERT INTO instruments VALUES ('GA01SUMO-SBD12-04-PCO2AA000', 'GA01SUMO-SBD12');
+INSERT INTO instruments VALUES ('GA01SUMO-SBD12-05-WAVSSA000', 'GA01SUMO-SBD12');
+INSERT INTO instruments VALUES ('GA01SUMO-SBD12-01-OPTAAD000', 'GA01SUMO-SBD12');
+INSERT INTO instruments VALUES ('GA01SUMO-SBD12-02-FLORTD000', 'GA01SUMO-SBD12');
+INSERT INTO instruments VALUES ('GA01SUMO-RID16-00-ACOMM0000', 'GA01SUMO-RID16');
+INSERT INTO instruments VALUES ('GA01SUMO-RID16-03-CTDBPF000', 'GA01SUMO-RID16');
+INSERT INTO instruments VALUES ('GA01SUMO-RID16-02-FLORTD000', 'GA01SUMO-RID16');
+INSERT INTO instruments VALUES ('GA01SUMO-RID16-04-VELPTA000', 'GA01SUMO-RID16');
+INSERT INTO instruments VALUES ('GA01SUMO-RID16-01-OPTAAD000', 'GA01SUMO-RID16');
+INSERT INTO instruments VALUES ('GA01SUMO-RID16-03-DOSTAD000', 'GA01SUMO-RID16');
+INSERT INTO instruments VALUES ('GA01SUMO-RID16-05-PCO2WB000', 'GA01SUMO-RID16');
+INSERT INTO instruments VALUES ('GA01SUMO-RID16-07-NUTNRB000', 'GA01SUMO-RID16');
+INSERT INTO instruments VALUES ('GA01SUMO-RID16-08-SPKIRB000', 'GA01SUMO-RID16');
+INSERT INTO instruments VALUES ('GA01SUMO-RII11-02-CTDMOQ001', 'GA01SUMO-RII11');
+INSERT INTO instruments VALUES ('GA01SUMO-RII11-02-PHSENE002', 'GA01SUMO-RII11');
+INSERT INTO instruments VALUES ('GA01SUMO-RII11-02-CTDBPP003', 'GA01SUMO-RII11');
+INSERT INTO instruments VALUES ('GA01SUMO-RII11-02-DOSTAD102', 'GA01SUMO-RII11');
+INSERT INTO instruments VALUES ('GA01SUMO-RII11-02-FLORDG103', 'GA01SUMO-RII11');
+INSERT INTO instruments VALUES ('GA01SUMO-RII11-02-PCO2WC104', 'GA01SUMO-RII11');
+INSERT INTO instruments VALUES ('GA01SUMO-RII11-02-CTDMOQ004', 'GA01SUMO-RII11');
+INSERT INTO instruments VALUES ('GA01SUMO-RII11-02-CTDBPP201', 'GA01SUMO-RII11');
+INSERT INTO instruments VALUES ('GA01SUMO-RII11-02-DOSTAD202', 'GA01SUMO-RII11');
+INSERT INTO instruments VALUES ('GA01SUMO-RII11-02-FLORDG203', 'GA01SUMO-RII11');
+INSERT INTO instruments VALUES ('GA01SUMO-RII11-02-PCO2WC204', 'GA01SUMO-RII11');
+INSERT INTO instruments VALUES ('GA01SUMO-RII11-02-CTDMOQ005', 'GA01SUMO-RII11');
+INSERT INTO instruments VALUES ('GA01SUMO-RII11-02-PHSENE006', 'GA01SUMO-RII11');
+INSERT INTO instruments VALUES ('GA01SUMO-RII11-02-CTDBPP007', 'GA01SUMO-RII11');
+INSERT INTO instruments VALUES ('GA01SUMO-RII11-02-DOSTAD302', 'GA01SUMO-RII11');
+INSERT INTO instruments VALUES ('GA01SUMO-RII11-02-FLORDG303', 'GA01SUMO-RII11');
+INSERT INTO instruments VALUES ('GA01SUMO-RII11-02-PCO2WC304', 'GA01SUMO-RII11');
+INSERT INTO instruments VALUES ('GA01SUMO-RII11-02-CTDMOQ008', 'GA01SUMO-RII11');
+INSERT INTO instruments VALUES ('GA01SUMO-RII11-02-CTDMOQ009', 'GA01SUMO-RII11');
+INSERT INTO instruments VALUES ('GA01SUMO-RII11-02-CTDMOQ010', 'GA01SUMO-RII11');
+INSERT INTO instruments VALUES ('GA01SUMO-RII11-02-ADCPSN011', 'GA01SUMO-RII11');
+INSERT INTO instruments VALUES ('GA01SUMO-RII11-02-CTDMOQ012', 'GA01SUMO-RII11');
+INSERT INTO instruments VALUES ('GA01SUMO-RII11-02-CTDMOR013', 'GA01SUMO-RII11');
+INSERT INTO instruments VALUES ('GA01SUMO-RII11-02-CTDMOR014', 'GA01SUMO-RII11');
+INSERT INTO instruments VALUES ('GA01SUMO-RII11-02-CTDMOR015', 'GA01SUMO-RII11');
+INSERT INTO instruments VALUES ('GA02HYPM-WFP02-01-FLORDL000', 'GA02HYPM-WFP02');
+INSERT INTO instruments VALUES ('GA02HYPM-WFP02-03-DOSTAL000', 'GA02HYPM-WFP02');
+INSERT INTO instruments VALUES ('GA02HYPM-WFP02-04-CTDPFL000', 'GA02HYPM-WFP02');
+INSERT INTO instruments VALUES ('GA02HYPM-WFP02-05-VEL3DL000', 'GA02HYPM-WFP02');
+INSERT INTO instruments VALUES ('GA02HYPM-WFP03-01-FLORDL000', 'GA02HYPM-WFP03');
+INSERT INTO instruments VALUES ('GA02HYPM-WFP03-03-DOSTAL000', 'GA02HYPM-WFP03');
+INSERT INTO instruments VALUES ('GA02HYPM-WFP03-04-CTDPFL000', 'GA02HYPM-WFP03');
+INSERT INTO instruments VALUES ('GA02HYPM-WFP03-05-VEL3DL000', 'GA02HYPM-WFP03');
+INSERT INTO instruments VALUES ('GA02HYPM-MPC04-01-ZPLSGA000', 'GA02HYPM-MPC04');
+INSERT INTO instruments VALUES ('GA02HYPM-RIS01-01-CTDMOG000', 'GA02HYPM-RIS01');
+INSERT INTO instruments VALUES ('GA03FLMA-RIS01-01-FLORTD   ', 'GA03FLMA-RIS01');
+INSERT INTO instruments VALUES ('GA03FLMA-RIS01-02-PHSENE   ', 'GA03FLMA-RIS01');
+INSERT INTO instruments VALUES ('GA03FLMA-RIS01-03-DOSTAD   ', 'GA03FLMA-RIS01');
+INSERT INTO instruments VALUES ('GA03FLMA-RIS02-01-ADCPSL   ', 'GA03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMA-RIS02-02-ACOMM0   ', 'GA03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMA-RIS02-03-CTDMOG   ', 'GA03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMA-RIS02-04-CTDMOG   ', 'GA03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMA-RIS02-05-CTDMOG   ', 'GA03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMA-RIS02-06-CTDMOG   ', 'GA03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMA-RIS02-07-CTDMOG   ', 'GA03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMA-RIS02-08-CTDMOG   ', 'GA03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMA-RIS02-09-CTDMOG   ', 'GA03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMA-RIS02-10-CTDMOG   ', 'GA03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMA-RIS02-11-CTDMOG   ', 'GA03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMA-RIS02-12-CTDMOH   ', 'GA03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMA-RIS02-13-CTDMOH   ', 'GA03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMA-RIS02-14-CTDMOH   ', 'GA03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMB-RIS01-01-FLORTD   ', 'GA03FLMB-RIS01');
+INSERT INTO instruments VALUES ('GA03FLMB-RIS01-02-PHSENE   ', 'GA03FLMB-RIS01');
+INSERT INTO instruments VALUES ('GA03FLMB-RIS01-03-DOSTAD   ', 'GA03FLMB-RIS01');
+INSERT INTO instruments VALUES ('GA03FLMB-RIS02-01-ADCPSL   ', 'GA03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMB-RIS02-02-ACOMM0   ', 'GA03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMB-RIS02-03-CTDMOG   ', 'GA03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMB-RIS02-04-CTDMOG   ', 'GA03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMB-RIS02-05-CTDMOG   ', 'GA03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMB-RIS02-06-CTDMOG   ', 'GA03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMB-RIS02-07-CTDMOG   ', 'GA03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMB-RIS02-08-CTDMOG   ', 'GA03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMB-RIS02-09-CTDMOG   ', 'GA03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMB-RIS02-10-CTDMOG   ', 'GA03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMB-RIS02-11-CTDMOG   ', 'GA03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMB-RIS02-12-CTDMOH   ', 'GA03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMB-RIS02-13-CTDMOH   ', 'GA03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GA03FLMB-RIS02-14-CTDMOH   ', 'GA03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GA05MOAS-GL001-01-FLORDM000', 'GA05MOAS-GL001');
+INSERT INTO instruments VALUES ('GA05MOAS-GL001-02-DOSTAM000', 'GA05MOAS-GL001');
+INSERT INTO instruments VALUES ('GA05MOAS-GL001-03-ACOMMM000', 'GA05MOAS-GL001');
+INSERT INTO instruments VALUES ('GA05MOAS-GL001-04-CTDGVM000', 'GA05MOAS-GL001');
+INSERT INTO instruments VALUES ('GA05MOAS-GL002-01-FLORDM000', 'GA05MOAS-GL002');
+INSERT INTO instruments VALUES ('GA05MOAS-GL002-02-DOSTAM000', 'GA05MOAS-GL002');
+INSERT INTO instruments VALUES ('GA05MOAS-GL002-03-ACOMMM000', 'GA05MOAS-GL002');
+INSERT INTO instruments VALUES ('GA05MOAS-GL002-04-CTDGVM000', 'GA05MOAS-GL002');
+INSERT INTO instruments VALUES ('GA05MOAS-GL003-01-FLORDM000', 'GA05MOAS-GL003');
+INSERT INTO instruments VALUES ('GA05MOAS-GL003-02-DOSTAM000', 'GA05MOAS-GL003');
+INSERT INTO instruments VALUES ('GA05MOAS-GL003-03-ACOMMM000', 'GA05MOAS-GL003');
+INSERT INTO instruments VALUES ('GA05MOAS-GL003-04-CTDGVM000', 'GA05MOAS-GL003');
+INSERT INTO instruments VALUES ('GA05MOAS-PG001-01-CTDGVM000', 'GA05MOAS-PG001');
+INSERT INTO instruments VALUES ('GA05MOAS-PG001-02-DOSTAM000', 'GA05MOAS-PG001');
+INSERT INTO instruments VALUES ('GA05MOAS-PG001-03-NUTNRM000', 'GA05MOAS-PG001');
+INSERT INTO instruments VALUES ('GA05MOAS-PG002-01-CTDGVM000', 'GA05MOAS-PG002');
+INSERT INTO instruments VALUES ('GA05MOAS-PG002-02-FLORDM000', 'GA05MOAS-PG002');
+INSERT INTO instruments VALUES ('GA05MOAS-PG002-03-OPTAAM000', 'GA05MOAS-PG002');
+INSERT INTO instruments VALUES ('GA05MOAS-PG002-04-PARADM000', 'GA05MOAS-PG002');
+INSERT INTO instruments VALUES ('GI01SUMO-SBD11-01-MOPAK0000', 'GI01SUMO-SBD11');
+INSERT INTO instruments VALUES ('GI01SUMO-SBD11-06-METBKA000', 'GI01SUMO-SBD11');
+INSERT INTO instruments VALUES ('GI01SUMO-SBD11-04-DOSTAD000', 'GI01SUMO-SBD11');
+INSERT INTO instruments VALUES ('GI01SUMO-SBD11-05-SPKIRB000', 'GI01SUMO-SBD11');
+INSERT INTO instruments VALUES ('GI01SUMO-SBD11-08-NUTNRB000', 'GI01SUMO-SBD11');
+INSERT INTO instruments VALUES ('GI01SUMO-SBD12-06-METBKA000', 'GI01SUMO-SBD12');
+INSERT INTO instruments VALUES ('GI01SUMO-SBD12-04-PCO2AA000', 'GI01SUMO-SBD12');
+INSERT INTO instruments VALUES ('GI01SUMO-SBD12-05-WAVSSA000', 'GI01SUMO-SBD12');
+INSERT INTO instruments VALUES ('GI01SUMO-SBD12-08-FDCHPA000', 'GI01SUMO-SBD12');
+INSERT INTO instruments VALUES ('GI01SUMO-SBD12-01-OPTAAD000', 'GI01SUMO-SBD12');
+INSERT INTO instruments VALUES ('GI01SUMO-SBD12-02-FLORTD000', 'GI01SUMO-SBD12');
+INSERT INTO instruments VALUES ('GI01SUMO-SBD12-00-ACOMM0000', 'GI01SUMO-SBD12');
+INSERT INTO instruments VALUES ('GI01SUMO-SBD12-03-CTDBPF000', 'GI01SUMO-SBD12');
+INSERT INTO instruments VALUES ('GI01SUMO-SBD12-04-VELPTA000', 'GI01SUMO-SBD12');
+INSERT INTO instruments VALUES ('GI01SUMO-SBD12-03-DOSTAD000', 'GI01SUMO-SBD12');
+INSERT INTO instruments VALUES ('GI01SUMO-SBD12-05-PCO2WB000', 'GI01SUMO-SBD12');
+INSERT INTO instruments VALUES ('GI01SUMO-SBD12-07-NUTNRB000', 'GI01SUMO-SBD12');
+INSERT INTO instruments VALUES ('GI01SUMO-SBD12-08-SPKIRB000', 'GI01SUMO-SBD12');
+INSERT INTO instruments VALUES ('GI01SUMO-RII11-02-CTDMOQ001', 'GI01SUMO-RII11');
+INSERT INTO instruments VALUES ('GI01SUMO-RII11-02-PHSENE002', 'GI01SUMO-RII11');
+INSERT INTO instruments VALUES ('GI01SUMO-RII11-02-CTDBPP003', 'GI01SUMO-RII11');
+INSERT INTO instruments VALUES ('GI01SUMO-RII11-02-DOSTAD102', 'GI01SUMO-RII11');
+INSERT INTO instruments VALUES ('GI01SUMO-RII11-02-FLORDG103', 'GI01SUMO-RII11');
+INSERT INTO instruments VALUES ('GI01SUMO-RII11-02-PCO2WC104', 'GI01SUMO-RII11');
+INSERT INTO instruments VALUES ('GI01SUMO-RII11-02-CTDMOQ004', 'GI01SUMO-RII11');
+INSERT INTO instruments VALUES ('GI01SUMO-RII11-02-CTDBPP201', 'GI01SUMO-RII11');
+INSERT INTO instruments VALUES ('GI01SUMO-RII11-02-DOSTAD202', 'GI01SUMO-RII11');
+INSERT INTO instruments VALUES ('GI01SUMO-RII11-02-FLORDG203', 'GI01SUMO-RII11');
+INSERT INTO instruments VALUES ('GI01SUMO-RII11-02-PCO2WC204', 'GI01SUMO-RII11');
+INSERT INTO instruments VALUES ('GI01SUMO-RII11-02-CTDMOQ005', 'GI01SUMO-RII11');
+INSERT INTO instruments VALUES ('GI01SUMO-RII11-02-PHSENE006', 'GI01SUMO-RII11');
+INSERT INTO instruments VALUES ('GI01SUMO-RII11-02-CTDBPP007', 'GI01SUMO-RII11');
+INSERT INTO instruments VALUES ('GI01SUMO-RII11-02-DOSTAD302', 'GI01SUMO-RII11');
+INSERT INTO instruments VALUES ('GI01SUMO-RII11-02-FLORDG303', 'GI01SUMO-RII11');
+INSERT INTO instruments VALUES ('GI01SUMO-RII11-02-PCO2WC304', 'GI01SUMO-RII11');
+INSERT INTO instruments VALUES ('GI01SUMO-RII11-02-CTDMOQ008', 'GI01SUMO-RII11');
+INSERT INTO instruments VALUES ('GI01SUMO-RII11-02-CTDMOQ009', 'GI01SUMO-RII11');
+INSERT INTO instruments VALUES ('GI01SUMO-RII11-02-CTDMOQ010', 'GI01SUMO-RII11');
+INSERT INTO instruments VALUES ('GI01SUMO-RII11-02-ADCPSN011', 'GI01SUMO-RII11');
+INSERT INTO instruments VALUES ('GI01SUMO-RII11-02-CTDMOQ012', 'GI01SUMO-RII11');
+INSERT INTO instruments VALUES ('GI01SUMO-RII11-02-CTDMOR013', 'GI01SUMO-RII11');
+INSERT INTO instruments VALUES ('GI01SUMO-RII11-02-CTDMOR014', 'GI01SUMO-RII11');
+INSERT INTO instruments VALUES ('GI01SUMO-RII11-02-CTDMOR015', 'GI01SUMO-RII11');
+INSERT INTO instruments VALUES ('GI02HYPM-WFP02-01-FLORDL000', 'GI02HYPM-WFP02');
+INSERT INTO instruments VALUES ('GI02HYPM-WFP02-03-DOSTAL000', 'GI02HYPM-WFP02');
+INSERT INTO instruments VALUES ('GI02HYPM-WFP02-04-CTDPFL000', 'GI02HYPM-WFP02');
+INSERT INTO instruments VALUES ('GI02HYPM-WFP02-05-VEL3DL000', 'GI02HYPM-WFP02');
+INSERT INTO instruments VALUES ('GI02HYPM-MPC04-01-ZPLSGA000', 'GI02HYPM-MPC04');
+INSERT INTO instruments VALUES ('GI02HYPM-RIS01-01-CTDMOG000', 'GI02HYPM-RIS01');
+INSERT INTO instruments VALUES ('GI03FLMA-RIS01-01-FLORTD   ', 'GI03FLMA-RIS01');
+INSERT INTO instruments VALUES ('GI03FLMA-RIS01-02-PHSENE   ', 'GI03FLMA-RIS01');
+INSERT INTO instruments VALUES ('GI03FLMA-RIS01-03-DOSTAD   ', 'GI03FLMA-RIS01');
+INSERT INTO instruments VALUES ('GI03FLMA-RIS02-01-ADCPSL   ', 'GI03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMA-RIS02-02-ACOMM0   ', 'GI03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMA-RIS02-03-CTDMOG   ', 'GI03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMA-RIS02-04-CTDMOG   ', 'GI03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMA-RIS02-05-CTDMOG   ', 'GI03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMA-RIS02-06-CTDMOG   ', 'GI03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMA-RIS02-07-CTDMOG   ', 'GI03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMA-RIS02-08-CTDMOG   ', 'GI03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMA-RIS02-09-CTDMOG   ', 'GI03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMA-RIS02-10-CTDMOG   ', 'GI03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMA-RIS02-11-CTDMOG   ', 'GI03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMA-RIS02-12-CTDMOH   ', 'GI03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMA-RIS02-13-CTDMOH   ', 'GI03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMA-RIS02-14-CTDMOH   ', 'GI03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMA-RIS02-15-CTDMOH   ', 'GI03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMA-RIS02-16-CTDMOH   ', 'GI03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMA-RIS02-17-CTDMOH   ', 'GI03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMA-RIS02-18-CTDMOH   ', 'GI03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMA-RIS02-19-VELPTB   ', 'GI03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMA-RIS02-20-VELPTB   ', 'GI03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMA-RIS02-21-VELPTB   ', 'GI03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMA-RIS02-22-VELPTB   ', 'GI03FLMA-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMB-RIS01-01-FLORTD   ', 'GI03FLMB-RIS01');
+INSERT INTO instruments VALUES ('GI03FLMB-RIS01-02-PHSENE   ', 'GI03FLMB-RIS01');
+INSERT INTO instruments VALUES ('GI03FLMB-RIS01-03-DOSTAD   ', 'GI03FLMB-RIS01');
+INSERT INTO instruments VALUES ('GI03FLMB-RIS02-01-ADCPSL   ', 'GI03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMB-RIS02-02-ACOMM0   ', 'GI03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMB-RIS02-03-CTDMOG   ', 'GI03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMB-RIS02-04-CTDMOG   ', 'GI03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMB-RIS02-05-CTDMOG   ', 'GI03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMB-RIS02-06-CTDMOG   ', 'GI03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMB-RIS02-07-CTDMOG   ', 'GI03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMB-RIS02-08-CTDMOG   ', 'GI03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMB-RIS02-09-CTDMOG   ', 'GI03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMB-RIS02-10-CTDMOG   ', 'GI03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMB-RIS02-11-CTDMOG   ', 'GI03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMB-RIS02-12-CTDMOH   ', 'GI03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMB-RIS02-13-CTDMOH   ', 'GI03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMB-RIS02-14-CTDMOH   ', 'GI03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMB-RIS02-15-CTDMOH   ', 'GI03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMB-RIS02-16-CTDMOH   ', 'GI03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMB-RIS02-17-CTDMOH   ', 'GI03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMB-RIS02-18-CTDMOH   ', 'GI03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMB-RIS02-19-VELPTB   ', 'GI03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMB-RIS02-20-VELPTB   ', 'GI03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMB-RIS02-21-VELPTB   ', 'GI03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GI03FLMB-RIS02-22-VELPTB   ', 'GI03FLMB-RIS02');
+INSERT INTO instruments VALUES ('GI05MOAS-GL001-01-FLORDM000', 'GI05MOAS-GL001');
+INSERT INTO instruments VALUES ('GI05MOAS-GL001-02-DOSTAM000', 'GI05MOAS-GL001');
+INSERT INTO instruments VALUES ('GI05MOAS-GL001-03-ACOMMM000', 'GI05MOAS-GL001');
+INSERT INTO instruments VALUES ('GI05MOAS-GL001-04-CTDGVM000', 'GI05MOAS-GL001');
+INSERT INTO instruments VALUES ('GI05MOAS-GL003-01-FLORDM000', 'GI05MOAS-GL003');
+INSERT INTO instruments VALUES ('GI05MOAS-GL003-02-DOSTAM000', 'GI05MOAS-GL003');
+INSERT INTO instruments VALUES ('GI05MOAS-GL003-03-ACOMMM000', 'GI05MOAS-GL003');
+INSERT INTO instruments VALUES ('GI05MOAS-GL003-04-CTDGVM000', 'GI05MOAS-GL003');
+INSERT INTO instruments VALUES ('GI05MOAS-PG001-01-CTDGVM000', 'GI05MOAS-PG001');
+INSERT INTO instruments VALUES ('GI05MOAS-PG001-02-DOSTAM000', 'GI05MOAS-PG001');
+INSERT INTO instruments VALUES ('GI05MOAS-PG001-03-NUTNRM000', 'GI05MOAS-PG001');
+INSERT INTO instruments VALUES ('GI05MOAS-PG002-01-CTDGVM000', 'GI05MOAS-PG002');
+INSERT INTO instruments VALUES ('GI05MOAS-PG002-02-FLORDM000', 'GI05MOAS-PG002');
+INSERT INTO instruments VALUES ('GI05MOAS-PG002-03-OPTAAM000', 'GI05MOAS-PG002');
+INSERT INTO instruments VALUES ('GI05MOAS-PG002-04-PARADM000', 'GI05MOAS-PG002');
+INSERT INTO instruments VALUES ('CP04OSSM-MFD35-02-PRESFC000', 'CP04OSSM-MFD35');
+INSERT INTO instruments VALUES ('CP04OSSM-MFD35-04-VELPTB000', 'CP04OSSM-MFD35');
+INSERT INTO instruments VALUES ('CP04OSSM-MFD35-05-PCO2WB000', 'CP04OSSM-MFD35');
+INSERT INTO instruments VALUES ('CP04OSSM-MFD35-06-PHSEND000', 'CP04OSSM-MFD35');
+INSERT INTO instruments VALUES ('CP04OSSM-MFD37-01-OPTAAD000', 'CP04OSSM-MFD37');
+INSERT INTO instruments VALUES ('CP04OSSM-MFD37-03-CTDBPE000', 'CP04OSSM-MFD37');
+INSERT INTO instruments VALUES ('CP04OSSM-MFD37-04-DOSTAD000', 'CP04OSSM-MFD37');
+INSERT INTO instruments VALUES ('CP04OSSM-MFD00-00-ZPLSCC000', 'CP04OSSM-MFD00');
+INSERT INTO instruments VALUES ('CP04OSPM-SBS11-02-MOPAK0000', 'CP04OSPM-SBS11');
+INSERT INTO instruments VALUES ('CP04OSPM-WFP01-01-VEL3DK000', 'CP04OSPM-WFP01');
+INSERT INTO instruments VALUES ('CP04OSPM-WFP01-02-DOFSTK000', 'CP04OSPM-WFP01');
+INSERT INTO instruments VALUES ('CP04OSPM-WFP01-03-CTDPFK000', 'CP04OSPM-WFP01');
+INSERT INTO instruments VALUES ('CP04OSPM-WFP01-04-FLORTK000', 'CP04OSPM-WFP01');
+INSERT INTO instruments VALUES ('CP04OSPM-WFP01-05-PARADK000', 'CP04OSPM-WFP01');
+INSERT INTO instruments VALUES ('CP02PMUI-SBS01-01-MOPAK0000', 'CP02PMUI-SBS01');
+INSERT INTO instruments VALUES ('CP02PMUI-RII01-02-ADCPTG000', 'CP02PMUI-RII01');
+INSERT INTO instruments VALUES ('CP02PMUI-WFP01-01-VEL3DK000', 'CP02PMUI-WFP01');
+INSERT INTO instruments VALUES ('CP02PMUI-WFP01-02-DOFSTK000', 'CP02PMUI-WFP01');
+INSERT INTO instruments VALUES ('CP02PMUI-WFP01-03-CTDPFK000', 'CP02PMUI-WFP01');
+INSERT INTO instruments VALUES ('CP02PMUI-WFP01-04-FLORTK000', 'CP02PMUI-WFP01');
+INSERT INTO instruments VALUES ('CP02PMUI-WFP01-05-PARADK000', 'CP02PMUI-WFP01');
+INSERT INTO instruments VALUES ('CP02PMUO-SBS01-01-MOPAK0000', 'CP02PMUO-SBS01');
+INSERT INTO instruments VALUES ('CP02PMUO-RII01-02-ADCPSL000', 'CP02PMUO-RII01');
+INSERT INTO instruments VALUES ('CP02PMUO-WFP01-01-VEL3DK000', 'CP02PMUO-WFP01');
+INSERT INTO instruments VALUES ('CP02PMUO-WFP01-02-DOFSTK000', 'CP02PMUO-WFP01');
+INSERT INTO instruments VALUES ('CP02PMUO-WFP01-03-CTDPFK000', 'CP02PMUO-WFP01');
+INSERT INTO instruments VALUES ('CP02PMUO-WFP01-04-FLORTK000', 'CP02PMUO-WFP01');
+INSERT INTO instruments VALUES ('CP02PMUO-WFP01-05-PARADK000', 'CP02PMUO-WFP01');
+INSERT INTO instruments VALUES ('CP02PMCI-SBS01-01-MOPAK0000', 'CP02PMCI-SBS01');
+INSERT INTO instruments VALUES ('CP02PMCI-RII01-02-ADCPTG000', 'CP02PMCI-RII01');
+INSERT INTO instruments VALUES ('CP02PMCI-WFP01-01-VEL3DK000', 'CP02PMCI-WFP01');
+INSERT INTO instruments VALUES ('CP02PMCI-WFP01-02-DOFSTK000', 'CP02PMCI-WFP01');
+INSERT INTO instruments VALUES ('CP02PMCI-WFP01-03-CTDPFK000', 'CP02PMCI-WFP01');
+INSERT INTO instruments VALUES ('CP02PMCI-WFP01-04-FLORTK000', 'CP02PMCI-WFP01');
+INSERT INTO instruments VALUES ('CP02PMCI-WFP01-05-PARADK000', 'CP02PMCI-WFP01');
+INSERT INTO instruments VALUES ('CP02PMCO-SBS01-01-MOPAK0000', 'CP02PMCO-SBS01');
+INSERT INTO instruments VALUES ('CP02PMCO-RII01-02-ADCPTG000', 'CP02PMCO-RII01');
+INSERT INTO instruments VALUES ('CP02PMCO-WFP01-01-VEL3DK000', 'CP02PMCO-WFP01');
+INSERT INTO instruments VALUES ('CP02PMCO-WFP01-02-DOFSTK000', 'CP02PMCO-WFP01');
+INSERT INTO instruments VALUES ('CP02PMCO-WFP01-03-CTDPFK000', 'CP02PMCO-WFP01');
+INSERT INTO instruments VALUES ('CP02PMCO-WFP01-04-FLORTK000', 'CP02PMCO-WFP01');
+INSERT INTO instruments VALUES ('CP02PMCO-WFP01-05-PARADK000', 'CP02PMCO-WFP01');
+INSERT INTO instruments VALUES ('CP05MOAS-GL001-01-ADCPAM000', 'CP05MOAS-GL001');
+INSERT INTO instruments VALUES ('CP05MOAS-GL001-02-FLORTM000', 'CP05MOAS-GL001');
+INSERT INTO instruments VALUES ('CP05MOAS-GL001-03-CTDGVM000', 'CP05MOAS-GL001');
+INSERT INTO instruments VALUES ('CP05MOAS-GL001-04-DOSTAM000', 'CP05MOAS-GL001');
+INSERT INTO instruments VALUES ('CP05MOAS-GL001-05-PARADM000', 'CP05MOAS-GL001');
+INSERT INTO instruments VALUES ('CP05MOAS-GL002-01-ADCPAM000', 'CP05MOAS-GL002');
+INSERT INTO instruments VALUES ('CP05MOAS-GL002-02-FLORTM000', 'CP05MOAS-GL002');
+INSERT INTO instruments VALUES ('CP05MOAS-GL002-03-CTDGVM000', 'CP05MOAS-GL002');
+INSERT INTO instruments VALUES ('CP05MOAS-GL002-04-DOSTAM000', 'CP05MOAS-GL002');
+INSERT INTO instruments VALUES ('CP05MOAS-GL002-05-PARADM000', 'CP05MOAS-GL002');
+INSERT INTO instruments VALUES ('CP05MOAS-GL003-01-ADCPAM000', 'CP05MOAS-GL003');
+INSERT INTO instruments VALUES ('CP05MOAS-GL003-02-FLORTM000', 'CP05MOAS-GL003');
+INSERT INTO instruments VALUES ('CP05MOAS-GL003-03-CTDGVM000', 'CP05MOAS-GL003');
+INSERT INTO instruments VALUES ('CP05MOAS-GL003-04-DOSTAM000', 'CP05MOAS-GL003');
+INSERT INTO instruments VALUES ('CP05MOAS-GL003-05-PARADM000', 'CP05MOAS-GL003');
+INSERT INTO instruments VALUES ('CP05MOAS-GL004-01-ADCPAM000', 'CP05MOAS-GL004');
+INSERT INTO instruments VALUES ('CP05MOAS-GL004-02-FLORTM000', 'CP05MOAS-GL004');
+INSERT INTO instruments VALUES ('CP05MOAS-GL004-03-CTDGVM000', 'CP05MOAS-GL004');
+INSERT INTO instruments VALUES ('CP05MOAS-GL004-04-DOSTAM000', 'CP05MOAS-GL004');
+INSERT INTO instruments VALUES ('CP05MOAS-GL004-05-PARADM000', 'CP05MOAS-GL004');
+INSERT INTO instruments VALUES ('CP05MOAS-GL005-01-ADCPAM000', 'CP05MOAS-GL005');
+INSERT INTO instruments VALUES ('CP05MOAS-GL005-02-FLORTM000', 'CP05MOAS-GL005');
+INSERT INTO instruments VALUES ('CP05MOAS-GL005-03-CTDGVM000', 'CP05MOAS-GL005');
+INSERT INTO instruments VALUES ('CP05MOAS-GL005-04-DOSTAM000', 'CP05MOAS-GL005');
+INSERT INTO instruments VALUES ('CP05MOAS-GL005-05-PARADM000', 'CP05MOAS-GL005');
+INSERT INTO instruments VALUES ('CP05MOAS-GL006-01-ADCPAM000', 'CP05MOAS-GL006');
+INSERT INTO instruments VALUES ('CP05MOAS-GL006-02-FLORTM000', 'CP05MOAS-GL006');
+INSERT INTO instruments VALUES ('CP05MOAS-GL006-03-CTDGVM000', 'CP05MOAS-GL006');
+INSERT INTO instruments VALUES ('CP05MOAS-GL006-04-DOSTAM000', 'CP05MOAS-GL006');
+INSERT INTO instruments VALUES ('CP05MOAS-GL006-05-PARADM000', 'CP05MOAS-GL006');
+INSERT INTO instruments VALUES ('CP05MOAS-AV001-01-FLORTN000', 'CP05MOAS-AV001');
+INSERT INTO instruments VALUES ('CP05MOAS-AV001-02-DOSTAN000', 'CP05MOAS-AV001');
+INSERT INTO instruments VALUES ('CP05MOAS-AV001-03-CTDAVN000', 'CP05MOAS-AV001');
+INSERT INTO instruments VALUES ('CP05MOAS-AV001-04-NUTNRN000', 'CP05MOAS-AV001');
+INSERT INTO instruments VALUES ('CP05MOAS-AV001-05-ADCPAN000', 'CP05MOAS-AV001');
+INSERT INTO instruments VALUES ('CP05MOAS-AV001-06-PARADN000', 'CP05MOAS-AV001');
+INSERT INTO instruments VALUES ('CP05MOAS-AV002-01-FLORTN000', 'CP05MOAS-AV002');
+INSERT INTO instruments VALUES ('CP05MOAS-AV002-02-DOSTAN000', 'CP05MOAS-AV002');
+INSERT INTO instruments VALUES ('CP05MOAS-AV002-03-CTDAVN000', 'CP05MOAS-AV002');
+INSERT INTO instruments VALUES ('CP05MOAS-AV002-04-NUTNRN000', 'CP05MOAS-AV002');
+INSERT INTO instruments VALUES ('CP05MOAS-AV002-05-ADCPAN000', 'CP05MOAS-AV002');
+INSERT INTO instruments VALUES ('CP05MOAS-AV002-06-PARADN000', 'CP05MOAS-AV002');
+INSERT INTO instruments VALUES ('CE04OSSM-SBD11-01-MOPAK0000', 'CE04OSSM-SBD11');
+INSERT INTO instruments VALUES ('CE04OSSM-SBD11-06-METBKA000', 'CE04OSSM-SBD11');
+INSERT INTO instruments VALUES ('CE04OSSM-SBD11-04-VELPTA000', 'CE04OSSM-SBD11');
+INSERT INTO instruments VALUES ('CE04OSSM-SBD12-04-PCO2AA000', 'CE04OSSM-SBD12');
+INSERT INTO instruments VALUES ('CE04OSSM-SBD12-05-WAVSSA000', 'CE04OSSM-SBD12');
+INSERT INTO instruments VALUES ('CE04OSSM-RID26-01-ADCPTC000', 'CE04OSSM-RID26');
+INSERT INTO instruments VALUES ('CE04OSSM-RID26-04-VELPTA000', 'CE04OSSM-RID26');
+INSERT INTO instruments VALUES ('CE04OSSM-RID26-05-ACOMM0000', 'CE04OSSM-RID26');
+INSERT INTO instruments VALUES ('CE04OSSM-RID26-06-PHSEND000', 'CE04OSSM-RID26');
+INSERT INTO instruments VALUES ('CE04OSSM-RID27-01-OPTAAD000', 'CE04OSSM-RID27');
+INSERT INTO instruments VALUES ('CE04OSSM-RID27-02-FLORTD000', 'CE04OSSM-RID27');
+INSERT INTO instruments VALUES ('CE04OSSM-RID27-03-CTDBPC000', 'CE04OSSM-RID27');
+INSERT INTO instruments VALUES ('CE04OSSM-RID27-04-DOSTAD000', 'CE04OSSM-RID27');
+INSERT INTO instruments VALUES ('CE04OSSM-RID27-07-NUTNRB000', 'CE04OSSM-RID27');
+INSERT INTO instruments VALUES ('CE04OSSM-RID27-08-SPKIRB000', 'CE04OSSM-RID27');
+INSERT INTO instruments VALUES ('CE04OSHY-PC01B-4C-PCO2WA105', 'CE04OSHY-PC01B');
+INSERT INTO instruments VALUES ('CE04OSHY-PC01B-4B-PHSENA106', 'CE04OSHY-PC01B');
+INSERT INTO instruments VALUES ('CE04OSHY-PC01B-05-ZPLSCB102', 'CE04OSHY-PC01B');
+INSERT INTO instruments VALUES ('CE04OSHY-PC01B-4A-CTDPFA109', 'CE04OSHY-PC01B');
+INSERT INTO instruments VALUES ('CE04OSHY-PC01B-4A-DOSTAD109', 'CE04OSHY-PC01B');
+INSERT INTO instruments VALUES ('CE04OSHY-SF01B-2A-DOFSTA107', 'CE04OSHY-SF01B');
+INSERT INTO instruments VALUES ('CE04OSHY-SF01B-3B-OPTAAD105', 'CE04OSHY-SF01B');
+INSERT INTO instruments VALUES ('CE04OSHY-SF01B-4B-VELPTD106', 'CE04OSHY-SF01B');
+INSERT INTO instruments VALUES ('CE04OSHY-SF01B-4A-NUTNRA102', 'CE04OSHY-SF01B');
+INSERT INTO instruments VALUES ('CE04OSHY-SF01B-3D-SPKIRA102', 'CE04OSHY-SF01B');
+INSERT INTO instruments VALUES ('CE04OSHY-SF01B-3A-FLORTD104', 'CE04OSHY-SF01B');
+INSERT INTO instruments VALUES ('CE04OSHY-SF01B-2A-CTDPFA107', 'CE04OSHY-SF01B');
+INSERT INTO instruments VALUES ('CE04OSHY-SF01B-4F-PCO2WA102', 'CE04OSHY-SF01B');
+INSERT INTO instruments VALUES ('CE04OSHY-SF01B-3C-PARADA102', 'CE04OSHY-SF01B');
+INSERT INTO instruments VALUES ('CE04OSHY-SF01B-2B-PHSENA108', 'CE04OSHY-SF01B');
+INSERT INTO instruments VALUES ('CE04OSHY-DP01B-06-DOSTAD105', 'CE04OSHY-DP01B');
+INSERT INTO instruments VALUES ('CE04OSHY-DP01B-02-VEL3DA105', 'CE04OSHY-DP01B');
+INSERT INTO instruments VALUES ('CE04OSHY-DP01B-04-FLORTA103', 'CE04OSHY-DP01B');
+INSERT INTO instruments VALUES ('CE04OSHY-DP01B-01-CTDPFL105', 'CE04OSHY-DP01B');
+INSERT INTO instruments VALUES ('CE04OSBP-LJ01C-05-ADCPSI103', 'CE04OSBP-LJ01C');
+INSERT INTO instruments VALUES ('CE04OSBP-LJ01C-06-CTDBPO108', 'CE04OSBP-LJ01C');
+INSERT INTO instruments VALUES ('CE04OSBP-LJ01C-06-DOSTAD108', 'CE04OSBP-LJ01C');
+INSERT INTO instruments VALUES ('CE04OSBP-LJ01C-07-VEL3DC107', 'CE04OSBP-LJ01C');
+INSERT INTO instruments VALUES ('CE04OSBP-LJ01C-08-OPTAAC104', 'CE04OSBP-LJ01C');
+INSERT INTO instruments VALUES ('CE04OSBP-LJ01C-09-PCO2WB104', 'CE04OSBP-LJ01C');
+INSERT INTO instruments VALUES ('CE04OSBP-LJ01C-10-PHSEND107', 'CE04OSBP-LJ01C');
+INSERT INTO instruments VALUES ('CE04OSBP-LJ01C-11-HYDBBA105', 'CE04OSBP-LJ01C');
+INSERT INTO instruments VALUES ('CE04OSBP-LV01C-06-CAMDSB106', 'CE04OSBP-LV01C');
+INSERT INTO instruments VALUES ('CE02SHSM-SBD11-01-MOPAK0000', 'CE02SHSM-SBD11');
+INSERT INTO instruments VALUES ('CE02SHSM-SBD11-06-METBKA000', 'CE02SHSM-SBD11');
+INSERT INTO instruments VALUES ('CE02SHSM-SBD11-04-VELPTA000', 'CE02SHSM-SBD11');
+INSERT INTO instruments VALUES ('CE02SHSM-SBD12-04-PCO2AA000', 'CE02SHSM-SBD12');
+INSERT INTO instruments VALUES ('CE02SHSM-SBD12-05-WAVSSA000', 'CE02SHSM-SBD12');
+INSERT INTO instruments VALUES ('CE02SHSM-SBD12-08-FDCHPA000', 'CE02SHSM-SBD12');
+INSERT INTO instruments VALUES ('CE02SHSM-RID26-01-ADCPTA000', 'CE02SHSM-RID26');
+INSERT INTO instruments VALUES ('CE02SHSM-RID26-04-VELPTA000', 'CE02SHSM-RID26');
+INSERT INTO instruments VALUES ('CE02SHSM-RID26-05-ACOMM0000', 'CE02SHSM-RID26');
+INSERT INTO instruments VALUES ('CE02SHSM-RID26-06-PHSEND000', 'CE02SHSM-RID26');
+INSERT INTO instruments VALUES ('CE02SHSM-RID27-01-OPTAAD000', 'CE02SHSM-RID27');
+INSERT INTO instruments VALUES ('CE02SHSM-RID27-02-FLORTD000', 'CE02SHSM-RID27');
+INSERT INTO instruments VALUES ('CE02SHSM-RID27-03-CTDBPC000', 'CE02SHSM-RID27');
+INSERT INTO instruments VALUES ('CE02SHSM-RID27-04-DOSTAD000', 'CE02SHSM-RID27');
+INSERT INTO instruments VALUES ('CE02SHSM-RID27-07-NUTNRB000', 'CE02SHSM-RID27');
+INSERT INTO instruments VALUES ('CE02SHSM-RID27-08-SPKIRB000', 'CE02SHSM-RID27');
+INSERT INTO instruments VALUES ('CE02SHSP-SP001-01-DOSTAJ   ', 'CE02SHSP-SP001');
+INSERT INTO instruments VALUES ('CE02SHSP-SP001-02-VELPTJ   ', 'CE02SHSP-SP001');
+INSERT INTO instruments VALUES ('CE02SHSP-SP001-03-PCO2W0   ', 'CE02SHSP-SP001');
+INSERT INTO instruments VALUES ('CE02SHSP-SP001-04-OPTAAJ   ', 'CE02SHSP-SP001');
+INSERT INTO instruments VALUES ('CE02SHSP-SP001-05-NUTNRJ   ', 'CE02SHSP-SP001');
+INSERT INTO instruments VALUES ('CE02SHSP-SP001-06-SPKIRJ   ', 'CE02SHSP-SP001');
+INSERT INTO instruments VALUES ('CE02SHSP-SP001-07-FLORTJ   ', 'CE02SHSP-SP001');
+INSERT INTO instruments VALUES ('CE02SHSP-SP001-01-CTDPFJ   ', 'CE02SHSP-SP001');
+INSERT INTO instruments VALUES ('CE02SHSP-SP001-08-PARADJ   ', 'CE02SHSP-SP001');
+INSERT INTO instruments VALUES ('CE02SHBP-MJ01C-07-ZPLSCB101', 'CE02SHBP-MJ01C');
+INSERT INTO instruments VALUES ('CE02SHBP-LJ01D-05-ADCPTB104', 'CE02SHBP-LJ01D');
+INSERT INTO instruments VALUES ('CE02SHBP-LJ01D-06-CTDBPN106', 'CE02SHBP-LJ01D');
+INSERT INTO instruments VALUES ('CE02SHBP-LJ01D-06-DOSTAD106', 'CE02SHBP-LJ01D');
+INSERT INTO instruments VALUES ('CE02SHBP-LJ01D-07-VEL3DC108', 'CE02SHBP-LJ01D');
+INSERT INTO instruments VALUES ('CE02SHBP-LJ01D-08-OPTAAD106', 'CE02SHBP-LJ01D');
+INSERT INTO instruments VALUES ('CE02SHBP-LJ01D-09-PCO2WB103', 'CE02SHBP-LJ01D');
+INSERT INTO instruments VALUES ('CE02SHBP-LJ01D-10-PHSEND103', 'CE02SHBP-LJ01D');
+INSERT INTO instruments VALUES ('CE02SHBP-LJ01D-11-HYDBBA106', 'CE02SHBP-LJ01D');
+INSERT INTO instruments VALUES ('CE02SHBP-MJ01C-08-CAMDSB107', 'CE02SHBP-MJ01C');
+INSERT INTO instruments VALUES ('CE01ISSM-SBD17-01-MOPAK0000', 'CE01ISSM-SBD17');
+INSERT INTO instruments VALUES ('CE01ISSM-SBD17-04-VELPTA000', 'CE01ISSM-SBD17');
+INSERT INTO instruments VALUES ('CE01ISSM-RID16-01-OPTAAD000', 'CE01ISSM-RID16');
+INSERT INTO instruments VALUES ('CE01ISSM-RID16-02-FLORTD000', 'CE01ISSM-RID16');
+INSERT INTO instruments VALUES ('CE01ISSM-RID16-03-CTDBPC001', 'CE01ISSM-RID16');
+INSERT INTO instruments VALUES ('CE01ISSM-RID16-03-DOSTAD002', 'CE01ISSM-RID16');
+INSERT INTO instruments VALUES ('CE01ISSM-RID16-04-VELPTA000', 'CE01ISSM-RID16');
+INSERT INTO instruments VALUES ('CE01ISSM-RID16-05-PCO2WB000', 'CE01ISSM-RID16');
+INSERT INTO instruments VALUES ('CE01ISSM-RID16-06-PHSEND000', 'CE01ISSM-RID16');
+INSERT INTO instruments VALUES ('CE01ISSM-RID16-07-NUTNRB000', 'CE01ISSM-RID16');
+INSERT INTO instruments VALUES ('CE01ISSM-RID16-08-SPKIRB000', 'CE01ISSM-RID16');
+INSERT INTO instruments VALUES ('CE01ISSM-RID16-00-ACOMM0000', 'CE01ISSM-RID16');
+INSERT INTO instruments VALUES ('CE01ISSM-MFD35-01-VEL3DD000', 'CE01ISSM-MFD35');
+INSERT INTO instruments VALUES ('CE01ISSM-MFD35-02-PRESFA000', 'CE01ISSM-MFD35');
+INSERT INTO instruments VALUES ('CE01ISSM-MFD35-04-ADCPTM000', 'CE01ISSM-MFD35');
+INSERT INTO instruments VALUES ('CE01ISSM-MFD35-05-PCO2WB000', 'CE01ISSM-MFD35');
+INSERT INTO instruments VALUES ('CE01ISSM-MFD35-06-PHSEND000', 'CE01ISSM-MFD35');
+INSERT INTO instruments VALUES ('CE01ISSM-MFD37-01-OPTAAD000', 'CE01ISSM-MFD37');
+INSERT INTO instruments VALUES ('CE01ISSM-MFD37-03-CTDBPC000', 'CE01ISSM-MFD37');
+INSERT INTO instruments VALUES ('CE01ISSM-MFD37-04-DOSTAD000', 'CE01ISSM-MFD37');
+INSERT INTO instruments VALUES ('CE01ISSM-MFD00-00-CAMDSA000', 'CE01ISSM-MFD00');
+INSERT INTO instruments VALUES ('CE01ISSM-MFD00-00-ZPLSCC000', 'CE01ISSM-MFD00');
+INSERT INTO instruments VALUES ('CE01ISSP-PL001-01-ACOMM0   ', 'CE01ISSP-PL001');
+INSERT INTO instruments VALUES ('CE01ISSP-SP001-02-DOSTAJ   ', 'CE01ISSP-SP001');
+INSERT INTO instruments VALUES ('CE01ISSP-SP001-03-PCO2W0   ', 'CE01ISSP-SP001');
+INSERT INTO instruments VALUES ('CE01ISSP-SP001-04-OPTAAJ   ', 'CE01ISSP-SP001');
+INSERT INTO instruments VALUES ('CE01ISSP-SP001-05-VELPTJ   ', 'CE01ISSP-SP001');
+INSERT INTO instruments VALUES ('CE01ISSP-SP001-06-NUTNRJ   ', 'CE01ISSP-SP001');
+INSERT INTO instruments VALUES ('CE01ISSP-SP001-07-SPKIRJ   ', 'CE01ISSP-SP001');
+INSERT INTO instruments VALUES ('CE01ISSP-SP001-08-FLORTJ   ', 'CE01ISSP-SP001');
+INSERT INTO instruments VALUES ('CE01ISSP-SP001-09-CTDPFJ   ', 'CE01ISSP-SP001');
+INSERT INTO instruments VALUES ('CE01ISSP-SP001-10-PARADJ   ', 'CE01ISSP-SP001');
+INSERT INTO instruments VALUES ('CE09OSSM-SBD11-01-MOPAK0000', 'CE09OSSM-SBD11');
+INSERT INTO instruments VALUES ('CE09OSSM-SBD11-06-METBKA000', 'CE09OSSM-SBD11');
+INSERT INTO instruments VALUES ('CE09OSSM-SBD11-04-VELPTA000', 'CE09OSSM-SBD11');
+INSERT INTO instruments VALUES ('CE09OSSM-SBD12-04-PCO2AA000', 'CE09OSSM-SBD12');
+INSERT INTO instruments VALUES ('CE09OSSM-SBD12-05-WAVSSA000', 'CE09OSSM-SBD12');
+INSERT INTO instruments VALUES ('CE09OSSM-RID26-01-ADCPTC000', 'CE09OSSM-RID26');
+INSERT INTO instruments VALUES ('CE09OSSM-RID26-04-VELPTA000', 'CE09OSSM-RID26');
+INSERT INTO instruments VALUES ('CE09OSSM-RID26-05-ACOMM0000', 'CE09OSSM-RID26');
+INSERT INTO instruments VALUES ('CE09OSSM-RID26-06-PHSEND000', 'CE09OSSM-RID26');
+INSERT INTO instruments VALUES ('CE09OSSM-RID27-01-OPTAAD000', 'CE09OSSM-RID27');
+INSERT INTO instruments VALUES ('CE09OSSM-RID27-02-FLORTD000', 'CE09OSSM-RID27');
+INSERT INTO instruments VALUES ('CE09OSSM-RID27-03-CTDBPC000', 'CE09OSSM-RID27');
+INSERT INTO instruments VALUES ('CE09OSSM-RID27-04-DOSTAD000', 'CE09OSSM-RID27');
+INSERT INTO instruments VALUES ('CE09OSSM-RID27-07-NUTNRB000', 'CE09OSSM-RID27');
+INSERT INTO instruments VALUES ('CE09OSSM-RID27-08-SPKIRB000', 'CE09OSSM-RID27');
+INSERT INTO instruments VALUES ('CE09OSSM-MFD35-01-VEL3DD000', 'CE09OSSM-MFD35');
+INSERT INTO instruments VALUES ('CE09OSSM-MFD35-02-PRESFC000', 'CE09OSSM-MFD35');
+INSERT INTO instruments VALUES ('CE09OSSM-MFD35-04-ADCPSJ000', 'CE09OSSM-MFD35');
+INSERT INTO instruments VALUES ('CE09OSSM-MFD35-05-PCO2WB000', 'CE09OSSM-MFD35');
+INSERT INTO instruments VALUES ('CE09OSSM-MFD35-06-PHSEND000', 'CE09OSSM-MFD35');
+INSERT INTO instruments VALUES ('CE09OSSM-MFD37-01-OPTAAC000', 'CE09OSSM-MFD37');
+INSERT INTO instruments VALUES ('CE09OSSM-MFD37-03-CTDBPE000', 'CE09OSSM-MFD37');
+INSERT INTO instruments VALUES ('CE09OSSM-MFD37-04-DOSTAD000', 'CE09OSSM-MFD37');
+INSERT INTO instruments VALUES ('CE09OSSM-MFD37-00-ZPLSCC000', 'CE09OSSM-MFD37');
+INSERT INTO instruments VALUES ('CE09OSSM-MFD00-00-CAMDSA000', 'CE09OSSM-MFD00');
+INSERT INTO instruments VALUES ('CE09OSPM-WF001-01-VEL3DK000', 'CE09OSPM-WF001');
+INSERT INTO instruments VALUES ('CE09OSPM-WF001-02-DOFSTK000', 'CE09OSPM-WF001');
+INSERT INTO instruments VALUES ('CE09OSPM-WF001-03-CTDPFK000', 'CE09OSPM-WF001');
+INSERT INTO instruments VALUES ('CE09OSPM-WF001-04-FLORTK000', 'CE09OSPM-WF001');
+INSERT INTO instruments VALUES ('CE09OSPM-WF001-05-PARADK000', 'CE09OSPM-WF001');
+INSERT INTO instruments VALUES ('CE07SHSM-SBD11-01-MOPAK0000', 'CE07SHSM-SBD11');
+INSERT INTO instruments VALUES ('CE07SHSM-SBD11-06-METBKA000', 'CE07SHSM-SBD11');
+INSERT INTO instruments VALUES ('CE07SHSM-SBD11-04-PCO2AA000', 'CE07SHSM-SBD11');
+INSERT INTO instruments VALUES ('CE07SHSM-SBD12-04-VELPTA000', 'CE07SHSM-SBD12');
+INSERT INTO instruments VALUES ('CE07SHSM-SBD12-05-WAVSSA000', 'CE07SHSM-SBD12');
+INSERT INTO instruments VALUES ('CE07SHSM-RID26-01-ADCPTA000', 'CE07SHSM-RID26');
+INSERT INTO instruments VALUES ('CE07SHSM-RID26-04-VELPTA000', 'CE07SHSM-RID26');
+INSERT INTO instruments VALUES ('CE07SHSM-RID26-05-ACOMM0000', 'CE07SHSM-RID26');
+INSERT INTO instruments VALUES ('CE07SHSM-RID26-06-PHSEND000', 'CE07SHSM-RID26');
+INSERT INTO instruments VALUES ('CE07SHSM-RID27-01-OPTAAD000', 'CE07SHSM-RID27');
+INSERT INTO instruments VALUES ('CE07SHSM-RID27-02-FLORTD000', 'CE07SHSM-RID27');
+INSERT INTO instruments VALUES ('CE07SHSM-RID27-03-CTDBPC000', 'CE07SHSM-RID27');
+INSERT INTO instruments VALUES ('CE07SHSM-RID27-04-DOSTAD000', 'CE07SHSM-RID27');
+INSERT INTO instruments VALUES ('CE07SHSM-RID27-07-NUTNRB000', 'CE07SHSM-RID27');
+INSERT INTO instruments VALUES ('CE07SHSM-RID27-08-SPKIRB000', 'CE07SHSM-RID27');
+INSERT INTO instruments VALUES ('CE07SHSM-MFD35-01-VEL3DD000', 'CE07SHSM-MFD35');
+INSERT INTO instruments VALUES ('CE07SHSM-MFD35-02-PRESFB000', 'CE07SHSM-MFD35');
+INSERT INTO instruments VALUES ('CE07SHSM-MFD35-04-ADCPTC000', 'CE07SHSM-MFD35');
+INSERT INTO instruments VALUES ('CE07SHSM-MFD35-05-PCO2WB000', 'CE07SHSM-MFD35');
+INSERT INTO instruments VALUES ('CE07SHSM-MFD35-06-PHSEND000', 'CE07SHSM-MFD35');
+INSERT INTO instruments VALUES ('CE07SHSM-MFD37-01-OPTAAD000', 'CE07SHSM-MFD37');
+INSERT INTO instruments VALUES ('CE07SHSM-MFD37-03-CTDBPC000', 'CE07SHSM-MFD37');
+INSERT INTO instruments VALUES ('CE07SHSM-MFD37-04-DOSTAD000', 'CE07SHSM-MFD37');
+INSERT INTO instruments VALUES ('CE07SHSM-MFD00-00-CAMDSA000', 'CE07SHSM-MFD00');
+INSERT INTO instruments VALUES ('CE07SHSM-MFD00-00-ZPLSCC000', 'CE07SHSM-MFD00');
+INSERT INTO instruments VALUES ('CE07SHSP-PL001-01-ACOMM0   ', 'CE07SHSP-PL001');
+INSERT INTO instruments VALUES ('CE07SHSP-SP001-01-DOSTAJ   ', 'CE07SHSP-PL001');
+INSERT INTO instruments VALUES ('CE07SHSP-SP001-02-VELPTJ   ', 'CE07SHSP-PL001');
+INSERT INTO instruments VALUES ('CE07SHSP-SP001-03-PCO2W0   ', 'CE07SHSP-PL001');
+INSERT INTO instruments VALUES ('CE07SHSP-SP001-04-OPTAAJ   ', 'CE07SHSP-PL001');
+INSERT INTO instruments VALUES ('CE07SHSP-SP001-05-NUTNRJ   ', 'CE07SHSP-PL001');
+INSERT INTO instruments VALUES ('CE07SHSP-SP001-06-SPKIRJ   ', 'CE07SHSP-PL001');
+INSERT INTO instruments VALUES ('CE07SHSP-SP001-07-FLORTJ   ', 'CE07SHSP-PL001');
+INSERT INTO instruments VALUES ('CE07SHSP-SP001-08-CTDPFJ   ', 'CE07SHSP-PL001');
+INSERT INTO instruments VALUES ('CE07SHSP-SP001-09-PARADJ   ', 'CE07SHSP-PL001');
+INSERT INTO instruments VALUES ('CE06ISSM-SBD17-01-MOPAK0000', 'CE06ISSM-SBD17');
+INSERT INTO instruments VALUES ('CE06ISSM-SBD17-04-VELPTA000', 'CE06ISSM-SBD17');
+INSERT INTO instruments VALUES ('CE06ISSM-RID16-01-OPTAAD000', 'CE06ISSM-RID16');
+INSERT INTO instruments VALUES ('CE06ISSM-RID16-02-FLORTD000', 'CE06ISSM-RID16');
+INSERT INTO instruments VALUES ('CE06ISSM-RID16-03-CTDBPC000', 'CE06ISSM-RID16');
+INSERT INTO instruments VALUES ('CE06ISSM-RID16-03-DOSTAD000', 'CE06ISSM-RID16');
+INSERT INTO instruments VALUES ('CE06ISSM-RID16-04-VELPTA000', 'CE06ISSM-RID16');
+INSERT INTO instruments VALUES ('CE06ISSM-RID16-05-PCO2WB000', 'CE06ISSM-RID16');
+INSERT INTO instruments VALUES ('CE06ISSM-RID16-06-PHSEND000', 'CE06ISSM-RID16');
+INSERT INTO instruments VALUES ('CE06ISSM-RID16-07-NUTNRB000', 'CE06ISSM-RID16');
+INSERT INTO instruments VALUES ('CE06ISSM-RID16-08-SPKIRB000', 'CE06ISSM-RID16');
+INSERT INTO instruments VALUES ('CE06ISSM-RID16-00-ACOMM0000', 'CE06ISSM-RID16');
+INSERT INTO instruments VALUES ('CE06ISSM-MFD35-01-VEL3DD000', 'CE06ISSM-MFD35');
+INSERT INTO instruments VALUES ('CE06ISSM-MFD35-02-PRESFA000', 'CE06ISSM-MFD35');
+INSERT INTO instruments VALUES ('CE06ISSM-MFD35-04-ADCPTM000', 'CE06ISSM-MFD35');
+INSERT INTO instruments VALUES ('CE06ISSM-MFD35-05-PCO2WB000', 'CE06ISSM-MFD35');
+INSERT INTO instruments VALUES ('CE06ISSM-MFD35-06-PHSEND000', 'CE06ISSM-MFD35');
+INSERT INTO instruments VALUES ('CE06ISSM-MFD37-01-OPTAAD000', 'CE06ISSM-MFD37');
+INSERT INTO instruments VALUES ('CE06ISSM-MFD37-03-CTDBPC000', 'CE06ISSM-MFD37');
+INSERT INTO instruments VALUES ('CE06ISSM-MFD37-04-DOSTAD000', 'CE06ISSM-MFD37');
+INSERT INTO instruments VALUES ('CE06ISSM-MFD00-00-CAMDSA000', 'CE06ISSM-MFD00');
+INSERT INTO instruments VALUES ('CE06ISSM-MFD00-00-ZPLSCC000', 'CE06ISSM-MFD00');
+INSERT INTO instruments VALUES ('CE06ISSP-PL001-01-ACOMM0   ', 'CE06ISSP-PL001');
+INSERT INTO instruments VALUES ('CE06ISSP-SP001-02-DOSTAJ   ', 'CE06ISSP-PL001');
+INSERT INTO instruments VALUES ('CE06ISSP-SP001-03-PCO2W0   ', 'CE06ISSP-PL001');
+INSERT INTO instruments VALUES ('CE06ISSP-SP001-04-OPTAAJ   ', 'CE06ISSP-PL001');
+INSERT INTO instruments VALUES ('CE06ISSP-SP001-05-VELPTJ   ', 'CE06ISSP-PL001');
+INSERT INTO instruments VALUES ('CE06ISSP-SP001-06-NUTNRJ   ', 'CE06ISSP-PL001');
+INSERT INTO instruments VALUES ('CE06ISSP-SP001-07-SPKIRJ   ', 'CE06ISSP-PL001');
+INSERT INTO instruments VALUES ('CE06ISSP-SP001-08-FLORTJ   ', 'CE06ISSP-PL001');
+INSERT INTO instruments VALUES ('CE06ISSP-SP001-09-CTDPFJ   ', 'CE06ISSP-PL001');
+INSERT INTO instruments VALUES ('CE06ISSP-SP001-10-PARADJ   ', 'CE06ISSP-PL001');
+INSERT INTO instruments VALUES ('CE05MOAS-GL001-01-PARADM000', 'CE05MOAS-GL001');
+INSERT INTO instruments VALUES ('CE05MOAS-GL001-02-FLORTM000', 'CE05MOAS-GL001');
+INSERT INTO instruments VALUES ('CE05MOAS-GL001-03-ADCPAM000', 'CE05MOAS-GL001');
+INSERT INTO instruments VALUES ('CE05MOAS-GL001-04-DOSTAM000', 'CE05MOAS-GL001');
+INSERT INTO instruments VALUES ('CE05MOAS-GL001-05-CTDGVM000', 'CE05MOAS-GL001');
+INSERT INTO instruments VALUES ('CE05MOAS-GL002-01-PARADM000', 'CE05MOAS-GL002');
+INSERT INTO instruments VALUES ('CE05MOAS-GL002-02-FLORTM000', 'CE05MOAS-GL002');
+INSERT INTO instruments VALUES ('CE05MOAS-GL002-03-ADCPAM000', 'CE05MOAS-GL002');
+INSERT INTO instruments VALUES ('CE05MOAS-GL002-04-DOSTAM000', 'CE05MOAS-GL002');
+INSERT INTO instruments VALUES ('CE05MOAS-GL002-05-CTDGVM000', 'CE05MOAS-GL002');
+INSERT INTO instruments VALUES ('CE05MOAS-GL003-01-PARADM000', 'CE05MOAS-GL003');
+INSERT INTO instruments VALUES ('CE05MOAS-GL003-02-FLORTM000', 'CE05MOAS-GL003');
+INSERT INTO instruments VALUES ('CE05MOAS-GL003-03-ADCPAM000', 'CE05MOAS-GL003');
+INSERT INTO instruments VALUES ('CE05MOAS-GL003-04-DOSTAM000', 'CE05MOAS-GL003');
+INSERT INTO instruments VALUES ('CE05MOAS-GL003-05-CTDGVM000', 'CE05MOAS-GL003');
+INSERT INTO instruments VALUES ('CE05MOAS-GL004-01-PARADM000', 'CE05MOAS-GL004');
+INSERT INTO instruments VALUES ('CE05MOAS-GL004-02-FLORTM000', 'CE05MOAS-GL004');
+INSERT INTO instruments VALUES ('CE05MOAS-GL004-03-ADCPAM000', 'CE05MOAS-GL004');
+INSERT INTO instruments VALUES ('CE05MOAS-GL004-04-DOSTAM000', 'CE05MOAS-GL004');
+INSERT INTO instruments VALUES ('CE05MOAS-GL004-05-CTDGVM000', 'CE05MOAS-GL004');
+INSERT INTO instruments VALUES ('CE05MOAS-GL005-01-PARADM000', 'CE05MOAS-GL005');
+INSERT INTO instruments VALUES ('CE05MOAS-GL005-02-FLORTM000', 'CE05MOAS-GL005');
+INSERT INTO instruments VALUES ('CE05MOAS-GL005-03-ADCPAM000', 'CE05MOAS-GL005');
+INSERT INTO instruments VALUES ('CE05MOAS-GL005-04-DOSTAM000', 'CE05MOAS-GL005');
+INSERT INTO instruments VALUES ('CE05MOAS-GL005-05-CTDGVM000', 'CE05MOAS-GL005');
+INSERT INTO instruments VALUES ('CE05MOAS-GL006-01-PARADM000', 'CE05MOAS-GL006');
+INSERT INTO instruments VALUES ('CE05MOAS-GL006-02-FLORTM000', 'CE05MOAS-GL006');
+INSERT INTO instruments VALUES ('CE05MOAS-GL006-03-ADCPAM000', 'CE05MOAS-GL006');
+INSERT INTO instruments VALUES ('CE05MOAS-GL006-04-DOSTAM000', 'CE05MOAS-GL006');
+INSERT INTO instruments VALUES ('CE05MOAS-GL006-05-CTDGVM000', 'CE05MOAS-GL006');
