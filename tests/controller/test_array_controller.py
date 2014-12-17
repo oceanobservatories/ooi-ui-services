@@ -20,13 +20,13 @@ class TestArrayController(ServicesTestCase):
         app.config['TESTING'] = True
         self.app = app.test_client()
 
-    def test_array_listing(self):
+    def test_listing(self):
         '''
         Test that the app context initializes successfully
         '''
         rv = self.app.get('/arrays')
-        json.loads(rv.data)
-        assert 'id' in data[0]
+        response = json.loads(rv.data)
+        assert 'id' in response
 
     def test_empty_response(self):
         rv = self.app.get('/arrays/notreal')
