@@ -4,6 +4,9 @@ tests.controller.test_platform_controller
 
 Test for the platform controller
 '''
+
+__author__ = 'Matt Campbell'
+
 import json
 from ooiservices import app
 from tests.services_test_case import ServicesTestCase
@@ -23,15 +26,7 @@ class TestInstrumentController(ServicesTestCase):
 
         assert 'id' in data[0]
         assert 'platform_id' in data[0]
-        assert 'description' in data[0]
 
     def test_invalid_response(self):
-
         rv = self.app.get('/instruments?platform_id=notreal')
         assert rv.status_code == 204
-
-    def test_failed_response(self):
-        mock_something()
-
-        rv = self.app.get('/instruments?id=notreal')
-        assert rv.status_code == 500

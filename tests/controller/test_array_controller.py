@@ -4,6 +4,9 @@ tests.controller.test_array_controller
 
 Test for the array controller
 '''
+
+__author__ = 'Matt Campbell'
+
 import json
 from ooiservices import app
 from tests.services_test_case import ServicesTestCase
@@ -18,27 +21,11 @@ class TestArrayController(ServicesTestCase):
         '''
         Test fails when the response is not proper JSON or is improperly formatted
         '''
-        rv = self.app.get('/arrays')
-        response = json.loads(rv.data)
+        rv = self.app.get('/array')
+        data = json.loads(rv.data)
 
-        # Rearrange the response by array_code
-        response = { r['id'] : r for r in response }
-        assert 'CP' in response
+        assert 'id' in data[0]
 
-    def test_array_list(self):
-        rv = self.app.get('/arrays')
-        response = json.loads(rv.data)
-
-        # Rearrange the response by array_code
-        response = { r['id'] : r for r in response }
-        assert 'CP' in response
-
-    def test_array_get(self):
-        rv = self.app.get('/arrays/CP')
-        response = json.loads(rv.data)
-
-        assert response['id'] == 'CP'
-
-        # Assert not found
-        rv = self.app.get('/arrays/9000')
+    def test_invalid_response(self):
+        rv = self.app.get('/array/notreal')
         assert rv.status_code == 204
