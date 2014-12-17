@@ -21,7 +21,7 @@ class ArrayObjectController(ObjectController):
 
     def get(self, id):
         result = self.newArray.read(id)
-              if not result:
+        if not result:
             return self.response_HTTP204()
         return result
 
