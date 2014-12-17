@@ -30,6 +30,7 @@ class ArrayListController(ListController):
     newArray = ArrayModel()
 
     def get(self):
+        result = self.newArray.read()
         if not result:
             return self.response_HTTP204()
         return result
