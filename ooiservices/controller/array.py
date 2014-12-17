@@ -21,6 +21,8 @@ class ArrayObjectController(ObjectController):
 
     def get(self, id):
         result = self.newArray.read(id)
+              if not result:
+            return self.response_HTTP204()
         return result
 
 class ArrayListController(ListController):
@@ -28,5 +30,6 @@ class ArrayListController(ListController):
     newArray = ArrayModel()
 
     def get(self):
-        result = self.newArray.read()
+        if not result:
+            return self.response_HTTP204()
         return result

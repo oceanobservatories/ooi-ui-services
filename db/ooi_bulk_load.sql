@@ -1,10 +1,10 @@
 /* Array list - 11/18/2014 */
-INSERT INTO arrays VALUES ('GS', '55S', (-54.0814, -89.6652));
-INSERT INTO arrays VALUES ('GA', 'Argentine', (-42.5073, -42.8905));
-INSERT INTO arrays VALUES ('GI', 'Irminger Sea', (60.4582, -38.4407));
-INSERT INTO arrays VALUES ('GP', 'PAPA Mooring', (49.9795, -144.254));
-INSERT INTO arrays VALUES ('CP', 'Pioneer', (40.1, -70.88));
-INSERT INTO arrays VALUES ('CE', 'Endurance', (44.37, -124.95));
+INSERT INTO arrays VALUES ('GS', '55S');
+INSERT INTO arrays VALUES ('GA', 'Argentine');
+INSERT INTO arrays VALUES ('GI', 'Irminger Sea');
+INSERT INTO arrays VALUES ('GP', 'PAPA Mooring');
+INSERT INTO arrays VALUES ('CP', 'Pioneer');
+INSERT INTO arrays VALUES ('CE', 'Endurance');
 
 
 /* Platform List */
