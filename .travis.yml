@@ -16,7 +16,7 @@ install:
 before_script:
   - psql -c 'create database ooi_ui;' -U postgres
   - psql -c 'create database ooi_asset;' -U postgres
-  - psql -c 'create dataabse ooi_user_management;' -U postgres
+  - psql -c 'create database ooi_user_management;' -U postgres
   - psql -U postgres ooi_ui -c "create extension postgis;"
   - psql ooi_ui < db/ooi_ui_schema.sql
   - psql ooi_ui < db/ooi_ui_bulk_load.sql

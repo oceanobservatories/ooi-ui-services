@@ -32,7 +32,7 @@ class InstrumentDeploymentListController(ListController):
     def get(self):
         args = request.args
         if args:
-            result = self.process_args(self.model, args,'platform_reference_designator')
+            result = self.process_args(self.model, args,'platform_deployment_code')
         else:
             result = self.model.read()
         if not result:
