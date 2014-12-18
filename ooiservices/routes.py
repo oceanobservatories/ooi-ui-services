@@ -11,7 +11,7 @@ import extend_json
 
 
 api = restful.Api(app)
-extend_json.support_jsonp(api)
+#extend_json.support_jsonp(api)
 
 from ooiservices.controller.platform import PlatformObjectController, PlatformListController
 from ooiservices.controller.instrument import InstrumentObjectController, InstrumentListController
