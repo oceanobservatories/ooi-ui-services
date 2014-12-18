@@ -4,47 +4,29 @@ tests.controller.test_array_controller
 
 Test for the array controller
 '''
+
+__author__ = 'Matt Campbell'
+
 import json
-from ooiservices import app
+from ooiservices.app import app
 from tests.services_test_case import ServicesTestCase
 
 class TestArrayController(ServicesTestCase):
     def setUp(self):
+        '''
+        Initializes the application
+        '''
         ServicesTestCase.setUp(self)
         app.config['TESTING'] = True
         self.app = app.test_client()
 
-    def test_valid_response(self):
+    def test_listing(self):
         '''
-        Test fails when the response is not proper JSON or is improperly formatted
+        Test that the app context initializes successfully
         '''
         rv = self.app.get('/arrays')
-        response = json.loads(rv.data)
+        assert rv.status_code == 200
 
-        # Rearrange the response by array_code
-        response = { r['array_code'] : r for r in response }
-        assert 'CP' in response
-
-    def test_array_where(self):
-        rv = self.app.get('/arrays?array_code=CP')
-        response = json.loads(rv.data)
-
-        # Rearrange the response by array_code
-        response = { r['array_code'] : r for r in response }
-        assert 'CP' in response
-
-        rv = self.app.get('/arrays?array_code=OP')
-        response = json.loads(rv.data)
-
-        assert len(response) == 0
-
-    def test_array_get(self):
-        rv = self.app.get('/arrays/1')
-        response = json.loads(rv.data)
-
-        assert response['id'] == 1
-        assert response['array_code'] == 'CP'
-
-        # Assert not found
-        rv = self.app.get('/arrays/9000')
+    def test_empty_response(self):
+        rv = self.app.get('/arrays/notreal')
         assert rv.status_code == 204
