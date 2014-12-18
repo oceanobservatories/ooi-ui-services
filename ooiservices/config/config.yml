@@ -12,7 +12,7 @@ DataSource:
     # DBType: sqlite
     # DBType: psql
     DBType: psql
-    DBName: ooi_psql_test
+    DBName: ooi_ui
     userName: postgres
     password:
     host: localhost
