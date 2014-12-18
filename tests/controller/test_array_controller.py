@@ -25,8 +25,7 @@ class TestArrayController(ServicesTestCase):
         Test that the app context initializes successfully
         '''
         rv = self.app.get('/arrays')
-        response = json.loads(rv.data)
-        assert 'id' in response
+        assert rv.status_code == 200
 
     def test_empty_response(self):
         rv = self.app.get('/arrays/notreal')
