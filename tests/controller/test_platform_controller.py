@@ -18,15 +18,15 @@ class TestPlatformController(ServicesTestCase):
         '''
         ServicesTestCase.setUp(self)
         app.config['TESTING'] = True
-        self.app = app.test_client()
+        app = app.test_client()
 
     def test_listing(self):
         '''
         Test that the app context initializes successfully
         '''
-        rv = self.app.get('/platforms')
+        rv = app.get('/platforms')
         assert rv.status_code == 200
 
     def test_empty_response(self):
-        rv = self.app.get('/platforms/notreal')
+        rv = app.get('/platforms/notreal')
         assert rv.status_code == 204
