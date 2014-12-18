@@ -28,5 +28,5 @@ class TestInstrumentDeplymentController(ServicesTestCase):
         assert rv.status_code == 200
 
     def test_empty_response(self):
-        rv = self.app.get('/instrument_deplyments/notreal')
+        rv = self.app.get('/instrument_deployments/notreal')
         assert rv.status_code == 204
