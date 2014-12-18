@@ -2,11 +2,9 @@
 '''
 ooiservices.model.array.py
 
-InstrumentModel
+ArrayModel
 '''
-
-from ooiservices import app
-from ooiservices.model.sqlmodel import SqlModel
+from ooiservices.model.interface.sqlmodel import SqlModel
 
 __author__ = "Matt Campbell"
 

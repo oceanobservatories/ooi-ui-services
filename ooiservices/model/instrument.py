@@ -4,11 +4,9 @@ ooiservices.model.instrument.py
 
 InstrumentModel
 '''
-
 __author__ = "Matt Campbell"
 
-from ooiservices import app
-from ooiservices.model.sqlmodel import SqlModel
+from ooiservices.model.interface.sqlmodel import SqlModel
 
 class InstrumentModel(SqlModel):
 

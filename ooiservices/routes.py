@@ -7,7 +7,7 @@ Routing for the service endpoints
 from flask import g, Response
 from flask.ext import restful
 from ooiservices import app
-import extend_json
+from config import extend_json
 
 
 api = restful.Api(app)

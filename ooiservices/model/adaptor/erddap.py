@@ -6,7 +6,7 @@ ErddapModel
 '''
 
 from ooiservices.model.base import BaseModel
-from ooiservices.model.cachemodel import CacheModel
+from ooiservices.model.interface.cachemodel import CacheModel
 from ooiservices.model.adaptor.rest import RestAdaptor
 from flask import request, Response
 
