@@ -11,4 +11,4 @@ __author__ = "Matt Campbell"
 class ArrayModel(SqlModel):
 
     def __init__(self):
-        SqlModel.__init__(self, table_name='arrays')
+        SqlModel.__init__(self, table_name='arrays', where_param='ref_id')

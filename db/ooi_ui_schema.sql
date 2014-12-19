@@ -9,7 +9,7 @@ Usage:
 */
 CREATE TABLE arrays (
     id SERIAL NOT NULL,
-    array_code text UNIQUE NOT NULL,
+    ref_id text UNIQUE NOT NULL,
     description text,
     geo_location geography(Polygon,4326),
     array_name text,
@@ -21,14 +21,14 @@ CREATE TABLE platform_deployments (
     start_date date,
     end_date date,
     platform_id integer,
-    platform_reference_designator text UNIQUE NOT NULL,
+    ref_id text UNIQUE NOT NULL,
     array_code text,
     deployment_id integer,
     display_name text,
     geo_location geography(Point,4326),
 
     PRIMARY KEY (id),
-    FOREIGN KEY (array_code) REFERENCES arrays(array_code)
+    FOREIGN KEY (array_code) REFERENCES arrays(ref_id)
 );
 CREATE TABLE instrument_deployments (
     id SERIAL NOT NULL,
@@ -37,12 +37,12 @@ CREATE TABLE instrument_deployments (
     end_date date,
     platform_deployment_code text,
     instrument_id integer,
-    instrument_reference_designator text UNIQUE NOT NULL,
+    ref_id text UNIQUE NOT NULL,
     depth real,
     geo_location geography,
 
     PRIMARY KEY (id),
-    FOREIGN KEY (platform_deployment_code) REFERENCES platform_deployments(platform_reference_designator)
+    FOREIGN KEY (platform_deployment_code) REFERENCES platform_deployments(ref_id)
 );
 CREATE TABLE streams (
     id SERIAL NOT NULL,
@@ -52,7 +52,7 @@ CREATE TABLE streams (
     instrument_deployment_code text,
 
     PRIMARY KEY (id),
-    FOREIGN KEY (instrument_deployment_code) REFERENCES instrument_deployments(instrument_reference_designator)
+    FOREIGN KEY (instrument_deployment_code) REFERENCES instrument_deployments(ref_id)
 );
 CREATE TABLE stream_parameters (
     id SERIAL NOT NULL,
