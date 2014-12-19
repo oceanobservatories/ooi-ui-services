@@ -35,9 +35,11 @@ Ensure you have the following:
     sudo apt-get install -y libnetcdf-dev
       
 While in your virtualenv, run the requirement.txt file:
+
     pip install -r requirements.txt
 
 Setup your PostgreSQL environment:
+
     You'll need Postgis.
 
 Create and load your database.  Service assumes no password for default postgres user:
