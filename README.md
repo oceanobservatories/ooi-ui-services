@@ -41,6 +41,7 @@ Setup your PostgreSQL environment:
     You'll need Postgis.
 
 Create and load your database.  Service assumes no password for default postgres user.
+
     psql -c 'create database ooi_ui;' -U postgres
     psql -c 'create database ooi_asset;' -U postgres
     psql -c 'create database ooi_user_management;' -U postgres
