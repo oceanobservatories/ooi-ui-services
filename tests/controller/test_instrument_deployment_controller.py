@@ -7,26 +7,15 @@ Test for the platform controller
 
 __author__ = 'Matt Campbell'
 
-import json
-from ooiservices.app import app
-from tests.services_test_case import ServicesTestCase
+from tests.services_test_case import ServicesTestCase as STC
 
-class TestInstrumentDeplymentController(ServicesTestCase):
-    def setUp(self):
-        '''
-        Initializes the application
-        '''
-        ServicesTestCase.setUp(self)
-        app.config['TESTING'] = True
-        self.app = app.test_client()
+class TestInstrumentDeplymentController(STC):
 
-    def test_listing(self):
-        '''
-        Test that the app context initializes successfully
-        '''
-        rv = self.app.get('/instrument_deployments')
-        assert rv.status_code == 200
+    def __init__(self):
+        STC.__init__(self)
 
-    def test_empty_response(self):
-        rv = self.app.get('/instrument_deployments/notreal')
-        assert rv.status_code == 204
+    def test_responses(self):
+        STC.set_up()
+        STC.test_listing('/instrument_deployments')
+        STC.test_empty_response('/instrument_deployments/notreal')
+        STC.tearDown()
