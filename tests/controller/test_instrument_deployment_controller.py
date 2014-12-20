@@ -11,8 +11,10 @@ from tests.services_test_case import ServicesTestCase
 
 class TestInstrumentDeplymentController(ServicesTestCase):
 
+    new_stc = ServicesTestCase()
+
     def test_responses(self):
-        ServicesTestCase.set_up()
-        ServicesTestCase.test_listing('/instrument_deployments')
-        ServicesTestCase.test_empty_response('/instrument_deployments/notreal')
-        ServicesTestCase.tearDown()
+        self.new_stc.set_up()
+        self.new_stc.test_listing('/instrument_deployments')
+        self.new_stc.test_empty_response('/instrument_deployments/notreal')
+        self.new_stc.tearDown()

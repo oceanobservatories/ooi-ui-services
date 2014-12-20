@@ -11,8 +11,10 @@ from tests.services_test_case import ServicesTestCase
 
 class TestArrayController(ServicesTestCase):
 
+    new_stc = ServicesTestCase()
+
     def test_responses(self):
-        ServicesTestCase.setUp()
-        ServicesTestCase.test_listing('/arrays')
-        ServicesTestCase.test_empty_response('/arrays/notreal')
-        ServicesTestCase.tearDown()
+        self.new_stc.setUp()
+        self.new_stc.test_listing('/arrays')
+        self.new_stc.test_empty_response('/arrays/notreal')
+        self.new_stc.tearDown()
