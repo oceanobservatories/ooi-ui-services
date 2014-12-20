@@ -11,9 +11,6 @@ from tests.services_test_case import ServicesTestCase
 
 class TestInstrumentDeplymentController(ServicesTestCase):
 
-    def __init__(self):
-        ServicesTestCase.__init__(self)
-
     def test_responses(self):
         ServicesTestCase.set_up()
         ServicesTestCase.test_listing('/instrument_deployments')
