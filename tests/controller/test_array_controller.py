@@ -7,15 +7,15 @@ Test for the array controller
 
 __author__ = 'Matt Campbell'
 
-from tests.services_test_case import ServicesTestCase as STC
+from tests.services_test_case import ServicesTestCase
 
-class TestArrayController(STC):
+class TestArrayController(ServicesTestCase):
 
     def __init__(self):
-        STC.__init__(self)
+        ServicesTestCase.__init__(self)
 
     def test_responses(self):
-        STC.set_up()
-        STC.test_listing('/arrays')
-        STC.test_empty_response('/arrays/notreal')
-        STC.tearDown()
+        ServicesTestCase.setUp()
+        ServicesTestCase.test_listing('/arrays')
+        ServicesTestCase.test_empty_response('/arrays/notreal')
+        ServicesTestCase.tearDown()

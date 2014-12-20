@@ -7,7 +7,7 @@ Test for the platform controller
 '''
 __author__ = 'Matt Campbell'
 
-from tests.services_test_case import ServicesTestCase
+from tests.services_test_case import ServicesTestCase as STC
 
 class TestPlatformDeplymentController(STC):
 
@@ -15,7 +15,7 @@ class TestPlatformDeplymentController(STC):
         STC.__init__(self)
 
     def test_responses(self):
-        STC.set_up()
+        STC.setUp()
         STC.test_listing('/platform_deployments')
         STC.test_empty_response('/platform_deployments/notreal')
         STC.tearDown()
