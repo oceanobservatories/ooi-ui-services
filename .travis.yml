@@ -14,10 +14,12 @@ before_install:
 install:
   - pip install -r requirements.txt
 before_script:
-  - psql -c 'create database ooi_psql_test;' -U postgres
-  - psql -U postgres ooi_psql_test -c "create extension postgis;"
-  - psql ooi_psql_test < db/ooiservices_schema.sql
-  - psql ooi_psql_test < db/ooi_bulk_load.sql
+  - psql -c 'create database ooi_ui;' -U postgres
+  - psql -c 'create database ooi_asset;' -U postgres
+  - psql -c 'create database ooi_user_management;' -U postgres
+  - psql -U postgres ooi_ui -c "create extension postgis;"
+  - psql ooi_ui < db/ooi_ui_schema.sql
+  - psql ooi_ui < db/ooi_ui_bulk_load.sql
 script:
   - PYTHONPATH=`pwd` py.test
 notifications:

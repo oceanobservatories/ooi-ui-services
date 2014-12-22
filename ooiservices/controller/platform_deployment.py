@@ -44,7 +44,7 @@ class PlatformDeploymentListController(ListController):
     def get(self):
         args = request.args
         if args:
-            result = self.process_args(self.model, args,'array_id')
+            result = self.process_args(self.model, args,'array_code')
         else:
             result = self.model.read()
         if not result:

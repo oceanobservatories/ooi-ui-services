@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 '''
-ooiservices.model.platform.py
+ooiservices.model.interface.platform.py
 
 PlatformModel
 '''
 
 from ooiservices import app
-from ooiservices.model.sqlmodel import SqlModel
+from ooiservices.model.interface.sqlmodel import SqlModel
 
 __author__ = "Matt Campbell"
 

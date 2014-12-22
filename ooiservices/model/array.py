@@ -2,15 +2,13 @@
 '''
 ooiservices.model.array.py
 
-InstrumentModel
+ArrayModel
 '''
-
-from ooiservices import app
-from ooiservices.model.sqlmodel import SqlModel
+from ooiservices.model.interface.sqlmodel import SqlModel
 
 __author__ = "Matt Campbell"
 
 class ArrayModel(SqlModel):
 
     def __init__(self):
-        SqlModel.__init__(self, table_name='arrays')
+        SqlModel.__init__(self, table_name='arrays', where_param='ref_id')
