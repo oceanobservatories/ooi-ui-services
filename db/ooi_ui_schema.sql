@@ -10,9 +10,10 @@ Usage:
 CREATE TABLE arrays (
     id SERIAL NOT NULL,
     ref_id text UNIQUE NOT NULL,
-    description text,
+    display_name text,
     geo_location geography(Polygon,4326),
     array_name text,
+    description text,
 
     PRIMARY KEY (id)
 );
