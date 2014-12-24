@@ -44,9 +44,3 @@ class UserLogin(ObjectController):
         if not result:
             return self.response_HTTP204()
         return result
-
-    def get(self, id):
-        result = self.model.read(id)
-        if not result:
-            return self.response_HTTP204()
-        return result
