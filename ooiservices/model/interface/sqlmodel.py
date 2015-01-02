@@ -32,9 +32,12 @@ class SqlModel(BaseModel):
     #CRUD methods
     def create(self, obj):
         columns = ', '.join(obj.keys())
-        placeholders = ':'+', :'.join(obj.keys())
-        query = 'INSERT INTO ' + self.tbl + ' ( ' + columns + ' ) VALUES ( ' + self.holder + ' );'
-        feedback = self.sql.perform(query, placeholders)
+        #placeholders = ':'+', :'.join(obj.values())
+        placeholders = ','.join(['%s' for _ in range(len(obj.values()))])
+        query = 'INSERT INTO ' + self.tbl + ' ( ' + columns + ' ) VALUES ( ' + placeholders + ' );'
+        #feedback = self.sql.perform(query, placeholders)
+        print type(obj.values())
+        feedback = self.sql.perform(query, obj.values())
         return feedback
 
     def read(self, obj_id=None):
