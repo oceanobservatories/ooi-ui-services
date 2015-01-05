@@ -12,11 +12,11 @@ from ooiservices.model.interface.sqlmodel import SqlModel
 from werkzeug.security import generate_password_hash, check_password_hash
 
 class UserModel(SqlModel):
-	#figure out this should be initalized as.
+	#figure out how this should be initalized as.
     password_hash = None
 
     def __init__(self):
-        SqlModel.__init__(self, table_name='ooi_users', where_param='user_id')
+        SqlModel.__init__(self, table_name='ooi_users', where_param='id')
 
     @property
     def password(self):

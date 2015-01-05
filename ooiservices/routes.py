@@ -54,4 +54,4 @@ jsonp_api.add_resource(ErddapObjectController, '/erddap/<string:id>')
 # endpoints for Flask (server side) requests.  Secure. All supported methods.
 #TODO, may need Brian M. to look at the logic of these routes.
 flask_api.add_resource(UserAdd, '/user_add/<string:id>')
-flask_api.add_resource(UserLogin, '/user_login/<string:id>')
+flask_api.add_resource(UserLogin, '/user/<string:id>')
