@@ -33,32 +33,33 @@ class SqlModel(BaseModel):
     def create(self, obj):
         columns = ', '.join(obj.keys())
         #placeholders = ':'+', :'.join(obj.values())
-        placeholders = ','.join(['%s' for _ in range(len(obj.values()))])
+        placeholders = ','.join([self.holder for _ in range(len(obj.values()))])
         query = 'INSERT INTO ' + self.tbl + ' ( ' + columns + ' ) VALUES ( ' + placeholders + ' );'
         #feedback = self.sql.perform(query, placeholders)
-        print type(obj.values())
         feedback = self.sql.perform(query, obj.values())
         return feedback
 
     def read(self, obj_id=None):
         if obj_id:
-            query = 'SELECT * FROM ' + self.tbl + ' WHERE ' + self.where_param + ' = \'' + self.holder + '\';'
-            answer = self.sql.perform(query, obj_id)
+            query = 'SELECT * FROM ' + self.tbl + ' WHERE ' + self.where_param + ' = ' + self.holder + ';'
+            param_list = [obj_id]
+            answer = self.sql.perform(query, param_list)
         else:
             query = 'SELECT * FROM ' + self.tbl + ';'
             answer = self.sql.perform(query, None)
         return answer
 
     def update(self, obj):
-        obj_id = obj.get('id')
+        param_list = [ obj.get('id') ]
         #Don't want to include the id in the data set to update.
         del obj['id']
         update_set = ', '.join('%s=%r' % (key, val) for (key, val) in obj.items())
-        query = 'UPDATE ' + self.tbl + ' SET ' + update_set + ' WHERE ' + self.where_param + ' = \'' + self.holder + '\';'
-        feedback = self.sql.perform(query, obj_id)
+        query = 'UPDATE ' + self.tbl + ' SET ' + update_set + ' WHERE ' + self.where_param + ' = ' + self.holder + ';'
+        feedback = self.sql.perform(query, param_list)
         return feedback
 
     def delete(self, obj_id):
+        param_list = [obj_id]
         query = 'DELETE FROM ' + self.tbl + ' WHERE %s =' + self.holder + ';' % (self.where_param)
-        feedback = self.sql.perform(query, obj_id)
+        feedback = self.sql.perform(query, param_list)
         return feedback
