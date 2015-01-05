@@ -9,7 +9,7 @@ __author__ = 'Edna Donoughe'
 import psycopg2
 import psycopg2.pool
 import psycopg2.extras
-
+from psycopg2.extensions import AsIs
 class PostgresAdaptor(object):
     database = None
     username = None
@@ -47,6 +47,7 @@ class PostgresAdaptor(object):
         result = None
         try:
             cursor = conn.cursor(cursor_factory = psycopg2.extras.RealDictCursor)
+            print "the param for query %s is %s" % (query, params)
             cursor.execute(query, params)
             conn.commit()
             result = cursor.fetchall()
