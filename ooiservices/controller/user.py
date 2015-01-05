@@ -21,9 +21,14 @@ class UserAdd(ObjectController):
         ObjectController.__init__(self)
 
     def put(self, id):
-        result = self.model.read(id)
-        if not result:
-            return self.response_HTTP204()
+        args = request.args
+        params = args.items()
+        doc = {}
+        if params:
+            for item in params:
+                doc[item[0]] = item[1]
+        doc['id'] = id
+        result = self.model.create(doc)
         return result
 
     def get(self, id):
