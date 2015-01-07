@@ -106,3 +106,16 @@ CREATE TABLE driver_stream_link (
 
     PRIMARY KEY (id)
 );
+CREATE TABLE ooi_scopes (
+	id text NOT NULL,
+
+	PRIMARY KEY (id)
+);
+CREATE TABLE ooi_users (
+	id text NOT NULL,
+	pass_hash text NOT NULL,
+    user_scope text,
+
+	PRIMARY KEY (id),
+	FOREIGN KEY (user_scope) REFERENCES ooi_scopes(id)
+);
