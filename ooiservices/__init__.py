@@ -15,6 +15,8 @@ app = Flask(__name__)
 
 import ooiservices.routes # initialize the routes
 
+#Secret Key
+app.config['SECRET_KEY'] = 'ecechbhbifiirdghbluukjiuclevjtfidilrkljrveje'
 
 #This line should be moved to a defaults.py in the future
 app.config['LOG_FILE'] = True

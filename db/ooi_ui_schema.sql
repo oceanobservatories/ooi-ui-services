@@ -10,9 +10,10 @@ Usage:
 CREATE TABLE arrays (
     id SERIAL NOT NULL,
     ref_id text UNIQUE NOT NULL,
-    description text,
+    display_name text,
     geo_location geography(Polygon,4326),
     array_name text,
+    description text,
 
     PRIMARY KEY (id)
 );
@@ -104,4 +105,17 @@ CREATE TABLE driver_stream_link (
     stream_id integer NOT NULL,
 
     PRIMARY KEY (id)
+);
+CREATE TABLE ooi_scopes (
+	id text NOT NULL,
+
+	PRIMARY KEY (id)
+);
+CREATE TABLE ooi_users (
+	id text NOT NULL,
+	pass_hash text NOT NULL,
+    user_scope text,
+
+	PRIMARY KEY (id),
+	FOREIGN KEY (user_scope) REFERENCES ooi_scopes(id)
 );
