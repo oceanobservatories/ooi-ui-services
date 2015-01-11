@@ -12,7 +12,8 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from markdown import markdown
 import bleach
 from flask import current_app, request, url_for
-from . import db
+from . import db, login_manager
+from flask.ext.login import UserMixin
 
 __schema__ = 'ooiui_testing'
 
@@ -406,14 +407,22 @@ class UserScope(db.Model):
     scope_name = db.Column(db.Text, nullable=False)
     scope_description = db.Column(db.Text)
 
-class User(db.Model):
+    @staticmethod
+    def insert_scopes():
+       scope = UserScope(scope_name='user_admin')
+       scope.description = 'Add, Modify, Delete users'
+       db.session.add(scope)
+       db.session.commit()
+
+
+class User(UserMixin, db.Model):
     __tablename__ = 'users'
     __table_args__ = {u'schema': __schema__}
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Text, nullable=False)
+    user_id = db.Column(db.Text, unique=True, nullable=False)
     pass_hash = db.Column(db.Text)
-    email = db.Column(db.Text, nullable=False)
+    email = db.Column(db.Text, unique=True, nullable=False)
     user_name = db.Column(db.Text)
     active = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))
     confirmed_at = db.Column(db.Date)
@@ -437,3 +446,43 @@ class User(db.Model):
 
     def from_json(self):
         raise NotImplementedError
+
+    @staticmethod
+    def insert_user(password):
+       user = User(user_id='admin')
+       user.pass_hash = generate_password_hash(password)
+       user.user_name = 'admin'
+       user.active = True
+       user.email = 'ooi@asascience.com'
+       db.session.add(user)
+       db.session.commit()
+
+    @property
+    def password(self):
+        raise AttributeError('password is not a readable attribute')
+
+    #Store the hashed password.
+    @password.setter
+    def password(self, password):
+        self.pass_hash = generate_password_hash(password)
+
+    def verify_password(self, password):
+        return check_password_hash(self.pass_hash, password)
+
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
+
+    def generate_auth_token(self, expiration):
+        s = Serializer(current_app.config['SECRET_KEY'], expires_in=expiration)
+        return s.dumps({'id': self.id})
+
+    @staticmethod
+    def verify_auth_token(token):
+        s = Serializer(current_app.config['SECRET_KEY'])
+        try:
+            data = s.loads(token)
+        except:
+            return None
+        return User.query.get(data['id'])

@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+'''
+Master config file.
+
+'''
+
+__author__ = 'M.Campbell'
+
 import os
 basedir = os.path.abspath(os.path.dirname(__file__))
 '''

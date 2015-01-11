@@ -11,6 +11,7 @@ if os.environ.get('FLASK_COVERAGE'):
     COV = coverage.coverage(branch=True,include='app/*')
     COV.start()
 from app import create_app, db
+from app.models import User, UserScope
 from flask.ext.script import Manager, Shell
 from flask.ext.migrate import Migrate, MigrateCommand
 
@@ -19,7 +20,7 @@ manager = Manager(app)
 migrate = Migrate(app,db)
 
 def make_shell_context():
-    return dict(app=app, db=db)
+    return dict(app=app, db=db, User=User, UserScope=UserScope)
 
 manager.add_command("shell", Shell(make_context=make_shell_context))
 manager.add_command('db', MigrateCommand)
@@ -50,8 +51,15 @@ def deploy():
     """Run deployment tasks."""
     from flask.ext.migrate import upgrade
 
+    UserScope.insert_scopes()
+    User.insert_user('test')
     # migrate database to latest revision
     upgrade()
+
+@manager.command
+def destroy():
+    db.session.remove()
+    db.drop_all()
 
 
 if __name__ == '__main__':

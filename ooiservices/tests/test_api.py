@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-unit testing for the api classes.
+unit testing for the tabel of contents (TOC) required classes.
 
 '''
 __author__ = 'M.Campbell'
@@ -9,7 +9,7 @@ import unittest
 from flask import url_for
 from app import create_app, db
 from app.models import Array, InstrumentDeployment, PlatformDeployment, Stream, \
-StreamParameter, User
+StreamParameter
 
 '''
 These tests verify the functioning of the api list.
@@ -17,9 +17,7 @@ Sample data is inserted, checked, and then removed.
 
 '''
 
-#TODO: Only GET routes tested for now, furture task to test PUT/POST/DELETE.
-
-class APITestCase(unittest.TestCase):
+class TOCTestCase(unittest.TestCase):
     def setUp(self):
         self.app = create_app('testing')
         self.app_context = self.app.app_context()
@@ -125,9 +123,3 @@ class APITestCase(unittest.TestCase):
         content_type = 'application/json')
 
         self.assertTrue(response.status_code == 200)
-
-    def test_user(self):
-        #Create a sample data set
-        #TODO : This will be replaced by an endpoint
-        pass
-
