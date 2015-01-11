@@ -32,7 +32,7 @@ def get_platform_deployment(id):
 @api.route('/instrument_deployments/')
 def get_instrument_deployments():
     instrument_deployments = InstrumentDeployment.query.all()
-    return jsonify({ 'instrument_deployments' : [instrument_deployment.to_json() for platform_deployment in instrument_deployments] })
+    return jsonify({ 'instrument_deployments' : [instrument_deployment.to_json() for instrument_deployment in instrument_deployments] })
 
 @api.route('/instrument_deployments/<string:id>')
 def get_instrument_deployment(id):
@@ -56,5 +56,5 @@ def get_parameters():
 
 @api.route('/parameters/<string:id>')
 def get_parameter(id):
-    parameter = StreamParameter.query.filter_by(parameter_name=id).first_or_404()
+    parameter = StreamParameter.query.filter_by(stream_parameter_name=id).first_or_404()
     return jsonify(parameter.to_json())

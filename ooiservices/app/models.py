@@ -45,6 +45,7 @@ class Array(db.Model):
 
     def to_json(self):
         json_array = {
+            'id' : self.id,
             'array_code' : self.array_code,
             'description' : self.description,
             'geo_location' : self.geo_location,
@@ -219,6 +220,7 @@ class InstrumentDeployment(db.Model):
 
     def to_json(self):
         json_inst_deploy = {
+            'id' : self.id,
             'ref_designator' : self.reference_designator,
             'platform_deployment_id' : self.platform_deployment_id,
             'display_name' : self.display_name,
@@ -299,6 +301,7 @@ class PlatformDeployment(db.Model):
 
     def to_json(self):
         json_platform_deployment = {
+            'id' : self.id,
             'ref_designator' : self.reference_designator,
             'array_id' : self.array_id,
             'display_name' : self.display_name,
@@ -351,6 +354,7 @@ class StreamParameter(db.Model):
 
     def to_json(self):
         json_parameter = {
+            'id' : self.id,
             'parameter_name' : self.stream_parameter_name,
             'short_name' : self.short_name,
             'long_name' : self.long_name,
@@ -374,6 +378,7 @@ class Stream(db.Model):
 
     def to_json(self):
         json_stream = {
+            'id' : self.id,
             'stream_name' : self.stream_name,
             'instrument_id' : self.instrument_id,
             'description' : self.description
@@ -422,6 +427,7 @@ class User(db.Model):
 
     def to_json(self):
         json_user = {
+            'id' : self.id,
             'user_id' : self.user_id,
             'pass_hash' : self.pass_hash,
             'email' : self.email,

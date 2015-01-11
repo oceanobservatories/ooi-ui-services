@@ -50,3 +50,84 @@ class APITestCase(unittest.TestCase):
         'application/json')
 
         self.assertTrue(response.status_code == 200)
+
+    def test_platform_deployment(self):
+        #Create a sample data set.
+        #TODO : This will be replaced by an endpoint
+        platform_ref = PlatformDeployment(reference_designator='CE01ISSM-LM001')
+
+        db.session.add(platform_ref)
+        db.session.commit()
+
+        response = self.client.get(url_for('api.get_platform_deployments'), \
+        content_type = 'application/json')
+
+        self.assertTrue(response.status_code == 200)
+
+        response = self.client.get(url_for('api.get_platform_deployment', \
+        id='CE01ISSM-LM001'), content_type = 'application/json')
+
+        self.assertTrue(response.status_code == 200)
+
+    def test_instrument_deployment(self):
+        #Create a sample data set
+        #TODO : This will be replaced by an endpoint
+
+        instrument_ref = InstrumentDeployment(reference_designator = \
+        'CE04OSSM-SBD11-01-MOPAK0000')
+
+        db.session.add(instrument_ref)
+        db.session.commit()
+
+        response = self.client.get(url_for('api.get_instrument_deployments'), \
+        content_type = 'application/json')
+
+        self.assertTrue(response.status_code == 200)
+
+        reponse = self.client.get(url_for('api.get_instrument_deployment', \
+        id = 'CE04OSSM-SBD11-01-MOPAK0000'), content_type = 'application/json')
+
+        self.assertTrue(response.status_code == 200)
+
+    def test_stream(self):
+        #Create a sample data set
+        #TODO : This will be replaced by an endpoint
+
+        stream_name = Stream(stream_name='mopak_o_dcl_accel_unprocessed')
+
+        db.session.add(stream_name)
+        db.session.commit()
+
+        response = self.client.get(url_for('api.get_streams'), content_type = \
+        'application/json')
+
+        self.assertTrue(response.status_code == 200)
+
+        response = self.client.get(url_for('api.get_stream', \
+        id='mopak_o_dcl_accel_unprocessed'), content_type = 'application/json')
+
+        self.assertTrue(response.status_code == 200)
+
+    def test_parameter(self):
+        #Create a sample data set
+        #TODO : This will be replaced by an endpoint
+        parameter_name = StreamParameter(stream_parameter_name='preferred_timestamp')
+
+        db.session.add(parameter_name)
+        db.session.commit()
+
+        response = self.client.get(url_for('api.get_parameters'), content_type = \
+        'application/json')
+
+        self.assertTrue(response.status_code == 200)
+
+        response = self.client.get(url_for('api.get_parameter', id='preferred_timestamp'), \
+        content_type = 'application/json')
+
+        self.assertTrue(response.status_code == 200)
+
+    def test_user(self):
+        #Create a sample data set
+        #TODO : This will be replaced by an endpoint
+        pass
+
