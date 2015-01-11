@@ -21,7 +21,7 @@ class Annotation(db.Model):
     __tablename__ = 'annotations'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "annotations_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.ForeignKey(u'' + __schema__ + '.users.id'), nullable=False)
     created_time = db.Column(db.DateTime(True), nullable=False)
     modified_time = db.Column(db.DateTime(True), nullable=False)
@@ -37,7 +37,7 @@ class Array(db.Model):
     __tablename__ = 'arrays'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer(), primary_key=True, server_default=db.text("nextval(" + __schema__ + "arrays_id_seq'::regclass)"))
+    id = db.Column(db.Integer(), primary_key=True)
     array_code = db.Column(db.Text())
     description = db.Column(db.Text())
     geo_location = db.Column(db.Text())
@@ -59,7 +59,7 @@ class Assembly(db.Model):
     __tablename__ = 'assemblies'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "asssemblies_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     assembly_name = db.Column(db.Text, nullable=False)
     description = db.Column(db.Text)
 
@@ -67,7 +67,7 @@ class AssetFileLink(db.Model):
     __tablename__ = 'asset_file_link'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "asset_file_link_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     asset_id = db.Column(db.ForeignKey(u'' + __schema__ + '.assets.id'), nullable=False)
     file_id = db.Column(db.ForeignKey(u'' + __schema__ + '.files.id'), nullable=False)
 
@@ -78,14 +78,14 @@ class AssetType(db.Model):
     __tablename__ = 'asset_types'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "asset_types_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     asset_type_name = db.Column(db.Text, nullable=False)
 
 class Asset(db.Model):
     __tablename__ = 'assets'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "assets_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     asset_type_id = db.Column(db.ForeignKey(u'' + __schema__ + '.asset_types.id'), nullable=False)
     organization_id = db.Column(db.ForeignKey(u'' + __schema__ + '.organizations.id'), nullable=False)
     supplier_id = db.Column(db.Integer, nullable=False)
@@ -104,7 +104,7 @@ class DatasetKeyword(db.Model):
     __tablename__ = 'dataset_keywords'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "dataset_keywords_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     dataset_id = db.Column(db.ForeignKey(u'' + __schema__ + '.datasets.id'), nullable=False)
     concept_name = db.Column(db.Text)
     concept_description = db.Column(db.Text)
@@ -115,7 +115,7 @@ class Dataset(db.Model):
     __tablename__ = 'datasets'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "datasets_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     stream_id = db.Column(db.ForeignKey(u'' + __schema__ + '.streams.id'), nullable=False)
     deployment_id = db.Column(db.ForeignKey(u'' + __schema__ + '.deployments.id'), nullable=False)
     process_level = db.Column(db.Text)
@@ -128,7 +128,7 @@ class Deployment(db.Model):
     __tablename__ = 'deployments'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "deployments_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     start_date = db.Column(db.Date)
     end_date = db.Column(db.Date)
     cruise_id = db.Column(db.Integer)
@@ -137,7 +137,7 @@ class DriverStreamLink(db.Model):
     __tablename__ = 'driver_stream_link'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "driver_stream_link_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     driver_id = db.Column(db.ForeignKey(u'' + __schema__ + '.drivers.id'), nullable=False)
     stream_id = db.Column(db.ForeignKey(u'' + __schema__ + '.streams.id'), nullable=False)
 
@@ -148,7 +148,7 @@ class Driver(db.Model):
     __tablename__ = 'drivers'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "drivers_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     instrument_id = db.Column(db.ForeignKey(u'' + __schema__ + '.instruments.id'))
     driver_name = db.Column(db.Text, nullable=False)
     driver_version = db.Column(db.Text)
@@ -160,7 +160,7 @@ class File(db.Model):
     __tablename__ = 'files'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "files_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer)
     file_name = db.Column(db.Text, nullable=False)
     file_system_path = db.Column(db.Text)
@@ -172,7 +172,7 @@ class InspectionStatu(db.Model):
     __tablename__ = 'inspection_status'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "inspection_status_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     asset_id = db.Column(db.ForeignKey(u'' + __schema__ + '.assets.id'), nullable=False)
     file_id = db.Column(db.ForeignKey(u'' + __schema__ + '.files.id'))
     status = db.Column(db.Text)
@@ -188,7 +188,7 @@ class InstallationRecord(db.Model):
     __tablename__ = 'installation_records'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "installation_record_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     asset_id = db.Column(db.ForeignKey(u'' + __schema__ + '.assets.id'), nullable=False)
     assembly_id = db.Column(db.ForeignKey(u'' + __schema__ + '.assemblies.id'), nullable=False)
     date_installed = db.Column(db.Date)
@@ -205,7 +205,7 @@ class InstrumentDeployment(db.Model):
     __tablename__ = 'instrument_deployments'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "instrument_deployments_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     display_name = db.Column(db.Text)
     start_date = db.Column(db.Date)
     end_date = db.Column(db.Date)
@@ -235,7 +235,7 @@ class InstrumentModel(db.Model):
     __tablename__ = 'instrument_models'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "instrument_models_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     instrument_model_name = db.Column(db.Text, nullable=False)
     series_name = db.Column(db.Text)
     class_name = db.Column(db.Text)
@@ -247,7 +247,7 @@ class Instrument(db.Model):
     __tablename__ = 'instruments'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "instruments_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     instrument_name = db.Column(db.Text)
     description = db.Column(db.Text)
     location_description = db.Column(db.Text)
@@ -267,7 +267,7 @@ class Manufacturer(db.Model):
     __tablename__ = 'manufacturers'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "manufacturers_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     manufacturer_name = db.Column(db.Text, nullable=False)
     phone_number = db.Column(db.Text)
     contact_name = db.Column(db.Text)
@@ -277,14 +277,14 @@ class Organization(db.Model):
     __tablename__ = 'organizations'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "organizations_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     organization_name = db.Column(db.Text, nullable=False)
 
 class PlatformDeployment(db.Model):
     __tablename__ = 'platform_deployments'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "platform_deployments_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     start_date = db.Column(db.Date)
     end_date = db.Column(db.Date)
     platform_id = db.Column(db.ForeignKey(u'' + __schema__ + '.platforms.id'))
@@ -315,7 +315,7 @@ class Platform(db.Model):
     __tablename__ = 'platforms'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "platforms_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     platform_name = db.Column(db.Text)
     description = db.Column(db.Text)
     location_description = db.Column(db.Text)
@@ -332,7 +332,7 @@ class StreamParameterLink(db.Model):
     __tablename__ = 'stream_parameter_link'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "stream_parameter_link_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     stream_id = db.Column(db.ForeignKey(u'' + __schema__ + '.streams.id'), nullable=False)
     parameter_id = db.Column(db.ForeignKey(u'' + __schema__ + '.stream_parameters.id'), nullable=False)
 
@@ -343,7 +343,7 @@ class StreamParameter(db.Model):
     __tablename__ = 'stream_parameters'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "stream_parameters_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     stream_parameter_name = db.Column(db.Text)
     short_name = db.Column(db.Text)
     long_name = db.Column(db.Text)
@@ -367,7 +367,7 @@ class Stream(db.Model):
     __tablename__ = 'streams'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "streams_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     stream_name = db.Column(db.Text)
     instrument_id = db.Column(db.ForeignKey(u'' + __schema__ + '.instruments.id'))
     description = db.Column(db.Text)
@@ -387,7 +387,7 @@ class UserScopeLink(db.Model):
     __tablename__ = 'user_scope_link'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "user_scope_link_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.ForeignKey(u'' + __schema__ + '.users.id'), nullable=False)
     scope_id = db.Column(db.ForeignKey(u'' + __schema__ + '.user_scopes.id'), nullable=False)
 
@@ -398,7 +398,7 @@ class UserScope(db.Model):
     __tablename__ = 'user_scopes'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "user_scopes_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     scope_name = db.Column(db.Text, nullable=False)
     scope_description = db.Column(db.Text)
 
@@ -406,7 +406,7 @@ class User(db.Model):
     __tablename__ = 'users'
     __table_args__ = {u'schema': __schema__}
 
-    id = db.Column(db.Integer, primary_key=True, server_default=db.text("nextval(" + __schema__ + "users_id_seq'::regclass)"))
+    id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Text, nullable=False)
     pass_hash = db.Column(db.Text)
     email = db.Column(db.Text, nullable=False)
