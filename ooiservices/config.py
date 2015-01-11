@@ -17,9 +17,6 @@ class Config:
     OOI_MAIL_SUBJECT_PREFIX = '[OOI]'
     OOI_MAIL_SENDER = 'OOI Admin <ooi@configure.me>'
     OOI_ADMIN = os.environ.get('OOI_ADMIN')
-    OOI_POSTS_PER_PAGE = 20
-    OOI_FOLLOWERS_PER_PAGE = 50
-    OOI_COMMENTS_PER_PAGE = 30
     OOI_SLOW_DB_QUERY_TIME=0.5
 
     @staticmethod
@@ -35,7 +32,8 @@ class DevelopmentConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = os.environ.get('TEST_DATABASE_URL')
+    SQLALCHEMY_DATABASE_URI = os.environ.get('TEST_DATABASE_URL') or \
+    'postgres://postgres@localhost/ooiuitest'
     WTF_CSRF_ENABLED = False
 
 

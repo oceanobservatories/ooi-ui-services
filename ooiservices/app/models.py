@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 '''
 OOI Models
 '''
@@ -11,8 +12,6 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from markdown import markdown
 import bleach
 from flask import current_app, request, url_for
-from flask.ext.login import UserMixin, AnonymousUserMixin
-from app.exceptions import ValidationError
 from . import db
 
 __schema__ = 'ooiui_testing'
@@ -301,11 +300,10 @@ class PlatformDeployment(db.Model):
     def to_json(self):
         json_platform_deployment = {
             'ref_designator' : self.reference_designator,
-            'platform_deployment_id' : self.platform_deployment_id,
+            'array_id' : self.array_id,
             'display_name' : self.display_name,
             'start_date' : self.start_date,
             'end_date' : self.end_date,
-            'depth' : self.depth,
             'geo_location' : self.geo_location
         }
         return json_platform_deployment
@@ -380,6 +378,7 @@ class Stream(db.Model):
             'instrument_id' : self.instrument_id,
             'description' : self.description
         }
+        return json_stream
 
 
 
