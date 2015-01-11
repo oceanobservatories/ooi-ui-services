@@ -1,7 +1,7 @@
 import os
 basedir = os.path.abspath(os.path.dirname(__file__))
 '''
-'postgres://asa:asa2015@ooiui-dev.cvyc5bvl5zzs.us-east-1.rds.amazonaws.com/ooiuidev'
+'postgres://*:*@ooiui-dev.cvyc5bvl5zzs.us-east-1.rds.amazonaws.com/ooiuidev'
 '''
 
 class Config:
