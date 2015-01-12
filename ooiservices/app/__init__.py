@@ -37,7 +37,7 @@ def create_app(config_name):
         file_handler.setFormatter(formatter)
         stream_handler.setFormatter(formatter)
         app.logger.addHandler(file_handler)
-        app.logger.addHandler(stream_handler)
+        #app.logger.addHandler(stream_handler)
         app.logger.setLevel(logging.DEBUG)
         app.logger.info('Application Process Started')
 
