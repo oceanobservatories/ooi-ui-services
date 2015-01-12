@@ -12,15 +12,12 @@ before_install:
   - sudo apt-get install -y libhdf5-serial-dev
   - sudo apt-get install -y libnetcdf-dev
 install:
-  - pip install -r requirements.txt
+  - pip install -r ooiservices/requirements/dev.txt
 before_script:
-  - psql -c 'create database ooi_ui;' -U postgres
-  - psql -c 'create database ooi_asset;' -U postgres
-  - psql -c 'create database ooi_user_management;' -U postgres
-  - psql -U postgres ooi_ui -c "create extension postgis;"
-  - psql ooi_ui < db/ooi_ui_schema.sql
-  - psql ooi_ui < db/ooi_ui_bulk_load.sql
+  - psql -c 'create database ooiuitest;' -U postgres
+  - psql ooiuitest -c 'create schema ooiui_testing;' -U postgres
+  - psql -U postgres ooiuitest -c "create extension postgis;"
 script:
-  - PYTHONPATH=`pwd` py.test
+  - python ooiservices/manage.py test
 notifications:
     flowdock: 7728e9be2e099628ea6b3b0f489d2f9c

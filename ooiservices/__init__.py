@@ -25,7 +25,7 @@ if app.config.get('LOG_FILE') == True:
     logger.setLevel(logging.DEBUG)
     file_handler = logging.FileHandler('logs/ooiservices.log')
     stream_handler = logging.StreamHandler()
-    formatter = logging.Formatter('%(asctime)s - %(process)d - %(name)s - %(module)s:%(lineno)d - %(levelname)s - %(message)s')
+    formatter = logging.Formatter('%(asctime)s : %(process)d - %(name)s - %(module)s:%(lineno)d - %(levelname)s - %(message)s')
     file_handler.setFormatter(formatter)
     stream_handler.setFormatter(formatter)
     app.logger.addHandler(file_handler)
