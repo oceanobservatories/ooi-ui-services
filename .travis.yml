@@ -12,7 +12,7 @@ before_install:
   - sudo apt-get install -y libhdf5-serial-dev
   - sudo apt-get install -y libnetcdf-dev
 install:
-  - pip install -r requirements/dev.txt
+  - pip install -r ooiservices/requirements/dev.txt
 before_script:
   - psql -c 'create database ooiuitest;' -U postgres
   - psql ooiuitest -c 'create schema ooiui_tests;' -U postgres
