@@ -11,7 +11,7 @@ from authentication import auth
 from ..models import Array, PlatformDeployment, InstrumentDeployment, Stream, StreamParameter
 
 
-@api.route('/arrays/')
+@api.route('/arrays')
 def get_arrays():
     arrays = Array.query.all()
     return jsonify( {'arrays' : [array.to_json() for array in arrays] })
@@ -21,17 +21,23 @@ def get_array(id):
     array = Array.query.filter_by(array_code=id).first_or_404()
     return jsonify(array.to_json())
 
-@api.route('/platform_deployments/')
+@api.route('/platform_deployments')
 def get_platform_deployments():
-    platform_deployments = PlatformDeployment.query.all()
+    if 'array_id' in request.args:
+        platform_deployments = \
+        PlatformDeployment.query.filter_by(array_id=request.args['array_id']).all()
+    else:
+        platform_deployments = PlatformDeployment.query.all()
+
     return jsonify({ 'platform_deployments' : [platform_deployment.to_json() for platform_deployment in platform_deployments] })
+
 
 @api.route('/platform_deployments/<string:id>')
 def get_platform_deployment(id):
     platform_deployment = PlatformDeployment.query.filter_by(reference_designator=id).first_or_404()
     return jsonify(platform_deployment.to_json())
 
-@api.route('/instrument_deployments/')
+@api.route('/instrument_deployments')
 def get_instrument_deployments():
     instrument_deployments = InstrumentDeployment.query.all()
     return jsonify({ 'instrument_deployments' : [instrument_deployment.to_json() for instrument_deployment in instrument_deployments] })
@@ -41,7 +47,7 @@ def get_instrument_deployment(id):
     instrument_deployment = InstrumentDeployment.query.filter_by(reference_designator=id).first_or_404()
     return jsonify(instrument_deployment.to_json())
 
-@api.route('/streams/')
+@api.route('/streams')
 def get_streams():
     streams = Stream.query.all()
     return jsonify({ 'streams' : [stream.to_json() for stream in streams] })
@@ -51,7 +57,7 @@ def get_stream(id):
     stream = Stream.query.filter_by(stream_name=id).first_or_404()
     return jsonify(stream.to_json())
 
-@api.route('/parameters/')
+@api.route('/parameters')
 def get_parameters():
     parameters = StreamParameter.query.all()
     return jsonify({ 'parameters' : [parameter.to_json() for parameter in parameters] })
