@@ -29,7 +29,7 @@ def create_app(config_name):
         import logging
         logger = logging.getLogger('replicate')
         logger.setLevel(logging.DEBUG)
-        file_handler = logging.FileHandler('app/logs/ooiservices.log')
+        file_handler = logging.FileHandler('ooiservices/logs/ooiservices.log')
         stream_handler = logging.StreamHandler()
         formatter = logging.Formatter('%(asctime)s - %(process)d - %(name)s - %(module)s:%(lineno)d - %(levelname)s - %(message)s')
         file_handler.setFormatter(formatter)

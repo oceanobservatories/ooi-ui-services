@@ -21,6 +21,6 @@ before_script:
   - psql ooi_ui < db/ooi_ui_schema.sql
   - psql ooi_ui < db/ooi_ui_bulk_load.sql
 script:
-  - PYTHONPATH=`pwd` py.test
+  - python ooiservices/manage.py test
 notifications:
     flowdock: 7728e9be2e099628ea6b3b0f489d2f9c
