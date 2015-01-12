@@ -55,6 +55,16 @@ class Array(db.Model):
         }
         return json_array
 
+    @staticmethod
+    def from_json(json_post):
+        array_code = json_post.get('array_code')
+        description = json_post.get('description')
+        geo_location = json_post.get('geo_location')
+        array_name = json_post.get('array_name')
+        display_name = json_post.get('display_name')
+        return Array(array_code=array_code, description=description, \
+        geo_location=geo_location, array_name=array_name, display_name=display_name)
+
 
 class Assembly(db.Model):
     __tablename__ = 'assemblies'

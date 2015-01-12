@@ -5,14 +5,16 @@ performing db migrations, testing.
 
 '''
 import os
+from config import basedir
 COV = None
 if os.environ.get('FLASK_COVERAGE'):
     import coverage
-    COV = coverage.coverage(branch=True,include='app/*')
+    COV = coverage.coverage(branch=True,include=basedir + '/app/*')
     COV.start()
 from app import create_app, db
-from app.models import User, UserScope
-from flask.ext.script import Manager, Shell
+from app.models import User, UserScope, Array, PlatformDeployment, InstrumentDeployment, \
+Stream, StreamParameter
+from flask.ext.script import Manager, Shell, Server
 from flask.ext.migrate import Migrate, MigrateCommand
 
 app = create_app(os.getenv('OOI_CONFIG') or 'default')
@@ -20,8 +22,11 @@ manager = Manager(app)
 migrate = Migrate(app,db)
 
 def make_shell_context():
-    return dict(app=app, db=db, User=User, UserScope=UserScope)
+    return dict(app=app, db=db, User=User, UserScope=UserScope, Array=Array, \
+    PlatformDeployment=PlatformDeployment, InstrumentDeployment=InstrumentDeployment, \
+    Stream=Stream, StreamParameter=StreamParameter)
 
+manager.add_command("runserver", Server(host="127.0.0.1", port=4000))
 manager.add_command("shell", Shell(make_context=make_shell_context))
 manager.add_command('db', MigrateCommand)
 
@@ -40,21 +45,18 @@ def test(coverage=False):
         COV.save()
         print('Coverage Summary:')
         COV.report()
-        basedir = os.path.abspath(os.path.dirname(__file__))
-        covdir = os.path.join(basedir, 'tmp/coverage')
-        COV.html_report(directory=covdir)
-        print('HTML version: file://%s/index.html' % covdir)
         COV.erase()
 
 @manager.command
 def deploy():
-    """Run deployment tasks."""
     from flask.ext.migrate import upgrade
-
-    UserScope.insert_scopes()
-    User.insert_user('test')
+    db.create_all()
     # migrate database to latest revision
     upgrade()
+    #Add in the default user and scope.
+    UserScope.insert_scopes()
+    User.insert_user('test')
+
 
 @manager.command
 def destroy():
