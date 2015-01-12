@@ -4,7 +4,7 @@ ooiservices
 
 Initializes the application and necessary application logic
 '''
-
+import os
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
 from config import config
@@ -14,6 +14,8 @@ from flask.ext.login import LoginManager
 login_manager = LoginManager()
 login_manager.session_protection = 'strong'
 login_manager.login_view = 'auth.login'
+
+basedir = os.path.abspath(os.path.dirname(__file__))
 
 db = SQLAlchemy()
 
@@ -29,7 +31,7 @@ def create_app(config_name):
         import logging
         logger = logging.getLogger('replicate')
         logger.setLevel(logging.DEBUG)
-        file_handler = logging.FileHandler('logs/ooiservices.log')
+        file_handler = logging.FileHandler(basedir + '/logs/ooiservices.log')
         stream_handler = logging.StreamHandler()
         formatter = logging.Formatter('%(asctime)s - %(process)d - %(name)s - %(module)s:%(lineno)d - %(levelname)s - %(message)s')
         file_handler.setFormatter(formatter)
