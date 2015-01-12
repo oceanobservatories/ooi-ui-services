@@ -43,21 +43,18 @@ def test(coverage=False):
         COV.save()
         print('Coverage Summary:')
         COV.report()
-        basedir = os.path.abspath(os.path.dirname(__file__))
-        covdir = os.path.join(basedir, 'tmp/coverage')
-        COV.html_report(directory=covdir)
-        print('HTML version: file://%s/index.html' % covdir)
         COV.erase()
 
 @manager.command
 def deploy():
-    """Run deployment tasks."""
     from flask.ext.migrate import upgrade
-
-    UserScope.insert_scopes()
-    User.insert_user('test')
+    db.create_all()
     # migrate database to latest revision
     upgrade()
+    #Add in the default user and scope.
+    UserScope.insert_scopes()
+    User.insert_user('test')
+
 
 @manager.command
 def destroy():

@@ -7,6 +7,7 @@ __author__ = 'M.Campbell'
 
 from flask import jsonify, request, current_app, url_for
 from . import api
+from app import db
 from authentication import auth
 from ..models import Array, PlatformDeployment, InstrumentDeployment, Stream, StreamParameter
 
@@ -15,6 +16,14 @@ from ..models import Array, PlatformDeployment, InstrumentDeployment, Stream, St
 def get_arrays():
     arrays = Array.query.all()
     return jsonify( {'arrays' : [array.to_json() for array in arrays] })
+
+@api.route('/arrays/', methods=['POST'])
+@auth.login_required
+def set_array():
+    array = Array.from_json(request.json)
+    db.session.add(array)
+    db.session.commit()
+    return jsonify(array.to_json())
 
 @api.route('/arrays/<string:id>')
 def get_array(id):
@@ -30,7 +39,6 @@ def get_platform_deployments():
         platform_deployments = PlatformDeployment.query.all()
 
     return jsonify({ 'platform_deployments' : [platform_deployment.to_json() for platform_deployment in platform_deployments] })
-
 
 @api.route('/platform_deployments/<string:id>')
 def get_platform_deployment(id):
