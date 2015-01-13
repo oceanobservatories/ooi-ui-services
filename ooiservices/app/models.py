@@ -419,9 +419,15 @@ class UserScope(db.Model):
 
     @staticmethod
     def insert_scopes():
-       scope = UserScope(scope_name='user_admin')
-       scope.description = 'Add, Modify, Delete users'
-       db.session.add(scope)
+       scope_am = UserScope(scope_name='asset_management')
+       scope_user_create = UserScope(scope_name='user_create')
+       scope_user_read = UserScope(scope_name='user_read')
+       scope_user_read_write = UserScope(scope_name='user_read_write')
+       scope_am.description = 'Manage assets.'
+       scope_user_create.description = 'Create users.'
+       scope_user_read.description = 'Read from the list of users.'
+       scope_user_read_write.description = 'Read and modify the users.'
+       db.session.add_all([scope_am, scope_user_create, scope_user_read, scope_user_read_write])
        db.session.commit()
 
 

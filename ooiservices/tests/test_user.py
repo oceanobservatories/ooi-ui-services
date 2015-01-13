@@ -32,8 +32,8 @@ class UserTestCase(unittest.TestCase):
         user_scope = UserScope()
         user_scope.insert_scopes()
 
-        scope = UserScope.query.filter_by(scope_name='user_admin').first()
-        self.assertTrue(scope.scope_name == 'user_admin')
+        scope = UserScope.query.filter_by(scope_name='user_read').first()
+        self.assertTrue(scope.scope_name == 'user_read')
 
     def test_user_insert(self):
         test_password = 'test'
