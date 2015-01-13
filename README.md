@@ -11,18 +11,19 @@ Active Routes for Listing:
 
     /arrays
     /platform_deployments
-        /platform_deployments?array_code=
+        /platform_deployments?array_id=
     /instrument_deployments
-        /instrument_deployments?platform_deployment_code=
+        /instrument_deployments?platform_deployment_id=
     /streams
         /streams?instrument_id=
 
 Active Routes for specific item deployment inspection:
 
-    /arrays/<array_code>
-    /platform_deployments/<ref:id>
-    /instrument_deployments/<ref:id>
-    /streams/<ref:id>
+    /arrays/<string:array_code>
+    /platform_deployments/<string:reference_designator>
+    /instrument_deployments/<string:reference_designator>
+    /streams/<string:stream_name>
+    /parameter/<string:stream_parameter_name>
     
 Usage:
 ### Service setup
@@ -38,35 +39,29 @@ While in your virtualenv, run the requirement.txt file:
     pip install -r requirements.txt
 
 Setup your PostgreSQL environment:
-    You'll need Postgis.
+    install postgis...
 
+###If you are using a local database instance:
 Create and load your database.  Service assumes no password for default postgres user:
-
-    psql -c 'create database ooi_ui;' -U postgres
-    psql -c 'create database ooi_asset;' -U postgres
-    psql -c 'create database ooi_user_management;' -U postgres
-    psql -U postgres ooi_ui -c "create extension postgis;"
-    psql ooi_ui < db/ooi_ui_schema.sql
-    psql ooi_ui < db/ooi_ui_bulk_load.sql
+    cd ooiuiservices
+    psql -c "create database ooiuidev;" -U postgres
+    psql -c "create extension postgis;" ooiuidev
+    psql -c "create schema ooiui_testing;" ooiuidev
+    python manage.py deploy --password <string:admin_password>
+    psql ooiuidev < ../db/ooiui_testing_data.sql
 
 ### Service Tests
+Test your initial setup by running from ooi-ui-services directory:
+  
+    python ooiservices/manage.py test
+    
 Run your service by evoking the following command from your ooi-ui-services directory:
   
-    PYTHONPATH=. python ooiservices/app.py
+    python ooiservices/manage.py runserver
 
 Verify you are getting data by using a web browser and navigating to:
 
     http://localhost:4000/arrays
-
-### Service Endpoints
-
-* Debug Information
-  * Status
-    * TBD
-
-* JSON Data Requests
-  * TDB
-
 
 ----
 
