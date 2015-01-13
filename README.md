@@ -41,7 +41,7 @@ While in your virtualenv, run the requirement.txt file:
 Setup your PostgreSQL environment:
     install postgis...
 
-###If you are using a local database instance:
+###If you are using a local database instance
 Create and load your database.  Service assumes no password for default postgres user:
 
     cd ooiuiservices
