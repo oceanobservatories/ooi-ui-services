@@ -66,5 +66,5 @@ class ModelTestCase(unittest.TestCase):
     def test_user(self):
         #Test the json in the object
         user = User()
-        self.assertTrue(user.to_json() == {'id': None, 'email': None, \
-        'pass_hash': None, 'user_id': None, 'user_name': None})
+        self.assertTrue(user.to_json() == {'email': None, 'id': None,\
+        'pass_hash': None, 'user_id': None, 'username': None})
