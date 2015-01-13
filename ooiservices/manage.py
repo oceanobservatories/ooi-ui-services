@@ -47,15 +47,15 @@ def test(coverage=False):
         COV.report()
         COV.erase()
 
-@manager.command
-def deploy():
+@manager.option('--password', help='Initial password')
+def deploy(password):
     from flask.ext.migrate import upgrade
     db.create_all()
     # migrate database to latest revision
-    upgrade()
+    #upgrade()
     #Add in the default user and scope.
     UserScope.insert_scopes()
-    User.insert_user('test')
+    User.insert_user(password)
 
 
 @manager.command

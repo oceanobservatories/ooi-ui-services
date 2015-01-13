@@ -3,7 +3,7 @@
 OOI Models
 '''
 
-__author__ = 'M.Campbell'
+__author__ = 'M@Campbell'
 
 from datetime import datetime
 import hashlib
@@ -414,15 +414,29 @@ class UserScope(db.Model):
     __table_args__ = {u'schema': __schema__}
 
     id = db.Column(db.Integer, primary_key=True)
-    scope_name = db.Column(db.Text, nullable=False)
+    scope_name = db.Column(db.Text, nullable=False, unique=True)
     scope_description = db.Column(db.Text)
 
     @staticmethod
     def insert_scopes():
-       scope = UserScope(scope_name='user_admin')
-       scope.description = 'Add, Modify, Delete users'
-       db.session.add(scope)
+       scope_am = UserScope(scope_name='asset_management')
+       scope_user_create = UserScope(scope_name='user_create')
+       scope_user_read = UserScope(scope_name='user_read')
+       scope_user_read_write = UserScope(scope_name='user_read_write')
+       scope_am.description = 'Manage assets.'
+       scope_user_create.description = 'Create users.'
+       scope_user_read.description = 'Read from the list of users.'
+       scope_user_read_write.description = 'Read and modify the users.'
+       db.session.add_all([scope_am, scope_user_create, scope_user_read, scope_user_read_write])
        db.session.commit()
+
+    def to_json(self):
+        json_scope = {
+            'id' : self.id,
+            'scope_name' : self.scope_name,
+            'scope_description' : self.scope_description,
+        }
+        return json_scope
 
 
 class User(UserMixin, db.Model):
@@ -454,18 +468,27 @@ class User(UserMixin, db.Model):
         }
         return json_user
 
-    def from_json(self):
-        raise NotImplementedError
+    def from_json(json):
+        email = json.get('email')
+        password = json.get('password')
+        password2 = json.get('repeatPassword')
+        phone = json.get('phonenum')
+        user_name = json.get('username')
+
 
     @staticmethod
     def insert_user(password):
-       user = User(user_id='admin')
-       user.pass_hash = generate_password_hash(password)
-       user.user_name = 'admin'
-       user.active = True
-       user.email = 'ooi@asascience.com'
-       db.session.add(user)
-       db.session.commit()
+        user = User(user_id='admin')
+        if not user.validate_username('admin'):
+            admin_del = db.session.query(User).filter_by(user_name='admin').first()
+            db.session.delete(admin_del)
+            db.session.commit()
+        user.pass_hash = generate_password_hash(password)
+        user.user_name = 'admin'
+        user.active = True
+        user.email = 'ooi@asascience.com'
+        db.session.add(user)
+        db.session.commit()
 
     @property
     def password(self):
@@ -479,6 +502,21 @@ class User(UserMixin, db.Model):
     def verify_password(self, password):
         return check_password_hash(self.pass_hash, password)
 
+    def validate_email(self, field):
+        if User.query.filter_by(email=field).first():
+            return False
+        return True
+
+    def validate_username(self, field):
+        if User.query.filter_by(user_name=field).first():
+            return False
+        return True
+
+    def validate_password(self, password, password2):
+        temp_hash = User(password=password)
+        if not temp_hash.verify_password(password2):
+            return False
+        return True
 
     @login_manager.user_loader
     def load_user(user_id):

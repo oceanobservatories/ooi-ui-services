@@ -3,7 +3,7 @@
 unit testing for the model classes.
 
 '''
-__author__ = 'M.Campbell'
+__author__ = 'M@Campbell'
 
 import unittest
 from flask import url_for
@@ -66,5 +66,5 @@ class ModelTestCase(unittest.TestCase):
     def test_user(self):
         #Test the json in the object
         user = User()
-        self.assertTrue(user.to_json() == {'id': None, 'email': None, \
+        self.assertTrue(user.to_json() == {'email': None, 'id': None, \
         'pass_hash': None, 'user_id': None, 'user_name': None})

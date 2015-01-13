@@ -8,9 +8,6 @@ __author__ = 'M.Campbell'
 
 import os
 basedir = os.path.abspath(os.path.dirname(__file__))
-'''
-'postgres://*:*@ooiui-dev.cvyc5bvl5zzs.us-east-1.rds.amazonaws.com/ooiuidev'
-'''
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'ecechbhbifiirdghbluukjiuclevjtfidilrkljrveje'
@@ -31,10 +28,14 @@ class Config:
     def init_app(app):
         pass
 
-
 class DevelopmentConfig(Config):
     DEBUG = True
     SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
+    'postgres://asa:asa2015@ooiui-dev.cvyc5bvl5zzs.us-east-1.rds.amazonaws.com/ooiuidev'
+
+class LocalDevelopmentConfig(Config):
+    DEBUG = True
+    SQLALCHEMY_DATABASE_URI = os.environ.get('LOCAL_DEV_DATABASE_URL') or \
     'postgres://postgres@localhost/ooiuidev'
 
 
@@ -73,8 +74,9 @@ class ProductionConfig(Config):
 
 config = {
     'development': DevelopmentConfig,
+    'local_dev': LocalDevelopmentConfig,
     'testing': TestingConfig,
     'production': ProductionConfig,
 
-    'default': DevelopmentConfig
+    'default': LocalDevelopmentConfig
 }
