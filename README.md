@@ -43,6 +43,7 @@ Setup your PostgreSQL environment:
 
 ###If you are using a local database instance:
 Create and load your database.  Service assumes no password for default postgres user:
+
     cd ooiuiservices
     psql -c "create database ooiuidev;" -U postgres
     psql -c "create extension postgis;" ooiuidev
