@@ -40,8 +40,8 @@ class UserTestCase(unittest.TestCase):
         user_insert_test = User()
         user_insert_test.insert_user(test_password)
 
-        user_name = User.query.filter_by(user_name='Admin').first()
-        self.assertTrue(user_name.user_name == 'Admin')
+        user_name = User.query.filter_by(user_name='admin').first()
+        self.assertTrue(user_name.user_name == 'admin')
 
     def test_password_tampering(self):
         u = User(password='cat')
