@@ -3,7 +3,7 @@
 Specific testing of user scopes, and passwords.
 
 '''
-__author__ = 'M.Campbell'
+__author__ = 'M@Campbell'
 
 import unittest
 from flask import url_for

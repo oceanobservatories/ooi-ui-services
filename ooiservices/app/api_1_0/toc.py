@@ -3,7 +3,7 @@
 API v1.0 List
 
 '''
-__author__ = 'M.Campbell'
+__author__ = 'M@Campbell'
 
 from flask import jsonify, request, current_app, url_for
 from . import api

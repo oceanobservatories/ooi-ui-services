@@ -3,7 +3,7 @@
 unit testing for the model classes.
 
 '''
-__author__ = 'M.Campbell'
+__author__ = 'M@Campbell'
 
 import unittest
 from flask import url_for

@@ -3,7 +3,7 @@
 OOI Models
 '''
 
-__author__ = 'M.Campbell'
+__author__ = 'M@Campbell'
 
 from datetime import datetime
 import hashlib
