@@ -3,7 +3,7 @@
 OOI Models
 '''
 
-__author__ = 'M@Campbell'
+__author__ = 'M.Campbell'
 
 from datetime import datetime
 import hashlib
@@ -408,6 +408,22 @@ class UserScopeLink(db.Model):
 
     scope = db.relationship(u'UserScope')
     user = db.relationship(u'User')
+
+    @staticmethod
+    def insert_scope_link():
+        user = UserScopeLink(user_id='1')
+        user.scope_id='4'
+        db.session.add(user)
+        db.session.commit()
+
+    def to_json(self):
+        json_scope_link = {
+            'id' : self.id,
+            'user_id' : self.user_id,
+            'scope_id' : self.scope_id,
+        }
+        return json_scope_link
+
 
 class UserScope(db.Model):
     __tablename__ = 'user_scopes'
