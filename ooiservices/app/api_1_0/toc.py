@@ -3,7 +3,7 @@
 API v1.0 List
 
 '''
-__author__ = 'M.Campbell'
+__author__ = 'M@Campbell'
 
 from flask import jsonify, request, current_app, url_for
 from . import api
@@ -47,7 +47,11 @@ def get_platform_deployment(id):
 
 @api.route('/instrument_deployments')
 def get_instrument_deployments():
-    instrument_deployments = InstrumentDeployment.query.all()
+    if 'platform_deployment_id' in request.args:
+        instrument_deployments = \
+        InstrumentDeployment.query.filter_by(platform_deployment_id=request.args['platform_deployment_id']).all()
+    else:
+        instrument_deployments = InstrumentDeployment.query.all()
     return jsonify({ 'instrument_deployments' : [instrument_deployment.to_json() for instrument_deployment in instrument_deployments] })
 
 @api.route('/instrument_deployments/<string:id>')

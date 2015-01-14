@@ -4,7 +4,7 @@ Api blueprint.
 
 '''
 
-__author__ = 'M.Campbell'
+__author__ = 'M@Campbell'
 
 from flask import Blueprint
 
