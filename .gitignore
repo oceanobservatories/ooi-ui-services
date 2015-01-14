@@ -59,3 +59,6 @@ docs/_build/
 *_local.yml
 
 *.swp
+
+#Log Files
+*.log

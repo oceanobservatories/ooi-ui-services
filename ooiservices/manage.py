@@ -12,7 +12,7 @@ if os.environ.get('FLASK_COVERAGE'):
     COV = coverage.coverage(branch=True,include=basedir + '/app/*')
     COV.start()
 from app import create_app, db
-from app.models import User, UserScope, Array, PlatformDeployment, InstrumentDeployment, \
+from app.models import User, UserScope, UserScopeLink, Array, PlatformDeployment, InstrumentDeployment, \
 Stream, StreamParameter
 from flask.ext.script import Manager, Shell, Server
 from flask.ext.migrate import Migrate, MigrateCommand
@@ -22,7 +22,7 @@ manager = Manager(app)
 migrate = Migrate(app,db)
 
 def make_shell_context():
-    return dict(app=app, db=db, User=User, UserScope=UserScope, Array=Array, \
+    return dict(app=app, db=db, User=User, UserScope=UserScope, UserScopeLink=UserScopeLink, Array=Array, \
     PlatformDeployment=PlatformDeployment, InstrumentDeployment=InstrumentDeployment, \
     Stream=Stream, StreamParameter=StreamParameter)
 
@@ -56,6 +56,7 @@ def deploy(password):
     #Add in the default user and scope.
     UserScope.insert_scopes()
     User.insert_user(password)
+    UserScopeLink.insert_scope_link()
 
 
 @manager.command

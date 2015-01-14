@@ -3,7 +3,7 @@
 OOI Models
 '''
 
-__author__ = 'M@Campbell'
+__author__ = 'M.Campbell'
 
 from datetime import datetime
 import hashlib
@@ -409,6 +409,22 @@ class UserScopeLink(db.Model):
     scope = db.relationship(u'UserScope')
     user = db.relationship(u'User')
 
+    @staticmethod
+    def insert_scope_link():
+        user = UserScopeLink(user_id='1')
+        user.scope_id='4'
+        db.session.add(user)
+        db.session.commit()
+
+    def to_json(self):
+        json_scope_link = {
+            'id' : self.id,
+            'user_id' : self.user_id,
+            'scope_id' : self.scope_id,
+        }
+        return json_scope_link
+
+
 class UserScope(db.Model):
     __tablename__ = 'user_scopes'
     __table_args__ = {u'schema': __schema__}
@@ -468,12 +484,31 @@ class User(UserMixin, db.Model):
         }
         return json_user
 
+    @staticmethod
     def from_json(json):
         email = json.get('email')
         password = json.get('password')
         password2 = json.get('repeatPassword')
-        phone = json.get('phonenum')
+        phone_primary = json.get('phonenum')
         user_name = json.get('username')
+
+        #Validate some of the field.
+        try:
+            new_user = User()
+            if not new_user.validate_email(email):
+                return jsonify({'response': 'email already taken'})
+            if not new_user.validate_username(user_name):
+                return jsonify({'response': 'user name taken'})
+            if not new_user.validate_password(password, password2):
+                return jsonify({'response': 'password must match'})
+            else:
+                #If the passwords match, generate the hash.
+                pass_hash = generate_password_hash(password)
+            #All passes, return the User object ready to be stored.
+            return User(email=email, pass_hash=pass_hash, phone_primary=phone_primary, \
+            user_name=user_name, user_id=user_name)
+        except:
+            return False
 
 
     @staticmethod
