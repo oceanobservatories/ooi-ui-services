@@ -62,3 +62,4 @@ docs/_build/
 
 #Log Files
 *.log
+ooiservices/app/logs/

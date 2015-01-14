@@ -9,6 +9,7 @@ __author__ = 'M.Campbell'
 import os
 basedir = os.path.abspath(os.path.dirname(__file__))
 
+# TODO: Get from a YAML config file.  Same for the rest of the methods.
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'ecechbhbifiirdghbluukjiuclevjtfidilrkljrveje'
     SSL_DISABLE = False
@@ -72,6 +73,7 @@ class ProductionConfig(Config):
         mail_handler.setLevel(logging.ERROR)
         app.logger.addHandler(mail_handler)
 
+# TODO: Get from a YAML config file
 config = {
     'development': DevelopmentConfig,
     'local_dev': LocalDevelopmentConfig,
