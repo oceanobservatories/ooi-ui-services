@@ -30,7 +30,11 @@ def create_app(config_name):
         import logging
         logger = logging.getLogger('replicate')
         logger.setLevel(logging.DEBUG)
-        file_handler = logging.FileHandler(basedir + '/logs/ooiservices.log')
+
+        # TODO: Add log_filename to YAML config, maybe set up a logging directory in the config as well
+        log_filename = basedir + '/logs/ooiservices.log'
+        file_handler = logging.FileHandler(log_filename, mode='a+')
+
         stream_handler = logging.StreamHandler()
         formatter = logging.Formatter('%(asctime)s - %(process)d - %(name)s - %(module)s:%(lineno)d - %(levelname)s - %(message)s')
         file_handler.setFormatter(formatter)
