@@ -8,7 +8,6 @@ import os
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
 from config import config
-from flask import Flask, g
 from flask.ext.login import LoginManager
 
 login_manager = LoginManager()
