@@ -27,3 +27,11 @@ def get_user_scopes():
 def get_user_scope_links():
     user_scope_links = UserScopeLink.query.all()
     return jsonify( {'user_scope_links' : [user_scope_link.to_json() for user_scope_link in user_scope_links] })
+
+@api.route('/user/', methods=['POST'])
+@auth.login_required
+def create_user():
+    new_user = User.from_json(request.json)
+    db.session.add(new_user)
+    db.session.commit()
+    return True
