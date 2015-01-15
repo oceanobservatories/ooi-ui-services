@@ -12,7 +12,7 @@ from . import db, login_manager
 from flask.ext.login import UserMixin
 from wtforms import ValidationError
 
-__schema__ = 'ooiui_testing'
+__schema__ = 'ooiui'
 
 class Annotation(db.Model):
     __tablename__ = 'annotations'
@@ -393,7 +393,46 @@ class Stream(db.Model):
         }
         return json_stream
 
+class UserRoleUserScopeLink(db.Model):
+    __tablename__ = 'user_role_user_scope_link'
+    __table_args__ = {u'schema': __schema__}
 
+    id = db.Column(db.Integer, primary_key=True)
+    user_scope_id = db.Column(db.ForeignKey(u'' + __schema__ + '.user_scopes.id'), nullable=False)
+    user_role_id = db.Column(db.ForeignKey(u'' + __schema__ + '.user_roles.id'), nullable=False)
+
+    user_role = db.relationship(u'UserRole')
+    user_scope = db.relationship(u'UserScope')
+
+    @staticmethod
+    def insert_roles_scope():
+        user_role_user_scope = UserRoleUserScopeLink()
+        user_role_user_scope.user_role_id = 1
+        user_role_user_scope.user_scope_id = 1
+        db.session.add_all([user_role_user_scope])
+        db.session.commit()
+
+class UserRole(db.Model):
+    __tablename__ = 'user_roles'
+    __table_args__ = {u'schema': __schema__}
+
+    id = db.Column(db.Integer, primary_key=True)
+    role_name = db.Column(db.Text, nullable=False)
+
+    def to_json(self):
+        json_role_link = {
+            'id' : self.id,
+            'role_name' : self.role_name
+        }
+        return json_role_link
+
+    @staticmethod
+    def insert_roles():
+        role_name_admin = UserRole(role_name='Administrator')
+        role_name_marine_operator = UserRole(role_name='Marine Operator')
+        role_name_science_user = UserRole(role_name='Science User')
+        db.session.add_all([role_name_admin, role_name_marine_operator, role_name_science_user])
+        db.session.commit()
 
 class UserScopeLink(db.Model):
     __tablename__ = 'user_scope_link'
