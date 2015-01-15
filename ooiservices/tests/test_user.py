@@ -8,7 +8,7 @@ __author__ = 'M@Campbell'
 import unittest
 from flask import url_for
 from app import create_app, db
-from app.models import User, UserScope
+from app.models import User, UserScope, UserRole
 
 '''
 These tests are additional to the normal testing performed by coverage; each of
@@ -61,3 +61,10 @@ class UserTestCase(unittest.TestCase):
         u = User(password='dog')
         u2 = User(password='dog')
         self.assertTrue(u.pass_hash != u2.pass_hash)
+
+    def test_get_roles(self):
+        user_role = UserRole()
+        user_role.insert_roles()
+
+        role = UserRole.query.filter_by(role_name='Administrator').first()
+        self.assertTrue(role.role_name == 'Administrator')
