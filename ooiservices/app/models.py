@@ -3,13 +3,14 @@
 OOI Models
 '''
 
-__author__ = 'M.Campbell'
+__author__ = 'M@Campbell'
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app
 from . import db, login_manager
 from flask.ext.login import UserMixin
+from wtforms import ValidationError
 
 __schema__ = 'ooiui_testing'
 
@@ -420,7 +421,6 @@ class UserScopeLink(db.Model):
         }
         return json_scope_link
 
-
 class UserScope(db.Model):
     __tablename__ = 'user_scopes'
     __table_args__ = {u'schema': __schema__}
@@ -498,14 +498,16 @@ class User(UserMixin, db.Model):
             #All passes, return the User object ready to be stored.
             return User(email=email, pass_hash=pass_hash, phone_primary=phone_primary, \
             user_name=user_name, user_id=user_name)
-        except AttributeError as e:
+        except ValidationError as e:
             return e
 
 
     @staticmethod
     def insert_user(password):
         user = User(user_id='admin')
-        if not user.validate_username('admin'):
+        try:
+            user.validate_username('admin')
+        except ValidationError as e:
             admin_del = db.session.query(User).filter_by(user_name='admin').first()
             db.session.delete(admin_del)
             db.session.commit()
@@ -530,16 +532,16 @@ class User(UserMixin, db.Model):
 
     def validate_email(self, field):
         if User.query.filter_by(email=field).first():
-            raise AttributeError('Email already in use.')
+            raise ValidationError('Email already in use.')
 
     def validate_username(self, field):
         if User.query.filter_by(user_name=field).first():
-            raise AttributeError('User name already taken.')
+            raise ValidationError('User name already taken.')
 
     def validate_password(self, password, password2):
         temp_hash = User(password=password)
         if not temp_hash.verify_password(password2):
-            raise AttributeError('Passwords do not match')
+            raise ValidationError('Passwords do not match')
 
     @login_manager.user_loader
     def load_user(user_id):
