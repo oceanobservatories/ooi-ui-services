@@ -39,13 +39,11 @@ class TOCTestCase(unittest.TestCase):
         db.session.commit()
 
         #test the api route for lists
-        response = self.client.get(url_for('api.get_arrays'), content_type = \
-        'application/json')
+        response = self.client.get(url_for('main.get_arrays'), content_type = 'application/json')
 
         self.assertTrue(response.status_code == 200)
 
-        response = self.client.get(url_for('api.get_array',id='CE'), content_type = \
-        'application/json')
+        response = self.client.get(url_for('main.get_array',id='CE'), content_type = 'application/json')
 
         self.assertTrue(response.status_code == 200)
 
@@ -57,12 +55,12 @@ class TOCTestCase(unittest.TestCase):
         db.session.add(platform_ref)
         db.session.commit()
 
-        response = self.client.get(url_for('api.get_platform_deployments'), \
+        response = self.client.get(url_for('main.get_platform_deployments'), \
         content_type = 'application/json')
 
         self.assertTrue(response.status_code == 200)
 
-        response = self.client.get(url_for('api.get_platform_deployment', \
+        response = self.client.get(url_for('main.get_platform_deployment', \
         id='CE01ISSM-LM001'), content_type = 'application/json')
 
         self.assertTrue(response.status_code == 200)
@@ -77,12 +75,12 @@ class TOCTestCase(unittest.TestCase):
         db.session.add(instrument_ref)
         db.session.commit()
 
-        response = self.client.get(url_for('api.get_instrument_deployments'), \
+        response = self.client.get(url_for('main.get_instrument_deployments'), \
         content_type = 'application/json')
 
         self.assertTrue(response.status_code == 200)
 
-        response = self.client.get(url_for('api.get_instrument_deployment', \
+        response = self.client.get(url_for('main.get_instrument_deployment', \
         id = 'CE04OSSM-SBD11-01-MOPAK0000'), content_type = 'application/json')
 
         self.assertTrue(response.status_code == 200)
@@ -96,12 +94,12 @@ class TOCTestCase(unittest.TestCase):
         db.session.add(stream_name)
         db.session.commit()
 
-        response = self.client.get(url_for('api.get_streams'), content_type = \
+        response = self.client.get(url_for('main.get_streams'), content_type = \
         'application/json')
 
         self.assertTrue(response.status_code == 200)
 
-        response = self.client.get(url_for('api.get_stream', \
+        response = self.client.get(url_for('main.get_stream', \
         id='mopak_o_dcl_accel_unprocessed'), content_type = 'application/json')
 
         self.assertTrue(response.status_code == 200)
@@ -114,12 +112,12 @@ class TOCTestCase(unittest.TestCase):
         db.session.add(parameter_name)
         db.session.commit()
 
-        response = self.client.get(url_for('api.get_parameters'), content_type = \
+        response = self.client.get(url_for('main.get_parameters'), content_type = \
         'application/json')
 
         self.assertTrue(response.status_code == 200)
 
-        response = self.client.get(url_for('api.get_parameter', id='preferred_timestamp'), \
+        response = self.client.get(url_for('main.get_parameter', id='preferred_timestamp'), \
         content_type = 'application/json')
 
         self.assertTrue(response.status_code == 200)

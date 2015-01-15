@@ -8,4 +8,6 @@ __author__ = 'M.Campbell'
 
 from flask import Blueprint
 
-main = Blueprint('main', __name__)
+api = Blueprint('main', __name__)
+
+from . import toc, authentication, user
