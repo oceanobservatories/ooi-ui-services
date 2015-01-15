@@ -32,7 +32,10 @@ def create_app(config_name):
         logger.setLevel(logging.DEBUG)
 
         # TODO: Add log_filename to YAML config, maybe set up a logging directory in the config as well
-        log_filename = basedir + '/logs/ooiservices.log'
+        log_directory = basedir + '/logs/'
+        log_filename = log_directory + 'ooiservices.log'
+        if not os.path.exists(os.path.dirname(log_filename)):
+            os.makedirs(os.path.dirname(log_filename))
         file_handler = logging.FileHandler(log_filename, mode='a+')
 
         stream_handler = logging.StreamHandler()

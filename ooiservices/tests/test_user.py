@@ -48,7 +48,7 @@ class UserTestCase(unittest.TestCase):
         with self.assertRaises(AttributeError):
             u.password
 
-    def test_password_hasing(self):
+    def test_password_hashing(self):
         u = User(password='dog')
         self.assertTrue(u.pass_hash is not None)
 
