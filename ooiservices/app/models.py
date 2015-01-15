@@ -495,20 +495,15 @@ class User(UserMixin, db.Model):
         #Validate some of the field.
         try:
             new_user = User()
-            if not new_user.validate_email(email):
-                return jsonify({'response': 'email already taken'})
-            if not new_user.validate_username(user_name):
-                return jsonify({'response': 'user name taken'})
-            if not new_user.validate_password(password, password2):
-                return jsonify({'response': 'password must match'})
-            else:
-                #If the passwords match, generate the hash.
-                pass_hash = generate_password_hash(password)
+            new_user.validate_email(email)
+            new_user.validate_username(user_name)
+            new_user.validate_password(password, password2)
+            pass_hash = generate_password_hash(password)
             #All passes, return the User object ready to be stored.
             return User(email=email, pass_hash=pass_hash, phone_primary=phone_primary, \
             user_name=user_name, user_id=user_name)
-        except:
-            return False
+        except AttributeError as e:
+            return e
 
 
     @staticmethod
@@ -539,19 +534,16 @@ class User(UserMixin, db.Model):
 
     def validate_email(self, field):
         if User.query.filter_by(email=field).first():
-            return False
-        return True
+            raise AttributeError('Email already in use.')
 
     def validate_username(self, field):
         if User.query.filter_by(user_name=field).first():
-            return False
-        return True
+            raise AttributeError('User name already taken.')
 
     def validate_password(self, password, password2):
         temp_hash = User(password=password)
         if not temp_hash.verify_password(password2):
-            return False
-        return True
+            raise AttributeError('Passwords do not match')
 
     @login_manager.user_loader
     def load_user(user_id):

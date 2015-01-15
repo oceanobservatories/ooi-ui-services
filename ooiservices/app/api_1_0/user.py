@@ -32,6 +32,9 @@ def get_user_scope_links():
 @auth.login_required
 def create_user():
     new_user = User.from_json(request.json)
-    db.session.add(new_user)
-    db.session.commit()
+    try:
+        db.session.add(new_user)
+        db.session.commit()
+    except:
+        return new_user
     return True
