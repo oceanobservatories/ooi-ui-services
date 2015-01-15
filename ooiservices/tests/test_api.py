@@ -82,7 +82,7 @@ class TOCTestCase(unittest.TestCase):
 
         self.assertTrue(response.status_code == 200)
 
-        reponse = self.client.get(url_for('api.get_instrument_deployment', \
+        response = self.client.get(url_for('api.get_instrument_deployment', \
         id = 'CE04OSSM-SBD11-01-MOPAK0000'), content_type = 'application/json')
 
         self.assertTrue(response.status_code == 200)
