@@ -8,7 +8,7 @@ __author__ = 'M@Campbell'
 from flask import jsonify, request, current_app, url_for
 from . import api
 from authentication import auth
-from ..models import User, UserScope, UserScopeLink
+from ..models import User, UserScope, UserScopeLink, UserRole
 
 @api.route('/user/<string:id>')
 @auth.login_required
@@ -35,3 +35,9 @@ def create_user():
     db.session.add(new_user)
     db.session.commit()
     return True
+
+@api.route('/user_roles')
+@auth.login_required
+def get_user_roles():
+    user_roles = UserRole.query.all()
+    return jsonify( {'user_roles' : [user_role.to_json() for user_role in user_roles] })

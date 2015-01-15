@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-unit testing for the tabel of contents (TOC) required classes.
+unit testing for the table of contents (TOC) required classes.
 
 '''
 __author__ = 'M@Campbell'
