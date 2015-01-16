@@ -15,10 +15,9 @@ install:
   - pip install -r ooiservices/requirements/dev.txt
 before_script:
   - psql -c 'create database ooiuitest;' -U postgres
-  - psql ooiuitest -c 'create schema ooiui_testing;' -U postgres
+  - psql ooiuitest -c 'create schema ooiui;' -U postgres
   - psql -U postgres ooiuitest -c "create extension postgis;"
 script:
-  - python ooiservices/manage.py test
   - python ooiservices/manage.py test --coverage
 notifications:
     flowdock: 7728e9be2e099628ea6b3b0f489d2f9c

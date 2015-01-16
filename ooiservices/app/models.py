@@ -5,17 +5,14 @@ OOI Models
 
 __author__ = 'M@Campbell'
 
-from datetime import datetime
-import hashlib
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-from markdown import markdown
-import bleach
-from flask import current_app, request, url_for
+from flask import current_app
 from . import db, login_manager
 from flask.ext.login import UserMixin
+from wtforms import ValidationError
 
-__schema__ = 'ooiui_testing'
+__schema__ = 'ooiui'
 
 class Annotation(db.Model):
     __tablename__ = 'annotations'
@@ -397,6 +394,48 @@ class Stream(db.Model):
         return json_stream
 
 
+class UserRoleUserScopeLink(db.Model):
+    __tablename__ = 'user_role_user_scope_link'
+    __table_args__ = {u'schema': __schema__}
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_scope_id = db.Column(db.ForeignKey(u'' + __schema__ + '.user_scopes.id'), nullable=False)
+    user_role_id = db.Column(db.ForeignKey(u'' + __schema__ + '.user_roles.id'), nullable=False)
+
+    user_role = db.relationship(u'UserRole')
+    user_scope = db.relationship(u'UserScope')
+
+    @staticmethod
+    def insert_roles_scope():
+        user_role_user_scope = UserRoleUserScopeLink()
+        user_role_user_scope.user_role_id = 1
+        user_role_user_scope.user_scope_id = 1
+        db.session.add_all([user_role_user_scope])
+        db.session.commit()
+
+
+class UserRole(db.Model):
+    __tablename__ = 'user_roles'
+    __table_args__ = {u'schema': __schema__}
+
+    id = db.Column(db.Integer, primary_key=True)
+    role_name = db.Column(db.Text, nullable=False)
+
+    def to_json(self):
+        json_role_link = {
+            'id' : self.id,
+            'role_name' : self.role_name
+        }
+        return json_role_link
+
+    @staticmethod
+    def insert_roles():
+        role_name_admin = UserRole(role_name='Administrator')
+        role_name_marine_operator = UserRole(role_name='Marine Operator')
+        role_name_science_user = UserRole(role_name='Science User')
+        db.session.add_all([role_name_admin, role_name_marine_operator, role_name_science_user])
+        db.session.commit()
+
 
 class UserScopeLink(db.Model):
     __tablename__ = 'user_scope_link'
@@ -408,6 +447,22 @@ class UserScopeLink(db.Model):
 
     scope = db.relationship(u'UserScope')
     user = db.relationship(u'User')
+
+    @staticmethod
+    def insert_scope_link():
+        user = UserScopeLink(user_id='1')
+        user.scope_id='4'
+        db.session.add(user)
+        db.session.commit()
+
+    def to_json(self):
+        json_scope_link = {
+            'id' : self.id,
+            'user_id' : self.user_id,
+            'scope_id' : self.scope_id,
+        }
+        return json_scope_link
+
 
 class UserScope(db.Model):
     __tablename__ = 'user_scopes'
@@ -468,18 +523,32 @@ class User(UserMixin, db.Model):
         }
         return json_user
 
+    @staticmethod
     def from_json(json):
         email = json.get('email')
         password = json.get('password')
         password2 = json.get('repeatPassword')
-        phone = json.get('phonenum')
+        phone_primary = json.get('phonenum')
         user_name = json.get('username')
+
+        #Validate some of the field.
+
+        new_user = User()
+        new_user.validate_email(email)
+        new_user.validate_username(user_name)
+        new_user.validate_password(password, password2)
+        pass_hash = generate_password_hash(password)
+        #All passes, return the User object ready to be stored.
+        return User(email=email, pass_hash=pass_hash, phone_primary=phone_primary, \
+        user_name=user_name, user_id=user_name)
 
 
     @staticmethod
     def insert_user(password):
         user = User(user_id='admin')
-        if not user.validate_username('admin'):
+        try:
+            user.validate_username('admin')
+        except ValidationError as e:
             admin_del = db.session.query(User).filter_by(user_name='admin').first()
             db.session.delete(admin_del)
             db.session.commit()
@@ -504,19 +573,16 @@ class User(UserMixin, db.Model):
 
     def validate_email(self, field):
         if User.query.filter_by(email=field).first():
-            return False
-        return True
+            raise ValidationError('Email already in use.')
 
     def validate_username(self, field):
         if User.query.filter_by(user_name=field).first():
-            return False
-        return True
+            raise ValidationError('User name already taken.')
 
     def validate_password(self, password, password2):
         temp_hash = User(password=password)
         if not temp_hash.verify_password(password2):
-            return False
-        return True
+            raise ValidationError('Passwords do not match')
 
     @login_manager.user_loader
     def load_user(user_id):

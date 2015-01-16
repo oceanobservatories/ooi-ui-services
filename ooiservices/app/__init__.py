@@ -8,12 +8,10 @@ import os
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
 from config import config
-from flask import Flask, g
 from flask.ext.login import LoginManager
 
 login_manager = LoginManager()
 login_manager.session_protection = 'strong'
-login_manager.login_view = 'auth.login'
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -31,7 +29,14 @@ def create_app(config_name):
         import logging
         logger = logging.getLogger('replicate')
         logger.setLevel(logging.DEBUG)
-        file_handler = logging.FileHandler(basedir + '/logs/ooiservices.log')
+
+        # TODO: Add log_filename to YAML config, maybe set up a logging directory in the config as well
+        log_directory = basedir + '/logs/'
+        log_filename = log_directory + 'ooiservices.log'
+        if not os.path.exists(os.path.dirname(log_filename)):
+            os.makedirs(os.path.dirname(log_filename))
+        file_handler = logging.FileHandler(log_filename, mode='a+')
+
         stream_handler = logging.StreamHandler()
         formatter = logging.Formatter('%(asctime)s - %(process)d - %(name)s - %(module)s:%(lineno)d - %(levelname)s - %(message)s')
         file_handler.setFormatter(formatter)
@@ -44,10 +49,7 @@ def create_app(config_name):
     db.init_app(app)
     login_manager.init_app(app)
 
-    from .main import main as main_blueprint
+    from .main import api as main_blueprint
     app.register_blueprint(main_blueprint)
-
-    from .api_1_0 import api as api_1_0_blueprint
-    app.register_blueprint(api_1_0_blueprint, url_prefix='/api')
 
     return app
