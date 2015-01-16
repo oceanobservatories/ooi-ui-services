@@ -393,6 +393,7 @@ class Stream(db.Model):
         }
         return json_stream
 
+
 class UserRoleUserScopeLink(db.Model):
     __tablename__ = 'user_role_user_scope_link'
     __table_args__ = {u'schema': __schema__}
@@ -411,6 +412,7 @@ class UserRoleUserScopeLink(db.Model):
         user_role_user_scope.user_scope_id = 1
         db.session.add_all([user_role_user_scope])
         db.session.commit()
+
 
 class UserRole(db.Model):
     __tablename__ = 'user_roles'
@@ -433,6 +435,7 @@ class UserRole(db.Model):
         role_name_science_user = UserRole(role_name='Science User')
         db.session.add_all([role_name_admin, role_name_marine_operator, role_name_science_user])
         db.session.commit()
+
 
 class UserScopeLink(db.Model):
     __tablename__ = 'user_scope_link'
@@ -459,6 +462,7 @@ class UserScopeLink(db.Model):
             'scope_id' : self.scope_id,
         }
         return json_scope_link
+
 
 class UserScope(db.Model):
     __tablename__ = 'user_scopes'
@@ -528,17 +532,15 @@ class User(UserMixin, db.Model):
         user_name = json.get('username')
 
         #Validate some of the field.
-        try:
-            new_user = User()
-            new_user.validate_email(email)
-            new_user.validate_username(user_name)
-            new_user.validate_password(password, password2)
-            pass_hash = generate_password_hash(password)
-            #All passes, return the User object ready to be stored.
-            return User(email=email, pass_hash=pass_hash, phone_primary=phone_primary, \
-            user_name=user_name, user_id=user_name)
-        except ValidationError as e:
-            return e
+
+        new_user = User()
+        new_user.validate_email(email)
+        new_user.validate_username(user_name)
+        new_user.validate_password(password, password2)
+        pass_hash = generate_password_hash(password)
+        #All passes, return the User object ready to be stored.
+        return User(email=email, pass_hash=pass_hash, phone_primary=phone_primary, \
+        user_name=user_name, user_id=user_name)
 
 
     @staticmethod

@@ -6,6 +6,9 @@ Specific testing of user scopes, and passwords.
 __author__ = 'M@Campbell'
 
 import unittest
+import json
+import re
+from base64 import b64encode
 from flask import url_for
 from app import create_app, db
 from app.models import User, UserScope, UserRole
@@ -21,12 +24,24 @@ class UserTestCase(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
+        test_password = 'test'
+        User.insert_user(test_password)
+        UserRole.insert_roles()
+
         self.client = self.app.test_client(use_cookies=False)
 
     def tearDown(self):
         db.session.remove()
         db.drop_all()
         self.app_context.pop()
+
+    def get_api_headers(self, username, password):
+        return {
+            'Authorization': 'Basic ' + b64encode(
+                (username + ':' + password).encode('utf-8')).decode('utf-8'),
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
 
     def test_user_scope(self):
         user_scope = UserScope()
@@ -36,10 +51,6 @@ class UserTestCase(unittest.TestCase):
         self.assertTrue(scope.scope_name == 'user_read')
 
     def test_user_insert(self):
-        test_password = 'test'
-        user_insert_test = User()
-        user_insert_test.insert_user(test_password)
-
         user_name = User.query.filter_by(user_name='admin').first()
         self.assertTrue(user_name.user_name == 'admin')
 
@@ -63,8 +74,45 @@ class UserTestCase(unittest.TestCase):
         self.assertTrue(u.pass_hash != u2.pass_hash)
 
     def test_get_roles(self):
-        user_role = UserRole()
-        user_role.insert_roles()
-
         role = UserRole.query.filter_by(role_name='Administrator').first()
         self.assertTrue(role.role_name == 'Administrator')
+
+    #Test user API routes
+    #For route: /user/<string:id>
+    def test_get_user_route(self):
+        #Test unauthorized
+        response = self.client.get(url_for('main.get_user',id='admin'), content_type='application/json')
+        self.assertTrue(response.status_code == 401)
+
+        #Test authorized
+        response = self.client.get(url_for('main.get_user',id='admin'), headers=self.get_api_headers('admin', 'test'))
+        self.assertTrue(response.status_code == 200)
+
+    def test_get_user_scope_route(self):
+        #Test unauthorized
+        response = self.client.get(url_for('main.get_user_scopes'), content_type='application/json')
+        self.assertTrue(response.status_code == 401)
+
+        #Test authorized
+        response = self.client.get(url_for('main.get_user_scopes'), headers=self.get_api_headers('admin', 'test'))
+
+        self.assertTrue(response.status_code == 200)
+
+    def test_create_user_route(self):
+        #Test unauthorized
+        response = self.client.post(url_for('main.create_user'), content_type='application/json')
+        self.assertTrue(response.status_code == 401)
+
+        #Test authorized
+        response = self.client.post(url_for('main.create_user'), headers=self.get_api_headers('admin', 'test'), data=json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing', 'phonenum': '1234', 'username': 'test_user'}))
+        self.assertTrue(response.status_code == 201)
+
+    def test_get_user_roles_route(self):
+        #Test unauthorized
+        response = self.client.get(url_for('main.get_user_roles'), content_type='application/json')
+        self.assertTrue(response.status_code == 401)
+
+        #Test authorized
+        response = self.client.get(url_for('main.get_user_roles'), headers=self.get_api_headers('admin', 'test'))
+
+        self.assertTrue(response.status_code == 200)

@@ -44,11 +44,20 @@ Setup your PostgreSQL environment:
 ###If you are using a local database instance
 Create and load your database.  Service assumes no password for default postgres user:
 
+    Setup dev db:
     cd ooiuiservices
     psql -c "create database ooiuidev;" -U postgres
     psql -c "create extension postgis;" ooiuidev
     psql -c "create schema ooiui;" ooiuidev
     python manage.py deploy --password <string:admin_password>
+    psql ooiuidev < ../db/ooiui_schema_before_data.sql
+    psql ooiuidev < ../db/ooiui_schema_data.sql
+    psql ooiuidev < ../db/ooiui_schema_after_data.sql
+    
+    Setup test db:
+    psql -c "create database ooiuitest;" -U postgres
+    psql -c "create extension postgis;" ooiuitest
+    psql -c "create schema ooiui;" ooiuitest
     psql ooiuidev < ../db/ooiui_schema_before_data.sql
     psql ooiuidev < ../db/ooiui_schema_data.sql
     psql ooiuidev < ../db/ooiui_schema_after_data.sql
