@@ -20,7 +20,7 @@ these tests are to validate model logic outside of db management.
 '''
 class UserTestCase(unittest.TestCase):
     def setUp(self):
-        self.app = create_app('testing')
+        self.app = create_app('TESTING_CONFIG')
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
@@ -106,6 +106,14 @@ class UserTestCase(unittest.TestCase):
         #Test authorized
         response = self.client.post(url_for('main.create_user'), headers=self.get_api_headers('admin', 'test'), data=json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing', 'phonenum': '1234', 'username': 'test_user'}))
         self.assertTrue(response.status_code == 201)
+
+        #Test duplicate user
+        response = self.client.post(url_for('main.create_user'), headers=self.get_api_headers('admin', 'test'), data=json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing', 'phonenum': '1234', 'username': 'test_user'}))
+        self.assertTrue(response.status_code == 409)
+
+        #Test password match
+        response = self.client.post(url_for('main.create_user'), headers=self.get_api_headers('admin', 'test'), data=json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing2', 'phonenum': '1234', 'username': 'test_user2'}))
+        self.assertTrue(response.status_code == 409)
 
     def test_get_user_roles_route(self):
         #Test unauthorized
