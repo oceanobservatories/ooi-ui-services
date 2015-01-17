@@ -11,6 +11,7 @@ from app import db
 from authentication import auth
 from ..models import User, UserScope, UserScopeLink, UserRole
 import json
+from wtforms import ValidationError
 
 @api.route('/user/<string:id>')
 @auth.login_required
@@ -28,9 +29,12 @@ def get_user_scopes():
 @auth.login_required
 def create_user():
     data = json.loads(request.data)
-    new_user = User.from_json(data)
-    db.session.add(new_user)
-    db.session.commit()
+    try:
+        new_user = User.from_json(data)
+        db.session.add(new_user)
+        db.session.commit()
+    except ValidationError as e:
+        return jsonify(error=e.message), 400
     return jsonify(new_user.to_json()), 201
 
 @api.route('/user_roles')
