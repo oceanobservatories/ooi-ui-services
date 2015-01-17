@@ -34,7 +34,7 @@ def create_user():
         db.session.add(new_user)
         db.session.commit()
     except ValidationError as e:
-        return jsonify(error=e.message), 400
+        return jsonify(error=e.message), 409
     return jsonify(new_user.to_json()), 201
 
 @api.route('/user_roles')
