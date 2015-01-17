@@ -5,8 +5,7 @@ performing db migrations, testing.
 
 '''
 import os
-from config import basedir
-
+basedir = os.path.abspath(os.path.dirname(__file__))
 COV = None
 if os.environ.get('FLASK_COVERAGE'):
     import coverage

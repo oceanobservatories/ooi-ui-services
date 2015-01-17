@@ -7,7 +7,6 @@ Initializes the application and necessary application logic
 import os
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
-from config import config
 from flask.ext.login import LoginManager
 from flask_environments import Environments
 
