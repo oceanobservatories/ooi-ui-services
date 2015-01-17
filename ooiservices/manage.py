@@ -7,7 +7,6 @@ performing db migrations, testing.
 import os
 from config import basedir
 
-# TODO: Get FLASK_COVERAGE from a YAML file
 COV = None
 if os.environ.get('FLASK_COVERAGE'):
     import coverage
@@ -19,8 +18,7 @@ Stream, StreamParameter
 from flask.ext.script import Manager, Shell, Server
 from flask.ext.migrate import Migrate, MigrateCommand
 
-# TODO: Get OOI_CONFIG from a YAML file
-app = create_app(os.getenv('OOI_CONFIG') or 'default')
+app = create_app('DEVELOPMENT')
 manager = Manager(app)
 migrate = Migrate(app,db)
 

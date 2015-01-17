@@ -1,0 +1,32 @@
+COMMON: &common
+    LOGGING: True
+    LOG_FILE_PTAH: '/logs/'
+    LOG_FILE: 'ooiservices.log'
+    SECRET_KEY: 'ecechbhbifiirdghbluukjiuclevjtfidilrkljrveje'
+    SSL_DISABLE: False
+    SQLALCHEMY_COMMIT_ON_TEARDOWN: True
+    SQLALCHEMY_RECORD_QUERIES: True
+    OOI_SLOW_DB_QUERY_TIME: 0.5
+
+DEVELOPMENT: &development
+    <<: *common
+    DEBUG: True
+    SQLALCHEMY_DATABASE_URI: 'postgres://user:password@hostname/database_name'
+    FLASK_COVERAGE: True
+
+LOCAL_DEVELOPMENT: &local_dev
+    <<: *common
+    DEBUG: True
+    SQLALCHEMY_DATABASE_URI: 'postgres://postgres@localhost/ooiuidev'
+    FLASK_COVERAGE: True
+
+TESTING_CONFIG: &testing
+    <<: *common
+    TESTING: True
+    SQLALCHEMY_DATABASE_URI: 'postgres://postgres@localhost/ooiuitest'
+    WTF_CSRF_ENABLED: False
+
+PRODUCTION: &production
+    <<: *common
+    SSL_DISABLE: True
+    SQLALCHEMY_DATABASE_URI: os.environ.get('DATABASE_URL')
