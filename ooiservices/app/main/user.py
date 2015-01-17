@@ -10,6 +10,7 @@ from . import api
 from app import db
 from authentication import auth
 from ..models import User, UserScope, UserScopeLink, UserRole
+import json
 
 @api.route('/user/<string:id>')
 @auth.login_required
@@ -26,7 +27,8 @@ def get_user_scopes():
 @api.route('/user', methods=['POST'])
 @auth.login_required
 def create_user():
-    new_user = User.from_json(request.json)
+    data = json.loads(request.data)
+    new_user = User.from_json(data)
     db.session.add(new_user)
     db.session.commit()
     return jsonify(new_user.to_json()), 201
