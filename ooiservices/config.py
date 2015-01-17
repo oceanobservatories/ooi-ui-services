@@ -32,7 +32,7 @@ class Config:
 class DevelopmentConfig(Config):
     DEBUG = True
     SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
-    'postgres://asa:asa2015@ooiui-dev.cvyc5bvl5zzs.us-east-1.rds.amazonaws.com/ooiuidev'
+    'postgres://user:password@hostname/database_name'
 
 class LocalDevelopmentConfig(Config):
     DEBUG = True
