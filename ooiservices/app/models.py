@@ -229,7 +229,7 @@ class InstrumentDeployment(db.Model):
     def to_json(self):
         json_inst_deploy = {
             'id' : self.id,
-            'ref_designator' : self.reference_designator,
+            'reference_designator' : self.reference_designator,
             'platform_deployment_id' : self.platform_deployment_id,
             'display_name' : self.display_name,
             'start_date' : self.start_date,
@@ -310,7 +310,7 @@ class PlatformDeployment(db.Model):
     def to_json(self):
         json_platform_deployment = {
             'id' : self.id,
-            'ref_designator' : self.reference_designator,
+            'reference_designator' : self.reference_designator,
             'array_id' : self.array_id,
             'display_name' : self.display_name,
             'start_date' : self.start_date,
