@@ -11,7 +11,7 @@ COMMON: &common
 DEVELOPMENT: &development
     <<: *common
     DEBUG: True
-    SQLALCHEMY_DATABASE_URI: 'postgres://asa:4540012015@ooiui-dev.cvyc5bvl5zzs.us-east-1.rds.amazonaws.com/ooiuidev'
+    SQLALCHEMY_DATABASE_URI: 'postgres://user:password@hostname/database_name'
 
 LOCAL_DEVELOPMENT: &local_dev
     <<: *common
