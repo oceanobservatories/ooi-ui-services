@@ -12,10 +12,9 @@ from flask.ext.login import current_user
 
 def scope_required(scope):
     def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            if not current_user.can(scope):
-                abort(403)
-            return f(*args, **kwargs)
+        @wraps( f) def decorated_function(* args, ** kwargs):
+            if not g.current_user.can(scope):
+                return forbidden('Insufficient permissions')
+            return f(* args, ** kwargs)
         return decorated_function
     return decorator
