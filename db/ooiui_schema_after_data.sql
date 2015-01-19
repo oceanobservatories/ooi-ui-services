@@ -194,7 +194,6 @@ ALTER TABLE ONLY annotations
 -- Definition for index annotations_user_id_users_id_fkey (OID = 21030):
 ALTER TABLE ONLY annotations
     ADD CONSTRAINT annotations_user_id_users_id_fkey FOREIGN KEY (user_id) REFERENCES users(id);
-COMMENT ON SCHEMA public IS 'standard public schema';
 ALTER TABLE ONLY user_roles
     ADD CONSTRAINT roles_pkey PRIMARY KEY (id);
 -- Definition for index user_role_link_pkey (OID = 31548):
@@ -206,8 +205,18 @@ ALTER TABLE ONLY user_role_user_scope_link
 -- Definition for index user_role_id_user_roles_id_fkey (OID = 31571):
 ALTER TABLE ONLY user_role_user_scope_link
     ADD CONSTRAINT user_role_id_user_roles_id_fkey FOREIGN KEY (user_role_id) REFERENCES user_roles(id);
+-- Definition for index operator_events_pkey (OID = 32355):
+ALTER TABLE ONLY operator_events
+    ADD CONSTRAINT operator_events_pkey PRIMARY KEY (id);
+-- Definition for index operator_event_types_pkey (OID = 32366):
+ALTER TABLE ONLY operator_event_types
+    ADD CONSTRAINT operator_event_types_pkey PRIMARY KEY (id);
+-- Definition for index operator_events_type_id_operator_events_id_fkey (OID = 32368):
+ALTER TABLE ONLY operator_events
+    ADD CONSTRAINT operator_events_type_id_operator_events_id_fkey FOREIGN KEY (operator_event_type_id) REFERENCES operator_event_types(id);
 --
 -- Comments
 --
+COMMENT ON SCHEMA ooiui IS 'OOI UI Schema';
 COMMENT ON COLUMN assets.deployment_id IS 'Current deployment';
 COMMENT ON COLUMN files.file_size IS 'MB';
