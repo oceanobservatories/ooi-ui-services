@@ -20,7 +20,7 @@ db = SQLAlchemy()
 def create_app(config_name):
     app = Flask(__name__)
     env = Environments(app, default_env=config_name)
-    env.from_yaml('ooiservices/app/config.yml')
+    env.from_yaml(os.path.join(basedir, 'config.yml'))
 
     #Adding logging capabilities.
     if app.config['LOGGING'] == True:
