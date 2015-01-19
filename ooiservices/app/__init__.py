@@ -7,32 +7,29 @@ Initializes the application and necessary application logic
 import os
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
-from config import config
 from flask.ext.login import LoginManager
+from flask_environments import Environments
+
+basedir = os.path.abspath(os.path.dirname(__file__))
 
 login_manager = LoginManager()
 login_manager.session_protection = 'strong'
-
-basedir = os.path.abspath(os.path.dirname(__file__))
 
 db = SQLAlchemy()
 
 def create_app(config_name):
     app = Flask(__name__)
-    app.config.from_object(config[config_name])
-    config[config_name].init_app(app)
+    env = Environments(app, default_env=config_name)
+    env.from_yaml('ooiservices/app/config.yml')
 
-    #This line should be moved to a defaults.py in the future
-    app.config['LOG_FILE'] = True
     #Adding logging capabilities.
-    if app.config.get('LOG_FILE') == True:
+    if app.config['LOGGING'] == True:
         import logging
         logger = logging.getLogger('replicate')
         logger.setLevel(logging.DEBUG)
 
-        # TODO: Add log_filename to YAML config, maybe set up a logging directory in the config as well
-        log_directory = basedir + '/logs/'
-        log_filename = log_directory + 'ooiservices.log'
+        log_directory = basedir + app.config['LOG_FILE_PTAH']
+        log_filename = log_directory + app.config['LOG_FILE']
         if not os.path.exists(os.path.dirname(log_filename)):
             os.makedirs(os.path.dirname(log_filename))
         file_handler = logging.FileHandler(log_filename, mode='a+')

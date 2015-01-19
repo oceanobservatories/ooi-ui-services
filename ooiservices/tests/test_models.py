@@ -18,7 +18,7 @@ these tests are to validate model logic outside of db management.
 '''
 class ModelTestCase(unittest.TestCase):
     def setUp(self):
-        self.app = create_app('testing')
+        self.app = create_app('TESTING_CONFIG')
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
@@ -41,14 +41,14 @@ class ModelTestCase(unittest.TestCase):
         platform_deployment = PlatformDeployment()
         self.assertTrue(platform_deployment.to_json() == {'id': None, \
         'array_id': None, 'display_name': None, 'end_date': None, \
-        'geo_location': None, 'ref_designator': None, 'start_date': None})
+        'geo_location': None, 'reference_designator': None, 'start_date': None})
 
     def test_instrument_deployment(self):
         #Test the json in the object
         instrument_deployment = InstrumentDeployment()
         self.assertTrue(instrument_deployment.to_json() == {'id': None, \
         'depth': None, 'display_name': None, 'end_date': None, 'geo_location': None, \
-        'platform_deployment_id': None, 'ref_designator': None, 'start_date': None})
+        'platform_deployment_id': None, 'reference_designator': None, 'start_date': None})
 
     def test_stream(self):
         #Test the json in the object
