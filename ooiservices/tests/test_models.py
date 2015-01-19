@@ -79,10 +79,16 @@ class ModelTestCase(unittest.TestCase):
 
     def test_annotation(self):
         annotation = Annotation()
+
+        #Test the __repr__
+        self.assertTrue(annotation.__repr__() == '<Annotation: None>')
+
+        #Test the GET response.
         self.assertTrue(annotation.to_json() == {'comment': None, 'created_time': None, \
         'modified_time': None, 'reference_name': None, 'reference_pk_id': None, \
         'reference_type': None, 'title': None, 'user_id': None})
 
+        #Test the POST
         newAnnotation = annotation.from_json({'comment': 'test', 'created_time': '2015-01-19 10:36:38', \
         'modified_time': '2015-01-19 10:36:38', 'reference_name': 'test', 'reference_pk_id': 1, \
         'reference_type': 'test', 'title': 'test', 'user_id': 1})

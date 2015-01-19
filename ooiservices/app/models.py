@@ -60,6 +60,7 @@ class Annotation(db.Model):
     def __repr__(self):
         return '<Annotation: %s>' % self.title
 
+
 class Array(db.Model):
     __tablename__ = 'arrays'
     __table_args__ = {u'schema': __schema__}
