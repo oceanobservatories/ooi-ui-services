@@ -30,6 +30,36 @@ class Annotation(db.Model):
 
     user = db.relationship(u'User')
 
+    def to_json(self):
+        json_annotation = {
+            'user_id': self.user_id,
+            'created_time': self.created_time,
+            'modified_time': self.modified_time,
+            'reference_name': self.reference_name,
+            'reference_type': self.reference_type,
+            'reference_pk_id': self.reference_pk_id,
+            'title': self.title,
+            'comment': self.comment
+        }
+        return json_annotation
+
+    @staticmethod
+    def from_json(json_post):
+        user_id         = json_post.get('user_id')
+        created_time    = json_post.get('created_time')
+        modified_time   = json_post.get('modified_time')
+        reference_name  = json_post.get('reference_name')
+        reference_type  = json_post.get('reference_type')
+        reference_pk_id = json_post.get('reference_pk_id')
+        title           = json_post.get('title')
+        comment         = json_post.get('comment')
+        return Annotation(user_id=user_id, created_time=created_time, modified_time=modified_time, \
+        reference_name=reference_name, reference_type=reference_type, reference_pk_id=reference_pk_id, \
+        title=title, comment=comment)
+
+    def __repr__(self):
+        return '<Annotation: %s>' % self.title
+
 class Array(db.Model):
     __tablename__ = 'arrays'
     __table_args__ = {u'schema': __schema__}

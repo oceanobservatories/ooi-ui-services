@@ -9,7 +9,8 @@ from flask import jsonify, request, current_app, url_for
 from . import api
 from app import db
 from authentication import auth
-from ..models import Array, PlatformDeployment, InstrumentDeployment, Stream, StreamParameter
+from ..models import Array, PlatformDeployment, InstrumentDeployment, Stream, StreamParameter,\
+    Annotation
 
 
 @api.route('/arrays')
@@ -17,7 +18,7 @@ def get_arrays():
     arrays = Array.query.all()
     return jsonify( {'arrays' : [array.to_json() for array in arrays] })
 
-@api.route('/arrays/', methods=['POST'])
+@api.route('/arrays', methods=['POST'])
 @auth.login_required
 def set_array():
     array = Array.from_json(request.json)
@@ -78,3 +79,17 @@ def get_parameters():
 def get_parameter(id):
     parameter = StreamParameter.query.filter_by(stream_parameter_name=id).first_or_404()
     return jsonify(parameter.to_json())
+
+@api.route('/annotations')
+@auth.login_required
+def get_annotations():
+    annotations = Annotation.query.all()
+    return jsonify({ 'annotations' : [annotation.to_json() for annotation in annotations] })
+
+@api.route('/annotations', methods=['POST'])
+@auth.login_required
+def set_annotation(request):
+    annotation = Annotation.from_json(request.json)
+    db.session.add(annotation)
+    db.session.commit()
+    return jsonify(annotation.to_json())

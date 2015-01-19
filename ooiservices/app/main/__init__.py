@@ -10,4 +10,4 @@ from flask import Blueprint
 
 api = Blueprint('main', __name__)
 
-from . import toc, authentication, user
+from . import ui, authentication, user

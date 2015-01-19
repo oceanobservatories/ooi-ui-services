@@ -13,18 +13,18 @@ if os.environ.get('FLASK_COVERAGE'):
     COV.start()
 from app import create_app, db
 from app.models import User, UserScope, UserScopeLink, Array, PlatformDeployment, InstrumentDeployment, \
-Stream, StreamParameter
+Stream, StreamParameter, Annotation
 from flask.ext.script import Manager, Shell, Server
 from flask.ext.migrate import Migrate, MigrateCommand
 
-app = create_app('DEVELOPMENT')
+app = create_app('LOCAL_DEVELOPMENT')
 manager = Manager(app)
 migrate = Migrate(app,db)
 
 def make_shell_context():
     return dict(app=app, db=db, User=User, UserScope=UserScope, UserScopeLink=UserScopeLink, Array=Array, \
     PlatformDeployment=PlatformDeployment, InstrumentDeployment=InstrumentDeployment, \
-    Stream=Stream, StreamParameter=StreamParameter)
+    Stream=Stream, StreamParameter=StreamParameter, Annotation=Annotation)
 
 manager.add_command("runserver", Server(host="127.0.0.1", port=4000))
 manager.add_command("shell", Shell(make_context=make_shell_context))

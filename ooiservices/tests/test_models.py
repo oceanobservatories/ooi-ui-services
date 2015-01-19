@@ -9,7 +9,7 @@ import unittest
 from flask import url_for
 from app import create_app, db
 from app.models import Array, InstrumentDeployment, PlatformDeployment, Stream, \
-StreamParameter, User, UserRole
+StreamParameter, User, UserRole, Annotation
 
 '''
 These tests are additional to the normal testing performed by coverage; each of
@@ -23,6 +23,9 @@ class ModelTestCase(unittest.TestCase):
         self.app_context.push()
         db.create_all()
         self.client = self.app.test_client(use_cookies=False)
+        test_password = 'test'
+        User.insert_user(test_password)
+        UserRole.insert_roles()
 
     def tearDown(self):
         db.session.remove()
@@ -73,3 +76,16 @@ class ModelTestCase(unittest.TestCase):
         #Test the json in the object
         role = UserRole()
         self.assertTrue(role.to_json() == {'id': None, 'role_name': None})
+
+    def test_annotation(self):
+        annotation = Annotation()
+        self.assertTrue(annotation.to_json() == {'comment': None, 'created_time': None, \
+        'modified_time': None, 'reference_name': None, 'reference_pk_id': None, \
+        'reference_type': None, 'title': None, 'user_id': None})
+
+        newAnnotation = annotation.from_json({'comment': 'test', 'created_time': '2015-01-19 10:36:38', \
+        'modified_time': '2015-01-19 10:36:38', 'reference_name': 'test', 'reference_pk_id': 1, \
+        'reference_type': 'test', 'title': 'test', 'user_id': 1})
+        db.session.add(newAnnotation)
+        db.session.commit()
+        self.assertTrue(db.session.query(Annotation).count() == 1L)
