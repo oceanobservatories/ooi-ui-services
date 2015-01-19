@@ -76,6 +76,17 @@ insert into user_role_user_scope_link(user_scope_id, user_role_id) values (2, 2)
 insert into user_role_user_scope_link(user_scope_id, user_role_id) values (3, 3);
 insert into user_role_user_scope_link(user_scope_id, user_role_id) values (4, 3);
 
+-- operator_event_types
+insert into operator_event_types(type_name, type_description) values ('INFO', 'General information event.');
+insert into operator_event_types(type_name, type_description) values ('WARN', 'A warning has occurred.');
+insert into operator_event_types(type_name, type_description) values ('ERROR', 'An error has occurred.');
+insert into operator_event_types(type_name, type_description) values ('CRITICAL', 'A critical event has occurred.');
+insert into operator_event_types(type_name, type_description) values ('WATCH_START', 'Watch has started.');
+insert into operator_event_types(type_name, type_description) values ('WATCH_END', 'Watch has ended.');
+
+-- operator_events
+insert into operator_events(user_id, operator_event_type_id, event_time, event_title, event_comment) values (2, 1, '2015-01-19 20:32:16.828334+00', 'This is only a test.', 'This is a comment of only a test.');
+
 -- arrays
 insert into arrays (array_code, description, geo_location, array_name, display_name) values ('CE', '', ST_MakeEnvelope(44.37, -124.95, 44.37, -124.95, 4326), 'Endurance (CE)', 'Coastal Endurance');
 insert into arrays (array_code, description, geo_location, array_name, display_name) values ('GP', '', ST_MakeEnvelope(49.9795, -144.254, 49.9795, -144.254, 4326), 'PAPA (GP)', 'Global Station Papa');

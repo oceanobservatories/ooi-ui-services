@@ -9,7 +9,7 @@ import unittest
 from flask import url_for
 from app import create_app, db
 from app.models import Array, InstrumentDeployment, PlatformDeployment, Stream, \
-StreamParameter, User, UserRole
+StreamParameter, User, UserRole, OperatorEvent, OperatorEventType
 
 '''
 These tests are additional to the normal testing performed by coverage; each of
@@ -73,3 +73,8 @@ class ModelTestCase(unittest.TestCase):
         #Test the json in the object
         role = UserRole()
         self.assertTrue(role.to_json() == {'id': None, 'role_name': None})
+
+    def test_operator_event_type(self):
+        #Test the json in the object
+        operator_event_type = OperatorEventType()
+        self.assertTrue(operator_event_type.to_json() == {'id': None, 'type_name': None, 'type_description': None})

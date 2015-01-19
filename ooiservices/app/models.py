@@ -11,6 +11,7 @@ from flask import current_app
 from . import db, login_manager
 from flask.ext.login import UserMixin
 from wtforms import ValidationError
+from datetime import datetime
 
 __schema__ = 'ooiui'
 
@@ -281,6 +282,87 @@ class Manufacturer(db.Model):
     phone_number = db.Column(db.Text)
     contact_name = db.Column(db.Text)
     web_address = db.Column(db.Text)
+
+class OperatorEventType(db.Model):
+    __tablename__ = 'operator_event_types'
+    __table_args__ = {u'schema': __schema__}
+
+    id = db.Column(db.Integer, primary_key=True)
+    type_name = db.Column(db.Text, nullable=False)
+    type_description = db.Column(db.Text)
+
+    def to_json(self):
+        json_operator_event_type_link = {
+            'id' : self.id,
+            'type_name' : self.type_name,
+            'type_description' : self.type_description
+        }
+        return json_operator_event_type_link
+
+    @staticmethod
+    def insert_operator_event_types():
+       event_info = OperatorEventType(type_name='INFO')
+       event_info.type_description = 'General information event.'
+       event_warn = OperatorEventType(type_name='WARN')
+       event_warn.type_description = 'A warning has occurred.'
+       event_error = OperatorEventType(type_name='ERROR')
+       event_error.type_description = 'An error has occurred.'
+       event_critical = OperatorEventType(type_name='CRITICAL')
+       event_critical.type_description = 'A critical event has occurred.'
+       event_start_watch = OperatorEventType(type_name='WATCH_START')
+       event_start_watch.type_description = 'Watch has started.'
+       event_end_watch = OperatorEventType(type_name='WATCH_END')
+       event_end_watch.type_description = 'Watch has ended.'
+
+       db.session.add_all([event_info, event_warn, event_error, event_critical, event_start_watch, event_end_watch])
+       db.session.commit()
+
+class OperatorEvent(db.Model):
+    __tablename__ = 'operator_events'
+    __table_args__ = {u'schema': __schema__}
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, nullable=False)
+    operator_event_type_id = db.Column(db.ForeignKey(u'' + __schema__ + '.operator_event_types.id'), nullable=False)
+    event_time = db.Column(db.DateTime(True), nullable=False, server_default=db.text("now()"))
+    event_title = db.Column(db.Text, nullable=False)
+    event_comment = db.Column(db.Text)
+
+    operator_event_type = db.relationship(u'OperatorEventType')
+
+    def to_json(self):
+        json_operator_event = {
+            'id' : self.id,
+            'user_id' : self.user_id,
+            'operator_event_type_id' : self.operator_event_type_id,
+            'event_time' : self.event_time,
+            'event_title' : self.event_title,
+            'event_comment' : self.event_comment
+        }
+        return json_operator_event
+
+    @staticmethod
+    def from_json(json):
+        user_id = json.get('user_id')
+        operator_event_type_id = json.get('operator_event_type_id')
+        event_time = json.get('repeatPassword')
+        event_title = json.get('phonenum')
+        event_comment = json.get('username')
+
+        #Return the OperatorEvent object ready to be stored.
+        return OperatorEventType(user_id=user_id, operator_event_type_id=operator_event_type_id, event_time=event_time, \
+                    event_title=event_title, event_comment=event_comment)
+
+    @staticmethod
+    def insert_operator_event():
+       event_info = OperatorEvent(user_id=1)
+       event_info.operator_event_type_id = 1
+       #event_info.event_time = datetime.now()
+       event_info.event_title = 'This is only a test.'
+       event_info.event_comment = 'This is a comment of only a test.'
+
+       db.session.add_all([event_info])
+       db.session.commit()
 
 class Organization(db.Model):
     __tablename__ = 'organizations'

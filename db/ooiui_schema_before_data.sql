@@ -12,8 +12,6 @@ SET client_min_messages = warning;
 
 CREATE SCHEMA ooiui;
 
-ALTER SCHEMA ooiui OWNER TO postgres;
-
 SET search_path = ooiui, public, pg_catalog;
 --
 -- END HEADER DEFINITIONS
@@ -477,4 +475,32 @@ CREATE TABLE user_role_user_scope_link (
     user_scope_id integer NOT NULL,
     user_role_id integer NOT NULL
 ) WITHOUT OIDS;
-
+-- Definition for sequence operator_events_id_seq (OID = 32346):
+CREATE SEQUENCE operator_events_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+-- Structure for table operator_events (OID = 32348):
+CREATE TABLE operator_events (
+    id integer DEFAULT nextval('operator_events_id_seq'::regclass) NOT NULL,
+    user_id integer NOT NULL,
+    operator_event_type_id integer NOT NULL,
+    event_time timestamp with time zone NOT NULL,
+    event_title text NOT NULL,
+    event_comment text
+) WITHOUT OIDS;
+-- Definition for sequence operator_event_types_id_seq (OID = 32357):
+CREATE SEQUENCE operator_event_types_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+-- Structure for table operator_event_types (OID = 32359):
+CREATE TABLE operator_event_types (
+    id integer DEFAULT nextval('operator_event_types_id_seq'::regclass) NOT NULL,
+    type_name text NOT NULL,
+    type_description text
+) WITHOUT OIDS;
