@@ -504,3 +504,116 @@ CREATE TABLE operator_event_types (
     type_name text NOT NULL,
     type_description text
 ) WITHOUT OIDS;
+-- Definition for sequence platformnames_id_seq (OID = ?????):
+CREATE SEQUENCE platformnames_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+-- Structure for table platformnames (OID = ????):
+CREATE TABLE platformnames (
+    id integer DEFAULT nextval('platformnames_id_seq'::regclass) NOT NULL,
+    reference_designator text,
+    array_type text,
+    array_name text,
+    site text,
+    platform text,
+    assembly text
+) WITHOUT OIDS;
+-- Definition for sequence instrumentnames_id_seq (OID = ?????):
+CREATE SEQUENCE instrumentnames_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+-- Structure for table instrumentnames (OID = ????):
+CREATE TABLE instrumentnames ( 
+    id integer DEFAULT nextval('instrumentnames_id_seq'::regclass) NOT NULL,
+    instrument_class text, 
+    display_name text 
+) WITHOUT OIDS; 
+
+-- 
+-- Name: f_concat_rd(text, text, text, text, text, text); Type: FUNCTION; Schema: public; Owner: - 
+-- 
+  
+CREATE FUNCTION f_concat_rd(array_type text, array_name text, site text, platform text, assembly text, instrument_name text) RETURNS text 
+    LANGUAGE plpgsql 
+    AS $$ 
+BEGIN 
+    IF assembly IS NOT NULL AND instrument_name IS NOT NULL THEN 
+        RETURN concat(array_type, ' ', array_name, ' ', site, ' ', platform, ' - ', assembly, ' - ', instrument_name); 
+    ELSIF assembly IS NOT NULL AND instrument_name IS NULL THEN 
+        RETURN concat(array_type, ' ', array_name, ' ', site, ' ', platform, ' - ', assembly); 
+    ELSE 
+        RETURN concat(array_type, ' ', array_name, ' ', site, ' ', platform); 
+    END IF; 
+END 
+$$; 
+  
+  
+-- 
+-- Name: f_display_name(text); Type: FUNCTION; Schema: public; Owner: - 
+-- 
+  
+CREATE FUNCTION f_display_name(reference_designator text) RETURNS text 
+    LANGUAGE plpgsql 
+    AS $_$ 
+DECLARE 
+    p_n platformnames%rowtype; 
+    i_n instrumentnames%rowtype; 
+    assy TEXT; 
+    inst TEXT; 
+    platform_text TEXT; 
+    rd_len INT; 
+BEGIN 
+    rd_len := char_length(reference_designator); 
+  
+    IF NOT reference_designator ~ 'MOAS' THEN 
+        SELECT * INTO p_n FROM platformnames WHERE platformnames.reference_designator ~ SUBSTRING($1 FROM 0 FOR 15) LIMIT 1; 
+    ELSE  
+        SELECT * INTO p_n FROM platformnames WHERE platformnames.reference_designator ~ SUBSTRING($1 FROM 0 FOR 9) LIMIT 1; 
+    END IF; 
+  
+    IF NOT FOUND THEN 
+        RETURN reference_designator; 
+    END IF; 
+  
+    IF rd_len = 8 THEN 
+        RETURN f_concat_rd(p_n.array_type, p_n.array_name, p_n.site, p_n.platform, NULL, NULL); 
+    ELSIF rd_len = 14 THEN 
+        assy := SUBSTRING(reference_designator FROM 10 FOR 5); 
+  
+        IF assy ~ 'AV[0-9]{3}' THEN 
+            platform_text := 'AUV ' || SUBSTRING(assy FROM 4 FOR 3); 
+        ELSIF assy ~ 'GL[0-9]{3}' THEN 
+            platform_text := 'Glider ' || SUBSTRING(assy FROM 4 FOR 3); 
+        ELSE 
+            platform_text := p_n.assembly; 
+        END IF; 
+         
+        RETURN f_concat_rd(p_n.array_type, p_n.array_name, p_n.site, p_n.platform, platform_text, NULL); 
+    ELSIF rd_len = 27 THEN 
+        inst := SUBSTRING(reference_designator FROM 19 FOR 5); 
+        assy := SUBSTRING(reference_designator FROM 10 FOR 5); 
+        IF assy ~ 'AV[0-9]{3}' THEN 
+            platform_text := 'AUV ' || SUBSTRING(assy FROM 4 FOR 3); 
+        ELSIF assy ~ 'GL[0-9]{3}' THEN 
+            platform_text := 'Glider ' || SUBSTRING(assy FROM 4 FOR 3); 
+        ELSE 
+            platform_text := p_n.assembly; 
+        END IF; 
+  
+        SELECT * INTO i_n FROM instrumentnames WHERE instrumentnames.instrument_class = inst; 
+        IF NOT FOUND THEN 
+            RETURN f_concat_rd(p_n.array_type, p_n.array_name, p_n.site, p_n.platform, platform_text, inst); 
+        END IF; 
+        RETURN f_concat_rd(p_n.array_type, p_n.array_name, p_n.site, p_n.platform, platform_text, i_n.display_name); 
+    END IF; 
+  
+    RETURN NULL; 
+  
+END 
+$_$; 

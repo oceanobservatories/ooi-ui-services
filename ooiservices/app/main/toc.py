@@ -78,3 +78,16 @@ def get_parameters():
 def get_parameter(id):
     parameter = StreamParameter.query.filter_by(stream_parameter_name=id).first_or_404()
     return jsonify(parameter.to_json())
+
+@api.route('/displayname/<string:reference_designator>')
+def get_display_name(reference_designator):
+    import sqlalchemy
+    from sqlalchemy.orm import sessionmaker, scoped_session
+    from sqlalchemy.sql import text
+    engine = sqlalchemy.create_engine('postgres://asa:4540012015@ooiui-dev.cvyc5bvl5zzs.us-east-1.rds.amazonaws.com/ooiuidev')
+    Session = scoped_session(sessionmaker(bind=engine))
+    s = Session()
+    s.execute('SET search_path = ooiui, public, pg_catalog;')
+    stmt = "select f_display_name('%s')" % reference_designator
+    display_names = s.execute(text(stmt))
+    return jsonify(display_name = str(display_names.fetchall()[0]))

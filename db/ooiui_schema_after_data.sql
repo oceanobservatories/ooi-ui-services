@@ -214,6 +214,12 @@ ALTER TABLE ONLY operator_event_types
 -- Definition for index operator_events_type_id_operator_events_id_fkey (OID = 32368):
 ALTER TABLE ONLY operator_events
     ADD CONSTRAINT operator_events_type_id_operator_events_id_fkey FOREIGN KEY (operator_event_type_id) REFERENCES operator_event_types(id);
+-- Definition for index platformnames_pkey (OID = ?????):
+ALTER TABLE ONLY platformnames
+    ADD CONSTRAINT platformnames_pkey PRIMARY KEY (id);
+-- Definition for index instrumentnames_pkey (OID = ?????):
+ALTER TABLE ONLY instrumentnames
+    ADD CONSTRAINT instrumentnames_pkey PRIMARY KEY (id);
 --
 -- Comments
 --
