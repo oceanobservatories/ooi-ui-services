@@ -60,9 +60,9 @@ Create and load your database.  Service assumes no password for default postgres
     psql -c "create database ooiuitest;" -U postgres
     psql -c "create extension postgis;" ooiuitest
     psql -c "create schema ooiui;" ooiuitest
-    psql ooiuidev < db/ooiui_schema_before_data.sql
-    psql ooiuidev < db/ooiui_schema_data.sql
-    psql ooiuidev < db/ooiui_schema_after_data.sql
+    psql ooiuitest < db/ooiui_schema_before_data.sql
+    psql ooiuitest < db/ooiui_schema_data.sql
+    psql ooiuitest < db/ooiui_schema_after_data.sql
 
 ### Service Tests
 Test your initial setup by running from ooi-ui-services directory:
