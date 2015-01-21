@@ -10,8 +10,8 @@ import json
 import re
 from base64 import b64encode
 from flask import url_for
-from app import create_app, db
-from app.models import User, UserScope, UserRole
+from ooiservices.app import create_app, db
+from ooiservices.app.models import User, UserScope, UserRole
 
 '''
 These tests are additional to the normal testing performed by coverage; each of

@@ -9,7 +9,7 @@ import re
 import threading
 import unittest
 from selenium import webdriver
-from app import create_app, db
+from ooiservices.app import create_app, db
 
 class SeleniumTest(unittest.TestCase):
 
