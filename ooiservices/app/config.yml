@@ -9,6 +9,7 @@ COMMON: &common
     OOI_SLOW_DB_QUERY_TIME: 0.5
     HOST: localhost
     PORT: 4000
+    JSONIFY_PRETTYPRINT_REGULAR: true
 
 DEVELOPMENT: &development
     <<: *common
