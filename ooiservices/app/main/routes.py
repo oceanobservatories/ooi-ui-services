@@ -83,3 +83,4 @@ def get_parameter(id):
 def get_organizations():
     organizations = [o.serialize() for o in Organization.query.all()]
     return jsonify(organizations=organizations)
+
