@@ -286,6 +286,14 @@ class InstrumentModel(db.Model):
 
     manufacturer = db.relationship(u'Manufacturer')
 
+class Instrumentname(db.Model):
+    __tablename__ = 'instrumentnames'
+    __table_args__ = {u'schema': __schema__}
+
+    id = db.Column(db.Integer, primary_key=True)
+    instrument_class = db.Column(db.Text)
+    display_name = db.Column(db.Text)
+
 class Instrument(db.Model):
     __tablename__ = 'instruments'
     __table_args__ = {u'schema': __schema__}
@@ -434,6 +442,17 @@ class PlatformDeployment(db.Model):
         }
         return json_platform_deployment
 
+class Platformname(db.Model):
+    __tablename__ = 'platformnames'
+    __table_args__ = {u'schema': __schema__}
+
+    id = db.Column(db.Integer, primary_key=True)
+    reference_designator = db.Column(db.Text)
+    array_type = db.Column(db.Text)
+    array_name = db.Column(db.Text)
+    site = db.Column(db.Text)
+    platform = db.Column(db.Text)
+    assembly = db.Column(db.Text)
 
 class Platform(db.Model):
     __tablename__ = 'platforms'
