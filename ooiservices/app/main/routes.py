@@ -9,7 +9,7 @@ from flask import jsonify, request, current_app, url_for
 from ooiservices.app.main import api
 from app import db
 from authentication import auth
-from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment, Stream, StreamParameter
+from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment, Stream, StreamParameter, Organization
 
 
 @api.route('/arrays')
@@ -78,3 +78,8 @@ def get_parameters():
 def get_parameter(id):
     parameter = StreamParameter.query.filter_by(stream_parameter_name=id).first_or_404()
     return jsonify(parameter.to_json())
+
+@api.route('/organization', methods=['GET'])
+def get_organizations():
+    organizations = [o.serialize() for o in Organization.query.all()]
+    return jsonify(organizations=organizations)
