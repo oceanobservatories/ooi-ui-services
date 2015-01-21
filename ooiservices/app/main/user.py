@@ -7,7 +7,7 @@ __author__ = 'M@Campbell'
 
 from flask import jsonify, request, current_app, url_for
 from ooiservices.app.main import api
-from app import db
+from ooiservices.app import db
 from authentication import auth
 from ooiservices.app.models import User, UserScope, UserScopeLink, UserRole
 import json

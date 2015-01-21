@@ -7,9 +7,9 @@ __author__ = 'M@Campbell'
 
 from flask import jsonify, request, current_app, url_for
 from ooiservices.app.main import api
-from app import db
+from ooiservices.app import db
 from authentication import auth
-from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment, Stream, StreamParameter
+from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment, Stream, StreamParameter, Organization
 
 
 @api.route('/arrays')
@@ -30,15 +30,15 @@ def get_array(id):
     array = Array.query.filter_by(array_code=id).first_or_404()
     return jsonify(array.to_json())
 
-#@api.route('/platform_deployments')
-#def get_platform_deployments():
-#    if 'array_id' in request.args:
-#        platform_deployments = \
-#        PlatformDeployment.query.filter_by(array_id=request.args['array_id']).all()
-#    else:
-#        platform_deployments = PlatformDeployment.query.all()
-#
-#    return jsonify({ 'platform_deployments' : [platform_deployment.to_json() for platform_deployment in platform_deployments] })
+@api.route('/platform_deployments')
+def get_platform_deployments():
+    if 'array_id' in request.args:
+        platform_deployments = \
+        PlatformDeployment.query.filter_by(array_id=request.args['array_id']).all()
+    else:
+        platform_deployments = PlatformDeployment.query.all()
+
+    return jsonify({ 'platform_deployments' : [platform_deployment.to_json() for platform_deployment in platform_deployments] })
 
 @api.route('/platform_deployments/<string:id>')
 def get_platform_deployment(id):
@@ -78,3 +78,8 @@ def get_parameters():
 def get_parameter(id):
     parameter = StreamParameter.query.filter_by(stream_parameter_name=id).first_or_404()
     return jsonify(parameter.to_json())
+
+@api.route('/organization', methods=['GET'])
+def get_organizations():
+    organizations = [o.serialize() for o in Organization.query.all()]
+    return jsonify(organizations=organizations)

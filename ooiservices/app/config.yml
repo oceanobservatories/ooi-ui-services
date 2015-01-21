@@ -7,11 +7,12 @@ COMMON: &common
     SQLALCHEMY_COMMIT_ON_TEARDOWN: True
     SQLALCHEMY_RECORD_QUERIES: True
     OOI_SLOW_DB_QUERY_TIME: 0.5
+    SERVER_NAME: localhost
 
 DEVELOPMENT: &development
     <<: *common
     DEBUG: True
-    SQLALCHEMY_DATABASE_URI: 'postgres://luke@localhost/ooiuidev'
+    SQLALCHEMY_DATABASE_URI: 'postgres://user:password@hostname/database_name'
 
 LOCAL_DEVELOPMENT: &local_dev
     <<: *common

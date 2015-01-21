@@ -7,9 +7,8 @@ __author__ = 'M@Campbell'
 
 import unittest
 from flask import url_for
-from app import create_app, db
-from app.models import Array, InstrumentDeployment, PlatformDeployment, Stream, \
-StreamParameter
+from ooiservices.app import create_app, db
+from ooiservices.app.models import Array, InstrumentDeployment, PlatformDeployment, Stream, StreamParameter
 
 '''
 These tests verify the functioning of the api list.

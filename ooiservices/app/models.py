@@ -31,6 +31,21 @@ class Geometry(UserDefinedType):
 
 #--------------------------------------------------------------------------------
 
+from collections import OrderedDict
+ 
+class DictSerializableMixin(object):
+    def serialize(self):
+        return self._asdict()
+
+    def _asdict(self):
+        result = OrderedDict()
+        for key in self.__mapper__.c.keys():
+            result[key] = getattr(self, key)
+        return result
+
+
+#--------------------------------------------------------------------------------
+
 __schema__ = 'ooiui'
 
 class Annotation(db.Model):
@@ -382,7 +397,7 @@ class OperatorEvent(db.Model):
        db.session.add_all([event_info])
        db.session.commit()
 
-class Organization(db.Model):
+class Organization(db.Model, DictSerializableMixin):
     __tablename__ = 'organizations'
     __table_args__ = {u'schema': __schema__}
 
