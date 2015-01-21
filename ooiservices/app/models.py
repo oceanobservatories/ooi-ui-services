@@ -13,6 +13,24 @@ from flask.ext.login import UserMixin
 from wtforms import ValidationError
 from datetime import datetime
 
+#--------------------------------------------------------------------------------
+
+from sqlalchemy.types import UserDefinedType
+from sqlalchemy import func
+
+class Geometry(UserDefinedType):
+    def get_col_spec(self):
+        return "GEOMETRY"
+
+    def bind_expression(self, bindvalue):
+        return func.ST_GeomFromText(bindvalue, type_=self)
+
+    def column_expression(self, col):
+        return func.ST_AsText(col, type_=self)
+
+
+#--------------------------------------------------------------------------------
+
 __schema__ = 'ooiui'
 
 class Annotation(db.Model):
@@ -38,7 +56,7 @@ class Array(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     array_code = db.Column(db.Text())
     description = db.Column(db.Text())
-    geo_location = db.Column(db.Text())
+    geo_location = db.Column(Geometry)
     array_name = db.Column(db.Text())
     display_name = db.Column(db.Text())
 
@@ -104,7 +122,7 @@ class Asset(db.Model):
     current_lifecycle_state = db.Column(db.Text)
     part_number = db.Column(db.Text)
     firmware_version = db.Column(db.Text)
-    geo_location = db.Column(db.Text)
+    geo_location = db.Column(Geometry)
 
     asset_type = db.relationship(u'AssetType')
     organization = db.relationship(u'Organization')
@@ -222,7 +240,7 @@ class InstrumentDeployment(db.Model):
     instrument_id = db.Column(db.ForeignKey(u'' + __schema__ + '.instruments.id'))
     reference_designator = db.Column(db.Text)
     depth = db.Column(db.Float)
-    geo_location = db.Column(db.Text)
+    geo_location = db.Column(Geometry)
 
     instrument = db.relationship(u'Instrument')
     platform_deployment = db.relationship(u'PlatformDeployment')
@@ -383,7 +401,7 @@ class PlatformDeployment(db.Model):
     array_id = db.Column(db.ForeignKey(u'' + __schema__ + '.arrays.id'))
     deployment_id = db.Column(db.ForeignKey(u'' + __schema__ + '.deployments.id'))
     display_name = db.Column(db.Text)
-    geo_location = db.Column(db.Text)
+    geo_location = db.Column(Geometry)
 
     array = db.relationship(u'Array')
     deployment = db.relationship(u'Deployment')

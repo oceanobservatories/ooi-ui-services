@@ -78,3 +78,12 @@ class ModelTestCase(unittest.TestCase):
         #Test the json in the object
         operator_event_type = OperatorEventType()
         self.assertTrue(operator_event_type.to_json() == {'id': None, 'type_name': None, 'type_description': None})
+
+    def test_geometry(self):
+        platform_deployment = PlatformDeployment()
+        platform_deployment.reference_designator = 'TEST0000'
+        platform_deployment.geo_location = 'POINT(-70 40)'
+        db.session.add(platform_deployment)
+        db.session.commit()
+        pd = PlatformDeployment.query.filter(PlatformDeployment.reference_designator=='TEST0000').first()
+        assert pd.geo_location == 'POINT(-70 40)'
