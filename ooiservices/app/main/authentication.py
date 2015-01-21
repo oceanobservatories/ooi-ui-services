@@ -5,9 +5,9 @@ API Authentication
 
 from flask import g, jsonify
 from flask.ext.httpauth import HTTPBasicAuth
-from ..models import User
-from . import api
-from .errors import unauthorized, forbidden
+from ooiservices.app.models import User
+from ooiservices.app.main import api
+from ooiservices.app.main.errors import unauthorized, forbidden
 
 auth = HTTPBasicAuth()
 

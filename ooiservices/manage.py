@@ -11,9 +11,7 @@ if os.environ.get('FLASK_COVERAGE'):
     import coverage
     COV = coverage.coverage(branch=True,include=basedir + '/app/*')
     COV.start()
-from app import create_app, db
-from app.models import User, UserScope, UserScopeLink, Array, PlatformDeployment, InstrumentDeployment, \
-Stream, StreamParameter
+from ooiservices.app import create_app, db
 from flask.ext.script import Manager, Shell, Server
 from flask.ext.migrate import Migrate, MigrateCommand
 
@@ -22,9 +20,21 @@ manager = Manager(app)
 migrate = Migrate(app,db)
 
 def make_shell_context():
-    return dict(app=app, db=db, User=User, UserScope=UserScope, UserScopeLink=UserScopeLink, Array=Array, \
-    PlatformDeployment=PlatformDeployment, InstrumentDeployment=InstrumentDeployment, \
-    Stream=Stream, StreamParameter=StreamParameter)
+    from ooiservices.app.models import User, UserScope, UserScopeLink, Array
+    from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameter
+
+
+    ctx = {"app": app,
+           "db": db,
+           "User": User,
+           "UserScope": UserScope,
+           "UserScopeLink": UserScopeLink,
+           "Array": Array,
+           "PlatformDeployment": PlatformDeployment,
+           "InstrumentDeployment": InstrumentDeployment,
+           "Stream": Stream,
+           "StreamParameter": StreamParameter}
+    return ctx
 
 manager.add_command("runserver", Server(host="127.0.0.1", port=4000))
 manager.add_command("shell", Shell(make_context=make_shell_context))

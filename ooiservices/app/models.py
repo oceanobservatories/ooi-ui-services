@@ -8,7 +8,7 @@ __author__ = 'M@Campbell'
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app
-from . import db, login_manager
+from ooiservices.app import db, login_manager
 from flask.ext.login import UserMixin
 from wtforms import ValidationError
 from datetime import datetime

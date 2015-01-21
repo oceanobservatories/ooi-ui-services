@@ -1,5 +1,5 @@
 from flask import jsonify
-from . import api
+from ooiservices.app.main import api
 
 class ValidationError(ValueError):
     pass
