@@ -6,10 +6,10 @@ User API v1.0 List
 __author__ = 'Jim Case'
 
 from flask import jsonify, request, current_app, url_for
-from . import api
+from ooiservices.app.main import api
 from app import db
 from authentication import auth
-from ..models import OperatorEvent, OperatorEventType
+from ooiservices.app.models import OperatorEvent, OperatorEventType
 import json
 from wtforms import ValidationError
 

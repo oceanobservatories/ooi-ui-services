@@ -46,7 +46,7 @@ def create_app(config_name):
     db.init_app(app)
     login_manager.init_app(app)
 
-    from .main import api as main_blueprint
+    from ooiservices.app.main import api as main_blueprint
     app.register_blueprint(main_blueprint)
 
     return app
