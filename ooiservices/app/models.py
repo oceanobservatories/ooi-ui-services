@@ -554,6 +554,7 @@ class UserRole(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     role_name = db.Column(db.Text, nullable=False)
+    scopes = db.relationship(u'UserRoleUserScopeLink')
 
     def to_json(self):
         json_role_link = {
@@ -606,6 +607,7 @@ class UserScope(db.Model):
     scope_name = db.Column(db.Text, nullable=False, unique=True)
     scope_description = db.Column(db.Text)
 
+
     @staticmethod
     def insert_scopes():
        scope_am = UserScope(scope_name='asset_management')
@@ -644,7 +646,7 @@ class User(UserMixin, db.Model):
     phone_primary = db.Column(db.Text)
     phone_alternate = db.Column(db.Text)
     organization_id = db.Column(db.ForeignKey(u'' + __schema__ + '.organizations.id'))
-
+    scopes = db.relationship(u'UserScopeLink')
     organization = db.relationship(u'Organization')
 
     def to_json(self):
@@ -662,8 +664,11 @@ class User(UserMixin, db.Model):
         email = json.get('email')
         password = json.get('password')
         password2 = json.get('repeatPassword')
-        phone_primary = json.get('phonenum')
+        phone_primary = json.get('primary_phone')
         user_name = json.get('username')
+        first_name = json.get('first_name')
+        last_name = json.get('last_name')
+        organization_id = json.get('organization_id')
 
         #Validate some of the field.
 
@@ -673,8 +678,14 @@ class User(UserMixin, db.Model):
         new_user.validate_password(password, password2)
         pass_hash = generate_password_hash(password)
         #All passes, return the User object ready to be stored.
-        return User(email=email, pass_hash=pass_hash, phone_primary=phone_primary, \
-        user_name=user_name, user_id=user_name)
+        return User(email=email, 
+                    pass_hash=pass_hash, 
+                    phone_primary=phone_primary,
+                    user_name=user_name, 
+                    user_id=user_name,
+                    first_name=first_name,
+                    last_name=last_name,
+                    organization_id=organization_id)
 
 
     @staticmethod

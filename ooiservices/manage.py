@@ -20,7 +20,7 @@ manager = Manager(app)
 migrate = Migrate(app,db)
 
 def make_shell_context():
-    from ooiservices.app.models import User, UserScope, UserScopeLink, Array
+    from ooiservices.app.models import User, UserScope, UserScopeLink, Array, UserRole, UserRoleUserScopeLink
     from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameter
 
 
@@ -29,6 +29,8 @@ def make_shell_context():
            "User": User,
            "UserScope": UserScope,
            "UserScopeLink": UserScopeLink,
+           "UserRole" : UserRole,
+           "UserRoleUserScopeLink" : UserRoleUserScopeLink,
            "Array": Array,
            "PlatformDeployment": PlatformDeployment,
            "InstrumentDeployment": InstrumentDeployment,
@@ -36,7 +38,10 @@ def make_shell_context():
            "StreamParameter": StreamParameter}
     return ctx
 
-manager.add_command("runserver", Server(host="127.0.0.1", port=4000))
+@manager.command
+def runserver():
+    app.run(host=app.config['HOST'], port=app.config['PORT'], debug=True)
+
 manager.add_command("shell", Shell(make_context=make_shell_context))
 manager.add_command('db', MigrateCommand)
 
