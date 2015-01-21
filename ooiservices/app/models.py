@@ -649,6 +649,7 @@ class User(UserMixin, db.Model):
         user_name = json.get('username')
         first_name = json.get('first_name')
         last_name = json.get('last_name')
+        organization_id = json.get('organization_id')
 
         #Validate some of the field.
 
@@ -664,7 +665,8 @@ class User(UserMixin, db.Model):
                     user_name=user_name, 
                     user_id=user_name,
                     first_name=first_name,
-                    last_name=last_name)
+                    last_name=last_name,
+                    organization_id=organization_id)
 
 
     @staticmethod
