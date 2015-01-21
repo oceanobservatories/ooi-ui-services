@@ -60,6 +60,8 @@ def test(coverage=False):
 @manager.option('--password', help='Initial password')
 def deploy(password):
     from flask.ext.migrate import upgrade
+    from ooiservices.app.models import User, UserScope, UserScopeLink, Array
+    from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameter
     db.create_all()
     # migrate database to latest revision
     #upgrade()
