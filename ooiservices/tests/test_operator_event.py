@@ -29,7 +29,6 @@ class OperatorEventTestCase(unittest.TestCase):
         UserRole.insert_roles()
 
         OperatorEventType.insert_operator_event_types()
-        OperatorEvent.insert_operator_event()
 
         self.client = self.app.test_client(use_cookies=False)
 
@@ -46,33 +45,56 @@ class OperatorEventTestCase(unittest.TestCase):
             'Content-Type': 'application/json'
         }
 
-    def test_operator_event_type(self):
-        operator_event_type = OperatorEventType()
-        operator_event_type.insert_operator_event_types()
+    def test_operator_framework(self):
+        # Create a new watch
+        headers = self.get_api_headers('admin', 'test')
+        response = self.client.post('/watch', headers=headers)
+        self.assertEquals(response.status_code, 201)
+        data = json.loads(response.data)
+        self.assertIn('id', data)
+        watch_id = data['id']
 
-        event_type = OperatorEventType.query.filter_by(type_name='INFO').first()
-        self.assertTrue(event_type.type_name == 'INFO')
+        # Verify watch exists
+        response = self.client.get('/watch/user', headers=headers)
+        self.assertEquals(response.status_code, 200)
+        data = json.loads(response.data)
+        watch = data['watches'][0]
+        self.assertEquals(watch['id'], watch_id)
 
-    def test_operator_event_insert(self):
-        operator_event = OperatorEvent.query.filter_by(operator_event_type_id=1).first()
-        self.assertTrue(operator_event.event_title == 'This is only a test.')
+        # Get open watches
+        response = self.client.get('/watch/open', headers=headers)
+        self.assertEquals(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertEquals(data['id'], watch_id)
 
-    def test_get_operator_events_by_user(self):
-        #Test unauthorized
-        response = self.client.get(url_for('main.get_operator_events_by_user', id='1'), content_type='application/json')
-        self.assertTrue(response.status_code == 401)
+        # Create a new operator event
+        data = {
+            'operator_event_type_id' : 1,
+            'event_title' : 'Event Title',
+            'event_comment' : 'Event Comment'
+        }
 
-        #Test authorized
-        response = self.client.get(url_for('main.get_operator_events_by_user', id='1'), headers=self.get_api_headers('admin', 'test'))
+        # Create a new operator event
+        response = self.client.get('/operator_event', headers=headers)
+        self.assertEquals(response.status_code, 204)
+        response = self.client.post('/operator_event', data=json.dumps(data), headers=headers)
+        self.assertEquals(response.status_code, 201)
+        data = json.loads(response.data)
+        self.assertIn('id', data)
+        event_id = data['id']
 
-        self.assertTrue(response.status_code == 200)
+        # Get events for the current watch
+        response = self.client.get('/operator_event?watch_id=%s' % watch_id)
+        self.assertEquals(response.status_code, 200)
+        data = json.loads(response.data)
 
-    def test_get_operator_event_types(self):
-        #Test unauthorized
-        response = self.client.get(url_for('main.get_operator_event_types'), content_type='application/json')
-        self.assertTrue(response.status_code == 401)
+        self.assertEquals(data['operator_events'][0]['id'], event_id)
 
-        #Test authorized
-        response = self.client.get(url_for('main.get_operator_event_types'), headers=self.get_api_headers('admin', 'test'))
+        # Close the current watch
+        response = self.client.put('/watch/%s' % watch_id, headers=headers, data='{}')
+        self.assertEquals(response.status_code, 201)
 
-        self.assertTrue(response.status_code == 200)
+        # Try to create an event with no open watch
+        response = self.client.post('/operator_event', data=json.dumps(data), headers=headers)
+        self.assertEquals(response.status_code, 400)
+

@@ -40,8 +40,13 @@ class DictSerializableMixin(object):
     def _asdict(self):
         result = OrderedDict()
         for key in self.__mapper__.c.keys():
-            result[key] = getattr(self, key)
+            result[key] = self._pytype(getattr(self, key))
         return result
+
+    def _pytype(self, v):
+        if isinstance(v, datetime):
+            return v.isoformat()
+        return v
 
 
 #--------------------------------------------------------------------------------
@@ -324,7 +329,7 @@ class Manufacturer(db.Model):
     contact_name = db.Column(db.Text)
     web_address = db.Column(db.Text)
 
-class OperatorEventType(db.Model):
+class OperatorEventType(db.Model, DictSerializableMixin):
     __tablename__ = 'operator_event_types'
     __table_args__ = {u'schema': __schema__}
 
@@ -358,7 +363,7 @@ class OperatorEventType(db.Model):
        db.session.add_all([event_info, event_warn, event_error, event_critical, event_start_watch, event_end_watch])
        db.session.commit()
 
-class OperatorEvent(db.Model):
+class OperatorEvent(db.Model, DictSerializableMixin):
     __tablename__ = 'operator_events'
     __table_args__ = {u'schema': __schema__}
 
@@ -371,39 +376,20 @@ class OperatorEvent(db.Model):
 
     operator_event_type = db.relationship(u'OperatorEventType')
 
-    def to_json(self):
-        json_operator_event = {
-            'id' : self.id,
-            'user_id' : self.user_id,
-            'operator_event_type_id' : self.operator_event_type_id,
-            'event_time' : self.event_time,
-            'event_title' : self.event_title,
-            'event_comment' : self.event_comment
-        }
-        return json_operator_event
-
     @staticmethod
     def from_json(json):
-        user_id = json.get('user_id')
+        watch_id = json.get('watch_id')
         operator_event_type_id = json.get('operator_event_type_id')
-        event_time = json.get('repeatPassword')
-        event_title = json.get('phonenum')
-        event_comment = json.get('username')
+        event_time = json.get('event_time')
+        event_title = json.get('event_title')
+        event_comment = json.get('event_comment')
 
         #Return the OperatorEvent object ready to be stored.
-        return OperatorEventType(user_id=user_id, operator_event_type_id=operator_event_type_id, event_time=event_time, \
-                    event_title=event_title, event_comment=event_comment)
-
-    @staticmethod
-    def insert_operator_event():
-       event_info = OperatorEvent(user_id=1)
-       event_info.operator_event_type_id = 1
-       #event_info.event_time = datetime.now()
-       event_info.event_title = 'This is only a test.'
-       event_info.event_comment = 'This is a comment of only a test.'
-
-       db.session.add_all([event_info])
-       db.session.commit()
+        return OperatorEvent(watch_id=watch_id, 
+                             operator_event_type_id=operator_event_type_id,
+                             event_time=event_time,
+                             event_title=event_title,
+                             event_comment=event_comment)
 
 class Organization(db.Model, DictSerializableMixin):
     __tablename__ = 'organizations'
@@ -411,6 +397,7 @@ class Organization(db.Model, DictSerializableMixin):
 
     id = db.Column(db.Integer, primary_key=True)
     organization_name = db.Column(db.Text, nullable=False)
+    users = db.relationship(u'User')
 
 class PlatformDeployment(db.Model):
     __tablename__ = 'platform_deployments'
@@ -760,3 +747,10 @@ class Watch(db.Model, DictSerializableMixin):
     user = db.relationship(u'User')
     operator_events = db.relationship(u'OperatorEvent')
 
+    @staticmethod
+    def from_json(json_post):
+        id = json_post.get('id')
+        start_time = json_post.get('start_time')
+        end_time = json_post.get('end_time')
+        user_id = json_post.get('user_id')
+        return Watch(id=id, start_time=start_time, end_time=end_time, user_id=user_id)
