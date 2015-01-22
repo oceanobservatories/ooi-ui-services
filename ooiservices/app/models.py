@@ -689,6 +689,9 @@ class User(UserMixin, db.Model):
         user.user_name = 'admin'
         user.active = True
         user.email = 'ooi@asascience.com'
+        org = Organization.query.filter(Organization.organization_name == 'ASA').first()
+        if org:
+            user.organization_id = org.id
         db.session.add(user)
         db.session.commit()
 
