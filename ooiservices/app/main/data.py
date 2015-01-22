@@ -25,11 +25,15 @@ def gen_data(start_date, end_date, sampling_rate, mean, std_dev):
     dt = sampling_rate # obs per second
     x = np.arange(time0, time1, dt)
     y = np.random.normal(mean, std_dev, x.shape[0])
+    xy = np.array([x,y])
+    
+    row_order_xy = xy.T
+
 
     iso0 = datetime.utcfromtimestamp(time0).isoformat()
     iso1 = datetime.utcfromtimestamp(time1).isoformat()
 
-    return {'size' : x.shape[0], 'start_time':iso0, 'end_time':iso1, 'x' : x.tolist(), 'y' : y.tolist()}
+    return {'size' : x.shape[0], 'start_time':iso0, 'end_time':iso1, 'cols':['x','y'], 'rows':row_order_xy.tolist()}
 
 
 
