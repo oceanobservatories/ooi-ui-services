@@ -37,6 +37,7 @@ insert into user_scopes(scope_name, scope_description) values ('science - marine
 -- total user_scopes (roles): 4 
 
 -- organizations
+insert into organizations(organization_name) values ('ASA'); 
 insert into organizations(organization_name) values ('Eastern Ocean Platforms, Inc.'); 
 insert into organizations(organization_name) values ('Offshore Instruments, Inc.'); 
 insert into organizations(organization_name) values ('West Coast Labs, Inc.');
