@@ -51,10 +51,10 @@ Create and load your database.  Service assumes no password for default postgres
     psql -c "create database ooiuidev;" -U postgres
     psql -c "create extension postgis;" ooiuidev
     psql -c "create schema ooiui;" ooiuidev
-    python ooiservices/manage.py deploy --password <string:admin_password>
     psql ooiuidev < db/ooiui_schema_before_data.sql
     psql ooiuidev < db/ooiui_schema_data.sql
     psql ooiuidev < db/ooiui_schema_after_data.sql
+    python ooiservices/manage.py deploy --password <string:admin_password>
     
     Setup test db:
     psql -c "create database ooiuitest;" -U postgres

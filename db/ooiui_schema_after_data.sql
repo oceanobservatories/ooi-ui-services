@@ -173,6 +173,9 @@ ALTER TABLE ONLY platforms
 -- Definition for index users_pkey (OID = 20958):
 ALTER TABLE ONLY users
     ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY watches
+    ADD CONSTRAINT watches_pkey PRIMARY KEY (id);
 -- Definition for index user_scopes_pkey (OID = 20969):
 ALTER TABLE ONLY user_scopes
     ADD CONSTRAINT user_scopes_pkey PRIMARY KEY (id);
@@ -188,6 +191,9 @@ ALTER TABLE ONLY user_scope_link
 -- Definition for index foreign_key01 (OID = 20998):
 ALTER TABLE ONLY users
     ADD CONSTRAINT foreign_key01 FOREIGN KEY (organization_id) REFERENCES organizations(id);
+
+ALTER TABLE ONLY watches
+    ADD CONSTRAINT watches_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id);
 -- Definition for index annotations_pkey (OID = 21028):
 ALTER TABLE ONLY annotations
     ADD CONSTRAINT annotations_pkey PRIMARY KEY (id);
@@ -214,6 +220,9 @@ ALTER TABLE ONLY operator_event_types
 -- Definition for index operator_events_type_id_operator_events_id_fkey (OID = 32368):
 ALTER TABLE ONLY operator_events
     ADD CONSTRAINT operator_events_type_id_operator_events_id_fkey FOREIGN KEY (operator_event_type_id) REFERENCES operator_event_types(id);
+
+ALTER TABLE ONLY operator_events
+    ADD CONSTRAINT operator_events_watch_id FOREIGN KEY (watch_id) REFERENCES watches(id);
 -- Definition for index platformnames_pkey (OID = ?????):
 ALTER TABLE ONLY platformnames
     ADD CONSTRAINT platformnames_pkey PRIMARY KEY (id);
