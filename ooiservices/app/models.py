@@ -88,7 +88,7 @@ class Array(db.Model):
             'id' : self.id,
             'array_code' : self.array_code,
             'description' : self.description,
-            'geo_location' : self.geo_location,
+            'geo_location' : json.loads(db.session.scalar(func.ST_AsGeoJSON(self.geo_location))),
             'array_name' : self.array_name,
             'display_name' : self.display_name
         }
@@ -277,7 +277,7 @@ class InstrumentDeployment(db.Model):
             'start_date' : self.start_date,
             'end_date' : self.end_date,
             'depth' : self.depth,
-            'geo_location' : self.geo_location
+            'geo_location' : json.loads(db.session.scalar(func.ST_AsGeoJSON(self.geo_location)))
         }
         return json_inst_deploy
 
@@ -432,7 +432,7 @@ class PlatformDeployment(db.Model, DictSerializableMixin):
             'display_name' : self.display_name,
             'start_date' : self.start_date,
             'end_date' : self.end_date,
-            'geo_location' : self.geo_location
+            'geo_location' : json.loads(db.session.scalar(func.ST_AsGeoJSON(self.geo_location)))
         }
         return json_platform_deployment
 
