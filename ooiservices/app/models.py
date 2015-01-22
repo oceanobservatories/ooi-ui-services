@@ -11,22 +11,25 @@ from flask import current_app
 from ooiservices.app import db, login_manager
 from flask.ext.login import UserMixin
 from wtforms import ValidationError
-from datetime import datetime
+from geoalchemy2.types import Geometry
+from sqlalchemy.ext.hybrid import hybrid_property
+import geoalchemy2.functions as func
+import json
 
 #--------------------------------------------------------------------------------
 
-from sqlalchemy.types import UserDefinedType
-from sqlalchemy import func
+#from sqlalchemy.types import UserDefinedType
+#from sqlalchemy import func
 
-class Geometry(UserDefinedType):
-    def get_col_spec(self):
-        return "GEOMETRY"
-
-    def bind_expression(self, bindvalue):
-        return func.ST_GeomFromText(bindvalue, type_=self)
-
-    def column_expression(self, col):
-        return func.ST_AsText(col, type_=self)
+# class Geometry(UserDefinedType):
+#     def get_col_spec(self):
+#         return "GEOMETRY"
+#
+#     def bind_expression(self, bindvalue):
+#         return func.ST_GeomFromText(bindvalue, type_=self)
+#
+#     def column_expression(self, col):
+#         return func.ST_AsText(col, type_=self)
 
 
 #--------------------------------------------------------------------------------
@@ -399,7 +402,7 @@ class Organization(db.Model, DictSerializableMixin):
     organization_name = db.Column(db.Text, nullable=False)
     users = db.relationship(u'User')
 
-class PlatformDeployment(db.Model):
+class PlatformDeployment(db.Model, DictSerializableMixin):
     __tablename__ = 'platform_deployments'
     __table_args__ = {u'schema': __schema__}
 
@@ -416,6 +419,10 @@ class PlatformDeployment(db.Model):
     array = db.relationship(u'Array')
     deployment = db.relationship(u'Deployment')
     platform = db.relationship(u'Platform')
+
+    @hybrid_property
+    def geojson(self):
+        return json.loads(db.session.scalar(func.ST_AsGeoJSON(self.geo_location)))
 
     def to_json(self):
         json_platform_deployment = {

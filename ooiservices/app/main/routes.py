@@ -96,4 +96,16 @@ def get_data():
     response = gen_data(start_time, end_time, sampling_rate, norm, std_dev)
     return jsonify(**response)
 
-
+@api.route('/platformlocation', methods=['GET'])
+def get_platform_deployment_geojson_single():
+    geo_locations = {}
+    if len(request.args) > 0:
+        if ('reference_designator' in request.args):
+            if len(request.args['reference_designator']) < 100:
+                reference_designator = request.args['reference_designator']
+                geo_locations = PlatformDeployment.query.filter(PlatformDeployment.reference_designator == reference_designator).all()
+    else:
+        geo_locations = PlatformDeployment.query.all()
+    if len(geo_locations) == 0:
+        return '{}', 204
+    return jsonify({ 'geo_locations' : [{'id' : geo_location.id, 'reference_designator' : geo_location.reference_designator, 'geojson' : geo_location.geojson} for geo_location in geo_locations] })
