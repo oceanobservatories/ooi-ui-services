@@ -363,7 +363,7 @@ class OperatorEvent(db.Model):
     __table_args__ = {u'schema': __schema__}
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, nullable=False)
+    watch_id = db.Column(db.ForeignKey(u'' + __schema__ + '.watches.id'), nullable=False)
     operator_event_type_id = db.Column(db.ForeignKey(u'' + __schema__ + '.operator_event_types.id'), nullable=False)
     event_time = db.Column(db.DateTime(True), nullable=False, server_default=db.text("now()"))
     event_title = db.Column(db.Text, nullable=False)
@@ -648,6 +648,7 @@ class User(UserMixin, db.Model):
     organization_id = db.Column(db.ForeignKey(u'' + __schema__ + '.organizations.id'))
     scopes = db.relationship(u'UserScopeLink')
     organization = db.relationship(u'Organization')
+    watches = db.relationship(u'Watch')
 
     def to_json(self):
         json_user = {
@@ -745,3 +746,17 @@ class User(UserMixin, db.Model):
         except:
             return None
         return User.query.get(data['id'])
+
+
+class Watch(db.Model, DictSerializableMixin):
+    __tablename__ = 'watches'
+    __table_args__ = {u'schema' : __schema__}
+
+    id = db.Column(db.Integer, primary_key=True)
+    start_time = db.Column(db.DateTime)
+    end_time = db.Column(db.DateTime)
+    user_id = db.Column(db.ForeignKey(u'' + __schema__ + '.users.id'), nullable=False)
+
+    user = db.relationship(u'User')
+    operator_events = db.relationship(u'OperatorEvent')
+

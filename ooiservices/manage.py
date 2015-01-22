@@ -21,7 +21,8 @@ migrate = Migrate(app,db)
 
 def make_shell_context():
     from ooiservices.app.models import User, UserScope, UserScopeLink, Array, UserRole, UserRoleUserScopeLink
-    from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameter
+    from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameter, Watch
+    from ooiservices.app.models import OperatorEvent
 
 
     ctx = {"app": app,
@@ -35,6 +36,8 @@ def make_shell_context():
            "PlatformDeployment": PlatformDeployment,
            "InstrumentDeployment": InstrumentDeployment,
            "Stream": Stream,
+           "Watch": Watch,
+           "OperatorEvent": OperatorEvent,
            "StreamParameter": StreamParameter}
     return ctx
 

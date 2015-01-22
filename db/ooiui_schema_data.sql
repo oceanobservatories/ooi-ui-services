@@ -89,7 +89,7 @@ insert into operator_event_types(type_name, type_description) values ('WATCH_END
 
 
 -- operator_events
-insert into operator_events(user_id, operator_event_type_id, event_time, event_title, event_comment) values (2, 1, '2015-01-19 20:32:16.828334+00', 'This is only a test.', 'This is a comment of only a test.');
+--insert into operator_events(user_id, operator_event_type_id, event_time, event_title, event_comment) values (2, 1, '2015-01-19 20:32:16.828334', 'This is only a test.', 'This is a comment of only a test.');
 
 -- arrays
 insert into arrays (array_code, description, geo_location, array_name, display_name) values ('CE', 'Coastal-Scale Node Surface buoys, profilers, benthic nodes and gliders will provide near real time data from the air-sea interface to the sea floor.', ST_MakeEnvelope(44.37, -124.95, 44.37, -124.95, 4326), 'Endurance', 'Coastal Endurance');

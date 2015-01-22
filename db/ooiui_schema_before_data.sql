@@ -427,6 +427,21 @@ CREATE TABLE user_scope_link (
     user_id integer NOT NULL,
     scope_id integer NOT NULL
 ) WITHOUT OIDS;
+
+CREATE SEQUENCE watches_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+CREATE TABLE watches (
+    id integer DEFAULT nextval('watches_id_seq'::regclass) NOT NULL,
+    start_time timestamp without time zone,
+    end_time timestamp without time zone,
+    user_id integer
+) WITHOUT OIDS;
+
 -- Definition for sequence annotations_id_seq (OID = 21019):
 CREATE SEQUENCE annotations_id_seq
     START WITH 1
@@ -438,8 +453,8 @@ CREATE SEQUENCE annotations_id_seq
 CREATE TABLE annotations (
     id integer DEFAULT nextval('annotations_id_seq'::regclass) NOT NULL,
     user_id integer NOT NULL,
-    created_time timestamp with time zone NOT NULL,
-    modified_time timestamp with time zone NOT NULL,
+    created_time timestamp without time zone NOT NULL,
+    modified_time timestamp without time zone NOT NULL,
     reference_name text NOT NULL,
     reference_type text NOT NULL,
     reference_pk_id integer NOT NULL,
@@ -485,9 +500,9 @@ CREATE SEQUENCE operator_events_id_seq
 -- Structure for table operator_events (OID = 32348):
 CREATE TABLE operator_events (
     id integer DEFAULT nextval('operator_events_id_seq'::regclass) NOT NULL,
-    user_id integer NOT NULL,
+    watch_id integer NOT NULL,
     operator_event_type_id integer NOT NULL,
-    event_time timestamp with time zone NOT NULL,
+    event_time timestamp without time zone NOT NULL,
     event_title text NOT NULL,
     event_comment text
 ) WITHOUT OIDS;
