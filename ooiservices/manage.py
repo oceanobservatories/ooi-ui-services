@@ -65,9 +65,9 @@ def test(coverage=False):
         print('Coverage Summary:')
         COV.report()
         COV.erase()
-    if retval.errors > 0:
+    if retval.errors:
         sys.exit(1)
-    if retval.failures > 1:
+    if retval.failures:
         sys.exit(1)
 
 @manager.option('--password', help='Initial password')
