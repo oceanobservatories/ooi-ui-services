@@ -16,7 +16,7 @@ from flask.ext.script import Manager, Shell, Server
 from flask.ext.migrate import Migrate, MigrateCommand
 
 
-app = create_app('DEVELOPMENT')
+app = create_app('LOCAL_DEVELOPMENT')
 manager = Manager(app)
 migrate = Migrate(app,db)
 

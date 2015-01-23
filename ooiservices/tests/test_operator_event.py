@@ -11,7 +11,7 @@ import re
 from base64 import b64encode
 from flask import url_for
 from ooiservices.app import create_app, db
-from ooiservices.app.models import User, UserRole, OperatorEvent, OperatorEventType
+from ooiservices.app.models import User, OperatorEvent, OperatorEventType
 
 '''
 These tests are additional to the normal testing performed by coverage; each of
@@ -26,7 +26,6 @@ class OperatorEventTestCase(unittest.TestCase):
         db.create_all()
         test_password = 'test'
         User.insert_user(test_password)
-        UserRole.insert_roles()
 
         OperatorEventType.insert_operator_event_types()
 

@@ -11,7 +11,7 @@ import re
 from base64 import b64encode
 from flask import url_for
 from ooiservices.app import create_app, db
-from ooiservices.app.models import User, UserScope, UserRole, UserScopeLink, UserRoleUserScopeLink
+from ooiservices.app.models import User, UserScope, UserScopeLink
 
 '''
 These tests are additional to the normal testing performed by coverage; each of
@@ -26,7 +26,6 @@ class UserTestCase(unittest.TestCase):
         db.create_all()
         test_password = 'test'
         User.insert_user(test_password)
-        UserRole.insert_roles()
 
         self.client = self.app.test_client(use_cookies=False)
 
@@ -73,10 +72,6 @@ class UserTestCase(unittest.TestCase):
         u2 = User(password='dog')
         self.assertTrue(u.pass_hash != u2.pass_hash)
 
-    def test_get_roles(self):
-        role = UserRole.query.filter_by(role_name='Administrator').first()
-        self.assertTrue(role.role_name == 'Administrator')
-
     #Test user API routes
     #For route: /user/<string:id>
     def test_get_user_route(self):
@@ -104,37 +99,13 @@ class UserTestCase(unittest.TestCase):
         self.assertTrue(response.status_code == 401)
 
         #Test authorized
-        response = self.client.post(url_for('main.create_user'), headers=self.get_api_headers('admin', 'test'), data=json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing', 'phonenum': '1234', 'username': 'test_user', 'role_id':3}))
+        response = self.client.post(url_for('main.create_user'), headers=self.get_api_headers('admin', 'test'), data=json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing', 'phonenum': '1234', 'username': 'test_user'}))
         self.assertEquals(response.status_code, 201)
 
         #Test duplicate user
-        response = self.client.post(url_for('main.create_user'), headers=self.get_api_headers('admin', 'test'), data=json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing', 'phonenum': '1234', 'username': 'test_user', 'role_id':3}))
+        response = self.client.post(url_for('main.create_user'), headers=self.get_api_headers('admin', 'test'), data=json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing', 'phonenum': '1234', 'username': 'test_user'}))
         self.assertTrue(response.status_code == 409)
 
         #Test password match
-        response = self.client.post(url_for('main.create_user'), headers=self.get_api_headers('admin', 'test'), data=json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing2', 'phonenum': '1234', 'username': 'test_user2', 'role_id':3}))
+        response = self.client.post(url_for('main.create_user'), headers=self.get_api_headers('admin', 'test'), data=json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing2', 'phonenum': '1234', 'username': 'test_user2'}))
         self.assertTrue(response.status_code == 409)
-
-    def test_create_user_with_role(self):
-        UserScope.insert_scopes()
-        UserScopeLink.insert_scope_link()
-        UserRoleUserScopeLink.insert_roles_scope()
-
-        #Test authorized
-        response = self.client.post(url_for('main.create_user'), headers=self.get_api_headers('admin', 'test'), data=json.dumps({'email': 'test@notduplicate', 'password': 'testing', 'repeatPassword': 'testing', 'phonenum': '1234', 'username': 'test_user_0', 'role_id':1}))
-        self.assertTrue(response.status_code == 201)
-        data = json.loads(response.data)
-
-        user = User.query.filter(User.id == data['id']).first()
-        scopes = [s.scope.id for s in user.scopes]
-        self.assertTrue(len(scopes)>0)
-
-    def test_get_user_roles_route(self):
-        #Test unauthorized
-        response = self.client.get(url_for('main.get_user_roles'), content_type='application/json')
-        self.assertTrue(response.status_code == 401)
-
-        #Test authorized
-        response = self.client.get(url_for('main.get_user_roles'), headers=self.get_api_headers('admin', 'test'))
-
-        self.assertTrue(response.status_code == 200)
