@@ -13,6 +13,7 @@ from flask.ext.login import UserMixin
 from wtforms import ValidationError
 from geoalchemy2.types import Geometry
 from sqlalchemy.ext.hybrid import hybrid_property
+from datetime import datetime
 import geoalchemy2.functions as func
 import json
 
@@ -84,11 +85,14 @@ class Array(db.Model):
     display_name = db.Column(db.Text())
 
     def to_json(self):
+        geo_location = None
+        if self.geo_location:
+            geo_location = json.loads(db.session.scalar(func.ST_AsGeoJSON(self.geo_location)))
         json_array = {
             'id' : self.id,
             'array_code' : self.array_code,
             'description' : self.description,
-            'geo_location' : json.loads(db.session.scalar(func.ST_AsGeoJSON(self.geo_location))),
+            'geo_location' : geo_location,
             'array_name' : self.array_name,
             'display_name' : self.display_name
         }
@@ -269,6 +273,9 @@ class InstrumentDeployment(db.Model):
     platform_deployment = db.relationship(u'PlatformDeployment')
 
     def to_json(self):
+        geo_location = None
+        if self.geo_location:
+            json.loads(db.session.scalar(func.ST_AsGeoJSON(self.geo_location)))
         json_inst_deploy = {
             'id' : self.id,
             'reference_designator' : self.reference_designator,
@@ -277,7 +284,7 @@ class InstrumentDeployment(db.Model):
             'start_date' : self.start_date,
             'end_date' : self.end_date,
             'depth' : self.depth,
-            'geo_location' : json.loads(db.session.scalar(func.ST_AsGeoJSON(self.geo_location)))
+            'geo_location' : geo_location
         }
         return json_inst_deploy
 
@@ -425,6 +432,10 @@ class PlatformDeployment(db.Model, DictSerializableMixin):
         return json.loads(db.session.scalar(func.ST_AsGeoJSON(self.geo_location)))
 
     def to_json(self):
+        geo_location = None
+        if self.geo_location:
+            loc = db.session.scalar(func.ST_AsGeoJSON(self.geo_location))
+            geo_location = json.loads(loc)
         json_platform_deployment = {
             'id' : self.id,
             'reference_designator' : self.reference_designator,
@@ -432,7 +443,7 @@ class PlatformDeployment(db.Model, DictSerializableMixin):
             'display_name' : self.display_name,
             'start_date' : self.start_date,
             'end_date' : self.end_date,
-            'geo_location' : json.loads(db.session.scalar(func.ST_AsGeoJSON(self.geo_location)))
+            'geo_location' : geo_location
         }
         return json_platform_deployment
 

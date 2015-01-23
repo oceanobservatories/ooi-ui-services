@@ -86,4 +86,4 @@ class ModelTestCase(unittest.TestCase):
         db.session.add(platform_deployment)
         db.session.commit()
         pd = PlatformDeployment.query.filter(PlatformDeployment.reference_designator=='TEST0000').first()
-        assert pd.geo_location == 'POINT(-70 40)'
+        self.assertEquals(pd.geojson, {'coordinates': [-70, 40], 'type': 'Point'})

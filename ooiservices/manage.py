@@ -15,6 +15,7 @@ from ooiservices.app import create_app, db
 from flask.ext.script import Manager, Shell, Server
 from flask.ext.migrate import Migrate, MigrateCommand
 
+
 app = create_app('DEVELOPMENT')
 manager = Manager(app)
 migrate = Migrate(app,db)
@@ -50,20 +51,24 @@ manager.add_command('db', MigrateCommand)
 
 @manager.command
 def test(coverage=False):
+    import sys
     """Run the unit tests."""
     if coverage and not os.environ.get('FLASK_COVERAGE'):
-        import sys
         os.environ['FLASK_COVERAGE'] = '1'
         os.execvp(sys.executable, [sys.executable] + sys.argv)
     import unittest
     tests = unittest.TestLoader().discover('tests')
-    unittest.TextTestRunner(verbosity=2).run(tests)
+    retval = unittest.TextTestRunner(verbosity=2).run(tests)
     if COV:
         COV.stop()
         COV.save()
         print('Coverage Summary:')
         COV.report()
         COV.erase()
+    if retval.errors:
+        sys.exit(1)
+    if retval.failures:
+        sys.exit(1)
 
 @manager.option('--password', help='Initial password')
 def deploy(password):
