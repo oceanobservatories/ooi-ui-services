@@ -9,7 +9,7 @@ import unittest
 from flask import url_for
 from ooiservices.app import create_app, db
 from ooiservices.app.models import Array, InstrumentDeployment, PlatformDeployment, Stream, \
-StreamParameter, User, UserRole, OperatorEvent, OperatorEventType
+StreamParameter, User, OperatorEvent, OperatorEventType
 
 '''
 These tests are additional to the normal testing performed by coverage; each of
@@ -68,11 +68,6 @@ class ModelTestCase(unittest.TestCase):
         user = User()
         self.assertTrue(user.to_json() == {'email': None, 'id': None, \
         'pass_hash': None, 'user_id': None, 'user_name': None})
-
-    def test_role(self):
-        #Test the json in the object
-        role = UserRole()
-        self.assertTrue(role.to_json() == {'id': None, 'role_name': None})
 
     def test_operator_event_type(self):
         #Test the json in the object
