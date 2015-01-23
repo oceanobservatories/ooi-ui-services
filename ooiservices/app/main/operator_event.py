@@ -22,11 +22,9 @@ def get_watches():
         users = organization.users
         watches = []
         for u in users:
-            watches.extend([w.serialize() for w in u.watches])
+            watches.extend([w.to_json() for w in u.watches])
     else:
-        watches = [w.serialize() for w in Watch.query.all()]
-    for watch in watches:
-        del watch['user_id']
+        watches = [w.to_json() for w in Watch.query.all()]
     if not watches:
         return '{}', 204
     return jsonify(watches=watches)
@@ -56,8 +54,7 @@ def post_watch():
     watch.user_id = user.id
     db.session.add(watch)
     db.session.commit()
-    response = watch.serialize()
-    del response['user_id']
+    response = watch.to_json()
     return jsonify(**response), 201
 
 @api.route('/watch/<int:watch_id>', methods=['GET'])
@@ -65,8 +62,7 @@ def get_watch(watch_id):
     watch = Watch.query.filter(Watch.id==watch_id).first()
     if not watch:
         return '{"error":"not found"}', 204
-    response = watch.serialize()
-    del response['user_id']
+    response = watch.to_json()
     return jsonify(**response)
 
 @api.route('/watch/<int:watch_id>', methods=['PUT'])
@@ -84,17 +80,14 @@ def put_watch(watch_id):
     watch.end_time = data.get('end_time', watch.end_time)
     db.session.add(watch)
     db.session.commit()
-    response = watch.serialize()
-    del response['user_id']
+    response = watch.to_json()
     return jsonify(**response), 201
 
 @api.route('/watch/user', methods=['GET'])
 @auth.login_required
 def get_watch_user():
     user = g.current_user
-    watches = [w.serialize() for w in Watch.query.filter(Watch.user_id == user.id)]
-    for watch in watches:
-        del watch['user_id']
+    watches = [w.to_json() for w in Watch.query.filter(Watch.user_id == user.id)]
     if not watches:
         return '{}', 204
     return jsonify(watches=watches)
@@ -105,8 +98,7 @@ def get_watch_opened():
     watch = get_open_watch()
     if not watch:
         return '{}', 204 # No currently opened watch
-    response = watch.serialize()
-    del response['user_id']
+    response = watch.to_json()
     return jsonify(**response)
 
 @api.route('/operator_event', methods=['GET'])

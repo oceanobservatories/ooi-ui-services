@@ -86,7 +86,7 @@ class Array(db.Model):
 
     def to_json(self):
         geo_location = None
-        if self.geo_location:
+        if self.geo_location is not None:
             geo_location = json.loads(db.session.scalar(func.ST_AsGeoJSON(self.geo_location)))
         json_array = {
             'id' : self.id,
@@ -274,7 +274,7 @@ class InstrumentDeployment(db.Model):
 
     def to_json(self):
         geo_location = None
-        if self.geo_location:
+        if self.geo_location is not None:
             json.loads(db.session.scalar(func.ST_AsGeoJSON(self.geo_location)))
         json_inst_deploy = {
             'id' : self.id,
@@ -433,7 +433,7 @@ class PlatformDeployment(db.Model, DictSerializableMixin):
 
     def to_json(self):
         geo_location = None
-        if self.geo_location:
+        if self.geo_location is not None:
             loc = db.session.scalar(func.ST_AsGeoJSON(self.geo_location))
             geo_location = json.loads(loc)
         json_platform_deployment = {
@@ -703,6 +703,8 @@ class User(UserMixin, db.Model):
             admin_del = db.session.query(User).filter_by(user_name='admin').first()
             db.session.delete(admin_del)
             db.session.commit()
+        user.first_name = 'Ad'
+        user.last_name = 'Min'
         user.pass_hash = generate_password_hash(password)
         user.user_name = 'admin'
         user.active = True
@@ -767,6 +769,17 @@ class Watch(db.Model, DictSerializableMixin):
 
     user = db.relationship(u'User')
     operator_events = db.relationship(u'OperatorEvent')
+
+    def to_json(self):
+        data = self.serialize()
+        del data['user_id']
+        data['user'] = {
+            'first_name': self.user.first_name,
+            'last_name' : self.user.last_name,
+            'email' : self.user.email
+        }
+        return data
+
 
     @staticmethod
     def from_json(json_post):
