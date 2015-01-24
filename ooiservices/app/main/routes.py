@@ -135,6 +135,7 @@ def _f_concat_rd(array_type, array_name, site, platform, assembly, instrument_na
     else:
         return array_type + ' ' + array_name + ' ' + site + ' ' + platform
 
+#TODO: Turn this into a decorator for use with Platform/Instrument display names.
 def _get_display_name(reference_designator):
 
     '''
