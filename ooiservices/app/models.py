@@ -635,19 +635,22 @@ class UserScope(db.Model):
     scope_name = db.Column(db.Text, nullable=False, unique=True)
     scope_description = db.Column(db.Text)
 
-
     @staticmethod
     def insert_scopes():
-       scope_am = UserScope(scope_name='asset_management')
-       scope_user_create = UserScope(scope_name='user_create')
-       scope_user_read = UserScope(scope_name='user_read')
-       scope_user_read_write = UserScope(scope_name='user_read_write')
-       scope_am.description = 'Manage assets.'
-       scope_user_create.description = 'Create users.'
-       scope_user_read.description = 'Read from the list of users.'
-       scope_user_read_write.description = 'Read and modify the users.'
-       db.session.add_all([scope_am, scope_user_create, scope_user_read, scope_user_read_write])
-       db.session.commit()
+        #Insert scope, only one should be set to the default value of true.
+        #This will be the default scope a user is given when their account is created.
+        scopes = {
+            'remine',
+            'asset_manager',
+            'user',
+            'user_admin'
+            }
+        for s in scopes:
+            scope = UserScope.query.filter_by(scope_name=s).first()
+            if scope is None:
+                scope = UserScope(scope_name=s)
+            db.session.add(scope)
+        db.session.commit()
 
     def to_json(self):
         json_scope = {
@@ -656,6 +659,9 @@ class UserScope(db.Model):
             'scope_description' : self.scope_description,
         }
         return json_scope
+
+    def __repr__(self):
+        return '<Scope %r>' % self.scope_name
 
 
 class User(UserMixin, db.Model):
