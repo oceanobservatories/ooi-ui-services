@@ -80,7 +80,7 @@ class Array(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     array_code = db.Column(db.Text())
     description = db.Column(db.Text())
-    geo_location = db.Column(Geometry)
+    geo_location = db.Column(Geometry(geometry_type='GEOMETRY', srid=-1, dimension=2, spatial_index=True, management=True))
     array_name = db.Column(db.Text())
     display_name = db.Column(db.Text())
 
@@ -149,7 +149,7 @@ class Asset(db.Model):
     current_lifecycle_state = db.Column(db.Text)
     part_number = db.Column(db.Text)
     firmware_version = db.Column(db.Text)
-    geo_location = db.Column(Geometry)
+    geo_location = db.Column(Geometry(geometry_type='GEOMETRY', srid=-1, dimension=2, spatial_index=True, management=True))
 
     asset_type = db.relationship(u'AssetType')
     organization = db.relationship(u'Organization')
@@ -267,7 +267,7 @@ class InstrumentDeployment(db.Model):
     instrument_id = db.Column(db.ForeignKey(u'' + __schema__ + '.instruments.id'))
     reference_designator = db.Column(db.Text)
     depth = db.Column(db.Float)
-    geo_location = db.Column(Geometry)
+    geo_location = db.Column(Geometry(geometry_type='GEOMETRY', srid=-1, dimension=2, spatial_index=True, management=True))
 
     instrument = db.relationship(u'Instrument')
     platform_deployment = db.relationship(u'PlatformDeployment')
@@ -423,7 +423,7 @@ class PlatformDeployment(db.Model, DictSerializableMixin):
     array_id = db.Column(db.ForeignKey(u'' + __schema__ + '.arrays.id'))
     deployment_id = db.Column(db.ForeignKey(u'' + __schema__ + '.deployments.id'))
     display_name = db.Column(db.Text)
-    geo_location = db.Column(Geometry)
+    geo_location = db.Column(Geometry(geometry_type='GEOMETRY', srid=-1, dimension=2, spatial_index=True, management=True))
 
     array = db.relationship(u'Array')
     deployment = db.relationship(u'Deployment')
