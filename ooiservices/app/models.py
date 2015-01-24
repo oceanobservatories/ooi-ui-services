@@ -676,6 +676,7 @@ class User(UserMixin, db.Model):
     last_name = db.Column(db.Text)
     phone_primary = db.Column(db.Text)
     phone_alternate = db.Column(db.Text)
+    role = db.Column(db.Text)
     organization_id = db.Column(db.ForeignKey(u'' + __schema__ + '.organizations.id'))
     scopes = db.relationship(u'UserScopeLink')
     organization = db.relationship(u'Organization')
@@ -700,6 +701,7 @@ class User(UserMixin, db.Model):
         user_name = json.get('username')
         first_name = json.get('first_name')
         last_name = json.get('last_name')
+        role = json.get('role_name')
         organization_id = json.get('organization_id')
 
         #Validate some of the field.
@@ -717,7 +719,8 @@ class User(UserMixin, db.Model):
                     user_id=user_name,
                     first_name=first_name,
                     last_name=last_name,
-                    organization_id=organization_id)
+                    organization_id=organization_id,
+                    role=role)
 
 
     @staticmethod
@@ -786,7 +789,6 @@ class User(UserMixin, db.Model):
     def can(self, permissions):
     return self.role is not None and \
         (self.role.permissions & permissions) == permissions
-
 
 class Watch(db.Model, DictSerializableMixin):
     __tablename__ = 'watches'
