@@ -76,6 +76,7 @@ def deploy(password):
     from flask.ext.migrate import upgrade
     from ooiservices.app.models import User, UserScope, UserScopeLink, Array
     from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameterLink
+    from sh import psql
     #Create the local database
     app.logger.info('Creating DEV and TEST Databases')
     os.system("psql -c 'create database ooiuidev;' -U postgres")
@@ -96,6 +97,7 @@ def deploy(password):
 @staticmethod
 @manager.command
 def destroy():
+    from sh import psql
     db_check = str(db.engine)
     if (db_check == 'Engine(postgres://postgres@localhost/ooiuidev)'):
         os.system("psql -c 'drop database ooiuidev;'")

@@ -30,3 +30,4 @@ requests==2.4.3
 wsgiref==0.1.2
 python-dateutil==2.4.0
 GeoAlchemy2==0.2.4
+sh==1.11
