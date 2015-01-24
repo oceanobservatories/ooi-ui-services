@@ -47,8 +47,8 @@ class UserTestCase(unittest.TestCase):
         user_scope = UserScope()
         user_scope.insert_scopes()
 
-        scope = UserScope.query.filter_by(scope_name='user').first()
-        self.assertTrue(scope.scope_name == 'user')
+        scope = UserScope.query.filter_by(scope_name='asset_manager').first()
+        self.assertTrue(scope.scope_name == 'asset_manager')
 
     def test_user_insert(self):
         user_name = User.query.filter_by(user_name='admin').first()
