@@ -124,5 +124,3 @@ def get_display_name():
     if platform_deployment_filtered is None:
         return '{}', 204
     return jsonify({ 'proper_display_name' : display_name })
-
-
