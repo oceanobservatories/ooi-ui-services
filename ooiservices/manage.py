@@ -73,7 +73,6 @@ def test(coverage=False):
 
 @manager.option('-p', '--password', required=True)
 def deploy(password):
-
     from flask.ext.migrate import upgrade
     from ooiservices.app.models import User, UserScope, UserScopeLink, Array
     from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameterLink
@@ -92,10 +91,12 @@ def deploy(password):
 
 @manager.command
 def destroy():
-    os.system("psql -c 'drop database ooiuidev;'")
-    os.system("psql -c 'drop database ooiuitest;'")
-    db.session.remove()
-    db.drop_all()
+    db_check = str(db.engine)
+    if (db_check == 'Engine(postgres://postgres@localhost/ooiuidev)'):
+        os.system("psql -c 'drop database ooiuidev;'")
+        os.system("psql -c 'drop database ooiuitest;'")
+    else:
+        print 'Must be working on LOCAL_DEVELOPMENT to destroy db'
 
 if __name__ == '__main__':
     manager.run()
