@@ -76,7 +76,15 @@ def deploy(password):
 
     from flask.ext.migrate import upgrade
     from ooiservices.app.models import User, UserScope, UserScopeLink, Array
-    from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameter
+    from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameterLink
+    #Create the local database
+    os.system("psql -c 'create database ooiuidev;' -U postgres")
+    os.system("psql -c 'create schema ooiui;' ooiuidev")
+    os.system("psql -c 'create extension postgis;' ooiuidev")
+    #Create the local test database
+    os.system("psql -c 'create database ooiuitest;' -U postgres")
+    os.system("psql -c 'create schema ooiui;' ooiuitest")
+    os.system("psql -c 'create extension postgis;' ooiuitest")
     db.create_all()
     # migrate database to latest revision
     #upgrade()
@@ -84,6 +92,8 @@ def deploy(password):
 
 @manager.command
 def destroy():
+    os.system("psql -c 'drop database ooiuidev;'")
+    os.system("psql -c 'drop database ooiuitest;'")
     db.session.remove()
     db.drop_all()
 
