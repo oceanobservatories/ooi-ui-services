@@ -92,6 +92,7 @@ def deploy(password):
     #upgrade()
     app.logger.info('Insert default user, name: admin')
     User.insert_user(password)
+    UserScope.insert_scopes()
 
 
 @staticmethod

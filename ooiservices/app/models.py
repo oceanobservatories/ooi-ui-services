@@ -638,7 +638,7 @@ class UserScope(db.Model):
     @staticmethod
     def insert_scopes():
         scopes = {
-            'remine',
+            'redmine',
             'asset_manager',
             'user_admin'
             }
@@ -782,6 +782,10 @@ class User(UserMixin, db.Model):
         except:
             return None
         return User.query.get(data['id'])
+
+    def can(self, permissions):
+    return self.role is not None and \
+        (self.role.permissions & permissions) == permissions
 
 
 class Watch(db.Model, DictSerializableMixin):
