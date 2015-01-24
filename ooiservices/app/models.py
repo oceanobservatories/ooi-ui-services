@@ -373,6 +373,7 @@ class OperatorEventType(db.Model, DictSerializableMixin):
        db.session.add_all([event_info, event_warn, event_error, event_critical, event_start_watch, event_end_watch])
        db.session.commit()
 
+
 class OperatorEvent(db.Model, DictSerializableMixin):
     __tablename__ = 'operator_events'
     __table_args__ = {u'schema': __schema__}
@@ -400,6 +401,7 @@ class OperatorEvent(db.Model, DictSerializableMixin):
                              event_time=event_time,
                              event_title=event_title,
                              event_comment=event_comment)
+
 
 class Organization(db.Model, DictSerializableMixin):
     __tablename__ = 'organizations'
@@ -446,6 +448,7 @@ class PlatformDeployment(db.Model, DictSerializableMixin):
             'geo_location' : geo_location
         }
         return json_platform_deployment
+
 
 class Platformname(db.Model):
     __tablename__ = 'platformnames'

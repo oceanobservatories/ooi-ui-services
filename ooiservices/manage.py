@@ -21,7 +21,7 @@ manager = Manager(app)
 migrate = Migrate(app,db)
 
 def make_shell_context():
-    from ooiservices.app.models import User, UserScope, UserScopeLink, Array, UserRole, UserRoleUserScopeLink
+    from ooiservices.app.models import User, UserScope, UserScopeLink, Array
     from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameter, Watch
     from ooiservices.app.models import OperatorEvent
 
@@ -31,8 +31,6 @@ def make_shell_context():
            "User": User,
            "UserScope": UserScope,
            "UserScopeLink": UserScopeLink,
-           "UserRole" : UserRole,
-           "UserRoleUserScopeLink" : UserRoleUserScopeLink,
            "Array": Array,
            "PlatformDeployment": PlatformDeployment,
            "InstrumentDeployment": InstrumentDeployment,
@@ -70,8 +68,9 @@ def test(coverage=False):
     if retval.failures:
         sys.exit(1)
 
-@manager.option('--password', help='Initial password')
+@manager.option('-p', '--password', required=True)
 def deploy(password):
+
     from flask.ext.migrate import upgrade
     from ooiservices.app.models import User, UserScope, UserScopeLink, Array
     from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameter
@@ -79,16 +78,13 @@ def deploy(password):
     # migrate database to latest revision
     #upgrade()
     #Add in the default user and scope.
-    UserScope.insert_scopes()
-    User.insert_user(password)
-    UserScopeLink.insert_scope_link()
 
+    User.insert_user(password)
 
 @manager.command
 def destroy():
     db.session.remove()
     db.drop_all()
-
 
 if __name__ == '__main__':
     manager.run()
