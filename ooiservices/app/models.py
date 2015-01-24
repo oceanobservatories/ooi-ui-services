@@ -605,8 +605,8 @@ class UserScopeLink(db.Model):
     __table_args__ = {u'schema': __schema__}
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.ForeignKey(u'' + __schema__ + '.users.id'), nullable=False)
-    scope_id = db.Column(db.ForeignKey(u'' + __schema__ + '.user_scopes.id'), nullable=False)
+    user_name = db.Column(db.ForeignKey(u'' + __schema__ + '.users.user_name'), nullable=False)
+    scope_name = db.Column(db.ForeignKey(u'' + __schema__ + '.user_scopes.scope_name'), nullable=False)
 
     scope = db.relationship(u'UserScope')
     user = db.relationship(u'User')
@@ -625,6 +625,10 @@ class UserScopeLink(db.Model):
             'scope_id' : self.scope_id,
         }
         return json_scope_link
+
+    def __repr__(self):
+        return '<User %r, Scope %r>' % (self.user_name, self.scope_name)
+
 
 
 class UserScope(db.Model):
@@ -669,7 +673,7 @@ class User(UserMixin, db.Model):
     user_id = db.Column(db.Text, unique=True, nullable=False)
     pass_hash = db.Column(db.Text)
     email = db.Column(db.Text, unique=True, nullable=False)
-    user_name = db.Column(db.Text)
+    user_name = db.Column(db.Text, unique=True, nullable=False)
     active = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))
     confirmed_at = db.Column(db.Date)
     first_name = db.Column(db.Text)
@@ -786,8 +790,11 @@ class User(UserMixin, db.Model):
             return None
         return User.query.get(data['id'])
 
-    def can(self, permissions):
+    def can(self, scope):
         pass
+        #return UserScopeLink.query.with_entities(UserScopeLink.user_id).filter_by(scope_id=scope).first()
+
+
 
 class Watch(db.Model, DictSerializableMixin):
     __tablename__ = 'watches'
