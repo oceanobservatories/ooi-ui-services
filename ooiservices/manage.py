@@ -77,6 +77,7 @@ def deploy(password):
     from ooiservices.app.models import User, UserScope, UserScopeLink, Array
     from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameterLink
     #Create the local database
+    app.logger.info('Creating DEV and TEST Databases')
     os.system("psql -c 'create database ooiuidev;' -U postgres")
     os.system("psql -c 'create schema ooiui;' ooiuidev")
     os.system("psql -c 'create extension postgis;' ooiuidev")
@@ -85,10 +86,14 @@ def deploy(password):
     os.system("psql -c 'create schema ooiui;' ooiuitest")
     os.system("psql -c 'create extension postgis;' ooiuitest")
     db.create_all()
+    #os.system("psql ooiuidev < db/ooiui_schema_data.sql")
     # migrate database to latest revision
     #upgrade()
+    app.logger.info('Insert default user, name: admin')
     User.insert_user(password)
 
+
+@staticmethod
 @manager.command
 def destroy():
     db_check = str(db.engine)
