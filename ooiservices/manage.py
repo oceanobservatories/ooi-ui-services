@@ -24,6 +24,7 @@ def make_shell_context():
     from ooiservices.app.models import User, UserScope, UserScopeLink, Array
     from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameter, Watch
     from ooiservices.app.models import OperatorEvent
+    from ooiservices.app.models import Platformname, Instrumentname
 
 
     ctx = {"app": app,
@@ -37,7 +38,9 @@ def make_shell_context():
            "Stream": Stream,
            "Watch": Watch,
            "OperatorEvent": OperatorEvent,
-           "StreamParameter": StreamParameter}
+           "StreamParameter": StreamParameter,
+           "Platformname": Platformname,
+           "Instrumentname": Instrumentname}
     return ctx
 
 @manager.command
