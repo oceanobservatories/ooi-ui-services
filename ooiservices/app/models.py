@@ -791,8 +791,7 @@ class User(UserMixin, db.Model):
         return User.query.get(data['id'])
 
     def can(self, scope):
-        pass
-        #return UserScopeLink.query.with_entities(UserScopeLink.user_id).filter_by(scope_id=scope).first()
+        return UserScopeLink.query.with_entities(UserScopeLink.user_name).filter_by(scope_name=scope).first()
 
 
 
