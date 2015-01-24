@@ -431,6 +431,10 @@ class PlatformDeployment(db.Model, DictSerializableMixin):
     def geojson(self):
         return json.loads(db.session.scalar(func.ST_AsGeoJSON(self.geo_location)))
 
+    @hybrid_property
+    def proper_display_name(self):
+        return self._get_display_name(reference_designator=self.reference_designator)
+
     def to_json(self):
         geo_location = None
         if self.geo_location is not None:
@@ -446,6 +450,67 @@ class PlatformDeployment(db.Model, DictSerializableMixin):
             'geo_location' : geo_location
         }
         return json_platform_deployment
+
+    def _f_concat_rd(self, array_type, array_name, site, platform, assembly, instrument_name):
+
+        if assembly is not None and instrument_name is not None:
+            return array_type + ' ' + array_name + ' ' + site + ' ' + platform + ' - ' + assembly + ' - ' + instrument_name
+        elif assembly is not None and instrument_name is None:
+            return array_type + ' ' + array_name + ' ' + site + ' ' + platform + ' - ' + assembly
+        else:
+            return array_type + ' ' + array_name + ' ' + site + ' ' + platform
+
+    def _get_display_name(self, reference_designator):
+
+        '''
+        sample reference_designators for tests:
+            'CP02PMUO-SBS01-01-MOPAK0000'
+            'GP05MOAS-GL002-03-ACOMMM000'
+            'CE05MOAS-GL005'
+            'CP05MOAS-AV001'
+            'CP02PMUO-SBS01'
+
+        curl -X GET http://localhost:4000/display_name?reference_designator=CP05MOAS-AV001
+        '''
+
+        import re
+        rd_len = len(reference_designator)
+
+        p_n = Platformname.query.filter(Platformname.reference_designator == reference_designator[:14]).first()
+        if not p_n:
+            return reference_designator
+
+        if rd_len == 8:
+            return self._f_concat_rd(p_n.array_type, p_n.array_name, p_n.site, p_n.platform, None, None)
+
+        elif rd_len == 14:
+            assy = reference_designator[9:14]
+            if re.match('AV[0-9]{3}', assy):
+                platform_text = 'AUV ' + assy[2:5]
+            elif re.match('GL[0-9]{3}', assy):
+                platform_text = 'Glider ' + assy[2:5]
+            else:
+                platform_text = p_n.assembly
+
+            return self._f_concat_rd(p_n.array_type, p_n.array_name, p_n.site, p_n.platform, platform_text, None)
+
+        elif rd_len == 27:
+            inst = reference_designator[18:23]
+            assy = reference_designator[9:14]
+            if re.match('AV[0-9]{3}', assy):
+                platform_text = 'AUV ' + assy[2:5]
+            elif re.match('GL[0-9]{3}', assy):
+                platform_text = 'Glider ' + assy[2:5]
+            else:
+                platform_text = p_n.assembly
+
+            i_n = Instrumentname.query.filter(Instrumentname.instrument_class == inst).first()
+            if not i_n:
+                return self._f_concat_rd(p_n.array_type, p_n.array_name, p_n.site, p_n.platform, platform_text, inst)
+
+            return self._f_concat_rd(p_n.array_type, p_n.array_name, p_n.site, p_n.platform, platform_text, i_n.display_name)
+
+        return None
 
 class Platformname(db.Model):
     __tablename__ = 'platformnames'
