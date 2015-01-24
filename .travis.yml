@@ -16,9 +16,7 @@ before_install:
 install:
   - pip install -r ooiservices/requirements/dev.txt
 before_script:
-  - psql -c 'create database ooiuitest;' -U postgres
-  - psql ooiuitest -c 'create schema ooiui;' -U postgres
-  - psql -U postgres ooiuitest -c "create extension postgis;"
+  - python ooiservices/manage.py deploy -p test
 script:
   - python ooiservices/manage.py test --coverage
 notifications:
