@@ -11,7 +11,6 @@ from ooiservices.app import db
 from authentication import auth
 from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment
 from ooiservices.app.models import Stream, StreamParameter, Organization
-from ooiservices.app.models import Instrumentname, Platformname
 
 from ooiservices.app.main.data import gen_data
 
@@ -114,76 +113,14 @@ def get_platform_deployment_geojson_single():
 @api.route('/display_name', methods=['GET'])
 def get_display_name():
     # 'CE01ISSM-SBD17'
-    display_name = None
+    platform_deployment_filtered = None
+    display_name = ''
     if len(request.args) > 0:
         if ('reference_designator' in request.args):
             if len(request.args['reference_designator']) < 100:
                 reference_designator = request.args['reference_designator']
-                display_name = _get_display_name(reference_designator)
-    else:
-        display_name = ''
-    if len(display_name) == 0:
+                platform_deployment_filtered = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first_or_404()
+                display_name = platform_deployment_filtered.proper_display_name
+    if platform_deployment_filtered is None:
         return '{}', 204
-    return jsonify({ 'display_name' : display_name })
-
-def _f_concat_rd(array_type, array_name, site, platform, assembly, instrument_name):
-
-    if assembly is not None and instrument_name is not None:
-        return array_type + ' ' + array_name + ' ' + site + ' ' + platform + ' - ' + assembly + ' - ' + instrument_name
-    elif assembly is not None and instrument_name is None:
-        return array_type + ' ' + array_name + ' ' + site + ' ' + platform + ' - ' + assembly
-    else:
-        return array_type + ' ' + array_name + ' ' + site + ' ' + platform
-
-#TODO: Turn this into a decorator for use with Platform/Instrument display names.
-def _get_display_name(reference_designator):
-
-    '''
-    sample reference_designators for tests:
-        'CP02PMUO-SBS01-01-MOPAK0000'
-        'GP05MOAS-GL002-03-ACOMMM000'
-        'CE05MOAS-GL005'
-        'CP05MOAS-AV001'
-        'CP02PMUO-SBS01'
-
-    curl -X GET http://localhost:4000/display_name?reference_designator=CP05MOAS-AV001
-    '''
-
-    import re
-    rd_len = len(reference_designator)
-
-    p_n = Platformname.query.filter(Platformname.reference_designator == reference_designator[:14]).first()
-    if not p_n:
-        return reference_designator
-
-    if rd_len == 8:
-        return _f_concat_rd(p_n.array_type, p_n.array_name, p_n.site, p_n.platform, None, None)
-
-    elif rd_len == 14:
-        assy = reference_designator[9:14]
-        if re.match('AV[0-9]{3}', assy):
-            platform_text = 'AUV ' + assy[2:5]
-        elif re.match('GL[0-9]{3}', assy):
-            platform_text = 'Glider ' + assy[2:5]
-        else:
-            platform_text = p_n.assembly
-
-        return _f_concat_rd(p_n.array_type, p_n.array_name, p_n.site, p_n.platform, platform_text, None)
-
-    elif rd_len == 27:
-        inst = reference_designator[18:23]
-        assy = reference_designator[9:14]
-        if re.match('AV[0-9]{3}', assy):
-            platform_text = 'AUV ' + assy[2:5]
-        elif re.match('GL[0-9]{3}', assy):
-            platform_text = 'Glider ' + assy[2:5]
-        else:
-            platform_text = p_n.assembly
-
-        i_n = Instrumentname.query.filter(Instrumentname.instrument_class == inst).first()
-        if not i_n:
-            return _f_concat_rd(p_n.array_type, p_n.array_name, p_n.site, p_n.platform, platform_text, inst)
-
-        return _f_concat_rd(p_n.array_type, p_n.array_name, p_n.site, p_n.platform, platform_text, i_n.display_name)
-
-    return None
+    return jsonify({ 'proper_display_name' : display_name })
