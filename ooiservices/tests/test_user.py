@@ -9,9 +9,10 @@ import unittest
 import json
 import re
 from base64 import b64encode
-from flask import url_for
+from flask import url_for, jsonify
 from ooiservices.app import create_app, db
 from ooiservices.app.models import User, UserScope, UserScopeLink
+from collections import OrderedDict
 
 '''
 These tests are additional to the normal testing performed by coverage; each of
@@ -109,3 +110,9 @@ class UserTestCase(unittest.TestCase):
         #Test password match
         response = self.client.post(url_for('main.create_user'), headers=self.get_api_headers('admin', 'test'), data=json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing2', 'phonenum': '1234', 'username': 'test_user2'}))
         self.assertTrue(response.status_code == 409)
+
+    def test_get_user_role_route(self):
+        response = self.client.get(url_for('main.get_user_roles'), content_type='application/json')
+        #TODO: get this to test against the reponse.data
+        role_data = {"user_roles": [{"id": 1, "role_name": "Administrator"}, {"id": 2, "role_name": "Marine Operator"}, {"id": 3, "role_name": "Science User"}]}
+        self.assertTrue(response.status_code == 200)
