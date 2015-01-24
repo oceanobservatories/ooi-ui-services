@@ -637,12 +637,9 @@ class UserScope(db.Model):
 
     @staticmethod
     def insert_scopes():
-        #Insert scope, only one should be set to the default value of true.
-        #This will be the default scope a user is given when their account is created.
         scopes = {
             'remine',
             'asset_manager',
-            'user',
             'user_admin'
             }
         for s in scopes:
