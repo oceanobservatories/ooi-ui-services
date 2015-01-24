@@ -10,16 +10,23 @@ The WSGI service endpoints are listed and defined below:
 Active Routes for Listing:
 
     /arrays
+    /get_data
+    /organization
+    /parameters
     /platform_deployments
         /platform_deployments?array_id=
     /instrument_deployments
         /instrument_deployments?platform_deployment_id=
     /streams
         /streams?instrument_id=
+    /platformlocation
+        /platformlocation?reference_designator=
+    /display_name?reference_designator=
 
 Active Routes for specific item deployment inspection:
 
     /arrays/<string:array_code>
+    /parameters/<string:id>
     /platform_deployments/<string:reference_designator>
     /instrument_deployments/<string:reference_designator>
     /streams/<string:stream_name>
