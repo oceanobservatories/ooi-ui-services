@@ -787,8 +787,7 @@ class User(UserMixin, db.Model):
         return User.query.get(data['id'])
 
     def can(self, permissions):
-    return self.role is not None and \
-        (self.role.permissions & permissions) == permissions
+        pass
 
 class Watch(db.Model, DictSerializableMixin):
     __tablename__ = 'watches'
