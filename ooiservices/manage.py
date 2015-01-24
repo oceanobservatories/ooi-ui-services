@@ -80,14 +80,12 @@ def deploy(password):
     db.create_all()
     # migrate database to latest revision
     #upgrade()
-    #Add in the default user and scope.
     User.insert_user(password)
 
 @manager.command
 def destroy():
     db.session.remove()
     db.drop_all()
-
 
 if __name__ == '__main__':
     manager.run()

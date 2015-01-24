@@ -511,7 +511,6 @@ class PlatformDeployment(db.Model, DictSerializableMixin):
                 return self._f_concat_rd(p_n.array_type, p_n.array_name, p_n.site, p_n.platform, platform_text, inst)
 
             return self._f_concat_rd(p_n.array_type, p_n.array_name, p_n.site, p_n.platform, platform_text, i_n.display_name)
-
         return None
 
 
