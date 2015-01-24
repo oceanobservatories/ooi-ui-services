@@ -79,13 +79,13 @@ def deploy(password):
     from sh import psql
     #Create the local database
     app.logger.info('Creating DEV and TEST Databases')
-    os.system("psql -c 'create database ooiuidev;' -U postgres")
-    os.system("psql -c 'create schema ooiui;' ooiuidev")
-    os.system("psql -c 'create extension postgis;' ooiuidev")
+    psql('-c', 'create database ooiuidev;', '-U', 'postgres')
+    psql('ooiuidev', '-c', 'create schema ooiui')
+    psql('ooiuidev', '-c', 'create extension postgis')
     #Create the local test database
-    os.system("psql -c 'create database ooiuitest;' -U postgres")
-    os.system("psql -c 'create schema ooiui;' ooiuitest")
-    os.system("psql -c 'create extension postgis;' ooiuitest")
+    psql('-c', 'create database ooiuitest;', '-U', 'postgres')
+    psql('ooiuitest', '-c', 'create schema ooiui')
+    psql('ooiuitest', '-c', 'create extension postgis')
     db.create_all()
     #os.system("psql ooiuidev < db/ooiui_schema_data.sql")
     # migrate database to latest revision
@@ -100,8 +100,8 @@ def destroy():
     from sh import psql
     db_check = str(db.engine)
     if (db_check == 'Engine(postgres://postgres@localhost/ooiuidev)'):
-        os.system("psql -c 'drop database ooiuidev;'")
-        os.system("psql -c 'drop database ooiuitest;'")
+        psql('-c', 'drop database ooiuidev')
+        psql('-c', 'drop database ooiuitest')
     else:
         print 'Must be working on LOCAL_DEVELOPMENT to destroy db'
 
