@@ -3,7 +3,7 @@
 API Authentication
 '''
 
-from flask import g, jsonify
+from flask import g, jsonify, request
 from flask.ext.httpauth import HTTPBasicAuth
 from ooiservices.app.models import User
 from ooiservices.app.main import api
@@ -39,3 +39,15 @@ def get_token():
         return unauthorized('Invalid credentials')
     return jsonify({'token': g.current_user.generate_auth_token(
         expiration=3600), 'expiration': 3600})
+
+@api.route('/logged_in')
+def logged_in():
+    '''
+    Checks the TOKEN not the user identity to see if it's current and valid.
+    '''
+    auth = request.authorization
+    token, password = auth.username, auth.password
+    if token and not password:
+        user = User.verify_auth_token(token)
+        return jsonify(valid=(user is not None))
+    return jsonify(valid=False)
