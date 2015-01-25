@@ -151,7 +151,22 @@ def post_operator_event():
         return '{"error":"No open watches"}', 400
     data['watch_id'] = watch.id
     data['event_time'] = datetime.utcnow()
-    operator_event = OperatorEvent.from_json(data)
+    operator_event = OperatorEvent()
+    event_type = data.get('event_type', {})
+    if 'id' in event_type:
+        operator_event.operator_event_type_id = event_type['id']
+    elif 'type_name' in event_type:
+        operator_event_type = OperatorEventType.query.filter(OperatorEventType.type_name == event_type['type_name']).first()
+        operator_event.operator_event_type_id = operator_event_type.id
+    else:
+        operator_event_type = OperatorEventType.query.filter(OperatorEventType.type_name == 'INFO').first()
+        operator_event.operator_event_type_id = operator_event_type.id
+
+    operator_event.event_title = data.get('event_title')
+    operator_event.event_comment = data.get('event_comment')
+    operator_event.watch_id = data.get('watch_id')
+    operator_event.event_time = datetime.utcnow()
+
     db.session.add(operator_event)
     db.session.commit()
     operator_event = operator_event.serialize()
