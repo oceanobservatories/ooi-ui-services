@@ -38,7 +38,7 @@ def create_user():
     return jsonify(new_user.to_json()), 201
 
 @api.route('/user_roles')
-#@auth.login_required
+@auth.login_required
 def get_user_roles():
     user_roles = {"user_roles": [{"id": 1, "role_name": "Administrator"}, {"id": 2, "role_name": "Marine Operator"}, {"id": 3, "role_name": "Science User"}]}
     return jsonify(user_roles)

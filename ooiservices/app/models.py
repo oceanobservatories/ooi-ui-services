@@ -605,8 +605,8 @@ class UserScopeLink(db.Model):
     __table_args__ = {u'schema': __schema__}
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.ForeignKey(u'' + __schema__ + '.users.id'), nullable=False)
-    scope_id = db.Column(db.ForeignKey(u'' + __schema__ + '.user_scopes.id'), nullable=False)
+    user_name = db.Column(db.ForeignKey(u'' + __schema__ + '.users.user_name'), nullable=False)
+    scope_name = db.Column(db.ForeignKey(u'' + __schema__ + '.user_scopes.scope_name'), nullable=False)
 
     scope = db.relationship(u'UserScope')
     user = db.relationship(u'User')
@@ -626,6 +626,10 @@ class UserScopeLink(db.Model):
         }
         return json_scope_link
 
+    def __repr__(self):
+        return '<User %r, Scope %r>' % (self.user_name, self.scope_name)
+
+
 
 class UserScope(db.Model):
     __tablename__ = 'user_scopes'
@@ -635,19 +639,19 @@ class UserScope(db.Model):
     scope_name = db.Column(db.Text, nullable=False, unique=True)
     scope_description = db.Column(db.Text)
 
-
     @staticmethod
     def insert_scopes():
-       scope_am = UserScope(scope_name='asset_management')
-       scope_user_create = UserScope(scope_name='user_create')
-       scope_user_read = UserScope(scope_name='user_read')
-       scope_user_read_write = UserScope(scope_name='user_read_write')
-       scope_am.description = 'Manage assets.'
-       scope_user_create.description = 'Create users.'
-       scope_user_read.description = 'Read from the list of users.'
-       scope_user_read_write.description = 'Read and modify the users.'
-       db.session.add_all([scope_am, scope_user_create, scope_user_read, scope_user_read_write])
-       db.session.commit()
+        scopes = {
+            'redmine',
+            'asset_manager',
+            'user_admin'
+            }
+        for s in scopes:
+            scope = UserScope.query.filter_by(scope_name=s).first()
+            if scope is None:
+                scope = UserScope(scope_name=s)
+            db.session.add(scope)
+        db.session.commit()
 
     def to_json(self):
         json_scope = {
@@ -656,6 +660,9 @@ class UserScope(db.Model):
             'scope_description' : self.scope_description,
         }
         return json_scope
+
+    def __repr__(self):
+        return '<Scope %r>' % self.scope_name
 
 
 class User(UserMixin, db.Model):
@@ -666,13 +673,14 @@ class User(UserMixin, db.Model):
     user_id = db.Column(db.Text, unique=True, nullable=False)
     pass_hash = db.Column(db.Text)
     email = db.Column(db.Text, unique=True, nullable=False)
-    user_name = db.Column(db.Text)
+    user_name = db.Column(db.Text, unique=True, nullable=False)
     active = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))
     confirmed_at = db.Column(db.Date)
     first_name = db.Column(db.Text)
     last_name = db.Column(db.Text)
     phone_primary = db.Column(db.Text)
     phone_alternate = db.Column(db.Text)
+    role = db.Column(db.Text)
     organization_id = db.Column(db.ForeignKey(u'' + __schema__ + '.organizations.id'))
     scopes = db.relationship(u'UserScopeLink')
     organization = db.relationship(u'Organization')
@@ -697,6 +705,7 @@ class User(UserMixin, db.Model):
         user_name = json.get('username')
         first_name = json.get('first_name')
         last_name = json.get('last_name')
+        role = json.get('role_name')
         organization_id = json.get('organization_id')
 
         #Validate some of the field.
@@ -714,7 +723,8 @@ class User(UserMixin, db.Model):
                     user_id=user_name,
                     first_name=first_name,
                     last_name=last_name,
-                    organization_id=organization_id)
+                    organization_id=organization_id,
+                    role=role)
 
 
     @staticmethod
@@ -779,6 +789,10 @@ class User(UserMixin, db.Model):
         except:
             return None
         return User.query.get(data['id'])
+
+    def can(self, scope):
+        return UserScopeLink.query.with_entities(UserScopeLink.user_name).filter_by(scope_name=scope).first()
+
 
 
 class Watch(db.Model, DictSerializableMixin):

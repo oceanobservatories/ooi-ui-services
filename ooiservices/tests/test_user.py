@@ -47,8 +47,8 @@ class UserTestCase(unittest.TestCase):
         user_scope = UserScope()
         user_scope.insert_scopes()
 
-        scope = UserScope.query.filter_by(scope_name='user_read').first()
-        self.assertTrue(scope.scope_name == 'user_read')
+        scope = UserScope.query.filter_by(scope_name='asset_manager').first()
+        self.assertTrue(scope.scope_name == 'asset_manager')
 
     def test_user_insert(self):
         user_name = User.query.filter_by(user_name='admin').first()
@@ -112,7 +112,7 @@ class UserTestCase(unittest.TestCase):
         self.assertTrue(response.status_code == 409)
 
     def test_get_user_role_route(self):
-        response = self.client.get(url_for('main.get_user_roles'), content_type='application/json')
+        response = self.client.get(url_for('main.get_user_roles'), headers=self.get_api_headers('admin', 'test'))
         #TODO: get this to test against the reponse.data
         role_data = {"user_roles": [{"id": 1, "role_name": "Administrator"}, {"id": 2, "role_name": "Marine Operator"}, {"id": 3, "role_name": "Science User"}]}
         self.assertTrue(response.status_code == 200)

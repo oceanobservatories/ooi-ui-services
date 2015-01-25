@@ -73,29 +73,38 @@ def test(coverage=False):
 
 @manager.option('-p', '--password', required=True)
 def deploy(password):
-
     from flask.ext.migrate import upgrade
     from ooiservices.app.models import User, UserScope, UserScopeLink, Array
     from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameterLink
+    from sh import psql
     #Create the local database
-    os.system("psql -c 'create database ooiuidev;' -U postgres")
-    os.system("psql -c 'create schema ooiui;' ooiuidev")
-    os.system("psql -c 'create extension postgis;' ooiuidev")
+    app.logger.info('Creating DEV and TEST Databases')
+    psql('-c', 'create database ooiuidev;', '-U', 'postgres')
+    psql('ooiuidev', '-c', 'create schema ooiui')
+    psql('ooiuidev', '-c', 'create extension postgis')
     #Create the local test database
-    os.system("psql -c 'create database ooiuitest;' -U postgres")
-    os.system("psql -c 'create schema ooiui;' ooiuitest")
-    os.system("psql -c 'create extension postgis;' ooiuitest")
+    psql('-c', 'create database ooiuitest;', '-U', 'postgres')
+    psql('ooiuitest', '-c', 'create schema ooiui')
+    psql('ooiuitest', '-c', 'create extension postgis')
     db.create_all()
+    #os.system("psql ooiuidev < db/ooiui_schema_data.sql")
     # migrate database to latest revision
     #upgrade()
+    app.logger.info('Insert default user, name: admin')
     User.insert_user(password)
+    UserScope.insert_scopes()
 
+
+@staticmethod
 @manager.command
 def destroy():
-    os.system("psql -c 'drop database ooiuidev;'")
-    os.system("psql -c 'drop database ooiuitest;'")
-    db.session.remove()
-    db.drop_all()
+    from sh import psql
+    db_check = str(db.engine)
+    if (db_check == 'Engine(postgres://postgres@localhost/ooiuidev)'):
+        psql('-c', 'drop database ooiuidev')
+        psql('-c', 'drop database ooiuitest')
+    else:
+        print 'Must be working on LOCAL_DEVELOPMENT to destroy db'
 
 if __name__ == '__main__':
     manager.run()
