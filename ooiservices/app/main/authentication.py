@@ -8,6 +8,7 @@ from flask.ext.httpauth import HTTPBasicAuth
 from ooiservices.app.models import User
 from ooiservices.app.main import api
 from ooiservices.app.main.errors import unauthorized, forbidden
+from ooiservices.app.decorators import scope_required
 
 auth = HTTPBasicAuth()
 
