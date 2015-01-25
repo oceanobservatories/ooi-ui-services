@@ -686,6 +686,12 @@ class User(UserMixin, db.Model):
     organization = db.relationship(u'Organization')
     watches = db.relationship(u'Watch')
 
+   # def __init__(self, **kwargs):
+   #     super(User, self).__init__(**kwargs)
+   #         self.scope = Scope.query.filter_by(scope_name='user_admin').first()
+   #         if self.scope is None:
+   #             self.scope = Role.query.filter_by(default=True).first()
+
     def to_json(self):
         json_user = {
             'id' : self.id,
@@ -791,7 +797,11 @@ class User(UserMixin, db.Model):
         return User.query.get(data['id'])
 
     def can(self, scope):
-        return UserScopeLink.query.with_entities(UserScopeLink.user_name).filter_by(scope_name=scope).first()
+        #db.session.query
+        return db.session.query(UserScopeLink).with_entities(UserScopeLink.user_name).filter_by(scope_name=scope).all()
+
+    def __repr__(self):
+        return '<User %r>' % self.user_name
 
 
 
