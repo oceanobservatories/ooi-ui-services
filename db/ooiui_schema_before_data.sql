@@ -399,7 +399,8 @@ CREATE TABLE users (
     last_name text,
     phone_primary text,
     phone_alternate text,
-    organization_id integer
+    organization_id integer,
+    role TEXT
 ) WITHOUT OIDS;
 -- Definition for sequence user_scopes_id_seq (OID = 20960):
 CREATE SEQUENCE user_scopes_id_seq
@@ -464,31 +465,6 @@ CREATE TABLE annotations (
     stream_parameter_value_y text,
     ann_title text NOT NULL,
     ann_comment text
-) WITHOUT OIDS;
--- Definition for sequence roles_id_seq (OID = 31531):
-CREATE SEQUENCE roles_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
--- Structure for table user_roles (OID = 31533):
-CREATE TABLE user_roles (
-    id integer DEFAULT nextval('roles_id_seq'::regclass) NOT NULL,
-    role_name text NOT NULL
-) WITHOUT OIDS;
--- Definition for sequence user_role_link_id_seq (OID = 31542):
-CREATE SEQUENCE user_role_link_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
--- Structure for table user_role_user_scope_link (OID = 31544):
-CREATE TABLE user_role_user_scope_link (
-    id integer DEFAULT nextval('user_role_link_id_seq'::regclass) NOT NULL,
-    user_scope_id integer NOT NULL,
-    user_role_id integer NOT NULL
 ) WITHOUT OIDS;
 -- Definition for sequence operator_events_id_seq (OID = 32346):
 CREATE SEQUENCE operator_events_id_seq

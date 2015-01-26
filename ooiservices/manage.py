@@ -86,6 +86,12 @@ def deploy(password):
     psql('-c', 'create database ooiuitest;', '-U', 'postgres')
     psql('ooiuitest', '-c', 'create schema ooiui')
     psql('ooiuitest', '-c', 'create extension postgis')
+    with open('db/ooiui_schema_before_data.sql') as f:
+        psql('ooiuidev', _in=f)
+    with open('db/ooiui_schema_data.sql') as f:
+        psql('ooiuidev', _in=f)
+    with open('db/ooiui_schema_after_data.sql') as f:
+        psql('ooiuidev', _in=f)
     db.create_all()
     #os.system("psql ooiuidev < db/ooiui_schema_data.sql")
     # migrate database to latest revision

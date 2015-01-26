@@ -52,25 +52,14 @@ Run service:
     python ooiuiservice/manage.py runserver
 
 ###If you are using a local database instance
+Drop the databases if needed.
+
 Create and load your database.  Service assumes no password for default postgres user:
 
-    Setup dev db:
-    psql -c "create database ooiuidev;" -U postgres
-    psql -c "create extension postgis;" ooiuidev
-    psql -c "create schema ooiui;" ooiuidev
-    psql ooiuidev < db/ooiui_schema_before_data.sql
-    psql ooiuidev < db/ooiui_schema_data.sql
-    psql ooiuidev < db/ooiui_schema_after_data.sql
-    python ooiservices/manage.py deploy --password <string:admin_password>
+Setup dev db:
     
-    Setup test db:
-    psql -c "create database ooiuitest;" -U postgres
-    psql -c "create extension postgis;" ooiuitest
-    psql -c "create schema ooiui;" ooiuitest
-    psql ooiuitest < db/ooiui_schema_before_data.sql
-    psql ooiuitest < db/ooiui_schema_data.sql
-    psql ooiuitest < db/ooiui_schema_after_data.sql
-
+    python ooiservices/manage.py deploy --password <admin-password>
+    
 ### Service Tests
 Test your initial setup by running from ooi-ui-services directory:
   
