@@ -99,6 +99,7 @@ def deploy(password):
     app.logger.info('Insert default user, name: admin')
     User.insert_user(password)
     UserScope.insert_scopes()
+    UserScopeLink.insert_scope_link()
 
 
 @manager.command
