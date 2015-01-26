@@ -613,8 +613,8 @@ class UserScopeLink(db.Model):
 
     @staticmethod
     def insert_scope_link():
-        user = UserScopeLink(user_id='1')
-        user.scope_id='4'
+        user = UserScopeLink(user_name='admin')
+        user.scope_name='user_admin'
         db.session.add(user)
         db.session.commit()
 
