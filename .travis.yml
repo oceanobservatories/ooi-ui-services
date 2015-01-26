@@ -18,6 +18,6 @@ install:
 before_script:
   - python ooiservices/manage.py deploy -p test
 script:
-  - python ooiservices/manage.py test --coverage
+  - PYTHONPATH=. python ooiservices/manage.py test --coverage
 notifications:
     flowdock: 7728e9be2e099628ea6b3b0f489d2f9c
