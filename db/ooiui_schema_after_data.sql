@@ -200,17 +200,6 @@ ALTER TABLE ONLY annotations
 -- Definition for index annotations_user_id_users_id_fkey (OID = 21030):
 ALTER TABLE ONLY annotations
     ADD CONSTRAINT annotations_user_id_users_id_fkey FOREIGN KEY (user_id) REFERENCES users(id);
-ALTER TABLE ONLY user_roles
-    ADD CONSTRAINT roles_pkey PRIMARY KEY (id);
--- Definition for index user_role_link_pkey (OID = 31548):
-ALTER TABLE ONLY user_role_user_scope_link
-    ADD CONSTRAINT user_role_link_pkey PRIMARY KEY (id);
--- Definition for index user_scope_id_user_scopes_id_fkey (OID = 31566):
-ALTER TABLE ONLY user_role_user_scope_link
-    ADD CONSTRAINT user_scope_id_user_scopes_id_fkey FOREIGN KEY (user_scope_id) REFERENCES user_scopes(id);
--- Definition for index user_role_id_user_roles_id_fkey (OID = 31571):
-ALTER TABLE ONLY user_role_user_scope_link
-    ADD CONSTRAINT user_role_id_user_roles_id_fkey FOREIGN KEY (user_role_id) REFERENCES user_roles(id);
 -- Definition for index operator_events_pkey (OID = 32355):
 ALTER TABLE ONLY operator_events
     ADD CONSTRAINT operator_events_pkey PRIMARY KEY (id);
