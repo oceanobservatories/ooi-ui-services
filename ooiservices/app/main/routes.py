@@ -10,7 +10,7 @@ from ooiservices.app.main import api
 from ooiservices.app import db
 from authentication import auth
 from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment
-from ooiservices.app.models import Stream, StreamParameter, Organization
+from ooiservices.app.models import Stream, StreamParameter, Organization, Instrumentname
 
 from ooiservices.app.main.data import gen_data
 
@@ -52,6 +52,11 @@ def get_instrument_deployments():
     if 'platform_deployment_id' in request.args:
         instrument_deployments = \
         InstrumentDeployment.query.filter_by(platform_deployment_id=request.args['platform_deployment_id']).all()
+        # TODO: Actually link the tables
+        for i_d in instrument_deployments:
+            instrument_name = Instrumentname.query.filter(Instrumentname.instrument_class == i_d.display_name).first()
+            i_d.display_name = instrument_name.display_name
+
     else:
         instrument_deployments = InstrumentDeployment.query.all()
     return jsonify({ 'instrument_deployments' : [instrument_deployment.to_json() for instrument_deployment in instrument_deployments] })
