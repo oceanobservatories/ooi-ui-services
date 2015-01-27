@@ -43,31 +43,25 @@ Ensure you have the following:
     sudo apt-get install -y libnetcdf-dev
       
 While in your virtualenv, run the requirement.txt file:
-    pip install -r requirements.txt
+    pip install -r ooiservuces/requirements/dev.txt
 
 Setup your PostgreSQL environment:
     install postgis...
+
+Make sure you have the environment variables defiend:
+    PYTHONPATH=.
     
-Run service:
-    python ooiuiservice/manage.py runserver
+Setup the Database:
+    python ooiuiservice/manage.py deploy --password <admin-password>
 
-###If you are using a local database instance
-Drop the databases if needed.
 
-Create and load your database.  Service assumes no password for default postgres user:
-
-Setup dev db:
-    
-    python ooiservices/manage.py deploy --password <admin-password>
+### Running the services instance
+    python ooiservices/manage.py runserver
     
 ### Service Tests
 Test your initial setup by running from ooi-ui-services directory:
   
     python ooiservices/manage.py test
-    
-Run your service by evoking the following command from your ooi-ui-services directory:
-  
-    python ooiservices/manage.py runserver
 
 Verify you are getting data by using a web browser and navigating to:
 
