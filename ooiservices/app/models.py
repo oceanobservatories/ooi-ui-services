@@ -446,7 +446,7 @@ class PlatformDeployment(db.Model, DictSerializableMixin):
             'id' : self.id,
             'reference_designator' : self.reference_designator,
             'array_id' : self.array_id,
-            'display_name' : self.display_name,
+            'display_name' : self.proper_display_name,
             'start_date' : self.start_date,
             'end_date' : self.end_date,
             'geo_location' : geo_location
