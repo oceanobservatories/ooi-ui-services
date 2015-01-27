@@ -476,6 +476,9 @@ class PlatformDeployment(db.Model, DictSerializableMixin):
         '''
 
         import re
+        if not reference_designator:
+            return None
+
         rd_len = len(reference_designator)
 
         p_n = Platformname.query.filter(Platformname.reference_designator == reference_designator[:14]).first()
