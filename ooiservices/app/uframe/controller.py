@@ -17,18 +17,6 @@ from ooiservices.app.uframe.data import gen_data
 import json
 import datetime
 
-'''
-@api.route('/get_data')
-def get_data():
-    start_time = request.args.get('start_time', '2015-01-01')
-    end_time = request.args.get('end_time', '2015-01-01T01:00')
-    norm = request.args.get('norm', 13)
-    std_dev = request.args.get('std', 3)
-    sampling_rate = request.args.get('sampling_rate', 1)
-    response = gen_data(start_time, end_time, sampling_rate, norm, std_dev)
-    return jsonify(**response)
-'''
-
 def get_uframe_data():
     '''
     stub mock function to get some sample data
@@ -37,41 +25,100 @@ def get_uframe_data():
     data = json.load(json_data)
     return data
 
-@api.route('/get_data')
+def get_data_type(data_input):
+    '''
+    gets the data type in a format google charts understands
+    '''
+    if data_input is float or data_input is int:
+        return "number"
+    elif data_input is str or data_input is unicode:
+        return "string"
+    else:
+        return "unknown"
+
+@api.route('/get_data',methods=['GET'])
 def get_data():
     #get data from uframe
     data = get_uframe_data()
+    hasAnnotation = False
+    if 'annotation' in request.args:
+        #generate annotation plot
+        if request.args['annotation'] == "true":
+            hasAnnotation = True        
+  
+    #got normal data plot
     #create the data fields,assumes the same data fields throughout
     d_row = data[0]
     data_fields = []
+    data_field_list= []
     some_data = []
     #time minus ()
     cosmo_constant = 2208988800
-    time_idx = -1
-    for field in d_row:
-        if field == "preferred_timestamp" or field == u'stream_name' or field == u'driver_timestamp':
+    time_idx = -1   
+    pref_timestamp = d_row["preferred_timestamp"]
+    #ignore list for data fields
+    ignore_list = ["preferred_timestamp","stream_name","driver_timestamp","quality_flag"]
+    #figure out the header rows
+    inital_fields = d_row.keys()
+    #move timestamp to the front 
+    inital_fields.insert(0, inital_fields.pop(inital_fields.index(pref_timestamp)))
+
+    for field in inital_fields:
+        if field in ignore_list:
             pass
         else:
-            data_fields.append(field)
+            #map the data types to the correct data type for google charts
+            if field == pref_timestamp:
+                d_type = "datetime"
+            else:             
+                d_type = get_data_type(type(data[0][field]))   
 
+            data_field_list.append(field)
+            data_fields.append({"id": "",
+                                "label": field,
+                                "type":  d_type}) 
+
+    if hasAnnotation:
+        data_field_list.append("annotation")
+        data_field_list.append("annotationText")
+        data_fields.append({"label":"title1","type":  "string" , "role":"annotation"}) 
+        data_fields.append({"label":"text1","type":  "string" , "role":"annotationText"}) 
+    
+    #figure out the data content 
     for d in data:
-        r = []
-        for field in data_fields:
+        c_r = []        
+        for field in data_field_list:
             if field.endswith("_timestamp"):
-                r.append(d[field] - cosmo_constant)
-                if field == "internal_timestamp":
-                    time_idx = len(r)-1
+                #create data time object
+                c_dt = datetime.datetime.fromtimestamp(d[field] - cosmo_constant)                
+                str_date = c_dt.isoformat()
+                date_str = "Date("+str(c_dt.year)+","+str(c_dt.month)+","+str(c_dt.day)+","+str(c_dt.hour)+","+str(c_dt.minute)+","+str(c_dt.second)+")"
+                c_r.append({"f":str_date,"v":date_str})            
+                if field == pref_timestamp:
+                    time_idx = len(c_r)-1                
+            elif field == ("annotation"):
+                if d['dofst_k_oxygen']>3277:                    
+                    c_r.append({"v":"test"})  
+                else:
+                    c_r.append({"v":None})
+            elif field == ("annotationText"):
+                if d['dofst_k_oxygen']>3277:      
+                    c_r.append({"v":"test"})  
+                else:                        
+                    c_r.append({"v":None})
             else:
-                r.append(d[field])
-        some_data.append(r)
-
+                c_r.append({"v":d[field],"f":d[field]})
+     
+        some_data.insert(0,{"c":c_r}) 
+    
     #genereate dict for the data thing
-    resp_data = {}
-    resp_data['cols'] = data_fields
-    resp_data['rows'] = some_data
-    resp_data['size'] = len(some_data)
-    resp_data['start_time'] = datetime.datetime.fromtimestamp((some_data[0][time_idx])).isoformat()
-    resp_data['end_time'] = datetime.datetime.fromtimestamp((some_data[-1][time_idx])).isoformat()
+    resp_data = {'cols':data_fields,
+                 'rows':some_data
+                 #'size':len(some_data),
+                 #'start_time' : datetime.datetime.fromtimestamp(data[0][pref_timestamp]).isoformat(),
+                 #'end_time' : datetime.datetime.fromtimestamp(data[-1][pref_timestamp]).isoformat()
+                 }        
+            
     return jsonify(**resp_data)
 
 @api.route('/platformlocation', methods=['GET'])
