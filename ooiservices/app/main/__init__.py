@@ -9,4 +9,5 @@ from flask import Blueprint
 
 api = Blueprint('main', __name__)
 
-from ooiservices.app.main import routes, authentication, user, operator_event
+from ooiservices.app.main import routes, authentication, user, operator_event, \
+    asset
