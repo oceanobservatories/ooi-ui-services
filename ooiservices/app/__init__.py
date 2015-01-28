@@ -49,4 +49,10 @@ def create_app(config_name):
     from ooiservices.app.main import api as main_blueprint
     app.register_blueprint(main_blueprint)
 
+    from ooiservices.app.uframe import uframe as uframe_blueprint
+    app.register_blueprint(uframe_blueprint, url_prefix='/uframe')
+
+    from ooiservices.app.redmine import redmine as redmine_blueprint
+    app.register_blueprint(redmine_blueprint, url_prefix='/redmine')
+
     return app
