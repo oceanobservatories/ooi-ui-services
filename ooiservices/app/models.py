@@ -62,16 +62,35 @@ class Annotation(db.Model):
     __table_args__ = {u'schema': __schema__}
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.ForeignKey(u'' + __schema__ + '.users.id'), nullable=False)
+    user_name = db.Column(db.ForeignKey(u'' + __schema__ + '.users.user_name'), nullable=False)
     created_time = db.Column(db.DateTime(True), nullable=False)
-    modified_time = db.Column(db.DateTime(True), nullable=False)
-    reference_name = db.Column(db.Text, nullable=False)
-    reference_type = db.Column(db.Text, nullable=False)
-    reference_pk_id = db.Column(db.Integer, nullable=False)
+    modified_time = db.Column(db.DateTime(True), nullable=True)
+    reference_name = db.Column(db.Text, nullable=True)
+    reference_type = db.Column(db.Text, nullable=True)
+    reference_pk_id = db.Column(db.Integer, nullable=True)
     title = db.Column(db.Text, nullable=False)
     comment = db.Column(db.Text)
 
     user = db.relationship(u'User')
+
+    @staticmethod
+    def new_from_json(json_annotation):
+        user_name = json_annotation.get('user_name')
+        created_time = datetime.now()
+        title = json_annotation.get('title')
+        comment = json_annotation.get('comment')
+        return Annotation(user_name=user_name, created_time=created_time, title=title, comment=comment)
+
+    def to_json(self):
+        json_array = {
+            'id': self.id,
+            'user_name': self.id,
+            'created_time': self.created_time,
+            'modified_time': self.modified_time,
+            'title': self.title,
+            'comment': self.comment
+        }
+        return json_array
 
 class Array(db.Model):
     __tablename__ = 'arrays'
