@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-Main app blueprint.
+redmine blueprint.
 
 '''
 __author__ = 'M@Campbell'

@@ -87,4 +87,5 @@ def get_parameters():
 @api.route('/parameters/<string:id>')
 def get_parameter(id):
     parameter = StreamParameter.query.filter_by(stream_parameter_name=id).first_or_404()
+
     return jsonify(parameter.to_json())
