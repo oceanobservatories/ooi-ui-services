@@ -110,8 +110,13 @@ def get_operator_events():
         operator_events = OperatorEvent.query.all()
     if not operator_events:
         return '{}', 204
-    operator_events = [o.serialize() for o in operator_events]
-    return jsonify(operator_events=operator_events)
+    response = []
+    for event in operator_events:
+        record = event.serialize()
+        del record['operator_event_type_id']
+        record['event_type'] = event.operator_event_type.serialize()
+        response.append(record)
+    return jsonify(operator_events=response)
 
 
 @api.route('/operator_event/<int:operator_event_id>', methods=['GET'])
@@ -119,8 +124,10 @@ def get_operator_event(operator_event_id):
     operator_event = OperatorEvent.query.filter(OperatorEvent.id == operator_event_id).first()
     if not operator_event:
         return '{}', 204
-    operator_event = operator_event.serialize()
-    return jsonify(**operator_event)
+    response = operator_event.serialize()
+    response['event_type'] = operator_event.operator_event_type.serialize()
+    del response['operator_event_type_id']
+    return jsonify(**response)
 
 @api.route('/operator_event/<int:operator_event_id>', methods=['PUT'])
 @auth.login_required
@@ -169,8 +176,11 @@ def post_operator_event():
 
     db.session.add(operator_event)
     db.session.commit()
-    operator_event = operator_event.serialize()
-    return jsonify(**operator_event), 201
+    response = operator_event.serialize()
+    response['event_type'] = operator_event.operator_event_type.serialize()
+    del response['operator_event_type_id']
+
+    return jsonify(**response), 201
     
 
 @api.route('/operator_event_type')
