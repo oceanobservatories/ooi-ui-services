@@ -12,11 +12,6 @@ from authentication import auth
 from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment
 from ooiservices.app.models import Stream, StreamParameter, Organization, Instrumentname
 
-from ooiservices.app.main.data import gen_data
-
-import json
-import datetime
-
 @api.route('/arrays')
 def get_arrays():
     arrays = Array.query.all()

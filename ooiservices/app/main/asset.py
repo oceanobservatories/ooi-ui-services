@@ -17,7 +17,6 @@ def get_organizations():
     organizations = [o.serialize() for o in Organization.query.all()]
     return jsonify(organizations=organizations)
 
-
 @api.route('/platformlocation', methods=['GET'])
 def get_platform_deployment_geojson_single():
     geo_locations = {}
@@ -45,4 +44,5 @@ def get_display_name():
                 display_name = platform_deployment_filtered.proper_display_name
     if platform_deployment_filtered is None:
         return '{}', 204
+
     return jsonify({ 'proper_display_name' : display_name })
