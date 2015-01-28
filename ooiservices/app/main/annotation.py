@@ -39,7 +39,7 @@ def edit_annotation(id):
     annotation = Annotation.query.get_or_404(id)
     if g.current_user != annotation.user_name and \
             not g.current_user.can('annotate'):
-        return forbidden('Insufficient permissions')
+        return forbidden('Scope required.')
     annotation.comment = request.json.get('comment', annotation.comment)
     db.session.add(annotation)
     return jsonify(annotation.to_json())
