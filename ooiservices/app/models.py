@@ -666,7 +666,8 @@ class UserScope(db.Model):
         scopes = {
             'redmine',
             'asset_manager',
-            'user_admin'
+            'user_admin',
+            'annotate'
             }
         for s in scopes:
             scope = UserScope.query.filter_by(scope_name=s).first()

@@ -6,7 +6,7 @@ uframe endpoints
 __author__ = 'Andy Bird'
 
 from flask import jsonify, request, current_app, url_for
-from ooiservices.app.main import api
+from ooiservices.app.uframe import uframe as api
 from ooiservices.app import db
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment
