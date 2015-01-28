@@ -126,22 +126,22 @@ def get_data():
     cosmo_constant = 2208988800
     time_idx = -1
     for field in d_row:
-        if field == "preferred_timestamp" or field == u'stream_name' or field == u'driver_timestamp': 
+        if field == "preferred_timestamp" or field == u'stream_name' or field == u'driver_timestamp':
             pass
         else:
-            data_fields.append(field) 
-        
+            data_fields.append(field)
+
     for d in data:
         r = []
         for field in data_fields:
             if field.endswith("_timestamp"):
-                r.append(d[field] - cosmo_constant)            
+                r.append(d[field] - cosmo_constant)
                 if field == "internal_timestamp":
-                    time_idx = len(r)-1                
+                    time_idx = len(r)-1
             else:
                 r.append(d[field])
         some_data.append(r)
-    
+
     #genereate dict for the data thing
     resp_data = {}
     resp_data['cols'] = data_fields
