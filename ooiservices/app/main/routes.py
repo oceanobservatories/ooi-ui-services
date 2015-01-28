@@ -12,6 +12,7 @@ from authentication import auth
 from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment
 from ooiservices.app.models import Stream, StreamParameter, Organization, Instrumentname
 
+
 @api.route('/arrays')
 def get_arrays():
     arrays = Array.query.all()
