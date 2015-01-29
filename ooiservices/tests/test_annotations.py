@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-unit testing for the table of contents (TOC) required classes.
+unit testing for the annotations feature
 
 '''
 __author__ = 'M@Campbell'
@@ -19,7 +19,7 @@ Sample data is inserted, checked, and then removed.
 
 '''
 
-class TOCTestCase(unittest.TestCase):
+class AnnotationsTestCase(unittest.TestCase):
     def setUp(self):
         self.app = create_app('TESTING_CONFIG')
         self.app_context = self.app.app_context()
@@ -44,7 +44,7 @@ class TOCTestCase(unittest.TestCase):
         }
 
     def test_annotation(self):
-        # Test forbbiden
+        'Test model and GET/PUT/POST'
         response = self.client.put(
             url_for('main.edit_annotation', id=1),
             headers=self.get_api_headers('admin', 'test'),
@@ -56,32 +56,33 @@ class TOCTestCase(unittest.TestCase):
         db.session.add(usl)
         db.session.commit()
 
+        'Test Annotation model'
         #Test the json in the object
         annotation = Annotation()
         self.assertTrue(annotation.to_json() == {'comment': None, 'created_time': None, 'id': None, 'modified_time': None, 'title': None, 'user_name': None})
 
+        'Test new annotation submition'
         new_annotation_json = {'comment': 'test', 'title': 'Test Annotation', 'user_name': 'admin'}
-
         new_annotation = Annotation.new_from_json(new_annotation_json)
         db.session.add(new_annotation)
         db.session.commit()
         result = Annotation.query.filter_by(user_name='admin').first()
         self.assertTrue(result.comment == 'test')
 
+        'Test API GET list'
         #test the api route for lists
         response = self.client.get(url_for('main.get_annotations'), content_type = 'application/json')
-
         self.assertTrue(response.status_code == 200)
 
+        'Test API GET by id'
         response = self.client.get(url_for('main.get_annotation',id='admin'), content_type = 'application/json')
-
         self.assertTrue(response.status_code == 200)
 
-        #Test authorized
+        'Test user authorized'
         response = self.client.post(url_for('main.create_annotation'), headers=self.get_api_headers('admin', 'test'), data=json.dumps(new_annotation_json))
         self.assertEquals(response.status_code, 201)
 
-        # edit post
+        'Test edit annotation'
         response = self.client.put(
             url_for('main.edit_annotation', id=1),
             headers=self.get_api_headers('admin', 'test'),

@@ -13,6 +13,8 @@ from ooiservices.app.models import Annotation, User
 from ooiservices.app.decorators import scope_required
 from ooiservices.app.main.errors import forbidden
 
+from datetime import datetime
+
 @api.route('/annotations')
 def get_annotations():
     annotations = Annotation.query.all()
@@ -40,6 +42,8 @@ def edit_annotation(id):
     if g.current_user != annotation.user_name and \
             not g.current_user.can('annotate'):
         return forbidden('Scope required.')
+# 	add more modifications as needed
     annotation.comment = request.json.get('comment', annotation.comment)
+    annotation.modified_date = datetime.now()
     db.session.add(annotation)
     return jsonify(annotation.to_json())
