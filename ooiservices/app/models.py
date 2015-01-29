@@ -19,22 +19,6 @@ import json
 
 #--------------------------------------------------------------------------------
 
-#from sqlalchemy.types import UserDefinedType
-#from sqlalchemy import func
-
-# class Geometry(UserDefinedType):
-#     def get_col_spec(self):
-#         return "GEOMETRY"
-#
-#     def bind_expression(self, bindvalue):
-#         return func.ST_GeomFromText(bindvalue, type_=self)
-#
-#     def column_expression(self, col):
-#         return func.ST_AsText(col, type_=self)
-
-
-#--------------------------------------------------------------------------------
-
 from collections import OrderedDict
 
 class DictSerializableMixin(object):
@@ -68,18 +52,16 @@ class Annotation(db.Model):
     reference_name = db.Column(db.Text, nullable=True)
     reference_type = db.Column(db.Text, nullable=True)
     reference_pk_id = db.Column(db.Integer, nullable=True)
-    title = db.Column(db.Text, nullable=False)
     comment = db.Column(db.Text)
 
     user = db.relationship(u'User')
 
     @staticmethod
-    def new_from_json(json_annotation):
+    def from_json(json_annotation):
         user_name = json_annotation.get('user_name')
         created_time = datetime.now()
-        title = json_annotation.get('title')
         comment = json_annotation.get('comment')
-        return Annotation(user_name=user_name, created_time=created_time, title=title, comment=comment)
+        return Annotation(user_name=user_name, created_time=created_time, comment=comment)
 
     def to_json(self):
         json_array = {
@@ -87,7 +69,6 @@ class Annotation(db.Model):
             'user_name': self.id,
             'created_time': self.created_time,
             'modified_time': self.modified_time,
-            'title': self.title,
             'comment': self.comment
         }
         return json_array
@@ -241,7 +222,7 @@ class File(db.Model):
     file_permissions = db.Column(db.Text)
     file_type = db.Column(db.Text)
 
-class InspectionStatu(db.Model):
+class InspectionStatus(db.Model):
     __tablename__ = 'inspection_status'
     __table_args__ = {u'schema': __schema__}
 
