@@ -15,7 +15,7 @@ COMMON: &common
 DEVELOPMENT: &development
     <<: *common
     DEBUG: True
-    SQLALCHEMY_DATABASE_URI: 'postgres://user:password@hostname/database_name'
+    SQLALCHEMY_DATABASE_URI: 'postgres://bobfratantonio@localhost/ooiuidev'
 
 LOCAL_DEVELOPMENT: &local_dev
     <<: *common
