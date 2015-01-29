@@ -64,21 +64,7 @@ insert into user_scope_link(user_id, scope_id) values (2, 1);
 insert into user_scope_link(user_id, scope_id) values (3, 2); 
 insert into user_scope_link(user_id, scope_id) values (4, 2); 
 insert into user_scope_link(user_id, scope_id) values (5, 4); 
--- total user_scope_links: 5 
-
--- user_roles
-insert into user_roles(role_name) values ('Administrator');
-insert into user_roles(role_name) values ('Marine Operator');
-insert into user_roles(role_name) values ('Science User');
-
--- user_role_user_scope_link
-insert into user_role_user_scope_link(user_scope_id, user_role_id) values (1, 1);
-insert into user_role_user_scope_link(user_scope_id, user_role_id) values (2, 1);
-insert into user_role_user_scope_link(user_scope_id, user_role_id) values (3, 1);
-insert into user_role_user_scope_link(user_scope_id, user_role_id) values (4, 1);
-insert into user_role_user_scope_link(user_scope_id, user_role_id) values (2, 2);
-insert into user_role_user_scope_link(user_scope_id, user_role_id) values (3, 3);
-insert into user_role_user_scope_link(user_scope_id, user_role_id) values (4, 3);
+-- total user_scope_links: 5
 
 -- operator_event_types
 insert into operator_event_types(type_name, type_description) values ('INFO', 'General information event.');
