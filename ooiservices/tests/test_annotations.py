@@ -59,11 +59,11 @@ class AnnotationsTestCase(unittest.TestCase):
         'Test Annotation model'
         #Test the json in the object
         annotation = Annotation()
-        self.assertTrue(annotation.to_json() == {'comment': None, 'created_time': None, 'id': None, 'modified_time': None, 'title': None, 'user_name': None})
+        self.assertTrue(annotation.to_json() == {'comment': None, 'created_time': None, 'id': None, 'modified_time': None, 'user_name': None})
 
         'Test new annotation submition'
-        new_annotation_json = {'comment': 'test', 'title': 'Test Annotation', 'user_name': 'admin'}
-        new_annotation = Annotation.new_from_json(new_annotation_json)
+        new_annotation_json = {'comment': 'test', 'user_name': 'admin'}
+        new_annotation = Annotation.from_json(new_annotation_json)
         db.session.add(new_annotation)
         db.session.commit()
         result = Annotation.query.filter_by(user_name='admin').first()
