@@ -24,7 +24,7 @@ def get_annotations():
 @auth.login_required
 @scope_required('annotate')
 def create_annotation():
-    annotation = Annotation.new_from_json(request.json)
+    annotation = Annotation.from_json(request.json)
     db.session.add(annotation)
     db.session.commit()
     return jsonify(annotation.to_json()), 201

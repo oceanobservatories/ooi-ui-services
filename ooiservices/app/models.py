@@ -74,7 +74,7 @@ class Annotation(db.Model):
     user = db.relationship(u'User')
 
     @staticmethod
-    def new_from_json(json_annotation):
+    def from_json(json_annotation):
         user_name = json_annotation.get('user_name')
         created_time = datetime.now()
         title = json_annotation.get('title')
