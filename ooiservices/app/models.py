@@ -53,6 +53,12 @@ class Annotation(db.Model):
     reference_type = db.Column(db.Text, nullable=True)
     reference_pk_id = db.Column(db.Integer, nullable=True)
     comment = db.Column(db.Text)
+    title = db.Column(db.Text)
+    stream_name = db.Column(db.Text)
+    pos_x = db.Column(db.Integer)
+    pos_y = db.Column(db.Integer)
+    field_x = db.Column(db.Text)
+    field_y = db.Column(db.Text)
 
     user = db.relationship(u'User')
 
@@ -69,7 +75,13 @@ class Annotation(db.Model):
             'user_name': self.id,
             'created_time': self.created_time,
             'modified_time': self.modified_time,
-            'comment': self.comment
+            'comment': self.comment,
+            'title': self.title,
+            'stream_name': self.stream_name,
+            'pos_x': self.pos_x,
+            'pos_y': self.pos_y,
+            'field_x': self.field_x,
+            'field_y': self.field_y
         }
         return json_array
 

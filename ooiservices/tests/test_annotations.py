@@ -59,10 +59,10 @@ class AnnotationsTestCase(unittest.TestCase):
         'Test Annotation model'
         #Test the json in the object
         annotation = Annotation()
-        self.assertTrue(annotation.to_json() == {'comment': None, 'created_time': None, 'id': None, 'modified_time': None, 'user_name': None})
+        self.assertTrue(annotation.to_json() == {'comment': None, 'created_time': None, 'field_x': None, 'field_y': None, 'id': None, 'modified_time': None, 'pos_x': None, 'pos_y': None, 'stream_name': None, 'title': None, 'user_name': None})
 
         'Test new annotation submition'
-        new_annotation_json = {'comment': 'test', 'user_name': 'admin'}
+        new_annotation_json = {'comment': 'test', 'title': 'test', 'user_name': 'admin', 'pos_x': 5, 'pos_y': 5, 'field_x': 'time', 'filed_y': 'volume', 'stream_name': 'xyz'}
         new_annotation = Annotation.from_json(new_annotation_json)
         db.session.add(new_annotation)
         db.session.commit()

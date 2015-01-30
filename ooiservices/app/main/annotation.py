@@ -44,6 +44,7 @@ def edit_annotation(id):
         return forbidden('Scope required.')
 # 	add more modifications as needed
     annotation.comment = request.json.get('comment', annotation.comment)
+    annotation.title = request.json.get('title', annotation.title)
     annotation.modified_date = datetime.now()
     db.session.add(annotation)
     return jsonify(annotation.to_json())
