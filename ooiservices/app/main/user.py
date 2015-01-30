@@ -5,7 +5,7 @@ User API v1.0 List
 '''
 __author__ = 'M@Campbell'
 
-from flask import jsonify, request, current_app, url_for
+from flask import jsonify, request, current_app, url_for, g
 from ooiservices.app.main import api
 from ooiservices.app import db
 from authentication import auth
@@ -24,6 +24,15 @@ def get_user(id):
 def get_user_scopes():
     user_scopes = UserScope.query.all()
     return jsonify( {'user_scopes' : [user_scope.to_json() for user_scope in user_scopes] })
+
+@api.route('/user', methods=['GET'])
+@auth.login_required
+def get_current_user():
+    '''
+    Returns the currently logged in user
+    '''
+    doc = g.current_user.to_json()
+    return jsonify(**doc)
 
 @api.route('/user', methods=['POST'])
 @auth.login_required

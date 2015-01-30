@@ -712,8 +712,14 @@ class User(UserMixin, db.Model):
         json_user = {
             'id' : self.id,
             'user_id' : self.user_id,
-            'pass_hash' : self.pass_hash,
             'email' : self.email,
+            'active' : self.active,
+            'first_name' : self.first_name,
+            'last_name' : self.last_name,
+            'phone_primary' : self.phone_primary,
+            'phone_alternate' : self.phone_alternate,
+            'role' : self.role,
+            'organization_id' : self.organization_id,
             'user_name' : self.user_name
         }
         return json_user
