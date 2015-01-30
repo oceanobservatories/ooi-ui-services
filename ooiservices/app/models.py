@@ -55,6 +55,7 @@ class Annotation(db.Model):
     comment = db.Column(db.Text)
     title = db.Column(db.Text)
     stream_name = db.Column(db.Text)
+    instrument_name = db.Column(db.Text)
     pos_x = db.Column(db.Integer)
     pos_y = db.Column(db.Integer)
     field_x = db.Column(db.Text)
@@ -67,7 +68,20 @@ class Annotation(db.Model):
         user_name = json_annotation.get('user_name')
         created_time = datetime.now()
         comment = json_annotation.get('comment')
-        return Annotation(user_name=user_name, created_time=created_time, comment=comment)
+        title = json_annotation.get('title')
+        created_time = datetime.now()
+        modified_time = datetime.now()
+        stream_name = json_annotation.get('stream_name')
+        instrument_name = json_annotation.get('instrument_name')
+        pos_x = json_annotation.get('pos_x')
+        pos_y = json_annotation.get('pos_y')
+        field_y = json_annotation.get('field_x')
+        field_x = json_annotation.get('field_y')
+
+        return Annotation(user_name=user_name, created_time=created_time, comment=comment, \
+            title=title, modified_time=modified_time, \
+            stream_name=stream_name, instrument_name=instrument_name, pos_x=pos_y, \
+            field_x=field_x, field_y=field_y)
 
     def to_json(self):
         json_array = {
@@ -78,6 +92,7 @@ class Annotation(db.Model):
             'comment': self.comment,
             'title': self.title,
             'stream_name': self.stream_name,
+            'instrument_name': self.instrument_name,
             'pos_x': self.pos_x,
             'pos_y': self.pos_y,
             'field_x': self.field_x,
