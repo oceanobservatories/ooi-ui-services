@@ -52,8 +52,19 @@ Make sure you have the environment variables defiend:
     PYTHONPATH=.
     
 Setup the Database:
-    python ooiuiservice/manage.py deploy --password <admin-password>
+    python ooiservices/manage.py deploy --password <admin-password>
 
+
+### Debugging Database Problems
+
+If you attempt to deploy the database `ooiservices/manage.py deploy` and
+encounter an error "role postgres does not exist". You need to create the role
+postgres. You can do so by
+
+```
+psql postgres
+CREATE ROLE postgres LOGIN SUPERUSER;
+```
 
 ### Running the services instance
     python ooiservices/manage.py runserver
