@@ -9,7 +9,8 @@ import unittest
 from flask import url_for
 from ooiservices.app import create_app, db
 from ooiservices.app.models import Array, InstrumentDeployment, PlatformDeployment, Stream, StreamParameter
-
+from ooiservices.app.models import Organization
+import json
 '''
 These tests verify the functioning of the api list.
 Sample data is inserted, checked, and then removed.
@@ -120,3 +121,25 @@ class TOCTestCase(unittest.TestCase):
         content_type = 'application/json')
 
         self.assertTrue(response.status_code == 200)
+    
+    def test_organization(self):
+        organization = Organization()
+        organization.organization_name = 'Hyperion'
+        db.session.add(organization)
+        db.session.commit()
+
+        response = self.client.get('/organization', content_type='application/json')
+        self.assertEquals(response.status_code, 200)
+
+        data = json.loads(response.data)
+        self.assertEquals(data, {'organizations':[{'id':1, 'organization_name' : 'Hyperion'}]})
+
+        response = self.client.get('/organization/1', content_type='application/json')
+        self.assertEquals(response.status_code, 200)
+        
+        data = json.loads(response.data)
+        self.assertEquals(data, {'id':1, 'organization_name' : 'Hyperion'})
+
+
+        
+
