@@ -150,9 +150,9 @@ def put_operator_event(operator_event_id):
 @api.route('/operator_event', methods=['POST'])
 @auth.login_required
 def post_operator_event():
-    data = request.json or {}
+    data = json.loads(request.data) or {}
     if not data:
-        return '{"error":"Invalid request"}', 400
+        return '{"error":"Empty request"}', 400
     watch = get_open_watch()
     if not watch:
         return '{"error":"No open watches"}', 400
