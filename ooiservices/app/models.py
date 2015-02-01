@@ -100,6 +100,7 @@ class Annotation(db.Model):
         }
         return json_array
 
+
 class Array(db.Model):
     __tablename__ = 'arrays'
     __table_args__ = {u'schema': __schema__}
