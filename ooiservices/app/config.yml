@@ -10,6 +10,7 @@ COMMON: &common
     HOST: localhost
     PORT: 4000
     JSONIFY_PRETTYPRINT_REGULAR: true
+    UFRAME_URL: 'http://localhost:12570'
 
 DEVELOPMENT: &development
     <<: *common

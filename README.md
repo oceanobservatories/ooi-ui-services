@@ -32,6 +32,10 @@ Active Routes for specific item deployment inspection:
     /streams/<string:stream_name>
     /parameter/<string:stream_parameter_name>
     
+uFrame normalized routes:
+
+    /get_data/<instrument>/<sensor>
+    
 Usage:
 ### Service setup
 Ensure you have the following:
