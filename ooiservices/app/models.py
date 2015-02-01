@@ -19,22 +19,6 @@ import json
 
 #--------------------------------------------------------------------------------
 
-#from sqlalchemy.types import UserDefinedType
-#from sqlalchemy import func
-
-# class Geometry(UserDefinedType):
-#     def get_col_spec(self):
-#         return "GEOMETRY"
-#
-#     def bind_expression(self, bindvalue):
-#         return func.ST_GeomFromText(bindvalue, type_=self)
-#
-#     def column_expression(self, col):
-#         return func.ST_AsText(col, type_=self)
-
-
-#--------------------------------------------------------------------------------
-
 from collections import OrderedDict
 
 class DictSerializableMixin(object):
@@ -62,16 +46,59 @@ class Annotation(db.Model):
     __table_args__ = {u'schema': __schema__}
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.ForeignKey(u'' + __schema__ + '.users.id'), nullable=False)
+    user_name = db.Column(db.ForeignKey(u'' + __schema__ + '.users.user_name'), nullable=False)
     created_time = db.Column(db.DateTime(True), nullable=False)
-    modified_time = db.Column(db.DateTime(True), nullable=False)
-    reference_name = db.Column(db.Text, nullable=False)
-    reference_type = db.Column(db.Text, nullable=False)
-    reference_pk_id = db.Column(db.Integer, nullable=False)
-    title = db.Column(db.Text, nullable=False)
+    modified_time = db.Column(db.DateTime(True), nullable=True)
+    reference_name = db.Column(db.Text, nullable=True)
+    reference_type = db.Column(db.Text, nullable=True)
+    reference_pk_id = db.Column(db.Integer, nullable=True)
     comment = db.Column(db.Text)
+    title = db.Column(db.Text)
+    stream_name = db.Column(db.Text)
+    instrument_name = db.Column(db.Text)
+    pos_x = db.Column(db.Integer)
+    pos_y = db.Column(db.Integer)
+    field_x = db.Column(db.Text)
+    field_y = db.Column(db.Text)
 
     user = db.relationship(u'User')
+
+    @staticmethod
+    def from_json(json_annotation):
+        user_name = json_annotation.get('user_name')
+        created_time = datetime.now()
+        comment = json_annotation.get('comment')
+        title = json_annotation.get('title')
+        created_time = datetime.now()
+        modified_time = datetime.now()
+        stream_name = json_annotation.get('stream_name')
+        instrument_name = json_annotation.get('instrument_name')
+        pos_x = json_annotation.get('pos_x')
+        pos_y = json_annotation.get('pos_y')
+        field_y = json_annotation.get('field_x')
+        field_x = json_annotation.get('field_y')
+
+        return Annotation(user_name=user_name, created_time=created_time, comment=comment, \
+            title=title, modified_time=modified_time, \
+            stream_name=stream_name, instrument_name=instrument_name, pos_x=pos_y, \
+            field_x=field_x, field_y=field_y)
+
+    def to_json(self):
+        json_array = {
+            'id': self.id,
+            'user_name': self.id,
+            'created_time': self.created_time,
+            'modified_time': self.modified_time,
+            'comment': self.comment,
+            'title': self.title,
+            'stream_name': self.stream_name,
+            'instrument_name': self.instrument_name,
+            'pos_x': self.pos_x,
+            'pos_y': self.pos_y,
+            'field_x': self.field_x,
+            'field_y': self.field_y
+        }
+        return json_array
 
 class Array(db.Model):
     __tablename__ = 'arrays'
@@ -222,7 +249,7 @@ class File(db.Model):
     file_permissions = db.Column(db.Text)
     file_type = db.Column(db.Text)
 
-class InspectionStatu(db.Model):
+class InspectionStatus(db.Model):
     __tablename__ = 'inspection_status'
     __table_args__ = {u'schema': __schema__}
 
@@ -647,7 +674,8 @@ class UserScope(db.Model):
         scopes = {
             'redmine',
             'asset_manager',
-            'user_admin'
+            'user_admin',
+            'annotate'
             }
         for s in scopes:
             scope = UserScope.query.filter_by(scope_name=s).first()
