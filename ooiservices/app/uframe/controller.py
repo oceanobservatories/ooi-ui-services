@@ -11,6 +11,7 @@ from ooiservices.app import db
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment
 from ooiservices.app.models import Stream, StreamParameter, Organization, Instrumentname
+from ooiservices.app.models import Annotation
 import requests
 import json
 
@@ -19,7 +20,7 @@ from ooiservices.app.uframe.data import gen_data
 import json
 import datetime
 
-def get_data_type(data_input):
+def _get_data_type(data_input):
     '''
     gets the data type in a format google charts understands
     '''
@@ -30,24 +31,26 @@ def get_data_type(data_input):
     else:
         return "unknown"
 
+def _get_annotation(instrument_name, stream_name):
+    annotations = Annotation.query.filter_by(instrument_name=instrument_name, stream_name=stream_name).all()
+    return [annotation.to_json() for annotation in annotations]
+
 
 @api.route('/get_data/<string:instrument>/<string:stream>',methods=['GET'])
 def get_data(stream, instrument):
     #get data from uframe
     #-------------------
+    # m@c: 02/01/2015
     #uframe url to get stream data from instrument:
     # /sensor/user/inv/<stream_name>/<instrument_name>
     #
     #-------------------
-    data = requests.get(current_app.config['UFRAME_URL'] + '/sensor/user/inv/' + stream + '/' + instrument)
-    data = data.json()
-    #return data
-
-    hasAnnotation = False
-    if 'annotation' in request.args:
-        #generate annotation plot
-        if request.args['annotation'] == "true":
-            hasAnnotation = True
+    #TODO: create better error handler if uframe is not online/responding
+    try:
+        data = requests.get(current_app.config['UFRAME_URL'] + '/sensor/user/inv/' + stream + '/' + instrument)
+        data = data.json()
+    except:
+        raise
 
     #got normal data plot
     #create the data fields,assumes the same data fields throughout
@@ -74,18 +77,12 @@ def get_data(stream, instrument):
             if field == pref_timestamp:
                 d_type = "datetime"
             else:
-                d_type = get_data_type(type(data[0][field]))
+                d_type = _get_data_type(type(data[0][field]))
 
             data_field_list.append(field)
             data_fields.append({"id": "",
                                 "label": field,
                                 "type":  d_type})
-
-    if hasAnnotation:
-        data_field_list.append("annotation")
-        data_field_list.append("annotationText")
-        data_fields.append({"label":"title1","type":  "string" , "role":"annotation"})
-        data_fields.append({"label":"text1","type":  "string" , "role":"annotationText"})
 
     #figure out the data content
     for d in data:
@@ -99,23 +96,13 @@ def get_data(stream, instrument):
                 c_r.append({"f":str_date,"v":date_str})
                 if field == pref_timestamp:
                     time_idx = len(c_r)-1
-            elif field == ("annotation"):
-                if d['dofst_k_oxygen']>3277:
-                    c_r.append({"v":"test"})
-                else:
-                    c_r.append({"v":None})
-            elif field == ("annotationText"):
-                if d['dofst_k_oxygen']>3277:
-                    c_r.append({"v":"test"})
-                else:
-                    c_r.append({"v":None})
             else:
                 c_r.append({"v":d[field],"f":d[field]})
-
         some_data.insert(0,{"c":c_r})
 
     #genereate dict for the data thing
-    resp_data = {'cols':data_fields,
+    resp_data = {'annotations':_get_annotation(instrument, stream),
+                 'cols':data_fields,
                  'rows':some_data
                  #'size':len(some_data),
                  #'start_time' : datetime.datetime.fromtimestamp(data[0][pref_timestamp]).isoformat(),
@@ -123,32 +110,3 @@ def get_data(stream, instrument):
                  }
 
     return jsonify(**resp_data)
-
-@api.route('/platformlocation', methods=['GET'])
-def get_platform_deployment_geojson_single():
-    geo_locations = {}
-    if len(request.args) > 0:
-        if ('reference_designator' in request.args):
-            if len(request.args['reference_designator']) < 100:
-                reference_designator = request.args['reference_designator']
-                geo_locations = PlatformDeployment.query.filter(PlatformDeployment.reference_designator == reference_designator).all()
-    else:
-        geo_locations = PlatformDeployment.query.all()
-    if len(geo_locations) == 0:
-        return '{}', 204
-    return jsonify({ 'geo_locations' : [{'id' : geo_location.id, 'reference_designator' : geo_location.reference_designator, 'geojson' : geo_location.geojson} for geo_location in geo_locations] })
-
-@api.route('/display_name', methods=['GET'])
-def get_display_name():
-    # 'CE01ISSM-SBD17'
-    platform_deployment_filtered = None
-    display_name = ''
-    if len(request.args) > 0:
-        if ('reference_designator' in request.args):
-            if len(request.args['reference_designator']) < 100:
-                reference_designator = request.args['reference_designator']
-                platform_deployment_filtered = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first_or_404()
-                display_name = platform_deployment_filtered.proper_display_name
-    if platform_deployment_filtered is None:
-        return '{}', 204
-    return jsonify({ 'proper_display_name' : display_name })

@@ -31,11 +31,25 @@ Active Routes for specific item deployment inspection:
     /instrument_deployments/<string:reference_designator>
     /streams/<string:stream_name>
     /parameter/<string:stream_parameter_name>
+
+POST routes:
+
+    /annotation
+        'comment':
+        'field_x':
+        'field_y': 
+        'y-files':
+        'instrument_name':
+        'pos_x':
+        'pos_y':
+        'stream_name': 
+        'title': 'test'
+        'user_name': 
     
 uFrame normalized routes:
 
     /get_data/<instrument>/<sensor>
-    
+
 Usage:
 ### Service setup
 Ensure you have the following:
@@ -56,7 +70,8 @@ Make sure you have the environment variables defiend:
     PYTHONPATH=.
     
 Setup the Database:
-    python ooiservices/manage.py deploy --password <admin-password>
+    #Note, you may bulk load the database with the -bl option
+    python ooiservices/manage.py deploy --password <admin-password> -bl=True
 
 
 ### Debugging Database Problems
