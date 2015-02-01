@@ -100,6 +100,11 @@ def deploy(password, bulkload):
     User.insert_user(password)
     UserScope.insert_scopes()
 
+@manager.command
+def load_data():
+    with open('db/ooiui_schema_data.sql') as f:
+        psql('ooiuidev', _in=f)
+    app.logger.info('Bulk test data loaded.')
 
 @manager.command
 def profile(length=25, profile_dir=None):
