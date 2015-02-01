@@ -12,7 +12,7 @@ if os.environ.get('FLASK_COVERAGE'):
     COV = coverage.coverage(branch=True,include=basedir + '/app/*')
     COV.start()
 from ooiservices.app import create_app, db
-from flask.ext.script import Manager, Shell, Server
+from flask.ext.script import Manager, Shell, Server, prompt_bool
 from flask.ext.migrate import Migrate, MigrateCommand
 
 
@@ -72,8 +72,9 @@ def test(coverage=False):
     if retval.failures:
         sys.exit(1)
 
+@manager.option('-bl', '--bulkload', default=False)
 @manager.option('-p', '--password', required=True)
-def deploy(password):
+def deploy(password, bulkload):
     from flask.ext.migrate import upgrade
     from ooiservices.app.models import User, UserScope, UserScopeLink, Array
     from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameterLink
@@ -88,8 +89,11 @@ def deploy(password):
     psql('ooiuitest', '-c', 'create schema ooiui')
     psql('ooiuitest', '-c', 'create extension postgis')
     db.create_all()
-    with open('db/ooiui_schema_data.sql') as f:
-        psql('ooiuidev', _in=f)
+    if bulkload:
+        with open('db/ooiui_schema_data.sql') as f:
+            psql('ooiuidev', _in=f)
+        app.logger.info('Bulk test data loaded.')
+
     # migrate database to latest revision
     #upgrade()
     app.logger.info('Insert default user, name: admin')
@@ -110,11 +114,15 @@ def profile(length=25, profile_dir=None):
 def destroy():
     from sh import psql
     db_check = str(db.engine)
-    if (db_check == 'Engine(postgres://postgres@localhost/ooiuidev)'):
-        psql('-c', 'drop database ooiuidev')
-        psql('-c', 'drop database ooiuitest')
-    else:
-        print 'Must be working on LOCAL_DEVELOPMENT to destroy db'
+    if prompt_bool(
+        "Are you sure you want to do drop %s" % db_check
+    ):
+        if (db_check == 'Engine(postgres://postgres@localhost/ooiuidev)'):
+            psql('-c', 'drop database ooiuidev')
+            psql('-c', 'drop database ooiuitest')
+            app.logger.info('ooiuidev and ooiuitest databases have been dropped.')
+        else:
+            print 'Must be working on LOCAL_DEVELOPMENT to destroy db'
 
 if __name__ == '__main__':
     manager.run()

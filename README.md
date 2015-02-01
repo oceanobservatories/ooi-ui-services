@@ -70,7 +70,8 @@ Make sure you have the environment variables defiend:
     PYTHONPATH=.
     
 Setup the Database:
-    python ooiservices/manage.py deploy --password <admin-password>
+    #Note, you may bulk load the database with the -bl option
+    python ooiservices/manage.py deploy --password <admin-password> -bl=True
 
 
 ### Debugging Database Problems
