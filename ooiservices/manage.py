@@ -24,7 +24,7 @@ def make_shell_context():
     from ooiservices.app.models import User, UserScope, UserScopeLink, Array
     from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameter, Watch
     from ooiservices.app.models import OperatorEvent
-    from ooiservices.app.models import Platformname, Instrumentname
+    from ooiservices.app.models import Platformname, Instrumentname, Annotation
 
 
     ctx = {"app": app,
@@ -40,7 +40,8 @@ def make_shell_context():
            "OperatorEvent": OperatorEvent,
            "StreamParameter": StreamParameter,
            "Platformname": Platformname,
-           "Instrumentname": Instrumentname}
+           "Instrumentname": Instrumentname,
+           "Annotation": Annotation}
     return ctx
 
 @manager.command
@@ -86,14 +87,9 @@ def deploy(password):
     psql('-c', 'create database ooiuitest;', '-U', 'postgres')
     psql('ooiuitest', '-c', 'create schema ooiui')
     psql('ooiuitest', '-c', 'create extension postgis')
-    with open('db/ooiui_schema_before_data.sql') as f:
-        psql('ooiuidev', _in=f)
+    db.create_all()
     with open('db/ooiui_schema_data.sql') as f:
         psql('ooiuidev', _in=f)
-    with open('db/ooiui_schema_after_data.sql') as f:
-        psql('ooiuidev', _in=f)
-    db.create_all()
-    #os.system("psql ooiuidev < db/ooiui_schema_data.sql")
     # migrate database to latest revision
     #upgrade()
     app.logger.info('Insert default user, name: admin')
