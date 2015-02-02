@@ -19,6 +19,7 @@ from ooiservices.app.uframe.data import gen_data
 
 import json
 import datetime
+import math
 
 #ignore list for data fields
 FIELDS_IGNORE = ["stream_name","quality_flag"]
@@ -77,23 +78,21 @@ def _get_col_outline(data,pref_timestamp,inital_fields,hasAnnotation,annotations
     return data_fields,data_field_list
 
 def _get_annotation_content(annotation_field, pref_timestamp, annotations_list, d, data_field):    
-    data = {}
-    #
-    dt = d[pref_timestamp] - COSMO_CONSTANT
-    print d['dt'], dt
+    '''
+    creates the annotation content for a given field
+    '''
     #right now x and y are timeseries data
-    for an in annotations_list:
-        print "\t\t",an
+    for an in annotations_list:        
         if an['field_x'] == pref_timestamp or an['field_y'] == data_field:
-            print d[pref_timestamp], d[data_field]
-            print "\t",an['pos_x'],an['pos_y']
+            # and and y value
+            if int(d['fixed_dt']) == int(an['pos_x']):
+                if annotation_field == "annotation":
+                    return {"v":an["title"]}
+                elif annotation_field == "annotationText":
+                    return {"v":an['comment']}
 
-    if annotation_field == "annotation":
-        data = {"v":None,"f":None}
-    elif annotation_field == "annotationText":
-        data = {"v":None,"f":None}
-
-    return data
+    #return nothing
+    return {"v":None,"f":None}
 
 
 @api.route('/get_data/<string:instrument>/<string:stream>',methods=['GET'])
@@ -142,7 +141,6 @@ def get_data(stream, instrument):
     #move timestamp to the front
     inital_fields.insert(0, inital_fields.pop(inital_fields.index(pref_timestamp)))
 
-    print "\t *******---------"
     fields_have_annotation = []
     #get the annotations, only get the annotations if requested
     if hasAnnotation:
@@ -158,42 +156,41 @@ def get_data(stream, instrument):
 
     #figure out the data content
     #annotations will be in order and 
+    data_length = len(data)
     for d in data:
         c_r = []
         #used to store the actual datafield in use by the annotations
         data_field = None
+        
+        #create data time object, should only ever be one timestamp....the pref one
+        d['fixed_dt'] = d[pref_timestamp] - COSMO_CONSTANT
+        c_dt = datetime.datetime.fromtimestamp(d['fixed_dt'])
+        d['dt'] = c_dt
+        str_date = c_dt.isoformat()
+        #create the data
+        date_str = "Date("+str(c_dt.year)+","+str(c_dt.month)+","+str(c_dt.day)+","+str(c_dt.hour)+","+str(c_dt.minute)+","+str(c_dt.second)+")"
 
-        for field in data_field_list:
-            #should only ever be one timestamp
-            if field.endswith("_timestamp"):
-                #create data time object
-                d['fixed_dt'] = d[field] - COSMO_CONSTANT
-                c_dt = datetime.datetime.fromtimestamp(d['fixed_dt'])
-                d['dt'] = c_dt
-                str_date = c_dt.isoformat()
-                #create the data
-                date_str = "Date("+str(c_dt.year)+","+str(c_dt.month)+","+str(c_dt.day)+","+str(c_dt.hour)+","+str(c_dt.minute)+","+str(c_dt.second)+")"
-                
-                c_r.append({"f":str_date,"v":date_str})                
-                if field == pref_timestamp:
-                    time_idx = len(c_r)-1            
+        for field in data_field_list:            
+            if field == pref_timestamp:
+                #datetime field
+                c_r.append({"f":str_date,"v":date_str})                                
+                time_idx = len(c_r)-1            
             
             elif field.startswith("annotation"): 
                 #field = annotation, data_field = actual field in use                
                 c_r.append(_get_annotation_content(field,pref_timestamp,annotations,d, data_field))                
 
-            #non annotation field
             else:
+                #non annotation field
                 data_field = field
                 c_r.append({"v":d[field],"f":d[field]})
-
 
         some_data.insert(0,{"c":c_r})
 
     #genereate dict for the data thing
     resp_data = {'cols':data_cols,
-                 'rows':some_data
-                 #'size':len(some_data),
+                 'rows':some_data,
+                 'data_length':data_length
                  #'start_time' : datetime.datetime.fromtimestamp(data[0][pref_timestamp]).isoformat(),
                  #'end_time' : datetime.datetime.fromtimestamp(data[-1][pref_timestamp]).isoformat()
                  }
