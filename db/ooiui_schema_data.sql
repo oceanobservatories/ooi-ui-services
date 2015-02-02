@@ -11,12 +11,18 @@ SET check_function_bodies = false;
 SET client_min_messages = warning;
 
 SET search_path = ooiui, public, pg_catalog;
---
--- END HEADER DEFINITIONS
 
---
--- Bulk Data load
---
+-- organizations
+insert into organizations(organization_name) values ('ASA');
+insert into organizations(organization_name) values ('Eastern Ocean Platforms, Inc.');
+insert into organizations(organization_name) values ('Offshore Instruments, Inc.');
+insert into organizations(organization_name) values ('West Coast Labs, Inc.');
+insert into organizations(organization_name) values ('National Science Foundation');
+insert into organizations(organization_name) values ('Ocean Leadership');
+insert into organizations(organization_name) values ('WHOI');
+insert into organizations(organization_name) values ('Scripps');
+insert into organizations(organization_name) values ('UW');
+-- total organizations: 3
 
 -- placeholders (for tables: asset_types, assets, assemblies and installation_records):
 
@@ -25,45 +31,6 @@ insert into assets(supplier_id, deployment_id, asset_name, model, current_lifecy
 insert into assemblies(assembly_name) values ('Default Assembly');
 insert into installation_records(asset_id, assembly_id) values (1, 1);
 
--- 
--- User Management 
--- 
-
--- user_scopes
-insert into user_scopes(scope_name, scope_description) values ('administrator', 'Administrative tasks'); 
-insert into user_scopes(scope_name, scope_description) values ('marine operator', 'Marine operations support - including data entry, instrument monitoring and alert management.'); 
-insert into user_scopes(scope_name, scope_description) values ('science - marine biology', 'Science user with an interest in the biological aspects of the marine environment.'); 
-insert into user_scopes(scope_name, scope_description) values ('science - marine geology', 'Science user with an interest in marine geology, including seismology, stratigraphy and petrology (igneous and metamorphic).'); 
--- total user_scopes (roles): 4 
-
--- organizations
-insert into organizations(organization_name) values ('ASA'); 
-insert into organizations(organization_name) values ('Eastern Ocean Platforms, Inc.'); 
-insert into organizations(organization_name) values ('Offshore Instruments, Inc.'); 
-insert into organizations(organization_name) values ('West Coast Labs, Inc.');
-insert into organizations(organization_name) values ('National Science Foundation');
-insert into organizations(organization_name) values ('Ocean Leadership');
-insert into organizations(organization_name) values ('WHOI');
-insert into organizations(organization_name) values ('Scripps');
-insert into organizations(organization_name) values ('UW');
--- total organizations: 3 
-
-
--- users
-insert into users(user_id, pass_hash, email, user_name, active, confirmed_at, first_name, last_name, phone_primary, phone_alternate, organization_id) values ('bingo', '', 'mark@ecp.org', 'Mark', True, NULL, 'Mark', 'Smith', '401-555-1212', '', 1); 
-insert into users(user_id, pass_hash, email, user_name, active, confirmed_at, first_name, last_name, phone_primary, phone_alternate, organization_id) values ('foo', '', 'bjohnson@offshoreInstruments.com', 'Bill', True, NULL, 'Bill', 'Johnson', '603-555-1212', '', 2); 
-insert into users(user_id, pass_hash, email, user_name, active, confirmed_at, first_name, last_name, phone_primary, phone_alternate, organization_id) values ('ringo', '', 'frances@ecp.org', 'Frances', True, NULL, 'Frances', 'Zoodle', '401-555-1212', '', 1); 
-insert into users(user_id, pass_hash, email, user_name, active, confirmed_at, first_name, last_name, phone_primary, phone_alternate, organization_id) values ('sloth', '', 'tjones@westcoastlabs.com', 'Tom', True, NULL, 'Tom', 'Jones', '401-555-1212', '', 3); 
-insert into users(user_id, pass_hash, email, user_name, active, confirmed_at, first_name, last_name, phone_primary, phone_alternate, organization_id) values ('toth', '', 'janders@westcoastlabs.com', 'John', True, NULL, 'John', 'Anders', '401-555-1212', '', 3); 
--- total users: 5 
-
-
--- user_scope_link
-insert into user_scope_link(user_id, scope_id) values (1, 3); 
-insert into user_scope_link(user_id, scope_id) values (2, 1); 
-insert into user_scope_link(user_id, scope_id) values (3, 2); 
-insert into user_scope_link(user_id, scope_id) values (4, 2); 
-insert into user_scope_link(user_id, scope_id) values (5, 4); 
 -- total user_scope_links: 5
 
 -- operator_event_types
@@ -88,168 +55,168 @@ insert into arrays (array_code, description, geo_location, array_name, display_n
 
 -- manufacturers
 
-insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Aanderaa', '937-767-7241', '', 'http://www.aanderaa.com'); 
-insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Axys Technologies', '250-655-5850', '', 'http://axystechnologies.com/'); 
-insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Biospherical Instruments', '619-686-1888', '', 'http://www.biospherical.com/'); 
-insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Falmouth Scientific', '508-564-7640', '', 'http://www.falmouth.com'); 
-insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Guralp', '44-118-981-9056', '', 'http://www.guralp.com/'); 
-insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('HTI', '541-917-3335', '', 'http://www.htiwater.com'); 
-insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Kongsberg', '44-1224-226500', '', 'http://www.kongsberg.com/'); 
-insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Marv Lilley lab', '206-543-0859', 'Marv Lilley', 'http://www.ocean.washington.edu/home/Marvin+Lilley'); 
-insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Nobska', '508-289-2725', '', 'http://www.nobska.net/'); 
-insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Nortek', '47-6717-4500', '', 'http://www.nortek-as.com/'); 
-insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Ocean Sonics', '855-360-3003', '', 'http://oceansonics.com/'); 
-insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Pro-Oceanus', '855-530-3550', '', 'http://www.pro-oceanus.com'); 
-insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('RBR Global', '613-599-8900', '', 'www.rbr-global.com/'); 
-insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Satlantic', '902-492-4780', '', 'http://www.salantic.com'); 
-insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Sea-Bird', '425-643-9866', '', 'www.seabird.com/'); 
-insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Star Engineering', '508-316-1492', '', 'http://starengineeringinc.com/markets/marine-navigation/'); 
-insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('SubC', '709-702-0395', '', 'http://subcimaging.com'); 
-insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Sunburst Sensors', '406-532-3246', '', 'www.sunburstsensors.com/'); 
-insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('TLR, Inc.', '831-236-7121', '', 'http://www.tlrinc.biz/index.html'); 
-insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Teledyne RDI', '858-842-2600', '', 'www.rdinstruments.com/'); 
-insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('WET Labs', '401-783-1787', '', 'www.wetlabs.com/'); 
-insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('WHOI', '508-289-2508', 'Robert A. Weller', 'http://www.whoi.edu/hpb/viewPage.do?id=8176'); 
-insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('non-commercial', '', '', ''); 
-insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('unknown', '', '', ''); 
--- total manufacturers: 24 
+insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Aanderaa', '937-767-7241', '', 'http://www.aanderaa.com');
+insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Axys Technologies', '250-655-5850', '', 'http://axystechnologies.com/');
+insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Biospherical Instruments', '619-686-1888', '', 'http://www.biospherical.com/');
+insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Falmouth Scientific', '508-564-7640', '', 'http://www.falmouth.com');
+insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Guralp', '44-118-981-9056', '', 'http://www.guralp.com/');
+insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('HTI', '541-917-3335', '', 'http://www.htiwater.com');
+insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Kongsberg', '44-1224-226500', '', 'http://www.kongsberg.com/');
+insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Marv Lilley lab', '206-543-0859', 'Marv Lilley', 'http://www.ocean.washington.edu/home/Marvin+Lilley');
+insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Nobska', '508-289-2725', '', 'http://www.nobska.net/');
+insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Nortek', '47-6717-4500', '', 'http://www.nortek-as.com/');
+insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Ocean Sonics', '855-360-3003', '', 'http://oceansonics.com/');
+insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Pro-Oceanus', '855-530-3550', '', 'http://www.pro-oceanus.com');
+insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('RBR Global', '613-599-8900', '', 'www.rbr-global.com/');
+insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Satlantic', '902-492-4780', '', 'http://www.salantic.com');
+insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Sea-Bird', '425-643-9866', '', 'www.seabird.com/');
+insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Star Engineering', '508-316-1492', '', 'http://starengineeringinc.com/markets/marine-navigation/');
+insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('SubC', '709-702-0395', '', 'http://subcimaging.com');
+insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Sunburst Sensors', '406-532-3246', '', 'www.sunburstsensors.com/');
+insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('TLR, Inc.', '831-236-7121', '', 'http://www.tlrinc.biz/index.html');
+insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('Teledyne RDI', '858-842-2600', '', 'www.rdinstruments.com/');
+insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('WET Labs', '401-783-1787', '', 'www.wetlabs.com/');
+insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('WHOI', '508-289-2508', 'Robert A. Weller', 'http://www.whoi.edu/hpb/viewPage.do?id=8176');
+insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('non-commercial', '', '', '');
+insert into manufacturers (manufacturer_name, phone_number, contact_name, web_address)  values ('unknown', '', '', '');
+-- total manufacturers: 24
 
 
 
 -- instrument_models
 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Optode 4831', 'D', 'DOSTA', 1); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Optode 4831', 'M', 'DOSTA', 1); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Optode 4330', 'N', 'DOSTA', 1); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Optode 4330', 'L', 'DOSTA', 1); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('TRIAXYS', 'A', 'WAVSS', 2); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('QSP-2150', 'N', 'PARAD', 3); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('QSP-2155', 'M', 'PARAD', 3); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('QSP-2200', 'K', 'PARAD', 3); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('ACM-3D-MP', 'A', 'VEL3D', 4); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('ACM-Plus', 'L', 'VEL3D', 4); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Guralp (CMG-1 sec)', 'A', 'OBSSP', 5); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('CMG-1T/5T', 'A', 'OBSBK', 5); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('CMG-1T/5T', 'A', 'OBSBB', 5); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('90-U', 'A', 'HYDLF', 6); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Modified EK-60', 'B', 'ZPLSC', 7); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Modified OE14-408', 'C', 'CAMDS', 7); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Modified OE14-408', 'B', 'CAMDS', 7); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Modified OE14-408', 'A', 'CAMDS', 7); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('MAVS-4', 'B', 'VEL3D', 9); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Aquadopp II', 'K', 'VEL3D', 10); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Aquadopp 3000m', 'B', 'VELPT', 10); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('VECTOR', 'D', 'VEL3D', 10); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('VECTOR', 'C', 'VEL3D', 10); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Aquadopp', 'J', 'VEL3D', 10); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Aquadopp', 'D', 'VELPT', 10); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Aquadopp 300m', 'A', 'VELPT', 10); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('icListen HF', 'A', 'HYDBB', 11); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('pCO2-pro', 'A', 'PCO2A', 12); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('XR-420', 'A', 'TMPSF', 13); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('ISUS', 'B', 'NUTNR', 14); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SUNA', 'N', 'NUTNR', 14); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Deep SUNA', 'A', 'NUTNR', 14); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('OCR507 ICSW', 'B', 'SPKIR', 14); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('OCR507 ICSW', 'A', 'SPKIR', 14); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('digital PAR', 'A', 'PARAD', 14); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 16plusV2', 'A', 'CTDBP', 15); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 16plusV2', 'B', 'CTDBP', 15); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 16plusV2', 'C', 'CTDBP', 15); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 16plusV2', 'D', 'CTDBP', 15); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 16plusV2', 'E', 'CTDBP', 15); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 16plusV2', 'F', 'CTDBP', 15); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 16plusV2', 'N', 'CTDBP', 15); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 16plusV2', 'O', 'CTDBP', 15); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 16plusV2', 'A', 'CTDPF', 15); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE Glider Payload CTD (GP-CTD)', 'N', 'CTDAV', 15); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE Glider Payload CTD (GP-CTD)', 'M', 'CTDAV', 15); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE Glider Payload CTD (GP-CTD)', 'M', 'CTDGV', 15); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 54', 'A', 'PREST', 15); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 54', 'B', 'PREST', 15); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 52MP', 'K', 'CTDPF', 15); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 52MP', 'L', 'CTDPF', 15); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 43F', 'K', 'DOFST', 15); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 26plus', 'A', 'PRESF', 15); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 26plus', 'B', 'PRESF', 15); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 26plus', 'C', 'PRESF', 15); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 43', 'A', 'DOFST', 15); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 37IM', 'Q', 'CTDMO', 15); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 37IM', 'R', 'CTDMO', 15); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 37IM', 'G', 'CTDMO', 15); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 37IM', 'H', 'CTDMO', 15); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('ASIMET', 'A', 'METBK', 16); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('1Cam', 'A', 'CAMHD', 17); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SAMI-pH', 'D', 'PHSEN', 18); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SAMI-pH', 'E', 'PHSEN', 18); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SAMI-pH', 'F', 'PHSEN', 18); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SAMI-pH', 'A', 'PHSEN', 18); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SAMI-pCO2', 'B', 'PCO2W', 18); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SAMI-pCO2', 'A', 'PCO2W', 18); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('OsmoSampler', 'A', 'OSMOI', 19); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Workhorse Navigator 600 kHz dual', 'N', 'ADCPA', 20); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Explorer DVL 600 kHz', 'M', 'ADCPA', 20); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('WorkHorse LongRanger Monitor 75khz', 'K', 'ADCPS', 20); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('WorkHorse LongRanger Monitor 75khz', 'I', 'ADCPS', 20); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('WorkHorse LongRanger Sentinel 75khz', 'L', 'ADCPS', 20); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('WorkHorse LongRanger Sentinel 75khz', 'J', 'ADCPS', 20); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('WorkHorse LongRanger Sentinel 75khz', 'N', 'ADCPS', 20); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('WorkHorse Monitor 300khz', 'B', 'ADCPT', 20); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('WorkHorse Sentinel 300khz', 'C', 'ADCPT', 20); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('WorkHorse Sentinel 600khz', 'A', 'ADCPT', 20); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('WorkHorse Sentinel 600khz', 'M', 'ADCPT', 20); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('WorkHorse Sentinel150khz', 'G', 'ADCPT', 20); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('WorkHorse Sentinel150khz', 'F', 'ADCPT', 20); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Workhorse Quartermaster 150kHz', 'E', 'ADCPT', 20); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Workhorse Quartermaster 150kHz', 'D', 'ADCPT', 20); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Workhorse custom 600 kHz 5 Beam', 'A', 'VADCP', 20); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('AC-S', 'D', 'OPTAA', 21); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('AC-S', 'C', 'OPTAA', 21); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('FLNTURTD (chlorophyll and backscatter), and FLCDRTD (CDOM)', 'A', 'FLORT', 21); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('ECO Triplet-w', 'D', 'FLORT', 21); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('ECO Triplet', 'K', 'FLORT', 21); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('ECO Triplet', 'N', 'FLORT', 21); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('ECO Puck FLBBCD-SLK', 'M', 'FLORT', 21); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('ECO Puck FLBB-SLC', 'M', 'FLORD', 21); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('FLBBRTD', 'L', 'FLORD', 21); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('DCFS', 'A', 'FDCHP', 22); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('non-commercial PPSDN', 'A', 'PPSDN', 23); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('non-commercial RASFL', 'A', 'RASFL', 23); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('non-commercial TRHPH', 'A', 'TRHPH', 23); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('non-commercial BOTPT', 'A', 'BOTPT', 23); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('non-commercial FLOBN', 'A', 'FLOBN', 23); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('non-commercial HPIES', 'A', 'HPIES', 23); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('non-commercial MASSP', 'A', 'MASSP', 23); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('non-commercial THSPH', 'A', 'THSPH', 23); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', '0', 'ACOMM', 24); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'M', 'ACOMM', 24); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', '0', 'MOPAK', 24); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'P', 'CTDBP', 24); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'G', 'FLORD', 24); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'C', 'PCO2W', 24); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'C', 'ZPLSC', 24); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'A', 'ZPLSG', 24); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'J', 'DOFST', 24); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'J', 'PARAD', 24); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'J', 'OPTAA', 24); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'J', 'NUTNR', 24); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'J', 'SPKIR', 24); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'J', 'CTDPF', 24); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'J', 'FLORT', 24); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'J', 'VELPT', 24); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'O', 'SPKIR', 24); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'O', 'PCO2W', 24); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'O', 'DOSTA', 24); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'O', 'OPTAA', 24); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'O', 'NUTNR', 24); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'O', 'FLORD', 24); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'O', 'CTDPF', 24); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'M', 'OPTAA', 24); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'J', 'DOSTA', 24); 
-insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'M', 'NUTNR', 24); 
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Optode 4831', 'D', 'DOSTA', 1);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Optode 4831', 'M', 'DOSTA', 1);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Optode 4330', 'N', 'DOSTA', 1);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Optode 4330', 'L', 'DOSTA', 1);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('TRIAXYS', 'A', 'WAVSS', 2);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('QSP-2150', 'N', 'PARAD', 3);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('QSP-2155', 'M', 'PARAD', 3);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('QSP-2200', 'K', 'PARAD', 3);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('ACM-3D-MP', 'A', 'VEL3D', 4);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('ACM-Plus', 'L', 'VEL3D', 4);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Guralp (CMG-1 sec)', 'A', 'OBSSP', 5);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('CMG-1T/5T', 'A', 'OBSBK', 5);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('CMG-1T/5T', 'A', 'OBSBB', 5);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('90-U', 'A', 'HYDLF', 6);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Modified EK-60', 'B', 'ZPLSC', 7);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Modified OE14-408', 'C', 'CAMDS', 7);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Modified OE14-408', 'B', 'CAMDS', 7);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Modified OE14-408', 'A', 'CAMDS', 7);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('MAVS-4', 'B', 'VEL3D', 9);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Aquadopp II', 'K', 'VEL3D', 10);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Aquadopp 3000m', 'B', 'VELPT', 10);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('VECTOR', 'D', 'VEL3D', 10);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('VECTOR', 'C', 'VEL3D', 10);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Aquadopp', 'J', 'VEL3D', 10);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Aquadopp', 'D', 'VELPT', 10);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Aquadopp 300m', 'A', 'VELPT', 10);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('icListen HF', 'A', 'HYDBB', 11);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('pCO2-pro', 'A', 'PCO2A', 12);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('XR-420', 'A', 'TMPSF', 13);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('ISUS', 'B', 'NUTNR', 14);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SUNA', 'N', 'NUTNR', 14);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Deep SUNA', 'A', 'NUTNR', 14);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('OCR507 ICSW', 'B', 'SPKIR', 14);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('OCR507 ICSW', 'A', 'SPKIR', 14);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('digital PAR', 'A', 'PARAD', 14);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 16plusV2', 'A', 'CTDBP', 15);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 16plusV2', 'B', 'CTDBP', 15);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 16plusV2', 'C', 'CTDBP', 15);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 16plusV2', 'D', 'CTDBP', 15);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 16plusV2', 'E', 'CTDBP', 15);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 16plusV2', 'F', 'CTDBP', 15);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 16plusV2', 'N', 'CTDBP', 15);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 16plusV2', 'O', 'CTDBP', 15);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 16plusV2', 'A', 'CTDPF', 15);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE Glider Payload CTD (GP-CTD)', 'N', 'CTDAV', 15);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE Glider Payload CTD (GP-CTD)', 'M', 'CTDAV', 15);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE Glider Payload CTD (GP-CTD)', 'M', 'CTDGV', 15);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 54', 'A', 'PREST', 15);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 54', 'B', 'PREST', 15);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 52MP', 'K', 'CTDPF', 15);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 52MP', 'L', 'CTDPF', 15);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 43F', 'K', 'DOFST', 15);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 26plus', 'A', 'PRESF', 15);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 26plus', 'B', 'PRESF', 15);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 26plus', 'C', 'PRESF', 15);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 43', 'A', 'DOFST', 15);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 37IM', 'Q', 'CTDMO', 15);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 37IM', 'R', 'CTDMO', 15);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 37IM', 'G', 'CTDMO', 15);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SBE 37IM', 'H', 'CTDMO', 15);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('ASIMET', 'A', 'METBK', 16);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('1Cam', 'A', 'CAMHD', 17);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SAMI-pH', 'D', 'PHSEN', 18);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SAMI-pH', 'E', 'PHSEN', 18);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SAMI-pH', 'F', 'PHSEN', 18);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SAMI-pH', 'A', 'PHSEN', 18);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SAMI-pCO2', 'B', 'PCO2W', 18);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('SAMI-pCO2', 'A', 'PCO2W', 18);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('OsmoSampler', 'A', 'OSMOI', 19);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Workhorse Navigator 600 kHz dual', 'N', 'ADCPA', 20);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Explorer DVL 600 kHz', 'M', 'ADCPA', 20);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('WorkHorse LongRanger Monitor 75khz', 'K', 'ADCPS', 20);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('WorkHorse LongRanger Monitor 75khz', 'I', 'ADCPS', 20);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('WorkHorse LongRanger Sentinel 75khz', 'L', 'ADCPS', 20);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('WorkHorse LongRanger Sentinel 75khz', 'J', 'ADCPS', 20);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('WorkHorse LongRanger Sentinel 75khz', 'N', 'ADCPS', 20);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('WorkHorse Monitor 300khz', 'B', 'ADCPT', 20);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('WorkHorse Sentinel 300khz', 'C', 'ADCPT', 20);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('WorkHorse Sentinel 600khz', 'A', 'ADCPT', 20);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('WorkHorse Sentinel 600khz', 'M', 'ADCPT', 20);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('WorkHorse Sentinel150khz', 'G', 'ADCPT', 20);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('WorkHorse Sentinel150khz', 'F', 'ADCPT', 20);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Workhorse Quartermaster 150kHz', 'E', 'ADCPT', 20);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Workhorse Quartermaster 150kHz', 'D', 'ADCPT', 20);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('Workhorse custom 600 kHz 5 Beam', 'A', 'VADCP', 20);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('AC-S', 'D', 'OPTAA', 21);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('AC-S', 'C', 'OPTAA', 21);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('FLNTURTD (chlorophyll and backscatter), and FLCDRTD (CDOM)', 'A', 'FLORT', 21);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('ECO Triplet-w', 'D', 'FLORT', 21);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('ECO Triplet', 'K', 'FLORT', 21);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('ECO Triplet', 'N', 'FLORT', 21);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('ECO Puck FLBBCD-SLK', 'M', 'FLORT', 21);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('ECO Puck FLBB-SLC', 'M', 'FLORD', 21);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('FLBBRTD', 'L', 'FLORD', 21);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('DCFS', 'A', 'FDCHP', 22);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('non-commercial PPSDN', 'A', 'PPSDN', 23);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('non-commercial RASFL', 'A', 'RASFL', 23);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('non-commercial TRHPH', 'A', 'TRHPH', 23);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('non-commercial BOTPT', 'A', 'BOTPT', 23);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('non-commercial FLOBN', 'A', 'FLOBN', 23);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('non-commercial HPIES', 'A', 'HPIES', 23);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('non-commercial MASSP', 'A', 'MASSP', 23);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('non-commercial THSPH', 'A', 'THSPH', 23);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', '0', 'ACOMM', 24);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'M', 'ACOMM', 24);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', '0', 'MOPAK', 24);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'P', 'CTDBP', 24);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'G', 'FLORD', 24);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'C', 'PCO2W', 24);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'C', 'ZPLSC', 24);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'A', 'ZPLSG', 24);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'J', 'DOFST', 24);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'J', 'PARAD', 24);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'J', 'OPTAA', 24);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'J', 'NUTNR', 24);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'J', 'SPKIR', 24);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'J', 'CTDPF', 24);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'J', 'FLORT', 24);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'J', 'VELPT', 24);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'O', 'SPKIR', 24);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'O', 'PCO2W', 24);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'O', 'DOSTA', 24);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'O', 'OPTAA', 24);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'O', 'NUTNR', 24);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'O', 'FLORD', 24);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'O', 'CTDPF', 24);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'M', 'OPTAA', 24);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'J', 'DOSTA', 24);
+insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'M', 'NUTNR', 24);
 
 
--- total instrument_models: 129 
+-- total instrument_models: 129
 
 
 -- platforms
@@ -481,6 +448,227 @@ insert into platforms (platform_name, description, location_description, platfor
 -- total platforms: 198
 
 
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+
+-- CE array : 68 deployments
+
+
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+
+-- GP array : 16 deployments
+
+
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+
+-- CP array : 52 deployments
+
+
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+
+-- GA array : 21 deployments
+
+
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+
+-- GI array : 20 deployments
+
+
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+
+-- GS array : 21 deployments
+
 
 
 -- platform_deployments
@@ -704,245 +892,7 @@ insert into platform_deployments (start_date, end_date, platform_id, reference_d
 insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 197, 'GS05MOAS-PG001', 6, 197, 'Global Profiling Glider 1', ST_SetSRID(ST_MakePoint(-89.6652, -54.0814),4326) );
 insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 198, 'GS05MOAS-PG002', 6, 198, 'Global Profiling Glider 2', ST_SetSRID(ST_MakePoint(-89.6652, -54.0814),4326) );
 
--- GS array : 21 platform_deployments
-
-
-
-
--- total platform_deployments: 198
-
-
-
-
--- deployments
-
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-
--- CE array : 68 deployments
-
-
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-
--- GP array : 16 deployments
-
-
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-
--- CP array : 52 deployments
-
-
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-
--- GA array : 21 deployments
-
-
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-
--- GI array : 20 deployments
-
-
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-
--- GS array : 21 deployments
-
-
--- total deployments: 198
-
-
-
--- instruments		
+-- instruments
 
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('SPKIR', 'spectral_irradiance', 'Surface Piercing Profiler Body', 'J', 'Spectral Irradiance', 116, 1, 25, 24 );
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('CTDPF', 'CTD_profiler', 'Surface Piercing Profiler Body', 'J', 'CTD Profiler', 117, 1, 80, 24 );
@@ -2581,7 +2531,7 @@ insert into instrument_deployments (display_name, platform_deployment_id, instru
 -- GS array : 112 instrument_deployments
 
 
--- total instrument_deployments: 790 
+-- total instrument_deployments: 790
 
 
 -- platformnames
