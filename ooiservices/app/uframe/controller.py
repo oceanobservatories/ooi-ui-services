@@ -52,6 +52,13 @@ def get_data(stream, instrument):
     except:
         raise
 
+    hasAnnotation = False
+    #this is needed as some plots dont have annotations
+    if 'annotation' in request.args:
+        #generate annotation plot
+        if request.args['annotation'] == "true":
+            hasAnnotation = True        
+
     #got normal data plot
     #create the data fields,assumes the same data fields throughout
     d_row = data[0]
@@ -63,26 +70,36 @@ def get_data(stream, instrument):
     time_idx = -1
     pref_timestamp = d_row["preferred_timestamp"]
     #ignore list for data fields
-    ignore_list = ["preferred_timestamp","stream_name","driver_timestamp","quality_flag"]
+    ignore_list = ["stream_name","quality_flag"]
     #figure out the header rows
     inital_fields = d_row.keys()
     #move timestamp to the front
     inital_fields.insert(0, inital_fields.pop(inital_fields.index(pref_timestamp)))
 
-    for field in inital_fields:
-        if field in ignore_list:
-            pass
-        else:
-            #map the data types to the correct data type for google charts
-            if field == pref_timestamp:
-                d_type = "datetime"
-            else:
-                d_type = _get_data_type(type(data[0][field]))
+    print "*******---------"
 
-            data_field_list.append(field)
-            data_fields.append({"id": "",
-                                "label": field,
-                                "type":  d_type})
+    #get the annotations, only get the annotations if requested
+    if hasAnnotation:
+        annotations = _get_annotation(instrument, stream)
+        for an in annotations:
+            print an['field_x'],an['field_y']
+
+    for field in inital_fields:
+        if field == pref_timestamp:
+            d_type = "datetime"                
+        elif field in ignore_list or str(field).endswith('_timestamp'):         
+            continue
+        else:
+            #map the data types to the correct data type for google charts       
+            d_type = _get_data_type(type(data[0][field]))
+
+        data_field_list.append(field)
+        data_fields.append({"id": "",
+                            "label": field,
+                            "type":  d_type})
+
+
+             
 
     #figure out the data content
     for d in data:
@@ -101,8 +118,7 @@ def get_data(stream, instrument):
         some_data.insert(0,{"c":c_r})
 
     #genereate dict for the data thing
-    resp_data = {'annotations':_get_annotation(instrument, stream),
-                 'cols':data_fields,
+    resp_data = {'cols':data_fields,
                  'rows':some_data
                  #'size':len(some_data),
                  #'start_time' : datetime.datetime.fromtimestamp(data[0][pref_timestamp]).isoformat(),
