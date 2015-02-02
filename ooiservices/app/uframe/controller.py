@@ -111,6 +111,7 @@ def get_data(stream, instrument):
     except:
         raise
 
+    annotations = []
     hasAnnotation = False
     hasStartDate = False
     hasEndDate = False
