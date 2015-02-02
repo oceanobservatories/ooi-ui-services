@@ -80,7 +80,7 @@ class Annotation(db.Model):
 
         return Annotation(user_name=user_name, created_time=created_time, comment=comment, \
             title=title, modified_time=modified_time, \
-            stream_name=stream_name, instrument_name=instrument_name, pos_x=pos_y, \
+            stream_name=stream_name, instrument_name=instrument_name, pos_x=pos_x, pos_y=pos_y, \
             field_x=field_x, field_y=field_y)
 
     def to_json(self):
@@ -644,9 +644,9 @@ class UserScopeLink(db.Model):
 
     @staticmethod
     def insert_scope_link():
-        user = UserScopeLink(user_id='1')
-        user.scope_id='4'
-        db.session.add(user)
+        usl = UserScopeLink(user_name='admin')
+        usl.scope_name='user_admin'
+        db.session.add(usl)
         db.session.commit()
 
     def to_json(self):

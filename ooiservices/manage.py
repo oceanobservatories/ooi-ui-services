@@ -102,6 +102,7 @@ def deploy(password, bulkload):
 
 @manager.command
 def load_data():
+    from sh import psql
     with open('db/ooiui_schema_data.sql') as f:
         psql('ooiuidev', _in=f)
     app.logger.info('Bulk test data loaded.')
