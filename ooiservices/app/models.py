@@ -80,7 +80,7 @@ class Annotation(db.Model):
 
         return Annotation(user_name=user_name, created_time=created_time, comment=comment, \
             title=title, modified_time=modified_time, \
-            stream_name=stream_name, instrument_name=instrument_name, pos_x=pos_y, \
+            stream_name=stream_name, instrument_name=instrument_name, pos_x=pos_x, pos_y=pos_y \
             field_x=field_x, field_y=field_y)
 
     def to_json(self):
