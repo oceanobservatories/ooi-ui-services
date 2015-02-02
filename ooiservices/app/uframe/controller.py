@@ -159,7 +159,8 @@ def get_data(stream, instrument):
     data_length = len(data)
     for d in data:
         c_r = []
-        #used to store the actual datafield in use by the annotations
+
+        #used to store the actual datafield in use by the annotations, as it will always go datafield then annotation
         data_field = None
         
         #create data time object, should only ever be one timestamp....the pref one
@@ -177,8 +178,9 @@ def get_data(stream, instrument):
                 time_idx = len(c_r)-1            
             
             elif field.startswith("annotation"): 
-                #field = annotation, data_field = actual field in use                
-                c_r.append(_get_annotation_content(field,pref_timestamp,annotations,d, data_field))                
+                #field = annotation, data_field = actual field in use  
+                annotation_content = _get_annotation_content(field,pref_timestamp,annotations,d, data_field)
+                c_r.append(annotation_content)                
 
             else:
                 #non annotation field
