@@ -34,7 +34,7 @@ def get_array(id):
 def get_platform_deployments():
     if 'array_id' in request.args:
         platform_deployments = \
-        PlatformDeployment.query.filter_by(array_id=request.args['array_id']).all()
+        PlatformDeployment.query.filter_by(array_id=request.args['array_id']).order_by(PlatformDeployment.reference_designator).all()
     else:
         platform_deployments = PlatformDeployment.query.all()
     return jsonify({ 'platform_deployments' : [platform_deployment.to_json() for platform_deployment in platform_deployments] })
