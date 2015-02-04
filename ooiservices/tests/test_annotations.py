@@ -52,8 +52,10 @@ class AnnotationsTestCase(unittest.TestCase):
         self.assertTrue(response.status_code == 403)
 
         #give admin account the annotate scope.
-        usl = UserScopeLink(user_name='admin', scope_name='annotate')
-        db.session.add(usl)
+        admin = User.query.filter(User.user_name == 'admin').first()
+        scope = UserScope.query.filter(UserScope.scope_name == 'annotate').first()
+        admin.scopes.append(scope)
+        db.session.add(admin)
         db.session.commit()
 
         'Test Annotation model'

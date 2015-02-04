@@ -15,8 +15,8 @@ def scope_required(scope):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            if not any(g.current_user.user_name in s for s in g.current_user.can(scope)):
-                return forbidden('Scope required.')
+            if not g.current_user.can(scope):
+                return forbidden('Scope %s required.' % scope)
             return f(*args, **kwargs)
         return decorated_function
     return decorator
