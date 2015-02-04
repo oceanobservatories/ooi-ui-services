@@ -69,9 +69,11 @@ Setup your PostgreSQL environment:
     install postgis...
 
 Make sure you have the environment variables defiend:
+
     PYTHONPATH=.
     
 Setup the Database:
+
     #Note, you may bulk load the database with the -bl option
     python ooiservices/manage.py deploy --password <admin-password> -bl=True
 
