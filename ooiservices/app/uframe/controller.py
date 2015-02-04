@@ -5,7 +5,8 @@ uframe endpoints
 '''
 __author__ = 'Andy Bird'
 
-from flask import jsonify, request, current_app, url_for
+from flask import jsonify, request, current_app, url_for, Flask
+from flask.ext.cache import Cache
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app import db
 from ooiservices.app.main.authentication import auth
@@ -17,6 +18,8 @@ import json
 
 from ooiservices.app.uframe.data import gen_data
 
+from ooiservices.config import UFRAME_DATA
+
 import json
 import datetime
 import math
@@ -25,6 +28,9 @@ import math
 FIELDS_IGNORE = ["stream_name","quality_flag"]
 #time minus ()
 COSMO_CONSTANT = 2208988800
+
+app = Flask(__name__)
+cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 
 
 def _get_data_type(data_input):
@@ -94,6 +100,30 @@ def _get_annotation_content(annotation_field, pref_timestamp, annotations_list, 
     #return nothing
     return {"v":None,"f":None}
 
+@api.route('/streams_list')
+@cache.cached(timeout=3600)
+def streams_list():
+    streams = requests.get(UFRAME_DATA)
+    if streams.status_code != 200:
+        raise IOError("Failed to get data")
+    
+    #with open('/tmp/response.json', 'w') as f:
+    #    buf = streams.text.encode('UTF-8')
+    #    f.write(buf)
+
+    data_dict = {}
+    json_dict = {}
+    for stream in streams.json():
+        refs = requests.get("/".join([UFRAME_DATA,stream]))
+        for ref in refs.json():
+            data =  requests.get("/".join([UFRAME_DATA,stream,ref])).json()
+            preferred = data[0][u'preferred_timestamp']
+            data_dict['start'] = data[0][preferred] - COSMO_CONSTANT
+            data_dict['end'] = data[-1][preferred] - COSMO_CONSTANT
+            data_dict['name'] = ref
+            data_dict['download'] = "/".join([UFRAME_DATA,stream,ref])
+            json_dict[stream] = data_dict
+    return jsonify(**json_dict)
 
 @api.route('/get_data/<string:instrument>/<string:stream>',methods=['GET'])
 def get_data(stream, instrument):
