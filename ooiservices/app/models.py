@@ -69,7 +69,6 @@ class Annotation(db.Model):
         created_time = datetime.now()
         comment = json_annotation.get('comment')
         title = json_annotation.get('title')
-        created_time = datetime.now()
         modified_time = datetime.now()
         stream_name = json_annotation.get('stream_name')
         instrument_name = json_annotation.get('instrument_name')

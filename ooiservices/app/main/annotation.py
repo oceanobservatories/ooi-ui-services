@@ -24,7 +24,7 @@ def get_annotations():
 @auth.login_required
 @scope_required('annotate')
 def create_annotation():
-    annotation = Annotation.from_json(request.json)
+    annotation = Annotation.new_from_json(request.json)
     db.session.add(annotation)
     db.session.commit()
     return jsonify(annotation.to_json()), 201
@@ -44,7 +44,6 @@ def edit_annotation(id):
         return forbidden('Scope required.')
 # 	add more modifications as needed
     annotation.comment = request.json.get('comment', annotation.comment)
-    annotation.title = request.json.get('title', annotation.title)
     annotation.modified_date = datetime.now()
     db.session.add(annotation)
     return jsonify(annotation.to_json())
