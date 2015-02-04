@@ -11,11 +11,12 @@ COMMON: &common
     PORT: 4000
     JSONIFY_PRETTYPRINT_REGULAR: true
     UFRAME_URL: 'http://localhost:12570'
+    REDMINE_KEY: 'XXXXXXXXXXXXX'
 
 DEVELOPMENT: &development
     <<: *common
     DEBUG: True
-    SQLALCHEMY_DATABASE_URI: 'postgres://bobfratantonio@localhost/ooiuidev'
+    SQLALCHEMY_DATABASE_URI: 'postgres://user:password@hostname/database_name'
 
 LOCAL_DEVELOPMENT: &local_dev
     <<: *common

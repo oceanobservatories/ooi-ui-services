@@ -4,7 +4,7 @@ Redmine endpoints
 
 '''
 
-from flask import jsonify, request, Response
+from flask import jsonify, request, Response, current_app
 from ooiservices.app.redmine import redmine as api
 from ooiservices.app.main.authentication import auth
 from collections import OrderedDict
@@ -19,8 +19,9 @@ issue_fields = ['id', 'assigned_to', 'author', 'created_on', 'description', 'don
 
 
 def redmine_login():
+    key = current_app.config['REDMINE_KEY']
     redmine = Redmine('https://uframe-cm.ooi.rutgers.edu',
-                      key='Enter Key')
+                      key=key)
     return redmine
 
 
@@ -50,16 +51,24 @@ def create_redmine_ticket():
     return data, 201
 
 
-@api.route('/ticket', methods=['GET'])
+@api.route('/ticket/', methods=['GET'])
 # @auth.login_required
 def get_all_redmine_tickets():
     '''
     List all redmine tickets
     '''
+
     redmine = redmine_login()
+    if 'project' not in request.args:
+        return Response(response="{error: project not defined}",
+                        status=400,
+                        mimetype="application/json")
+
+    proj = request.args['project']
 
     # project = redmine.project.get('ooinet-user-interface-development').refresh()
-    project = redmine.project.get('bob-test').refresh()
+    project = redmine.project.get(proj).refresh()
+
     issues = dict(issues=[])
     for issue in project.issues:
         details = OrderedDict()
