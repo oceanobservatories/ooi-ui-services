@@ -21,7 +21,7 @@ def verify_password(email_or_token, password):
         g.current_user = User.verify_auth_token(email_or_token)
         g.token_used = True
         return g.current_user is not None
-    user = User.query.filter_by(user_name=email_or_token).first()
+    user = User.query.filter(User.user_name==email_or_token, User.active==True).first()
     if not user:
         return False
     g.current_user = user
@@ -47,6 +47,8 @@ def logged_in():
     Checks the TOKEN not the user identity to see if it's current and valid.
     '''
     auth = request.authorization
+    if not auth:
+        return jsonify(valid=False)
     token, password = auth.username, auth.password
     if token and not password:
         user = User.verify_auth_token(token)

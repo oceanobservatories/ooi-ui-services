@@ -731,11 +731,13 @@ class User(UserMixin, db.Model):
             'email' : self.email,
             'active' : self.active,
             'first_name' : self.first_name,
+            'active' : self.active,
             'last_name' : self.last_name,
             'phone_primary' : self.phone_primary,
             'phone_alternate' : self.phone_alternate,
             'role' : self.role,
             'organization_id' : self.organization_id,
+            'scopes' : [s.scope_name for s in self.scopes],
             'user_name' : self.user_name
         }
         return json_user
