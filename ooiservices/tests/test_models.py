@@ -76,6 +76,7 @@ class ModelTestCase(unittest.TestCase):
             'organization_id' : None,
             'phone_alternate' : None,
             'phone_primary' : None,
+            'scopes' : [],
             'role' : None,
             'user_name': None})
 
