@@ -7,7 +7,6 @@ services:
   - memcached
 env:
   - PYTHONPATH=.
-  - TEST_ON_TRAVIS=true
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -y python-dev
