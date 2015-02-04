@@ -18,11 +18,13 @@ import json
 
 from ooiservices.app.uframe.data import gen_data
 
-from ooiservices.config import UFRAME_DATA
+#from ooiservices.config import UFRAME_DATA
 
 import json
 import datetime
 import math
+
+UFRAME_DATA = 'http://localhost:12570/sensor/m2m/inv'
 
 #ignore list for data fields
 FIELDS_IGNORE = ["stream_name","quality_flag"]
