@@ -636,8 +636,8 @@ class UserScopeLink(db.Model):
     __table_args__ = {u'schema': __schema__}
 
     id = db.Column(db.Integer, primary_key=True)
-    user_name = db.Column(db.ForeignKey(u'' + __schema__ + '.users.user_name'), nullable=False)
-    scope_name = db.Column(db.ForeignKey(u'' + __schema__ + '.user_scopes.scope_name'), nullable=False)
+    user_id = db.Column(db.ForeignKey(u'' + __schema__ + '.users.id'), nullable=False)
+    scope_id = db.Column(db.ForeignKey(u'' + __schema__ + '.user_scopes.id'), nullable=False)
 
     scope = db.relationship(u'UserScope')
     user = db.relationship(u'User')
@@ -714,7 +714,7 @@ class User(UserMixin, db.Model):
     phone_alternate = db.Column(db.Text)
     role = db.Column(db.Text)
     organization_id = db.Column(db.ForeignKey(u'' + __schema__ + '.organizations.id'))
-    scopes = db.relationship(u'UserScopeLink')
+    scopes = db.relationship(u'UserScope', secondary=UserScopeLink.__table__)
     organization = db.relationship(u'Organization')
     watches = db.relationship(u'Watch')
 
@@ -836,7 +836,7 @@ class User(UserMixin, db.Model):
 
     def can(self, scope):
         #db.session.query
-        return db.session.query(UserScopeLink).with_entities(UserScopeLink.user_name).filter_by(scope_name=scope).all()
+        return scope in [s.scope_name for s in self.scopes]
 
     def __repr__(self):
         return '<User %r>' % self.user_name
