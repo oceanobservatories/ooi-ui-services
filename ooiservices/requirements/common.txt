@@ -31,3 +31,4 @@ wsgiref==0.1.2
 python-dateutil==2.4.0
 GeoAlchemy2==0.2.4
 sh==1.11
+Flask-Cache==0.13.1

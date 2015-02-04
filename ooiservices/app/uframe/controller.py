@@ -111,11 +111,11 @@ def streams_list():
     #    buf = streams.text.encode('UTF-8')
     #    f.write(buf)
 
-    data_dict = {}
     json_dict = {}
     for stream in streams.json():
         refs = requests.get("/".join([UFRAME_DATA,stream]))
         for ref in refs.json():
+            data_dict = {}
             data =  requests.get("/".join([UFRAME_DATA,stream,ref])).json()
             preferred = data[0][u'preferred_timestamp']
             data_dict['start'] = data[0][preferred] - COSMO_CONSTANT
