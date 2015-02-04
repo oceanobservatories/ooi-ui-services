@@ -50,7 +50,9 @@ uFrame normalized routes:
 
     /get_data/<instrument>/<sensor>
 
-Usage:
+### Configuration
+Be sure to edit your `ooiservices/app/config.yml` file to the correct URLs and Database Connectors.
+
 ### Service setup
 Ensure you have the following:
 
@@ -72,6 +74,8 @@ Make sure you have the environment variables defiend:
 Setup the Database:
     #Note, you may bulk load the database with the -bl option
     python ooiservices/manage.py deploy --password <admin-password> -bl=True
+
+
 
 
 ### Debugging Database Problems
