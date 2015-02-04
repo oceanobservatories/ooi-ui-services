@@ -48,7 +48,7 @@ def get_user_scopes():
     user_scopes = UserScope.query.all()
     return jsonify( {'user_scopes' : [user_scope.to_json() for user_scope in user_scopes] })
 
-@api.route('/user', methods=['GET'])
+@api.route('/current_user', methods=['GET'])
 @auth.login_required
 def get_current_user():
     '''
@@ -75,7 +75,7 @@ def get_user_roles():
     user_roles = {"user_roles": [{"id": 1, "role_name": "Administrator"}, {"id": 2, "role_name": "Marine Operator"}, {"id": 3, "role_name": "Science User"}]}
     return jsonify(user_roles)
 
-@api.route('/users')
+@api.route('/user')
 @auth.login_required
 @scope_required(u'user_admin')
 def get_users():
