@@ -19,7 +19,7 @@ These tests verify the functionality of the Redmine api list.
 PROJECT = 'ooi-ui-api-testing'
 
 
-@skipIf(os.getenv('CI') == True, 'Skip if testing from Travis CI.')
+@skipIf(os.getenv('TRAVIS') == True, 'Skip if testing from Travis CI.')
 class RedmineTestCase(unittest.TestCase):
     def setUp(self):
         self.app = create_app('TESTING_CONFIG')
