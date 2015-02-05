@@ -12,6 +12,7 @@ from base64 import b64encode
 from flask import url_for, jsonify, g
 from ooiservices.app import create_app, db
 from ooiservices.app.models import Annotation, User, UserScope, UserScopeLink
+from datetime import datetime
 
 '''
 These tests verify the functioning of the api list.
@@ -69,8 +70,11 @@ class AnnotationsTestCase(unittest.TestCase):
         'Test new annotation submission'
         new_annotation_json = {'comment': 'test', 'field_x': 'x-files', 'field_y': 'y-files', \
             'instrument_name': 'CP02PMUO-WFP01-04-FLORTK000', 'pos_x': 5, 'pos_y': 5, \
-            'stream_name': 'flort_kn_stc_imodem_instrument', 'title': 'test', 'user_name': 'admin'}
+            'stream_name': 'flort_kn_stc_imodem_instrument', 'title': 'test'}
         new_annotation = Annotation.from_json(new_annotation_json)
+        new_annotation.created_time = datetime.now()
+        new_annotation.modified_time = datetime.now()
+        new_annotation.user_name = g.current_user.user_name
         db.session.add(new_annotation)
         db.session.commit()
         result = Annotation.query.filter_by(user_name='admin').first()

@@ -24,9 +24,15 @@ def get_annotations():
 @auth.login_required
 @scope_required('annotate')
 def create_annotation():
-    annotation = Annotation.from_json(request.json)
-    db.session.add(annotation)
-    db.session.commit()
+    try:
+        annotation = Annotation.from_json(request.json)
+        annotation.created_time = datetime.now()
+        annotation.modified_time = datetime.now()
+        annotation.user_name = g.current_user.user_name
+        db.session.add(annotation)
+        db.session.commit()
+    except:
+        raise "Cannot add annotation."
     return jsonify(annotation.to_json()), 201
 
 @api.route('/annotations/<string:id>')
@@ -48,3 +54,15 @@ def edit_annotation(id):
     annotation.modified_date = datetime.now()
     db.session.add(annotation)
     return jsonify(annotation.to_json())
+
+@api.route('/annotations/<int:id>', methods=['DELETE'])
+@auth.login_required
+@scope_required('annotate')
+def delete_annotation(id):
+    annotation = Annotation.query.get_or_404(id)
+    if g.current_user != annotation.user_name and \
+            not g.current_user.can('annotate'):
+        return forbidden('Scope required.')
+    db.session.delete(annotation)
+    db.session.commit()
+    return "Annotation deleted %s" % id
