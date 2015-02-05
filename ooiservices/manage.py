@@ -96,9 +96,13 @@ def deploy(password, bulkload):
 
     # migrate database to latest revision
     #upgrade()
+    UserScope.insert_scopes()
     app.logger.info('Insert default user, name: admin')
     User.insert_user(password)
-    UserScope.insert_scopes()
+    admin = User.query.first()
+    admin.scopes.append(UserScope.query.filter_by(scope_name='user_admin').first())
+    db.session.add(admin)
+    db.session.commit()
 
 @manager.command
 def load_data():

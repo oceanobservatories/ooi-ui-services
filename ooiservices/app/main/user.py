@@ -58,8 +58,10 @@ def get_current_user():
     return jsonify(**doc)
 
 @api.route('/user', methods=['POST'])
-@auth.login_required
 def create_user():
+    csrf_token = request.headers.get('X-Csrf-Token')
+    if not csrf_token or csrf_token != current_app.config['UI_API_KEY']:
+        return jsonify(), 401
     data = json.loads(request.data)
     try:
         new_user = User.from_json(data)
@@ -70,7 +72,6 @@ def create_user():
     return jsonify(new_user.to_json()), 201
 
 @api.route('/user_roles')
-@auth.login_required
 def get_user_roles():
     user_roles = {"user_roles": [{"id": 1, "role_name": "Administrator"}, {"id": 2, "role_name": "Marine Operator"}, {"id": 3, "role_name": "Science User"}]}
     return jsonify(user_roles)
