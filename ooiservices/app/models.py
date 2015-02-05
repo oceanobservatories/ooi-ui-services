@@ -56,7 +56,7 @@ class Annotation(db.Model):
     title = db.Column(db.Text)
     stream_name = db.Column(db.Text)
     instrument_name = db.Column(db.Text)
-    pos_x = db.Column(db.Integer)
+    pos_x = db.Column(db.Text)
     pos_y = db.Column(db.Integer)
     field_x = db.Column(db.Text)
     field_y = db.Column(db.Text)
@@ -65,12 +65,8 @@ class Annotation(db.Model):
 
     @staticmethod
     def from_json(json_annotation):
-        user_name = json_annotation.get('user_name')
-        created_time = datetime.now()
         comment = json_annotation.get('comment')
         title = json_annotation.get('title')
-        created_time = datetime.now()
-        modified_time = datetime.now()
         stream_name = json_annotation.get('stream_name')
         instrument_name = json_annotation.get('instrument_name')
         pos_x = json_annotation.get('pos_x')
@@ -78,15 +74,15 @@ class Annotation(db.Model):
         field_y = json_annotation.get('field_y')
         field_x = json_annotation.get('field_x')
 
-        return Annotation(user_name=user_name, created_time=created_time, comment=comment, \
-            title=title, modified_time=modified_time, \
+        return Annotation(comment=comment, \
+            title=title, \
             stream_name=stream_name, instrument_name=instrument_name, pos_x=pos_x, pos_y=pos_y, \
             field_x=field_x, field_y=field_y)
 
     def to_json(self):
         json_array = {
             'id': self.id,
-            'user_name': self.id,
+            'user_name': self.user_name,
             'created_time': self.created_time,
             'modified_time': self.modified_time,
             'comment': self.comment,
@@ -644,8 +640,8 @@ class UserScopeLink(db.Model):
 
     @staticmethod
     def insert_scope_link():
-        usl = UserScopeLink(user_name='admin')
-        usl.scope_name='user_admin'
+        usl = UserScopeLink(user_id='1')
+        usl.scope_id='1'
         db.session.add(usl)
         db.session.commit()
 
@@ -658,7 +654,7 @@ class UserScopeLink(db.Model):
         return json_scope_link
 
     def __repr__(self):
-        return '<User %r, Scope %r>' % (self.user_name, self.scope_name)
+        return '<User %r, Scope %r>' % (self.user_id, self.scope_id)
 
 
 
@@ -694,7 +690,7 @@ class UserScope(db.Model):
         return json_scope
 
     def __repr__(self):
-        return '<Scope %r>' % self.scope_name
+        return '<Scope ID: %r, Scope Name: %s>' % (self.id, self.scope_name)
 
 
 class User(UserMixin, db.Model):
