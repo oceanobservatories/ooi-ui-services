@@ -6,9 +6,8 @@ uframe endpoints
 __author__ = 'Andy Bird'
 
 from flask import jsonify, request, current_app, url_for, Flask
-from flask.ext.cache import Cache
 from ooiservices.app.uframe import uframe as api
-from ooiservices.app import db
+from ooiservices.app import db, cache
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment
 from ooiservices.app.models import Stream, StreamParameter, Organization, Instrumentname
@@ -18,21 +17,16 @@ import json
 
 from ooiservices.app.uframe.data import gen_data
 
-#from ooiservices.config import UFRAME_DATA
 
 import json
 import datetime
 import math
-
-UFRAME_DATA = 'http://localhost:12570/sensor/m2m/inv'
 
 #ignore list for data fields
 FIELDS_IGNORE = ["stream_name","quality_flag"]
 #time minus ()
 COSMO_CONSTANT = 2208988800
 
-app = Flask(__name__)
-cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 
 
 def _get_data_type(data_input):
@@ -105,6 +99,7 @@ def _get_annotation_content(annotation_field, pref_timestamp, annotations_list, 
 @api.route('/streams_list')
 @cache.cached(timeout=3600)
 def streams_list():
+    UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
     streams = requests.get(UFRAME_DATA)
     if streams.status_code != 200:
         raise IOError("Failed to get data")
