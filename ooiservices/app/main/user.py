@@ -69,7 +69,7 @@ def create_user():
         if request.authorization:
             auth = verify_auth(request.authorization['username'], request.authorization['password'])
         if not auth:
-            return jsonify(), 401
+            return jsonify(error="Invalid Authentication"), 401
     data = json.loads(request.data)
     try:
         new_user = User.from_json(data)
