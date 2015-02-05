@@ -15,6 +15,9 @@ auth = HTTPBasicAuth()
 
 @auth.verify_password
 def verify_password(email_or_token, password):
+    return verify_auth(email_or_token, password)
+
+def verify_auth(email_or_token, password):
     if email_or_token == '':
         return True
     if password == '':
@@ -27,7 +30,6 @@ def verify_password(email_or_token, password):
     g.current_user = user
     g.token_used = False
     return user.verify_password(password)
-
 
 @auth.error_handler
 def auth_error():
