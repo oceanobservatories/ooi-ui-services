@@ -739,6 +739,8 @@ class User(UserMixin, db.Model):
             'scopes' : [s.scope_name for s in self.scopes],
             'user_name' : self.user_name
         }
+        if self.organization:
+            json_user['organization'] = self.organization.organization_name
         return json_user
 
     @staticmethod

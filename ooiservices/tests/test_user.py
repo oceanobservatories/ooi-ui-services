@@ -77,17 +77,25 @@ class UserTestCase(unittest.TestCase):
     #For route: /user/<string:id>
     def test_get_user_route(self):
         #Test unauthorized
-        response = self.client.get(url_for('main.get_user',id='admin'), content_type='application/json')
+        response = self.client.get(url_for('main.get_user',id=1), content_type='application/json')
         self.assertTrue(response.status_code == 401)
 
         #Test authorized
-        response = self.client.get(url_for('main.get_user',id='admin'), headers=self.get_api_headers('admin', 'test'))
+        response = self.client.get(url_for('main.get_user',id=1), headers=self.get_api_headers('admin', 'test'))
         self.assertTrue(response.status_code == 200)
 
     def test_get_user_scope_route(self):
         #Test unauthorized
         response = self.client.get(url_for('main.get_user_scopes'), content_type='application/json')
         self.assertTrue(response.status_code == 401)
+
+        UserScope.insert_scopes()
+
+        admin = User.query.filter_by(user_name='admin').first()
+        scope = UserScope.query.filter_by(scope_name='user_admin').first()
+        admin.scopes.append(scope)
+        db.session.add(admin)
+        db.session.commit()
 
         #Test authorized
         response = self.client.get(url_for('main.get_user_scopes'), headers=self.get_api_headers('admin', 'test'))

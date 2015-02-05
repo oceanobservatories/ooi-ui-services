@@ -14,13 +14,13 @@ from ooiservices.app.decorators import scope_required
 import json
 from wtforms import ValidationError
 
-@api.route('/user/<string:id>', methods=['GET'])
+@api.route('/user/<int:id>', methods=['GET'])
 @auth.login_required
 def get_user(id):
-    user = User.query.filter_by(user_name=id).first_or_404()
+    user = User.query.filter_by(id=id).first_or_404()
     return jsonify(user.to_json())
 
-@api.route('/user/<string:id>', methods=['PUT'])
+@api.route('/user/<int:id>', methods=['PUT'])
 @auth.login_required
 @scope_required(u'user_admin')
 def put_user(id):
@@ -43,6 +43,7 @@ def put_user(id):
     
 @api.route('/user_scopes')
 @auth.login_required
+@scope_required(u'user_admin')
 def get_user_scopes():
     user_scopes = UserScope.query.all()
     return jsonify( {'user_scopes' : [user_scope.to_json() for user_scope in user_scopes] })
