@@ -72,7 +72,7 @@ def test(coverage=False):
     if retval.failures:
         sys.exit(1)
 
-@manager.option('-bl', '--bulkload', default=False)
+@manager.option('-bl', '--bulkload', default=True)
 @manager.option('-p', '--password', required=True)
 def deploy(password, bulkload):
     from flask.ext.migrate import upgrade
