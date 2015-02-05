@@ -10,4 +10,4 @@ from flask import Blueprint
 
 redmine = Blueprint('redmine', __name__)
 
-#from ooiservices.app.redmine import ...
+from ooiservices.app.redmine import routes
