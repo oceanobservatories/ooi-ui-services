@@ -8,7 +8,7 @@ __author__ = 'M@Campbell'
 from flask import jsonify, request, current_app, url_for, g
 from ooiservices.app.main import api
 from ooiservices.app import db
-from authentication import auth
+from ooiservices.app.main.authentication import auth, verify_auth
 from ooiservices.app.models import User, UserScope, UserScopeLink
 from ooiservices.app.decorators import scope_required
 import json
@@ -58,8 +58,18 @@ def get_current_user():
     return jsonify(**doc)
 
 @api.route('/user', methods=['POST'])
-@auth.login_required
 def create_user():
+    '''
+    Requires either a CSRF token shared between the UI and the Services OR an
+    authenticated request from a valid user.
+    '''
+    csrf_token = request.headers.get('X-Csrf-Token')
+    if not csrf_token or csrf_token != current_app.config['UI_API_KEY']:
+        auth = False
+        if request.authorization:
+            auth = verify_auth(request.authorization['username'], request.authorization['password'])
+        if not auth:
+            return jsonify(error="Invalid Authentication"), 401
     data = json.loads(request.data)
     try:
         new_user = User.from_json(data)
@@ -70,7 +80,6 @@ def create_user():
     return jsonify(new_user.to_json()), 201
 
 @api.route('/user_roles')
-@auth.login_required
 def get_user_roles():
     user_roles = {"user_roles": [{"id": 1, "role_name": "Administrator"}, {"id": 2, "role_name": "Marine Operator"}, {"id": 3, "role_name": "Science User"}]}
     return jsonify(user_roles)
