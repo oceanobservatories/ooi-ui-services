@@ -11,6 +11,10 @@ from ooiservices.app import db
 from authentication import auth
 from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment
 from ooiservices.app.models import Stream, StreamParameter, Organization, Instrumentname
+import json
+import yaml
+from wtforms import ValidationError
+
 
 @api.route('/arrays')
 def get_arrays():
@@ -44,7 +48,7 @@ def get_platform_deployment(id):
     platform_deployment = PlatformDeployment.query.filter_by(reference_designator=id).first_or_404()
     return jsonify(platform_deployment.to_json())
 
-@api.route('/instrument_deployments')
+@api.route('/instrument_deployments', methods=['GET'])
 def get_instrument_deployments():
     if 'platform_deployment_id' in request.args:
         instrument_deployments = \
@@ -58,10 +62,56 @@ def get_instrument_deployments():
         instrument_deployments = InstrumentDeployment.query.all()
     return jsonify({ 'instrument_deployments' : [instrument_deployment.to_json() for instrument_deployment in instrument_deployments] })
 
-@api.route('/instrument_deployments/<string:id>')
+@api.route('/instrument_deployments/<string:id>', methods=['GET'])
 def get_instrument_deployment(id):
     instrument_deployment = InstrumentDeployment.query.filter_by(reference_designator=id).first_or_404()
     return jsonify(instrument_deployment.to_json())
+
+@api.route('/instrument_deployments', methods=['POST'])
+@api.route('/instrument_deployments', methods=['PUT'])
+def submit_deployment():
+    '''
+    Acts as a pass-thru proxy to to the services
+    '''
+    #csrf_token = session.pop('_csrf_token', None)
+    #data = json.loads(request.data)
+    #removes unicode
+    data = yaml.load(request.data)
+
+    # check for delete for delete
+    #temp
+    if 'delete' in data:
+        try:
+            existingDeply = InstrumentDeployment.query.filter_by(id=data['id']).first_or_404()
+            db.session.delete(existingDeply)
+            db.session.commit()
+        except ValidationError as e:
+            return jsonify(error=e.message), 409
+    # check for existing id for edit
+    elif 'id' in data:
+        try:
+            existingDeply = InstrumentDeployment.query.filter_by(id=data['id']).first_or_404()
+            existingDeply.display_name = data['display_name']
+            existingDeply.start_date = data['start_date']
+            existingDeply.end_date = data['end_date']
+            existingDeply.platform_deployment_id = data['platform_deployment_id']
+            existingDeply.depth = data['depth']
+            existingDeply.geo_location = data['geo_location']        
+            db.session.commit()
+        except ValidationError as e:
+            return jsonify(error=e.message), 409
+    else:
+        #if not csrf_token or csrf_token != data['_csrf_token']:
+        #    return jsonify(error="CSRF Error"), 401
+        #api_key = app.config['UI_API_KEY']
+        try:
+            new_deploy = InstrumentDeployment.from_json(data)
+            db.session.add(new_deploy)
+            db.session.commit()
+        except ValidationError as e:
+            return jsonify(error=e.message), 409
+
+    return "success", 204
 
 @api.route('/streams')
 def get_streams():

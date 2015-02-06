@@ -295,22 +295,43 @@ class InstrumentDeployment(db.Model):
 
     instrument = db.relationship(u'Instrument')
     platform_deployment = db.relationship(u'PlatformDeployment')
+    
+    @staticmethod
+    def from_json(json_post):
+        print json_post
+        display_name = json_post.get('display_name')
+        start_date = json_post.get('start_date')
+        end_date = json_post.get('end_date')        
+        platform_deployment_id = json_post.get('platform_deployment_id')
+        #instrid = json_post.get('instrument_id')
+        #reference_designator = json_post.get('reference_designator')
+        depth = json_post.get('depth')
+        geo_location = json_post.get('geo_location')
+
+        return InstrumentDeployment( display_name=display_name,start_date=start_date, end_date=end_date,
+            platform_deployment_id=platform_deployment_id,depth=depth,geo_location=geo_location)
 
     def to_json(self):
         geo_location = None
         if self.geo_location is not None:
             json.loads(db.session.scalar(func.ST_AsGeoJSON(self.geo_location)))
+        
         json_inst_deploy = {
             'id' : self.id,
             'reference_designator' : self.reference_designator,
             'platform_deployment_id' : self.platform_deployment_id,
             'display_name' : self.display_name,
-            'start_date' : self.start_date,
-            'end_date' : self.end_date,
+            'start_date' : self._pytype(self.start_date),
+            'end_date' : self._pytype(self.end_date),
             'depth' : self.depth,
             'geo_location' : geo_location
         }
         return json_inst_deploy
+
+    def _pytype(self,v):
+        if isinstance(v, datetime):
+            return v.isoformat()
+        return str(v)
 
 
 class InstrumentModel(db.Model):
