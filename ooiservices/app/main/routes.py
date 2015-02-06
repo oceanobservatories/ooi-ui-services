@@ -52,8 +52,8 @@ def get_instrument_deployments():
         # TODO: Actually link the tables
         for i_d in instrument_deployments:
             instrument_name = Instrumentname.query.filter(Instrumentname.instrument_class == i_d.display_name).first()
-            i_d.display_name = instrument_name.display_name
-
+            if instrument_name:
+                i_d.display_name = instrument_name.display_name
     else:
         instrument_deployments = InstrumentDeployment.query.all()
     return jsonify({ 'instrument_deployments' : [instrument_deployment.to_json() for instrument_deployment in instrument_deployments] })
