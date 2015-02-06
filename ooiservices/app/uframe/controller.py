@@ -12,6 +12,7 @@ from ooiservices.app.main.authentication import auth
 from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment
 from ooiservices.app.models import Stream, StreamParameter, Organization, Instrumentname
 from ooiservices.app.models import Annotation
+from urllib import urlencode
 import requests
 import json
 
@@ -96,31 +97,78 @@ def _get_annotation_content(annotation_field, pref_timestamp, annotations_list, 
     #return nothing
     return {"v":None,"f":None}
 
-@api.route('/streams_list')
-@cache.cached(timeout=3600)
+def make_cache_key():
+    return urlencode(request.args)
+
+@cache.memoize(timeout=3600)
+def get_uframe_streams():
+    '''
+    Lists all the streams
+    '''
+    UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
+    response = requests.get(UFRAME_DATA)
+    return response
+
+@cache.memoize(timeout=3600)
+def get_uframe_stream(stream):
+    '''
+    Lists the reference designators for the streams
+    '''
+    UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
+    response = requests.get("/".join([UFRAME_DATA,stream]))
+    return response
+
+@cache.memoize(timeout=3600)
+def get_uframe_stream_contents(stream, ref):
+    '''
+    Gets the stream contents
+    '''
+    UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
+    response =  requests.get("/".join([UFRAME_DATA,stream,ref]))
+    return response
+
+
+@api.route('/stream')
 def streams_list():
     UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
-    streams = requests.get(UFRAME_DATA)
-    if streams.status_code != 200:
-        raise IOError("Failed to get data")
+    response = get_uframe_streams()
+    if response.status_code != 200:
+        return jsonify(error="Invalid uFrame Response", response=response.text), 500
+
+    streams = response.json()
     
     #with open('/tmp/response.json', 'w') as f:
     #    buf = streams.text.encode('UTF-8')
     #    f.write(buf)
 
-    json_dict = {}
-    for stream in streams.json():
-        refs = requests.get("/".join([UFRAME_DATA,stream]))
-        for ref in refs.json():
+    retval = []
+    for stream in streams:
+        if request.args.get('stream_name'):
+            if request.args.get('stream_name') not in stream:
+                continue
+        response = get_uframe_stream(stream)
+        if response.status_code != 200:
+            return jsonify(error="Invalid uFrame Response"), 500
+        refs = response.json()
+
+        if request.args.get('reference_designator'):
+            refs = [r for r in refs if request.args.get('reference_designator') in r]
+
+        for ref in refs:
             data_dict = {}
-            data =  requests.get("/".join([UFRAME_DATA,stream,ref])).json()
+            response = get_uframe_stream_contents(stream, ref)
+            if response.status_code != 200:
+                return jsonify(error="Invalid uFrame Response", response=response.text), 500
+            data =  response.json()
             preferred = data[0][u'preferred_timestamp']
             data_dict['start'] = data[0][preferred] - COSMO_CONSTANT
             data_dict['end'] = data[-1][preferred] - COSMO_CONSTANT
-            data_dict['name'] = ref
+            data_dict['reference_designator'] = ref
             data_dict['download'] = "/".join([UFRAME_DATA,stream,ref])
-            json_dict[stream] = data_dict
-    return jsonify(**json_dict)
+            data_dict['stream_name'] = stream
+            retval.append(data_dict)
+
+    return jsonify(streams=retval)
 
 @api.route('/get_data/<string:instrument>/<string:stream>',methods=['GET'])
 def get_data(stream, instrument):
