@@ -2832,3 +2832,12 @@ insert into instrumentnames (id, instrument_class, display_name) values( 51, 'ZP
 
 
 -- total instrumentnames:
+
+-- From Luke: the instrument deployments were referencing the platform numbers,
+-- not the record ids. This is a migration script
+
+UPDATE instrument_deployments SET 
+    platform_deployment_id = platform_deployments.id
+FROM platform_deployments
+WHERE substring(instrument_deployments.reference_designator for 14) = platform_deployments.reference_designator;
+
