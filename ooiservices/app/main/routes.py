@@ -108,43 +108,6 @@ def delete_instrument_deployment(id):
     return jsonify(), 200
 
 
-
-
-#@api.route('/instrument_deployment', methods=['POST'])
-#@api.route('/instrument_deployment', methods=['PUT'])
-#def submit_deployment():
-#    '''
-#    Acts as a pass-thru proxy to to the services
-#    '''
-#    #csrf_token = session.pop('_csrf_token', None)
-#    #data = json.loads(request.data)
-#    #removes unicode
-#    data = yaml.load(request.data)
-#
-#    # check for delete for delete
-#    #temp
-#    if 'delete' in data:
-#        try:
-#            existingDeply = InstrumentDeployment.query.filter_by(id=data['id']).first_or_404()
-#            db.session.delete(existingDeply)
-#            db.session.commit()
-#        except ValidationError as e:
-#            return jsonify(error=e.message), 409
-#    # check for existing id for edit
-#    elif 'id' in data:
-#        try:
-#        except ValidationError as e:
-#            return jsonify(error=e.message), 409
-#    else:
-#        #if not csrf_token or csrf_token != data['_csrf_token']:
-#        #    return jsonify(error="CSRF Error"), 401
-#        #api_key = app.config['UI_API_KEY']
-#        try:
-#        except ValidationError as e:
-#            return jsonify(error=e.message), 409
-#
-#    return "success", 204
-
 @api.route('/streams')
 def get_streams():
     streams = Stream.query.all()
