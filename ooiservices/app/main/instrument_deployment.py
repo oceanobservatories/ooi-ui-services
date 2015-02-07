@@ -15,7 +15,7 @@ import json
 import yaml
 from wtforms import ValidationError
 
-@api.route('/instrument_deployment', methods=['GET'])
+@api.route('/instrument_deployments', methods=['GET'])
 def get_instrument_deployments():
     if 'platform_deployment_id' in request.args:
         instrument_deployments = \
@@ -29,7 +29,7 @@ def get_instrument_deployments():
         instrument_deployments = InstrumentDeployment.query.all()
     return jsonify({ 'instrument_deployments' : [instrument_deployment.to_json() for instrument_deployment in instrument_deployments] })
 
-@api.route('/instrument_deployment/<int:id>', methods=['GET'])
+@api.route('/instrument_deployments/<int:id>', methods=['GET'])
 def get_instrument_deployment(id):
     instrument_deployment = InstrumentDeployment.query.get(id)
     if instrument_deployment is None:
@@ -37,7 +37,7 @@ def get_instrument_deployment(id):
     return jsonify(**instrument_deployment.to_json())
 
 @auth.login_required
-@api.route('/instrument_deployment', methods=['POST'])
+@api.route('/instrument_deployments', methods=['POST'])
 def post_instrument_deployment():
     try:
         new_deploy = InstrumentDeployment.from_json(data)
@@ -48,7 +48,7 @@ def post_instrument_deployment():
     return jsonify(**new_deploy.to_json()), 201
 
 @auth.login_required
-@api.route('/instrument_deployment/<int:id>', methods=['PUT'])
+@api.route('/instrument_deployments/<int:id>', methods=['PUT'])
 def put_instrument_deployment(id):
     try:
         data = json.loads(request.data)
