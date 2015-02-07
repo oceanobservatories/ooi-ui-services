@@ -74,6 +74,7 @@ class TOCTestCase(unittest.TestCase):
 
         db.session.add(instrument_ref)
         db.session.commit()
+        instrument_id = instrument_ref.id
 
         response = self.client.get(url_for('main.get_instrument_deployments'), \
         content_type = 'application/json')
@@ -81,7 +82,7 @@ class TOCTestCase(unittest.TestCase):
         self.assertTrue(response.status_code == 200)
 
         response = self.client.get(url_for('main.get_instrument_deployment', \
-        id = 'CE04OSSM-SBD11-01-MOPAK0000'), content_type = 'application/json')
+        id = instrument_id), content_type = 'application/json')
 
         self.assertTrue(response.status_code == 200)
 

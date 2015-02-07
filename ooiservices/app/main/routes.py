@@ -11,6 +11,10 @@ from ooiservices.app import db
 from authentication import auth
 from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment
 from ooiservices.app.models import Stream, StreamParameter, Organization, Instrumentname
+import json
+import yaml
+from wtforms import ValidationError
+
 
 @api.route('/arrays')
 def get_arrays():
@@ -44,7 +48,7 @@ def get_platform_deployment(id):
     platform_deployment = PlatformDeployment.query.filter_by(reference_designator=id).first_or_404()
     return jsonify(platform_deployment.to_json())
 
-@api.route('/instrument_deployments')
+@api.route('/instrument_deployment', methods=['GET'])
 def get_instrument_deployments():
     if 'platform_deployment_id' in request.args:
         instrument_deployments = \
@@ -58,10 +62,51 @@ def get_instrument_deployments():
         instrument_deployments = InstrumentDeployment.query.all()
     return jsonify({ 'instrument_deployments' : [instrument_deployment.to_json() for instrument_deployment in instrument_deployments] })
 
-@api.route('/instrument_deployments/<string:id>')
+@api.route('/instrument_deployment/<int:id>', methods=['GET'])
 def get_instrument_deployment(id):
-    instrument_deployment = InstrumentDeployment.query.filter_by(reference_designator=id).first_or_404()
-    return jsonify(instrument_deployment.to_json())
+    instrument_deployment = InstrumentDeployment.query.get(id)
+    if instrument_deployment is None:
+        return jsonify(error="Instrument Deployment Not Found"), 404
+    return jsonify(**instrument_deployment.to_json())
+
+@api.route('/instrument_deployment', methods=['POST'])
+def post_instrument_deployment():
+    try:
+        new_deploy = InstrumentDeployment.from_json(data)
+        db.session.add(new_deploy)
+        db.session.commit()
+    except ValidationError as e:
+        return jsonify(error=e.message), 400
+    return jsonify(**new_deploy.to_json()), 201
+
+@api.route('/instrument_deployment/<int:id>', methods=['PUT'])
+def put_instrument_deployment(id):
+    try:
+        data = json.loads(request.data)
+        existingDeply = InstrumentDeployment.query.get(id)
+        if existingDeply is None:
+            return jsonify(error="Invalid ID, record not found"), 404
+        existingDeply.display_name = data.get('display_name', existingDeply.display_name)
+        existingDeply.start_date = data.get('start_date', existingDeply.start_date)
+        existingDeply.end_date = data.get('end_date', existingDeply.end_date)
+        existingDeply.platform_deployment_id = data.get('platform_deployment_id', existingDeply.platform_deployment_id)
+        existingDeply.depth = data.get('depth', existingDeply.depth)
+        existingDeply.geo_location = data.get('geo_location', existingDeply.geo_location)
+        db.session.add(existingDeply)
+        db.session.commit()
+    except ValidationError as e:
+        return jsonify(error=e.message), 400
+    return jsonify(**existingDeply.to_json()), 200
+
+@api.route('/instrument_deployment/<int:id>', methods=['DELETE'])
+def delete_instrument_deployment(id):
+    deployment = InstrumentDeployment.query.get(id)
+    if deployment is None:
+        return jsonify(error="Instrument Deployment Not Found"), 404
+    db.session.delete(deployment)
+    db.session.commit()
+    return jsonify(), 200
+
 
 @api.route('/streams')
 def get_streams():
