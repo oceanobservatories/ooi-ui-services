@@ -298,18 +298,23 @@ class InstrumentDeployment(db.Model):
     
     @staticmethod
     def from_json(json_post):
-        print json_post
         display_name = json_post.get('display_name')
         start_date = json_post.get('start_date')
         end_date = json_post.get('end_date')        
         platform_deployment_id = json_post.get('platform_deployment_id')
         #instrid = json_post.get('instrument_id')
-        #reference_designator = json_post.get('reference_designator')
+        reference_designator = json_post.get('reference_designator')
         depth = json_post.get('depth')
         geo_location = json_post.get('geo_location')
 
-        return InstrumentDeployment( display_name=display_name,start_date=start_date, end_date=end_date,
-            platform_deployment_id=platform_deployment_id,depth=depth,geo_location=geo_location)
+        return InstrumentDeployment(
+                display_name=display_name,
+                start_date=start_date,
+                end_date=end_date,
+                platform_deployment_id=platform_deployment_id,
+                depth=depth,
+                reference_designator=reference_designator,
+                geo_location=geo_location)
 
     def to_json(self):
         geo_location = None
@@ -321,11 +326,15 @@ class InstrumentDeployment(db.Model):
             'reference_designator' : self.reference_designator,
             'platform_deployment_id' : self.platform_deployment_id,
             'display_name' : self.display_name,
-            'start_date' : self._pytype(self.start_date),
-            'end_date' : self._pytype(self.end_date),
             'depth' : self.depth,
+            'start_date' : None,
+            'end_date' : None,
             'geo_location' : geo_location
         }
+        if self.start_date is not None:
+            json_inst_deploy['start_date'] = self._pytype(self.start_date)
+        if self.end_date is not None:
+            json_inst_deploy['end_date'] = self._pytype(self.end_date)
         return json_inst_deploy
 
     def _pytype(self,v):

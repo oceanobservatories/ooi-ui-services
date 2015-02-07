@@ -46,9 +46,17 @@ class ModelTestCase(unittest.TestCase):
     def test_instrument_deployment(self):
         #Test the json in the object
         instrument_deployment = InstrumentDeployment()
-        self.assertTrue(instrument_deployment.to_json() == {'id': None, \
-        'depth': None, 'display_name': None, 'end_date': None, 'geo_location': None, \
-        'platform_deployment_id': None, 'reference_designator': None, 'start_date': None})
+        should_be = {
+            'id' :None,
+            'depth': None,
+            'display_name' : None,
+            'end_date' : None,
+            'geo_location': None,
+            'platform_deployment_id' : None,
+            'reference_designator' : None,
+            'start_date' : None
+        }
+        self.assertEquals(instrument_deployment.to_json() , should_be)
 
     def test_stream(self):
         #Test the json in the object
