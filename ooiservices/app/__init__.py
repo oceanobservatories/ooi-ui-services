@@ -10,6 +10,7 @@ from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.login import LoginManager
 from flask_environments import Environments
 from flask.ext.cache import Cache
+from flask_wtf.csrf import CsrfProtect
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -18,6 +19,7 @@ login_manager.session_protection = 'strong'
 
 cache = Cache(config={'CACHE_TYPE':'simple'})
 db = SQLAlchemy()
+csrf = CsrfProtect()
 
 def create_app(config_name):
     app = Flask(__name__)
@@ -56,6 +58,7 @@ def create_app(config_name):
     db.init_app(app)
     login_manager.init_app(app)
     cache.init_app(app)
+    csrf.init_app(app)
 
     from ooiservices.app.main import api as main_blueprint
     app.register_blueprint(main_blueprint)
