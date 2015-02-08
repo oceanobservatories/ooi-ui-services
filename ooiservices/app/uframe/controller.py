@@ -17,7 +17,7 @@ import requests
 import json
 
 from ooiservices.app.uframe.data import gen_data
-
+from ooiservices.app.main.errors import internal_server_error
 
 import json
 import datetime
@@ -105,36 +105,44 @@ def get_uframe_streams():
     '''
     Lists all the streams
     '''
-    UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
-    response = requests.get(UFRAME_DATA)
-    return response
+    try:
+        UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
+        response = requests.get(UFRAME_DATA)
+        return response
+    except:
+        return internal_server_error('uframe connection cannot be made.')
 
 @cache.memoize(timeout=3600)
 def get_uframe_stream(stream):
     '''
     Lists the reference designators for the streams
     '''
-    UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
-    response = requests.get("/".join([UFRAME_DATA,stream]))
-    return response
+    try:
+        UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
+        response = requests.get("/".join([UFRAME_DATA,stream]))
+        return response
+    except:
+        return internal_server_error('uframe connection cannot be made.')
 
 @cache.memoize(timeout=3600)
 def get_uframe_stream_contents(stream, ref):
     '''
     Gets the stream contents
     '''
-    UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
-    response =  requests.get("/".join([UFRAME_DATA,stream,ref]))
-    return response
+    try:
+        UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
+        response =  requests.get("/".join([UFRAME_DATA,stream,ref]))
+        return response
+    except:
+        return internal_server_error('uframe connection cannot be made.')
 
 
-@api.route('/stream')
+@api.route('/streams')
 def streams_list():
     UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
     response = get_uframe_streams()
     if response.status_code != 200:
-        return jsonify(error="Invalid uFrame Response", response=response.text), 500
-
+        return response
     streams = response.json()
 
     #with open('/tmp/response.json', 'w') as f:
@@ -148,7 +156,7 @@ def streams_list():
                 continue
         response = get_uframe_stream(stream)
         if response.status_code != 200:
-            return jsonify(error="Invalid uFrame Response"), 500
+            return response
         refs = response.json()
 
         if request.args.get('reference_designator'):
@@ -158,7 +166,7 @@ def streams_list():
             data_dict = {}
             response = get_uframe_stream_contents(stream, ref)
             if response.status_code != 200:
-                return jsonify(error="Invalid uFrame Response", response=response.text), 500
+                return response
             data =  response.json()
             preferred = data[0][u'preferred_timestamp']
             data_dict['start'] = data[0][preferred] - COSMO_CONSTANT
