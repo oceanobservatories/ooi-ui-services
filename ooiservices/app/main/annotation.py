@@ -11,15 +11,22 @@ from ooiservices.app import db
 from authentication import auth
 from ooiservices.app.models import Annotation, User
 from ooiservices.app.decorators import scope_required
-from ooiservices.app.main.errors import forbidden
-
+from ooiservices.app.main.errors import forbidden, conflict
 from datetime import datetime
 
+#List all annotations.
 @api.route('/annotations')
 def get_annotations():
     annotations = Annotation.query.all()
     return jsonify( {'annotations' : [annotation.to_json() for annotation in annotations] })
 
+#List an annotation by id
+@api.route('/annotations/<string:id>')
+def get_annotation(id):
+    annotation = Annotation.query.filter_by(user_name=id).first_or_404()
+    return jsonify(annotation.to_json())
+
+#Create a new annotation
 @api.route('/annotations/', methods=['POST'])
 @auth.login_required
 @scope_required('annotate')
@@ -31,15 +38,11 @@ def create_annotation():
         annotation.user_name = g.current_user.user_name
         db.session.add(annotation)
         db.session.commit()
+        return jsonify(annotation.to_json()), 201
     except:
-        raise "Cannot add annotation."
-    return jsonify(annotation.to_json()), 201
+        return conflict('Insufficient data, or bad data format.')
 
-@api.route('/annotations/<string:id>')
-def get_annotation(id):
-    annotation = Annotation.query.filter_by(user_name=id).first_or_404()
-    return jsonify(annotation.to_json())
-
+#Update an existing annotation.
 @api.route('/annotations/<int:id>', methods=['PUT'])
 @auth.login_required
 @scope_required('annotate')
@@ -53,8 +56,10 @@ def edit_annotation(id):
     annotation.title = request.json.get('title', annotation.title)
     annotation.modified_date = datetime.now()
     db.session.add(annotation)
+    db.session.commit()
     return jsonify(annotation.to_json())
 
+#Delete an existing annotation
 @api.route('/annotations/<int:id>', methods=['DELETE'])
 @auth.login_required
 @scope_required('annotate')
@@ -65,4 +70,4 @@ def delete_annotation(id):
         return forbidden('Scope required.')
     db.session.delete(annotation)
     db.session.commit()
-    return "Annotation deleted %s" % id
+    return jsonify({'message': 'Annotation deleted!', 'id': id})

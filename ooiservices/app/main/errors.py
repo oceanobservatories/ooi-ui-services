@@ -4,6 +4,11 @@ from ooiservices.app.main import api
 class ValidationError(ValueError):
     pass
 
+def conflict(message):
+    response = jsonify({'error': 'conflict', 'message': message})
+    response.status_code = 409
+    return response
+
 def bad_request(message):
     response = jsonify({'error': 'bad request', 'message': message})
     response.status_code = 400
