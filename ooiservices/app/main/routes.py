@@ -9,30 +9,11 @@ from flask import jsonify, request, current_app, url_for
 from ooiservices.app.main import api
 from ooiservices.app import db
 from authentication import auth
-from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment
+from ooiservices.app.models import PlatformDeployment, InstrumentDeployment
 from ooiservices.app.models import Stream, StreamParameter, Organization, Instrumentname
 import json
 import yaml
 from wtforms import ValidationError
-
-
-@api.route('/arrays')
-def get_arrays():
-    arrays = Array.query.all()
-    return jsonify( {'arrays' : [array.to_json() for array in arrays] })
-
-@api.route('/arrays/', methods=['POST'])
-@auth.login_required
-def set_array():
-    array = Array.from_json(request.json)
-    db.session.add(array)
-    db.session.commit()
-    return jsonify(array.to_json())
-
-@api.route('/arrays/<string:id>')
-def get_array(id):
-    array = Array.query.filter_by(array_code=id).first_or_404()
-    return jsonify(array.to_json())
 
 @api.route('/platform_deployments')
 def get_platform_deployments():
