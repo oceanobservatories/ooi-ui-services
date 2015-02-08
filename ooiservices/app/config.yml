@@ -18,11 +18,13 @@ DEVELOPMENT: &development
     <<: *common
     DEBUG: True
     SQLALCHEMY_DATABASE_URI: 'postgres://user:password@hostname/database_name'
+    SSL_DISABLE: True
 
 LOCAL_DEVELOPMENT: &local_dev
     <<: *common
     DEBUG: True
     SQLALCHEMY_DATABASE_URI: 'postgres://postgres@localhost/ooiuidev'
+    SSL_DISABLE: True
 
 TESTING_CONFIG: &testing
     <<: *common
@@ -32,5 +34,5 @@ TESTING_CONFIG: &testing
 
 PRODUCTION: &production
     <<: *common
-    SSL_DISABLE: True
+    SSL_DISABLE: False
     SQLALCHEMY_DATABASE_URI: 'postgres://postgres@localhost/ooiui'
