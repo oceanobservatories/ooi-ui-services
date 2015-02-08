@@ -192,9 +192,7 @@ def get_data(stream, instrument):
         data = requests.get(current_app.config['UFRAME_URL'] + '/sensor/user/inv/' + stream + '/' + instrument)
         data = data.json()
     except:
-        json_data=open('ooiservices/tests/sampleData.json')
-        data = json.load(json_data)
-        app.logger.info('Cannot connect to uframe, using mock data.')
+        return internal_server_error('uframe connection cannot be made.')
 
     annotations = []
     hasAnnotation = False
