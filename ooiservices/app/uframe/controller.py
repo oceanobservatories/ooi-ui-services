@@ -56,11 +56,11 @@ def _get_col_outline(data,pref_timestamp,inital_fields,hasAnnotation,annotations
     #loop and generate inital col dict
     for field in inital_fields:
         if field == pref_timestamp:
-            d_type = "datetime"                
-        elif field in FIELDS_IGNORE or str(field).endswith('_timestamp'):         
+            d_type = "datetime"
+        elif field in FIELDS_IGNORE or str(field).endswith('_timestamp'):
             continue
         else:
-            #map the data types to the correct data type for google charts       
+            #map the data types to the correct data type for google charts
             d_type = _get_data_type(type(data[0][field]))
 
         data_field_list.append(field)
@@ -71,21 +71,21 @@ def _get_col_outline(data,pref_timestamp,inital_fields,hasAnnotation,annotations
         if hasAnnotation:
             #only append annotation fields for fields that have annotations, makes resp smaller if possible
             if field in fields_have_annotation :
-                data_field_list.append("annotation")    
+                data_field_list.append("annotation")
                 data_field_list.append("annotationText")
-                data_fields.append({"label":"title"+str(field_count),"type":  "string" , "role":"annotation" , "origin_field":field}) 
-                data_fields.append({"label":"text" +str(field_count),"type":  "string" , "role":"annotationText", "origin_field":field}) 
+                data_fields.append({"label":"title"+str(field_count),"type":  "string" , "role":"annotation" , "origin_field":field})
+                data_fields.append({"label":"text" +str(field_count),"type":  "string" , "role":"annotationText", "origin_field":field})
 
                 field_count +=1
-     
+
     return data_fields,data_field_list
 
-def _get_annotation_content(annotation_field, pref_timestamp, annotations_list, d, data_field):    
+def _get_annotation_content(annotation_field, pref_timestamp, annotations_list, d, data_field):
     '''
     creates the annotation content for a given field
     '''
     #right now x and y are timeseries data
-    for an in annotations_list:        
+    for an in annotations_list:
         if an['field_x'] == pref_timestamp or an['field_y'] == data_field:
             # and and y value
             if int(d['fixed_dt']) == int(an['pos_x']):
@@ -136,7 +136,7 @@ def streams_list():
         return jsonify(error="Invalid uFrame Response", response=response.text), 500
 
     streams = response.json()
-    
+
     #with open('/tmp/response.json', 'w') as f:
     #    buf = streams.text.encode('UTF-8')
     #    f.write(buf)
@@ -184,7 +184,9 @@ def get_data(stream, instrument):
         data = requests.get(current_app.config['UFRAME_URL'] + '/sensor/user/inv/' + stream + '/' + instrument)
         data = data.json()
     except:
-        raise
+        json_data=open('ooiservices/tests/sampleData.json')
+        data = json.load(json_data)
+        app.logger.info('Cannot connect to uframe, using mock data.')
 
     annotations = []
     hasAnnotation = False
@@ -194,14 +196,14 @@ def get_data(stream, instrument):
     if 'annotation' in request.args:
         #generate annotation plot
         if request.args['annotation'] == "true":
-            hasAnnotation = True    
+            hasAnnotation = True
 
     if 'startdate' in request.args:
-        request.args['startdate']            
+        request.args['startdate']
         hasStartDate = True
 
-    if 'enddate' in request.args:                
-        request.args['enddate']            
+    if 'enddate' in request.args:
+        request.args['enddate']
         hasEndDate = True
 
     #got normal data plot
@@ -209,9 +211,9 @@ def get_data(stream, instrument):
     d_row = data[0]
     #data store
     some_data = []
-    
+
     time_idx = -1
-    pref_timestamp = d_row["preferred_timestamp"]    
+    pref_timestamp = d_row["preferred_timestamp"]
     #figure out the header rows
     inital_fields = d_row.keys()
     #move timestamp to the front
@@ -221,24 +223,24 @@ def get_data(stream, instrument):
     #get the annotations, only get the annotations if requested
     if hasAnnotation:
         annotations = _get_annotation(instrument, stream)
-        for an in annotations:            
+        for an in annotations:
             # add the annotations to the list, but dont add them for the preferred timestamp
             if an['field_x'] not in fields_have_annotation and an['field_x'] != pref_timestamp:
                 fields_have_annotation.append(an['field_x'])
             if an['field_y'] not in fields_have_annotation and an['field_y'] != pref_timestamp:
-                fields_have_annotation.append(an['field_y'])        
+                fields_have_annotation.append(an['field_y'])
 
     data_cols,data_field_list = _get_col_outline(data,pref_timestamp,inital_fields,hasAnnotation,annotations,fields_have_annotation)
 
     #figure out the data content
-    #annotations will be in order and 
+    #annotations will be in order and
     data_length = len(data)
     for d in data:
         c_r = []
 
         #used to store the actual datafield in use by the annotations, as it will always go datafield then annotation
         data_field = None
-        
+
         #create data time object, should only ever be one timestamp....the pref one
         d['fixed_dt'] = d[pref_timestamp] - COSMO_CONSTANT
         c_dt = datetime.datetime.fromtimestamp(d['fixed_dt'])
@@ -247,16 +249,16 @@ def get_data(stream, instrument):
         #create the data
         date_str = "Date("+str(c_dt.year)+","+str(c_dt.month)+","+str(c_dt.day)+","+str(c_dt.hour)+","+str(c_dt.minute)+","+str(c_dt.second)+")"
 
-        for field in data_field_list:            
+        for field in data_field_list:
             if field == pref_timestamp:
                 #datetime field
-                c_r.append({"f":str_date,"v":date_str})                                
-                time_idx = len(c_r)-1            
-            
-            elif field.startswith("annotation"): 
-                #field = annotation, data_field = actual field in use  
+                c_r.append({"f":str_date,"v":date_str})
+                time_idx = len(c_r)-1
+
+            elif field.startswith("annotation"):
+                #field = annotation, data_field = actual field in use
                 annotation_content = _get_annotation_content(field,pref_timestamp,annotations,d, data_field)
-                c_r.append(annotation_content)                
+                c_r.append(annotation_content)
 
             else:
                 #non annotation field
