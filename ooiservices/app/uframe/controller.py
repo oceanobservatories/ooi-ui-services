@@ -45,7 +45,7 @@ def _get_annotation(instrument_name, stream_name):
     annotations = Annotation.query.filter_by(instrument_name=instrument_name, stream_name=stream_name).all()
     return [annotation.to_json() for annotation in annotations]
 
-def _get_col_outline(data,pref_timestamp,inital_fields,hasAnnotation,annotations,fields_have_annotation):
+def _get_col_outline(data,pref_timestamp,inital_fields,hasAnnotation,annotations,fields_have_annotation,requested_field):
     '''
     gets the column outline for the google chart response, figures out what annotations are required where...
     '''
@@ -60,8 +60,14 @@ def _get_col_outline(data,pref_timestamp,inital_fields,hasAnnotation,annotations
         elif field in FIELDS_IGNORE or str(field).endswith('_timestamp'):
             continue
         else:
-            #map the data types to the correct data type for google charts
-            d_type = _get_data_type(type(data[0][field]))
+            if requested_field is not None:
+                if field == requested_field:
+                    d_type = _get_data_type(type(data[0][field]))
+                else:
+                    continue
+            else:
+                #map the data types to the correct data type for google charts
+                d_type = _get_data_type(type(data[0][field]))
 
         data_field_list.append(field)
         data_fields.append({"id": "",
@@ -200,18 +206,22 @@ def get_data(stream, instrument):
     hasAnnotation = False
     hasStartDate = False
     hasEndDate = False
+    field = None
     #this is needed as some plots dont have annotations
+    if 'field' in request.args:
+        field =  request.args['field']
+
     if 'annotation' in request.args:
         #generate annotation plot
         if request.args['annotation'] == "true":
             hasAnnotation = True
 
     if 'startdate' in request.args:
-        request.args['startdate']
+        st_date = datetime.datetime.strptime(request.args['startdate'], "%Y-%m-%d %H:%M:%S")
         hasStartDate = True
 
     if 'enddate' in request.args:
-        request.args['enddate']
+        ed_date = datetime.datetime.strptime(request.args['enddate'], "%Y-%m-%d %H:%M:%S")
         hasEndDate = True
 
     #got normal data plot
@@ -238,20 +248,27 @@ def get_data(stream, instrument):
             if an['field_y'] not in fields_have_annotation and an['field_y'] != pref_timestamp:
                 fields_have_annotation.append(an['field_y'])
 
-    data_cols,data_field_list = _get_col_outline(data,pref_timestamp,inital_fields,hasAnnotation,annotations,fields_have_annotation)
+    data_cols,data_field_list = _get_col_outline(data,pref_timestamp,inital_fields,hasAnnotation,annotations,fields_have_annotation,field)
 
     #figure out the data content
     #annotations will be in order and
-    data_length = len(data)
-    for d in data:
+    for d in data:        
         c_r = []
-
+        
         #used to store the actual datafield in use by the annotations, as it will always go datafield then annotation
         data_field = None
 
         #create data time object, should only ever be one timestamp....the pref one
         d['fixed_dt'] = d[pref_timestamp] - COSMO_CONSTANT
         c_dt = datetime.datetime.fromtimestamp(d['fixed_dt'])
+
+        if hasStartDate:            
+            if not c_dt >= st_date:                
+                continue
+        if hasEndDate:              
+            if not c_dt <= ed_date:
+                continue
+
         d['dt'] = c_dt
         str_date = c_dt.isoformat()
         #create the data
@@ -278,7 +295,7 @@ def get_data(stream, instrument):
     #genereate dict for the data thing
     resp_data = {'cols':data_cols,
                  'rows':some_data,
-                 'data_length':data_length
+                 'data_length':len(some_data)
                  #'start_time' : datetime.datetime.fromtimestamp(data[0][pref_timestamp]).isoformat(),
                  #'end_time' : datetime.datetime.fromtimestamp(data[-1][pref_timestamp]).isoformat()
                  }
