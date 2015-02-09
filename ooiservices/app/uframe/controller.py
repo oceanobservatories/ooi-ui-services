@@ -217,11 +217,11 @@ def get_data(stream, instrument):
             hasAnnotation = True
 
     if 'startdate' in request.args:
-        request.args['startdate']
+        st_date = datetime.datetime.strptime(request.args['startdate'], "%Y-%m-%d %H:%M:%S")
         hasStartDate = True
 
     if 'enddate' in request.args:
-        request.args['enddate']
+        ed_date = datetime.datetime.strptime(request.args['enddate'], "%Y-%m-%d %H:%M:%S")
         hasEndDate = True
 
     #got normal data plot
@@ -253,15 +253,23 @@ def get_data(stream, instrument):
     #figure out the data content
     #annotations will be in order and
     data_length = len(data)
-    for d in data:
+    for d in data:        
         c_r = []
-
+        
         #used to store the actual datafield in use by the annotations, as it will always go datafield then annotation
         data_field = None
 
         #create data time object, should only ever be one timestamp....the pref one
         d['fixed_dt'] = d[pref_timestamp] - COSMO_CONSTANT
         c_dt = datetime.datetime.fromtimestamp(d['fixed_dt'])
+
+        if hasStartDate:            
+            if not c_dt >= st_date:                
+                continue
+        if hasEndDate:              
+            if not c_dt <= ed_date:
+                continue
+
         d['dt'] = c_dt
         str_date = c_dt.isoformat()
         #create the data
