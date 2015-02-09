@@ -45,7 +45,7 @@ def _get_annotation(instrument_name, stream_name):
     annotations = Annotation.query.filter_by(instrument_name=instrument_name, stream_name=stream_name).all()
     return [annotation.to_json() for annotation in annotations]
 
-def _get_col_outline(data,pref_timestamp,inital_fields,hasAnnotation,annotations,fields_have_annotation):
+def _get_col_outline(data,pref_timestamp,inital_fields,hasAnnotation,annotations,fields_have_annotation,requested_field):
     '''
     gets the column outline for the google chart response, figures out what annotations are required where...
     '''
@@ -60,8 +60,14 @@ def _get_col_outline(data,pref_timestamp,inital_fields,hasAnnotation,annotations
         elif field in FIELDS_IGNORE or str(field).endswith('_timestamp'):
             continue
         else:
-            #map the data types to the correct data type for google charts
-            d_type = _get_data_type(type(data[0][field]))
+            if requested_field is not None:
+                if field == requested_field:
+                    d_type = _get_data_type(type(data[0][field]))
+                else:
+                    continue
+            else:
+                #map the data types to the correct data type for google charts
+                d_type = _get_data_type(type(data[0][field]))
 
         data_field_list.append(field)
         data_fields.append({"id": "",
@@ -200,7 +206,11 @@ def get_data(stream, instrument):
     hasAnnotation = False
     hasStartDate = False
     hasEndDate = False
+    field = None
     #this is needed as some plots dont have annotations
+    if 'field' in request.args:
+        field =  request.args['field']
+
     if 'annotation' in request.args:
         #generate annotation plot
         if request.args['annotation'] == "true":
@@ -238,7 +248,7 @@ def get_data(stream, instrument):
             if an['field_y'] not in fields_have_annotation and an['field_y'] != pref_timestamp:
                 fields_have_annotation.append(an['field_y'])
 
-    data_cols,data_field_list = _get_col_outline(data,pref_timestamp,inital_fields,hasAnnotation,annotations,fields_have_annotation)
+    data_cols,data_field_list = _get_col_outline(data,pref_timestamp,inital_fields,hasAnnotation,annotations,fields_have_annotation,field)
 
     #figure out the data content
     #annotations will be in order and
