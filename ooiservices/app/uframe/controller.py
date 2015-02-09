@@ -252,7 +252,6 @@ def get_data(stream, instrument):
 
     #figure out the data content
     #annotations will be in order and
-    data_length = len(data)
     for d in data:        
         c_r = []
         
@@ -296,7 +295,7 @@ def get_data(stream, instrument):
     #genereate dict for the data thing
     resp_data = {'cols':data_cols,
                  'rows':some_data,
-                 'data_length':data_length
+                 'data_length':len(some_data)
                  #'start_time' : datetime.datetime.fromtimestamp(data[0][pref_timestamp]).isoformat(),
                  #'end_time' : datetime.datetime.fromtimestamp(data[-1][pref_timestamp]).isoformat()
                  }
