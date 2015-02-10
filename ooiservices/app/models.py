@@ -16,6 +16,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from datetime import datetime
 import geoalchemy2.functions as func
 import json
+import flask.ext.whooshalchemy
 
 #--------------------------------------------------------------------------------
 
@@ -295,12 +296,12 @@ class InstrumentDeployment(db.Model):
 
     instrument = db.relationship(u'Instrument')
     platform_deployment = db.relationship(u'PlatformDeployment')
-    
+
     @staticmethod
     def from_json(json_post):
         display_name = json_post.get('display_name')
         start_date = json_post.get('start_date')
-        end_date = json_post.get('end_date')        
+        end_date = json_post.get('end_date')
         platform_deployment_id = json_post.get('platform_deployment_id')
         #instrid = json_post.get('instrument_id')
         reference_designator = json_post.get('reference_designator')
@@ -320,7 +321,7 @@ class InstrumentDeployment(db.Model):
         geo_location = None
         if self.geo_location is not None:
             json.loads(db.session.scalar(func.ST_AsGeoJSON(self.geo_location)))
-        
+
         json_inst_deploy = {
             'id' : self.id,
             'reference_designator' : self.reference_designator,
@@ -468,6 +469,7 @@ class Organization(db.Model, DictSerializableMixin):
 class PlatformDeployment(db.Model, DictSerializableMixin):
     __tablename__ = 'platform_deployments'
     __table_args__ = {u'schema': __schema__}
+    __searchable__ = ['display_name']
 
     id = db.Column(db.Integer, primary_key=True)
     start_date = db.Column(db.Date)
@@ -569,6 +571,9 @@ class PlatformDeployment(db.Model, DictSerializableMixin):
 
             return self._f_concat_rd(p_n.array_type, p_n.array_name, p_n.site, p_n.platform, platform_text, i_n.display_name)
         return None
+
+    def __repr__(self):
+        return '{0}(display_name={1})'.format(self.__class__.__name__, self.display_name)
 
 
 class Platformname(db.Model):
@@ -688,7 +693,7 @@ class UserScopeLink(db.Model):
 
 
 
-class UserScope(db.Model):
+class UserScope(db.Model, DictSerializableMixin):
     __tablename__ = 'user_scopes'
     __table_args__ = {u'schema': __schema__}
 
