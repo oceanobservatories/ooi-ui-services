@@ -5,7 +5,7 @@ uframe endpoints
 '''
 __author__ = 'Andy Bird'
 
-from flask import jsonify, request, current_app, url_for, Flask
+from flask import jsonify, request, current_app, url_for, Flask, send_from_directory
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app import db, cache
 from ooiservices.app.main.authentication import auth
@@ -22,6 +22,7 @@ from ooiservices.app.main.errors import internal_server_error
 import json
 import datetime
 import math
+import csv
 
 #ignore list for data fields
 FIELDS_IGNORE = ["stream_name","quality_flag"]
@@ -183,6 +184,30 @@ def streams_list():
             retval.append(data_dict)
 
     return jsonify(streams=retval)
+
+
+@api.route('/get_csv/<string:stream>/<string:ref>',methods=['GET'])
+def streams_list_csv(stream,ref):   
+    UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv/%s/%s/'%(stream,ref)
+    response = get_uframe_streams()
+    if response.status_code != 200:
+        return response
+    data = get_uframe_stream_contents(stream,ref)
+    output = open ('/tmp/tmp_download.csv','wb+')
+    data = data.json()
+    f = csv.DictWriter(output, fieldnames = data[0].keys())
+    f.writeheader()
+    for row in data:
+        f.writerow(row)
+    output.close()
+
+    filename = '-'.join([stream,ref])
+    
+    returned_csv = send_from_directory('/tmp','tmp_download.csv')
+    returned_csv.headers["Content-Disposition"] = "attachment; filename=%s.csv"%filename 
+    
+    return returned_csv
+
 
 @api.route('/get_data/<string:instrument>/<string:stream>',methods=['GET'])
 def get_data(stream, instrument):
