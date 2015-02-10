@@ -14,6 +14,8 @@ from ooiservices.app.decorators import scope_required
 from ooiservices.app.main.errors import forbidden, conflict
 from datetime import datetime
 
+import json
+
 #List all annotations.
 @api.route('/annotations')
 def get_annotations():
@@ -27,12 +29,13 @@ def get_annotation(id):
     return jsonify(annotation.to_json())
 
 #Create a new annotation
-@api.route('/annotations/', methods=['POST'])
+@api.route('/annotations', methods=['POST'])
 @auth.login_required
 @scope_required('annotate')
 def create_annotation():
     try:
-        annotation = Annotation.from_json(request.json)
+        data = json.loads(request.data)        
+        annotation = Annotation.from_json(data)
         annotation.created_time = datetime.now()
         annotation.modified_time = datetime.now()
         annotation.user_name = g.current_user.user_name

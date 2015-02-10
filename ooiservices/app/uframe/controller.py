@@ -90,11 +90,14 @@ def _get_annotation_content(annotation_field, pref_timestamp, annotations_list, 
     '''
     creates the annotation content for a given field
     '''
-    #right now x and y are timeseries data
+    #right now x and y are timeseries data    
     for an in annotations_list:
         if an['field_x'] == pref_timestamp or an['field_y'] == data_field:
-            # and and y value
-            if int(d['fixed_dt']) == int(an['pos_x']):
+            # and and y value            
+            an_date_time = datetime.datetime.strptime(an['pos_x'], "%Y-%m-%dT%H:%M:%S")
+            an_int_date_time = int(an_date_time.strftime("%s"))
+
+            if int(d['fixed_dt']) == an_int_date_time:
                 if annotation_field == "annotation":
                     return {"v":an["title"]}
                 elif annotation_field == "annotationText":
@@ -272,7 +275,8 @@ def get_data(stream, instrument):
         d['dt'] = c_dt
         str_date = c_dt.isoformat()
         #create the data
-        date_str = "Date("+str(c_dt.year)+","+str(c_dt.month)+","+str(c_dt.day)+","+str(c_dt.hour)+","+str(c_dt.minute)+","+str(c_dt.second)+")"
+        #js month is 0-11, https://developers.google.com/chart/interactive/docs/datesandtimes
+        date_str = "Date("+str(c_dt.year)+","+str(c_dt.month-1)+","+str(c_dt.day)+","+str(c_dt.hour)+","+str(c_dt.minute)+","+str(c_dt.second)+")"
 
         for field in data_field_list:
             if field == pref_timestamp:
