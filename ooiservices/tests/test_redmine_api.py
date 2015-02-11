@@ -44,6 +44,10 @@ class RedmineTestCase(unittest.TestCase):
         rv = self.client.get('redmine/ticket/?project=' + PROJECT)
         self.assertTrue(rv.status_code == 200)
 
+    def test_read_redmine_users(self):
+        rv = self.client.get('redmine/users/?project=' + PROJECT)
+        self.assertTrue(rv.status_code == 200)
+
     def test_create_redmine_ticket(self):
         rv = self.client.post('redmine/ticket',
                               headers=self.get_api_headers(),
