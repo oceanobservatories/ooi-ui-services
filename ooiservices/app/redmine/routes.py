@@ -7,6 +7,7 @@ Redmine endpoints
 from flask import jsonify, request, Response, current_app
 from ooiservices.app.redmine import redmine as api
 from ooiservices.app.main.authentication import auth
+from ooiservices.app.decorators import scope_required
 from collections import OrderedDict
 from redmine import Redmine
 import json
@@ -26,33 +27,56 @@ def redmine_login():
 
 
 @api.route('/ticket', methods=['POST'])
-# @auth.login_required
+@auth.login_required
+@scope_required('redmine')
 def create_redmine_ticket():
     '''
     Create new ticket
     '''
+
+    # Get request data
     data = request.data
 
+    # Check that there is actually data
     if not data:
         return Response(response='{"error":"Invalid request"}',
                         status=400,
                         mimetype="application/json")
 
     dataDict = json.loads(data)
-    if 'project' not in dataDict:
-        return Response(response='{"error":"Invalid request"}',
-                        status=400,
-                        mimetype="application/json")
 
+    # Define required and recommended ticket fields
+    required_fields = ['project_id', 'subject']
+    recommended_fields = ['due_date', 'description', 'priority_id', 'assigned_to_id',
+                          'start_date', 'estimated_hours', 'status_id', 'notes',
+                          'tracker_id', 'parent_issue_id', 'done_ratio']
+
+    # Check the required fields
+    for field in required_fields:
+        if field not in dataDict:
+            return Response(response='{"error":"Invalid request: ' + field + ' not defined"}',
+                            status=400,
+                            mimetype="application/json")
+    fields = dict()
+    for field in required_fields + recommended_fields:
+        if field in dataDict:
+            fields[field] = dataDict[field]
+
+    # Log into Redmine
     redmine = redmine_login()
-    redmine.issue.create(project_id=dataDict['project'],
-                         subject=dataDict['subject'])
-    # return request.args.get('project', '')
+
+    # Create new issue
+    issue = redmine.issue.new()
+    for key, value in fields.iteritems():
+        setattr(issue, key, value)
+    issue.save()
+
     return data, 201
 
 
 @api.route('/ticket/', methods=['GET'])
-# @auth.login_required
+@auth.login_required
+@scope_required('redmine')
 def get_all_redmine_tickets():
     '''
     List all redmine tickets
@@ -60,7 +84,7 @@ def get_all_redmine_tickets():
 
     redmine = redmine_login()
     if 'project' not in request.args:
-        return Response(response="{error: project not defined}",
+        return Response(response="{error: Invalid request: project_id not defined}",
                         status=400,
                         mimetype="application/json")
 
@@ -80,7 +104,8 @@ def get_all_redmine_tickets():
 
 
 @api.route('/ticket/id', methods=['POST'])
-# @auth.login_required
+@auth.login_required
+@scope_required('redmine')
 def update_redmine_ticket():
     '''
     Update a specific ticket
@@ -92,22 +117,41 @@ def update_redmine_ticket():
                         status=400,
                         mimetype="application/json")
 
+    # Save the request as a dictionary
     dataDict = json.loads(data)
+
+    # Check the required field (resource_id)
     if 'resource_id' not in dataDict:
-        return Response(response='{"error":"Invalid request"}',
+        return Response(response='{"error":"Invalid request: resource_id not defined"}',
                         status=400,
                         mimetype="application/json")
 
+    update_fields = ['project_id', 'subject', 'due_date', 'description', 'priority_id',
+                     'assigned_to_id', 'start_date', 'estimated_hours', 'status_id', 'notes',
+                     'tracker_id', 'parent_issue_id', 'done_ratio']
+    # Get all the update fields from the request
+    fields = dict()
+    for field in update_fields:
+        if field in dataDict:
+            fields[field] = dataDict[field]
+
+    # Log into Redmine
     redmine = redmine_login()
-    redmine.issue.update(resource_id=dataDict['resource_id'],
-                         project_id=dataDict['project_id'],
-                         subject=dataDict['subject'],
-                         notes=dataDict['notes'])
+
+    # Get the issue
+    issue = redmine.issue.get(dataDict['resource_id'])
+    for key, value in fields.iteritems():
+        # Update all fields except the issue resource id
+        if 'resource_id' != key:
+            setattr(issue, key, value)
+    issue.save()
+
     return data, 201
 
 
 @api.route('/ticket/id/', methods=['GET'])
-# @auth.login_required
+@auth.login_required
+@scope_required('redmine')
 def get_redmine_ticket():
     '''
     Get a specific ticket by id
@@ -130,7 +174,8 @@ def get_redmine_ticket():
 
 
 @api.route('/users/', methods=['GET'])
-# @auth.login_required
+@auth.login_required
+@scope_required('redmine')
 def get_redmine_users():
     '''
     Get all the users in a project
