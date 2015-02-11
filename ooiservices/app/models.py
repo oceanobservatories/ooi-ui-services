@@ -16,7 +16,6 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from datetime import datetime
 import geoalchemy2.functions as func
 import json
-import flask.ext.whooshalchemy
 
 #--------------------------------------------------------------------------------
 

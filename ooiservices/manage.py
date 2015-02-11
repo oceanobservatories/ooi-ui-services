@@ -14,18 +14,56 @@ if os.environ.get('FLASK_COVERAGE'):
 from ooiservices.app import create_app, db
 from flask.ext.script import Manager, Shell, Server, prompt_bool
 from flask.ext.migrate import Migrate, MigrateCommand
+import flask.ext.whooshalchemy as whooshalchemy
+from ooiservices.app.models import PlatformDeployment
 
 
 app = create_app('LOCAL_DEVELOPMENT')
 manager = Manager(app)
 migrate = Migrate(app,db)
+app.config['WHOOSH_BASE'] = 'ooiservices/whoosh_index'
+whooshalchemy.whoosh_index(app, PlatformDeployment)
+
+##------------------------------------------------------------------
+## M@Campbell 02/10/2015
+##
+## Helper function to build index of models that are loaded manually (from .sql file)
+#
+#   Usage:
+#       From shell:
+#       > from ooiservices.manage import rebuild_index
+#       > rebuild_index(model_name)
+##------------------------------------------------------------------
+def rebuild_index(model):
+    import whoosh
+    import flask_whooshalchemy
+    """Rebuild search index of Flask-SQLAlchemy model"""
+    app.logger.info("Rebuilding {0} index...".format(model.__name__))
+    primary_field = model.pure_whoosh.primary_key_name
+    searchables = model.__searchable__
+    index_writer = flask_whooshalchemy.whoosh_index(app, model)
+
+    # Fetch all data
+    entries = model.query.all()
+
+    entry_count = 0
+    with index_writer.writer() as writer:
+        for entry in entries:
+            index_attrs = {}
+            for field in searchables:
+                index_attrs[field] = unicode(getattr(entry, field))
+
+            index_attrs[primary_field] = unicode(getattr(entry, primary_field))
+            writer.update_document(**index_attrs)
+            entry_count += 1
+
+    app.logger.info("Rebuilt {0} {1} search index entries.".format(str(entry_count), model.__name__))
 
 def make_shell_context():
     from ooiservices.app.models import User, UserScope, UserScopeLink, Array
     from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameter, Watch
     from ooiservices.app.models import OperatorEvent
     from ooiservices.app.models import Platformname, Instrumentname, Annotation
-
 
     ctx = {"app": app,
            "db": db,
@@ -47,6 +85,7 @@ def make_shell_context():
 @manager.command
 def runserver():
     app.run(host=app.config['HOST'], port=app.config['PORT'], debug=True)
+
 
 manager.add_command("shell", Shell(make_context=make_shell_context))
 manager.add_command('db', MigrateCommand)
