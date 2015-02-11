@@ -5,7 +5,7 @@ uframe endpoints
 '''
 __author__ = 'Andy Bird'
 
-from flask import jsonify, request, current_app, url_for, Flask, send_from_directory, make_response
+from flask import jsonify, request, current_app, url_for, Flask, make_response
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app import db, cache
 from ooiservices.app.main.authentication import auth
@@ -191,7 +191,7 @@ def streams_list():
 
 
 @api.route('/get_csv/<string:stream>/<string:ref>',methods=['GET'])
-def streams_list_csv(stream,ref):   
+def get_csv(stream,ref):   
     UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv/%s/%s/'%(stream,ref)
     response = get_uframe_streams()
     if response.status_code != 200:
@@ -212,6 +212,23 @@ def streams_list_csv(stream,ref):
     
     output.close()
     return returned_csv
+
+
+@api.route('/get_json/<string:stream>/<string:ref>',methods=['GET'])
+def get_json(stream,ref):   
+    UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv/%s/%s/'%(stream,ref)
+    response = get_uframe_streams()
+    if response.status_code != 200:
+        return response
+    data = get_uframe_stream_contents(stream,ref)
+    data = data.json()
+
+    filename = '-'.join([stream,ref])
+    
+    returned_json = make_response(json.dumps(data))
+    returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json"%filename 
+    
+    return returned_json
 
 
 @api.route('/get_data/<string:instrument>/<string:stream>',methods=['GET'])
