@@ -5,7 +5,7 @@ uframe endpoints
 '''
 __author__ = 'Andy Bird'
 
-from flask import jsonify, request, current_app, url_for, Flask, send_from_directory
+from flask import jsonify, request, current_app, url_for, Flask, make_response
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app import db, cache
 from ooiservices.app.main.authentication import auth
@@ -23,6 +23,7 @@ import json
 import datetime
 import math
 import csv
+import io
 
 #ignore list for data fields
 FIELDS_IGNORE = ["stream_name","quality_flag"]
@@ -149,7 +150,10 @@ def get_uframe_stream_contents(stream, ref):
 
 @api.route('/stream')
 def streams_list():
-    UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
+    #UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
+    HOST = str(current_app.config['HOST'])
+    PORT = str(current_app.config['PORT'])
+    SERVICE_LOCATION = 'http://'+HOST+":"+PORT
     response = get_uframe_streams()
     if response.status_code != 200:
         return response
@@ -182,7 +186,8 @@ def streams_list():
             data_dict['start'] = data[0][preferred] - COSMO_CONSTANT
             data_dict['end'] = data[-1][preferred] - COSMO_CONSTANT
             data_dict['reference_designator'] = ref
-            data_dict['download'] = "/".join([UFRAME_DATA,stream,ref])
+            data_dict['csv_download'] = "/".join([SERVICE_LOCATION,'uframe/get_csv',stream,ref]) 
+            data_dict['json_download'] = "/".join([SERVICE_LOCATION,'uframe/get_json',stream,ref])
             data_dict['stream_name'] = stream
             retval.append(data_dict)
 
@@ -190,26 +195,44 @@ def streams_list():
 
 
 @api.route('/get_csv/<string:stream>/<string:ref>',methods=['GET'])
-def streams_list_csv(stream,ref):   
-    UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv/%s/%s/'%(stream,ref)
+def get_csv(stream,ref):   
+    #UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv/%s/%s/'%(stream,ref)
     response = get_uframe_streams()
     if response.status_code != 200:
         return response
     data = get_uframe_stream_contents(stream,ref)
-    output = open ('/tmp/tmp_download.csv','wb+')
+    output = io.BytesIO()
     data = data.json()
     f = csv.DictWriter(output, fieldnames = data[0].keys())
     f.writeheader()
     for row in data:
         f.writerow(row)
-    output.close()
 
     filename = '-'.join([stream,ref])
     
-    returned_csv = send_from_directory('/tmp','tmp_download.csv')
+    #returned_csv = send_from_directory('/tmp','tmp_download.csv')
+    returned_csv = make_response(output.getvalue())
     returned_csv.headers["Content-Disposition"] = "attachment; filename=%s.csv"%filename 
     
+    output.close()
     return returned_csv
+
+
+@api.route('/get_json/<string:stream>/<string:ref>',methods=['GET'])
+def get_json(stream,ref):   
+    #UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv/%s/%s/'%(stream,ref)
+    response = get_uframe_streams()
+    if response.status_code != 200:
+        return response
+    data = get_uframe_stream_contents(stream,ref)
+    data = data.json()
+
+    filename = '-'.join([stream,ref])
+    
+    returned_json = make_response(json.dumps(data))
+    returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json"%filename 
+    
+    return returned_json
 
 
 @api.route('/get_data/<string:instrument>/<string:stream>',methods=['GET'])
