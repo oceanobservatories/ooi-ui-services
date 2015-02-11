@@ -5,7 +5,7 @@ uframe endpoints
 '''
 __author__ = 'Andy Bird'
 
-from flask import jsonify, request, current_app, url_for, Flask, send_from_directory
+from flask import jsonify, request, current_app, url_for, Flask, send_from_directory, make_response
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app import db, cache
 from ooiservices.app.main.authentication import auth
@@ -23,6 +23,7 @@ import json
 import datetime
 import math
 import csv
+import io
 
 #ignore list for data fields
 FIELDS_IGNORE = ["stream_name","quality_flag"]
@@ -196,19 +197,20 @@ def streams_list_csv(stream,ref):
     if response.status_code != 200:
         return response
     data = get_uframe_stream_contents(stream,ref)
-    output = open ('/tmp/tmp_download.csv','wb+')
+    output = io.BytesIO()
     data = data.json()
     f = csv.DictWriter(output, fieldnames = data[0].keys())
     f.writeheader()
     for row in data:
         f.writerow(row)
-    output.close()
 
     filename = '-'.join([stream,ref])
     
-    returned_csv = send_from_directory('/tmp','tmp_download.csv')
+    #returned_csv = send_from_directory('/tmp','tmp_download.csv')
+    returned_csv = make_response(output.getvalue())
     returned_csv.headers["Content-Disposition"] = "attachment; filename=%s.csv"%filename 
     
+    output.close()
     return returned_csv
 
 
