@@ -147,7 +147,7 @@ def get_uframe_stream_contents(stream, ref):
         return internal_server_error('uframe connection cannot be made.')
 
 
-@api.route('/streams')
+@api.route('/stream')
 def streams_list():
     UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
     response = get_uframe_streams()
