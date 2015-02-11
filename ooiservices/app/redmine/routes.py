@@ -127,3 +127,25 @@ def get_redmine_ticket():
             details[field] = str(getattr(issue, field))
 
     return jsonify(details)
+
+
+@api.route('/users/', methods=['GET'])
+# @auth.login_required
+def get_redmine_users():
+    '''
+    Get all the users in a project
+    '''
+    redmine = redmine_login()
+    if 'project' not in request.args:
+        return Response(response="{error: project not defined}",
+                        status=400,
+                        mimetype="application/json")
+
+    proj = request.args['project']
+    project = redmine.project.get(proj).refresh()
+
+    users = dict(users=[])
+    for user in project.memberships:
+        users['users'].append(user['user']['name'])
+
+    return jsonify(users)
