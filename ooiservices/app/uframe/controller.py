@@ -150,10 +150,13 @@ def get_uframe_stream_contents(stream, ref):
 
 @api.route('/stream')
 def streams_list():
-    #UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
+    UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
+    
+    
     HOST = str(current_app.config['HOST'])
     PORT = str(current_app.config['PORT'])
     SERVICE_LOCATION = 'http://'+HOST+":"+PORT
+    
     response = get_uframe_streams()
     if response.status_code != 200:
         return response
@@ -188,6 +191,7 @@ def streams_list():
             data_dict['reference_designator'] = ref
             data_dict['csv_download'] = "/".join([SERVICE_LOCATION,'uframe/get_csv',stream,ref]) 
             data_dict['json_download'] = "/".join([SERVICE_LOCATION,'uframe/get_json',stream,ref])
+            data_dict['netcdf_download'] = "/".join([SERVICE_LOCATION,'uframe/get_netcdf',stream,ref])
             data_dict['stream_name'] = stream
             retval.append(data_dict)
 
@@ -196,7 +200,6 @@ def streams_list():
 
 @api.route('/get_csv/<string:stream>/<string:ref>',methods=['GET'])
 def get_csv(stream,ref):   
-    #UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv/%s/%s/'%(stream,ref)
     response = get_uframe_streams()
     if response.status_code != 200:
         return response
@@ -210,8 +213,8 @@ def get_csv(stream,ref):
 
     filename = '-'.join([stream,ref])
     
-    #returned_csv = send_from_directory('/tmp','tmp_download.csv')
-    returned_csv = make_response(output.getvalue())
+    buf = output.getvalue()
+    returned_csv = make_response(buf)
     returned_csv.headers["Content-Disposition"] = "attachment; filename=%s.csv"%filename 
     
     output.close()
@@ -220,7 +223,6 @@ def get_csv(stream,ref):
 
 @api.route('/get_json/<string:stream>/<string:ref>',methods=['GET'])
 def get_json(stream,ref):   
-    #UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv/%s/%s/'%(stream,ref)
     response = get_uframe_streams()
     if response.status_code != 200:
         return response
@@ -228,11 +230,30 @@ def get_json(stream,ref):
     data = data.json()
 
     filename = '-'.join([stream,ref])
-    
-    returned_json = make_response(json.dumps(data))
+    buf = json.dumps(data) 
+    returned_json = make_response(buf)
     returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json"%filename 
     
     return returned_json
+
+
+@api.route('/get_netcdf/<string:stream>/<string:ref>',methods=['GET'])
+def get_netcdf(stream,ref): 
+    UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv/%s/%s'%(stream,ref)
+    NETCDF_LINK = UFRAME_DATA+'?format=application/netcdf3'
+    
+    response = requests.get(NETCDF_LINK)
+    if response.status_code != 200:
+        return response.text, response.status_code
+
+    filename = '-'.join([stream,ref])
+    buf = response.content
+    returned_netcdf = make_response(buf)
+    returned_netcdf.headers["Content-Disposition"] = "attachment; filename=%s.nc"%filename  
+    returned_netcdf.headers["Content-Type"] = "application/x-netcdf" 
+
+    return returned_netcdf
+
 
 
 @api.route('/get_data/<string:instrument>/<string:stream>',methods=['GET'])
