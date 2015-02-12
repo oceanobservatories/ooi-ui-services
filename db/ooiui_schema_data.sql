@@ -31,7 +31,6 @@ insert into assets(supplier_id, deployment_id, asset_name, model, current_lifecy
 insert into assemblies(assembly_name) values ('Default Assembly');
 insert into installation_records(asset_id, assembly_id) values (1, 1);
 
--- total user_scope_links: 5
 
 -- operator_event_types
 insert into operator_event_types(type_name, type_description) values ('INFO', 'General information event.');
