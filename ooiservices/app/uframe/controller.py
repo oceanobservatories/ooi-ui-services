@@ -216,6 +216,7 @@ def get_csv(stream,ref):
     buf = output.getvalue()
     returned_csv = make_response(buf)
     returned_csv.headers["Content-Disposition"] = "attachment; filename=%s.csv"%filename 
+    returned_csv.headers["Content-Type"] = "text/csv" 
     
     output.close()
     return returned_csv
@@ -233,6 +234,7 @@ def get_json(stream,ref):
     buf = json.dumps(data) 
     returned_json = make_response(buf)
     returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json"%filename 
+    returned_json.headers["Content-Type"] = "application/json" 
     
     return returned_json
 
