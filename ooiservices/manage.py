@@ -15,7 +15,8 @@ from ooiservices.app import create_app, db
 from flask.ext.script import Manager, Shell, Server, prompt_bool
 from flask.ext.migrate import Migrate, MigrateCommand
 import flask.ext.whooshalchemy as whooshalchemy
-from ooiservices.app.models import PlatformDeployment
+from ooiservices.app.models import PlatformDeployment, User, UserScope
+from datetime import datetime
 
 
 app = create_app('LOCAL_DEVELOPMENT')
@@ -137,17 +138,72 @@ def deploy(password, bulkload):
     #upgrade()
     UserScope.insert_scopes()
     app.logger.info('Insert default user, name: admin')
-    User.insert_user(password)
+    User.insert_user(password=password)
     admin = User.query.first()
+    admin.scopes.append(UserScope.query.filter_by(scope_name='user_admin').first())
+    db.session.add(admin)
+    db.session.commit()
+
+@manager.option('-s', '--schema', required=True)
+@manager.option('-o', '--schema_owner', required=True)
+def rebuild_schema(schema, schema_owner):
+    """
+    Creates the OOI UI Services schema based on models.py
+    :usage: python manage.py rebuild_schema --schema ooiui --schema_owner postgres --backup_schema True
+    :param schema:
+    :param schema_owner:
+    :return:
+    """
+
+    # Check if schema exists
+    sql = "SELECT schema_name FROM information_schema.schemata WHERE schema_name = '{0}'".format(schema)
+    sql_result = db.engine.execute(sql).first()
+    if sql_result != None:
+        # Move current schema to _timestamp
+        timestamp = int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds())
+        app.logger.info('Backing up schema container {0} to {0}_{1}'.format(schema, timestamp))
+        db.engine.execute('ALTER SCHEMA {0} RENAME TO {0}_{1}'.format(schema, timestamp))
+
+    #app.logger.info('Dropping schema container: {0}'.format(schema))
+    #db.engine.execute('DROP SCHEMA %s CASCADE' % schema)
+
+    app.logger.info('Creating schema container: {0}'.format(schema))
+    db.engine.execute('CREATE SCHEMA IF NOT EXISTS {0} AUTHORIZATION {1}'.format(schema, schema_owner))
+
+    app.logger.info('Building schema objects')
+    db.create_all()
+
+    app.logger.info('Adding base user_scopes')
+    UserScope.insert_scopes()
+
+@manager.option('-u', '--username', required=True)
+@manager.option('-p', '--password', required=True)
+@manager.option('-f', '--first_name', required=True)
+@manager.option('-l', '--last_name', required=True)
+@manager.option('-e', '--email', required=True)
+@manager.option('-o', '--org_name', required=True)
+def add_admin_user(username, password, first_name, last_name, email, org_name):
+    '''
+    Creates a 'user_admin' scoped user using the supplied username and password
+    :param username:
+    :param password:
+    :return:
+    '''
+    app.logger.info('Insert user, name: %s' % username)
+    User.insert_user(username=username, password=password, first_name=first_name, last_name=last_name, email=email, org_name=org_name)
+    admin = User.query.filter_by(user_name=username).first()
     admin.scopes.append(UserScope.query.filter_by(scope_name='user_admin').first())
     db.session.add(admin)
     db.session.commit()
 
 @manager.command
 def load_data():
-    from sh import psql
-    with open('db/ooiui_schema_data.sql') as f:
-        psql('ooiuidev', _in=f)
+    '''
+    Bulk loads the OOI UI data
+    :return:
+    '''
+    with open('../db/ooiui_schema_data.sql') as f:
+        db.engine.execute(f.read())
     app.logger.info('Bulk test data loaded.')
 
 @manager.command

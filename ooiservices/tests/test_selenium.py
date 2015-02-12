@@ -38,7 +38,7 @@ class SeleniumTest(unittest.TestCase):
             # create the database and populate with some fake data
             db.create_all()
             test_password = 'test'
-            User.insert_user(test_password)
+            User.insert_user(password=test_password)
             UserRole.insert_roles()
 
             # start the Flask server in a thread

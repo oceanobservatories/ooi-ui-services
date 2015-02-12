@@ -28,7 +28,7 @@ class AnnotationsTestCase(unittest.TestCase):
         db.create_all()
         self.client = self.app.test_client(use_cookies=False)
         password = 'test'
-        User.insert_user(password)
+        User.insert_user(password=password)
         UserScope.insert_scopes()
 
     def tearDown(self):
