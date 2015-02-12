@@ -150,10 +150,13 @@ def get_uframe_stream_contents(stream, ref):
 
 @api.route('/stream')
 def streams_list():
-    #UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
+    UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
+    
+    
     HOST = str(current_app.config['HOST'])
     PORT = str(current_app.config['PORT'])
     SERVICE_LOCATION = 'http://'+HOST+":"+PORT
+    
     response = get_uframe_streams()
     if response.status_code != 200:
         return response
@@ -188,6 +191,7 @@ def streams_list():
             data_dict['reference_designator'] = ref
             data_dict['csv_download'] = "/".join([SERVICE_LOCATION,'uframe/get_csv',stream,ref]) 
             data_dict['json_download'] = "/".join([SERVICE_LOCATION,'uframe/get_json',stream,ref])
+            data_dict['netcdf_download'] = "/".join([UFRAME_DATA,stream,ref+'?format=application/netcdf3'])
             data_dict['stream_name'] = stream
             retval.append(data_dict)
 
