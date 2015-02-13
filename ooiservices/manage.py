@@ -95,10 +95,14 @@ manager.add_command('db', MigrateCommand)
 def test(testmodule=None, coverage=False):
     """
     Unit testing
-    :param testmodule: test_basics.py
+    usage: python.exe manage.py test --testmodule=test_sys.py
+    or
+    python.exe manage.py test
+    :param testmodule:
     :param coverage:
     :return:
     """
+    #TODO: Double check that the coverage parameter can be set to True and work
     import sys
     """Run the unit tests."""
     if coverage and not os.environ.get('FLASK_COVERAGE'):
