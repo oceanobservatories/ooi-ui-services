@@ -118,6 +118,7 @@ def get_display_name():
 
 @api.route('/plot/<string:instrument>/<string:stream>', methods=['GET'])
 def plotdemo(instrument, stream):
+    plot_format = request.args.get('format', 'svg')
     xvar = request.args.get('xvar', 'internal_timestamp')
     yvar = request.args.get('yvar',None)
     title = request.args.get('title', '%s Data' % stream)
@@ -155,14 +156,19 @@ def plotdemo(instrument, stream):
                                      **kwargs)   
 
     buf = io.BytesIO()
-    plt.savefig(buf, format='svg')
+    content_header_map = {
+        'svg' : 'image/svg+xml',
+        'png' : 'image/png'
+    }
+    if plot_format not in ['svg', 'png']:
+        plot_format = 'svg'
+    plt.savefig(buf, format=plot_format)
     buf.seek(0)
 
     t1 = time.time()
-    print "Response took %s seconds" % (t1 - t0)
     plt.clf()
     plt.cla()
-    return buf.read(), 200, {'Content-Type':'image/svg+xml'}
+    return buf.read(), 200, {'Content-Type':content_header_map[plot_format]}
 
 @cache.memoize(timeout=3600)
 def plot_time_series(fig, ax, x, y, fill=False, title='', ylabel='',
