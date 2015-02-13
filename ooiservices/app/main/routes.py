@@ -14,6 +14,11 @@ from ooiservices.app.models import Stream, StreamParameter, Organization, Instru
 import json
 import yaml
 from wtforms import ValidationError
+import matplotlib
+import matplotlib.pyplot as plt
+import io
+import numpy as np
+import time
 
 @api.route('/platform_deployments')
 def get_platform_deployments():
@@ -95,24 +100,27 @@ def get_display_name():
 
 @api.route('/plotdemo', methods=['GET'])
 def plotdemo():
-    import matplotlib
-    import matplotlib.pyplot as plt
-    import io
-    import numpy as np
-    import time
 
     t0 = time.time()
-    data = np.array([[2,2],
+    data = np.array([[0,1],
+                     [1,2],
+                     [3,0],
+                     [4,0],
+                     [5,1],
+                     [6,2],
+                     [7,1],
                      [8,8],
-                     [1,3],
-                     [2,4]])
-    x = data[:,0]
-    y = data[:,1]
+                     [9,2]])
+    x = np.random.random(10000)
+    y = np.random.random(10000)
+    fig = plt.subplot(111)
 
-    plt.title('SVG Plot')
-    plt.xlabel('X/Time')
-    plt.ylabel('Y/Value')
-    plt.scatter(x, y)
+
+    fig.set_title('SVG Plot')
+    fig.set_xlabel('X/Time')
+    fig.set_ylabel('Y/Value')
+    #fig.plot(x,y)
+    fig.scatter(x, y)
     buf = io.BytesIO()
 
     plt.savefig(buf, format='svg')
@@ -120,6 +128,8 @@ def plotdemo():
 
     t1 = time.time()
     print "Response took %s seconds" % (t1 - t0)
+    plt.clf()
+    plt.cla()
     return buf.read(), 200, {'Content-Type':'image/svg+xml'}
 
     
