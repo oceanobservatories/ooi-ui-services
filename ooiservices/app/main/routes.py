@@ -5,7 +5,7 @@ API v1.0 List
 '''
 __author__ = 'M@Campbell'
 
-from flask import jsonify, request, current_app, url_for
+from flask import jsonify, request, current_app, url_for, make_response
 from ooiservices.app.main import api
 from ooiservices.app import db
 from authentication import auth
@@ -92,3 +92,34 @@ def get_display_name():
     if platform_deployment_filtered is None:
         return '{}', 204
     return jsonify({ 'proper_display_name' : display_name })
+
+@api.route('/plotdemo', methods=['GET'])
+def plotdemo():
+    import matplotlib
+    import matplotlib.pyplot as plt
+    import io
+    import numpy as np
+    import time
+
+    t0 = time.time()
+    data = np.array([[2,2],
+                     [8,8],
+                     [1,3],
+                     [2,4]])
+    x = data[:,0]
+    y = data[:,1]
+
+    plt.title('SVG Plot')
+    plt.xlabel('X/Time')
+    plt.ylabel('Y/Value')
+    plt.scatter(x, y)
+    buf = io.BytesIO()
+
+    plt.savefig(buf, format='svg')
+    buf.seek(0)
+
+    t1 = time.time()
+    print "Response took %s seconds" % (t1 - t0)
+    return buf.read(), 200, {'Content-Type':'image/svg+xml'}
+
+    
