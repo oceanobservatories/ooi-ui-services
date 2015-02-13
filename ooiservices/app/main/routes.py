@@ -5,7 +5,7 @@ API v1.0 List
 '''
 __author__ = 'M@Campbell'
 
-from flask import jsonify, request, current_app, url_for
+from flask import jsonify, request, current_app, url_for, make_response
 from ooiservices.app.main import api
 from ooiservices.app import db
 from authentication import auth
@@ -14,6 +14,11 @@ from ooiservices.app.models import Stream, StreamParameter, Organization, Instru
 import json
 import yaml
 from wtforms import ValidationError
+import matplotlib
+import matplotlib.pyplot as plt
+import io
+import numpy as np
+import time
 
 @api.route('/platform_deployments')
 def get_platform_deployments():
@@ -92,3 +97,39 @@ def get_display_name():
     if platform_deployment_filtered is None:
         return '{}', 204
     return jsonify({ 'proper_display_name' : display_name })
+
+@api.route('/plotdemo', methods=['GET'])
+def plotdemo():
+
+    t0 = time.time()
+    data = np.array([[0,1],
+                     [1,2],
+                     [3,0],
+                     [4,0],
+                     [5,1],
+                     [6,2],
+                     [7,1],
+                     [8,8],
+                     [9,2]])
+    x = np.random.random(10000)
+    y = np.random.random(10000)
+    fig = plt.subplot(111)
+
+
+    fig.set_title('SVG Plot')
+    fig.set_xlabel('X/Time')
+    fig.set_ylabel('Y/Value')
+    #fig.plot(x,y)
+    fig.scatter(x, y)
+    buf = io.BytesIO()
+
+    plt.savefig(buf, format='svg')
+    buf.seek(0)
+
+    t1 = time.time()
+    print "Response took %s seconds" % (t1 - t0)
+    plt.clf()
+    plt.cla()
+    return buf.read(), 200, {'Content-Type':'image/svg+xml'}
+
+    
