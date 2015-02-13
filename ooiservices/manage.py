@@ -92,12 +92,14 @@ manager.add_command("shell", Shell(make_context=make_shell_context))
 manager.add_command('db', MigrateCommand)
 
 @manager.option('-tm', '--testmodule', required=False)
+@manager.option('-tc', '--coverage', required=False)
 def test(testmodule=None, coverage=False):
     """
     Unit testing
-    usage: python.exe manage.py test --testmodule=test_sys.py
-    or
-    python.exe manage.py test
+    usage:
+        python.exe manage.py test
+        python.exe manage.py test --coverage=True
+        python.exe manage.py test --testmodule=test_sys.py
     :param testmodule:
     :param coverage:
     :return:
