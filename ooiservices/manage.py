@@ -92,15 +92,34 @@ manager.add_command("shell", Shell(make_context=make_shell_context))
 manager.add_command('db', MigrateCommand)
 
 @manager.command
-def test(coverage=False):
+def test(coverage=False, testmodule=None):
+    """
+    Unit testing
+    usage:
+        python.exe manage.py test
+        python.exe manage.py test --coverage
+        python.exe manage.py test --coverage --testmodule=test_basics.py
+    :param coverage:
+    :return:
+    """
     import sys
+
     """Run the unit tests."""
     if coverage and not os.environ.get('FLASK_COVERAGE'):
         os.environ['FLASK_COVERAGE'] = '1'
         os.execvp(sys.executable, [sys.executable] + sys.argv)
+    if COV:
+        COV.start()
+
     import unittest
-    tests = unittest.TestLoader().discover('tests')
+    # Allow user to choose test module to run
+    if testmodule == None:
+        tests = unittest.TestLoader().discover(start_dir='tests')
+    else:
+        tests = unittest.TestLoader().discover(start_dir='tests', pattern=testmodule)
+
     retval = unittest.TextTestRunner(verbosity=2).run(tests)
+
     if COV:
         COV.stop()
         COV.save()
