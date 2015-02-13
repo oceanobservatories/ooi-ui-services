@@ -10,16 +10,6 @@ from ooiservices.app.main import api
 from ooiservices import manage
 import urllib
 
-@api.route('/shutdown')
-def server_shutdown():
-    if not current_app.testing:
-        abort(404)
-    shutdown = request.environ.get('werkzeug.server.shutdown')
-    if not shutdown:
-        abort(500)
-    shutdown()
-    return 'Shutting down...'
-
 @api.route('/list_routes', methods=['GET'])
 def list_routes():
     """
