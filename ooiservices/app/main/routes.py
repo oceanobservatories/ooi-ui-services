@@ -116,24 +116,40 @@ def get_display_name():
         return '{}', 204
     return jsonify({ 'proper_display_name' : display_name })
 
-@api.route('/plotdemo', methods=['GET'])
-def plotdemo():
+@api.route('/plot/<string:instrument>/<string:stream>', methods=['GET'])
+def plotdemo(instrument, stream):
+    xvar = request.args.get('xvar', 'internal_timestamp')
+    yvar = request.args.get('yvar',None)
+    title = request.args.get('title', '%s Data' % stream)
+    xlabel = request.args.get('xlabel', 'X')
+    ylabel = request.args.get('ylabel', yvar)
+    if yvar is None:
+        return 'Error: yvar is required', 400, {'Content-Type':'text/plain'}
+
+    height = float(request.args.get('height', 100)) # px
+    width = float(request.args.get('width', 100)) # px
+
+    print height
+    print width
+
+    height_in = height / 96.
+    width_in = width / 96.
 
     t0 = time.time()
 
-    data = get_data("flort_kn_stc_imodem_instrument","CP02PMUO-WFP01-04-FLORTK000","raw_signal_chl");
+    data = get_data(stream,instrument,yvar);
 
     x = data['x']
     y = data['y']
 
-    fig, ax = ppl.subplots(1, 1, figsize=(10, 10))
+    fig, ax = ppl.subplots(1, 1, figsize=(width_in, height_in))
 
     kwargs = dict(linewidth=1.0,alpha=0.7)
 
     date_list = num2date(x, units='seconds since 1970-01-01 00:00:00', calendar='gregorian')
     plot_time_series(fig, ax, date_list, y,
-                                     title='plot',
-                                     ylabel="something",
+                                     title=title,
+                                     ylabel=ylabel,
                                      title_font=title_font,
                                      axis_font=axis_font,
                                      **kwargs)   

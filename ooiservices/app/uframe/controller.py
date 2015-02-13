@@ -183,6 +183,7 @@ def streams_list():
             data_dict['json_download'] = "/".join([SERVICE_LOCATION,'uframe/get_json',stream,ref])
             data_dict['netcdf_download'] = "/".join([SERVICE_LOCATION,'uframe/get_netcdf',stream,ref])
             data_dict['stream_name'] = stream
+            data_dict['variables'] = data[1].keys()
             retval.append(data_dict)
 
     return jsonify(streams=retval)
