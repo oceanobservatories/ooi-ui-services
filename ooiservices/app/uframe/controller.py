@@ -7,7 +7,7 @@ __author__ = 'Andy Bird'
 
 from flask import jsonify, request, current_app, url_for, Flask, make_response
 from ooiservices.app.uframe import uframe as api
-from ooiservices.app import db, cache
+from ooiservices.app import db, cache, celery
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment
 from ooiservices.app.models import Stream, StreamParameter, Organization, Instrumentname
@@ -92,10 +92,10 @@ def _get_annotation_content(annotation_field, pref_timestamp, annotations_list, 
     '''
     creates the annotation content for a given field
     '''
-    #right now x and y are timeseries data    
+    #right now x and y are timeseries data
     for an in annotations_list:
         if an['field_x'] == pref_timestamp or an['field_y'] == data_field:
-            # and and y value            
+            # and and y value
             an_date_time = datetime.datetime.strptime(an['pos_x'], "%Y-%m-%dT%H:%M:%S")
             an_int_date_time = int(an_date_time.strftime("%s"))
 
@@ -151,12 +151,12 @@ def get_uframe_stream_contents(stream, ref):
 @api.route('/stream')
 def streams_list():
     UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
-    
-    
+
+
     HOST = str(current_app.config['HOST'])
     PORT = str(current_app.config['PORT'])
     SERVICE_LOCATION = 'http://'+HOST+":"+PORT
-    
+
     response = get_uframe_streams()
     if response.status_code != 200:
         return response
@@ -189,7 +189,7 @@ def streams_list():
             data_dict['start'] = data[0][preferred] - COSMO_CONSTANT
             data_dict['end'] = data[-1][preferred] - COSMO_CONSTANT
             data_dict['reference_designator'] = ref
-            data_dict['csv_download'] = "/".join([SERVICE_LOCATION,'uframe/get_csv',stream,ref]) 
+            data_dict['csv_download'] = "/".join([SERVICE_LOCATION,'uframe/get_csv',stream,ref])
             data_dict['json_download'] = "/".join([SERVICE_LOCATION,'uframe/get_json',stream,ref])
             data_dict['netcdf_download'] = "/".join([SERVICE_LOCATION,'uframe/get_netcdf',stream,ref])
             data_dict['stream_name'] = stream
@@ -199,7 +199,7 @@ def streams_list():
 
 
 @api.route('/get_csv/<string:stream>/<string:ref>',methods=['GET'])
-def get_csv(stream,ref):   
+def get_csv(stream,ref):
     response = get_uframe_streams()
     if response.status_code != 200:
         return response
@@ -212,18 +212,18 @@ def get_csv(stream,ref):
         f.writerow(row)
 
     filename = '-'.join([stream,ref])
-    
+
     buf = output.getvalue()
     returned_csv = make_response(buf)
-    returned_csv.headers["Content-Disposition"] = "attachment; filename=%s.csv"%filename 
-    returned_csv.headers["Content-Type"] = "text/csv" 
-    
+    returned_csv.headers["Content-Disposition"] = "attachment; filename=%s.csv"%filename
+    returned_csv.headers["Content-Type"] = "text/csv"
+
     output.close()
     return returned_csv
 
 
 @api.route('/get_json/<string:stream>/<string:ref>',methods=['GET'])
-def get_json(stream,ref):   
+def get_json(stream,ref):
     response = get_uframe_streams()
     if response.status_code != 200:
         return response
@@ -231,19 +231,19 @@ def get_json(stream,ref):
     data = data.json()
 
     filename = '-'.join([stream,ref])
-    buf = json.dumps(data) 
+    buf = json.dumps(data)
     returned_json = make_response(buf)
-    returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json"%filename 
-    returned_json.headers["Content-Type"] = "application/json" 
-    
+    returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json"%filename
+    returned_json.headers["Content-Type"] = "application/json"
+
     return returned_json
 
 
 @api.route('/get_netcdf/<string:stream>/<string:ref>',methods=['GET'])
-def get_netcdf(stream,ref): 
+def get_netcdf(stream,ref):
     UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv/%s/%s'%(stream,ref)
     NETCDF_LINK = UFRAME_DATA+'?format=application/netcdf3'
-    
+
     response = requests.get(NETCDF_LINK)
     if response.status_code != 200:
         return response.text, response.status_code
@@ -251,8 +251,8 @@ def get_netcdf(stream,ref):
     filename = '-'.join([stream,ref])
     buf = response.content
     returned_netcdf = make_response(buf)
-    returned_netcdf.headers["Content-Disposition"] = "attachment; filename=%s.nc"%filename  
-    returned_netcdf.headers["Content-Type"] = "application/x-netcdf" 
+    returned_netcdf.headers["Content-Disposition"] = "attachment; filename=%s.nc"%filename
+    returned_netcdf.headers["Content-Type"] = "application/x-netcdf"
 
     return returned_netcdf
 
@@ -324,9 +324,9 @@ def get_data(stream, instrument):
 
     #figure out the data content
     #annotations will be in order and
-    for d in data:        
+    for d in data:
         c_r = []
-        
+
         #used to store the actual datafield in use by the annotations, as it will always go datafield then annotation
         data_field = None
 
@@ -334,10 +334,10 @@ def get_data(stream, instrument):
         d['fixed_dt'] = d[pref_timestamp] - COSMO_CONSTANT
         c_dt = datetime.datetime.fromtimestamp(d['fixed_dt'])
 
-        if hasStartDate:            
-            if not c_dt >= st_date:                
+        if hasStartDate:
+            if not c_dt >= st_date:
                 continue
-        if hasEndDate:              
+        if hasEndDate:
             if not c_dt <= ed_date:
                 continue
 

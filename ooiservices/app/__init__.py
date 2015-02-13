@@ -11,6 +11,8 @@ from flask.ext.login import LoginManager
 from flask_environments import Environments
 from flask.ext.cache import Cache
 from flask_wtf.csrf import CsrfProtect
+from celery import Celery
+from flask_redis import Redis
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -20,11 +22,16 @@ login_manager.session_protection = 'strong'
 cache = Cache(config={'CACHE_TYPE':'simple'})
 db = SQLAlchemy()
 csrf = CsrfProtect()
+celery = Celery('__main__')
+redis_store = Redis()
 
 def create_app(config_name):
     app = Flask(__name__)
     env = Environments(app, default_env=config_name)
     env.from_yaml(os.path.join(basedir, 'config.yml'))
+    celery.conf.update(BROKER_URL=app.config['REDIS_URL'],
+                CELERY_RESULT_BACKEND=app.config['REDIS_URL'])
+
     #Adding logging capabilities.
     if app.config['LOGGING'] == True:
         import logging
@@ -59,6 +66,7 @@ def create_app(config_name):
     login_manager.init_app(app)
     cache.init_app(app)
     csrf.init_app(app)
+    redis_store.init_app(app)
 
     from ooiservices.app.main import api as main_blueprint
     app.register_blueprint(main_blueprint)
