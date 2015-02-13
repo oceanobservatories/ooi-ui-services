@@ -91,34 +91,35 @@ def runserver():
 manager.add_command("shell", Shell(make_context=make_shell_context))
 manager.add_command('db', MigrateCommand)
 
-@manager.option('-tm', '--testmodule', required=False)
-@manager.option('-tc', '--coverage', required=False)
-def test(testmodule=None, coverage=False):
+@manager.command
+def test(coverage=False, testmodule=None):
     """
     Unit testing
     usage:
         python.exe manage.py test
-        python.exe manage.py test --coverage=True
-        python.exe manage.py test --testmodule=test_sys.py
-    :param testmodule:
+        python.exe manage.py test --coverage
+        python.exe manage.py test --coverage --testmodule=test_basics.py
     :param coverage:
     :return:
     """
-    #TODO: Double check that the coverage parameter can be set to True and work
     import sys
+
     """Run the unit tests."""
     if coverage and not os.environ.get('FLASK_COVERAGE'):
         os.environ['FLASK_COVERAGE'] = '1'
         os.execvp(sys.executable, [sys.executable] + sys.argv)
+    if COV:
+        COV.start()
 
     import unittest
     # Allow user to choose test module to run
-    if testmodule is not None:
-        tests = unittest.TestLoader().discover(start_dir='tests', pattern=testmodule)
-    else:
+    if testmodule == None:
         tests = unittest.TestLoader().discover(start_dir='tests')
+    else:
+        tests = unittest.TestLoader().discover(start_dir='tests', pattern=testmodule)
 
     retval = unittest.TextTestRunner(verbosity=2).run(tests)
+
     if COV:
         COV.stop()
         COV.save()
