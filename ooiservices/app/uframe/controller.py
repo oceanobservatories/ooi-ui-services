@@ -184,17 +184,26 @@ def streams_list():
             data_dict['netcdf_download'] = "/".join([SERVICE_LOCATION,'uframe/get_netcdf',stream,ref])
             data_dict['stream_name'] = stream
             data_dict['variables'] = data[1].keys()
+            data_dict['variable_types'] = {k : type(data[1][k]).__name__ for k in data[1].keys() }
+            data_dict['preferred_timestamp'] = data[0]['preferred_timestamp']
             retval.append(data_dict)
 
     return jsonify(streams=retval)
 
 
 @api.route('/get_csv/<string:stream>/<string:ref>',methods=['GET'])
+<<<<<<< HEAD
 def get_csv(stream,ref):
     response = get_uframe_streams()
     if response.status_code != 200:
         return response
+=======
+def get_csv(stream,ref):   
+>>>>>>> d69259b... Improves performance of responses
     data = get_uframe_stream_contents(stream,ref)
+    if data.status_code != 200:
+        return data.text, data.status_code, dict(data.headers)
+
     output = io.BytesIO()
     data = data.json()
     f = csv.DictWriter(output, fieldnames = data[0].keys())
@@ -214,19 +223,31 @@ def get_csv(stream,ref):
 
 
 @api.route('/get_json/<string:stream>/<string:ref>',methods=['GET'])
+<<<<<<< HEAD
 def get_json(stream,ref):
     response = get_uframe_streams()
     if response.status_code != 200:
         return response
+=======
+def get_json(stream,ref):   
+>>>>>>> d69259b... Improves performance of responses
     data = get_uframe_stream_contents(stream,ref)
-    data = data.json()
-
+    if data.status_code != 200:
+        return data.text, data.status_code, dict(data.headers)
+    response = '{"data":%s}' % data.content
     filename = '-'.join([stream,ref])
+<<<<<<< HEAD
     buf = json.dumps(data)
     returned_json = make_response(buf)
     returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json"%filename
     returned_json.headers["Content-Type"] = "application/json"
 
+=======
+    returned_json = make_response(response)
+    returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json"%filename 
+    returned_json.headers["Content-Type"] = "application/json" 
+    
+>>>>>>> d69259b... Improves performance of responses
     return returned_json
 
 
@@ -285,6 +306,7 @@ def get_data(stream, instrument,field):
     #got normal data plot
     #create the data fields,assumes the same data fields throughout
     d_row = data[0]
+    ntp_offset = 22089888000 # See any documentation about NTP including RFC 5905
     #data store
     some_data = []
     
@@ -296,48 +318,15 @@ def get_data(stream, instrument,field):
     
     data_cols,data_field_list = _get_col_outline(data,pref_timestamp,inital_fields,field)    
     
-    x = []
-    y = []
-    for d in data:        
-        #c_r = []
-        #create data time object, should only ever be one timestamp....the pref one
-        d['fixed_dt'] = d[pref_timestamp] - COSMO_CONSTANT
-        c_dt = datetime.datetime.fromtimestamp(d['fixed_dt'])
-
-        if hasStartDate:
-            if not c_dt >= st_date:
-                continue
-        if hasEndDate:
-            if not c_dt <= ed_date:
-                continue
-
-        d['dt'] = c_dt
-        str_date = c_dt.isoformat()
-        #create the data
-        #js month is 0-11, https://developers.google.com/chart/interactive/docs/datesandtimes
-        #date_str = "Date("+str(c_dt.year)+","+str(c_dt.month-1)+","+str(c_dt.day)+","+str(c_dt.hour)+","+str(c_dt.minute)+","+str(c_dt.second)+")"
-
-        for field in data_field_list:
-            if field == pref_timestamp:
-                #datetime field
-                #c_r.append({"f":str_date,"v":date_str})
-                x.append(d['fixed_dt'])
-                #time_idx = len(c_r)-1    
-                x_field = field        
-
-            else:
-                #non annotation field
-                data_field = field
-                #c_r.append({"v":d[field],"f":d[field]})        
-                y.append(d[field])
-                y_field = field
+    x = [ d[pref_timestamp] for d in data ]
+    y = [ d[field] for d in data ]
 
     #genereate dict for the data thing
     resp_data = {'x':x,
                  'y':y,
                  'data_length':len(x),
-                 'x_field':x_field,
-                 'y_field':y_field
+                 'x_field':pref_timestamp,
+                 'y_field':field,
                  #'start_time' : datetime.datetime.fromtimestamp(data[0][pref_timestamp]).isoformat(),
                  #'end_time' : datetime.datetime.fromtimestamp(data[-1][pref_timestamp]).isoformat()
                  }

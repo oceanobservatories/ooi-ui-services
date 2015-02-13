@@ -7,7 +7,7 @@ __author__ = 'M@Campbell'
 
 from flask import jsonify, request, current_app, url_for, make_response
 from ooiservices.app.main import api
-from ooiservices.app import db
+from ooiservices.app import db, cache
 from authentication import auth
 from ooiservices.app.models import PlatformDeployment, InstrumentDeployment
 from ooiservices.app.models import Stream, StreamParameter, Organization, Instrumentname
@@ -146,7 +146,7 @@ def plotdemo(instrument, stream):
 
     kwargs = dict(linewidth=1.0,alpha=0.7)
 
-    date_list = num2date(x, units='seconds since 1970-01-01 00:00:00', calendar='gregorian')
+    date_list = num2date(x, units='seconds since 1900-01-01 00:00:00', calendar='gregorian')
     plot_time_series(fig, ax, date_list, y,
                                      title=title,
                                      ylabel=ylabel,
@@ -164,6 +164,7 @@ def plotdemo(instrument, stream):
     plt.cla()
     return buf.read(), 200, {'Content-Type':'image/svg+xml'}
 
+@cache.memoize(timeout=3600)
 def plot_time_series(fig, ax, x, y, fill=False, title='', ylabel='',
                          title_font={}, axis_font={}, **kwargs):
 
