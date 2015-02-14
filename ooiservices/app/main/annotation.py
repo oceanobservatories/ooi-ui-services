@@ -53,17 +53,21 @@ def create_annotation():
 @auth.login_required
 @scope_required('annotate')
 def edit_annotation(id):
-    annotation = Annotation.query.get_or_404(id)
-    if g.current_user != annotation.user_name and \
-            not g.current_user.can('annotate'):
-        return forbidden('Scope required.')
-# 	add more modifications as needed
-    annotation.comment = request.json.get('comment', annotation.comment)
-    annotation.title = request.json.get('title', annotation.title)
-    annotation.modified_date = datetime.now()
-    db.session.add(annotation)
-    db.session.commit()
-    return jsonify(annotation.to_json())
+    try:
+        data = json.loads(request.data)
+        annotation = Annotation.query.get_or_404(id)
+        if g.current_user != annotation.user_name and \
+                not g.current_user.can('annotate'):
+            return forbidden('Scope required.')
+    # 	add more modifications as needed
+        annotation.comment = data.get('comment', annotation.comment)
+        annotation.title = data.get('title', annotation.title)
+        annotation.modified_date = datetime.now()
+        db.session.add(annotation)
+        db.session.commit()
+        return jsonify(annotation.to_json())
+    except:
+        return conflict('Insufficient data, or bad data format.')
 
 #Delete an existing annotation
 @api.route('/annotation/<int:id>', methods=['DELETE'])

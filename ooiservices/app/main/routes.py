@@ -7,7 +7,7 @@ __author__ = 'M@Campbell'
 
 from flask import jsonify, request, current_app, url_for, make_response
 from ooiservices.app.main import api
-from ooiservices.app import db
+from ooiservices.app import db, cache
 from authentication import auth
 from ooiservices.app.models import PlatformDeployment, InstrumentDeployment
 from ooiservices.app.models import Stream, StreamParameter, Organization, Instrumentname
@@ -164,6 +164,7 @@ def plotdemo(instrument, stream):
     plt.cla()
     return buf.read(), 200, {'Content-Type':'image/svg+xml'}
 
+@cache.memoize(timeout=3600)
 def plot_time_series(fig, ax, x, y, fill=False, title='', ylabel='',
                          title_font={}, axis_font={}, **kwargs):
 
@@ -172,12 +173,7 @@ def plot_time_series(fig, ax, x, y, fill=False, title='', ylabel='',
     if not axis_font:
         axis_font = axis_font_default
 
-    try:
-        h = ppl.plot(ax, x, y, **kwargs)   
-    except:
-        print 'X:', x.shape
-        print 'Y:', len(y)
-        raise
+    h = ppl.plot(ax, x, y, **kwargs)   
     ppl.scatter(ax, x, y, **kwargs)
     get_time_label(ax, x)
     fig.autofmt_xdate()
