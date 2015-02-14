@@ -22,7 +22,7 @@ issue_fields = ['id', 'assigned_to', 'author', 'created_on', 'description', 'don
 def redmine_login():
     key = current_app.config['REDMINE_KEY']
     redmine = Redmine('https://uframe-cm.ooi.rutgers.edu',
-                      key=key)
+                      key=key, requests={'verify': False})
     return redmine
 
 
