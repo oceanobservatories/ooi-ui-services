@@ -146,7 +146,7 @@ def plotdemo(instrument, stream):
 
     kwargs = dict(linewidth=1.0,alpha=0.7)
 
-    date_list = num2date(x, units='seconds since 1970-01-01 00:00:00', calendar='gregorian')
+    date_list = num2date(x, units='seconds since 1900-01-01 00:00:00', calendar='gregorian')
     plot_time_series(fig, ax, date_list, y,
                                      title=title,
                                      ylabel=ylabel,
@@ -172,7 +172,12 @@ def plot_time_series(fig, ax, x, y, fill=False, title='', ylabel='',
     if not axis_font:
         axis_font = axis_font_default
 
-    h = ppl.plot(ax, x, y, **kwargs)   
+    try:
+        h = ppl.plot(ax, x, y, **kwargs)   
+    except:
+        print 'X:', x.shape
+        print 'Y:', len(y)
+        raise
     ppl.scatter(ax, x, y, **kwargs)
     get_time_label(ax, x)
     fig.autofmt_xdate()
