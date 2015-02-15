@@ -36,3 +36,5 @@ Flask-Cache==0.13.1
 python-redmine==1.0.3
 celery==3.1.17
 gunicorn==19.2.1
+matplotlib==1.4.2
+prettyplotlib==0.1.7
