@@ -192,14 +192,7 @@ def streams_list():
 
 
 @api.route('/get_csv/<string:stream>/<string:ref>',methods=['GET'])
-<<<<<<< HEAD
-def get_csv(stream,ref):
-    response = get_uframe_streams()
-    if response.status_code != 200:
-        return response
-=======
 def get_csv(stream,ref):   
->>>>>>> d69259b... Improves performance of responses
     data = get_uframe_stream_contents(stream,ref)
     if data.status_code != 200:
         return data.text, data.status_code, dict(data.headers)
@@ -223,31 +216,15 @@ def get_csv(stream,ref):
 
 
 @api.route('/get_json/<string:stream>/<string:ref>',methods=['GET'])
-<<<<<<< HEAD
-def get_json(stream,ref):
-    response = get_uframe_streams()
-    if response.status_code != 200:
-        return response
-=======
 def get_json(stream,ref):   
->>>>>>> d69259b... Improves performance of responses
     data = get_uframe_stream_contents(stream,ref)
     if data.status_code != 200:
         return data.text, data.status_code, dict(data.headers)
     response = '{"data":%s}' % data.content
     filename = '-'.join([stream,ref])
-<<<<<<< HEAD
-    buf = json.dumps(data)
-    returned_json = make_response(buf)
-    returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json"%filename
-    returned_json.headers["Content-Type"] = "application/json"
-
-=======
     returned_json = make_response(response)
     returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json"%filename 
     returned_json.headers["Content-Type"] = "application/json" 
-    
->>>>>>> d69259b... Improves performance of responses
     return returned_json
 
 
