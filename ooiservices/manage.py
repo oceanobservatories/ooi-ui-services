@@ -222,8 +222,13 @@ def load_data():
     :return:
     '''
     with open('../db/ooiui_schema_data.sql') as f:
-        db.engine.execute(f.read())
-    app.logger.info('Bulk test data loaded.')
+        try:
+            from ooiservices.app.models import __schema__
+            db.session.execute("SET search_path = {0}, public, pg_catalog;".format(__schema__))
+            db.session.execute(f.read())
+            app.logger.info('Bulk test data loaded.')
+        except Exception, err:
+            app.logger.error('Bulk test data failed: ' + err.message)
 
 @manager.command
 def profile(length=25, profile_dir=None):
