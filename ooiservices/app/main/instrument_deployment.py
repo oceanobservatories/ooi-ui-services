@@ -40,6 +40,7 @@ def get_instrument_deployment(id):
 @api.route('/instrument_deployment', methods=['POST'])
 def post_instrument_deployment():
     try:
+        data = json.loads(request.data)
         new_deploy = InstrumentDeployment.from_json(data)
         db.session.add(new_deploy)
         db.session.commit()
@@ -67,9 +68,9 @@ def put_instrument_deployment(id):
         return jsonify(error=e.message), 400
     return jsonify(**existingDeply.to_json()), 200
 
-@scope_required('administrator')
-@auth.login_required
 @api.route('/instrument_deployment/<int:id>', methods=['DELETE'])
+@auth.login_required
+@scope_required('user_admin')
 def delete_instrument_deployment(id):
     deployment = InstrumentDeployment.query.get(id)
     if deployment is None:

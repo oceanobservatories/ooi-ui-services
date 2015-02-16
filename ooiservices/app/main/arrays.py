@@ -31,12 +31,19 @@ def get_array(id):
 @auth.login_required
 def create_array():
     try:
-        array = Array.from_json(request.json)
-        db.session.add(array)
-        db.session.commit()
-        return jsonify(array.to_json()), 201
-    except:
-        return conflict('Insufficient data, or bad data format')
+        array_json = request.json
+        if 'array_code' in array_json and 'display_name' in array_json and 'geo_location' in array_json:
+            if array_json['array_code'] and array_json['display_name'] and array_json['geo_location']:
+                array = Array.from_json(request.json)
+                db.session.add(array)
+                db.session.commit()
+                return jsonify(array.to_json()), 201
+            else:
+                raise Exception('One or more values are empty: array_code, array_name or geo_location.')
+        else:
+            raise Exception('Missing array_code, array_name and-or geo_location field in request.')
+    except Exception, err:
+        return conflict('Insufficient data, or bad data format: %s' % err.message)
 
 #Edit an existing array
 @api.route('/arrays/<int:id>', methods=['PUT'])
@@ -49,18 +56,24 @@ def update_array(id):
         array.geo_location = request.json.get('geo_location', array.geo_location)
         array.array_name = request.json.get('array_name', array.array_name)
         array.display_name = request.json.get('display_name', array.display_name)
-        db.session.add(array)
-        db.session.commit()
-        return jsonify(array.to_json())
-    except:
-        return conflict('Insufficient data, or bad data format')
+        if array.array_code and array.display_name and (array.geo_location is not None):
+            db.session.add(array)
+            db.session.commit()
+            return jsonify(array.to_json())
+        else:
+            raise Exception('One or more values are empty: array_code, display_name or geo_location.')
+    except Exception, err:
+        return conflict('Insufficient data, or bad data format: %s' % err.message)
 
 #Delete an existing array
 @api.route('/arrays/<int:id>', methods=['DELETE'])
 @auth.login_required
-@scope_required('administrator')
+@scope_required(u'user_admin')
 def delete_array(id):
-    array = Array.query.get_or_404(id)
-    db.session.delete(array)
-    db.session.commit()
-    return jsonify({'message': 'Array deleted!', 'id': id})
+    try:
+        array = Array.query.get_or_404(id)
+        db.session.delete(array)
+        db.session.commit()
+        return jsonify({'message': 'Array deleted!', 'id': id})
+    except:
+        return conflict('Invalid array id')
