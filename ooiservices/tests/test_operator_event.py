@@ -25,7 +25,7 @@ class OperatorEventTestCase(unittest.TestCase):
         self.app_context.push()
         db.create_all()
         test_password = 'test'
-        User.insert_user(test_password)
+        User.insert_user(password=test_password)
 
         OperatorEventType.insert_operator_event_types()
 

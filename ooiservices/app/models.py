@@ -806,21 +806,23 @@ class User(UserMixin, db.Model):
 
 
     @staticmethod
-    def insert_user(password):
-        user = User(user_id='admin')
+    def insert_user(username='admin', password=None, first_name='First', last_name='Last', email='FirstLast@somedomain.com', org_name='ASA'):
+        user = User(user_id=username, email=email)
         try:
-            user.validate_username('admin')
+            user.validate_username(username)
+            user.validate_email(email)
         except ValidationError as e:
-            admin_del = db.session.query(User).filter_by(user_name='admin').first()
-            db.session.delete(admin_del)
-            db.session.commit()
-        user.first_name = 'Ad'
-        user.last_name = 'Min'
+            admin_del = db.session.query(User).filter((User.user_name == username) | (User.email == email)).first()
+            if admin_del != None:
+                db.session.delete(admin_del)
+                db.session.commit()
+        user.first_name = first_name
+        user.last_name = last_name
         user.pass_hash = generate_password_hash(password)
-        user.user_name = 'admin'
+        user.user_name = username
         user.active = True
-        user.email = 'ooi@asascience.com'
-        org = Organization.query.filter(Organization.organization_name == 'ASA').first()
+        user.email = email
+        org = Organization.query.filter(Organization.organization_name == org_name).first()
         if org:
             user.organization_id = org.id
         db.session.add(user)

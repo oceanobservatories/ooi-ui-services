@@ -7,7 +7,7 @@ __author__ = 'Andy Bird'
 
 from flask import jsonify, request, current_app, url_for, Flask, make_response
 from ooiservices.app.uframe import uframe as api
-from ooiservices.app import db, cache
+from ooiservices.app import db, cache, celery
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment
 from ooiservices.app.models import Stream, StreamParameter, Organization, Instrumentname
@@ -47,7 +47,7 @@ def _get_annotation(instrument_name, stream_name):
     annotations = Annotation.query.filter_by(instrument_name=instrument_name, stream_name=stream_name).all()
     return [annotation.to_json() for annotation in annotations]
 
-def _get_col_outline(data,pref_timestamp,inital_fields,hasAnnotation,annotations,fields_have_annotation,requested_field):
+def _get_col_outline(data,pref_timestamp,inital_fields,requested_field):
     '''
     gets the column outline for the google chart response, figures out what annotations are required where...
     '''
@@ -76,26 +76,16 @@ def _get_col_outline(data,pref_timestamp,inital_fields,hasAnnotation,annotations
                             "label": field,
                             "type":  d_type})
 
-        if hasAnnotation:
-            #only append annotation fields for fields that have annotations, makes resp smaller if possible
-            if field in fields_have_annotation :
-                data_field_list.append("annotation")
-                data_field_list.append("annotationText")
-                data_fields.append({"label":"title"+str(field_count),"type":  "string" , "role":"annotation" , "origin_field":field})
-                data_fields.append({"label":"text" +str(field_count),"type":  "string" , "role":"annotationText", "origin_field":field})
-
-                field_count +=1
-
     return data_fields,data_field_list
 
 def _get_annotation_content(annotation_field, pref_timestamp, annotations_list, d, data_field):
     '''
     creates the annotation content for a given field
     '''
-    #right now x and y are timeseries data    
+    #right now x and y are timeseries data
     for an in annotations_list:
         if an['field_x'] == pref_timestamp or an['field_y'] == data_field:
-            # and and y value            
+            # and and y value
             an_date_time = datetime.datetime.strptime(an['pos_x'], "%Y-%m-%dT%H:%M:%S")
             an_int_date_time = int(an_date_time.strftime("%s"))
 
@@ -151,12 +141,12 @@ def get_uframe_stream_contents(stream, ref):
 @api.route('/stream')
 def streams_list():
     UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
-    
-    
+
+
     HOST = str(current_app.config['HOST'])
     PORT = str(current_app.config['PORT'])
     SERVICE_LOCATION = 'http://'+HOST+":"+PORT
-    
+
     response = get_uframe_streams()
     if response.status_code != 200:
         return response
@@ -189,10 +179,13 @@ def streams_list():
             data_dict['start'] = data[0][preferred] - COSMO_CONSTANT
             data_dict['end'] = data[-1][preferred] - COSMO_CONSTANT
             data_dict['reference_designator'] = ref
-            data_dict['csv_download'] = "/".join([SERVICE_LOCATION,'uframe/get_csv',stream,ref]) 
+            data_dict['csv_download'] = "/".join([SERVICE_LOCATION,'uframe/get_csv',stream,ref])
             data_dict['json_download'] = "/".join([SERVICE_LOCATION,'uframe/get_json',stream,ref])
             data_dict['netcdf_download'] = "/".join([SERVICE_LOCATION,'uframe/get_netcdf',stream,ref])
             data_dict['stream_name'] = stream
+            data_dict['variables'] = data[1].keys()
+            data_dict['variable_types'] = {k : type(data[1][k]).__name__ for k in data[1].keys() }
+            data_dict['preferred_timestamp'] = data[0]['preferred_timestamp']
             retval.append(data_dict)
 
     return jsonify(streams=retval)
@@ -200,10 +193,10 @@ def streams_list():
 
 @api.route('/get_csv/<string:stream>/<string:ref>',methods=['GET'])
 def get_csv(stream,ref):   
-    response = get_uframe_streams()
-    if response.status_code != 200:
-        return response
     data = get_uframe_stream_contents(stream,ref)
+    if data.status_code != 200:
+        return data.text, data.status_code, dict(data.headers)
+
     output = io.BytesIO()
     data = data.json()
     f = csv.DictWriter(output, fieldnames = data[0].keys())
@@ -212,36 +205,34 @@ def get_csv(stream,ref):
         f.writerow(row)
 
     filename = '-'.join([stream,ref])
-    
+
     buf = output.getvalue()
     returned_csv = make_response(buf)
-    returned_csv.headers["Content-Disposition"] = "attachment; filename=%s.csv"%filename 
-    
+    returned_csv.headers["Content-Disposition"] = "attachment; filename=%s.csv"%filename
+    returned_csv.headers["Content-Type"] = "text/csv"
+
     output.close()
     return returned_csv
 
 
 @api.route('/get_json/<string:stream>/<string:ref>',methods=['GET'])
 def get_json(stream,ref):   
-    response = get_uframe_streams()
-    if response.status_code != 200:
-        return response
     data = get_uframe_stream_contents(stream,ref)
-    data = data.json()
-
+    if data.status_code != 200:
+        return data.text, data.status_code, dict(data.headers)
+    response = '{"data":%s}' % data.content
     filename = '-'.join([stream,ref])
-    buf = json.dumps(data) 
-    returned_json = make_response(buf)
+    returned_json = make_response(response)
     returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json"%filename 
-    
+    returned_json.headers["Content-Type"] = "application/json" 
     return returned_json
 
 
 @api.route('/get_netcdf/<string:stream>/<string:ref>',methods=['GET'])
-def get_netcdf(stream,ref): 
+def get_netcdf(stream,ref):
     UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv/%s/%s'%(stream,ref)
     NETCDF_LINK = UFRAME_DATA+'?format=application/netcdf3'
-    
+
     response = requests.get(NETCDF_LINK)
     if response.status_code != 200:
         return response.text, response.status_code
@@ -249,15 +240,18 @@ def get_netcdf(stream,ref):
     filename = '-'.join([stream,ref])
     buf = response.content
     returned_netcdf = make_response(buf)
-    returned_netcdf.headers["Content-Disposition"] = "attachment; filename=%s.nc"%filename  
-    returned_netcdf.headers["Content-Type"] = "application/x-netcdf" 
+    returned_netcdf.headers["Content-Disposition"] = "attachment; filename=%s.nc"%filename
+    returned_netcdf.headers["Content-Type"] = "application/x-netcdf"
 
     return returned_netcdf
 
 
 
-@api.route('/get_data/<string:instrument>/<string:stream>',methods=['GET'])
-def get_data(stream, instrument):
+@api.route('/get_data/<string:instrument>/<string:stream>/<string:field>',methods=['GET'])
+def get_data_api(stream, instrument,field):
+    return jsonify(**get_data(stream,instrument,field))
+
+def get_data(stream, instrument,field):
     #get data from uframe
     #-------------------
     # m@c: 02/01/2015
@@ -266,25 +260,17 @@ def get_data(stream, instrument):
     #
     #-------------------
     #TODO: create better error handler if uframe is not online/responding
+    
+
     try:
-        data = requests.get(current_app.config['UFRAME_URL'] + '/sensor/user/inv/' + stream + '/' + instrument)
+        url = current_app.config['UFRAME_URL'] + '/sensor/user/inv/' + stream + '/' + instrument
+        data = requests.get(url)
         data = data.json()
     except:
         return internal_server_error('uframe connection cannot be made.')
 
-    annotations = []
-    hasAnnotation = False
     hasStartDate = False
-    hasEndDate = False
-    field = None
-    #this is needed as some plots dont have annotations
-    if 'field' in request.args:
-        field =  request.args['field']
-
-    if 'annotation' in request.args:
-        #generate annotation plot
-        if request.args['annotation'] == "true":
-            hasAnnotation = True
+    hasEndDate = False    
 
     if 'startdate' in request.args:
         st_date = datetime.datetime.strptime(request.args['startdate'], "%Y-%m-%d %H:%M:%S")
@@ -297,78 +283,30 @@ def get_data(stream, instrument):
     #got normal data plot
     #create the data fields,assumes the same data fields throughout
     d_row = data[0]
+    ntp_offset = 22089888000 # See any documentation about NTP including RFC 5905
     #data store
     some_data = []
-
-    time_idx = -1
+    
     pref_timestamp = d_row["preferred_timestamp"]
     #figure out the header rows
     inital_fields = d_row.keys()
     #move timestamp to the front
     inital_fields.insert(0, inital_fields.pop(inital_fields.index(pref_timestamp)))
-
-    fields_have_annotation = []
-    #get the annotations, only get the annotations if requested
-    if hasAnnotation:
-        annotations = _get_annotation(instrument, stream)
-        for an in annotations:
-            # add the annotations to the list, but dont add them for the preferred timestamp
-            if an['field_x'] not in fields_have_annotation and an['field_x'] != pref_timestamp:
-                fields_have_annotation.append(an['field_x'])
-            if an['field_y'] not in fields_have_annotation and an['field_y'] != pref_timestamp:
-                fields_have_annotation.append(an['field_y'])
-
-    data_cols,data_field_list = _get_col_outline(data,pref_timestamp,inital_fields,hasAnnotation,annotations,fields_have_annotation,field)
-
-    #figure out the data content
-    #annotations will be in order and
-    for d in data:        
-        c_r = []
-        
-        #used to store the actual datafield in use by the annotations, as it will always go datafield then annotation
-        data_field = None
-
-        #create data time object, should only ever be one timestamp....the pref one
-        d['fixed_dt'] = d[pref_timestamp] - COSMO_CONSTANT
-        c_dt = datetime.datetime.fromtimestamp(d['fixed_dt'])
-
-        if hasStartDate:            
-            if not c_dt >= st_date:                
-                continue
-        if hasEndDate:              
-            if not c_dt <= ed_date:
-                continue
-
-        d['dt'] = c_dt
-        str_date = c_dt.isoformat()
-        #create the data
-        #js month is 0-11, https://developers.google.com/chart/interactive/docs/datesandtimes
-        date_str = "Date("+str(c_dt.year)+","+str(c_dt.month-1)+","+str(c_dt.day)+","+str(c_dt.hour)+","+str(c_dt.minute)+","+str(c_dt.second)+")"
-
-        for field in data_field_list:
-            if field == pref_timestamp:
-                #datetime field
-                c_r.append({"f":str_date,"v":date_str})
-                time_idx = len(c_r)-1
-
-            elif field.startswith("annotation"):
-                #field = annotation, data_field = actual field in use
-                annotation_content = _get_annotation_content(field,pref_timestamp,annotations,d, data_field)
-                c_r.append(annotation_content)
-
-            else:
-                #non annotation field
-                data_field = field
-                c_r.append({"v":d[field],"f":d[field]})
-
-        some_data.insert(0,{"c":c_r})
+    
+    data_cols,data_field_list = _get_col_outline(data,pref_timestamp,inital_fields,field)    
+    
+    x = [ d[pref_timestamp] for d in data ]
+    y = [ d[field] for d in data ]
 
     #genereate dict for the data thing
-    resp_data = {'cols':data_cols,
-                 'rows':some_data,
-                 'data_length':len(some_data)
+    resp_data = {'x':x,
+                 'y':y,
+                 'data_length':len(x),
+                 'x_field':pref_timestamp,
+                 'y_field':field,
                  #'start_time' : datetime.datetime.fromtimestamp(data[0][pref_timestamp]).isoformat(),
                  #'end_time' : datetime.datetime.fromtimestamp(data[-1][pref_timestamp]).isoformat()
                  }
 
-    return jsonify(**resp_data)
+    #return jsonify(**resp_data)
+    return resp_data

@@ -65,3 +65,6 @@ docs/_build/
 ooiservices/app/logs/
 
 initialize.sh
+
+whoosh_index/
+ooiservices/whoosh_index/

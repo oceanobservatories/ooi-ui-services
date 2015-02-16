@@ -17,19 +17,22 @@ from datetime import datetime
 import json
 
 #List all annotations.
-@api.route('/annotations')
+@api.route('/annotation')
 def get_annotations():
-    annotations = Annotation.query.all()
+    if 'stream_name' in request.args:
+        annotations = Annotation.query.filter_by(stream_name=request.args.get('stream_name'))
+    else:
+        annotations = Annotation.query.all()
     return jsonify( {'annotations' : [annotation.to_json() for annotation in annotations] })
 
 #List an annotation by id
-@api.route('/annotations/<string:id>')
+@api.route('/annotation/<string:id>')
 def get_annotation(id):
     annotation = Annotation.query.filter_by(user_name=id).first_or_404()
     return jsonify(annotation.to_json())
 
 #Create a new annotation
-@api.route('/annotations', methods=['POST'])
+@api.route('/annotation', methods=['POST'])
 @auth.login_required
 @scope_required('annotate')
 def create_annotation():
@@ -46,24 +49,28 @@ def create_annotation():
         return conflict('Insufficient data, or bad data format.')
 
 #Update an existing annotation.
-@api.route('/annotations/<int:id>', methods=['PUT'])
+@api.route('/annotation/<int:id>', methods=['PUT'])
 @auth.login_required
 @scope_required('annotate')
 def edit_annotation(id):
-    annotation = Annotation.query.get_or_404(id)
-    if g.current_user != annotation.user_name and \
-            not g.current_user.can('annotate'):
-        return forbidden('Scope required.')
-# 	add more modifications as needed
-    annotation.comment = request.json.get('comment', annotation.comment)
-    annotation.title = request.json.get('title', annotation.title)
-    annotation.modified_date = datetime.now()
-    db.session.add(annotation)
-    db.session.commit()
-    return jsonify(annotation.to_json())
+    try:
+        data = json.loads(request.data)
+        annotation = Annotation.query.get_or_404(id)
+        if g.current_user != annotation.user_name and \
+                not g.current_user.can('annotate'):
+            return forbidden('Scope required.')
+    # 	add more modifications as needed
+        annotation.comment = data.get('comment', annotation.comment)
+        annotation.title = data.get('title', annotation.title)
+        annotation.modified_date = datetime.now()
+        db.session.add(annotation)
+        db.session.commit()
+        return jsonify(annotation.to_json())
+    except:
+        return conflict('Insufficient data, or bad data format.')
 
 #Delete an existing annotation
-@api.route('/annotations/<int:id>', methods=['DELETE'])
+@api.route('/annotation/<int:id>', methods=['DELETE'])
 @auth.login_required
 @scope_required('annotate')
 def delete_annotation(id):

@@ -29,8 +29,9 @@ class RedmineTestCase(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
+        test_username = 'admin'
         test_password = 'test'
-        User.insert_user(test_password)
+        User.insert_user(username=test_username, password=test_password)
 
         self.client = self.app.test_client(use_cookies=False)
 
