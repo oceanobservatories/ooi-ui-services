@@ -221,7 +221,7 @@ def load_data():
     Bulk loads the OOI UI data
     :return:
     '''
-    with open('../db/ooiui_schema_data.sql') as f:
+    with open('db/ooiui_schema_data.sql') as f:
         try:
             from ooiservices.app.models import __schema__
             db.session.execute("SET search_path = {0}, public, pg_catalog;".format(__schema__))
