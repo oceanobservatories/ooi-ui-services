@@ -19,14 +19,14 @@ COMMON: &common
 DEVELOPMENT: &development
     <<: *common
     DEBUG: True
-    SQLALCHEMY_DATABASE_URI: 'postgres://user:password@hostname/database_name'
+    SQLALCHEMY_DATABASE_URI: 'postgres://bsmith@localhost/ooiuidev'
     SSL_DISABLE: True
     WTF_CSRF_ENABLED: False
 
 LOCAL_DEVELOPMENT: &local_dev
     <<: *common
     DEBUG: True
-    SQLALCHEMY_DATABASE_URI: 'postgres://postgres@localhost/ooiuidev'
+    SQLALCHEMY_DATABASE_URI: 'postgres://bsmith@localhost/ooiuidev'
     SSL_DISABLE: True
     WTF_CSRF_ENABLED: False
 
@@ -40,3 +40,4 @@ PRODUCTION: &production
     <<: *common
     SSL_DISABLE: False
     SQLALCHEMY_DATABASE_URI: 'postgres://postgres@localhost/ooiui'
+
