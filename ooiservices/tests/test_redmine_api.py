@@ -94,3 +94,58 @@ class RedmineTestCase(unittest.TestCase):
                                                'subject': 'Testing Update',
                                                'notes': 'This is simply a test'}))
         self.assertTrue(rv.status_code == 201)
+
+    def test_get_all_redmine_tickets(self):
+        redmine = redmine_login()
+        rv = self.client.get('redmine/ticket/', headers=self.get_api_headers('admin', 'test'))
+        self.assertTrue(rv.status_code == 400)
+
+    def test_create_redmine_ticket_empty(self):
+        rv = self.client.post('redmine/ticket',
+                              headers=self.get_api_headers('admin', 'test'),
+                              data=None)
+
+        self.assertTrue(rv.status_code == 400)
+
+    def test_create_redmine_ticket_missing_required_field(self):
+        rv = self.client.post('redmine/ticket',
+                              headers=self.get_api_headers('admin', 'test'),
+                              data=json.dumps({
+                                               'subject': 'Test Issue 2',
+                                               'due_date': '2015-04-15',
+                                               'description': 'Get this work done ASAP',
+                                               'priority_id': 1}))
+
+
+        self.assertTrue(rv.status_code == 400)
+
+    def test_update_redmine_ticket_empty(self):
+        redmine = redmine_login()
+        project = redmine.project.get(PROJECT).refresh()
+
+        rv = self.client.post('redmine/ticket/id',
+                              headers=self.get_api_headers('admin', 'test'),
+                              data=None)
+        self.assertTrue(rv.status_code == 400)
+
+    def test_update_redmine_ticket_missing_required_field(self):
+        redmine = redmine_login()
+        project = redmine.project.get(PROJECT).refresh()
+
+        rv = self.client.post('redmine/ticket/id',
+                              headers=self.get_api_headers('admin', 'test'),
+                              data=json.dumps({'project_id': project.id,
+                                               'subject': 'Testing Update',
+                                               'notes': 'This is simply a test'}))
+        self.assertTrue(rv.status_code == 400)
+
+    def test_read_redmine_issue_error_no_id_arg(self):
+        rv = self.client.get('redmine/ticket/id/?foo=2290',
+                             headers=self.get_api_headers('admin', 'test'))
+        self.assertTrue(rv.status_code == 400)
+
+    def test_read_redmine_users_no_project(self):
+        rv = self.client.get('redmine/users/?foo=' + PROJECT,
+                             headers=self.get_api_headers('admin', 'test'))
+        self.assertTrue(rv.status_code == 400)
+
