@@ -13,6 +13,9 @@ from ooiservices.app.models import User, UserScope, UserScopeLink
 from ooiservices.app.decorators import scope_required
 import json
 from wtforms import ValidationError
+#from base64 import b64encode
+#import requests
+from redmine import Redmine
 
 @api.route('/user/<int:id>', methods=['GET'])
 @auth.login_required
@@ -71,12 +74,41 @@ def create_user():
         if not auth:
             return jsonify(error="Invalid Authentication"), 401
     data = json.loads(request.data)
+    #add user to db
     try:
         new_user = User.from_json(data)
         db.session.add(new_user)
         db.session.commit()
     except ValidationError as e:
         return jsonify(error=e.message), 409
+    
+    #add redmine ticket
+    key = current_app.config['REDMINE_KEY']
+    redmine = Redmine(current_app.config['REDMINE_URL'],
+              key=key, requests={'verify': False})
+    issue = redmine.issue.new()
+    issue.project_id = 'ooi-ui-api-testing'
+    issue.subject = new_user.first_name+' ' + new_user.last_name + ' is requesting access to Redmine.'
+    issue.description = 'The user email is '+ new_user.email + '.  The new request is for the role '+new_user.role +' and for the '+data['organization'] +' organization.'
+    issue.priority_id = 1
+    issue.save()
+
+    # rm = requests.post('/redmine/ticket',
+    #     headers={
+    #         'Authorization': 'Basic ' + b64encode(('admin:test').encode('utf-8')).decode('utf-8'),
+    #         'Accept': 'application/json',
+    #         'Content-Type': 'application/json'
+    #     },
+    #     data=json.dumps({'project_id': 'ooi-ui-api-testing',
+    #                'subject': new_user.first_name+' ' + new_user.last_name + ' is requesting access to Redmine.',
+    #                'description': 'The user email is '+ new_user.email + '.  The new request is for the role '+new_user.role +' and for the '+data['organization'] +' organization.',
+    #                'priority_id': 1}))
+    #                # 'assigned_to_id': 1}))
+    # response_rm = rm.status_code 
+
+    #except:
+    #   return "Redmine Error", 409
+
     return jsonify(new_user.to_json()), 201
 
 @api.route('/user_roles')
@@ -90,4 +122,3 @@ def get_user_roles():
 def get_users():
     users = [u.to_json() for u in User.query.all()]
     return jsonify(users=users)
-    
