@@ -218,7 +218,6 @@ def get_csv(stream,ref):
 
 @api.route('/get_json/<string:stream>/<string:ref>',methods=['GET'])
 def get_json(stream,ref): 
-    print ' get json called'
     data = get_uframe_stream_contents(stream,ref)
     if data.status_code != 200:
         return data.text, data.status_code, dict(data.headers)
@@ -251,7 +250,6 @@ def get_netcdf(stream,ref):
 
 @api.route('/get_data/<string:instrument>/<string:stream>/<string:field>',methods=['GET'])
 def get_data_api(stream, instrument,field):
-    print 'get data api called'
     return jsonify(**get_data(stream,instrument,field))
 
 def get_data(stream, instrument,field):
@@ -264,7 +262,6 @@ def get_data(stream, instrument,field):
     #-------------------
     #TODO: create better error handler if uframe is not online/responding
     
-    print "get data is called"
     try:
         url = current_app.config['UFRAME_URL'] + '/sensor/user/inv/' + stream + '/' + instrument
         data = requests.get(url)
@@ -314,14 +311,13 @@ def get_data(stream, instrument,field):
     #return jsonify(**resp_data)
     return resp_data
 
-#@api.route('/get_profiles/<string:reference_designator>/<string:stream_name>')
-#def get_profiles(reference_designator, stream_name):@api.route('/get_profiles')
-def get_profiles():
-    #data = get_data(reference_designator, stream_name)
-    data = requests.get('http://localhost:12570/sensor/user/inv/ctdpf_ckl_wfp_instrument/CP02PMUO-WFP01-03-CTDPFK000')
+@api.route('/get_profiles/<string:reference_designator>/<string:stream_name>')
+def get_profiles(reference_designator, stream_name):
+
+    data = get_data(reference_designator, stream_name)
     data = data.json() 
-# Note: assumes data has depth and time is ordinal
-# Need to add assertions and try and exceptions to check data
+    # Note: assumes data has depth and time is ordinal
+    # Need to add assertions and try and exceptions to check data
 
     time = []
     depth = []
@@ -337,7 +333,7 @@ def get_profiles():
     tz = matrix
     origTz = tz
     INT = 10
-    print len(tz)#this length must equal profile_list length
+    # tz length must equal profile_list length
 
     maxi = np.amax(tz[:,0])
     mini =np.amin(tz[:,0])
@@ -391,13 +387,13 @@ def get_profiles():
         pro = np.append(proInds, z, axis=1)
         depth_profiles.append(pro)
     depth_profiles = np.concatenate(depth_profiles)
-# I NEED to CHECK FOR DUPLICATE TIMES !!!!! NOT YET DONE!!!!
-# Start stop times may result in over laps on original data set. (see function above)
-# May be an issue, requires further enquiry 
+    # I NEED to CHECK FOR DUPLICATE TIMES !!!!! NOT YET DONE!!!!
+    # Start stop times may result in over laps on original data set. (see function above)
+    # May be an issue, requires further enquiry 
     profile_list= []
     for row in data:
         try:
-#Need to add epsilon. Floating point error may occur 
+    #Need to add epsilon. Floating point error may occur 
             where = np.argwhere(depth_profiles == float(row['internal_timestamp'])) 
 
             
@@ -413,5 +409,5 @@ def get_profiles():
         except IndexError:
             row['profile_id']= None
             profile_list.append(row)
-    print len(profile_list) #profile length should equal tz  length
+    #profile length should equal tz  length
     return  json.dumps(profile_list, indent=4) 
