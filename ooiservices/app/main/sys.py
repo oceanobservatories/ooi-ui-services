@@ -5,9 +5,8 @@ Routes for end to end testing, can only be called when in test mode.
 '''
 __author__ = 'M@Campbell'
 
-from flask import jsonify, request, abort, current_app
+from flask import jsonify, current_app
 from ooiservices.app.main import api
-from ooiservices import manage
 import urllib
 
 @api.route('/list_routes', methods=['GET'])
@@ -17,9 +16,8 @@ def list_routes():
     Used for performance testing
     :return:
     """
-    app = manage.app
     routes = []
-    for rule in app.url_map.iter_rules():
+    for rule in current_app.url_map.iter_rules():
         if 'GET' in rule.methods:
             url = urllib.unquote("{}".format(rule))
             routes.append((url, rule.endpoint))
