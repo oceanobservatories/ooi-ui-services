@@ -134,8 +134,8 @@ class UserTestCase(unittest.TestCase):
         self.assertTrue(response.status_code == 401)
 
         # 2. Test create user as an authorized user (user 'admin')
-        data = json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing',
-                           'phonenum': '1234', 'username': 'test_user'})
+        data = json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing','role':'Administrator',
+                           'phonenum': '1234', 'username': 'test_user','first_name':'Tester','last_name':'Testing'})
         response = self.client.post(url_for('main.create_user'), headers=headers, data=data)
         self.assertEquals(response.status_code, 201)
 
