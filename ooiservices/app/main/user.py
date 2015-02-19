@@ -89,7 +89,7 @@ def create_user():
     issue = redmine.issue.new()
     issue.project_id = 'ooi-ui-api-testing'
     issue.subject = new_user.first_name+' ' + new_user.last_name + ' is requesting access to Redmine.'
-    issue.description = 'The user email is '+ new_user.email + '.  The new request is for the role '+new_user.role +' and for the '+data['organization'] +' organization.  Please enable the OOI account.'
+    issue.description = 'The user email is '+ new_user.email + '.  The new request is for the role '+new_user.role +' and for the '+data['organization'] +' organization.  Please enable this OOI account.'
     issue.priority_id = 1
     issue.save()
 
