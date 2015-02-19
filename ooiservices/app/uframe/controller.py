@@ -311,14 +311,18 @@ def get_data(stream, instrument,field):
     #return jsonify(**resp_data)
     return resp_data
 
-@api.route('/get_profiles/<string:reference_designator>/<string:stream_name>')
-def get_profiles(reference_designator, stream_name):
+#@api.route('/get_profiles/<string:reference_designator>/<string:stream_name>')
+#def get_profiles(reference_designator, stream_name):
+@api.route('/get_profiles/')
+def get_profiles():
 
-    data = get_data(reference_designator, stream_name)
+    #data = get_data(reference_designator, stream_name)
+    data = requests.get('http://localhost:12570/sensor/user/inv/ctdpf_ckl_wfp_instrument/CP02PMUO-WFP01-03-CTDPFK000')
     data = data.json() 
     # Note: assumes data has depth and time is ordinal
     # Need to add assertions and try and exceptions to check data
-
+    if 'pressure' not in data:
+        return jsonify(error="This stream doesn't contain a depth context"), 400 
     time = []
     depth = []
     preferred_timestamp = data[0]['preferred_timestamp']
@@ -326,6 +330,7 @@ def get_profiles(reference_designator, stream_name):
 
     
     for row in data:
+        
         depth.append(int(row['pressure']))
         time.append(float(row[preferred_timestamp]))
     
