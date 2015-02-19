@@ -173,7 +173,7 @@ def get_redmine_ticket():
     return jsonify(details)
 
 
-@api.route('/users/', methods=['GET'])
+@api.route('/users', methods=['GET'])
 @auth.login_required
 @scope_required('redmine')
 def get_redmine_users():
@@ -189,8 +189,11 @@ def get_redmine_users():
     proj = request.args['project']
     project = redmine.project.get(proj).refresh()
 
-    users = dict(users=[])
+    users = dict(users=[],user_id=[])
+    
     for user in project.memberships:
-        users['users'].append(user['user']['name'])
+
+        users['users'].append([user['user']['name'],user['id']])
+
 
     return jsonify(users)
