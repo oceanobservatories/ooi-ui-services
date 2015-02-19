@@ -134,8 +134,8 @@ class UserTestCase(unittest.TestCase):
         self.assertTrue(response.status_code == 401)
 
         # 2. Test create user as an authorized user (user 'admin')
-        data = json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing','role':'Administrator',
-                           'phonenum': '1234', 'username': 'test_user','first_name':'Tester','last_name':'Testing','organization':'ASA'})
+        data = json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing','role_name':'Administrator',
+                           'username': 'test_user','first_name':'Tester','last_name':'Testing','organization':'ASA'})
         response = self.client.post(url_for('main.create_user'), headers=headers, data=data)
         self.assertEquals(response.status_code, 201)
 
@@ -145,7 +145,7 @@ class UserTestCase(unittest.TestCase):
 
         # 4. Test password match using bad_data; expect failure
         bad_data = json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing2',
-                               'phonenum': '1234', 'username': 'test_user2'})
+                               'username': 'test_user2'})
         response = self.client.post(url_for('main.create_user'), headers=headers, data=bad_data)
         self.assertTrue(response.status_code == 409)
 
