@@ -65,7 +65,7 @@ def create_app(config_name):
     db.init_app(app)
     login_manager.init_app(app)
     cache.init_app(app)
-    csrf.init_app(app)
+    #csrf.init_app(app)
     redis_store.init_app(app)
 
     from ooiservices.app.main import api as main_blueprint
