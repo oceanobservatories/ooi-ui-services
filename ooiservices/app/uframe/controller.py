@@ -311,13 +311,10 @@ def get_data(stream, instrument,field):
     #return jsonify(**resp_data)
     return resp_data
 
-#@api.route('/get_profiles/<string:reference_designator>/<string:stream_name>')
-#def get_profiles(reference_designator, stream_name):
-@api.route('/get_profiles/')
-def get_profiles():
+@api.route('/get_profiles/<string:reference_designator>/<string:stream_name>')
+def get_profiles(reference_designator, stream_name):
 
-    #data = get_data(reference_designator, stream_name)
-    data = requests.get('http://localhost:12570/sensor/user/inv/ctdpf_ckl_wfp_instrument/CP02PMUO-WFP01-03-CTDPFK000')
+    data = get_data(reference_designator, stream_name)
     data = data.json() 
     # Note: assumes data has depth and time is ordinal
     # Need to add assertions and try and exceptions to check data
