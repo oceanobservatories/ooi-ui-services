@@ -24,6 +24,7 @@ these tests are to validate model logic outside of db management.
 
 @skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
 class UserTestCaseRedmine(unittest.TestCase):
+    #all user test cases
     def test_create_user_route(self):
         '''
         create user
@@ -46,6 +47,7 @@ class UserTestCaseRedmine(unittest.TestCase):
         # 3. Test creation of duplicate user; expect failure
         response = self.client.post(url_for('main.create_user'), headers=headers, data=data)
         self.assertTrue(response.status_code == 409)
+
 
         # 4. Test password match using bad_data; expect failure
         bad_data = json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing2','role_name':'Administrator',
