@@ -16,8 +16,10 @@ from urllib import urlencode
 import requests
 import json
 
-from ooiservices.app.uframe.data import gen_data
+from ooiservices.app.uframe.data import get_data, gen_data, get_time_label, plot_scatter, _get_data_type, \
+_get_annotation_content, make_cache_key, get_uframe_streams, get_uframe_stream, get_uframe_stream_contents
 from ooiservices.app.main.errors import internal_server_error
+from ooiservices.app.main.authentication import auth, verify_auth
 
 import json
 import datetime
@@ -32,114 +34,8 @@ FIELDS_IGNORE = ["stream_name","quality_flag"]
 COSMO_CONSTANT = 2208988800
 
 
-
-def _get_data_type(data_input):
-    '''
-    gets the data type in a format google charts understands
-    '''
-    if data_input is float or data_input is int:
-        return "number"
-    elif data_input is str or data_input is unicode:
-        return "string"
-    else:
-        return "unknown"
-
-def _get_annotation(instrument_name, stream_name):
-    annotations = Annotation.query.filter_by(instrument_name=instrument_name, stream_name=stream_name).all()
-    return [annotation.to_json() for annotation in annotations]
-
-def _get_col_outline(data,pref_timestamp,inital_fields,requested_field):
-    '''
-    gets the column outline for the google chart response, figures out what annotations are required where...
-    '''
-    data_fields = []
-    data_field_list= []
-    #used to cound the fields, used for annotations
-    field_count = 1
-    #loop and generate inital col dict
-    for field in inital_fields:
-        if field == pref_timestamp:
-            d_type = "datetime"
-        elif field in FIELDS_IGNORE or str(field).endswith('_timestamp'):
-            continue
-        else:
-            if requested_field is not None:
-                if field == requested_field:
-                    d_type = _get_data_type(type(data[0][field]))
-                else:
-                    continue
-            else:
-                #map the data types to the correct data type for google charts
-                d_type = _get_data_type(type(data[0][field]))
-
-        data_field_list.append(field)
-        data_fields.append({"id": "",
-                            "label": field,
-                            "type":  d_type})
-
-    return data_fields,data_field_list
-
-def _get_annotation_content(annotation_field, pref_timestamp, annotations_list, d, data_field):
-    '''
-    creates the annotation content for a given field
-    '''
-    #right now x and y are timeseries data
-    for an in annotations_list:
-        if an['field_x'] == pref_timestamp or an['field_y'] == data_field:
-            # and and y value
-            an_date_time = datetime.datetime.strptime(an['pos_x'], "%Y-%m-%dT%H:%M:%S")
-            an_int_date_time = int(an_date_time.strftime("%s"))
-
-            if int(d['fixed_dt']) == an_int_date_time:
-                if annotation_field == "annotation":
-                    return {"v":an["title"]}
-                elif annotation_field == "annotationText":
-                    return {"v":an['comment']}
-
-    #return nothing
-    return {"v":None,"f":None}
-
-def make_cache_key():
-    return urlencode(request.args)
-
-@cache.memoize(timeout=3600)
-def get_uframe_streams():
-    '''
-    Lists all the streams
-    '''
-    try:
-        UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
-        response = requests.get(UFRAME_DATA)
-        return response
-    except:
-        return internal_server_error('uframe connection cannot be made.')
-
-@cache.memoize(timeout=3600)
-def get_uframe_stream(stream):
-    '''
-    Lists the reference designators for the streams
-    '''
-    try:
-        UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
-        response = requests.get("/".join([UFRAME_DATA,stream]))
-        return response
-    except:
-        return internal_server_error('uframe connection cannot be made.')
-
-@cache.memoize(timeout=3600)
-def get_uframe_stream_contents(stream, ref):
-    '''
-    Gets the stream contents
-    '''
-    try:
-        UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
-        response =  requests.get("/".join([UFRAME_DATA,stream,ref]))
-        return response
-    except:
-        return internal_server_error('uframe connection cannot be made.')
-
-
 @api.route('/stream')
+@auth.login_required
 def streams_list():
     UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
 
@@ -191,9 +87,9 @@ def streams_list():
 
     return jsonify(streams=retval)
 
-
+@auth.login_required
 @api.route('/get_csv/<string:stream>/<string:ref>',methods=['GET'])
-def get_csv(stream,ref):   
+def get_csv(stream,ref):
     data = get_uframe_stream_contents(stream,ref)
     if data.status_code != 200:
         return data.text, data.status_code, dict(data.headers)
@@ -215,20 +111,20 @@ def get_csv(stream,ref):
     output.close()
     return returned_csv
 
-
+@auth.login_required
 @api.route('/get_json/<string:stream>/<string:ref>',methods=['GET'])
-def get_json(stream,ref): 
+def get_json(stream,ref):
     data = get_uframe_stream_contents(stream,ref)
     if data.status_code != 200:
         return data.text, data.status_code, dict(data.headers)
     response = '{"data":%s}' % data.content
     filename = '-'.join([stream,ref])
     returned_json = make_response(response)
-    returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json"%filename 
-    returned_json.headers["Content-Type"] = "application/json" 
+    returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json"%filename
+    returned_json.headers["Content-Type"] = "application/json"
     return returned_json
 
-
+@auth.login_required
 @api.route('/get_netcdf/<string:stream>/<string:ref>',methods=['GET'])
 def get_netcdf(stream,ref):
     UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv/%s/%s'%(stream,ref)
@@ -247,90 +143,86 @@ def get_netcdf(stream,ref):
     return returned_netcdf
 
 
-
+@auth.login_required
 @api.route('/get_data/<string:instrument>/<string:stream>/<string:field>',methods=['GET'])
 def get_data_api(stream, instrument,field):
     return jsonify(**get_data(stream,instrument,field))
 
-def get_data(stream, instrument,field):
-    #get data from uframe
-    #-------------------
-    # m@c: 02/01/2015
-    #uframe url to get stream data from instrument:
-    # /sensor/user/inv/<stream_name>/<instrument_name>
-    #
-    #-------------------
-    #TODO: create better error handler if uframe is not online/responding
-    
-    try:
-        url = current_app.config['UFRAME_URL'] + '/sensor/user/inv/' + stream + '/' + instrument
-        data = requests.get(url)
-        data = data.json()
-    except:
-        return internal_server_error('uframe connection cannot be made.')
+@auth.login_required
+@api.route('/plot/<string:instrument>/<string:stream>', methods=['GET'])
+def plotdemo(instrument, stream):
+    plot_format = request.args.get('format', 'svg')
+    xvar = request.args.get('xvar', 'internal_timestamp')
+    yvar = request.args.get('yvar',None)
+    title = request.args.get('title', '%s Data' % stream)
+    xlabel = request.args.get('xlabel', 'X')
+    ylabel = request.args.get('ylabel', yvar)
+    if yvar is None:
+        return 'Error: yvar is required', 400, {'Content-Type':'text/plain'}
 
-    hasStartDate = False
-    hasEndDate = False    
+    height = float(request.args.get('height', 100)) # px
+    width = float(request.args.get('width', 100)) # px
 
-    if 'startdate' in request.args:
-        st_date = datetime.datetime.strptime(request.args['startdate'], "%Y-%m-%d %H:%M:%S")
-        hasStartDate = True
+    print height
+    print width
 
-    if 'enddate' in request.args:
-        ed_date = datetime.datetime.strptime(request.args['enddate'], "%Y-%m-%d %H:%M:%S")
-        hasEndDate = True
+    height_in = height / 96.
+    width_in = width / 96.
 
-    #got normal data plot
-    #create the data fields,assumes the same data fields throughout
-    d_row = data[0]
-    ntp_offset = 22089888000 # See any documentation about NTP including RFC 5905
-    #data store
-    some_data = []
-    
-    pref_timestamp = d_row["preferred_timestamp"]
-    #figure out the header rows
-    inital_fields = d_row.keys()
-    #move timestamp to the front
-    inital_fields.insert(0, inital_fields.pop(inital_fields.index(pref_timestamp)))
-    
-    data_cols,data_field_list = _get_col_outline(data,pref_timestamp,inital_fields,field)    
-    
-    x = [ d[pref_timestamp] for d in data ]
-    y = [ d[field] for d in data ]
+    t0 = time.time()
 
-    #genereate dict for the data thing
-    resp_data = {'x':x,
-                 'y':y,
-                 'data_length':len(x),
-                 'x_field':pref_timestamp,
-                 'y_field':field,
-                 #'start_time' : datetime.datetime.fromtimestamp(data[0][pref_timestamp]).isoformat(),
-                 #'end_time' : datetime.datetime.fromtimestamp(data[-1][pref_timestamp]).isoformat()
-                 }
+    data = get_data(stream,instrument,yvar);
 
-    #return jsonify(**resp_data)
-    return resp_data
+    x = data['x']
+    y = data['y']
+
+    fig, ax = ppl.subplots(1, 1, figsize=(width_in, height_in))
+
+    kwargs = dict(linewidth=1.0,alpha=0.7)
+
+    date_list = num2date(x, units='seconds since 1900-01-01 00:00:00', calendar='gregorian')
+    plot_time_series(fig, ax, date_list, y,
+                                     title=title,
+                                     ylabel=ylabel,
+                                     title_font=title_font,
+                                     axis_font=axis_font,
+                                     **kwargs)
+
+    buf = io.BytesIO()
+    content_header_map = {
+        'svg' : 'image/svg+xml',
+        'png' : 'image/png'
+    }
+    if plot_format not in ['svg', 'png']:
+        plot_format = 'svg'
+    plt.savefig(buf, format=plot_format)
+    buf.seek(0)
+
+    t1 = time.time()
+    plt.clf()
+    plt.cla()
+    return buf.read(), 200, {'Content-Type':content_header_map[plot_format]}
 
 @api.route('/get_profiles/<string:reference_designator>/<string:stream_name>')
 def get_profiles(reference_designator, stream_name):
 
     data = get_data(reference_designator, stream_name)
-    data = data.json() 
+    data = data.json()
     # Note: assumes data has depth and time is ordinal
     # Need to add assertions and try and exceptions to check data
     if 'pressure' not in data:
-        return jsonify(error="This stream doesn't contain a depth context"), 400 
+        return jsonify(error="This stream doesn't contain a depth context"), 400
     time = []
     depth = []
     preferred_timestamp = data[0]['preferred_timestamp']
         #preferred_timestamp = preferred_timestamp * 2208988800
 
-    
+
     for row in data:
-        
+
         depth.append(int(row['pressure']))
         time.append(float(row[preferred_timestamp]))
-    
+
     matrix = np.column_stack((time, depth))
     tz = matrix
     origTz = tz
@@ -339,7 +231,7 @@ def get_profiles(reference_designator, stream_name):
 
     maxi = np.amax(tz[:,0])
     mini =np.amin(tz[:,0])
-    #getting a range from min to max time with 10 seconds or milliseconds. I have no idea. 
+    #getting a range from min to max time with 10 seconds or milliseconds. I have no idea.
     ts =(np.arange(np.amin(tz[:,0]), np.amax(tz[:,0]), INT)).T
 
     #interpolation adds additional points on the line within f(t), f(t+1)  time is a function of depth
@@ -347,14 +239,14 @@ def get_profiles(reference_designator, stream_name):
 
 
     newtz= np.column_stack((ts, itz))
-    # 5 unit moving average 
+    # 5 unit moving average
     WINDOW = 5
     weights = np.repeat(1.0, WINDOW)/ WINDOW
     ma =np.convolve(newtz[:,1], weights)[WINDOW-1:-(WINDOW-1)]
     #take the diff and change negatives to -1 and postives to 1
     dZ = np.sign(np.diff(ma))
 
-    # repeat for second derivative  
+    # repeat for second derivative
     dZ = np.convolve(dZ, weights)[WINDOW-1:-(WINDOW-1)]
     dZ = np.sign(dZ)
 
@@ -362,9 +254,9 @@ def get_profiles(reference_designator, stream_name):
     r1 = len(dZ)+1
     dZero = np.diff(dZ)
 
-    start =[] 
+    start =[]
     stop =[]
-    #find where the slope changes 
+    #find where the slope changes
     dr = [start.append(i)  for (i, val) in enumerate(dZero) if val !=0]
 
     for i in range(len(start)-1):
@@ -391,25 +283,25 @@ def get_profiles(reference_designator, stream_name):
     depth_profiles = np.concatenate(depth_profiles)
     # I NEED to CHECK FOR DUPLICATE TIMES !!!!! NOT YET DONE!!!!
     # Start stop times may result in over laps on original data set. (see function above)
-    # May be an issue, requires further enquiry 
+    # May be an issue, requires further enquiry
     profile_list= []
     for row in data:
         try:
-    #Need to add epsilon. Floating point error may occur 
-            where = np.argwhere(depth_profiles == float(row['internal_timestamp'])) 
+    #Need to add epsilon. Floating point error may occur
+            where = np.argwhere(depth_profiles == float(row['internal_timestamp']))
 
-            
+
             index = where[0]
-            
+
             rowloc = index[0]
-            
+
             if len(where) and int(row['pressure']) ==  depth_profiles[rowloc][1]:
-                row['profile_id']=depth_profiles[rowloc][2] 
-                
+                row['profile_id']=depth_profiles[rowloc][2]
+
                 profile_list.append(row)
-                            
+
         except IndexError:
             row['profile_id']= None
             profile_list.append(row)
     #profile length should equal tz  length
-    return  json.dumps(profile_list, indent=4) 
+    return  json.dumps(profile_list, indent=4)
