@@ -19,6 +19,16 @@ These tests are additional to the normal testing performed by coverage; each of
 these tests are to validate model logic outside of db management.
 
 '''
+
+@skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
+class UserTestCaseRedmine(unittest.TestCase):
+    def createUserandRedemineTicket(self):
+        # 2. Test create user as an authorized user (user 'admin')
+        data = json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing','role_name':'Administrator',
+                           'username': 'test_user','first_name':'Tester','last_name':'Testing','organization':'ASA'})
+        response = self.client.post(url_for('main.create_user'), headers=headers, data=data)
+        self.assertEquals(response.status_code, 201)
+
 class UserTestCase(unittest.TestCase):
     def setUp(self):
         self.app = create_app('TESTING_CONFIG')
@@ -132,12 +142,6 @@ class UserTestCase(unittest.TestCase):
         # 1. Test create user without authorization
         response = self.client.post(url_for('main.create_user'), content_type='application/json')
         self.assertTrue(response.status_code == 401)
-
-        # 2. Test create user as an authorized user (user 'admin')
-        data = json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing','role_name':'Administrator',
-                           'username': 'test_user','first_name':'Tester','last_name':'Testing','organization':'ASA'})
-        response = self.client.post(url_for('main.create_user'), headers=headers, data=data)
-        self.assertEquals(response.status_code, 201)
 
         # 3. Test creation of duplicate user; expect failure
         response = self.client.post(url_for('main.create_user'), headers=headers, data=data)
@@ -266,11 +270,11 @@ class UserTestCase(unittest.TestCase):
         response = self.client.get(url_for('main.get_current_user'), headers=headers)
         self.assertTrue(response.status_code == 200)
 
-        # 2. Create new user - test_user
-        data=json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing','role_name':'Administrator',
-                           'username': 'test_user','first_name':'Tester','last_name':'Testing','organization':'ASA'})
-        response = self.client.post(url_for('main.create_user'), headers=headers, data=data)
-        self.assertEquals(response.status_code, 201)
+        # 2. Create new user - test_user duplicate test
+        #data=json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing','role_name':'Administrator',
+        #                   'username': 'test_user','first_name':'Tester','last_name':'Testing','organization':'ASA'})
+        #response = self.client.post(url_for('main.create_user'), headers=headers, data=data)
+        #self.assertEquals(response.status_code, 201)
 
         # 3. Get all users
         response = self.client.get(url_for('main.get_users'), headers=headers)
