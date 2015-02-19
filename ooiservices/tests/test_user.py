@@ -25,6 +25,7 @@ these tests are to validate model logic outside of db management.
 class UserTestCaseRedmine(unittest.TestCase):
     def createUserandRedemineTicket(self):
         # 2. Test create user as an authorized user (user 'admin')
+        # this requires a secret and redmine key to run
         data = json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing','role_name':'Administrator',
                            'username': 'test_user','first_name':'Tester','last_name':'Testing','organization':'ASA'})
         response = self.client.post(url_for('main.create_user'), headers=headers, data=data)
