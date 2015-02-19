@@ -32,6 +32,67 @@ class UserTestCaseRedmine(unittest.TestCase):
         response = self.client.post(url_for('main.create_user'), headers=headers, data=data)
         self.assertEquals(response.status_code, 201)
 
+    #Test [PUT] /user/<int:id> - 'main.put_user'; admin priv required
+    # this tests for the users in the db and requires redmine to insert into db
+    def test_put_user_changes(self):
+        '''
+        test ability to create new user and change scopes and/or active status of new user
+
+        '''
+        # add scopes to user_name admin
+        UserScope.insert_scopes()
+        admin = User.query.filter_by(user_name='admin').first()
+        scope = UserScope.query.filter_by(scope_name='user_admin').first()
+        admin.scopes.append(scope)
+        db.session.add(admin)
+        db.session.commit()
+
+        headers = self.get_api_headers('admin', 'test')
+
+        # 1. get current user
+        response = self.client.get(url_for('main.get_current_user'), headers=headers)
+        self.assertTrue(response.status_code == 200)
+
+        # 2. Create new user - test_user duplicate test
+        data=json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing','role_name':'Administrator',
+                           'username': 'test_user','first_name':'Tester','last_name':'Testing','organization':'ASA'})
+        response = self.client.post(url_for('main.create_user'), headers=headers, data=data)
+        self.assertEquals(response.status_code, 201)
+
+        # 3. Get all users
+        response = self.client.get(url_for('main.get_users'), headers=headers)
+        self.assertTrue(response.status_code == 200)
+
+        # 4. Verify user count is now == 2
+        response_data = response.data[:]
+        self.assertTrue(len(response_data) > 0)
+        self.assertTrue(type(response_data) == type(''))
+        self.assertTrue('users' in response_data)
+        user_data = json.loads(response_data)
+        user_list = user_data['users']
+        self.assertTrue(len(user_list) == 2)
+
+        # 5. Update new user's scopes, add scopes = ['asset_manager']
+        expected_data = {'active': True, 'scopes': ['asset_manager']}
+        data = json.dumps(expected_data)
+        response = self.client.put(url_for('main.put_user', id=2), headers=headers, data=data)
+        self.assertTrue(response.status_code == 201)
+
+        # 6. Get the new (and updated) user
+        response = self.client.get(url_for('main.get_user',id=2), headers=headers)
+        self.assertTrue(response.status_code == 200)
+
+        # 7. Verify new user data includes expected_data: scopes=['asset_manager'] and 'active' == True
+        response_data = response.data[:]
+        self.assertTrue(len(response_data) > 0)
+        self.assertTrue(type(response_data) == type(''))
+        self.assertTrue('active' in response_data)
+        self.assertTrue('scopes' in response_data)
+        dict_data = json.loads(response_data)
+        self.assertTrue(dict_data['active'] == expected_data['active'])
+        self.assertTrue(dict_data['scopes'] == expected_data['scopes'])
+
+
 class UserTestCase(unittest.TestCase):
     def setUp(self):
         self.app = create_app('TESTING_CONFIG')
@@ -141,7 +202,9 @@ class UserTestCase(unittest.TestCase):
         create user
         '''
         headers = self.get_api_headers('admin', 'test')
-
+        data = json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing','role_name':'Administrator',
+                           'username': 'test_user','first_name':'Tester','last_name':'Testing','organization':'ASA'})
+       
         # 1. Test create user without authorization
         response = self.client.post(url_for('main.create_user'), content_type='application/json')
         self.assertTrue(response.status_code == 401)
@@ -250,65 +313,6 @@ class UserTestCase(unittest.TestCase):
         dict_data = json.loads(response_data)
         self.assertTrue('active' in dict_data)
         self.assertTrue('active' in expected_data)
-        self.assertTrue(dict_data['active'] == expected_data['active'])
-        self.assertTrue(dict_data['scopes'] == expected_data['scopes'])
-
-    #Test [PUT] /user/<int:id> - 'main.put_user'; admin priv required
-    def test_put_user_changes(self):
-        '''
-        test ability to create new user and change scopes and/or active status of new user
-
-        '''
-        # add scopes to user_name admin
-        UserScope.insert_scopes()
-        admin = User.query.filter_by(user_name='admin').first()
-        scope = UserScope.query.filter_by(scope_name='user_admin').first()
-        admin.scopes.append(scope)
-        db.session.add(admin)
-        db.session.commit()
-
-        headers = self.get_api_headers('admin', 'test')
-
-        # 1. get current user
-        response = self.client.get(url_for('main.get_current_user'), headers=headers)
-        self.assertTrue(response.status_code == 200)
-
-        # 2. Create new user - test_user duplicate test
-        #data=json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing','role_name':'Administrator',
-        #                   'username': 'test_user','first_name':'Tester','last_name':'Testing','organization':'ASA'})
-        #response = self.client.post(url_for('main.create_user'), headers=headers, data=data)
-        #self.assertEquals(response.status_code, 201)
-
-        # 3. Get all users
-        response = self.client.get(url_for('main.get_users'), headers=headers)
-        self.assertTrue(response.status_code == 200)
-
-        # 4. Verify user count is now == 2
-        response_data = response.data[:]
-        self.assertTrue(len(response_data) > 0)
-        self.assertTrue(type(response_data) == type(''))
-        self.assertTrue('users' in response_data)
-        user_data = json.loads(response_data)
-        user_list = user_data['users']
-        self.assertTrue(len(user_list) == 2)
-
-        # 5. Update new user's scopes, add scopes = ['asset_manager']
-        expected_data = {'active': True, 'scopes': ['asset_manager']}
-        data = json.dumps(expected_data)
-        response = self.client.put(url_for('main.put_user', id=2), headers=headers, data=data)
-        self.assertTrue(response.status_code == 201)
-
-        # 6. Get the new (and updated) user
-        response = self.client.get(url_for('main.get_user',id=2), headers=headers)
-        self.assertTrue(response.status_code == 200)
-
-        # 7. Verify new user data includes expected_data: scopes=['asset_manager'] and 'active' == True
-        response_data = response.data[:]
-        self.assertTrue(len(response_data) > 0)
-        self.assertTrue(type(response_data) == type(''))
-        self.assertTrue('active' in response_data)
-        self.assertTrue('scopes' in response_data)
-        dict_data = json.loads(response_data)
         self.assertTrue(dict_data['active'] == expected_data['active'])
         self.assertTrue(dict_data['scopes'] == expected_data['scopes'])
 
