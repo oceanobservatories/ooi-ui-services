@@ -16,7 +16,8 @@ from urllib import urlencode
 import requests
 import json
 
-from ooiservices.app.uframe.data import gen_data
+from ooiservices.app.uframe.data import gen_data, get_time_label, plot_scatter, _get_data_type, \
+_get_annotation_content, make_cache_key, get_uframe_streams, get_uframe_stream, get_uframe_stream_contents
 from ooiservices.app.main.errors import internal_server_error
 from ooiservices.app.main.authentication import auth, verify_auth
 
@@ -30,113 +31,6 @@ import io
 FIELDS_IGNORE = ["stream_name","quality_flag"]
 #time minus ()
 COSMO_CONSTANT = 2208988800
-
-
-
-def _get_data_type(data_input):
-    '''
-    gets the data type in a format google charts understands
-    '''
-    if data_input is float or data_input is int:
-        return "number"
-    elif data_input is str or data_input is unicode:
-        return "string"
-    else:
-        return "unknown"
-
-def _get_annotation(instrument_name, stream_name):
-    annotations = Annotation.query.filter_by(instrument_name=instrument_name, stream_name=stream_name).all()
-    return [annotation.to_json() for annotation in annotations]
-
-def _get_col_outline(data,pref_timestamp,inital_fields,requested_field):
-    '''
-    gets the column outline for the google chart response, figures out what annotations are required where...
-    '''
-    data_fields = []
-    data_field_list= []
-    #used to cound the fields, used for annotations
-    field_count = 1
-    #loop and generate inital col dict
-    for field in inital_fields:
-        if field == pref_timestamp:
-            d_type = "datetime"
-        elif field in FIELDS_IGNORE or str(field).endswith('_timestamp'):
-            continue
-        else:
-            if requested_field is not None:
-                if field == requested_field:
-                    d_type = _get_data_type(type(data[0][field]))
-                else:
-                    continue
-            else:
-                #map the data types to the correct data type for google charts
-                d_type = _get_data_type(type(data[0][field]))
-
-        data_field_list.append(field)
-        data_fields.append({"id": "",
-                            "label": field,
-                            "type":  d_type})
-
-    return data_fields,data_field_list
-
-def _get_annotation_content(annotation_field, pref_timestamp, annotations_list, d, data_field):
-    '''
-    creates the annotation content for a given field
-    '''
-    #right now x and y are timeseries data
-    for an in annotations_list:
-        if an['field_x'] == pref_timestamp or an['field_y'] == data_field:
-            # and and y value
-            an_date_time = datetime.datetime.strptime(an['pos_x'], "%Y-%m-%dT%H:%M:%S")
-            an_int_date_time = int(an_date_time.strftime("%s"))
-
-            if int(d['fixed_dt']) == an_int_date_time:
-                if annotation_field == "annotation":
-                    return {"v":an["title"]}
-                elif annotation_field == "annotationText":
-                    return {"v":an['comment']}
-
-    #return nothing
-    return {"v":None,"f":None}
-
-def make_cache_key():
-    return urlencode(request.args)
-
-@cache.memoize(timeout=3600)
-def get_uframe_streams():
-    '''
-    Lists all the streams
-    '''
-    try:
-        UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
-        response = requests.get(UFRAME_DATA)
-        return response
-    except:
-        return internal_server_error('uframe connection cannot be made.')
-
-@cache.memoize(timeout=3600)
-def get_uframe_stream(stream):
-    '''
-    Lists the reference designators for the streams
-    '''
-    try:
-        UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
-        response = requests.get("/".join([UFRAME_DATA,stream]))
-        return response
-    except:
-        return internal_server_error('uframe connection cannot be made.')
-
-@cache.memoize(timeout=3600)
-def get_uframe_stream_contents(stream, ref):
-    '''
-    Gets the stream contents
-    '''
-    try:
-        UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
-        response =  requests.get("/".join([UFRAME_DATA,stream,ref]))
-        return response
-    except:
-        return internal_server_error('uframe connection cannot be made.')
 
 
 @api.route('/stream')
@@ -312,3 +206,60 @@ def get_data(stream, instrument,field):
 
     #return jsonify(**resp_data)
     return resp_data
+
+@auth.login_required
+@api.route('/plot/<string:instrument>/<string:stream>', methods=['GET'])
+def plotdemo(instrument, stream):
+    plot_format = request.args.get('format', 'svg')
+    xvar = request.args.get('xvar', 'internal_timestamp')
+    yvar = request.args.get('yvar',None)
+    title = request.args.get('title', '%s Data' % stream)
+    xlabel = request.args.get('xlabel', 'X')
+    ylabel = request.args.get('ylabel', yvar)
+    if yvar is None:
+        return 'Error: yvar is required', 400, {'Content-Type':'text/plain'}
+
+    height = float(request.args.get('height', 100)) # px
+    width = float(request.args.get('width', 100)) # px
+
+    print height
+    print width
+
+    height_in = height / 96.
+    width_in = width / 96.
+
+    t0 = time.time()
+
+    data = get_data(stream,instrument,yvar);
+
+    x = data['x']
+    y = data['y']
+
+    fig, ax = ppl.subplots(1, 1, figsize=(width_in, height_in))
+
+    kwargs = dict(linewidth=1.0,alpha=0.7)
+
+    date_list = num2date(x, units='seconds since 1900-01-01 00:00:00', calendar='gregorian')
+    plot_time_series(fig, ax, date_list, y,
+                                     title=title,
+                                     ylabel=ylabel,
+                                     title_font=title_font,
+                                     axis_font=axis_font,
+                                     **kwargs)
+
+    buf = io.BytesIO()
+    content_header_map = {
+        'svg' : 'image/svg+xml',
+        'png' : 'image/png'
+    }
+    if plot_format not in ['svg', 'png']:
+        plot_format = 'svg'
+    plt.savefig(buf, format=plot_format)
+    buf.seek(0)
+
+    t1 = time.time()
+    plt.clf()
+    plt.cla()
+    return buf.read(), 200, {'Content-Type':content_header_map[plot_format]}
+
+
