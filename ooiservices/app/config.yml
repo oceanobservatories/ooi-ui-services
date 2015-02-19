@@ -11,15 +11,9 @@ COMMON: &common
     PORT: 4000
     JSONIFY_PRETTYPRINT_REGULAR: true
     UFRAME_URL: 'http://localhost:12570'
-<<<<<<< Updated upstream
     REDMINE_KEY: 'XXXXXXXXXXXXX'
     UI_API_KEY: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
     REDMINE_URL: 'https://uframe-cm.ooi.rutgers.edu'
-=======
-    REDMINE_KEY: '8304b8012f83f8d3f155b479210884615167ceae'
-    REDMINE_URL: 'https://uframe-cm.ooi.rutgers.edu'
-    UI_API_KEY: 'ccdf5de08ac74855bda3e7e309d871e5'
->>>>>>> Stashed changes
     WHOOSH_BASE: 'ooiservices/whoosh_index'
     REDIS_URL: 'redis://:password@localhost:6379'
 
