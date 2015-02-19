@@ -18,6 +18,7 @@ import json
 
 from ooiservices.app.uframe.data import gen_data
 from ooiservices.app.main.errors import internal_server_error
+from ooiservices.app.main.authentication import auth, verify_auth
 
 import json
 import datetime
@@ -139,6 +140,7 @@ def get_uframe_stream_contents(stream, ref):
 
 
 @api.route('/stream')
+@auth.login_required
 def streams_list():
     UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
 
@@ -190,9 +192,9 @@ def streams_list():
 
     return jsonify(streams=retval)
 
-
+@auth.login_required
 @api.route('/get_csv/<string:stream>/<string:ref>',methods=['GET'])
-def get_csv(stream,ref):   
+def get_csv(stream,ref):
     data = get_uframe_stream_contents(stream,ref)
     if data.status_code != 200:
         return data.text, data.status_code, dict(data.headers)
@@ -214,20 +216,20 @@ def get_csv(stream,ref):
     output.close()
     return returned_csv
 
-
+@auth.login_required
 @api.route('/get_json/<string:stream>/<string:ref>',methods=['GET'])
-def get_json(stream,ref):   
+def get_json(stream,ref):
     data = get_uframe_stream_contents(stream,ref)
     if data.status_code != 200:
         return data.text, data.status_code, dict(data.headers)
     response = '{"data":%s}' % data.content
     filename = '-'.join([stream,ref])
     returned_json = make_response(response)
-    returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json"%filename 
-    returned_json.headers["Content-Type"] = "application/json" 
+    returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json"%filename
+    returned_json.headers["Content-Type"] = "application/json"
     return returned_json
 
-
+@auth.login_required
 @api.route('/get_netcdf/<string:stream>/<string:ref>',methods=['GET'])
 def get_netcdf(stream,ref):
     UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv/%s/%s'%(stream,ref)
@@ -246,7 +248,7 @@ def get_netcdf(stream,ref):
     return returned_netcdf
 
 
-
+@auth.login_required
 @api.route('/get_data/<string:instrument>/<string:stream>/<string:field>',methods=['GET'])
 def get_data_api(stream, instrument,field):
     return jsonify(**get_data(stream,instrument,field))
@@ -260,7 +262,7 @@ def get_data(stream, instrument,field):
     #
     #-------------------
     #TODO: create better error handler if uframe is not online/responding
-    
+
 
     try:
         url = current_app.config['UFRAME_URL'] + '/sensor/user/inv/' + stream + '/' + instrument
@@ -270,7 +272,7 @@ def get_data(stream, instrument,field):
         return internal_server_error('uframe connection cannot be made.')
 
     hasStartDate = False
-    hasEndDate = False    
+    hasEndDate = False
 
     if 'startdate' in request.args:
         st_date = datetime.datetime.strptime(request.args['startdate'], "%Y-%m-%d %H:%M:%S")
@@ -286,15 +288,15 @@ def get_data(stream, instrument,field):
     ntp_offset = 22089888000 # See any documentation about NTP including RFC 5905
     #data store
     some_data = []
-    
+
     pref_timestamp = d_row["preferred_timestamp"]
     #figure out the header rows
     inital_fields = d_row.keys()
     #move timestamp to the front
     inital_fields.insert(0, inital_fields.pop(inital_fields.index(pref_timestamp)))
-    
-    data_cols,data_field_list = _get_col_outline(data,pref_timestamp,inital_fields,field)    
-    
+
+    data_cols,data_field_list = _get_col_outline(data,pref_timestamp,inital_fields,field)
+
     x = [ d[pref_timestamp] for d in data ]
     y = [ d[field] for d in data ]
 
