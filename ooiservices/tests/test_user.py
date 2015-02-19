@@ -144,8 +144,8 @@ class UserTestCase(unittest.TestCase):
         self.assertTrue(response.status_code == 409)
 
         # 4. Test password match using bad_data; expect failure
-        bad_data = json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing2',
-                               'username': 'test_user2'})
+        bad_data = json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing2','role_name':'Administrator',
+                           'username': 'test_user2','first_name':'Tester','last_name':'Testing','organization':'ASA'})
         response = self.client.post(url_for('main.create_user'), headers=headers, data=bad_data)
         self.assertTrue(response.status_code == 409)
 
@@ -267,7 +267,8 @@ class UserTestCase(unittest.TestCase):
         self.assertTrue(response.status_code == 200)
 
         # 2. Create new user - test_user
-        data=json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing', 'phonenum': '1234', 'username': 'test_user'})
+        data=json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing','role_name':'Administrator',
+                           'username': 'test_user','first_name':'Tester','last_name':'Testing','organization':'ASA'})
         response = self.client.post(url_for('main.create_user'), headers=headers, data=data)
         self.assertEquals(response.status_code, 201)
 
