@@ -40,3 +40,4 @@ PRODUCTION: &production
     <<: *common
     SSL_DISABLE: False
     SQLALCHEMY_DATABASE_URI: 'postgres://postgres@localhost/ooiui'
+
