@@ -24,13 +24,35 @@ these tests are to validate model logic outside of db management.
 
 @skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
 class UserTestCaseRedmine(unittest.TestCase):
-    def createUserandRedemineTicket(self):
+    def test_create_user_route(self):
+        '''
+        create user
+        '''
+        headers = self.get_api_headers('admin', 'test')
+        data = json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing','role_name':'Administrator',
+                           'username': 'test_user','first_name':'Tester','last_name':'Testing','organization':'ASA'})
+       
+        # 1. Test create user without authorization
+        response = self.client.post(url_for('main.create_user'), content_type='application/json')
+        self.assertTrue(response.status_code == 401)
+
         # 2. Test create user as an authorized user (user 'admin')
         # this requires a secret and redmine key to run
         data = json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing','role_name':'Administrator',
                            'username': 'test_user','first_name':'Tester','last_name':'Testing','organization':'ASA'})
         response = self.client.post(url_for('main.create_user'), headers=headers, data=data)
         self.assertEquals(response.status_code, 201)
+
+        # 3. Test creation of duplicate user; expect failure
+        response = self.client.post(url_for('main.create_user'), headers=headers, data=data)
+        self.assertTrue(response.status_code == 409)
+
+        # 4. Test password match using bad_data; expect failure
+        bad_data = json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing2','role_name':'Administrator',
+                           'username': 'test_user2','first_name':'Tester','last_name':'Testing','organization':'ASA'})
+        response = self.client.post(url_for('main.create_user'), headers=headers, data=bad_data)
+        self.assertTrue(response.status_code == 409)
+       
 
     #Test [PUT] /user/<int:id> - 'main.put_user'; admin priv required
     # this tests for the users in the db and requires redmine to insert into db
@@ -197,27 +219,6 @@ class UserTestCase(unittest.TestCase):
         dict_scopes = json.loads(response_data)
         self.assertTrue(dict_scopes == user_scopes_data)
 
-    def test_create_user_route(self):
-        '''
-        create user
-        '''
-        headers = self.get_api_headers('admin', 'test')
-        data = json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing','role_name':'Administrator',
-                           'username': 'test_user','first_name':'Tester','last_name':'Testing','organization':'ASA'})
-       
-        # 1. Test create user without authorization
-        response = self.client.post(url_for('main.create_user'), content_type='application/json')
-        self.assertTrue(response.status_code == 401)
-
-        # 3. Test creation of duplicate user; expect failure
-        response = self.client.post(url_for('main.create_user'), headers=headers, data=data)
-        self.assertTrue(response.status_code == 409)
-
-        # 4. Test password match using bad_data; expect failure
-        bad_data = json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing2','role_name':'Administrator',
-                           'username': 'test_user2','first_name':'Tester','last_name':'Testing','organization':'ASA'})
-        response = self.client.post(url_for('main.create_user'), headers=headers, data=bad_data)
-        self.assertTrue(response.status_code == 409)
 
     # Test [GET] /user_roles - 'main.get_user_roles'
     def test_get_user_roles_route(self):
