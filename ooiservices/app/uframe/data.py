@@ -15,6 +15,64 @@ from datetime import datetime
 
 from ooiservices.app import cache
 
+def get_data(stream, instrument,field):
+    #get data from uframe
+    #-------------------
+    # m@c: 02/01/2015
+    #uframe url to get stream data from instrument:
+    # /sensor/user/inv/<stream_name>/<instrument_name>
+    #
+    #-------------------
+    #TODO: create better error handler if uframe is not online/responding
+    try:
+        url = current_app.config['UFRAME_URL'] + '/sensor/user/inv/' + stream + '/' + instrument
+        data = requests.get(url)
+        data = data.json()
+    except:
+        return internal_server_error('uframe connection cannot be made.')
+
+    hasStartDate = False
+    hasEndDate = False
+
+    if 'startdate' in request.args:
+        st_date = datetime.datetime.strptime(request.args['startdate'], "%Y-%m-%d %H:%M:%S")
+        hasStartDate = True
+
+    if 'enddate' in request.args:
+        ed_date = datetime.datetime.strptime(request.args['enddate'], "%Y-%m-%d %H:%M:%S")
+        hasEndDate = True
+
+    #got normal data plot
+    #create the data fields,assumes the same data fields throughout
+    d_row = data[0]
+    ntp_offset = 22089888000 # See any documentation about NTP including RFC 5905
+    #data store
+    some_data = []
+
+    pref_timestamp = d_row["preferred_timestamp"]
+    #figure out the header rows
+    inital_fields = d_row.keys()
+    #move timestamp to the front
+    inital_fields.insert(0, inital_fields.pop(inital_fields.index(pref_timestamp)))
+
+    data_cols,data_field_list = _get_col_outline(data,pref_timestamp,inital_fields,field)
+
+    x = [ d[pref_timestamp] for d in data ]
+    y = [ d[field] for d in data ]
+
+    #genereate dict for the data thing
+    resp_data = {'x':x,
+                 'y':y,
+                 'data_length':len(x),
+                 'x_field':pref_timestamp,
+                 'y_field':field,
+                 #'start_time' : datetime.datetime.fromtimestamp(data[0][pref_timestamp]).isoformat(),
+                 #'end_time' : datetime.datetime.fromtimestamp(data[-1][pref_timestamp]).isoformat()
+                 }
+
+    #return jsonify(**resp_data)
+    return resp_data
+
 def gen_data(start_date, end_date, sampling_rate, mean, std_dev):
     '''
     Returns a dictionary that contains the x coordinate time and the y
