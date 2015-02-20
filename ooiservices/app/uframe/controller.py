@@ -4,35 +4,25 @@ uframe endpoints
 
 '''
 __author__ = 'Andy Bird'
-
+#base
 from flask import jsonify, request, current_app, url_for, Flask, make_response
-from ooiservices.app.uframe import uframe as api
 from ooiservices.app import db, cache, celery
-from ooiservices.app.main.authentication import auth
-from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment
-from ooiservices.app.models import Stream, StreamParameter, Organization, Instrumentname
-from ooiservices.app.models import Annotation
-from urllib import urlencode
-import requests
-import json
-
-from ooiservices.app.uframe.data import get_data, gen_data, get_time_label, plot_scatter, _get_data_type, \
-_get_annotation_content, make_cache_key, get_uframe_streams, get_uframe_stream, get_uframe_stream_contents
+from ooiservices.app.uframe import uframe as api
+from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment,Stream, StreamParameter, Organization, Instrumentname,Annotation
+from ooiservices.app.main.authentication import auth,verify_auth
 from ooiservices.app.main.errors import internal_server_error
-from ooiservices.app.main.authentication import auth, verify_auth
-
+from urllib import urlencode
+#data ones
+from ooiservices.app.uframe.data import get_data, _get_annotation_content, COSMO_CONSTANT
+from ooiservices.app.uframe.plotting import generate_plot
+import requests
+#additional ones
 import json
 import datetime
 import math
 import csv
 import io
 import numpy as np
-
-#ignore list for data fields
-FIELDS_IGNORE = ["stream_name","quality_flag"]
-#time minus ()
-COSMO_CONSTANT = 2208988800
-
 
 @api.route('/stream')
 @auth.login_required
@@ -48,10 +38,6 @@ def streams_list():
     if response.status_code != 200:
         return response
     streams = response.json()
-
-    #with open('/tmp/response.json', 'w') as f:
-    #    buf = streams.text.encode('UTF-8')
-    #    f.write(buf)
 
     retval = []
     for stream in streams:
@@ -86,6 +72,42 @@ def streams_list():
             retval.append(data_dict)
 
     return jsonify(streams=retval)
+
+@cache.memoize(timeout=3600)
+def get_uframe_streams():
+    '''
+    Lists all the streams
+    '''
+    try:
+        UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
+        response = requests.get(UFRAME_DATA)
+        return response
+    except:
+        return internal_server_error('uframe connection cannot be made.')
+
+@cache.memoize(timeout=3600)
+def get_uframe_stream(stream):
+    '''
+    Lists the reference designators for the streams
+    '''
+    try:
+        UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
+        response = requests.get("/".join([UFRAME_DATA,stream]))
+        return response
+    except:
+        return internal_server_error('uframe connection cannot be made.')
+
+@cache.memoize(timeout=3600)
+def get_uframe_stream_contents(stream, ref):
+    '''
+    Gets the stream contents
+    '''
+    try:
+        UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
+        response =  requests.get("/".join([UFRAME_DATA,stream,ref]))
+        return response
+    except:
+        return internal_server_error('uframe connection cannot be made.')
 
 @auth.login_required
 @api.route('/get_csv/<string:stream>/<string:ref>',methods=['GET'])
@@ -145,62 +167,43 @@ def get_netcdf(stream,ref):
 
 @auth.login_required
 @api.route('/get_data/<string:instrument>/<string:stream>/<string:field>',methods=['GET'])
-def get_data_api(stream, instrument,field):
+def get_data_api(stream, instrument,field):    
     return jsonify(**get_data(stream,instrument,field))
 
 @auth.login_required
 @api.route('/plot/<string:instrument>/<string:stream>', methods=['GET'])
-def plotdemo(instrument, stream):
+def get_svg_plot(instrument, stream):
     plot_format = request.args.get('format', 'svg')
     xvar = request.args.get('xvar', 'internal_timestamp')
     yvar = request.args.get('yvar',None)
     title = request.args.get('title', '%s Data' % stream)
     xlabel = request.args.get('xlabel', 'X')
     ylabel = request.args.get('ylabel', yvar)
+
     if yvar is None:
         return 'Error: yvar is required', 400, {'Content-Type':'text/plain'}
 
     height = float(request.args.get('height', 100)) # px
     width = float(request.args.get('width', 100)) # px
 
-    print height
-    print width
-
     height_in = height / 96.
     width_in = width / 96.
 
-    t0 = time.time()
-
     data = get_data(stream,instrument,yvar);
 
-    x = data['x']
-    y = data['y']
+    buf = generate_plot(title,
+                        ylabel,
+                        data['x'],
+                        data['y'],
+                        width_in,
+                        height_in,
+                        plot_format)
 
-    fig, ax = ppl.subplots(1, 1, figsize=(width_in, height_in))
-
-    kwargs = dict(linewidth=1.0,alpha=0.7)
-
-    date_list = num2date(x, units='seconds since 1900-01-01 00:00:00', calendar='gregorian')
-    plot_time_series(fig, ax, date_list, y,
-                                     title=title,
-                                     ylabel=ylabel,
-                                     title_font=title_font,
-                                     axis_font=axis_font,
-                                     **kwargs)
-
-    buf = io.BytesIO()
     content_header_map = {
         'svg' : 'image/svg+xml',
         'png' : 'image/png'
     }
-    if plot_format not in ['svg', 'png']:
-        plot_format = 'svg'
-    plt.savefig(buf, format=plot_format)
-    buf.seek(0)
 
-    t1 = time.time()
-    plt.clf()
-    plt.cla()
     return buf.read(), 200, {'Content-Type':content_header_map[plot_format]}
 
 @api.route('/get_profiles/<string:reference_designator>/<string:stream_name>')
@@ -305,3 +308,7 @@ def get_profiles(reference_designator, stream_name):
             profile_list.append(row)
     #profile length should equal tz  length
     return  json.dumps(profile_list, indent=4)
+
+
+def make_cache_key():
+    return urlencode(request.args)

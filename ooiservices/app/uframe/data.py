@@ -7,13 +7,22 @@ Support for generating sample data
 
 __author__ = 'Andy Bird'
 
+from flask import jsonify, request, current_app, url_for, Flask, make_response
+from ooiservices.app.uframe import uframe as api
+
 import numpy as np
 import calendar
 import time
 from dateutil.parser import parse
 from datetime import datetime
-
+from ooiservices.app.main.errors import internal_server_error
 from ooiservices.app import cache
+import requests
+
+#ignore list for data fields
+FIELDS_IGNORE = ["stream_name","quality_flag"]
+COSMO_CONSTANT = 2208988800
+
 
 def get_data(stream, instrument,field):
     #get data from uframe
@@ -24,12 +33,16 @@ def get_data(stream, instrument,field):
     #
     #-------------------
     #TODO: create better error handler if uframe is not online/responding
+    data = []
     try:
-        url = current_app.config['UFRAME_URL'] + '/sensor/user/inv/' + stream + '/' + instrument
+        url = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv/' + stream + '/' + instrument
         data = requests.get(url)
-        data = data.json()
-    except:
-        return internal_server_error('uframe connection cannot be made.')
+        data = data.json()        
+    except Exception,e:
+        return {'error':'uframe connection cannot be made:'+str(e)}
+
+    if len(data)==0:
+        return {'error':'non data available'}    
 
     hasStartDate = False
     hasEndDate = False
@@ -44,8 +57,7 @@ def get_data(stream, instrument,field):
 
     #got normal data plot
     #create the data fields,assumes the same data fields throughout
-    d_row = data[0]
-    ntp_offset = 22089888000 # See any documentation about NTP including RFC 5905
+    d_row = data[0]    
     #data store
     some_data = []
 
@@ -58,7 +70,7 @@ def get_data(stream, instrument,field):
     data_cols,data_field_list = _get_col_outline(data,pref_timestamp,inital_fields,field)
 
     x = [ d[pref_timestamp] for d in data ]
-    y = [ d[field] for d in data ]
+    y = [ d[field] for d in data ]    
 
     #genereate dict for the data thing
     resp_data = {'x':x,
@@ -66,6 +78,7 @@ def get_data(stream, instrument,field):
                  'data_length':len(x),
                  'x_field':pref_timestamp,
                  'y_field':field,
+                 'dt_units':'seconds since 1900-01-01 00:00:00',
                  #'start_time' : datetime.datetime.fromtimestamp(data[0][pref_timestamp]).isoformat(),
                  #'end_time' : datetime.datetime.fromtimestamp(data[-1][pref_timestamp]).isoformat()
                  }
@@ -88,7 +101,6 @@ def gen_data(start_date, end_date, sampling_rate, mean, std_dev):
     xy = np.array([x,y])
 
     row_order_xy = xy.T
-
 
     iso0 = datetime.utcfromtimestamp(time0).isoformat()
     iso1 = datetime.utcfromtimestamp(time1).isoformat()
@@ -151,22 +163,6 @@ def get_time_label(ax, dates):
         ax.xaxis.set_major_locator(major)
         ax.xaxis.set_major_formatter(formt)
 
-def plot_scatter(fig, ax, x, y, title='', xlabel='', ylabel='',
-                     title_font={}, axis_font={}, **kwargs):
-
-        if not title_font:
-            title_font = title_font_default
-        if not axis_font:
-            axis_font = axis_font_default
-
-        ppl.scatter(ax, x, y, **kwargs)
-        if xlabel:
-            ax.set_xlabel(xlabel, labelpad=10, **axis_font)
-        if ylabel:
-            ax.set_ylabel(ylabel, labelpad=10, **axis_font)
-        ax.set_title(title, **title_font)
-        ax.grid(True)
-        ax.set_aspect(1./ax.get_data_ratio())  # make axes square
 
 def _get_data_type(data_input):
     '''
@@ -233,42 +229,3 @@ def _get_annotation_content(annotation_field, pref_timestamp, annotations_list, 
 
     #return nothing
     return {"v":None,"f":None}
-
-def make_cache_key():
-    return urlencode(request.args)
-
-@cache.memoize(timeout=3600)
-def get_uframe_streams():
-    '''
-    Lists all the streams
-    '''
-    try:
-        UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
-        response = requests.get(UFRAME_DATA)
-        return response
-    except:
-        return internal_server_error('uframe connection cannot be made.')
-
-@cache.memoize(timeout=3600)
-def get_uframe_stream(stream):
-    '''
-    Lists the reference designators for the streams
-    '''
-    try:
-        UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
-        response = requests.get("/".join([UFRAME_DATA,stream]))
-        return response
-    except:
-        return internal_server_error('uframe connection cannot be made.')
-
-@cache.memoize(timeout=3600)
-def get_uframe_stream_contents(stream, ref):
-    '''
-    Gets the stream contents
-    '''
-    try:
-        UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
-        response =  requests.get("/".join([UFRAME_DATA,stream,ref]))
-        return response
-    except:
-        return internal_server_error('uframe connection cannot be made.')
