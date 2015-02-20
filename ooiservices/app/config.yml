@@ -16,6 +16,7 @@ COMMON: &common
     REDMINE_URL: 'https://uframe-cm.ooi.rutgers.edu'
     WHOOSH_BASE: 'ooiservices/whoosh_index'
     REDIS_URL: 'redis://:password@localhost:6379'
+    DEPLOYMENT_SCENARIO: LOCAL_DEVELOPMENT
 
 DEVELOPMENT: &development
     <<: *common
@@ -39,6 +40,6 @@ TESTING_CONFIG: &testing
 
 PRODUCTION: &production
     <<: *common
-    SSL_DISABLE: False
-    SQLALCHEMY_DATABASE_URI: 'postgres://postgres@localhost/ooiui'
-
+    SQLALCHEMY_DATABASE_URI: 'postgres://user:password@hostname/database_name'
+    SSL_DISABLE: True
+    WTF_CSRF_ENABLED: False
