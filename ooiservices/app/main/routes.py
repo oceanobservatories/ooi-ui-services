@@ -17,27 +17,6 @@ import yaml
 from wtforms import ValidationError
 from netCDF4 import num2date, date2index
 
-import matplotlib
-import matplotlib.pyplot as plt
-import io
-import numpy as np
-import time
-import matplotlib.dates as mdates
-from matplotlib.ticker import FuncFormatter
-import prettyplotlib as ppl
-
-axis_font = {'fontname': 'Calibri',
-                     'size': '14',
-                     'color': 'black',
-                     'weight': 'bold',
-                     'verticalalignment': 'bottom'}
-
-title_font = {'fontname': 'Arial',
-                      'size': '18',
-                      'color': 'black',
-                      'weight': 'bold',
-                      'verticalalignment': 'bottom'}
-
 @api.route('/platform_deployments')
 def get_platform_deployments():
     if 'array_id' in request.args:
