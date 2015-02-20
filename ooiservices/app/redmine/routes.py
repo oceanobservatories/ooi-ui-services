@@ -175,7 +175,7 @@ def get_redmine_ticket():
 
 @api.route('/users', methods=['GET'])
 @auth.login_required
-@scope_required('redmine')
+#@scope_required('redmine') #We don't care if they are 'redmine' scoped to populate the page!
 def get_redmine_users():
     '''
     Get all the users in a project
