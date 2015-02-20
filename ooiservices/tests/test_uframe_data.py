@@ -27,7 +27,7 @@ class UframeDataTestCase(unittest.TestCase):
         db.session.remove()
         db.drop_all()
         self.app_context.pop()
-
+''' TODO: rewrite tests to reflect data from uframe
     def test_simple_fail_data_access_no_info(self):
         response = self.client.get('/uframe/get_data', content_type='application/json')
         self.assertTrue(response.status_code == 200)
@@ -39,7 +39,7 @@ class UframeDataTestCase(unittest.TestCase):
         response = self.client.get('/uframe/get_data', content_type='application/json')
         self.assertTrue(response.status_code == 200)
         
-''' TODO: rewrite tests to reflect data from uframe
+
     def test_get_data_from_uframe_simple_ok(self):
         response = self.client.get('/uframe/get_data', content_type='application/json')
         self.assertTrue(response.status_code == 200)
