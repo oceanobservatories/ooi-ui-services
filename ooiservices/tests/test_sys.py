@@ -17,7 +17,7 @@ test_password = 'test'
 
 class SystemTestCase(unittest.TestCase):
     def setUp(self):
-        self.app = create_app('TESTING_CONFIG')
+        self.app = create_app(is_test=True)
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
