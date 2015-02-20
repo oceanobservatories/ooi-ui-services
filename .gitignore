@@ -66,5 +66,4 @@ ooiservices/app/logs/
 
 initialize.sh
 
-whoosh_index/
-ooiservices/whoosh_index/
+whoosh_index

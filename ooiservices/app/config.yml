@@ -11,11 +11,12 @@ COMMON: &common
     PORT: 4000
     JSONIFY_PRETTYPRINT_REGULAR: true
     UFRAME_URL: 'http://localhost:12570'
-    REDMINE_KEY: 'XXXXXXXXXXXXX'
+    REDMINE_KEY: '8304b8012f83f8d3f155b479210884615167ceae'
     UI_API_KEY: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
     REDMINE_URL: 'https://uframe-cm.ooi.rutgers.edu'
     WHOOSH_BASE: 'ooiservices/whoosh_index'
     REDIS_URL: 'redis://:password@localhost:6379'
+    DEPLOYMENT_SCENARIO: LOCAL_DEVELOPMENT
 
 DEVELOPMENT: &development
     <<: *common
@@ -34,11 +35,12 @@ LOCAL_DEVELOPMENT: &local_dev
 TESTING_CONFIG: &testing
     <<: *common
     TESTING: True
-    SQLALCHEMY_DATABASE_URI: 'postgres://postgres@localhost/ooiuitest'
+    SQLALCHEMY_DATABASE_URI: 'postgres://postgres:postgres@localhost/ooiuitest'
     WTF_CSRF_ENABLED: False
+    LOGGING: False
 
 PRODUCTION: &production
     <<: *common
-    SSL_DISABLE: False
-    SQLALCHEMY_DATABASE_URI: 'postgres://postgres@localhost/ooiui'
-
+    SQLALCHEMY_DATABASE_URI: 'postgres://user:password@hostname/database_name'
+    SSL_DISABLE: True
+    WTF_CSRF_ENABLED: False
