@@ -743,7 +743,7 @@ class User(UserMixin, db.Model):
     phone_primary = db.Column(db.Text)
     phone_alternate = db.Column(db.Text)
     role = db.Column(db.Text)
-    organization_id = db.Column(db.ForeignKey(u'' + __schema__ + '.organizations.id'))
+    organization_id = db.Column(db.ForeignKey(u'' + __schema__ + '.organizations.id'), nullable=False)
     scopes = db.relationship(u'UserScope', secondary=UserScopeLink.__table__)
     organization = db.relationship(u'Organization')
     watches = db.relationship(u'Watch')
