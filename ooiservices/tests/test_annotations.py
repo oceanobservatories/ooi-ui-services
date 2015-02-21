@@ -11,7 +11,7 @@ import re
 from base64 import b64encode
 from flask import url_for, jsonify, g
 from ooiservices.app import create_app, db
-from ooiservices.app.models import Annotation, User, UserScope, UserScopeLink
+from ooiservices.app.models import Annotation, User, UserScope, UserScopeLink, Organization
 from datetime import datetime
 
 '''
@@ -28,6 +28,7 @@ class AnnotationsTestCase(unittest.TestCase):
         db.create_all()
         self.client = self.app.test_client(use_cookies=False)
         password = 'test'
+        Organization.insert_org()
         User.insert_user(password=password)
         UserScope.insert_scopes()
 

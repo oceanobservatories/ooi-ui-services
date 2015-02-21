@@ -9,7 +9,7 @@ import unittest
 from flask import url_for
 from ooiservices.app import create_app, db
 from ooiservices.app.models import Array, InstrumentDeployment, PlatformDeployment, Stream, \
-StreamParameter, User, OperatorEvent, OperatorEventType
+StreamParameter, User, OperatorEvent, OperatorEventType, Organization
 
 '''
 These tests are additional to the normal testing performed by coverage; each of
@@ -23,6 +23,7 @@ class ModelTestCase(unittest.TestCase):
         self.app_context.push()
         db.create_all()
         self.client = self.app.test_client(use_cookies=False)
+        Organization.insert_org()
 
     def tearDown(self):
         db.session.remove()
@@ -75,9 +76,9 @@ class ModelTestCase(unittest.TestCase):
         #Test the json in the object
         user = User()
         self.assertEquals(user.to_json(), {
-            'email': None, 
+            'email': None,
             'id': None,
-            'user_id': None, 
+            'user_id': None,
             'active':None,
             'first_name': None,
             'last_name' : None,

@@ -6,7 +6,7 @@ Unit testing for the Redmine API
 
 from ooiservices.app import create_app, db
 from ooiservices.app.redmine.routes import redmine_login
-from ooiservices.app.models import User, UserScope, UserScopeLink
+from ooiservices.app.models import User, UserScope, UserScopeLink, Organization
 import unittest
 from unittest import skipIf
 import os
@@ -31,6 +31,7 @@ class RedmineTestCase(unittest.TestCase):
         db.create_all()
         test_username = 'admin'
         test_password = 'test'
+        Organization.insert_org()
         User.insert_user(username=test_username, password=test_password)
 
         self.client = self.app.test_client(use_cookies=False)
