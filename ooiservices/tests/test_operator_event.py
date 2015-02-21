@@ -27,7 +27,9 @@ class OperatorEventTestCase(unittest.TestCase):
 
         test_username = 'admin'
         test_password = 'test'
+        Organization.insert_org()
         User.insert_user(username=test_username, password=test_password)
+
 
         OperatorEventType.insert_operator_event_types()
 

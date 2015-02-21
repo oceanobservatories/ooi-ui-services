@@ -13,7 +13,7 @@ from unittest import skipIf
 from base64 import b64encode
 from flask import url_for, jsonify
 from ooiservices.app import create_app, db
-from ooiservices.app.models import User, UserScope, UserScopeLink
+from ooiservices.app.models import User, UserScope, UserScopeLink, Organization
 from collections import OrderedDict
 
 '''
@@ -32,7 +32,7 @@ class UserTestCaseRedmine(unittest.TestCase):
         headers = self.get_api_headers('admin', 'test')
         data = json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing','role_name':'Administrator',
                            'username': 'test_user','first_name':'Tester','last_name':'Testing','organization':'ASA'})
-       
+
         # 1. Test create user without authorization
         response = self.client.post(url_for('main.create_user'), content_type='application/json')
         self.assertTrue(response.status_code == 401)
@@ -54,7 +54,7 @@ class UserTestCaseRedmine(unittest.TestCase):
                            'username': 'test_user2','first_name':'Tester','last_name':'Testing','organization':'ASA'})
         response = self.client.post(url_for('main.create_user'), headers=headers, data=bad_data)
         self.assertTrue(response.status_code == 409)
-       
+
 
     #Test [PUT] /user/<int:id> - 'main.put_user'; admin priv required
     # this tests for the users in the db and requires redmine to insert into db
@@ -65,6 +65,7 @@ class UserTestCaseRedmine(unittest.TestCase):
         '''
         # add scopes to user_name admin
         UserScope.insert_scopes()
+        Organization.insert_org()
         admin = User.query.filter_by(user_name='admin').first()
         scope = UserScope.query.filter_by(scope_name='user_admin').first()
         admin.scopes.append(scope)
@@ -124,6 +125,7 @@ class UserTestCase(unittest.TestCase):
         self.app_context.push()
         db.create_all()
         test_password = 'test'
+        Organization.insert_org()
         User.insert_user(password=test_password)
 
         self.client = self.app.test_client(use_cookies=False)
