@@ -160,14 +160,15 @@ def deploy(password, bulkload):
 
     # migrate database to latest revision
     #upgrade()
-    Organization.insert_org()
-    UserScope.insert_scopes()
-    app.logger.info('Insert default user, name: admin')
-    User.insert_user(password=password)
-    admin = User.query.first()
-    admin.scopes.append(UserScope.query.filter_by(scope_name='user_admin').first())
-    db.session.add(admin)
-    db.session.commit()
+    if not os.getenv('TRAVIS'):
+        Organization.insert_org()
+        UserScope.insert_scopes()
+        app.logger.info('Insert default user, name: admin')
+        User.insert_user(password=password)
+        admin = User.query.first()
+        admin.scopes.append(UserScope.query.filter_by(scope_name='user_admin').first())
+        db.session.add(admin)
+        db.session.commit()
 
 @manager.option('-s', '--schema', required=True)
 @manager.option('-o', '--schema_owner', required=True)
