@@ -24,6 +24,29 @@ these tests are to validate model logic outside of db management.
 
 @skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
 class UserTestCaseRedmine(unittest.TestCase):
+    def setUp(self):
+        self.app = create_app('TESTING_CONFIG')
+        self.app_context = self.app.app_context()
+        self.app_context.push()
+        db.create_all()
+        test_password = 'test'
+        Organization.insert_org()
+        User.insert_user(password=test_password)
+
+        self.client = self.app.test_client(use_cookies=False)
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
+
+    def get_api_headers(self, username, password):
+        return {
+            'Authorization': 'Basic ' + b64encode(
+                (username + ':' + password).encode('utf-8')).decode('utf-8'),
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
     #all user test cases
     def test_create_user_route(self):
         '''

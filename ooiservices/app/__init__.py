@@ -25,14 +25,9 @@ csrf = CsrfProtect()
 celery = Celery('__main__')
 redis_store = Redis()
 
-def create_app(is_test=False):
+def create_app(config_name):
     app = Flask(__name__)
-    env = Environments(app)
-    env.from_yaml(os.path.join(basedir, 'config.yml'))
-    if is_test:
-        env = Environments(app, default_env='TESTING_CONFIG')
-    else:
-        env = Environments(app, default_env=app.config['DEPLOYMENT_SCENARIO'])
+    env = Environments(app, default_env=config_name)
     env.from_yaml(os.path.join(basedir, 'config.yml'))
     celery.conf.update(BROKER_URL=app.config['REDIS_URL'],
                 CELERY_RESULT_BACKEND=app.config['REDIS_URL'])
