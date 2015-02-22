@@ -1,3 +1,5 @@
+ENV_NAME: 'TESTING_CONFIG'
+
 COMMON: &common
     LOGGING: True
     LOG_FILE_PTAH: '/logs/'
