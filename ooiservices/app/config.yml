@@ -37,7 +37,6 @@ TESTING_CONFIG: &testing
     TESTING: True
     SQLALCHEMY_DATABASE_URI: 'postgres://postgres:postgres@localhost/ooiuitest'
     WTF_CSRF_ENABLED: False
-    LOGGING: False
 
 PRODUCTION: &production
     <<: *common
