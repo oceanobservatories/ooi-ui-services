@@ -26,7 +26,7 @@ class SeleniumTest(unittest.TestCase):
         # skip these tests if the browser could not be started
         if cls.client:
             # create the application
-            cls.app = create_app('TESTING_CONFIG')
+            cls.app = create_app(is_test=True)
             cls.app_context = cls.app.app_context()
             cls.app_context.push()
 

@@ -17,7 +17,7 @@ These tests are used to validate and test the getting of data for the ui plottin
 
 class UframeDataTestCase(unittest.TestCase):
     def setUp(self):
-        self.app = create_app('TESTING_CONFIG')
+        self.app = create_app(is_test=True)
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
@@ -28,6 +28,18 @@ class UframeDataTestCase(unittest.TestCase):
         db.drop_all()
         self.app_context.pop()
 ''' TODO: rewrite tests to reflect data from uframe
+    def test_simple_fail_data_access_no_info(self):
+        response = self.client.get('/uframe/get_data', content_type='application/json')
+        self.assertTrue(response.status_code == 200)
+
+    def test_simple_fail_data_access_(self):
+        instrument = "CP02PMUO-WFP01-04-FLORTK000"
+        stream = "flort_kn_stc_imodem_instrument_broken_invalid"
+
+        response = self.client.get('/uframe/get_data', content_type='application/json')
+        self.assertTrue(response.status_code == 200)
+        
+
     def test_get_data_from_uframe_simple_ok(self):
         response = self.client.get('/uframe/get_data', content_type='application/json')
         self.assertTrue(response.status_code == 200)

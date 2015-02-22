@@ -19,7 +19,7 @@ from ooiservices.app.models import PlatformDeployment, User, UserScope
 from datetime import datetime
 
 
-app = create_app('LOCAL_DEVELOPMENT')
+app = create_app()
 manager = Manager(app)
 migrate = Migrate(app,db)
 app.config['WHOOSH_BASE'] = 'ooiservices/whoosh_index'

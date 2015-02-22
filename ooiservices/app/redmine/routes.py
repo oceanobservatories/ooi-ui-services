@@ -21,7 +21,7 @@ issue_fields = ['id', 'assigned_to', 'author', 'created_on', 'description', 'don
 
 def redmine_login():
     key = current_app.config['REDMINE_KEY']
-    redmine = Redmine('https://uframe-cm.ooi.rutgers.edu',
+    redmine = Redmine(current_app.config['REDMINE_URL'],
                       key=key, requests={'verify': False})
     return redmine
 
@@ -175,7 +175,7 @@ def get_redmine_ticket():
 
 @api.route('/users', methods=['GET'])
 @auth.login_required
-@scope_required('redmine')
+#@scope_required('redmine') #We don't care if they are 'redmine' scoped to populate the page!
 def get_redmine_users():
     '''
     Get all the users in a project
