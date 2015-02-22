@@ -18,8 +18,12 @@ import flask.ext.whooshalchemy as whooshalchemy
 from ooiservices.app.models import PlatformDeployment, User, UserScope
 from datetime import datetime
 
+import yaml
+with open(basedir + '/app/config.yml', 'r') as f:
+    doc = yaml.load(f)
+env = doc['ENV_NAME']
 
-app = create_app('LOCAL_DEVELOPMENT')
+app = create_app(env)
 manager = Manager(app)
 migrate = Migrate(app,db)
 app.config['WHOOSH_BASE'] = 'ooiservices/whoosh_index'
