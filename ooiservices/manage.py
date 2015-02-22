@@ -15,7 +15,7 @@ from ooiservices.app import create_app, db
 from flask.ext.script import Manager, Shell, Server, prompt_bool
 from flask.ext.migrate import Migrate, MigrateCommand
 import flask.ext.whooshalchemy as whooshalchemy
-from ooiservices.app.models import PlatformDeployment, User, UserScope
+from ooiservices.app.models import PlatformDeployment, User, UserScope, Organization
 from datetime import datetime
 
 import yaml
@@ -28,6 +28,8 @@ manager = Manager(app)
 migrate = Migrate(app,db)
 app.config['WHOOSH_BASE'] = 'ooiservices/whoosh_index'
 whooshalchemy.whoosh_index(app, PlatformDeployment)
+whooshalchemy.whoosh_index(app, User)
+whooshalchemy.whoosh_index(app, Organization)
 
 ##------------------------------------------------------------------
 ## M@Campbell 02/10/2015
