@@ -467,6 +467,14 @@ class Organization(db.Model, DictSerializableMixin):
     organization_name = db.Column(db.Text, nullable=False)
     users = db.relationship(u'User')
 
+    def to_json(self):
+        json = {
+            'id': self.id,
+            'organization_name': self.organization_name
+        }
+        return json
+
+
 class PlatformDeployment(db.Model, DictSerializableMixin):
     __tablename__ = 'platform_deployments'
     __table_args__ = {u'schema': __schema__}
@@ -701,7 +709,7 @@ class UserScope(db.Model, DictSerializableMixin):
     id = db.Column(db.Integer, primary_key=True)
     scope_name = db.Column(db.Text, nullable=False, unique=True)
     scope_description = db.Column(db.Text)
-    __searchable__ = ['organization_name']
+
     @staticmethod
     def insert_scopes():
         scopes = {
