@@ -14,6 +14,7 @@ from wtforms import ValidationError
 from geoalchemy2.types import Geometry
 from sqlalchemy.ext.hybrid import hybrid_property
 from datetime import datetime
+import flask.ext.whooshalchemy
 import geoalchemy2.functions as func
 import json
 
@@ -460,6 +461,7 @@ class OperatorEvent(db.Model, DictSerializableMixin):
 class Organization(db.Model, DictSerializableMixin):
     __tablename__ = 'organizations'
     __table_args__ = {u'schema': __schema__}
+    __searchable__ = ['organization_name']
 
     id = db.Column(db.Integer, primary_key=True)
     organization_name = db.Column(db.Text, nullable=False)
@@ -699,7 +701,7 @@ class UserScope(db.Model, DictSerializableMixin):
     id = db.Column(db.Integer, primary_key=True)
     scope_name = db.Column(db.Text, nullable=False, unique=True)
     scope_description = db.Column(db.Text)
-
+    __searchable__ = ['organization_name']
     @staticmethod
     def insert_scopes():
         scopes = {
@@ -730,6 +732,7 @@ class UserScope(db.Model, DictSerializableMixin):
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     __table_args__ = {u'schema': __schema__}
+    __searchable__ = ['user_name', 'email', 'first_name', 'last_name']
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Text, unique=True, nullable=False)
