@@ -18,8 +18,12 @@ import flask.ext.whooshalchemy as whooshalchemy
 from ooiservices.app.models import PlatformDeployment, User, UserScope
 from datetime import datetime
 
+import yaml
+with open(basedir + '/app/config.yml', 'r') as f:
+    doc = yaml.load(f)
+env = doc['ENV_NAME']
 
-app = create_app()
+app = create_app(env)
 manager = Manager(app)
 migrate = Migrate(app,db)
 app.config['WHOOSH_BASE'] = 'ooiservices/whoosh_index'
@@ -64,7 +68,7 @@ def make_shell_context():
     from ooiservices.app.models import User, UserScope, UserScopeLink, Array
     from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameter, Watch
     from ooiservices.app.models import OperatorEvent
-    from ooiservices.app.models import Platformname, Instrumentname, Annotation
+    from ooiservices.app.models import Platformname, Instrumentname, Annotation, Organization
 
     ctx = {"app": app,
            "db": db,
@@ -80,7 +84,8 @@ def make_shell_context():
            "StreamParameter": StreamParameter,
            "Platformname": Platformname,
            "Instrumentname": Instrumentname,
-           "Annotation": Annotation}
+           "Annotation": Annotation,
+           "Organization": Organization}
     return ctx
 
 @manager.command
@@ -135,7 +140,7 @@ def test(coverage=False, testmodule=None):
 @manager.option('-p', '--password', required=True)
 def deploy(password, bulkload):
     from flask.ext.migrate import upgrade
-    from ooiservices.app.models import User, UserScope, UserScopeLink, Array
+    from ooiservices.app.models import User, UserScope, UserScopeLink, Array, Organization
     from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameterLink
     from sh import psql
     #Create the local database
@@ -155,13 +160,15 @@ def deploy(password, bulkload):
 
     # migrate database to latest revision
     #upgrade()
-    UserScope.insert_scopes()
-    app.logger.info('Insert default user, name: admin')
-    User.insert_user(password=password)
-    admin = User.query.first()
-    admin.scopes.append(UserScope.query.filter_by(scope_name='user_admin').first())
-    db.session.add(admin)
-    db.session.commit()
+    if not os.getenv('TRAVIS'):
+        Organization.insert_org()
+        UserScope.insert_scopes()
+        app.logger.info('Insert default user, name: admin')
+        User.insert_user(password=password)
+        admin = User.query.first()
+        admin.scopes.append(UserScope.query.filter_by(scope_name='user_admin').first())
+        db.session.add(admin)
+        db.session.commit()
 
 @manager.option('-s', '--schema', required=True)
 @manager.option('-o', '--schema_owner', required=True)
@@ -246,7 +253,7 @@ def destroy():
     if prompt_bool(
         "Are you sure you want to do drop %s" % db_check
     ):
-        if (db_check == 'Engine(postgres://postgres@localhost/ooiuidev)'):
+        if (db_check == 'Engine(postgres://postgres:***@localhost/ooiuidev)'):
             psql('-c', 'drop database ooiuidev')
             psql('-c', 'drop database ooiuitest')
             app.logger.info('ooiuidev and ooiuitest databases have been dropped.')

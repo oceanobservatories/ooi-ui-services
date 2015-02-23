@@ -19,7 +19,7 @@ Sample data is inserted, checked, and then removed.
 
 class TOCTestCase(unittest.TestCase):
     def setUp(self):
-        self.app = create_app(is_test=True)
+        self.app = create_app('TESTING_CONFIG')
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
@@ -122,7 +122,7 @@ class TOCTestCase(unittest.TestCase):
         content_type = 'application/json')
 
         self.assertTrue(response.status_code == 200)
-    
+
     def test_organization(self):
         organization = Organization()
         organization.organization_name = 'Hyperion'
@@ -137,10 +137,10 @@ class TOCTestCase(unittest.TestCase):
 
         response = self.client.get('/organization/1', content_type='application/json')
         self.assertEquals(response.status_code, 200)
-        
+
         data = json.loads(response.data)
         self.assertEquals(data, {'id':1, 'organization_name' : 'Hyperion'})
 
 
-        
+
 

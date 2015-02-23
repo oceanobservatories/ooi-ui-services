@@ -465,6 +465,15 @@ class Organization(db.Model, DictSerializableMixin):
     organization_name = db.Column(db.Text, nullable=False)
     users = db.relationship(u'User')
 
+    @staticmethod
+    def insert_org():
+        org = Organization.query.filter(Organization.organization_name == 'ASA').first()
+        if org is None:
+            org = Organization(organization_name = 'ASA')
+            db.session.add(org)
+            db.session.commit()
+
+
 class PlatformDeployment(db.Model, DictSerializableMixin):
     __tablename__ = 'platform_deployments'
     __table_args__ = {u'schema': __schema__}
@@ -743,7 +752,7 @@ class User(UserMixin, db.Model):
     phone_primary = db.Column(db.Text)
     phone_alternate = db.Column(db.Text)
     role = db.Column(db.Text)
-    organization_id = db.Column(db.ForeignKey(u'' + __schema__ + '.organizations.id'))
+    organization_id = db.Column(db.ForeignKey(u'' + __schema__ + '.organizations.id'), nullable=False)
     scopes = db.relationship(u'UserScope', secondary=UserScopeLink.__table__)
     organization = db.relationship(u'Organization')
     watches = db.relationship(u'Watch')
@@ -807,24 +816,14 @@ class User(UserMixin, db.Model):
 
     @staticmethod
     def insert_user(username='admin', password=None, first_name='First', last_name='Last', email='FirstLast@somedomain.com', org_name='ASA'):
-        user = User(user_id=username, email=email)
-        try:
-            user.validate_username(username)
-            user.validate_email(email)
-        except ValidationError as e:
-            admin_del = db.session.query(User).filter((User.user_name == username) | (User.email == email)).first()
-            if admin_del != None:
-                db.session.delete(admin_del)
-                db.session.commit()
-        user.first_name = first_name
-        user.last_name = last_name
-        user.pass_hash = generate_password_hash(password)
+        user = User(password=password, first_name=first_name, active=True)
+        user.validate_username(username)
+        user.validate_email(email)
         user.user_name = username
-        user.active = True
         user.email = email
+        user.user_id = username
         org = Organization.query.filter(Organization.organization_name == org_name).first()
-        if org:
-            user.organization_id = org.id
+        user.organization_id = org.id
         db.session.add(user)
         db.session.commit()
 

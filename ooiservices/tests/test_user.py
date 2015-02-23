@@ -13,7 +13,7 @@ from unittest import skipIf
 from base64 import b64encode
 from flask import url_for, jsonify
 from ooiservices.app import create_app, db
-from ooiservices.app.models import User, UserScope, UserScopeLink
+from ooiservices.app.models import User, UserScope, UserScopeLink, Organization
 from collections import OrderedDict
 
 '''
@@ -24,6 +24,30 @@ these tests are to validate model logic outside of db management.
 
 @skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
 class UserTestCaseRedmine(unittest.TestCase):
+    def setUp(self):
+        self.app = create_app('TESTING_CONFIG')
+        self.app_context = self.app.app_context()
+        self.app_context.push()
+        db.create_all()
+        test_password = 'test'
+        Organization.insert_org()
+        UserScope.insert_scopes()
+        User.insert_user(password=test_password)
+
+        self.client = self.app.test_client(use_cookies=False)
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
+
+    def get_api_headers(self, username, password):
+        return {
+            'Authorization': 'Basic ' + b64encode(
+                (username + ':' + password).encode('utf-8')).decode('utf-8'),
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
     #all user test cases
     def test_create_user_route(self):
         '''
@@ -31,16 +55,14 @@ class UserTestCaseRedmine(unittest.TestCase):
         '''
         headers = self.get_api_headers('admin', 'test')
         data = json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing','role_name':'Administrator',
-                           'username': 'test_user','first_name':'Tester','last_name':'Testing','organization':'ASA'})
-       
+                           'username': 'test_user','first_name':'Tester','last_name':'Testing','organization_id':1})
+
         # 1. Test create user without authorization
         response = self.client.post(url_for('main.create_user'), content_type='application/json')
         self.assertTrue(response.status_code == 401)
 
         # 2. Test create user as an authorized user (user 'admin')
         # this requires a secret and redmine key to run
-        data = json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing','role_name':'Administrator',
-                           'username': 'test_user','first_name':'Tester','last_name':'Testing','organization':'ASA'})
         response = self.client.post(url_for('main.create_user'), headers=headers, data=data)
         self.assertEquals(response.status_code, 201)
 
@@ -51,10 +73,10 @@ class UserTestCaseRedmine(unittest.TestCase):
 
         # 4. Test password match using bad_data; expect failure
         bad_data = json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing2','role_name':'Administrator',
-                           'username': 'test_user2','first_name':'Tester','last_name':'Testing','organization':'ASA'})
+                           'username': 'test_user2','first_name':'Tester','last_name':'Testing','organization_id':1})
         response = self.client.post(url_for('main.create_user'), headers=headers, data=bad_data)
         self.assertTrue(response.status_code == 409)
-       
+
 
     #Test [PUT] /user/<int:id> - 'main.put_user'; admin priv required
     # this tests for the users in the db and requires redmine to insert into db
@@ -63,14 +85,6 @@ class UserTestCaseRedmine(unittest.TestCase):
         test ability to create new user and change scopes and/or active status of new user
 
         '''
-        # add scopes to user_name admin
-        UserScope.insert_scopes()
-        admin = User.query.filter_by(user_name='admin').first()
-        scope = UserScope.query.filter_by(scope_name='user_admin').first()
-        admin.scopes.append(scope)
-        db.session.add(admin)
-        db.session.commit()
-
         headers = self.get_api_headers('admin', 'test')
 
         # 1. get current user
@@ -79,7 +93,7 @@ class UserTestCaseRedmine(unittest.TestCase):
 
         # 2. Create new user - test_user duplicate test
         data=json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing','role_name':'Administrator',
-                           'username': 'test_user','first_name':'Tester','last_name':'Testing','organization':'ASA'})
+                           'username': 'test_user','first_name':'Tester','last_name':'Testing','organization_id':1})
         response = self.client.post(url_for('main.create_user'), headers=headers, data=data)
         self.assertEquals(response.status_code, 201)
 
@@ -119,11 +133,12 @@ class UserTestCaseRedmine(unittest.TestCase):
 
 class UserTestCase(unittest.TestCase):
     def setUp(self):
-        self.app = create_app(is_test=True)
+        self.app = create_app('TESTING_CONFIG')
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
         test_password = 'test'
+        Organization.insert_org()
         User.insert_user(password=test_password)
 
         self.client = self.app.test_client(use_cookies=False)
