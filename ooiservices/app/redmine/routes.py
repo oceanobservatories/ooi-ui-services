@@ -67,6 +67,7 @@ def create_redmine_ticket():
 
     # Create new issue
     issue = redmine.issue.new()
+    issue.tracker_id = 3 # support
     for key, value in fields.iteritems():
         setattr(issue, key, value)
     issue.save()
