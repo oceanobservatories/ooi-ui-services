@@ -11,4 +11,4 @@ from flask import Blueprint
 api = Blueprint('main', __name__)
 
 from ooiservices.app.main import routes, authentication, user, operator_event, \
-    annotation, instrument_deployment, arrays, sys
+    annotation, instrument_deployment, arrays, sys, search
