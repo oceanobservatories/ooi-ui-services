@@ -11,23 +11,22 @@ from ooiservices.app.main.authentication import auth
 from ooiservices.app.models import PlatformDeployment, Organization, User
 from ooiservices.app.decorators import json
 
-
+@api.route('/search/platform_deployments/<string:id>')
 @auth.login_required
-@api.route('/search/platform_deployments/display_name/<string:id>')
 @json
 def search_pds_display_name(id):
     platform_deployments = PlatformDeployment.query.whoosh_search(id)
     return { 'search_results' : [platform_deployment.to_json() for platform_deployment in platform_deployments] }
 
+@api.route('/search/organizations/<string:id>')
 @auth.login_required
-@api.route('/search/organizations/organization_name/<string:id>')
 @json
 def search_orgs_display_name(id):
     organizations = Organization.query.whoosh_search(id)
     return { 'search_results' : [organization.to_json() for organization in organizations] }
 
-@auth.login_required
 @api.route('/search/users/<string:id>')
+@auth.login_required
 @json
 def search_users_display_name(id):
     users = User.query.whoosh_search(id)
