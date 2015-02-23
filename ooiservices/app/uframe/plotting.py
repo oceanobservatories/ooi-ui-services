@@ -31,16 +31,70 @@ title_font = {'fontname': 'Arial',
                       'weight': 'bold',
                       'verticalalignment': 'bottom'}
 
-def generate_plot(title,ylabel,x,y,width_in,height_in,plot_format):
+PRESSURE_RATIO = 100
+
+def generate_plot(title,xlabel,ylabel,x,y,xvar,yvar,height_in,width_in,plot_format,plot_layout,use_line,use_scatter,plot_profile_id=None):
+
     fig, ax = ppl.subplots(1, 1, figsize=(width_in, height_in))
     kwargs = dict(linewidth=1.0,alpha=0.7)
-    date_list = num2date(x, units='seconds since 1900-01-01 00:00:00', calendar='gregorian')
-    plot_time_series(fig, ax, date_list, y,
-                                     title=title,
-                                     ylabel=ylabel,
-                                     title_font=title_font,
-                                     axis_font=axis_font,
-                                     **kwargs)
+    
+    is_timeseries = False
+    if "_timestamp" in xvar:
+        x = num2date(x, units='seconds since 1900-01-01 00:00:00', calendar='gregorian')
+        is_timeseries = True
+    
+    if plot_layout == "timeseries":
+        plot_time_series(fig, is_timeseries, ax, x, y,
+                             title=title,
+                             xlabel=xlabel,
+                             ylabel=ylabel,
+                             title_font=title_font,
+                             axis_font=axis_font,
+                             line = use_line,
+                             scatter = use_scatter,
+                             **kwargs)
+
+    elif plot_layout == "depthprofile":            
+        if plot_profile_id is None:
+          for profile_id in range(0,np.shape(x)[0]):            
+            plot_profile(fig, 
+                          ax, 
+                          x[profile_id], 
+                          y[profile_id],
+                          xlabel=xlabel, 
+                          ylabel=ylabel,
+                          axis_font=axis_font, 
+                          line = use_line,
+                          scatter= False,
+                          **kwargs)
+        else:          
+          if int(plot_profile_id) < int(np.shape(x)[0]) :
+            print "\t   less than"
+            #get the profile selected            
+            plot_profile(fig, 
+                          ax, 
+                          x[int(plot_profile_id)], 
+                          y[int(plot_profile_id)],
+                          xlabel=xlabel, 
+                          ylabel=ylabel,
+                          axis_font=axis_font, 
+                          line = use_line,
+                          scatter= False,
+                          **kwargs)
+          else:
+            print "\t   couldnt find it"
+            #return something
+            plot_profile(fig, 
+                          ax, 
+                          x[0], 
+                          y[0],
+                          xlabel=xlabel, 
+                          ylabel=ylabel,
+                          axis_font=axis_font, 
+                          line = use_line,
+                          scatter= False,
+                          **kwargs)
+        plt.tight_layout()
 
     buf = io.BytesIO()
     
@@ -55,18 +109,43 @@ def generate_plot(title,ylabel,x,y,width_in,height_in,plot_format):
     return buf 
 
 @cache.memoize(timeout=3600)
-def plot_time_series(fig, ax, x, y, fill=False, title='', ylabel='',
-                         title_font={}, axis_font={}, **kwargs):
+def plot_profile(fig,ax, x, y, xlabel='', ylabel='',
+                 axis_font={},line=True , scatter=True, **kwargs):
+    
+    y = (np.array(y))/ PRESSURE_RATIO
+
+    if not axis_font:
+        axis_font = axis_font_default
+    ppl.plot(ax, x, y, **kwargs)
+    if xlabel:
+        ax.set_xlabel(xlabel,labelpad=5, **axis_font)
+    if ylabel:
+        ax.set_ylabel(ylabel, labelpad=11, **axis_font)
+    ax.invert_yaxis()
+    ax.xaxis.set_label_position('top')  # this moves the label to the top
+    ax.xaxis.set_ticks_position('top')
+    ax.grid(True)    
+    # ax.set_title(title, **title_font)
+
+@cache.memoize(timeout=3600)
+def plot_time_series(fig, is_timeseries, ax, x, y, fill=False, title='',xlabel='', ylabel='',
+                         title_font={}, axis_font={}, line=True, scatter=False ,**kwargs):
 
     if not title_font:
         title_font = title_font_default
     if not axis_font:
         axis_font = axis_font_default
 
-    h = ppl.plot(ax, x, y, **kwargs)
-    ppl.scatter(ax, x, y, **kwargs)
-    get_time_label(ax, x)
-    fig.autofmt_xdate()
+    if line:
+        h = ppl.plot(ax, x, y, **kwargs)    
+    if scatter:
+        ppl.scatter(ax, x, y, **kwargs)
+
+    if is_timeseries:        
+        get_time_label(ax, x)
+        fig.autofmt_xdate()
+    else:
+         ax.set_xlabel(xlabel,**axis_font)
 
     if ylabel:
         ax.set_ylabel(ylabel, **axis_font)
