@@ -140,6 +140,7 @@ def get_uframe_stream_contents(stream, ref):
 
 @api.route('/stream')
 def streams_list():
+    from ooiservices.app.main.routes import get_display_name_by_rd
     UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
 
 
@@ -179,6 +180,7 @@ def streams_list():
             data_dict['start'] = data[0][preferred] - COSMO_CONSTANT
             data_dict['end'] = data[-1][preferred] - COSMO_CONSTANT
             data_dict['reference_designator'] = ref
+            data_dict['display_name'] = get_display_name_by_rd(ref)
             data_dict['csv_download'] = "/".join([SERVICE_LOCATION,'uframe/get_csv',stream,ref])
             data_dict['json_download'] = "/".join([SERVICE_LOCATION,'uframe/get_json',stream,ref])
             data_dict['netcdf_download'] = "/".join([SERVICE_LOCATION,'uframe/get_netcdf',stream,ref])

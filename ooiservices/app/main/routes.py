@@ -101,19 +101,42 @@ def get_platform_deployment_geojson_single():
         return '{}', 204
     return jsonify({ 'geo_locations' : [{'id' : geo_location.id, 'reference_designator' : geo_location.reference_designator, 'geojson' : geo_location.geojson} for geo_location in geo_locations] })
 
+def get_display_name_by_rd(reference_designator):
+    if len(reference_designator) <= 14:
+        platform_deployment_filtered = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first_or_404()
+        display_name = platform_deployment_filtered.proper_display_name
+        if platform_deployment_filtered is None:
+            return None
+    elif len(reference_designator) == 27:
+        platform_deployment = PlatformDeployment.query.filter_by(reference_designator=reference_designator[:14]).first()
+        if platform_deployment is None:
+            return None
+        platform_display_name = platform_deployment.proper_display_name
+        instrument_class = reference_designator[18:18+5]
+        instrument_name = Instrumentname.query.filter_by(instrument_class=instrument_class).first()
+        if 'ENG' in instrument_class or instrument_class == '00000':
+            instrument_name = 'Engineering'
+        elif instrument_name is None:
+            instrument_name = reference_designator[18:]
+        else:
+            instrument_name = instrument_name.display_name
+
+        display_name = ' - '.join([platform_display_name, instrument_name])
+    else:
+        return None
+    return display_name
+
 @api.route('/display_name', methods=['GET'])
 def get_display_name():
     # 'CE01ISSM-SBD17'
-    platform_deployment_filtered = None
-    display_name = ''
-    if len(request.args) > 0:
-        if ('reference_designator' in request.args):
-            if len(request.args['reference_designator']) < 100:
-                reference_designator = request.args['reference_designator']
-                platform_deployment_filtered = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first_or_404()
-                display_name = platform_deployment_filtered.proper_display_name
-    if platform_deployment_filtered is None:
+    reference_designator = request.args.get('reference_designator')
+    if not reference_designator:
         return '{}', 204
+
+    display_name = get_display_name_by_rd(reference_designator)
+    if display_name is None:
+        return '{}', 204
+
     return jsonify({ 'proper_display_name' : display_name })
 
 @api.route('/plot/<string:instrument>/<string:stream>', methods=['GET'])
