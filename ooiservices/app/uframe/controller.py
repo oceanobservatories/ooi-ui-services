@@ -276,17 +276,16 @@ def get_profile_data(instrument,stream):
     process uframe data into profiles
     '''
     data = []
-    try:
-        url = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv/' + stream + '/' + instrument
-        data = requests.get(url)
-        data = data.json()        
-    except Exception,e:
-        return jsonify(error='uframe connection cannot be made:'+str(e)), 400  
+    url = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv/' + stream + '/' + instrument
+    response = requests.get(url)
+    if response.status_code != 200:
+        raise IOError("Failed to get data from uFrame")
+    data = response.json()
     # Note: assumes data has depth and time is ordinal
     # Need to add assertions and try and exceptions to check data
 
     if 'pressure' not in data[0]:
-        return jsonify(error='no pressure data found'), 400  
+        raise ValueError("no pressure data found")
 
     time = []
     depth = []
@@ -375,14 +374,18 @@ def get_profile_data(instrument,stream):
 
 
 @auth.login_required
-@api.route('/get_profiles/<string:instrument>/<string:stream>', methods=['GET'])
-def get_profiles(instrument, stream):  
+@api.route('/get_profiles/<string:stream>/<string:instrument>', methods=['GET'])
+def get_profiles(stream, instrument):  
     filename = '-'.join([stream,instrument,"profiles"])
-    returned_json = make_response(json.dumps(get_profile_data(instrument,stream)))
-    returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json"%filename
-    returned_json.headers["Content-Type"] = "application/json"
-    return returned_json      
-    #return json.dumps(get_profile_data(instrument,stream))
+    content_headers = {'Content-Type':'application/json', 'Content-Disposition':"attachment; filename=%s.json"%filename}
+    try:
+        profiles = get_profile_data(instrument, stream)
+    except Exception as e:
+        return jsonify(error=e.message), 400, content_headers
+    if profiles is None:
+        return jsonify(), 204, content_headers
+
+    return jsonify(profiles=profiles), 200, content_headers
     
 def make_cache_key():
     return urlencode(request.args)
