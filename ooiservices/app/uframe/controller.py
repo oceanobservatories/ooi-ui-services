@@ -65,6 +65,7 @@ def streams_list():
             data_dict['csv_download'] = "/".join([SERVICE_LOCATION,'uframe/get_csv',stream,ref])
             data_dict['json_download'] = "/".join([SERVICE_LOCATION,'uframe/get_json',stream,ref])
             data_dict['netcdf_download'] = "/".join([SERVICE_LOCATION,'uframe/get_netcdf',stream,ref])
+            data_dict['profile_json_download'] = "/".join([SERVICE_LOCATION,'uframe/get_profiles',ref,stream])
             data_dict['stream_name'] = stream
             data_dict['variables'] = data[1].keys()
             data_dict['variable_types'] = {k : type(data[1][k]).__name__ for k in data[1].keys() }
@@ -185,6 +186,7 @@ def get_svg_plot(instrument, stream):
     title = request.args.get('title', '%s Data' % stream)
     xlabel = request.args.get('xlabel', xvar)
     ylabel = request.args.get('ylabel', yvar)
+    profileid = request.args.get('profileId', None)
 
     #need a yvar for sure
     if yvar is None:
@@ -222,7 +224,8 @@ def get_svg_plot(instrument, stream):
                         plot_format,
                         plot_layout,
                         use_line,
-                        use_scatter)
+                        use_scatter,
+                        profileid)
 
     content_header_map = {
         'svg' : 'image/svg+xml',
@@ -371,8 +374,13 @@ def get_profile_data(instrument,stream):
 
 @auth.login_required
 @api.route('/get_profiles/<string:instrument>/<string:stream>', methods=['GET'])
-def get_profiles(instrument, stream):        
-    return json.dumps(get_profile_data(instrument,stream))
+def get_profiles(instrument, stream):  
+    filename = '-'.join([stream,instrument,"profiles"])
+    returned_json = make_response(json.dumps(get_profile_data(instrument,stream)))
+    returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json"%filename
+    returned_json.headers["Content-Type"] = "application/json"
+    return returned_json      
+    #return json.dumps(get_profile_data(instrument,stream))
     
 def make_cache_key():
     return urlencode(request.args)
