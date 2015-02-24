@@ -20,12 +20,13 @@ these tests are to validate model logic outside of db management.
 '''
 class UserTestCase(unittest.TestCase):
     def setUp(self):
-        self.app = create_app(is_test=True)
+        self.app = create_app('TESTING_CONFIG')
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
         test_username = 'admin'
         test_password = 'test'
+        Organization.insert_org()
         User.insert_user(username=test_username, password=test_password)
 
         self.client = self.app.test_client(use_cookies=False)
@@ -143,23 +144,17 @@ class UserTestCase(unittest.TestCase):
 
         content_type = 'application/json'
 
-        # Create Organization data
-        organization = Organization()
-        organization.organization_name = 'Hyperion'
-        db.session.add(organization)
-        db.session.commit()
-
         # get all organizations
         response = self.client.get('/organization', content_type=content_type)
         self.assertEquals(response.status_code, 200)
         data = json.loads(response.data)
-        self.assertEquals(data, {'organizations':[{'id':1, 'organization_name' : 'Hyperion'}]})
+        self.assertEquals(data, {'organizations':[{'id':1, 'organization_name' : 'ASA'}]})
 
         # Get organization by id
         response = self.client.get('/organization/1', content_type=content_type)
         self.assertEquals(response.status_code, 200)
         data = json.loads(response.data)
-        self.assertEquals(data, {'id':1, 'organization_name' : 'Hyperion'})
+        self.assertEquals(data, {'id':1, 'organization_name' : 'ASA'})
 
         # Get non-existant organization (bad id value); expect failure
         response = self.client.get('/organization/999', content_type=content_type)
