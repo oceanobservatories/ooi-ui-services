@@ -18,11 +18,11 @@ from datetime import datetime
 from ooiservices.app.main.errors import internal_server_error
 from ooiservices.app import cache
 import requests
+import json
 
 #ignore list for data fields
 FIELDS_IGNORE = ["stream_name","quality_flag"]
 COSMO_CONSTANT = 2208988800
-
 
 def get_data(stream, instrument,yfield,xfield,include_time=False):
     #get data from uframe
@@ -34,15 +34,39 @@ def get_data(stream, instrument,yfield,xfield,include_time=False):
     #-------------------
     #TODO: create better error handler if uframe is not online/responding
     data = []
+    dt_bounds = '?beginDT=2014-05-03T12:12:12.000Z&endDT=2014-05-03T23:12:12.000Z'
+    instrument = instrument.replace('-','/',2) # replace the - with a / for the new uframe
+
     try:
-        url = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv/' + stream + '/' + instrument
-        data = requests.get(url)
-        data = data.json()        
+        #url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE'] +'/' + instrument+ dt_bounds        
+        #data = requests.get(url)
+        #data = data.json()   
+        json_data=open('test_data.json')
+        data = json.load(json_data)
     except Exception,e:
         return {'error':'uframe connection cannot be made:'+str(e)}
 
     if len(data)==0:
         return {'error':'no data available'}    
+
+    if "pk" not in data[0]:
+        return {'error':'primary information not available'}    
+
+
+    if xfield == 'time':
+        if "time" not in data[0]['pk']:
+            return {'error':'time information not available'}
+    else:
+        if xfield not in data[0]:
+            return {'error':'requested data xfield not available'}  
+
+
+    if yfield == 'time':
+        if "time" not in data[0]['pk']:
+            return {'error':'time information not available'}
+    else:
+        if yfield not in data[0]:
+            return {'error':'requested data yfield not available'}      
 
     hasStartDate = False
     hasEndDate = False
@@ -53,33 +77,37 @@ def get_data(stream, instrument,yfield,xfield,include_time=False):
 
     if 'enddate' in request.args:
         ed_date = datetime.datetime.strptime(request.args['enddate'], "%Y-%m-%d %H:%M:%S")
-        hasEndDate = True
-
-    #got normal data plot
-    #create the data fields,assumes the same data fields throughout
-    d_row = data[0]   
-    if yfield not in d_row or xfield not in d_row :
-        return {'error':'requested data fields not available'}      
+        hasEndDate = True   
 
     #override the timestamp to the prefered
-    if "_timestamp" in xfield:
-        xfield = d_row["preferred_timestamp"]
+    x = []
+    y = []  
 
-    x = [ d[xfield] for d in data ]
-    y = [ d[yfield] for d in data ]    
+    for row in data:
+        #used to handle multiple streams
+        if row['stream_name'] == stream:
+            #x
+            if xfield == 'time':                   
+                x.append(float(row['pk']['time']))
+            else:
+                x.append(row[xfield])
+            #y
+            if yfield == 'time':                   
+                y.append(float(row['pk']['time']))
+            else:
+                y.append(row[yfield])                                
 
     #genereate dict for the data thing
     resp_data = {'x':x,
                  'y':y,
                  'data_length':len(x),
                  'x_field':xfield,
+                 'x_units':'',                 
                  'y_field':yfield,
+                 'y_units':'',
                  'dt_units':'seconds since 1900-01-01 00:00:00'
-                 #'start_time' : datetime.datetime.fromtimestamp(data[0][pref_timestamp]).isoformat(),
-                 #'end_time' : datetime.datetime.fromtimestamp(data[-1][pref_timestamp]).isoformat()
                  }
 
-    #return jsonify(**resp_data)
     return resp_data
 
 def get_time_label(ax, dates):
