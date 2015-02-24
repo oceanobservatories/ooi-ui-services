@@ -20,14 +20,16 @@ these tests are to validate model logic outside of db management.
 '''
 class OperatorEventTestCase(unittest.TestCase):
     def setUp(self):
-        self.app = create_app(is_test=True)
+        self.app = create_app('TESTING_CONFIG')
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
 
         test_username = 'admin'
         test_password = 'test'
+        Organization.insert_org()
         User.insert_user(username=test_username, password=test_password)
+
 
         OperatorEventType.insert_operator_event_types()
 

@@ -17,7 +17,7 @@ These tests are used to validate and test the getting of data for the ui plottin
 
 class UframeDataTestCase(unittest.TestCase):
     def setUp(self):
-        self.app = create_app(is_test=True)
+        self.app = create_app('TESTING_CONFIG')
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
@@ -38,7 +38,7 @@ class UframeDataTestCase(unittest.TestCase):
 
         response = self.client.get('/uframe/get_data', content_type='application/json')
         self.assertTrue(response.status_code == 200)
-        
+
 
     def test_get_data_from_uframe_simple_ok(self):
         response = self.client.get('/uframe/get_data', content_type='application/json')

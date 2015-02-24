@@ -43,7 +43,7 @@ def put_user(id):
         db.session.add(user_account)
         db.session.commit()
     return jsonify(**user_account.to_json()), 201
-    
+
 @api.route('/user_scopes')
 @auth.login_required
 @scope_required(u'user_admin')
@@ -81,15 +81,15 @@ def create_user():
         db.session.commit()
     except ValidationError as e:
         return jsonify(error=e.message), 409
-    
+
     #add redmine ticket
     key = current_app.config['REDMINE_KEY']
     redmine = Redmine(current_app.config['REDMINE_URL'],
               key=key, requests={'verify': False})
     issue = redmine.issue.new()
     issue.project_id = 'ooi-ui-api-testing'
-    issue.subject = new_user.first_name+' ' + new_user.last_name + ' is requesting access to Redmine.'
-    issue.description = 'The user email is '+ new_user.email + '.  The new request is for the role '+new_user.role +' and for the '+data['organization'] +' organization.  Please enable this OOI account.'
+    issue.subject = 'New User Registration for OOI UI: %s, %s' % (new_user.first_name, new_user.last_name)
+    issue.description = 'A new user has requested access to the OOI User Interface. Please review the application for %s, their role in the organization %s is %s and email address is %s' % (new_user.first_name, new_user.organization_id, new_user.role, new_user.email)
     issue.priority_id = 1
     issue.save()
 
@@ -104,7 +104,7 @@ def create_user():
     #                'description': 'The user email is '+ new_user.email + '.  The new request is for the role '+new_user.role +' and for the '+data['organization'] +' organization.',
     #                'priority_id': 1}))
     #                # 'assigned_to_id': 1}))
-    # response_rm = rm.status_code 
+    # response_rm = rm.status_code
 
     #except:
     #   return "Redmine Error", 409

@@ -10,18 +10,19 @@ import json
 from base64 import b64encode
 from flask import url_for
 from ooiservices.app import create_app, db
-from ooiservices.app.models import User, UserScope
+from ooiservices.app.models import User, UserScope, Organization
 
 test_username = 'admin'
 test_password = 'test'
 
 class SystemTestCase(unittest.TestCase):
     def setUp(self):
-        self.app = create_app(is_test=True)
+        self.app = create_app('TESTING_CONFIG')
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
         self.client = self.app.test_client(use_cookies=False)
+        Organization.insert_org()
         User.insert_user(username=test_username, password=test_password)
         UserScope.insert_scopes()
 
