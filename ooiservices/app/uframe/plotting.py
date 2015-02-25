@@ -7,17 +7,17 @@ Support for generating svg plots
 
 __author__ = 'Andy Bird'
 
-#plotting
+from netCDF4 import num2date
+from ooiservices.app import cache
+from matplotlib.ticker import FuncFormatter
+from flask import current_app
 import matplotlib
 import matplotlib.pyplot as plt
 import io
 import numpy as np
 import time
 import matplotlib.dates as mdates
-from matplotlib.ticker import FuncFormatter
 import prettyplotlib as ppl
-from netCDF4 import num2date
-from ooiservices.app import cache
 
 axis_font = {'fontname': 'Calibri',
                      'size': '14',
@@ -93,6 +93,7 @@ def generate_plot(data,plot_format,plot_layout,use_line,use_scatter,plot_profile
                           scatter= use_scatter,
                           **kwargs)
         plt.tight_layout()
+        plt.gca().invert_yaxis()
 
     buf = io.BytesIO()
     
@@ -118,10 +119,10 @@ def plot_profile(fig,ax, x, y, xlabel='', ylabel='',
       ppl.scatter(ax, x, y, **kwargs)
 
     if xlabel:
+        #ax.set_xlabel(xlabel,labelpad=5, **axis_font)
         ax.set_xlabel(xlabel,labelpad=5, **axis_font)
     if ylabel:
         ax.set_ylabel(ylabel, labelpad=11, **axis_font)
-    ax.invert_yaxis()
     ax.xaxis.set_label_position('top')  # this moves the label to the top
     ax.xaxis.set_ticks_position('top')
     ax.grid(True)    

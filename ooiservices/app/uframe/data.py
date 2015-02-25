@@ -9,7 +9,6 @@ __author__ = 'Andy Bird'
 
 from flask import jsonify, request, current_app, url_for, Flask, make_response
 from ooiservices.app.uframe import uframe as api
-
 import numpy as np
 import calendar
 import time
@@ -25,6 +24,7 @@ FIELDS_IGNORE = ["stream_name","quality_flag"]
 COSMO_CONSTANT = 2208988800
 
 def get_data(stream, instrument,yfield,xfield,include_time=False):
+    from ooiservices.app.uframe.controller import split_stream_name, get_uframe_stream_contents
     #get data from uframe
     #-------------------
     # m@c: 02/01/2015
@@ -35,15 +35,12 @@ def get_data(stream, instrument,yfield,xfield,include_time=False):
     #TODO: create better error handler if uframe is not online/responding
     data = []
     #dt_bounds = '?beginDT=2014-05-03T12:12:12.000Z&endDT=2014-05-03T23:12:12.000Z'
-    dt_bounds = ''
-    instrument = instrument.replace('-','/',2) # replace the - with a / for the new uframe
-
     try:
-        url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE'] +'/' + instrument+ "/telemetered/"+stream + "/" + dt_bounds        
-        print url
-        data = requests.get(url)
-        data = data.json()   
+        mooring, platform, instrument, stream_type, stream = split_stream_name('_'.join([instrument, stream]))
+        response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
+        data = response.json()
     except Exception,e:
+        current_app.logger.exception('Failed to make plot')
         return {'error':'uframe connection cannot be made:'+str(e)}
 
     if len(data)==0:
