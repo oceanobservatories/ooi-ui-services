@@ -37,7 +37,7 @@ def generate_plot(data,plot_format,plot_layout,use_line,use_scatter,plot_profile
     kwargs = dict(linewidth=1.0,alpha=0.7)
     
     is_timeseries = False
-    if "time" == data['x']:
+    if "time" == data['x_field']:
         data['x'] = num2date(data['x'], units='seconds since 1900-01-01 00:00:00', calendar='gregorian')
         is_timeseries = True 
     

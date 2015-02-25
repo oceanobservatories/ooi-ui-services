@@ -24,7 +24,7 @@ FIELDS_IGNORE = ["stream_name","quality_flag"]
 COSMO_CONSTANT = 2208988800
 
 def get_data(stream, instrument,yfield,xfield,include_time=False):
-    from ooiservices.app.uframe.controller import split_stream_name, get_uframe_stream_contents
+    from ooiservices.app.uframe.controller import split_stream_name, get_uframe_stream_contents,get_uframe_stream_contents_bounded
     #get data from uframe
     #-------------------
     # m@c: 02/01/2015
@@ -34,11 +34,19 @@ def get_data(stream, instrument,yfield,xfield,include_time=False):
     #-------------------
     #TODO: create better error handler if uframe is not online/responding
     data = []
-    #dt_bounds = '?beginDT=2014-05-03T12:12:12.000Z&endDT=2014-05-03T23:12:12.000Z'
+    
+    mooring, platform, instrument, stream_type, stream = split_stream_name('_'.join([instrument, stream]))
+
     try:
-        mooring, platform, instrument, stream_type, stream = split_stream_name('_'.join([instrument, stream]))
-        response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
-        data = response.json()
+
+        if 'startdate' in request.args and 'enddate' in request.args:
+            st_date = request.args['startdate']       
+            ed_date = request.args['enddate']           
+            response = get_uframe_stream_contents_bounded(mooring, platform, instrument, stream_type, stream,st_date,ed_date)
+            data = response.json()
+        else:
+            response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
+            data = response.json()
     except Exception,e:
         current_app.logger.exception('Failed to make plot')
         return {'error':'uframe connection cannot be made:'+str(e)}
@@ -64,17 +72,6 @@ def get_data(stream, instrument,yfield,xfield,include_time=False):
     else:
         if yfield not in data[0]:
             return {'error':'requested data yfield not available'}      
-
-    hasStartDate = False
-    hasEndDate = False
-
-    if 'startdate' in request.args:
-        st_date = datetime.datetime.strptime(request.args['startdate'], "%Y-%m-%d %H:%M:%S")
-        hasStartDate = True
-
-    if 'enddate' in request.args:
-        ed_date = datetime.datetime.strptime(request.args['enddate'], "%Y-%m-%d %H:%M:%S")
-        hasEndDate = True   
 
     #override the timestamp to the prefered
     x = []
