@@ -5,7 +5,7 @@ uframe endpoints
 '''
 __author__ = 'Andy Bird'
 #base
-from flask import jsonify, request, current_app, url_for, Flask, make_response
+from flask import jsonify, request, current_app, url_for, Flask, make_response, url_for
 from ooiservices.app import db, cache, celery
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment,Stream, StreamParameter, Organization, Instrumentname,Annotation
@@ -15,6 +15,8 @@ from urllib import urlencode
 #data ones
 from ooiservices.app.uframe.data import get_data, COSMO_CONSTANT
 from ooiservices.app.uframe.plotting import generate_plot
+from datetime import datetime
+from dateutil.parser import parse as parse_date
 import requests
 #additional ones
 import json
@@ -23,61 +25,127 @@ import math
 import csv
 import io
 import numpy as np
+import pytz
 
-@api.route('/stream')
-@auth.login_required
-def streams_list():
+def dfs_streams():
+    response = get_uframe_moorings()
+    if response.status_code != 200:
+        raise IOError('Failed to get response from uFrame')
+    mooring_list = response.json()
+    platforms = []
+    for mooring in mooring_list:
+        if 'VALIDATE' in mooring:
+            continue # Don't know what this is, but we don't want it
+        response = get_uframe_platforms(mooring)
+        if response.status_code != 200:
+            continue
+        
+        platform_tmp = [(mooring, p) for p in response.json()]
+        platforms.extend(platform_tmp)
+
+    instruments = []
+    for platform in platforms:
+        response = get_uframe_instruments(*platform)
+        if response.status_code != 200:
+            continue
+        instrument_tmp = [platform + (i,) for i in response.json()]
+        instruments.extend(instrument_tmp)
+
+    stream_types = []
+    for instrument in instruments:
+        response = get_uframe_stream_types(*instrument)
+        if response.status_code != 200:
+            continue
+
+        stream_tmp = [instrument + (s,) for s in response.json()]
+        stream_types.extend(stream_tmp)
+
+    streams = []
+    for stream_type in stream_types:
+        response = get_uframe_streams(*stream_type)
+        if response.status_code != 200:
+            continue
+
+        stream_tmp = [stream_type + (s,) for s in response.json()]
+        streams.extend(stream_tmp)
+    return streams
+
+def split_stream_name(ui_stream_name):
+    '''
+    Splits the hypenated reference designator and stream type into a tuple of
+    (mooring, platform, instrument, stream_type, stream)
+    '''
+    mooring, platform, instrument = ui_stream_name.split('-', 2)
+    instrument, stream_type, stream = instrument.split('_', 1)
+    return (mooring, platform, instrument, stream_type, stream)
+
+def combine_stream_name(mooring, platform, instrument, stream_type, stream):
+    first_part = '-'.join([mooring, platform, instrument])
+    all_of_it = '_'.join([first_part, stream_type, stream])
+    return all_of_it
+
+def iso_to_timestamp(iso8601):
+    dt = parse_date(iso8601)
+    t = (dt - datetime(1970,1,1,tzinfo=pytz.utc)).total_seconds()
+    return t
+
+def dict_from_stream(mooring, platform, instrument, stream_type, stream):
     from ooiservices.app.main.routes import get_display_name_by_rd
-    UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-
-
     HOST = str(current_app.config['HOST'])
     PORT = str(current_app.config['PORT'])
     SERVICE_LOCATION = 'http://'+HOST+":"+PORT
-
-    response = get_uframe_streams()
+    response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
+    stream_name = '_'.join([stream_type, stream])
+    ref = '-'.join([mooring, platform, instrument])
     if response.status_code != 200:
-        return response
-    streams = response.json()
+        raise IOError("Failed to get stream contents from uFrame")
+    data = response.json()
+    print data[0]
+    data_dict = {}
+    preferred = data[0][u'preferred_timestamp']
+    data_dict['start'] = data[0]['pk']['time'] - COSMO_CONSTANT
+    data_dict['end'] = data[-1]['pk']['time'] - COSMO_CONSTANT
+    data_dict['reference_designator'] = '-'.join([mooring, platform, instrument])
+    data_dict['display_name'] = get_display_name_by_rd(ref)
+    data_dict['csv_download'] = "/".join([SERVICE_LOCATION, 'uframe/get_csv', stream_name, ref])
+    data_dict['json_download'] = "/".join([SERVICE_LOCATION,'uframe/get_json',stream_name,ref])
+    data_dict['netcdf_download'] = "/".join([SERVICE_LOCATION,'uframe/get_netcdf',stream_name,ref])
+    data_dict['profile_json_download'] = "/".join([SERVICE_LOCATION,'uframe/get_profiles',ref,stream_name])
+    data_dict['stream_name'] = stream_name
+    data_dict['variables'] = data[1].keys()
+    data_dict['variable_types'] = {k : type(data[1][k]).__name__ for k in data[1].keys() }
+    return data_dict
+
+
+
+
+@api.route('/stream')
+#@auth.login_required
+def streams_list():
+    '''
+    Accepts stream_name or reference_designator as a URL argument
+    '''
+
+    if request.args.get('stream_name'):
+        try:
+            dict_from_stream(request.args.get('stream_name'))
+        except Exception as e:
+            return jsonify(error=e.message), 500
+
+    streams = dfs_streams()
 
     retval = []
     for stream in streams:
-        if request.args.get('stream_name'):
-            if request.args.get('stream_name') not in stream:
-                continue
-        response = get_uframe_stream(stream)
-        if response.status_code != 200:
-            return response
-        refs = response.json()
-
-        if request.args.get('reference_designator'):
-            refs = [r for r in refs if request.args.get('reference_designator') in r]
-
-        for ref in refs:
-            data_dict = {}
-            response = get_uframe_stream_contents(stream, ref)
-            if response.status_code != 200:
-                return response
-            data =  response.json()
-
-            data_dict['start'] = data[0]['pk']['time'] - COSMO_CONSTANT
-            data_dict['end'] = data[-1]['pk']['time'] - COSMO_CONSTANT
-            data_dict['reference_designator'] = ref
-            data_dict['display_name'] = get_display_name_by_rd(ref)
-            data_dict['csv_download'] = "/".join([SERVICE_LOCATION,'uframe/get_csv',stream,ref])
-            data_dict['json_download'] = "/".join([SERVICE_LOCATION,'uframe/get_json',stream,ref])
-            data_dict['netcdf_download'] = "/".join([SERVICE_LOCATION,'uframe/get_netcdf',stream,ref])
-            data_dict['profile_json_download'] = "/".join([SERVICE_LOCATION,'uframe/get_profiles',ref,stream])
-            data_dict['stream_name'] = stream
-            data_dict['variables'] = data[1].keys()
-            data_dict['variable_types'] = {k : type(data[1][k]).__name__ for k in data[1].keys() }
-
-            retval.append(data_dict)
+        try:
+            data_dict = dict_from_stream(*stream)
+        except Exception as e:
+            continue
+        retval.append(data_dict)
 
     return jsonify(streams=retval)
 
 @cache.memoize(timeout=3600)
-def get_uframe_streams():
+def get_uframe_moorings():
     '''
     Lists all the streams
     '''
@@ -89,26 +157,90 @@ def get_uframe_streams():
         return internal_server_error('uframe connection cannot be made.')
 
 @cache.memoize(timeout=3600)
-def get_uframe_stream(stream):
+def get_uframe_platforms(mooring):
     '''
-    Lists the reference designators for the streams
+    Lists all the streams
     '''
     try:
-        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        response = requests.get("/".join([UFRAME_DATA,stream]))
+        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE'] + '/' + mooring
+        response = requests.get(UFRAME_DATA)
         return response
     except:
         return internal_server_error('uframe connection cannot be made.')
 
 @cache.memoize(timeout=3600)
-def get_uframe_stream_contents(stream, ref):
+def get_uframe_instruments(mooring, platform):
+    '''
+    Lists all the streams
+    '''
+    try:
+        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE'] + '/' + mooring + '/' + platform
+        response = requests.get(UFRAME_DATA)
+        return response
+    except:
+        return internal_server_error('uframe connection cannot be made.')
+
+@cache.memoize(timeout=3600)
+def get_uframe_stream_types(mooring, platform, instrument):
+    '''
+    Lists all the streams
+    '''
+    try:
+        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+        response = requests.get('/'.join([UFRAME_DATA, mooring, platform, instrument]))
+        return response
+    except:
+        return internal_server_error('uframe connection cannot be made.')
+
+@cache.memoize(timeout=3600)
+def get_uframe_streams(mooring, platform, instrument, stream_type):
+    '''
+    Lists all the streams
+    '''
+    try:
+        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+        response = requests.get('/'.join([UFRAME_DATA, mooring, platform, instrument, stream_type]))
+        return response
+    except:
+        return internal_server_error('uframe connection cannot be made.')
+
+
+@cache.memoize(timeout=3600)
+def get_uframe_stream(mooring, platform, instrument, stream):
+    '''
+    Lists the reference designators for the streams
+    '''
+    try:
+        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+        response = requests.get("/".join([UFRAME_DATA,mooring, platform, instrument, stream]))
+        return response
+    except:
+        return internal_server_error('uframe connection cannot be made.')
+
+
+@cache.memoize(timeout=3600)
+def get_uframe_stream_metadata(mooring, platform, instrument, stream):
+    '''
+    Returns the uFrame metadata response for a given stream
+    '''
+    try:
+        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+        response = requests.get("/".join([UFRAME_DATA,mooring, platform, instrument, stream, 'metadata']))
+        return response
+    except:
+        return internal_server_error('uframe connection cannot be made.')
+    
+
+@cache.memoize(timeout=3600)
+def get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream):
     '''
     Gets the stream contents
     '''
-    ref = ref.replace('-','/',2)
     try:
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        response =  requests.get("/".join([UFRAME_DATA,ref,'telemetered',stream]))
+        response =  requests.get("/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream]))
+        if response.status_code != 200:
+            print response.text
         return response
     except:
         return internal_server_error('uframe connection cannot be made.')
@@ -116,7 +248,9 @@ def get_uframe_stream_contents(stream, ref):
 @auth.login_required
 @api.route('/get_csv/<string:stream>/<string:ref>',methods=['GET'])
 def get_csv(stream,ref):
-    data = get_uframe_stream_contents(stream,ref)
+    mooring, platform, instrument = ref.split('-', 2)
+    stream_type, stream = stream.split('_', 1)
+    data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
     if data.status_code != 200:
         return data.text, data.status_code, dict(data.headers)
 
@@ -140,7 +274,9 @@ def get_csv(stream,ref):
 @auth.login_required
 @api.route('/get_json/<string:stream>/<string:ref>',methods=['GET'])
 def get_json(stream,ref):
-    data = get_uframe_stream_contents(stream,ref)
+    mooring, platform, instrument = ref.split('-', 2)
+    stream_type, stream = stream.split('_', 1)
+    data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
     if data.status_code != 200:
         return data.text, data.status_code, dict(data.headers)
     response = '{"data":%s}' % data.content
@@ -153,8 +289,11 @@ def get_json(stream,ref):
 @auth.login_required
 @api.route('/get_netcdf/<string:stream>/<string:ref>',methods=['GET'])
 def get_netcdf(stream,ref):
-    UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE'] +'/%s/%s'%(stream,ref)
-    NETCDF_LINK = UFRAME_DATA+'?format=application/netcdf3'
+    mooring, platform, instrument = ref.split('-', 2)
+    stream_type, stream = stream.split('_', 1)
+    UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+    url = '/'.join([UFRAME_DATA, mooring, platform, instrument, stream_type, stream])
+    NETCDF_LINK = url+'?format=application/netcdf'
 
     response = requests.get(NETCDF_LINK)
     if response.status_code != 200:

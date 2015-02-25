@@ -27,7 +27,7 @@ app = create_app(env)
 manager = Manager(app)
 migrate = Migrate(app,db)
 app.config['WHOOSH_BASE'] = 'ooiservices/whoosh_index'
-#whooshalchemy.whoosh_index(app, PlatformDeployment)
+whooshalchemy.whoosh_index(app, PlatformDeployment)
 
 ##------------------------------------------------------------------
 ## M@Campbell 02/10/2015
