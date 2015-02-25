@@ -63,7 +63,7 @@ def generate_plot(data,plot_format,plot_layout,use_line,use_scatter,plot_profile
                           ylabel=data['y_field'],
                           axis_font=axis_font, 
                           line = use_line,
-                          scatter= False,
+                          scatter= use_scatter,
                           **kwargs)
         else:          
           if int(plot_profile_id) < int(np.shape(data['x'])[0]) :
@@ -77,7 +77,7 @@ def generate_plot(data,plot_format,plot_layout,use_line,use_scatter,plot_profile
                           ylabel=data['y_field'],
                           axis_font=axis_font, 
                           line = use_line,
-                          scatter= False,
+                          scatter= use_scatter,
                           **kwargs)
           else:
             print "\t   couldnt find it"
@@ -90,7 +90,7 @@ def generate_plot(data,plot_format,plot_layout,use_line,use_scatter,plot_profile
                           ylabel=data['y_field'],
                           axis_font=axis_font, 
                           line = use_line,
-                          scatter= False,
+                          scatter= use_scatter,
                           **kwargs)
         plt.tight_layout()
 
@@ -108,11 +108,15 @@ def generate_plot(data,plot_format,plot_layout,use_line,use_scatter,plot_profile
 
 @cache.memoize(timeout=3600)
 def plot_profile(fig,ax, x, y, xlabel='', ylabel='',
-                 axis_font={},line=True , scatter=True, **kwargs):
+                 axis_font={},line=True , scatter=False, **kwargs):
 
     if not axis_font:
         axis_font = axis_font_default
-    ppl.plot(ax, x, y, **kwargs)
+    if line:
+      ppl.plot(ax, x, y, **kwargs)
+    if scatter:
+      ppl.scatter(ax, x, y, **kwargs)
+
     if xlabel:
         ax.set_xlabel(xlabel,labelpad=5, **axis_font)
     if ylabel:
