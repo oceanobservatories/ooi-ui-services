@@ -108,7 +108,7 @@ def get_uframe_stream_contents(stream, ref):
     ref = ref.replace('-','/',2)
     try:
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        response =  requests.get("/".join([UFRAME_DATA,ref,stream]))
+        response =  requests.get("/".join([UFRAME_DATA,ref,'telemetered',stream]))
         return response
     except:
         return internal_server_error('uframe connection cannot be made.')
