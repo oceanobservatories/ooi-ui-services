@@ -100,7 +100,6 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream):
     if response.status_code != 200:
         raise IOError("Failed to get stream contents from uFrame")
     data = response.json()
-    print data[0]
     data_dict = {}
     preferred = data[0][u'preferred_timestamp']
     data_dict['start'] = data[0]['pk']['time'] - COSMO_CONSTANT
@@ -244,7 +243,8 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
         response =  requests.get("/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream]))
         if response.status_code != 200:
-            print response.text
+            #print response.text
+            pass
         return response
     except:
         return internal_server_error('uframe connection cannot be made.')
@@ -254,14 +254,14 @@ def get_uframe_stream_contents_bounded(mooring, platform, instrument, stream_typ
     '''
     Gets the bounded stream contents, start_time and end_time need to be datetime objects
     '''
-    try:
-        start_str = start_time.isoformat() + 'Z'
-        end_str = end_time.isoformat() + 'Z'
-        query = '?beginDT=%s&endDT=%s' % (start_str, end_str)
+    try:        
+        query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        response =  requests.get("/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query]))
+        url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])        
+        response =  requests.get(url)
         if response.status_code != 200:
-            print response.text
+            #print response.text
+            pass
         return response
     except:
         return internal_server_error('uframe connection cannot be made.')
@@ -439,9 +439,14 @@ def get_profile_data(instrument,stream):
     #instrument = instrument.replace('-','/',2)
     #url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE'] +'/' + instrument+ "/telemetered/"+stream + "/" + dt_bounds               
     #response = requests.get(url)
-
     mooring, platform, instrument, stream_type, stream = split_stream_name('_'.join([instrument, stream]))
-    response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
+    if 'startdate' in request.args and 'enddate' in request.args:
+        st_date = request.args['startdate']       
+        ed_date = request.args['enddate']           
+        response = get_uframe_stream_contents_bounded(mooring, platform, instrument, stream_type, stream,st_date,ed_date)
+    else:
+        response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
+
     if response.status_code != 200:
         raise IOError("Failed to get data from uFrame")
     data = response.json()  
