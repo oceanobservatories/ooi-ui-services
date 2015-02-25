@@ -76,7 +76,7 @@ def split_stream_name(ui_stream_name):
     (mooring, platform, instrument, stream_type, stream)
     '''
     mooring, platform, instrument = ui_stream_name.split('-', 2)
-    instrument, stream_type, stream = instrument.split('_', 1)
+    instrument, stream_type, stream = instrument.split('_', 2)
     return (mooring, platform, instrument, stream_type, stream)
 
 def combine_stream_name(mooring, platform, instrument, stream_type, stream):
@@ -140,6 +140,10 @@ def streams_list():
             data_dict = dict_from_stream(*stream)
         except Exception as e:
             continue
+        if request.args.get('reference_designator'):
+            if request.args.get('reference_designator') != data_dict['reference_designator']:
+                continue
+            
         retval.append(data_dict)
 
     return jsonify(streams=retval)
@@ -244,6 +248,24 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
         return response
     except:
         return internal_server_error('uframe connection cannot be made.')
+
+@cache.memoize(timeout=3600)
+def get_uframe_stream_contents_bounded(mooring, platform, instrument, stream_type, stream, start_time, end_time):
+    '''
+    Gets the bounded stream contents, start_time and end_time need to be datetime objects
+    '''
+    try:
+        start_str = start_time.isoformat() + 'Z'
+        end_str = end_time.isoformat() + 'Z'
+        query = '?beginDT=%s&endDT=%s' % (start_str, end_str)
+        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+        response =  requests.get("/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query]))
+        if response.status_code != 200:
+            print response.text
+        return response
+    except:
+        return internal_server_error('uframe connection cannot be made.')
+
 
 @auth.login_required
 @api.route('/get_csv/<string:stream>/<string:ref>',methods=['GET'])
@@ -414,9 +436,12 @@ def get_profile_data(instrument,stream):
     '''
     data = []
     dt_bounds = ''
-    instrument = instrument.replace('-','/',2)
-    url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE'] +'/' + instrument+ "/telemetered/"+stream + "/" + dt_bounds               
-    response = requests.get(url)
+    #instrument = instrument.replace('-','/',2)
+    #url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE'] +'/' + instrument+ "/telemetered/"+stream + "/" + dt_bounds               
+    #response = requests.get(url)
+
+    mooring, platform, instrument, stream_type, stream = split_stream_name('_'.join([instrument, stream]))
+    response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
     if response.status_code != 200:
         raise IOError("Failed to get data from uFrame")
     data = response.json()  
@@ -511,7 +536,7 @@ def get_profile_data(instrument,stream):
     return  profile_list
 
 
-@auth.login_required
+#@auth.login_required
 @api.route('/get_profiles/<string:stream>/<string:instrument>', methods=['GET'])
 def get_profiles(stream, instrument):  
     filename = '-'.join([stream,instrument,"profiles"])
