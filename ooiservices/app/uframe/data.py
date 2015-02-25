@@ -34,15 +34,15 @@ def get_data(stream, instrument,yfield,xfield,include_time=False):
     #-------------------
     #TODO: create better error handler if uframe is not online/responding
     data = []
-    dt_bounds = '?beginDT=2014-05-03T12:12:12.000Z&endDT=2014-05-03T23:12:12.000Z'
+    #dt_bounds = '?beginDT=2014-05-03T12:12:12.000Z&endDT=2014-05-03T23:12:12.000Z'
+    dt_bounds = ''
     instrument = instrument.replace('-','/',2) # replace the - with a / for the new uframe
 
     try:
-        #url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE'] +'/' + instrument+ dt_bounds        
-        #data = requests.get(url)
-        #data = data.json()   
-        json_data=open('test_data.json')
-        data = json.load(json_data)
+        url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE'] +'/' + instrument+ "/telemetered/"+stream + "/" + dt_bounds        
+        print url
+        data = requests.get(url)
+        data = data.json()   
     except Exception,e:
         return {'error':'uframe connection cannot be made:'+str(e)}
 

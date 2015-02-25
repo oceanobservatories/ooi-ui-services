@@ -54,43 +54,43 @@ def generate_plot(data,plot_format,plot_layout,use_line,use_scatter,plot_profile
 
     elif plot_layout == "depthprofile":            
         if plot_profile_id is None:
-          for profile_id in range(0,np.shape(x)[0]):            
+          for profile_id in range(0,np.shape(data['x'])[0]):            
             plot_profile(fig, 
                           ax, 
-                          x[profile_id], 
-                          y[profile_id],
+                          data['x'][profile_id], 
+                          data['y'][profile_id],
                           xlabel=data['x_field'], 
                           ylabel=data['y_field'],
                           axis_font=axis_font, 
                           line = use_line,
-                          scatter= False,
+                          scatter= use_scatter,
                           **kwargs)
         else:          
-          if int(plot_profile_id) < int(np.shape(x)[0]) :
+          if int(plot_profile_id) < int(np.shape(data['x'])[0]) :
             print "\t   less than"
             #get the profile selected            
             plot_profile(fig, 
                           ax, 
-                          x[int(plot_profile_id)], 
-                          y[int(plot_profile_id)],
+                          data['x'][int(plot_profile_id)], 
+                          data['y'][int(plot_profile_id)],
                           xlabel=data['x_field'], 
                           ylabel=data['y_field'],
                           axis_font=axis_font, 
                           line = use_line,
-                          scatter= False,
+                          scatter= use_scatter,
                           **kwargs)
           else:
             print "\t   couldnt find it"
             #return something
             plot_profile(fig, 
                           ax, 
-                          x[0], 
-                          y[0],
+                          data['x'][0], 
+                          data['y'][0],
                           xlabel=data['x_field'], 
                           ylabel=data['y_field'],
                           axis_font=axis_font, 
                           line = use_line,
-                          scatter= False,
+                          scatter= use_scatter,
                           **kwargs)
         plt.tight_layout()
 
@@ -108,11 +108,15 @@ def generate_plot(data,plot_format,plot_layout,use_line,use_scatter,plot_profile
 
 @cache.memoize(timeout=3600)
 def plot_profile(fig,ax, x, y, xlabel='', ylabel='',
-                 axis_font={},line=True , scatter=True, **kwargs):
+                 axis_font={},line=True , scatter=False, **kwargs):
 
     if not axis_font:
         axis_font = axis_font_default
-    ppl.plot(ax, x, y, **kwargs)
+    if line:
+      ppl.plot(ax, x, y, **kwargs)
+    if scatter:
+      ppl.scatter(ax, x, y, **kwargs)
+
     if xlabel:
         ax.set_xlabel(xlabel,labelpad=5, **axis_font)
     if ylabel:

@@ -59,9 +59,9 @@ def streams_list():
             if response.status_code != 200:
                 return response
             data =  response.json()
-            preferred = data[0][u'preferred_timestamp']
-            data_dict['start'] = data[0][preferred] - COSMO_CONSTANT
-            data_dict['end'] = data[-1][preferred] - COSMO_CONSTANT
+
+            data_dict['start'] = data[0]['pk']['time'] - COSMO_CONSTANT
+            data_dict['end'] = data[-1]['pk']['time'] - COSMO_CONSTANT
             data_dict['reference_designator'] = ref
             data_dict['display_name'] = get_display_name_by_rd(ref)
             data_dict['csv_download'] = "/".join([SERVICE_LOCATION,'uframe/get_csv',stream,ref])
@@ -71,7 +71,7 @@ def streams_list():
             data_dict['stream_name'] = stream
             data_dict['variables'] = data[1].keys()
             data_dict['variable_types'] = {k : type(data[1][k]).__name__ for k in data[1].keys() }
-            data_dict['preferred_timestamp'] = data[0]['preferred_timestamp']
+
             retval.append(data_dict)
 
     return jsonify(streams=retval)
@@ -105,9 +105,10 @@ def get_uframe_stream_contents(stream, ref):
     '''
     Gets the stream contents
     '''
+    ref = ref.replace('-','/',2)
     try:
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        response =  requests.get("/".join([UFRAME_DATA,stream,ref]))
+        response =  requests.get("/".join([UFRAME_DATA,ref,'telemetered',stream]))
         return response
     except:
         return internal_server_error('uframe connection cannot be made.')
@@ -205,8 +206,8 @@ def get_svg_plot(instrument, stream):
     if plot_layout == "timeseries":
         data = get_data(stream,instrument,yvar,xvar);
     elif plot_layout == "depthprofile":
-        if yvar != 'pressure':
-            return jsonify(error='invalid profile request'), 400            
+        #if yvar != 'pressure':
+        #    return jsonify(error='invalid profile request'), 400            
         data = get_process_profile_data(stream,instrument,yvar,xvar);        
 
     data['title'] = title
@@ -233,15 +234,16 @@ def get_svg_plot(instrument, stream):
     return buf.read(), 200, {'Content-Type':content_header_map[plot_format]}
 
 def get_process_profile_data(stream,instrument,yvar,xvar):
-    data = get_profile_data(instrument,stream)
-
+    data = get_profile_data(instrument,stream)    
     #check the data is in the first row
+    '''
     if yvar not in data[0] or xvar not in data[0]:
         data = {'error':'requested fields not in data'}
         return data
     if 'profile_id' not in data[0]:
         data = {'error':'profiles not present in data'}
         return data
+    '''
 
     y_data = []
     x_data = []
@@ -265,18 +267,20 @@ def get_process_profile_data(stream,instrument,yvar,xvar):
             except Exception,e:                
                 return {'error':'profiles not present in data,maybe a bug?'}
     
-    return {'x':x_data,'y':y_data}
+    return {'x':x_data,'y':y_data,'x_field':xvar,"y_field":yvar}
 
 def get_profile_data(instrument,stream):
     '''
     process uframe data into profiles
     '''
     data = []
-    url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE'] +'/' + stream + '/' + instrument
+    dt_bounds = ''
+    instrument = instrument.replace('-','/',2)
+    url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE'] +'/' + instrument+ "/telemetered/"+stream + "/" + dt_bounds               
     response = requests.get(url)
     if response.status_code != 200:
         raise IOError("Failed to get data from uFrame")
-    data = response.json()
+    data = response.json()  
     # Note: assumes data has depth and time is ordinal
     # Need to add assertions and try and exceptions to check data
 
@@ -285,11 +289,10 @@ def get_profile_data(instrument,stream):
 
     time = []
     depth = []
-    preferred_timestamp = data[0]['preferred_timestamp']
 
     for row in data:
         depth.append(int(row['pressure']))
-        time.append(float(row[preferred_timestamp]))
+        time.append(float(row['pk']['time']))
 
     matrix = np.column_stack((time, depth))
     tz = matrix
@@ -355,7 +358,7 @@ def get_profile_data(instrument,stream):
     for row in data:
         try:
             #Need to add epsilon. Floating point error may occur
-            where = np.argwhere(depth_profiles == float(row['internal_timestamp']))
+            where = np.argwhere(depth_profiles == float(row['pk']['time']))
             index = where[0]
             rowloc = index[0]
             if len(where) and int(row['pressure']) ==  depth_profiles[rowloc][1]:
