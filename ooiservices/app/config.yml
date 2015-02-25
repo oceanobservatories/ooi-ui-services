@@ -17,6 +17,7 @@ COMMON: &common
     REDMINE_KEY: 'XXXXXXXXXXXXX'
     UI_API_KEY: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
     REDMINE_URL: 'https://uframe-cm.ooi.rutgers.edu'
+    REDMINE_PROJECT_ID: "ooi-ui-api-testing"
     WHOOSH_BASE: 'ooiservices/whoosh_index'
     REDIS_URL: 'redis://:password@localhost:6379'
     DEPLOYMENT_SCENARIO: LOCAL_DEVELOPMENT
