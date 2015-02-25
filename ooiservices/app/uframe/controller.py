@@ -28,7 +28,7 @@ import numpy as np
 @auth.login_required
 def streams_list():
     from ooiservices.app.main.routes import get_display_name_by_rd
-    UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
+    UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
 
 
     HOST = str(current_app.config['HOST'])
@@ -82,7 +82,7 @@ def get_uframe_streams():
     Lists all the streams
     '''
     try:
-        UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
+        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
         response = requests.get(UFRAME_DATA)
         return response
     except:
@@ -94,7 +94,7 @@ def get_uframe_stream(stream):
     Lists the reference designators for the streams
     '''
     try:
-        UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
+        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
         response = requests.get("/".join([UFRAME_DATA,stream]))
         return response
     except:
@@ -106,7 +106,7 @@ def get_uframe_stream_contents(stream, ref):
     Gets the stream contents
     '''
     try:
-        UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv'
+        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
         response =  requests.get("/".join([UFRAME_DATA,stream,ref]))
         return response
     except:
@@ -152,7 +152,7 @@ def get_json(stream,ref):
 @auth.login_required
 @api.route('/get_netcdf/<string:stream>/<string:ref>',methods=['GET'])
 def get_netcdf(stream,ref):
-    UFRAME_DATA = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv/%s/%s'%(stream,ref)
+    UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE'] +'/%s/%s'%(stream,ref)
     NETCDF_LINK = UFRAME_DATA+'?format=application/netcdf3'
 
     response = requests.get(NETCDF_LINK)
@@ -170,7 +170,7 @@ def get_netcdf(stream,ref):
 
 @auth.login_required
 @api.route('/get_data/<string:instrument>/<string:stream>/<string:yvar>/<string:xvar>',methods=['GET'])
-def get_data_api(stream, instrument,yvar):    
+def get_data_api(stream, instrument,yvar,xvar):    
     return jsonify(**get_data(stream,instrument,yvar,xvar))
 
 @auth.login_required
@@ -179,7 +179,7 @@ def get_svg_plot(instrument, stream):
     plot_format = request.args.get('format', 'svg')
     #time series vs profile
     plot_layout = request.args.get('plotLayout', 'timeseries')
-    xvar = request.args.get('xvar', 'internal_timestamp')
+    xvar = request.args.get('xvar', 'time')
     yvar = request.args.get('yvar',None)
     #create bool from request
     use_line = to_bool(request.args.get('line',True))
@@ -209,20 +209,16 @@ def get_svg_plot(instrument, stream):
             return jsonify(error='invalid profile request'), 400            
         data = get_process_profile_data(stream,instrument,yvar,xvar);        
 
+    data['title'] = title
+    data['height'] = height_in
+    data['width'] = width_in
+
     #return if error
     if 'error' in data:
         return jsonify(error=data['error']), 400
 
     #generate plot
-    buf = generate_plot(title,
-                        xlabel,
-                        ylabel,
-                        data['x'],
-                        data['y'],                        
-                        xvar,
-                        yvar,
-                        height_in,
-                        width_in,                        
+    buf = generate_plot(data,                        
                         plot_format,
                         plot_layout,
                         use_line,
@@ -276,7 +272,7 @@ def get_profile_data(instrument,stream):
     process uframe data into profiles
     '''
     data = []
-    url = current_app.config['UFRAME_URL'] + '/sensor/m2m/inv/' + stream + '/' + instrument
+    url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE'] +'/' + stream + '/' + instrument
     response = requests.get(url)
     if response.status_code != 200:
         raise IOError("Failed to get data from uFrame")

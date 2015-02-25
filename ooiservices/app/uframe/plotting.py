@@ -31,23 +31,21 @@ title_font = {'fontname': 'Arial',
                       'weight': 'bold',
                       'verticalalignment': 'bottom'}
 
-PRESSURE_RATIO = 100
+def generate_plot(data,plot_format,plot_layout,use_line,use_scatter,plot_profile_id=None):
 
-def generate_plot(title,xlabel,ylabel,x,y,xvar,yvar,height_in,width_in,plot_format,plot_layout,use_line,use_scatter,plot_profile_id=None):
-
-    fig, ax = ppl.subplots(1, 1, figsize=(width_in, height_in))
+    fig, ax = ppl.subplots(1, 1, figsize=(data['width'], data['height']))
     kwargs = dict(linewidth=1.0,alpha=0.7)
     
     is_timeseries = False
-    if "_timestamp" in xvar:
-        x = num2date(x, units='seconds since 1900-01-01 00:00:00', calendar='gregorian')
-        is_timeseries = True
+    if "time" == data['x']:
+        data['x'] = num2date(data['x'], units='seconds since 1900-01-01 00:00:00', calendar='gregorian')
+        is_timeseries = True 
     
     if plot_layout == "timeseries":
-        plot_time_series(fig, is_timeseries, ax, x, y,
-                             title=title,
-                             xlabel=xlabel,
-                             ylabel=ylabel,
+        plot_time_series(fig, is_timeseries, ax, data['x'], data['y'],
+                             title=data['title'],
+                             xlabel=data['x_field'],
+                             ylabel=data['y_field'],
                              title_font=title_font,
                              axis_font=axis_font,
                              line = use_line,
@@ -61,8 +59,8 @@ def generate_plot(title,xlabel,ylabel,x,y,xvar,yvar,height_in,width_in,plot_form
                           ax, 
                           x[profile_id], 
                           y[profile_id],
-                          xlabel=xlabel, 
-                          ylabel=ylabel,
+                          xlabel=data['x_field'], 
+                          ylabel=data['y_field'],
                           axis_font=axis_font, 
                           line = use_line,
                           scatter= False,
@@ -75,8 +73,8 @@ def generate_plot(title,xlabel,ylabel,x,y,xvar,yvar,height_in,width_in,plot_form
                           ax, 
                           x[int(plot_profile_id)], 
                           y[int(plot_profile_id)],
-                          xlabel=xlabel, 
-                          ylabel=ylabel,
+                          xlabel=data['x_field'], 
+                          ylabel=data['y_field'],
                           axis_font=axis_font, 
                           line = use_line,
                           scatter= False,
@@ -88,8 +86,8 @@ def generate_plot(title,xlabel,ylabel,x,y,xvar,yvar,height_in,width_in,plot_form
                           ax, 
                           x[0], 
                           y[0],
-                          xlabel=xlabel, 
-                          ylabel=ylabel,
+                          xlabel=data['x_field'], 
+                          ylabel=data['y_field'],
                           axis_font=axis_font, 
                           line = use_line,
                           scatter= False,
@@ -111,8 +109,6 @@ def generate_plot(title,xlabel,ylabel,x,y,xvar,yvar,height_in,width_in,plot_form
 @cache.memoize(timeout=3600)
 def plot_profile(fig,ax, x, y, xlabel='', ylabel='',
                  axis_font={},line=True , scatter=True, **kwargs):
-    
-    y = (np.array(y))/ PRESSURE_RATIO
 
     if not axis_font:
         axis_font = axis_font_default
@@ -189,20 +185,4 @@ def get_time_label(ax, dates):
         ax.xaxis.set_major_locator(major)
         ax.xaxis.set_major_formatter(formt)
 
-def plot_scatter(fig, ax, x, y, title='', xlabel='', ylabel='',
-                     title_font={}, axis_font={}, **kwargs):
-
-        if not title_font:
-            title_font = title_font_default
-        if not axis_font:
-            axis_font = axis_font_default
-
-        ppl.scatter(ax, x, y, **kwargs)
-        if xlabel:
-            ax.set_xlabel(xlabel, labelpad=10, **axis_font)
-        if ylabel:
-            ax.set_ylabel(ylabel, labelpad=10, **axis_font)
-        ax.set_title(title, **title_font)
-        ax.grid(True)
-        ax.set_aspect(1./ax.get_data_ratio())  # make axes square
 
