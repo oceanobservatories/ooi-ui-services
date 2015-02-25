@@ -30,6 +30,7 @@ import pytz
 def dfs_streams():
     response = get_uframe_moorings()
     if response.status_code != 200:
+        current_app.logger.error("Failed to get a valid response from uframe")
         raise IOError('Failed to get response from uFrame')
     mooring_list = response.json()
     platforms = []
@@ -155,6 +156,7 @@ def get_uframe_moorings():
     '''
     try:
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+        current_app.logger.info("GET %s", UFRAME_DATA)
         response = requests.get(UFRAME_DATA)
         return response
     except:
@@ -167,6 +169,7 @@ def get_uframe_platforms(mooring):
     '''
     try:
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE'] + '/' + mooring
+        current_app.logger.info("GET %s", UFRAME_DATA)
         response = requests.get(UFRAME_DATA)
         return response
     except:
@@ -179,6 +182,7 @@ def get_uframe_instruments(mooring, platform):
     '''
     try:
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE'] + '/' + mooring + '/' + platform
+        current_app.logger.info("GET %s", UFRAME_DATA)
         response = requests.get(UFRAME_DATA)
         return response
     except:
@@ -191,6 +195,7 @@ def get_uframe_stream_types(mooring, platform, instrument):
     '''
     try:
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+        current_app.logger.info("GET %s", '/'.join([UFRAME_DATA, mooring, platform, instrument]))
         response = requests.get('/'.join([UFRAME_DATA, mooring, platform, instrument]))
         return response
     except:
@@ -204,6 +209,7 @@ def get_uframe_streams(mooring, platform, instrument, stream_type):
     try:
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
         response = requests.get('/'.join([UFRAME_DATA, mooring, platform, instrument, stream_type]))
+        current_app.logger.info("GET %s", '/'.join([UFRAME_DATA, mooring, platform, instrument, stream_type]))
         return response
     except:
         return internal_server_error('uframe connection cannot be made.')
@@ -216,6 +222,7 @@ def get_uframe_stream(mooring, platform, instrument, stream):
     '''
     try:
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+        current_app.logger.info("GET %s", "/".join([UFRAME_DATA,mooring, platform, instrument, stream]))
         response = requests.get("/".join([UFRAME_DATA,mooring, platform, instrument, stream]))
         return response
     except:
