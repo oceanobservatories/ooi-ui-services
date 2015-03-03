@@ -7,17 +7,17 @@ Support for generating svg plots
 
 __author__ = 'Andy Bird'
 
-#plotting
+from netCDF4 import num2date
+from ooiservices.app import cache
+from matplotlib.ticker import FuncFormatter
+from flask import current_app
 import matplotlib
 import matplotlib.pyplot as plt
 import io
 import numpy as np
 import time
 import matplotlib.dates as mdates
-from matplotlib.ticker import FuncFormatter
 import prettyplotlib as ppl
-from netCDF4 import num2date
-from ooiservices.app import cache
 
 axis_font = {'fontname': 'Calibri',
                      'size': '14',
@@ -31,16 +31,69 @@ title_font = {'fontname': 'Arial',
                       'weight': 'bold',
                       'verticalalignment': 'bottom'}
 
-def generate_plot(title,ylabel,x,y,width_in,height_in,plot_format):
-    fig, ax = ppl.subplots(1, 1, figsize=(width_in, height_in))
+def generate_plot(data,plot_format,plot_layout,use_line,use_scatter,plot_profile_id=None):
+
+    fig, ax = ppl.subplots(1, 1, figsize=(data['width'], data['height']))
     kwargs = dict(linewidth=1.0,alpha=0.7)
-    date_list = num2date(x, units='seconds since 1900-01-01 00:00:00', calendar='gregorian')
-    plot_time_series(fig, ax, date_list, y,
-                                     title=title,
-                                     ylabel=ylabel,
-                                     title_font=title_font,
-                                     axis_font=axis_font,
-                                     **kwargs)
+    
+    is_timeseries = False
+    if "time" == data['x_field']:
+        data['x'] = num2date(data['x'], units='seconds since 1900-01-01 00:00:00', calendar='gregorian')
+        is_timeseries = True 
+    
+    if plot_layout == "timeseries":
+        plot_time_series(fig, is_timeseries, ax, data['x'], data['y'],
+                             title=data['title'],
+                             xlabel=data['x_field'],
+                             ylabel=data['y_field'],
+                             title_font=title_font,
+                             axis_font=axis_font,
+                             line = use_line,
+                             scatter = use_scatter,
+                             **kwargs)
+
+    elif plot_layout == "depthprofile":            
+        if plot_profile_id is None:
+          for profile_id in range(0,np.shape(data['x'])[0]):            
+            plot_profile(fig, 
+                          ax, 
+                          data['x'][profile_id], 
+                          data['y'][profile_id],
+                          xlabel=data['x_field'], 
+                          ylabel=data['y_field'],
+                          axis_font=axis_font, 
+                          line = use_line,
+                          scatter= use_scatter,
+                          **kwargs)
+        else:          
+          if int(plot_profile_id) < int(np.shape(data['x'])[0]) :
+            print "\t   less than"
+            #get the profile selected            
+            plot_profile(fig, 
+                          ax, 
+                          data['x'][int(plot_profile_id)], 
+                          data['y'][int(plot_profile_id)],
+                          xlabel=data['x_field'], 
+                          ylabel=data['y_field'],
+                          axis_font=axis_font, 
+                          line = use_line,
+                          scatter= use_scatter,
+                          **kwargs)
+          else:
+            print "\t   couldnt find it"
+            #return something
+            plot_profile(fig, 
+                          ax, 
+                          data['x'][0], 
+                          data['y'][0],
+                          xlabel=data['x_field'], 
+                          ylabel=data['y_field'],
+                          axis_font=axis_font, 
+                          line = use_line,
+                          scatter= use_scatter,
+                          **kwargs)
+        plt.tight_layout()
+        plt.gca().invert_yaxis()
 
     buf = io.BytesIO()
     
@@ -55,18 +108,45 @@ def generate_plot(title,ylabel,x,y,width_in,height_in,plot_format):
     return buf 
 
 @cache.memoize(timeout=3600)
-def plot_time_series(fig, ax, x, y, fill=False, title='', ylabel='',
-                         title_font={}, axis_font={}, **kwargs):
+def plot_profile(fig,ax, x, y, xlabel='', ylabel='',
+                 axis_font={},line=True , scatter=False, **kwargs):
+
+    if not axis_font:
+        axis_font = axis_font_default
+    if line:
+      ppl.plot(ax, x, y, **kwargs)
+    if scatter:
+      ppl.scatter(ax, x, y, **kwargs)
+
+    if xlabel:
+        #ax.set_xlabel(xlabel,labelpad=5, **axis_font)
+        ax.set_xlabel(xlabel,labelpad=5, **axis_font)
+    if ylabel:
+        ax.set_ylabel(ylabel, labelpad=11, **axis_font)
+    ax.xaxis.set_label_position('top')  # this moves the label to the top
+    ax.xaxis.set_ticks_position('top')
+    ax.grid(True)    
+    # ax.set_title(title, **title_font)
+
+@cache.memoize(timeout=3600)
+def plot_time_series(fig, is_timeseries, ax, x, y, fill=False, title='',xlabel='', ylabel='',
+                         title_font={}, axis_font={}, line=True, scatter=False ,**kwargs):
 
     if not title_font:
         title_font = title_font_default
     if not axis_font:
         axis_font = axis_font_default
 
-    h = ppl.plot(ax, x, y, **kwargs)
-    ppl.scatter(ax, x, y, **kwargs)
-    get_time_label(ax, x)
-    fig.autofmt_xdate()
+    if line:
+        h = ppl.plot(ax, x, y, **kwargs)    
+    if scatter:
+        ppl.scatter(ax, x, y, **kwargs)
+
+    if is_timeseries:        
+        get_time_label(ax, x)
+        fig.autofmt_xdate()
+    else:
+         ax.set_xlabel(xlabel,**axis_font)
 
     if ylabel:
         ax.set_ylabel(ylabel, **axis_font)
@@ -110,20 +190,4 @@ def get_time_label(ax, dates):
         ax.xaxis.set_major_locator(major)
         ax.xaxis.set_major_formatter(formt)
 
-def plot_scatter(fig, ax, x, y, title='', xlabel='', ylabel='',
-                     title_font={}, axis_font={}, **kwargs):
-
-        if not title_font:
-            title_font = title_font_default
-        if not axis_font:
-            axis_font = axis_font_default
-
-        ppl.scatter(ax, x, y, **kwargs)
-        if xlabel:
-            ax.set_xlabel(xlabel, labelpad=10, **axis_font)
-        if ylabel:
-            ax.set_ylabel(ylabel, labelpad=10, **axis_font)
-        ax.set_title(title, **title_font)
-        ax.grid(True)
-        ax.set_aspect(1./ax.get_data_ratio())  # make axes square
 

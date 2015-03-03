@@ -10,6 +10,7 @@ Flask-WTF==0.9.4
 Flask-WhooshAlchemy==0.56
 Flask-Environments==0.1
 Flask-Redis==0.0.6
+Flask-SSLify==0.1.4
 Jinja2==2.7.3
 Mako==0.9.1
 Markdown==2.3.1
