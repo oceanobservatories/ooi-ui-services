@@ -13,10 +13,19 @@ from ooiservices.app.main.errors import internal_server_error
 import json
 import requests
 
-
+def _remove_duplicates(values):
+    output = []
+    seen = set()
+    for value in values:
+        # If value has not been encountered yet,
+        #  add it to both list and set.
+        if value not in seen:
+            output.append(value)
+            seen.add(value)
+    return output
 
 #This class will handle the default checks of the uframe assets endpoint
-# as well as cleaning up each the route implementation (CRUD).
+# as well as cleaning up each of the route implementation (CRUD).
 class uFrameAssetCollection(object):
     # m@c: Updated 03/03/2015
     __defaults__ = {
@@ -55,7 +64,7 @@ class uFrameAssetCollection(object):
             data = requests.get(uframe_assets_url)
         except:
             raise data.status_code
-        self.obj = data.text
+        self.obj = data.json()
         return self.obj
 
     #TODO: Create, Update, Delete methods.
@@ -66,14 +75,32 @@ class uFrameAssetCollection(object):
         return '[ %s ]' % self.__defaults__
 
 
-
 @api.route('/assets', methods=['GET'], defaults={'id': None})
 @api.route('/assets/<int:id>', methods=['GET'])
-def get_list(id):
+def get_asset(id):
     '''
     Lists all the assets if id is none, returns a single asset if id is a valid int
     '''
     uframe_obj = uFrameAssetCollection()
     response = uframe_obj.fetch(id)
-    return response
+    return jsonify({ 'assets' : [response] })
+
+@api.route('/asset/types', methods=['GET'])
+def get_asset_types():
+    '''
+    Lists all the asset types available from uFrame.
+    '''
+    data = []
+    assetType = []
+    uframe_obj = uFrameAssetCollection()
+    temp_list = uframe_obj.fetch()
+    for row in temp_list:
+        if row['assetInfo'] is not None:
+            assetType.append(row['assetInfo'])
+            for assType in assetType:
+                data.append(assType['type'])
+    data = _remove_duplicates(data)
+    #unique_list = {v['assetInfo']:v for v in temp_list}.values()
+    return jsonify({ 'asset_types' : data })
+
 
