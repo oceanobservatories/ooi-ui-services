@@ -27,10 +27,8 @@ def _remove_duplicates(values):
 def _uframe_url(endpoint, id=None):
     if id is not None:
         uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (endpoint, id)
-        print uframe_url
     else:
         uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/%s' % endpoint
-        print uframe_url
 
     return uframe_url
 
@@ -41,20 +39,19 @@ def _uframe_url(endpoint, id=None):
 class uFrameAssetCollection(object):
     __endpoint__ = 'assets'
     # m@c: Updated 03/03/2015
-    __defaults__ = {
-        "@class": None,
-        "metadata": [],
-        "assetInfo": None,
-        "manufacturerInfo": None,
-        "notes": None,
-        "assetId": None,
-        "attachments": [],
-        "purchaseAndDeliveryInfo": None,
-        "physicalInfo": None,
-        "identifier": None,
-        "traceId": None,
-        "overwriteAllowed": False
-    }
+    classType =  None
+    metaData = []
+    assetInfo = None
+    manufacturerInfo = None
+    notes = None
+    assetId = None
+    attachments = []
+    purchaseAndDeliveryInfo = None
+    physicalInfo = None
+    identifier = None
+    traceId = None
+    overwriteAllowed = False
+
 
     #Create a json object that contains all uframe assets.
     #This will be the collection that will may be parsed.
@@ -77,8 +74,10 @@ class uFrameAssetCollection(object):
         self.obj = data.json()
         return self.obj
 
-    #TODO: Create, Update, Delete methods.
-
+    def from_json(self, json):
+        metaData = json.get('metaData')
+        ssetInfo = json.get('assetInfo')
+        return uFrameAssetCollection(metaData = metaData, assetInfo = assetInfo)
 
     #Displays the default top level attributes of this class.
     def __repr__(self):
@@ -89,45 +88,19 @@ class uFrameAssetCollection(object):
 class uFrameEventCollection(object):
     __endpoint__ = 'events'
     # m@c: Updated 03/03/2015
-    __defaults__ = {
-        "assetEventType" : None,
-        "integratedInto" : {
-            "metaData" : [ ],
-            "assetInfo" : None,
-            "manufacturerInfo" : None,
-            "notes" : [ ],
-            "assetId" : None,
-            "attachments" : [ ],
-            "purachaseAndDeliveryInfo" : None,
-            "physicalInfo" : None,
-            "identifier" : None,
-            "traceId" : "",
-            "overwriteAllowed" : False
-            },
-        "notes" : [ ],
-        "startDate" : None,
-        "endDate" : None,
-        "attachments" : [ ],
-        "eventId" : None,
-        "eventDescription" : None,
-        "recordedBy" : None,
-        "assets" : [ {
-            "metaData" : [ ],
-            "assetInfo" : None,
-            "manufacturerInfo" : None,
-            "notes" : [ ],
-            "assetId" : None,
-            "attachments" : [ ],
-            "purachaseAndDeliveryInfo" : None,
-            "physicalInfo" : None,
-            "identifier" : None,
-            "traceId" : "",
-            "overwriteAllowed" : False
-            } ],
-        "identifier" : None,
-        "traceId" : "",
-        "overwriteAllowed" : False
-        }
+    assetEventType = None
+    integratedInto = {}
+    notes = []
+    startDate = None
+    endDate = None
+    attachments = None
+    eventId = None
+    eventDescription = None
+    recordedBy = None
+    assets = {}
+    identifier = None
+    traceId = None
+    overwriteAllowed = None
 
     #Create a json object that contains all uframe assets.
     #This will be the collection that will may be parsed.
