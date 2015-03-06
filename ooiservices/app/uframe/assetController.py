@@ -52,7 +52,6 @@ class uFrameAssetCollection(object):
     traceId = None
     overwriteAllowed = False
 
-
     #Create a json object that contains all uframe assets.
     #This will be the collection that will may be parsed.
     obj = None
@@ -155,6 +154,10 @@ class uFrameEventCollection(object):
     def __repr__(self):
         return '<EventID: %r>' % (self.assetId)
 
+### ---------------------------------------------------------------------------
+### BEGIN Events CRUD methods.
+### ---------------------------------------------------------------------------
+#Read (list)
 @api.route('/events', methods=['GET'])
 def get_events():
     '''
@@ -168,6 +171,7 @@ def get_events():
     #parse the result and assign ref_des as top element.
     return jsonify({ 'events' : data })
 
+#Read (object)
 @api.route('/events/<int:id>', methods=['GET'])
 def get_event(id):
     '''
@@ -180,8 +184,53 @@ def get_event(id):
     data = uframe_obj.fetch(id)
     #parse the result and assign ref_des as top element.
     return jsonify(**data)
+### ---------------------------------------------------------------------------
+### END Events CRUD methods.
+### ---------------------------------------------------------------------------
 
+### ---------------------------------------------------------------------------
+### BEGIN Assets CRUD methods.
+### ---------------------------------------------------------------------------
+#Read (list)
+    ##TABLE THIS FOR NOW...
+    '''@api.route('/assets', methods=['GET'])
+    def get_asset_list():
+        #set up all the contaners.
+        d = {}
+        data = {}
+        ref_des = None
+        temp_body = []
+        #create uframe instance, and fetch the data.
+        uframe_obj = uFrameAssetCollection()
+        temp_list = uframe_obj.to_json()
+        #parse the result and assign ref_des as top element.
+        for row in temp_list:
+            if row['metaData'] is not None:
+                for metaData in row['metaData']:
+                    if metaData['key'] == 'Ref Des':
+                        ref_des = (metaData['value'])
+                    else:
+                        d[metaData['key']] = metaData['value']
+                temp_body.append(d)
+                if len(temp_body) > 0:
+                    data[ref_des] = temp_body
+                temp_body = []
+        return jsonify({ 'assets' : data })
+    '''
+@api.route('/assets', methods=['GET'])
+def get_assets():
+    '''
+    Lists all the assets
+    '''
+    #set up all the contaners.
+    data = {}
+    #create uframe instance, and fetch the data.
+    uframe_obj = uFrameAssetCollection()
+    data = uframe_obj.to_json()
+    #parse the result and assign ref_des as top element.
+    return jsonify({ 'assets' : data })
 
+#Read (object)
 @api.route('/assets/<int:id>', methods=['GET'])
 def get_asset(id):
     '''
@@ -192,38 +241,13 @@ def get_asset(id):
     #parse the result and assign ref_des as top element.
     return jsonify(**data)
 
-@api.route('/assets', methods=['GET'])
-def get_asset_list():
-    '''
-    Lists all the assets
-    '''
-    #set up all the contaners.
-    d = {}
-    data = {}
-    ref_des = None
-    temp_body = []
-    #create uframe instance, and fetch the data.
-    uframe_obj = uFrameAssetCollection()
-    temp_list = uframe_obj.to_json()
-    #parse the result and assign ref_des as top element.
-    for row in temp_list:
-        if row['metaData'] is not None:
-            for metaData in row['metaData']:
-                if metaData['key'] == 'Ref Des':
-                    ref_des = (metaData['value'])
-                else:
-                    d[metaData['key']] = metaData['value']
-            temp_body.append(d)
-            if len(temp_body) > 0:
-                data[ref_des] = temp_body
-            temp_body = []
-    return jsonify({ 'assets' : data })
+### ---------------------------------------------------------------------------
+### END Assets CRUD methods.
+### ---------------------------------------------------------------------------
 
-
-
-##################
-#The following routes are for generating drop down lists, used in filtering view.
-##################
+### ---------------------------------------------------------------------------
+### The following routes are for generating drop down lists, used in filtering view.
+### ---------------------------------------------------------------------------
 
 @api.route('/asset/types', methods=['GET'])
 def get_asset_types():
