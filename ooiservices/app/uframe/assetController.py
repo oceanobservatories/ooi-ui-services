@@ -61,8 +61,7 @@ class uFrameAssetCollection(object):
         object.__init__(self)
         pass
 
-    #READ (list)
-    def fetch(self,id=None):
+    def to_json(self,id=None):
         data = []
 
         uframe_assets_url = _uframe_url(self.__endpoint__, id)
@@ -75,13 +74,25 @@ class uFrameAssetCollection(object):
         return self.obj
 
     def from_json(self, json):
+        classType = json.get('@class')
         metaData = json.get('metaData')
-        ssetInfo = json.get('assetInfo')
-        return uFrameAssetCollection(metaData = metaData, assetInfo = assetInfo)
+        assetInfo = json.get('assetInfo')
+        manufacturerInfo = json.get('manufactureInfo')
+        notes = json.get('notes')
+        assetId = json.get('assetId')
+        attachments = json.get('attachments')
+        purchaseAndDeliveryInfo = json.get('purchaseAndDeliveryInfo')
+        physicalInfo = json.get('physicalInfo')
+        ### These are not returned, for now they don't exist in uframe.
+        identifier = json.get('identifier')
+        traceId = json.get('traceId')
+        overwriteAllowed = json.get('overwriteAllowed')
+        #####
+        return uFrameAssetCollection(classType = classType, metaData = metaData, assetInfo = assetInfo, manufacturerInfo = manufacturerInfo, notes = notes, assetId = assetId, attachments = attachments, purchaseAndDeliveryInfo = purchaseAndDeliveryInfo, physicalInfo = physicalInfo)
 
     #Displays the default top level attributes of this class.
     def __repr__(self):
-        return '[ %s ]' % self.__defaults__
+        return '<AssetID: %r>' % (self.assetId)
 
 #This class will handle the default checks of the uframe event endpoint
 # as well as cleaning up each of the route implementation (CRUD).
@@ -110,12 +121,10 @@ class uFrameEventCollection(object):
         object.__init__(self)
         pass
 
-    #READ (list)
-    def fetch(self,id=None):
+    def to_json(self,id=None):
         data = []
         print(id)
         uframe_events_url = _uframe_url(self.__endpoint__, id)
-
         try:
             data = requests.get(uframe_events_url)
         except:
@@ -123,12 +132,28 @@ class uFrameEventCollection(object):
         self.obj = data.json()
         return self.obj
 
-    #TODO: Create, Update, Delete methods.
+    def from_json(json):
+        assetEventType = json.get('assetEventType')
+        integratedInto = json.get('integratedInto')
+        notes = json.get('notes')
+        startDate = json.get('startDate')
+        endDate = json.get('endDate')
+        attachments = json.get('attachments')
+        eventId = json.get('eventId')
+        eventDescription = json.get('eventDescription')
+        recordedBy = json.get('recordedBy')
+        assets = json.get('assets')
+        ### These are not returned, for now they don't exist in uframe.
+        identifier = json.get('identifier')
+        traceId = json.get('traceId')
+        overwriteAllowed = json.get('overwriteAllowed')
+        ########
+        return uFrameEventCollection(assetEventType = assetEventType, integratedInto = integratedInto, notes = notes, startDate = startDate, endDate = endDate, attachments = attachments, eventId = eventId, eventDescription = eventDescription, recordedBy = recordedBy, assets = assets)
 
 
     #Displays the default top level attributes of this class.
     def __repr__(self):
-        return '[ %s ]' % self.__defaults__
+        return '<EventID: %r>' % (self.assetId)
 
 @api.route('/events', methods=['GET'])
 def get_events():
@@ -139,7 +164,7 @@ def get_events():
     data = {}
     #create uframe instance, and fetch the data.
     uframe_obj = uFrameEventCollection()
-    data = uframe_obj.fetch()
+    data = uframe_obj.to_json()
     #parse the result and assign ref_des as top element.
     return jsonify({ 'events' : data })
 
@@ -163,7 +188,7 @@ def get_asset(id):
     Lists one asset by id
     '''
     uframe_obj = uFrameAssetCollection()
-    data = uframe_obj.fetch(id)
+    data = uframe_obj.to_json(id)
     #parse the result and assign ref_des as top element.
     return jsonify(**data)
 
@@ -179,7 +204,7 @@ def get_asset_list():
     temp_body = []
     #create uframe instance, and fetch the data.
     uframe_obj = uFrameAssetCollection()
-    temp_list = uframe_obj.fetch()
+    temp_list = uframe_obj.to_json()
     #parse the result and assign ref_des as top element.
     for row in temp_list:
         if row['metaData'] is not None:
@@ -208,7 +233,7 @@ def get_asset_types():
     data = []
     assetType = []
     uframe_obj = uFrameAssetCollection()
-    temp_list = uframe_obj.fetch()
+    temp_list = uframe_obj.to_json()
     for row in temp_list:
         if row['assetInfo'] is not None:
             assetType.append(row['assetInfo'])
@@ -224,7 +249,7 @@ def get_asset_classes_list():
     '''
     data = []
     uframe_obj = uFrameAssetCollection()
-    temp_list = uframe_obj.fetch()
+    temp_list = uframe_obj.to_json()
     for row in temp_list:
         if row['@class'] is not None:
             data.append(row['@class'])
@@ -239,7 +264,7 @@ def get_asset_serials():
     data = []
     manufInfo = []
     uframe_obj = uFrameAssetCollection()
-    temp_list = uframe_obj.fetch()
+    temp_list = uframe_obj.to_json()
     for row in temp_list:
         if row['manufactureInfo'] is not None:
             manufInfo.append(row['manufactureInfo'])
