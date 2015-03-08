@@ -49,7 +49,7 @@ insert into arrays (array_code, description, geo_location, array_name, display_n
 insert into arrays (array_code, description, geo_location, array_name, display_name) values ('GP', '', ST_MakeEnvelope(49.9795, -144.254, 49.9795, -144.254, 4326), 'Station Papa', 'Global Station Papa');
 insert into arrays (array_code, description, geo_location, array_name, display_name) values ('CP', '', ST_MakeEnvelope(40.1, -70.88, 40.1, -70.88, 4326), 'Pioneer', 'Coastal Pioneer');
 insert into arrays (array_code, description, geo_location, array_name, display_name) values ('GA', '', ST_MakeEnvelope(-42.5073, -42.8905, -42.5073, -42.8905, 4326), 'Argentine Basin', 'Global Argentine Basin');
-insert into arrays (array_code, description, geo_location, array_name, display_name) values ('GI', '', ST_MakeEnvelope(60.4582, -38.4407, 60.4582, -38.4407, 4326), 'Irminger Sea', 'Global Irminger Sea');
+insert into arrays (array_code, description, geo_location, array_name, display_name) values ('GI', 'The Global Irminger sensor network, located in the Argentine Basin in the South Atlantic, supports sensors for measurement of air-sea fluxes of heat, moisture and momentum, and physical, biological and chemical properties throughout the water column.', ST_MakeEnvelope(60.4582, -38.4407, 60.4582, -38.4407, 4326), 'Irminger Sea', 'Global Irminger Sea');
 insert into arrays (array_code, description, geo_location, array_name, display_name) values ('GS', '', ST_MakeEnvelope(-54.0814, -89.6652, -54.0814, -89.6652, 4326), 'Southern Ocean', 'Global Southern Ocean');
 insert into arrays (array_code, description, geo_location, array_name, display_name) values ('RS', '', ST_MakeEnvelope(44.554, -125.352, 44.554, -125.352, 4326), 'Regional Scale', 'Global Regional Scale');
 
@@ -217,6 +217,8 @@ insert into instrument_models (instrument_model_name, series_name, class_name, m
 insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'M', 'NUTNR', 24);
 insert into instrument_models (instrument_model_name, series_name, class_name, manufacturer_id)  values ('unknown', 'D', 'FLORD', 24);
 
+-- instrument_models
+
 
 -- platforms
 
@@ -289,6 +291,8 @@ insert into platforms (platform_name, description, location_description, platfor
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'CE09OSSM-SBD11', 'Endurance WA Offshore Surface Mooring', 'Surface Buoy', '', True, '', 1, 24 );
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'CE09OSSM-SBD12', 'Endurance WA Offshore Surface Mooring', 'Surface Buoy', '', True, '', 1, 24 );
 
+-- CE array
+
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'GP02HYPM', 'PAPA Hybrid Mooring', 'Hybrid Mooring', '', False, '', 1, 24 );
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'GP02HYPM-MPC04', 'PAPA Hybrid Mooring', 'Mid-water Platform', '', False, '', 1, 24 );
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'GP02HYPM-RIS01', 'PAPA Hybrid Mooring', 'Mooring Riser', '', False, '', 1, 24 );
@@ -306,6 +310,8 @@ insert into platforms (platform_name, description, location_description, platfor
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'GP05MOAS-GL003', 'PAPA Mobile Assets', 'Glider 3', '', True, '', 1, 24 );
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'GP05MOAS-PG001', 'PAPA Mobile Assets', 'Global Profiling Glider 1', '', True, '', 1, 24 );
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'GP05MOAS-PG002', 'PAPA Mobile Assets', 'Global Profiling Glider 2', '', True, '', 1, 24 );
+
+-- GP array
 
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'CP01CNSM', 'Pioneer Central P1 Surface Mooring', 'Pioneer Central P1 Surface Mooring', '', False, '', 1, 24 );
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'CP01CNSM-MFD00', 'Pioneer Central P1 Surface Mooring', 'MFN', '', False, '', 1, 24 );
@@ -366,6 +372,8 @@ insert into platforms (platform_name, description, location_description, platfor
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'CP05MOAS-GL005', 'Pioneer Mobile Assets', 'Pioneer Glider 5', '', True, '', 1, 24 );
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'CP05MOAS-GL006', 'Pioneer Mobile Assets', 'Pioneer Glider 6', '', True, '', 1, 24 );
 
+-- CP array
+
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'GA01SUMO', 'Argentine Surface Mooring', 'Surface Mooring', '', False, '', 1, 24 );
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'GA01SUMO-RID16', 'Argentine Surface Mooring', 'Mooring Riser', '', False, '', 1, 24 );
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'GA01SUMO-RII11', 'Argentine Surface Mooring', 'Mooring Riser', '', False, '', 1, 24 );
@@ -389,6 +397,8 @@ insert into platforms (platform_name, description, location_description, platfor
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'GA05MOAS-PG001', 'Argentine Mobile Assets', 'Global Profiling Glider 1', '', True, '', 1, 24 );
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'GA05MOAS-PG002', 'Argentine Mobile Assets', 'Global Profiling Glider 2', '', True, '', 1, 24 );
 
+-- GA array
+
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'GI01SUMO', 'Irminger Sea Surface Mooring', 'Surface Mooring', '', False, '', 1, 24 );
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'GI01SUMO-RID16', 'Irminger Sea Surface Mooring', 'Mooring Riser', '', False, '', 1, 24 );
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'GI01SUMO-RII11', 'Irminger Sea Surface Mooring', 'Mooring Riser', '', False, '', 1, 24 );
@@ -410,6 +420,8 @@ insert into platforms (platform_name, description, location_description, platfor
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'GI05MOAS-GL003', 'Irminger Sea Mobile Assets', 'Glider No. 3', '', True, '', 1, 24 );
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'GI05MOAS-PG001', 'Irminger Sea Mobile Assets', 'Global Profiling Glider 1', '', True, '', 1, 24 );
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'GI05MOAS-PG002', 'Irminger Sea Mobile Assets', 'Global Profiling Glider 2', '', True, '', 1, 24 );
+
+-- GI array
 
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'GS01SUMO', '55S Surface Mooring', 'Surface Mooring', '', False, '', 1, 24 );
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'GS01SUMO-RID16', '55S Surface Mooring', 'Mooring Riser', '', False, '', 1, 24 );
@@ -433,6 +445,8 @@ insert into platforms (platform_name, description, location_description, platfor
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'GS05MOAS-GL003', '55S Mobile Assets', 'Glider No. 3', '', True, '', 1, 24 );
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'GS05MOAS-PG001', '55S Mobile Assets', 'Global Profiling Glider 1', '', True, '', 1, 24 );
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'GS05MOAS-PG002', '55S Mobile Assets', 'Global Profiling Glider 2', '', True, '', 1, 24 );
+
+-- GS array
 
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'RS01SBPD', 'Continental Margin', 'Profiler Mooring', '', False, '', 1, 24 );
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'RS01SBPD-DP01A', 'Continental Margin', 'Profiler', '', False, '', 1, 24 );
@@ -471,6 +485,9 @@ insert into platforms (platform_name, description, location_description, platfor
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'RS03INT1-MJ03C', 'Axial Seamount', 'Junction Box', '', False, '', 1, 24 );
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'RS03INT2', 'Axial Seamount', 'International District', '', False, '', 1, 24 );
 insert into platforms (platform_name, description, location_description, platform_series, is_mobile, serial_no, asset_id, manufacturer_id) values( 'RS03INT2-MJ03D', 'Axial Seamount', 'Junction Box', '', False, '', 1, 24 );
+
+-- RS array
+
 
 -- deployments
 
@@ -543,6 +560,8 @@ insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NU
 insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
 insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
 
+-- CE array
+
 insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
 insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
 insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
@@ -560,6 +579,8 @@ insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NU
 insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
 insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
 insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+
+-- GP array
 
 insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
 insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
@@ -620,50 +641,7 @@ insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NU
 insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
 insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
 
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
-insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+-- CP array
 
 insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
 insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
@@ -688,6 +666,57 @@ insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NU
 insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
 insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
 
+-- GA array
+
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+
+-- GI array
+
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+
+-- GS array
+
 insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
 insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
 insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
@@ -725,6 +754,8 @@ insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NU
 insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
 insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
 insert into deployments (start_date, end_date, cruise_id) values( NULL, NULL, NULL);
+
+-- RS array
 
 -- platform_deployments
 
@@ -797,6 +828,8 @@ insert into platform_deployments (start_date, end_date, platform_id, reference_d
 insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 67, 'CE09OSSM-SBD11', 1, 67, 'Surface Buoy', ST_SetSRID(ST_MakePoint(-124.97, 46.85),4326) );  --
 insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 68, 'CE09OSSM-SBD12', 1, 68, 'Surface Buoy', ST_SetSRID(ST_MakePoint(-124.97, 46.85),4326) );  --
 
+-- CE array
+
 insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 69, 'GP02HYPM', 2, 69, 'Hybrid Mooring', ST_SetSRID(ST_MakePoint(-144.8053333, 50.0783333),4326) );  --
 insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 70, 'GP02HYPM-MPC04', 2, 70, 'Mid-water Platform', ST_SetSRID(ST_MakePoint(-144.8053333, 50.0783333),4326) );  --
 insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 71, 'GP02HYPM-RIS01', 2, 71, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-144.8053333, 50.0783333),4326) );  --
@@ -814,6 +847,8 @@ insert into platform_deployments (start_date, end_date, platform_id, reference_d
 insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 83, 'GP05MOAS-GL003', 2, 83, 'Glider 3', ST_SetSRID(ST_MakePoint(-144.254, 49.9795),4326) );
 insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 84, 'GP05MOAS-PG001', 2, 84, 'Global Profiling Glider 1', ST_SetSRID(ST_MakePoint(-144.254, 49.9795),4326) );
 insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 85, 'GP05MOAS-PG002', 2, 85, 'Global Profiling Glider 2', ST_SetSRID(ST_MakePoint(-144.254, 49.9795),4326) );
+
+-- GP array
 
 insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 86, 'CP01CNSM', 3, 86, 'Pioneer Central P1 Surface Mooring', ST_SetSRID(ST_MakePoint(-70.7697833, 40.1367833),4326) );  --
 insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 87, 'CP01CNSM-MFD00', 3, 87, 'MFN', ST_SetSRID(ST_MakePoint(-70.7697833, 40.1367833),4326) );  --
@@ -874,73 +909,81 @@ insert into platform_deployments (start_date, end_date, platform_id, reference_d
 insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 142, 'CP05MOAS-GL005', 3, 142, 'Pioneer Glider 5', ST_SetSRID(ST_MakePoint(-70.88, 40.1),4326) );
 insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 143, 'CP05MOAS-GL006', 3, 143, 'Pioneer Glider 6', ST_SetSRID(ST_MakePoint(-70.88, 40.1),4326) );
 
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 144, 'GA01SUMO', 4, 144, 'Surface Mooring', ST_SetSRID(ST_MakePoint(-42.8905, -42.5073),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 145, 'GA01SUMO-RID16', 4, 145, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-42.8905, -42.5073),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 146, 'GA01SUMO-RII11', 4, 146, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-42.8905, -42.5073),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 147, 'GA01SUMO-SBD11', 4, 147, 'Surface Buoy', ST_SetSRID(ST_MakePoint(-42.8905, -42.5073),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 148, 'GA01SUMO-SBD12', 4, 148, 'Surface Buoy', ST_SetSRID(ST_MakePoint(-42.8905, -42.5073),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 149, 'GA02HYPM', 4, 149, 'Hybrid Mooring', ST_SetSRID(ST_MakePoint(-42.8905, -42.5073),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 150, 'GA02HYPM-MPC04', 4, 150, 'Mid-water Platform', ST_SetSRID(ST_MakePoint(-42.8905, -42.5073),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 151, 'GA02HYPM-RIS01', 4, 151, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-42.8905, -42.5073),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 152, 'GA02HYPM-WFP02', 4, 152, 'Wire-Following Profiler #1', ST_SetSRID(ST_MakePoint(-42.8905, -42.5073),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 153, 'GA02HYPM-WFP03', 4, 153, 'Wire-Following Profiler #2', ST_SetSRID(ST_MakePoint(-42.8905, -42.5073),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 154, 'GA03FLMA', 4, 154, 'Flanking Mooring A', ST_SetSRID(ST_MakePoint(-42.8905, -42.5073),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 155, 'GA03FLMA-RIS01', 4, 155, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-42.8905, -42.5073),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 156, 'GA03FLMA-RIS02', 4, 156, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-42.8905, -42.5073),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 157, 'GA03FLMB', 4, 157, 'Flanking Mooring B', ST_SetSRID(ST_MakePoint(-42.8905, -42.5073),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 158, 'GA03FLMB-RIS01', 4, 158, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-42.8905, -42.5073),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 159, 'GA03FLMB-RIS02', 4, 159, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-42.8905, -42.5073),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 160, 'GA05MOAS', 4, 160, 'Argentine Gliders', ST_SetSRID(ST_MakePoint(-42.8905, -42.5073),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 161, 'GA05MOAS-GL001', 4, 161, 'Glider No. 1', ST_SetSRID(ST_MakePoint(-42.8905, -42.5073),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 162, 'GA05MOAS-GL002', 4, 162, 'Glider No. 2', ST_SetSRID(ST_MakePoint(-42.8905, -42.5073),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 163, 'GA05MOAS-GL003', 4, 163, 'Glider No. 3', ST_SetSRID(ST_MakePoint(-42.8905, -42.5073),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 164, 'GA05MOAS-PG001', 4, 164, 'Global Profiling Glider 1', ST_SetSRID(ST_MakePoint(-42.8905, -42.5073),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 165, 'GA05MOAS-PG002', 4, 165, 'Global Profiling Glider 2', ST_SetSRID(ST_MakePoint(-42.8905, -42.5073),4326) );
+-- CP array
 
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 166, 'GI01SUMO', 5, 166, 'Surface Mooring', ST_SetSRID(ST_MakePoint(-38.4407, 60.4582),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 167, 'GI01SUMO-RID16', 5, 167, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-38.4407, 60.4582),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 168, 'GI01SUMO-RII11', 5, 168, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-38.4407, 60.4582),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 169, 'GI01SUMO-SBD11', 5, 169, 'Surface Buoy', ST_SetSRID(ST_MakePoint(-38.4407, 60.4582),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 170, 'GI01SUMO-SBD12', 5, 170, 'Surface Buoy', ST_SetSRID(ST_MakePoint(-38.4407, 60.4582),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 171, 'GI02HYPM', 5, 171, 'Hybrid Mooring', ST_SetSRID(ST_MakePoint(-38.4407, 60.4582),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 172, 'GI02HYPM-MPC04', 5, 172, 'Mid-water Platform', ST_SetSRID(ST_MakePoint(-38.4407, 60.4582),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 173, 'GI02HYPM-RIS01', 5, 173, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-38.4407, 60.4582),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 174, 'GI02HYPM-WFP02', 5, 174, 'Wire-Following Profiler', ST_SetSRID(ST_MakePoint(-38.4407, 60.4582),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 175, 'GI03FLMA', 5, 175, 'Flanking Mooring A', ST_SetSRID(ST_MakePoint(-38.4407, 60.4582),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 176, 'GI03FLMA-RIS01', 5, 176, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-38.4407, 60.4582),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 177, 'GI03FLMA-RIS02', 5, 177, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-38.4407, 60.4582),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 178, 'GI03FLMB', 5, 178, 'Flanking Mooring B', ST_SetSRID(ST_MakePoint(-38.4407, 60.4582),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 179, 'GI03FLMB-RIS01', 5, 179, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-38.4407, 60.4582),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 180, 'GI03FLMB-RIS02', 5, 180, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-38.4407, 60.4582),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 181, 'GI05MOAS', 5, 181, 'Irminger Sea Mobile Assets', ST_SetSRID(ST_MakePoint(-38.4407, 60.4582),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 182, 'GI05MOAS-GL001', 5, 182, 'Glider No. 1', ST_SetSRID(ST_MakePoint(-38.4407, 60.4582),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 183, 'GI05MOAS-GL002', 5, 183, 'Glider No. 2', ST_SetSRID(ST_MakePoint(-38.4407, 60.4582),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 184, 'GI05MOAS-GL003', 5, 184, 'Glider No. 3', ST_SetSRID(ST_MakePoint(-38.4407, 60.4582),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 185, 'GI05MOAS-PG001', 5, 185, 'Global Profiling Glider 1', ST_SetSRID(ST_MakePoint(-38.4407, 60.4582),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 186, 'GI05MOAS-PG002', 5, 186, 'Global Profiling Glider 2', ST_SetSRID(ST_MakePoint(-38.4407, 60.4582),4326) );
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 144, 'GA01SUMO', 4, 144, 'Surface Mooring', ST_SetSRID(ST_MakePoint(-42.51, 42.99),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 145, 'GA01SUMO-RID16', 4, 145, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-42.51, 42.99),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 146, 'GA01SUMO-RII11', 4, 146, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-42.51, 42.99),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 147, 'GA01SUMO-SBD11', 4, 147, 'Surface Buoy', ST_SetSRID(ST_MakePoint(-42.51, 42.99),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 148, 'GA01SUMO-SBD12', 4, 148, 'Surface Buoy', ST_SetSRID(ST_MakePoint(-42.51, 42.99),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 149, 'GA02HYPM', 4, 149, 'Hybrid Mooring', ST_SetSRID(ST_MakePoint(-42.51, 42.92),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 150, 'GA02HYPM-MPC04', 4, 150, 'Mid-water Platform', ST_SetSRID(ST_MakePoint(-42.51, 42.92),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 151, 'GA02HYPM-RIS01', 4, 151, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-42.51, 42.92),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 152, 'GA02HYPM-WFP02', 4, 152, 'Wire-Following Profiler #1', ST_SetSRID(ST_MakePoint(-42.51, 42.92),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 153, 'GA02HYPM-WFP03', 4, 153, 'Wire-Following Profiler #2', ST_SetSRID(ST_MakePoint(-42.51, 42.92),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 154, 'GA03FLMA', 4, 154, 'Flanking Mooring A', ST_SetSRID(ST_MakePoint(-42.89, 42.51),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 155, 'GA03FLMA-RIS01', 4, 155, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-42.89, 42.51),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 156, 'GA03FLMA-RIS02', 4, 156, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-42.89, 42.51),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 157, 'GA03FLMB', 4, 157, 'Flanking Mooring B', ST_SetSRID(ST_MakePoint(-42.13, 42.51),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 158, 'GA03FLMB-RIS01', 4, 158, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-42.13, 42.51),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 159, 'GA03FLMB-RIS02', 4, 159, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-42.13, 42.51),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 160, 'GA05MOAS', 4, 160, 'Argentine Gliders', ST_SetSRID(ST_MakePoint(-42.25, 42.5),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 161, 'GA05MOAS-GL001', 4, 161, 'Glider No. 1', ST_SetSRID(ST_MakePoint(-42.25, 42.5),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 162, 'GA05MOAS-GL002', 4, 162, 'Glider No. 2', ST_SetSRID(ST_MakePoint(-42.25, 42.5),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 163, 'GA05MOAS-GL003', 4, 163, 'Glider No. 3', ST_SetSRID(ST_MakePoint(-42.25, 42.5),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 164, 'GA05MOAS-PG001', 4, 164, 'Global Profiling Glider 1', ST_SetSRID(ST_MakePoint(-42.25, 42.5),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 165, 'GA05MOAS-PG002', 4, 165, 'Global Profiling Glider 2', ST_SetSRID(ST_MakePoint(-42.25, 42.5),4326) );  --
 
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 187, 'GS01SUMO', 6, 187, 'Surface Mooring', ST_SetSRID(ST_MakePoint(-89.6652, -54.0814),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 188, 'GS01SUMO-RID16', 6, 188, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-89.6652, -54.0814),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 189, 'GS01SUMO-RII11', 6, 189, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-89.6652, -54.0814),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 190, 'GS01SUMO-SBD11', 6, 190, 'Surface Buoy', ST_SetSRID(ST_MakePoint(-89.6652, -54.0814),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 191, 'GS01SUMO-SBD12', 6, 191, 'Surface Buoy', ST_SetSRID(ST_MakePoint(-89.6652, -54.0814),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 192, 'GS02HYPM', 6, 192, 'Hybrid Mooring', ST_SetSRID(ST_MakePoint(-89.6652, -54.0814),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 193, 'GS02HYPM-MPC04', 6, 193, 'Mid-water Platform', ST_SetSRID(ST_MakePoint(-89.6652, -54.0814),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 194, 'GS02HYPM-RIS01', 6, 194, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-89.6652, -54.0814),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 195, 'GS02HYPM-WFP02', 6, 195, 'Wire-Following Profiler #1', ST_SetSRID(ST_MakePoint(-89.6652, -54.0814),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 196, 'GS02HYPM-WFP03', 6, 196, 'Wire-Following Profiler #2', ST_SetSRID(ST_MakePoint(-89.6652, -54.0814),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 197, 'GS03FLMA', 6, 197, 'Flanking Mooring A', ST_SetSRID(ST_MakePoint(-89.6652, -54.0814),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 198, 'GS03FLMA-RIS01', 6, 198, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-89.6652, -54.0814),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 199, 'GS03FLMA-RIS02', 6, 199, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-89.6652, -54.0814),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 200, 'GS03FLMB', 6, 200, 'Flanking Mooring B', ST_SetSRID(ST_MakePoint(-89.6652, -54.0814),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 201, 'GS03FLMB-RIS01', 6, 201, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-89.6652, -54.0814),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 202, 'GS03FLMB-RIS02', 6, 202, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-89.6652, -54.0814),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 203, 'GS05MOAS', 6, 203, '55S Mobile Assets', ST_SetSRID(ST_MakePoint(-89.6652, -54.0814),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 204, 'GS05MOAS-GL001', 6, 204, 'Glider No. 1', ST_SetSRID(ST_MakePoint(-89.6652, -54.0814),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 205, 'GS05MOAS-GL002', 6, 205, 'Glider No. 2', ST_SetSRID(ST_MakePoint(-89.6652, -54.0814),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 206, 'GS05MOAS-GL003', 6, 206, 'Glider No. 3', ST_SetSRID(ST_MakePoint(-89.6652, -54.0814),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 207, 'GS05MOAS-PG001', 6, 207, 'Global Profiling Glider 1', ST_SetSRID(ST_MakePoint(-89.6652, -54.0814),4326) );
-insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 208, 'GS05MOAS-PG002', 6, 208, 'Global Profiling Glider 2', ST_SetSRID(ST_MakePoint(-89.6652, -54.0814),4326) );
+-- GA array
+
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 166, 'GI01SUMO', 5, 166, 'Surface Mooring', ST_SetSRID(ST_MakePoint(-38.26, -60.61),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 167, 'GI01SUMO-RID16', 5, 167, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-38.26, -60.61),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 168, 'GI01SUMO-RII11', 5, 168, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-38.26, -60.61),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 169, 'GI01SUMO-SBD11', 5, 169, 'Surface Buoy', ST_SetSRID(ST_MakePoint(-38.26, -60.61),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 170, 'GI01SUMO-SBD12', 5, 170, 'Surface Buoy', ST_SetSRID(ST_MakePoint(-38.26, -60.61),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 171, 'GI02HYPM', 5, 171, 'Hybrid Mooring', ST_SetSRID(ST_MakePoint(-38.26, -60.57),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 172, 'GI02HYPM-MPC04', 5, 172, 'Mid-water Platform', ST_SetSRID(ST_MakePoint(-38.26, -60.57),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 173, 'GI02HYPM-RIS01', 5, 173, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-38.26, -60.57),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 174, 'GI02HYPM-WFP02', 5, 174, 'Wire-Following Profiler', ST_SetSRID(ST_MakePoint(-38.26, -60.57),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 175, 'GI03FLMA', 5, 175, 'Flanking Mooring A', ST_SetSRID(ST_MakePoint(-38.44, -60.46),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 176, 'GI03FLMA-RIS01', 5, 176, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-38.44, -60.46),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 177, 'GI03FLMA-RIS02', 5, 177, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-38.44, -60.46),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 178, 'GI03FLMB', 5, 178, 'Flanking Mooring B', ST_SetSRID(ST_MakePoint(-38.08, -60.46),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 179, 'GI03FLMB-RIS01', 5, 179, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-38.08, -60.46),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 180, 'GI03FLMB-RIS02', 5, 180, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-38.08, -60.46),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 181, 'GI05MOAS', 5, 181, 'Irminger Sea Mobile Assets', ST_SetSRID(ST_MakePoint(-38.25, -60.5),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 182, 'GI05MOAS-GL001', 5, 182, 'Glider No. 1', ST_SetSRID(ST_MakePoint(-38.25, -60.5),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 183, 'GI05MOAS-GL002', 5, 183, 'Glider No. 2', ST_SetSRID(ST_MakePoint(-38.25, -60.5),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 184, 'GI05MOAS-GL003', 5, 184, 'Glider No. 3', ST_SetSRID(ST_MakePoint(-38.25, -60.5),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 185, 'GI05MOAS-PG001', 5, 185, 'Global Profiling Glider 1', ST_SetSRID(ST_MakePoint(-38.25, -60.5),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 186, 'GI05MOAS-PG002', 5, 186, 'Global Profiling Glider 2', ST_SetSRID(ST_MakePoint(-38.25, -60.5),4326) );  --
+
+-- GI array
+
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 187, 'GS01SUMO', 6, 187, 'Surface Mooring', ST_SetSRID(ST_MakePoint(-89.28, -54.47),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 188, 'GS01SUMO-RID16', 6, 188, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-89.28, -54.47),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 189, 'GS01SUMO-RII11', 6, 189, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-89.28, -54.47),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 190, 'GS01SUMO-SBD11', 6, 190, 'Surface Buoy', ST_SetSRID(ST_MakePoint(-89.28, -54.47),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 191, 'GS01SUMO-SBD12', 6, 191, 'Surface Buoy', ST_SetSRID(ST_MakePoint(-89.28, -54.47),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 192, 'GS02HYPM', 6, 192, 'Hybrid Mooring', ST_SetSRID(ST_MakePoint(-89.28, -54.41),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 193, 'GS02HYPM-MPC04', 6, 193, 'Mid-water Platform', ST_SetSRID(ST_MakePoint(-89.28, -54.41),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 194, 'GS02HYPM-RIS01', 6, 194, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-89.28, -54.41),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 195, 'GS02HYPM-WFP02', 6, 195, 'Wire-Following Profiler #1', ST_SetSRID(ST_MakePoint(-89.28, -54.41),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 196, 'GS02HYPM-WFP03', 6, 196, 'Wire-Following Profiler #2', ST_SetSRID(ST_MakePoint(-89.28, -54.41),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 197, 'GS03FLMA', 6, 197, 'Flanking Mooring A', ST_SetSRID(ST_MakePoint(-88.89, -54.08),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 198, 'GS03FLMA-RIS01', 6, 198, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-88.89, -54.08),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 199, 'GS03FLMA-RIS02', 6, 199, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-88.89, -54.08),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 200, 'GS03FLMB', 6, 200, 'Flanking Mooring B', ST_SetSRID(ST_MakePoint(-88.67, -54.08),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 201, 'GS03FLMB-RIS01', 6, 201, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-88.67, -54.08),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 202, 'GS03FLMB-RIS02', 6, 202, 'Mooring Riser', ST_SetSRID(ST_MakePoint(-88.67, -54.08),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 203, 'GS05MOAS', 6, 203, '55S Mobile Assets', ST_SetSRID(ST_MakePoint(-89.0, -54.25),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 204, 'GS05MOAS-GL001', 6, 204, 'Glider No. 1', ST_SetSRID(ST_MakePoint(-89.0, -54.25),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 205, 'GS05MOAS-GL002', 6, 205, 'Glider No. 2', ST_SetSRID(ST_MakePoint(-89.0, -54.25),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 206, 'GS05MOAS-GL003', 6, 206, 'Glider No. 3', ST_SetSRID(ST_MakePoint(-89.0, -54.25),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 207, 'GS05MOAS-PG001', 6, 207, 'Global Profiling Glider 1', ST_SetSRID(ST_MakePoint(-89.0, -54.25),4326) );  --
+insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 208, 'GS05MOAS-PG002', 6, 208, 'Global Profiling Glider 2', ST_SetSRID(ST_MakePoint(-89.0, -54.25),4326) );  --
+
+-- GS array
 
 insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 209, 'RS01SBPD', 7, 209, 'Profiler Mooring', ST_SetSRID(ST_MakePoint(-125.35, 44.55),4326) );  --
 insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 210, 'RS01SBPD-DP01A', 7, 210, 'Profiler', ST_SetSRID(ST_MakePoint(-125.35, 44.55),4326) );  --
@@ -979,6 +1022,8 @@ insert into platform_deployments (start_date, end_date, platform_id, reference_d
 insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 243, 'RS03INT1-MJ03C', 7, 243, 'Junction Box', ST_SetSRID(ST_MakePoint(-130.02, 45.94),4326) );  --
 insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 244, 'RS03INT2', 7, 244, 'International District', ST_SetSRID(ST_MakePoint(-130.01, 45.94),4326) );  --
 insert into platform_deployments (start_date, end_date, platform_id, reference_designator, array_id, deployment_id, display_name, geo_location) values( NULL, NULL, 245, 'RS03INT2-MJ03D', 7, 245, 'Junction Box', ST_SetSRID(ST_MakePoint(-130.01, 45.94),4326) );  --
+
+-- RS array
 
 
 -- instruments
@@ -1217,6 +1262,7 @@ insert into instruments (instrument_name, description, location_description, ins
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('ADCPT', 'Velocity_profile_short_range', 'Near Surface Instrument Frame', 'A', 'Velocity Profiler (short range)', 81, 1, 5, 20 );
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('CAMDS', 'camera_digital_still_strobe', 'MFN', 'A', 'Digital Still Camera with Strobes', 18, 1, 500, 7 );
 
+-- CE array
 
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('FLORD', 'Fluorometer_two_wavelength', '', 'M', '2-Wavelength Fluorometer', 95, 1, 1000, 21 );
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('ZPLSG', 'plankton_ZP_sonar_global', 'Mid-water Platform', 'A', 'Bio-acoustic Sonar (Global)', 112, 1, -1, 24 );
@@ -1282,6 +1328,7 @@ insert into instruments (instrument_name, description, location_description, ins
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('CTDMO', 'CTD_mooring', 'Fixed on Inductive Wire', 'G', 'CTD Mooring (Inductive)', 61, 1, 40, 15 );
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('CTDMO', 'CTD_mooring', 'Fixed on Inductive Wire', 'G', 'CTD Mooring (Inductive)', 61, 1, 180, 15 );
 
+-- GP array
 
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('PARAD', 'PAR', '', 'N', 'Photosynthetically Available Radiation', 6, 1, -1, 3 );
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('DOFST', 'oxygen_dissolved_fastresp', 'Wire Following Profiler Body', 'K', 'Dissolved Oxygen Fast Response', 54, 1, 520, 15 );
@@ -1444,6 +1491,7 @@ insert into instruments (instrument_name, description, location_description, ins
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('NUTNR', 'nutrient_Nitrate', 'Surface Piercing Profiler Body', 'J', 'Nitrate', 116, 1, 130, 24 );
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('MOPAK', 'Motion pack', 'Buoy Well, center of Mass', '0', '3-Axis Motion Pack', 107, 1, 0, 24 );
 
+-- CP array
 
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('CTDMO', 'CTD_mooring', 'Fixed on Inductive Wire', 'H', 'CTD Mooring (Inductive)', 62, 1, 1000, 15 );
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('DOSTA', 'oxygen_dissolved_stable', '', 'M', 'Dissolved Oxygen Stable Response', 2, 1, -1, 1 );
@@ -1553,6 +1601,7 @@ insert into instruments (instrument_name, description, location_description, ins
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('FLORD', 'Fluorometer_two_wavelength', 'Fixed on Inductive Wire', 'G', '2-Wavelength Fluorometer', 109, 1, 130, 24 );
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('CTDGV', 'CTD_glider', '', 'M', 'CTD Glider', 49, 1, -1, 15 );
 
+-- GA array
 
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('DOSTA', 'oxygen_dissolved_stable', 'Sensor cage', 'D', 'Dissolved Oxygen Stable Response', 1, 1, 40, 1 );
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('PCO2W', 'pCO2_water', 'Fixed on Inductive Wire', 'C', 'pCO2 Water', 110, 1, 130, 24 );
@@ -1675,6 +1724,7 @@ insert into instruments (instrument_name, description, location_description, ins
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('MOPAK', 'Motion Pack', 'Buoy Well, center of Mass', '0', '3-Axis Motion Pack', 107, 1, 0, 24 );
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('PARAD', 'PAR', '', 'M', 'Photosynthetically Available Radiation', 7, 1, 1000, 3 );
 
+-- GI array
 
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('CTDMO', 'CTD_mooring', 'Fixed on Inductive Wire', 'G', 'CTD Mooring (Inductive)', 61, 1, 500, 15 );
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('FLORT', 'Fluorometer_three_wavelength', 'Near Surface Instrument Frame', 'D', '3-Wavelength Fluorometer', 91, 1, 12, 21 );
@@ -1785,6 +1835,7 @@ insert into instruments (instrument_name, description, location_description, ins
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('CTDMO', 'CTD_mooring', 'Fixed on Inductive Wire', 'H', 'CTD Mooring (Inductive)', 62, 1, 1500, 15 );
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('CTDMO', 'CTD_mooring', 'Fixed on Inductive Wire', 'G', 'CTD Mooring (Inductive)', 61, 1, 90, 15 );
 
+-- GS array
 
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('OBSSP', 'Seismometer_shortperiod', 'Mounted on the seafloor', 'A', 'Short-Period Ocean Bottom Seismometer', 11, 1, 1518, 5 );
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('DOSTA', 'oxygen_dissolved_stable', 'Mounted on the seafloor', 'D', 'Dissolved Oxygen Stable Response', 1, 1, 2597, 1 );
@@ -1918,6 +1969,8 @@ insert into instruments (instrument_name, description, location_description, ins
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('HYDLF', 'Hydrophone_LF_passive', 'Mounted on the seafloor', 'A', 'Low Frequency Broadband Acoustic Receiver (Hydrophone) on Seafloor', 14, 1, 1584, 6 );
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('PREST', 'pressure_SF_tidal', 'Mounted on the seafloor', 'A', 'Tidal Seafloor Pressure', 50, 1, 2906, 15 );
 insert into instruments (instrument_name, description, location_description, instrument_series, display_name, model_id, asset_id, depth_rating, manufacturer_id)  values('FLORT', 'Fluorometer_three_wavelength', 'Near bottom to 150m below surface', 'A', '3-Wavelength Fluorometer', 90, 1, 2500, 21 );
+
+-- RS array
 
 
 -- instrument_deployments
@@ -2156,6 +2209,7 @@ insert into instrument_deployments (display_name, platform_deployment_id, instru
 insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ADCPT', 14, 232, 'CE02SHSM-RID26-01-ADCPTA000', 5, ST_SetSRID(ST_MakePoint(-124.31,44.64),4326) );  --
 insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CAMDS', 62, 233, 'CE09OSSM-MFD00-00-CAMDSA000', 500, ST_SetSRID(ST_MakePoint(-124.97,46.85),4326) );  --
 
+-- CE array
 
 insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 85, 234, 'GP05MOAS-PG002-02-FLORDM000', 1000, ST_SetSRID(ST_MakePoint(-144.254,49.9795),4326) );
 insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ZPLSG', 70, 235, 'GP02HYPM-MPC04-01-ZPLSGA000', -1, ST_SetSRID(ST_MakePoint(-144.8053333,50.0783333),4326) );  --
@@ -2221,6 +2275,7 @@ insert into instrument_deployments (display_name, platform_deployment_id, instru
 insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 76, 295, 'GP03FLMA-RIS02-04-CTDMOG', 40, ST_SetSRID(ST_MakePoint(-144.2456667,49.9775),4326) );  --
 insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 76, 296, 'GP03FLMA-RIS02-08-CTDMOG', 180, ST_SetSRID(ST_MakePoint(-144.2456667,49.9775),4326) );  --
 
+-- GP array
 
 insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PARAD', 136, 297, 'CP05MOAS-AV001-06-PARADN000', -1, ST_SetSRID(ST_MakePoint(-70.88,40.1),4326) );
 insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOFST', 126, 298, 'CP04OSPM-WFP01-02-DOFSTK000', 520, ST_SetSRID(ST_MakePoint(-70.886945,39.937895),4326) );  --
@@ -2383,347 +2438,351 @@ insert into instrument_deployments (display_name, platform_deployment_id, instru
 insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('NUTNR', 123, 455, 'CP03ISSP-SP001-03-NUTNRJ', 130, ST_SetSRID(ST_MakePoint(-70.88,40.1),4326) );
 insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('MOPAK', 92, 456, 'CP01CNSM-SBD11-01-MOPAK0000', 0, ST_SetSRID(ST_MakePoint(-70.7697833,40.1367833),4326) );  --
 
+-- CP array
 
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 159, 457, 'GA03FLMB-RIS02-13-CTDMOH', 1000, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 163, 458, 'GA05MOAS-GL003-02-DOSTAM000', -1, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 159, 459, 'GA03FLMB-RIS02-08-CTDMOG', 180, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 161, 460, 'GA05MOAS-GL001-02-DOSTAM000', -1, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 156, 461, 'GA03FLMA-RIS02-07-CTDMOG', 130, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PHSEN', 158, 462, 'GA03FLMB-RIS01-02-PHSENE', 40, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PHSEN', 155, 463, 'GA03FLMA-RIS01-02-PHSENE', 40, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 146, 464, 'GA01SUMO-RII11-02-CTDMOR015', 1500, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 146, 465, 'GA01SUMO-RII11-02-CTDMOR014', 1000, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 146, 466, 'GA01SUMO-RII11-02-CTDMOR013', 750, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('MOPAK', 147, 467, 'GA01SUMO-SBD11-01-MOPAK0000', 0, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 159, 468, 'GA03FLMB-RIS02-07-CTDMOG', 130, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('METBK', 147, 469, 'GA01SUMO-SBD11-06-METBKA000', 5, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDBP', 146, 470, 'GA01SUMO-RII11-02-CTDBPP201', 80, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 146, 471, 'GA01SUMO-RII11-02-FLORDG203', 80, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 147, 472, 'GA01SUMO-SBD11-04-DOSTAD000', 1, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 146, 473, 'GA01SUMO-RII11-02-DOSTAD302', 130, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2W', 146, 474, 'GA01SUMO-RII11-02-PCO2WC104', 40, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 159, 475, 'GA03FLMB-RIS02-06-CTDMOG', 90, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDBP', 145, 476, 'GA01SUMO-RID16-03-CTDBPF000', 12, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 156, 477, 'GA03FLMA-RIS02-12-CTDMOH', 750, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 159, 478, 'GA03FLMB-RIS02-11-CTDMOG', 500, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('METBK', 148, 479, 'GA01SUMO-SBD12-06-METBKA000', 5, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORT', 148, 480, 'GA01SUMO-SBD12-02-FLORTD000', 1, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ZPLSG', 150, 481, 'GA02HYPM-MPC04-01-ZPLSGA000', -1, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VEL3D', 152, 482, 'GA02HYPM-WFP02-05-VEL3DL000', 2600, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('SPKIR', 145, 483, 'GA01SUMO-RID16-08-SPKIRB000', 12, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 146, 484, 'GA01SUMO-RII11-02-FLORDG103', 40, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 159, 485, 'GA03FLMB-RIS02-12-CTDMOH', 750, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 165, 486, 'GA05MOAS-PG002-01-CTDGVM000', 1000, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 156, 487, 'GA03FLMA-RIS02-09-CTDMOG', 250, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('SPKIR', 147, 488, 'GA01SUMO-SBD11-05-SPKIRB000', 5, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 158, 489, 'GA03FLMB-RIS01-03-DOSTAD', 40, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PARAD', 165, 490, 'GA05MOAS-PG002-04-PARADM000', 1000, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 156, 491, 'GA03FLMA-RIS02-04-CTDMOG', 40, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('NUTNR', 164, 492, 'GA05MOAS-PG001-03-NUTNRM000', 1000, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 163, 493, 'GA05MOAS-GL003-03-ACOMMM000', -1, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VEL3D', 153, 494, 'GA02HYPM-WFP03-05-VEL3DL000', 5000, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ADCPS', 146, 495, 'GA01SUMO-RII11-02-ADCPSN011', 500, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 155, 496, 'GA03FLMA-RIS01-03-DOSTAD', 40, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ADCPS', 156, 497, 'GA03FLMA-RIS02-01-ADCPSL', 500, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 164, 498, 'GA05MOAS-PG001-01-CTDGVM000', 1000, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 153, 499, 'GA02HYPM-WFP03-01-FLORDL000', 5000, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2A', 148, 500, 'GA01SUMO-SBD12-04-PCO2AA000', 0, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 146, 501, 'GA01SUMO-RII11-02-CTDMOQ001', 20, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 146, 502, 'GA01SUMO-RII11-02-CTDMOQ005', 100, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 146, 503, 'GA01SUMO-RII11-02-CTDMOQ004', 60, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 159, 504, 'GA03FLMB-RIS02-14-CTDMOH', 1500, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 156, 505, 'GA03FLMA-RIS02-14-CTDMOH', 1500, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 146, 506, 'GA01SUMO-RII11-02-CTDMOQ008', 180, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 151, 507, 'GA02HYPM-RIS01-01-CTDMOG000', 164, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 145, 508, 'GA01SUMO-RID16-00-ACOMM0000', 12, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 165, 509, 'GA05MOAS-PG002-02-FLORDM000', 1000, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('NUTNR', 145, 510, 'GA01SUMO-RID16-07-NUTNRB000', 12, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDPF', 153, 511, 'GA02HYPM-WFP03-04-CTDPFL000', 5000, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('OPTAA', 145, 512, 'GA01SUMO-RID16-01-OPTAAD000', 12, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 156, 513, 'GA03FLMA-RIS02-10-CTDMOG', 350, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 156, 514, 'GA03FLMA-RIS02-05-CTDMOG', 60, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 159, 515, 'GA03FLMB-RIS02-09-CTDMOG', 250, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 164, 516, 'GA05MOAS-PG001-02-DOSTAM000', 1000, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 146, 517, 'GA01SUMO-RII11-02-CTDMOQ010', 350, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 146, 518, 'GA01SUMO-RII11-02-CTDMOQ012', 500, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('OPTAA', 148, 519, 'GA01SUMO-SBD12-01-OPTAAD000', 1, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 162, 520, 'GA05MOAS-GL002-02-DOSTAM000', -1, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 146, 521, 'GA01SUMO-RII11-02-DOSTAD102', 40, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 163, 522, 'GA05MOAS-GL003-01-FLORDM000', -1, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORT', 155, 523, 'GA03FLMA-RIS01-01-FLORTD', 40, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 156, 524, 'GA03FLMA-RIS02-08-CTDMOG', 180, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 156, 525, 'GA03FLMA-RIS02-06-CTDMOG', 90, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 162, 526, 'GA05MOAS-GL002-03-ACOMMM000', -1, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 163, 527, 'GA05MOAS-GL003-04-CTDGVM000', -1, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 152, 528, 'GA02HYPM-WFP02-01-FLORDL000', 2600, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2W', 146, 529, 'GA01SUMO-RII11-02-PCO2WC304', 130, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PHSEN', 146, 530, 'GA01SUMO-RII11-02-PHSENE002', 20, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PHSEN', 146, 531, 'GA01SUMO-RII11-02-PHSENE006', 100, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 156, 532, 'GA03FLMA-RIS02-03-CTDMOG', 30, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 159, 533, 'GA03FLMB-RIS02-02-ACOMM0', 40, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('WAVSS', 148, 534, 'GA01SUMO-SBD12-05-WAVSSA000', 0, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 159, 535, 'GA03FLMB-RIS02-10-CTDMOG', 350, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VELPT', 145, 536, 'GA01SUMO-RID16-04-VELPTA000', 12, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 152, 537, 'GA02HYPM-WFP02-03-DOSTAL000', 2600, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2W', 145, 538, 'GA01SUMO-RID16-05-PCO2WB000', 12, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDPF', 152, 539, 'GA02HYPM-WFP02-04-CTDPFL000', 2600, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 159, 540, 'GA03FLMB-RIS02-04-CTDMOG', 40, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 162, 541, 'GA05MOAS-GL002-01-FLORDM000', -1, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('OPTAA', 165, 542, 'GA05MOAS-PG002-03-OPTAAM000', 1000, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 159, 543, 'GA03FLMB-RIS02-05-CTDMOG', 60, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 161, 544, 'GA05MOAS-GL001-01-FLORDM000', -1, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 156, 545, 'GA03FLMA-RIS02-13-CTDMOH', 1000, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 145, 546, 'GA01SUMO-RID16-03-DOSTAD000', 12, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ADCPS', 159, 547, 'GA03FLMB-RIS02-01-ADCPSL', 500, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 156, 548, 'GA03FLMA-RIS02-11-CTDMOG', 500, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 159, 549, 'GA03FLMB-RIS02-03-CTDMOG', 30, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 153, 550, 'GA02HYPM-WFP03-03-DOSTAL000', 5000, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 146, 551, 'GA01SUMO-RII11-02-DOSTAD202', 80, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('NUTNR', 147, 552, 'GA01SUMO-SBD11-08-NUTNRB000', 1, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 161, 553, 'GA05MOAS-GL001-04-CTDGVM000', -1, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORT', 158, 554, 'GA03FLMB-RIS01-01-FLORTD', 40, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 146, 555, 'GA01SUMO-RII11-02-CTDMOQ009', 250, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 156, 556, 'GA03FLMA-RIS02-02-ACOMM0', 40, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDBP', 146, 557, 'GA01SUMO-RII11-02-CTDBPP003', 40, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORT', 145, 558, 'GA01SUMO-RID16-02-FLORTD000', 12, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDBP', 146, 559, 'GA01SUMO-RII11-02-CTDBPP007', 130, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2W', 146, 560, 'GA01SUMO-RII11-02-PCO2WC204', 80, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 161, 561, 'GA05MOAS-GL001-03-ACOMMM000', -1, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 146, 562, 'GA01SUMO-RII11-02-FLORDG303', 130, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 162, 563, 'GA05MOAS-GL002-04-CTDGVM000', -1, ST_SetSRID(ST_MakePoint(-42.8905,-42.5073),4326) );
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 159, 457, 'GA03FLMB-RIS02-13-CTDMOH', 1000, ST_SetSRID(ST_MakePoint(-42.13,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 163, 458, 'GA05MOAS-GL003-02-DOSTAM000', -1, ST_SetSRID(ST_MakePoint(-42.25,42.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 159, 459, 'GA03FLMB-RIS02-08-CTDMOG', 180, ST_SetSRID(ST_MakePoint(-42.13,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 161, 460, 'GA05MOAS-GL001-02-DOSTAM000', -1, ST_SetSRID(ST_MakePoint(-42.25,42.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 156, 461, 'GA03FLMA-RIS02-07-CTDMOG', 130, ST_SetSRID(ST_MakePoint(-42.89,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PHSEN', 158, 462, 'GA03FLMB-RIS01-02-PHSENE', 40, ST_SetSRID(ST_MakePoint(-42.13,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PHSEN', 155, 463, 'GA03FLMA-RIS01-02-PHSENE', 40, ST_SetSRID(ST_MakePoint(-42.89,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 146, 464, 'GA01SUMO-RII11-02-CTDMOR015', 1500, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 146, 465, 'GA01SUMO-RII11-02-CTDMOR014', 1000, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 146, 466, 'GA01SUMO-RII11-02-CTDMOR013', 750, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('MOPAK', 147, 467, 'GA01SUMO-SBD11-01-MOPAK0000', 0, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 159, 468, 'GA03FLMB-RIS02-07-CTDMOG', 130, ST_SetSRID(ST_MakePoint(-42.13,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('METBK', 147, 469, 'GA01SUMO-SBD11-06-METBKA000', 5, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDBP', 146, 470, 'GA01SUMO-RII11-02-CTDBPP201', 80, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 146, 471, 'GA01SUMO-RII11-02-FLORDG203', 80, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 147, 472, 'GA01SUMO-SBD11-04-DOSTAD000', 1, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 146, 473, 'GA01SUMO-RII11-02-DOSTAD302', 130, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2W', 146, 474, 'GA01SUMO-RII11-02-PCO2WC104', 40, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 159, 475, 'GA03FLMB-RIS02-06-CTDMOG', 90, ST_SetSRID(ST_MakePoint(-42.13,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDBP', 145, 476, 'GA01SUMO-RID16-03-CTDBPF000', 12, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 156, 477, 'GA03FLMA-RIS02-12-CTDMOH', 750, ST_SetSRID(ST_MakePoint(-42.89,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 159, 478, 'GA03FLMB-RIS02-11-CTDMOG', 500, ST_SetSRID(ST_MakePoint(-42.13,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('METBK', 148, 479, 'GA01SUMO-SBD12-06-METBKA000', 5, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORT', 148, 480, 'GA01SUMO-SBD12-02-FLORTD000', 1, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ZPLSG', 150, 481, 'GA02HYPM-MPC04-01-ZPLSGA000', -1, ST_SetSRID(ST_MakePoint(-42.51,42.92),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VEL3D', 152, 482, 'GA02HYPM-WFP02-05-VEL3DL000', 2600, ST_SetSRID(ST_MakePoint(-42.51,42.92),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('SPKIR', 145, 483, 'GA01SUMO-RID16-08-SPKIRB000', 12, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 146, 484, 'GA01SUMO-RII11-02-FLORDG103', 40, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 159, 485, 'GA03FLMB-RIS02-12-CTDMOH', 750, ST_SetSRID(ST_MakePoint(-42.13,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 165, 486, 'GA05MOAS-PG002-01-CTDGVM000', 1000, ST_SetSRID(ST_MakePoint(-42.25,42.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 156, 487, 'GA03FLMA-RIS02-09-CTDMOG', 250, ST_SetSRID(ST_MakePoint(-42.89,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('SPKIR', 147, 488, 'GA01SUMO-SBD11-05-SPKIRB000', 5, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 158, 489, 'GA03FLMB-RIS01-03-DOSTAD', 40, ST_SetSRID(ST_MakePoint(-42.13,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PARAD', 165, 490, 'GA05MOAS-PG002-04-PARADM000', 1000, ST_SetSRID(ST_MakePoint(-42.25,42.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 156, 491, 'GA03FLMA-RIS02-04-CTDMOG', 40, ST_SetSRID(ST_MakePoint(-42.89,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('NUTNR', 164, 492, 'GA05MOAS-PG001-03-NUTNRM000', 1000, ST_SetSRID(ST_MakePoint(-42.25,42.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 163, 493, 'GA05MOAS-GL003-03-ACOMMM000', -1, ST_SetSRID(ST_MakePoint(-42.25,42.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VEL3D', 153, 494, 'GA02HYPM-WFP03-05-VEL3DL000', 5000, ST_SetSRID(ST_MakePoint(-42.51,42.92),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ADCPS', 146, 495, 'GA01SUMO-RII11-02-ADCPSN011', 500, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 155, 496, 'GA03FLMA-RIS01-03-DOSTAD', 40, ST_SetSRID(ST_MakePoint(-42.89,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ADCPS', 156, 497, 'GA03FLMA-RIS02-01-ADCPSL', 500, ST_SetSRID(ST_MakePoint(-42.89,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 164, 498, 'GA05MOAS-PG001-01-CTDGVM000', 1000, ST_SetSRID(ST_MakePoint(-42.25,42.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 153, 499, 'GA02HYPM-WFP03-01-FLORDL000', 5000, ST_SetSRID(ST_MakePoint(-42.51,42.92),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2A', 148, 500, 'GA01SUMO-SBD12-04-PCO2AA000', 0, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 146, 501, 'GA01SUMO-RII11-02-CTDMOQ001', 20, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 146, 502, 'GA01SUMO-RII11-02-CTDMOQ005', 100, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 146, 503, 'GA01SUMO-RII11-02-CTDMOQ004', 60, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 159, 504, 'GA03FLMB-RIS02-14-CTDMOH', 1500, ST_SetSRID(ST_MakePoint(-42.13,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 156, 505, 'GA03FLMA-RIS02-14-CTDMOH', 1500, ST_SetSRID(ST_MakePoint(-42.89,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 146, 506, 'GA01SUMO-RII11-02-CTDMOQ008', 180, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 151, 507, 'GA02HYPM-RIS01-01-CTDMOG000', 164, ST_SetSRID(ST_MakePoint(-42.51,42.92),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 145, 508, 'GA01SUMO-RID16-00-ACOMM0000', 12, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 165, 509, 'GA05MOAS-PG002-02-FLORDM000', 1000, ST_SetSRID(ST_MakePoint(-42.25,42.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('NUTNR', 145, 510, 'GA01SUMO-RID16-07-NUTNRB000', 12, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDPF', 153, 511, 'GA02HYPM-WFP03-04-CTDPFL000', 5000, ST_SetSRID(ST_MakePoint(-42.51,42.92),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('OPTAA', 145, 512, 'GA01SUMO-RID16-01-OPTAAD000', 12, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 156, 513, 'GA03FLMA-RIS02-10-CTDMOG', 350, ST_SetSRID(ST_MakePoint(-42.89,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 156, 514, 'GA03FLMA-RIS02-05-CTDMOG', 60, ST_SetSRID(ST_MakePoint(-42.89,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 159, 515, 'GA03FLMB-RIS02-09-CTDMOG', 250, ST_SetSRID(ST_MakePoint(-42.13,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 164, 516, 'GA05MOAS-PG001-02-DOSTAM000', 1000, ST_SetSRID(ST_MakePoint(-42.25,42.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 146, 517, 'GA01SUMO-RII11-02-CTDMOQ010', 350, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 146, 518, 'GA01SUMO-RII11-02-CTDMOQ012', 500, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('OPTAA', 148, 519, 'GA01SUMO-SBD12-01-OPTAAD000', 1, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 162, 520, 'GA05MOAS-GL002-02-DOSTAM000', -1, ST_SetSRID(ST_MakePoint(-42.25,42.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 146, 521, 'GA01SUMO-RII11-02-DOSTAD102', 40, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 163, 522, 'GA05MOAS-GL003-01-FLORDM000', -1, ST_SetSRID(ST_MakePoint(-42.25,42.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORT', 155, 523, 'GA03FLMA-RIS01-01-FLORTD', 40, ST_SetSRID(ST_MakePoint(-42.89,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 156, 524, 'GA03FLMA-RIS02-08-CTDMOG', 180, ST_SetSRID(ST_MakePoint(-42.89,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 156, 525, 'GA03FLMA-RIS02-06-CTDMOG', 90, ST_SetSRID(ST_MakePoint(-42.89,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 162, 526, 'GA05MOAS-GL002-03-ACOMMM000', -1, ST_SetSRID(ST_MakePoint(-42.25,42.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 163, 527, 'GA05MOAS-GL003-04-CTDGVM000', -1, ST_SetSRID(ST_MakePoint(-42.25,42.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 152, 528, 'GA02HYPM-WFP02-01-FLORDL000', 2600, ST_SetSRID(ST_MakePoint(-42.51,42.92),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2W', 146, 529, 'GA01SUMO-RII11-02-PCO2WC304', 130, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PHSEN', 146, 530, 'GA01SUMO-RII11-02-PHSENE002', 20, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PHSEN', 146, 531, 'GA01SUMO-RII11-02-PHSENE006', 100, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 156, 532, 'GA03FLMA-RIS02-03-CTDMOG', 30, ST_SetSRID(ST_MakePoint(-42.89,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 159, 533, 'GA03FLMB-RIS02-02-ACOMM0', 40, ST_SetSRID(ST_MakePoint(-42.13,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('WAVSS', 148, 534, 'GA01SUMO-SBD12-05-WAVSSA000', 0, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 159, 535, 'GA03FLMB-RIS02-10-CTDMOG', 350, ST_SetSRID(ST_MakePoint(-42.13,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VELPT', 145, 536, 'GA01SUMO-RID16-04-VELPTA000', 12, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 152, 537, 'GA02HYPM-WFP02-03-DOSTAL000', 2600, ST_SetSRID(ST_MakePoint(-42.51,42.92),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2W', 145, 538, 'GA01SUMO-RID16-05-PCO2WB000', 12, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDPF', 152, 539, 'GA02HYPM-WFP02-04-CTDPFL000', 2600, ST_SetSRID(ST_MakePoint(-42.51,42.92),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 159, 540, 'GA03FLMB-RIS02-04-CTDMOG', 40, ST_SetSRID(ST_MakePoint(-42.13,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 162, 541, 'GA05MOAS-GL002-01-FLORDM000', -1, ST_SetSRID(ST_MakePoint(-42.25,42.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('OPTAA', 165, 542, 'GA05MOAS-PG002-03-OPTAAM000', 1000, ST_SetSRID(ST_MakePoint(-42.25,42.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 159, 543, 'GA03FLMB-RIS02-05-CTDMOG', 60, ST_SetSRID(ST_MakePoint(-42.13,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 161, 544, 'GA05MOAS-GL001-01-FLORDM000', -1, ST_SetSRID(ST_MakePoint(-42.25,42.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 156, 545, 'GA03FLMA-RIS02-13-CTDMOH', 1000, ST_SetSRID(ST_MakePoint(-42.89,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 145, 546, 'GA01SUMO-RID16-03-DOSTAD000', 12, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ADCPS', 159, 547, 'GA03FLMB-RIS02-01-ADCPSL', 500, ST_SetSRID(ST_MakePoint(-42.13,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 156, 548, 'GA03FLMA-RIS02-11-CTDMOG', 500, ST_SetSRID(ST_MakePoint(-42.89,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 159, 549, 'GA03FLMB-RIS02-03-CTDMOG', 30, ST_SetSRID(ST_MakePoint(-42.13,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 153, 550, 'GA02HYPM-WFP03-03-DOSTAL000', 5000, ST_SetSRID(ST_MakePoint(-42.51,42.92),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 146, 551, 'GA01SUMO-RII11-02-DOSTAD202', 80, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('NUTNR', 147, 552, 'GA01SUMO-SBD11-08-NUTNRB000', 1, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 161, 553, 'GA05MOAS-GL001-04-CTDGVM000', -1, ST_SetSRID(ST_MakePoint(-42.25,42.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORT', 158, 554, 'GA03FLMB-RIS01-01-FLORTD', 40, ST_SetSRID(ST_MakePoint(-42.13,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 146, 555, 'GA01SUMO-RII11-02-CTDMOQ009', 250, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 156, 556, 'GA03FLMA-RIS02-02-ACOMM0', 40, ST_SetSRID(ST_MakePoint(-42.89,42.51),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDBP', 146, 557, 'GA01SUMO-RII11-02-CTDBPP003', 40, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORT', 145, 558, 'GA01SUMO-RID16-02-FLORTD000', 12, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDBP', 146, 559, 'GA01SUMO-RII11-02-CTDBPP007', 130, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2W', 146, 560, 'GA01SUMO-RII11-02-PCO2WC204', 80, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 161, 561, 'GA05MOAS-GL001-03-ACOMMM000', -1, ST_SetSRID(ST_MakePoint(-42.25,42.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 146, 562, 'GA01SUMO-RII11-02-FLORDG303', 130, ST_SetSRID(ST_MakePoint(-42.51,42.99),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 162, 563, 'GA05MOAS-GL002-04-CTDGVM000', -1, ST_SetSRID(ST_MakePoint(-42.25,42.5),4326) );  --
 
+-- GA array
 
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 176, 564, 'GI03FLMA-RIS01-03-DOSTAD', 40, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2W', 168, 565, 'GI01SUMO-RII11-02-PCO2WC304', 130, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('METBK', 170, 566, 'GI01SUMO-SBD12-06-METBKA000', 5, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 567, 'GI03FLMB-RIS02-10-CTDMOG', 350, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VELPT', 167, 568, 'GI01SUMO-RID16-04-VELPTA000', 12, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 182, 569, 'GI05MOAS-GL001-01-FLORDM000', -1, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VELPT', 177, 570, 'GI03FLMA-RIS02-21-VELPTB', 2400, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 571, 'GI03FLMB-RIS02-11-CTDMOG', 500, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PHSEN', 168, 572, 'GI01SUMO-RII11-02-PHSENE002', 20, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PHSEN', 168, 573, 'GI01SUMO-RII11-02-PHSENE006', 100, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 168, 574, 'GI01SUMO-RII11-02-FLORDG303', 130, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('SPKIR', 169, 575, 'GI01SUMO-SBD11-05-SPKIRB000', 5, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 185, 576, 'GI05MOAS-PG001-01-CTDGVM000', 1000, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VELPT', 180, 577, 'GI03FLMB-RIS02-20-VELPTB', 2100, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 184, 578, 'GI05MOAS-GL003-04-CTDGVM000', -1, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 168, 579, 'GI01SUMO-RII11-02-FLORDG203', 80, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 168, 580, 'GI01SUMO-RII11-02-DOSTAD302', 130, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 184, 581, 'GI05MOAS-GL003-01-FLORDM000', -1, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('SPKIR', 167, 582, 'GI01SUMO-RID16-08-SPKIRB000', 12, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 183, 583, 'GI05MOAS-GL002-02-DOSTAM000', -1, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 183, 584, 'GI05MOAS-GL002-03-ACOMMM000', -1, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 585, 'GI03FLMB-RIS02-14-CTDMOH', 1500, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 182, 586, 'GI05MOAS-GL001-04-CTDGVM000', -1, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('NUTNR', 167, 587, 'GI01SUMO-RID16-07-NUTNRB000', 12, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VELPT', 180, 588, 'GI03FLMB-RIS02-21-VELPTB', 2400, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 589, 'GI03FLMA-RIS02-18-CTDMOH', 2700, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VELPT', 180, 590, 'GI03FLMB-RIS02-22-VELPTB', 2700, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 182, 591, 'GI05MOAS-GL001-02-DOSTAM000', -1, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDBP', 168, 592, 'GI01SUMO-RII11-02-CTDBPP007', 130, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDBP', 168, 593, 'GI01SUMO-RII11-02-CTDBPP003', 40, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 594, 'GI03FLMA-RIS02-03-CTDMOG', 30, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 183, 595, 'GI05MOAS-GL002-04-CTDGVM000', -1, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2W', 168, 596, 'GI01SUMO-RII11-02-PCO2WC104', 40, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 168, 597, 'GI01SUMO-RII11-02-FLORDG103', 40, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 180, 598, 'GI03FLMB-RIS02-02-ACOMM0', 40, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 599, 'GI03FLMA-RIS02-04-CTDMOG', 40, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 167, 600, 'GI01SUMO-RID16-00-ACOMM0000', 12, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2W', 168, 601, 'GI01SUMO-RII11-02-PCO2WC204', 80, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VELPT', 180, 602, 'GI03FLMB-RIS02-19-VELPTB', 1800, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 603, 'GI03FLMA-RIS02-05-CTDMOG', 60, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 168, 604, 'GI01SUMO-RII11-02-CTDMOR015', 1500, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 168, 605, 'GI01SUMO-RII11-02-CTDMOR014', 1000, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 606, 'GI03FLMA-RIS02-16-CTDMOH', 2100, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2A', 170, 607, 'GI01SUMO-SBD12-04-PCO2AA000', 0, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 168, 608, 'GI01SUMO-RII11-02-CTDMOR013', 750, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VEL3D', 174, 609, 'GI02HYPM-WFP02-05-VEL3DL000', 2600, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 610, 'GI03FLMB-RIS02-17-CTDMOH', 2400, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PHSEN', 179, 611, 'GI03FLMB-RIS01-02-PHSENE', 40, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 612, 'GI03FLMA-RIS02-09-CTDMOG', 250, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FDCHP', 170, 613, 'GI01SUMO-SBD12-08-FDCHPA000', 5, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 614, 'GI03FLMB-RIS02-16-CTDMOH', 2100, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('NUTNR', 185, 615, 'GI05MOAS-PG001-03-NUTNRM000', 1000, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('OPTAA', 186, 616, 'GI05MOAS-PG002-03-OPTAAM000', 1000, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2W', 167, 617, 'GI01SUMO-RID16-05-PCO2WB000', 12, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('METBK', 169, 618, 'GI01SUMO-SBD11-06-METBKA000', 5, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDPF', 174, 619, 'GI02HYPM-WFP02-04-CTDPFL000', 2600, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VELPT', 177, 620, 'GI03FLMA-RIS02-20-VELPTB', 2100, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 621, 'GI03FLMA-RIS02-12-CTDMOH', 750, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 168, 622, 'GI01SUMO-RII11-02-DOSTAD102', 40, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 623, 'GI03FLMA-RIS02-13-CTDMOH', 1000, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 182, 624, 'GI05MOAS-GL001-03-ACOMMM000', -1, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ADCPS', 180, 625, 'GI03FLMB-RIS02-01-ADCPSL', 500, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 626, 'GI03FLMB-RIS02-04-CTDMOG', 40, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 627, 'GI03FLMA-RIS02-08-CTDMOG', 180, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 173, 628, 'GI02HYPM-RIS01-01-CTDMOG000', 164, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 629, 'GI03FLMA-RIS02-15-CTDMOH', 1800, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('OPTAA', 167, 630, 'GI01SUMO-RID16-01-OPTAAD000', 12, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 184, 631, 'GI05MOAS-GL003-02-DOSTAM000', -1, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('NUTNR', 169, 632, 'GI01SUMO-SBD11-08-NUTNRB000', 1, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 633, 'GI03FLMA-RIS02-14-CTDMOH', 1500, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 185, 634, 'GI05MOAS-PG001-02-DOSTAM000', 1000, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PHSEN', 176, 635, 'GI03FLMA-RIS01-02-PHSENE', 40, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 636, 'GI03FLMB-RIS02-03-CTDMOG', 30, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 184, 637, 'GI05MOAS-GL003-03-ACOMMM000', -1, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 638, 'GI03FLMB-RIS02-18-CTDMOH', 2700, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 174, 639, 'GI02HYPM-WFP02-03-DOSTAL000', 2600, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 640, 'GI03FLMA-RIS02-17-CTDMOH', 2400, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDBP', 168, 641, 'GI01SUMO-RII11-02-CTDBPP201', 80, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORT', 167, 642, 'GI01SUMO-RID16-02-FLORTD000', 12, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORT', 170, 643, 'GI01SUMO-SBD12-02-FLORTD000', 1, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ZPLSG', 172, 644, 'GI02HYPM-MPC04-01-ZPLSGA000', -1, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('OPTAA', 170, 645, 'GI01SUMO-SBD12-01-OPTAAD000', 1, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 646, 'GI03FLMB-RIS02-15-CTDMOH', 1800, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('WAVSS', 170, 647, 'GI01SUMO-SBD12-05-WAVSSA000', 0, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 648, 'GI03FLMB-RIS02-12-CTDMOH', 750, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 649, 'GI03FLMB-RIS02-13-CTDMOH', 1000, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 183, 650, 'GI05MOAS-GL002-01-FLORDM000', -1, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 651, 'GI03FLMB-RIS02-09-CTDMOG', 250, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 186, 652, 'GI05MOAS-PG002-01-CTDGVM000', 1000, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 653, 'GI03FLMB-RIS02-07-CTDMOG', 130, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 168, 654, 'GI01SUMO-RII11-02-CTDMOQ009', 250, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 168, 655, 'GI01SUMO-RII11-02-CTDMOQ008', 180, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDBP', 167, 656, 'GI01SUMO-RID16-03-CTDBPF000', 12, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 168, 657, 'GI01SUMO-RII11-02-CTDMOQ001', 20, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 168, 658, 'GI01SUMO-RII11-02-CTDMOQ005', 100, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 168, 659, 'GI01SUMO-RII11-02-CTDMOQ004', 60, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 168, 660, 'GI01SUMO-RII11-02-DOSTAD202', 80, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 169, 661, 'GI01SUMO-SBD11-04-DOSTAD000', 1, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 662, 'GI03FLMB-RIS02-05-CTDMOG', 60, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 663, 'GI03FLMA-RIS02-11-CTDMOG', 500, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ADCPS', 168, 664, 'GI01SUMO-RII11-02-ADCPSN011', 500, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 665, 'GI03FLMB-RIS02-08-CTDMOG', 180, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 174, 666, 'GI02HYPM-WFP02-01-FLORDL000', 2600, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 186, 667, 'GI05MOAS-PG002-02-FLORDM000', 1000, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ADCPS', 177, 668, 'GI03FLMA-RIS02-01-ADCPSL', 500, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 177, 669, 'GI03FLMA-RIS02-02-ACOMM0', 40, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 670, 'GI03FLMA-RIS02-06-CTDMOG', 90, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 671, 'GI03FLMA-RIS02-07-CTDMOG', 130, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORT', 179, 672, 'GI03FLMB-RIS01-01-FLORTD', 40, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VELPT', 177, 673, 'GI03FLMA-RIS02-22-VELPTB', 2700, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VELPT', 177, 674, 'GI03FLMA-RIS02-19-VELPTB', 1800, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 179, 675, 'GI03FLMB-RIS01-03-DOSTAD', 40, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORT', 176, 676, 'GI03FLMA-RIS01-01-FLORTD', 40, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 677, 'GI03FLMB-RIS02-06-CTDMOG', 90, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 167, 678, 'GI01SUMO-RID16-03-DOSTAD000', 12, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 168, 679, 'GI01SUMO-RII11-02-CTDMOQ010', 350, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 168, 680, 'GI01SUMO-RII11-02-CTDMOQ012', 500, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 681, 'GI03FLMA-RIS02-10-CTDMOG', 350, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('MOPAK', 169, 682, 'GI01SUMO-SBD11-01-MOPAK0000', 0, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PARAD', 186, 683, 'GI05MOAS-PG002-04-PARADM000', 1000, ST_SetSRID(ST_MakePoint(-38.4407,60.4582),4326) );
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 176, 564, 'GI03FLMA-RIS01-03-DOSTAD', 40, ST_SetSRID(ST_MakePoint(-38.44,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2W', 168, 565, 'GI01SUMO-RII11-02-PCO2WC304', 130, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('METBK', 170, 566, 'GI01SUMO-SBD12-06-METBKA000', 5, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 567, 'GI03FLMB-RIS02-10-CTDMOG', 350, ST_SetSRID(ST_MakePoint(-38.08,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VELPT', 167, 568, 'GI01SUMO-RID16-04-VELPTA000', 12, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 182, 569, 'GI05MOAS-GL001-01-FLORDM000', -1, ST_SetSRID(ST_MakePoint(-38.25,-60.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VELPT', 177, 570, 'GI03FLMA-RIS02-21-VELPTB', 2400, ST_SetSRID(ST_MakePoint(-38.44,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 571, 'GI03FLMB-RIS02-11-CTDMOG', 500, ST_SetSRID(ST_MakePoint(-38.08,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PHSEN', 168, 572, 'GI01SUMO-RII11-02-PHSENE002', 20, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PHSEN', 168, 573, 'GI01SUMO-RII11-02-PHSENE006', 100, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 168, 574, 'GI01SUMO-RII11-02-FLORDG303', 130, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('SPKIR', 169, 575, 'GI01SUMO-SBD11-05-SPKIRB000', 5, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 185, 576, 'GI05MOAS-PG001-01-CTDGVM000', 1000, ST_SetSRID(ST_MakePoint(-38.25,-60.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VELPT', 180, 577, 'GI03FLMB-RIS02-20-VELPTB', 2100, ST_SetSRID(ST_MakePoint(-38.08,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 184, 578, 'GI05MOAS-GL003-04-CTDGVM000', -1, ST_SetSRID(ST_MakePoint(-38.25,-60.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 168, 579, 'GI01SUMO-RII11-02-FLORDG203', 80, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 168, 580, 'GI01SUMO-RII11-02-DOSTAD302', 130, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 184, 581, 'GI05MOAS-GL003-01-FLORDM000', -1, ST_SetSRID(ST_MakePoint(-38.25,-60.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('SPKIR', 167, 582, 'GI01SUMO-RID16-08-SPKIRB000', 12, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 183, 583, 'GI05MOAS-GL002-02-DOSTAM000', -1, ST_SetSRID(ST_MakePoint(-38.25,-60.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 183, 584, 'GI05MOAS-GL002-03-ACOMMM000', -1, ST_SetSRID(ST_MakePoint(-38.25,-60.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 585, 'GI03FLMB-RIS02-14-CTDMOH', 1500, ST_SetSRID(ST_MakePoint(-38.08,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 182, 586, 'GI05MOAS-GL001-04-CTDGVM000', -1, ST_SetSRID(ST_MakePoint(-38.25,-60.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('NUTNR', 167, 587, 'GI01SUMO-RID16-07-NUTNRB000', 12, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VELPT', 180, 588, 'GI03FLMB-RIS02-21-VELPTB', 2400, ST_SetSRID(ST_MakePoint(-38.08,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 589, 'GI03FLMA-RIS02-18-CTDMOH', 2700, ST_SetSRID(ST_MakePoint(-38.44,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VELPT', 180, 590, 'GI03FLMB-RIS02-22-VELPTB', 2700, ST_SetSRID(ST_MakePoint(-38.08,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 182, 591, 'GI05MOAS-GL001-02-DOSTAM000', -1, ST_SetSRID(ST_MakePoint(-38.25,-60.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDBP', 168, 592, 'GI01SUMO-RII11-02-CTDBPP007', 130, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDBP', 168, 593, 'GI01SUMO-RII11-02-CTDBPP003', 40, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 594, 'GI03FLMA-RIS02-03-CTDMOG', 30, ST_SetSRID(ST_MakePoint(-38.44,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 183, 595, 'GI05MOAS-GL002-04-CTDGVM000', -1, ST_SetSRID(ST_MakePoint(-38.25,-60.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2W', 168, 596, 'GI01SUMO-RII11-02-PCO2WC104', 40, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 168, 597, 'GI01SUMO-RII11-02-FLORDG103', 40, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 180, 598, 'GI03FLMB-RIS02-02-ACOMM0', 40, ST_SetSRID(ST_MakePoint(-38.08,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 599, 'GI03FLMA-RIS02-04-CTDMOG', 40, ST_SetSRID(ST_MakePoint(-38.44,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 167, 600, 'GI01SUMO-RID16-00-ACOMM0000', 12, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2W', 168, 601, 'GI01SUMO-RII11-02-PCO2WC204', 80, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VELPT', 180, 602, 'GI03FLMB-RIS02-19-VELPTB', 1800, ST_SetSRID(ST_MakePoint(-38.08,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 603, 'GI03FLMA-RIS02-05-CTDMOG', 60, ST_SetSRID(ST_MakePoint(-38.44,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 168, 604, 'GI01SUMO-RII11-02-CTDMOR015', 1500, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 168, 605, 'GI01SUMO-RII11-02-CTDMOR014', 1000, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 606, 'GI03FLMA-RIS02-16-CTDMOH', 2100, ST_SetSRID(ST_MakePoint(-38.44,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2A', 170, 607, 'GI01SUMO-SBD12-04-PCO2AA000', 0, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 168, 608, 'GI01SUMO-RII11-02-CTDMOR013', 750, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VEL3D', 174, 609, 'GI02HYPM-WFP02-05-VEL3DL000', 2600, ST_SetSRID(ST_MakePoint(-38.26,-60.57),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 610, 'GI03FLMB-RIS02-17-CTDMOH', 2400, ST_SetSRID(ST_MakePoint(-38.08,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PHSEN', 179, 611, 'GI03FLMB-RIS01-02-PHSENE', 40, ST_SetSRID(ST_MakePoint(-38.08,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 612, 'GI03FLMA-RIS02-09-CTDMOG', 250, ST_SetSRID(ST_MakePoint(-38.44,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FDCHP', 170, 613, 'GI01SUMO-SBD12-08-FDCHPA000', 5, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 614, 'GI03FLMB-RIS02-16-CTDMOH', 2100, ST_SetSRID(ST_MakePoint(-38.08,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('NUTNR', 185, 615, 'GI05MOAS-PG001-03-NUTNRM000', 1000, ST_SetSRID(ST_MakePoint(-38.25,-60.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('OPTAA', 186, 616, 'GI05MOAS-PG002-03-OPTAAM000', 1000, ST_SetSRID(ST_MakePoint(-38.25,-60.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2W', 167, 617, 'GI01SUMO-RID16-05-PCO2WB000', 12, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('METBK', 169, 618, 'GI01SUMO-SBD11-06-METBKA000', 5, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDPF', 174, 619, 'GI02HYPM-WFP02-04-CTDPFL000', 2600, ST_SetSRID(ST_MakePoint(-38.26,-60.57),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VELPT', 177, 620, 'GI03FLMA-RIS02-20-VELPTB', 2100, ST_SetSRID(ST_MakePoint(-38.44,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 621, 'GI03FLMA-RIS02-12-CTDMOH', 750, ST_SetSRID(ST_MakePoint(-38.44,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 168, 622, 'GI01SUMO-RII11-02-DOSTAD102', 40, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 623, 'GI03FLMA-RIS02-13-CTDMOH', 1000, ST_SetSRID(ST_MakePoint(-38.44,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 182, 624, 'GI05MOAS-GL001-03-ACOMMM000', -1, ST_SetSRID(ST_MakePoint(-38.25,-60.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ADCPS', 180, 625, 'GI03FLMB-RIS02-01-ADCPSL', 500, ST_SetSRID(ST_MakePoint(-38.08,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 626, 'GI03FLMB-RIS02-04-CTDMOG', 40, ST_SetSRID(ST_MakePoint(-38.08,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 627, 'GI03FLMA-RIS02-08-CTDMOG', 180, ST_SetSRID(ST_MakePoint(-38.44,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 173, 628, 'GI02HYPM-RIS01-01-CTDMOG000', 164, ST_SetSRID(ST_MakePoint(-38.26,-60.57),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 629, 'GI03FLMA-RIS02-15-CTDMOH', 1800, ST_SetSRID(ST_MakePoint(-38.44,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('OPTAA', 167, 630, 'GI01SUMO-RID16-01-OPTAAD000', 12, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 184, 631, 'GI05MOAS-GL003-02-DOSTAM000', -1, ST_SetSRID(ST_MakePoint(-38.25,-60.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('NUTNR', 169, 632, 'GI01SUMO-SBD11-08-NUTNRB000', 1, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 633, 'GI03FLMA-RIS02-14-CTDMOH', 1500, ST_SetSRID(ST_MakePoint(-38.44,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 185, 634, 'GI05MOAS-PG001-02-DOSTAM000', 1000, ST_SetSRID(ST_MakePoint(-38.25,-60.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PHSEN', 176, 635, 'GI03FLMA-RIS01-02-PHSENE', 40, ST_SetSRID(ST_MakePoint(-38.44,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 636, 'GI03FLMB-RIS02-03-CTDMOG', 30, ST_SetSRID(ST_MakePoint(-38.08,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 184, 637, 'GI05MOAS-GL003-03-ACOMMM000', -1, ST_SetSRID(ST_MakePoint(-38.25,-60.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 638, 'GI03FLMB-RIS02-18-CTDMOH', 2700, ST_SetSRID(ST_MakePoint(-38.08,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 174, 639, 'GI02HYPM-WFP02-03-DOSTAL000', 2600, ST_SetSRID(ST_MakePoint(-38.26,-60.57),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 640, 'GI03FLMA-RIS02-17-CTDMOH', 2400, ST_SetSRID(ST_MakePoint(-38.44,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDBP', 168, 641, 'GI01SUMO-RII11-02-CTDBPP201', 80, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORT', 167, 642, 'GI01SUMO-RID16-02-FLORTD000', 12, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORT', 170, 643, 'GI01SUMO-SBD12-02-FLORTD000', 1, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ZPLSG', 172, 644, 'GI02HYPM-MPC04-01-ZPLSGA000', -1, ST_SetSRID(ST_MakePoint(-38.26,-60.57),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('OPTAA', 170, 645, 'GI01SUMO-SBD12-01-OPTAAD000', 1, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 646, 'GI03FLMB-RIS02-15-CTDMOH', 1800, ST_SetSRID(ST_MakePoint(-38.08,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('WAVSS', 170, 647, 'GI01SUMO-SBD12-05-WAVSSA000', 0, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 648, 'GI03FLMB-RIS02-12-CTDMOH', 750, ST_SetSRID(ST_MakePoint(-38.08,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 649, 'GI03FLMB-RIS02-13-CTDMOH', 1000, ST_SetSRID(ST_MakePoint(-38.08,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 183, 650, 'GI05MOAS-GL002-01-FLORDM000', -1, ST_SetSRID(ST_MakePoint(-38.25,-60.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 651, 'GI03FLMB-RIS02-09-CTDMOG', 250, ST_SetSRID(ST_MakePoint(-38.08,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 186, 652, 'GI05MOAS-PG002-01-CTDGVM000', 1000, ST_SetSRID(ST_MakePoint(-38.25,-60.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 653, 'GI03FLMB-RIS02-07-CTDMOG', 130, ST_SetSRID(ST_MakePoint(-38.08,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 168, 654, 'GI01SUMO-RII11-02-CTDMOQ009', 250, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 168, 655, 'GI01SUMO-RII11-02-CTDMOQ008', 180, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDBP', 167, 656, 'GI01SUMO-RID16-03-CTDBPF000', 12, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 168, 657, 'GI01SUMO-RII11-02-CTDMOQ001', 20, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 168, 658, 'GI01SUMO-RII11-02-CTDMOQ005', 100, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 168, 659, 'GI01SUMO-RII11-02-CTDMOQ004', 60, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 168, 660, 'GI01SUMO-RII11-02-DOSTAD202', 80, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 169, 661, 'GI01SUMO-SBD11-04-DOSTAD000', 1, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 662, 'GI03FLMB-RIS02-05-CTDMOG', 60, ST_SetSRID(ST_MakePoint(-38.08,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 663, 'GI03FLMA-RIS02-11-CTDMOG', 500, ST_SetSRID(ST_MakePoint(-38.44,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ADCPS', 168, 664, 'GI01SUMO-RII11-02-ADCPSN011', 500, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 665, 'GI03FLMB-RIS02-08-CTDMOG', 180, ST_SetSRID(ST_MakePoint(-38.08,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 174, 666, 'GI02HYPM-WFP02-01-FLORDL000', 2600, ST_SetSRID(ST_MakePoint(-38.26,-60.57),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 186, 667, 'GI05MOAS-PG002-02-FLORDM000', 1000, ST_SetSRID(ST_MakePoint(-38.25,-60.5),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ADCPS', 177, 668, 'GI03FLMA-RIS02-01-ADCPSL', 500, ST_SetSRID(ST_MakePoint(-38.44,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 177, 669, 'GI03FLMA-RIS02-02-ACOMM0', 40, ST_SetSRID(ST_MakePoint(-38.44,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 670, 'GI03FLMA-RIS02-06-CTDMOG', 90, ST_SetSRID(ST_MakePoint(-38.44,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 671, 'GI03FLMA-RIS02-07-CTDMOG', 130, ST_SetSRID(ST_MakePoint(-38.44,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORT', 179, 672, 'GI03FLMB-RIS01-01-FLORTD', 40, ST_SetSRID(ST_MakePoint(-38.08,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VELPT', 177, 673, 'GI03FLMA-RIS02-22-VELPTB', 2700, ST_SetSRID(ST_MakePoint(-38.44,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VELPT', 177, 674, 'GI03FLMA-RIS02-19-VELPTB', 1800, ST_SetSRID(ST_MakePoint(-38.44,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 179, 675, 'GI03FLMB-RIS01-03-DOSTAD', 40, ST_SetSRID(ST_MakePoint(-38.08,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORT', 176, 676, 'GI03FLMA-RIS01-01-FLORTD', 40, ST_SetSRID(ST_MakePoint(-38.44,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 180, 677, 'GI03FLMB-RIS02-06-CTDMOG', 90, ST_SetSRID(ST_MakePoint(-38.08,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 167, 678, 'GI01SUMO-RID16-03-DOSTAD000', 12, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 168, 679, 'GI01SUMO-RII11-02-CTDMOQ010', 350, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 168, 680, 'GI01SUMO-RII11-02-CTDMOQ012', 500, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 177, 681, 'GI03FLMA-RIS02-10-CTDMOG', 350, ST_SetSRID(ST_MakePoint(-38.44,-60.46),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('MOPAK', 169, 682, 'GI01SUMO-SBD11-01-MOPAK0000', 0, ST_SetSRID(ST_MakePoint(-38.26,-60.61),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PARAD', 186, 683, 'GI05MOAS-PG002-04-PARADM000', 1000, ST_SetSRID(ST_MakePoint(-38.25,-60.5),4326) );  --
 
+-- GI array
 
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 202, 684, 'GS03FLMB-RIS02-11-CTDMOG', 500, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORT', 188, 685, 'GS01SUMO-RID16-02-FLORTD000', 12, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 202, 686, 'GS03FLMB-RIS02-10-CTDMOG', 350, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('OPTAA', 208, 687, 'GS05MOAS-PG002-03-OPTAAM000', 1000, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 189, 688, 'GS01SUMO-RII11-02-FLORDG303', 130, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORT', 191, 689, 'GS01SUMO-SBD12-02-FLORTD000', 1, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 189, 690, 'GS01SUMO-RII11-02-DOSTAD302', 130, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDBP', 189, 691, 'GS01SUMO-RII11-02-CTDBPP003', 40, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ADCPS', 189, 692, 'GS01SUMO-RII11-02-ADCPSN011', 500, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PHSEN', 201, 693, 'GS03FLMB-RIS01-02-PHSENE', 40, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 195, 694, 'GS02HYPM-WFP02-01-FLORDL000', 2400, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ADCPS', 199, 695, 'GS03FLMA-RIS02-01-ADCPSL', 500, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 204, 696, 'GS05MOAS-GL001-03-ACOMMM000', 1000, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('WAVSS', 191, 697, 'GS01SUMO-SBD12-05-WAVSSA000', 0, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 202, 698, 'GS03FLMB-RIS02-03-CTDMOG', 30, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('OPTAA', 191, 699, 'GS01SUMO-SBD12-01-OPTAAD000', 1, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 206, 700, 'GS05MOAS-GL003-03-ACOMMM000', 1000, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VEL3D', 196, 701, 'GS02HYPM-WFP03-05-VEL3DL000', 4600, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 199, 702, 'GS03FLMA-RIS02-05-CTDMOG', 60, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('SPKIR', 188, 703, 'GS01SUMO-RID16-08-SPKIRB000', 12, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2A', 191, 704, 'GS01SUMO-SBD12-04-PCO2AA000', 0, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 199, 705, 'GS03FLMA-RIS02-07-CTDMOG', 130, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDPF', 195, 706, 'GS02HYPM-WFP02-04-CTDPFL000', 2400, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 202, 707, 'GS03FLMB-RIS02-06-CTDMOG', 90, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 194, 708, 'GS02HYPM-RIS01-01-CTDMOG000', 164, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ZPLSG', 193, 709, 'GS02HYPM-MPC04-01-ZPLSGA000', -1, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('NUTNR', 207, 710, 'GS05MOAS-PG001-03-NUTNRM000', 1000, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('NUTNR', 190, 711, 'GS01SUMO-SBD11-08-NUTNRB000', 1, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 199, 712, 'GS03FLMA-RIS02-11-CTDMOG', 500, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 199, 713, 'GS03FLMA-RIS02-10-CTDMOG', 350, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 189, 714, 'GS01SUMO-RII11-02-CTDMOQ009', 250, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 189, 715, 'GS01SUMO-RII11-02-CTDMOQ008', 180, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 189, 716, 'GS01SUMO-RII11-02-CTDMOQ005', 100, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 189, 717, 'GS01SUMO-RII11-02-CTDMOQ004', 60, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 202, 718, 'GS03FLMB-RIS02-13-CTDMOH', 1000, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 189, 719, 'GS01SUMO-RII11-02-CTDMOQ001', 20, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('METBK', 190, 720, 'GS01SUMO-SBD11-06-METBKA000', 5, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('METBK', 191, 721, 'GS01SUMO-SBD12-06-METBKA000', 5, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 202, 722, 'GS03FLMB-RIS02-12-CTDMOH', 750, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 190, 723, 'GS01SUMO-SBD11-04-DOSTAD000', 1, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 199, 724, 'GS03FLMA-RIS02-14-CTDMOH', 1500, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 204, 725, 'GS05MOAS-GL001-04-CTDGVM000', 1000, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VELPT', 188, 726, 'GS01SUMO-RID16-04-VELPTA000', 12, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 188, 727, 'GS01SUMO-RID16-03-DOSTAD000', 12, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 206, 728, 'GS05MOAS-GL003-04-CTDGVM000', 1000, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 189, 729, 'GS01SUMO-RII11-02-CTDMOQ012', 500, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 189, 730, 'GS01SUMO-RII11-02-CTDMOQ010', 350, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 206, 731, 'GS05MOAS-GL003-01-FLORDM000', 1000, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 202, 732, 'GS03FLMB-RIS02-02-ACOMM0', 40, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VEL3D', 195, 733, 'GS02HYPM-WFP02-05-VEL3DL000', 2400, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 189, 734, 'GS01SUMO-RII11-02-DOSTAD102', 40, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDBP', 189, 735, 'GS01SUMO-RII11-02-CTDBPP007', 130, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 202, 736, 'GS03FLMB-RIS02-09-CTDMOG', 250, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 199, 737, 'GS03FLMA-RIS02-12-CTDMOH', 750, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 207, 738, 'GS05MOAS-PG001-02-DOSTAM000', 1000, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 202, 739, 'GS03FLMB-RIS02-04-CTDMOG', 40, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 201, 740, 'GS03FLMB-RIS01-03-DOSTAD', 40, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PHSEN', 189, 741, 'GS01SUMO-RII11-02-PHSENE006', 100, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 205, 742, 'GS05MOAS-GL002-01-FLORDM000', 1000, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2W', 189, 743, 'GS01SUMO-RII11-02-PCO2WC204', 80, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PHSEN', 189, 744, 'GS01SUMO-RII11-02-PHSENE002', 20, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 199, 745, 'GS03FLMA-RIS02-13-CTDMOH', 1000, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 202, 746, 'GS03FLMB-RIS02-07-CTDMOG', 130, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 199, 747, 'GS03FLMA-RIS02-03-CTDMOG', 30, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ADCPS', 202, 748, 'GS03FLMB-RIS02-01-ADCPSL', 500, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 205, 749, 'GS05MOAS-GL002-04-CTDGVM000', 1000, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 189, 750, 'GS01SUMO-RII11-02-DOSTAD202', 80, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 189, 751, 'GS01SUMO-RII11-02-FLORDG203', 80, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDBP', 188, 752, 'GS01SUMO-RID16-03-CTDBPF000', 12, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 188, 753, 'GS01SUMO-RID16-00-ACOMM0000', 12, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2W', 189, 754, 'GS01SUMO-RII11-02-PCO2WC304', 130, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 208, 755, 'GS05MOAS-PG002-02-FLORDM000', 1000, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 195, 756, 'GS02HYPM-WFP02-03-DOSTAL000', 2400, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 199, 757, 'GS03FLMA-RIS02-08-CTDMOG', 180, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 196, 758, 'GS02HYPM-WFP03-03-DOSTAL000', 4600, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 208, 759, 'GS05MOAS-PG002-01-CTDGVM000', 1000, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 206, 760, 'GS05MOAS-GL003-02-DOSTAM000', 1000, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 199, 761, 'GS03FLMA-RIS02-02-ACOMM0', 40, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 202, 762, 'GS03FLMB-RIS02-08-CTDMOG', 180, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('OPTAA', 188, 763, 'GS01SUMO-RID16-01-OPTAAD000', 12, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('SPKIR', 190, 764, 'GS01SUMO-SBD11-05-SPKIRB000', 5, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDBP', 189, 765, 'GS01SUMO-RII11-02-CTDBPP201', 80, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 205, 766, 'GS05MOAS-GL002-03-ACOMMM000', 1000, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 199, 767, 'GS03FLMA-RIS02-04-CTDMOG', 40, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 205, 768, 'GS05MOAS-GL002-02-DOSTAM000', 1000, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 204, 769, 'GS05MOAS-GL001-02-DOSTAM000', 1000, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORT', 201, 770, 'GS03FLMB-RIS01-01-FLORTD', 40, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 207, 771, 'GS05MOAS-PG001-01-CTDGVM000', 1000, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORT', 198, 772, 'GS03FLMA-RIS01-01-FLORTD', 40, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('NUTNR', 188, 773, 'GS01SUMO-RID16-07-NUTNRB000', 12, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2W', 189, 774, 'GS01SUMO-RII11-02-PCO2WC104', 40, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PARAD', 208, 775, 'GS05MOAS-PG002-04-PARADM000', 1000, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 189, 776, 'GS01SUMO-RII11-02-CTDMOR013', 750, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 189, 777, 'GS01SUMO-RII11-02-CTDMOR015', 1500, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 189, 778, 'GS01SUMO-RII11-02-CTDMOR014', 1000, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 196, 779, 'GS02HYPM-WFP03-01-FLORDL000', 4600, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PHSEN', 198, 780, 'GS03FLMA-RIS01-02-PHSENE', 40, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 198, 781, 'GS03FLMA-RIS01-03-DOSTAD', 40, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2W', 188, 782, 'GS01SUMO-RID16-05-PCO2WB000', 12, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FDCHP', 191, 783, 'GS01SUMO-SBD12-08-FDCHPA000', 5, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 202, 784, 'GS03FLMB-RIS02-05-CTDMOG', 60, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 204, 785, 'GS05MOAS-GL001-01-FLORDM000', 1000, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('MOPAK', 190, 786, 'GS01SUMO-SBD11-01-MOPAK0000', 0, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDPF', 196, 787, 'GS02HYPM-WFP03-04-CTDPFL000', 4600, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 199, 788, 'GS03FLMA-RIS02-09-CTDMOG', 250, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 189, 789, 'GS01SUMO-RII11-02-FLORDG103', 40, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 202, 790, 'GS03FLMB-RIS02-14-CTDMOH', 1500, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
-insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 199, 791, 'GS03FLMA-RIS02-06-CTDMOG', 90, ST_SetSRID(ST_MakePoint(-89.6652,-54.0814),4326) );
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 202, 684, 'GS03FLMB-RIS02-11-CTDMOG', 500, ST_SetSRID(ST_MakePoint(-88.67,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORT', 188, 685, 'GS01SUMO-RID16-02-FLORTD000', 12, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 202, 686, 'GS03FLMB-RIS02-10-CTDMOG', 350, ST_SetSRID(ST_MakePoint(-88.67,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('OPTAA', 208, 687, 'GS05MOAS-PG002-03-OPTAAM000', 1000, ST_SetSRID(ST_MakePoint(-89.0,-54.25),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 189, 688, 'GS01SUMO-RII11-02-FLORDG303', 130, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORT', 191, 689, 'GS01SUMO-SBD12-02-FLORTD000', 1, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 189, 690, 'GS01SUMO-RII11-02-DOSTAD302', 130, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDBP', 189, 691, 'GS01SUMO-RII11-02-CTDBPP003', 40, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ADCPS', 189, 692, 'GS01SUMO-RII11-02-ADCPSN011', 500, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PHSEN', 201, 693, 'GS03FLMB-RIS01-02-PHSENE', 40, ST_SetSRID(ST_MakePoint(-88.67,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 195, 694, 'GS02HYPM-WFP02-01-FLORDL000', 2400, ST_SetSRID(ST_MakePoint(-89.28,-54.41),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ADCPS', 199, 695, 'GS03FLMA-RIS02-01-ADCPSL', 500, ST_SetSRID(ST_MakePoint(-88.89,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 204, 696, 'GS05MOAS-GL001-03-ACOMMM000', 1000, ST_SetSRID(ST_MakePoint(-89.0,-54.25),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('WAVSS', 191, 697, 'GS01SUMO-SBD12-05-WAVSSA000', 0, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 202, 698, 'GS03FLMB-RIS02-03-CTDMOG', 30, ST_SetSRID(ST_MakePoint(-88.67,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('OPTAA', 191, 699, 'GS01SUMO-SBD12-01-OPTAAD000', 1, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 206, 700, 'GS05MOAS-GL003-03-ACOMMM000', 1000, ST_SetSRID(ST_MakePoint(-89.0,-54.25),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VEL3D', 196, 701, 'GS02HYPM-WFP03-05-VEL3DL000', 4600, ST_SetSRID(ST_MakePoint(-89.28,-54.41),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 199, 702, 'GS03FLMA-RIS02-05-CTDMOG', 60, ST_SetSRID(ST_MakePoint(-88.89,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('SPKIR', 188, 703, 'GS01SUMO-RID16-08-SPKIRB000', 12, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2A', 191, 704, 'GS01SUMO-SBD12-04-PCO2AA000', 0, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 199, 705, 'GS03FLMA-RIS02-07-CTDMOG', 130, ST_SetSRID(ST_MakePoint(-88.89,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDPF', 195, 706, 'GS02HYPM-WFP02-04-CTDPFL000', 2400, ST_SetSRID(ST_MakePoint(-89.28,-54.41),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 202, 707, 'GS03FLMB-RIS02-06-CTDMOG', 90, ST_SetSRID(ST_MakePoint(-88.67,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 194, 708, 'GS02HYPM-RIS01-01-CTDMOG000', 164, ST_SetSRID(ST_MakePoint(-89.28,-54.41),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ZPLSG', 193, 709, 'GS02HYPM-MPC04-01-ZPLSGA000', -1, ST_SetSRID(ST_MakePoint(-89.28,-54.41),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('NUTNR', 207, 710, 'GS05MOAS-PG001-03-NUTNRM000', 1000, ST_SetSRID(ST_MakePoint(-89.0,-54.25),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('NUTNR', 190, 711, 'GS01SUMO-SBD11-08-NUTNRB000', 1, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 199, 712, 'GS03FLMA-RIS02-11-CTDMOG', 500, ST_SetSRID(ST_MakePoint(-88.89,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 199, 713, 'GS03FLMA-RIS02-10-CTDMOG', 350, ST_SetSRID(ST_MakePoint(-88.89,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 189, 714, 'GS01SUMO-RII11-02-CTDMOQ009', 250, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 189, 715, 'GS01SUMO-RII11-02-CTDMOQ008', 180, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 189, 716, 'GS01SUMO-RII11-02-CTDMOQ005', 100, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 189, 717, 'GS01SUMO-RII11-02-CTDMOQ004', 60, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 202, 718, 'GS03FLMB-RIS02-13-CTDMOH', 1000, ST_SetSRID(ST_MakePoint(-88.67,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 189, 719, 'GS01SUMO-RII11-02-CTDMOQ001', 20, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('METBK', 190, 720, 'GS01SUMO-SBD11-06-METBKA000', 5, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('METBK', 191, 721, 'GS01SUMO-SBD12-06-METBKA000', 5, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 202, 722, 'GS03FLMB-RIS02-12-CTDMOH', 750, ST_SetSRID(ST_MakePoint(-88.67,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 190, 723, 'GS01SUMO-SBD11-04-DOSTAD000', 1, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 199, 724, 'GS03FLMA-RIS02-14-CTDMOH', 1500, ST_SetSRID(ST_MakePoint(-88.89,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 204, 725, 'GS05MOAS-GL001-04-CTDGVM000', 1000, ST_SetSRID(ST_MakePoint(-89.0,-54.25),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VELPT', 188, 726, 'GS01SUMO-RID16-04-VELPTA000', 12, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 188, 727, 'GS01SUMO-RID16-03-DOSTAD000', 12, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 206, 728, 'GS05MOAS-GL003-04-CTDGVM000', 1000, ST_SetSRID(ST_MakePoint(-89.0,-54.25),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 189, 729, 'GS01SUMO-RII11-02-CTDMOQ012', 500, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 189, 730, 'GS01SUMO-RII11-02-CTDMOQ010', 350, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 206, 731, 'GS05MOAS-GL003-01-FLORDM000', 1000, ST_SetSRID(ST_MakePoint(-89.0,-54.25),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 202, 732, 'GS03FLMB-RIS02-02-ACOMM0', 40, ST_SetSRID(ST_MakePoint(-88.67,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('VEL3D', 195, 733, 'GS02HYPM-WFP02-05-VEL3DL000', 2400, ST_SetSRID(ST_MakePoint(-89.28,-54.41),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 189, 734, 'GS01SUMO-RII11-02-DOSTAD102', 40, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDBP', 189, 735, 'GS01SUMO-RII11-02-CTDBPP007', 130, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 202, 736, 'GS03FLMB-RIS02-09-CTDMOG', 250, ST_SetSRID(ST_MakePoint(-88.67,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 199, 737, 'GS03FLMA-RIS02-12-CTDMOH', 750, ST_SetSRID(ST_MakePoint(-88.89,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 207, 738, 'GS05MOAS-PG001-02-DOSTAM000', 1000, ST_SetSRID(ST_MakePoint(-89.0,-54.25),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 202, 739, 'GS03FLMB-RIS02-04-CTDMOG', 40, ST_SetSRID(ST_MakePoint(-88.67,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 201, 740, 'GS03FLMB-RIS01-03-DOSTAD', 40, ST_SetSRID(ST_MakePoint(-88.67,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PHSEN', 189, 741, 'GS01SUMO-RII11-02-PHSENE006', 100, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 205, 742, 'GS05MOAS-GL002-01-FLORDM000', 1000, ST_SetSRID(ST_MakePoint(-89.0,-54.25),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2W', 189, 743, 'GS01SUMO-RII11-02-PCO2WC204', 80, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PHSEN', 189, 744, 'GS01SUMO-RII11-02-PHSENE002', 20, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 199, 745, 'GS03FLMA-RIS02-13-CTDMOH', 1000, ST_SetSRID(ST_MakePoint(-88.89,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 202, 746, 'GS03FLMB-RIS02-07-CTDMOG', 130, ST_SetSRID(ST_MakePoint(-88.67,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 199, 747, 'GS03FLMA-RIS02-03-CTDMOG', 30, ST_SetSRID(ST_MakePoint(-88.89,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ADCPS', 202, 748, 'GS03FLMB-RIS02-01-ADCPSL', 500, ST_SetSRID(ST_MakePoint(-88.67,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 205, 749, 'GS05MOAS-GL002-04-CTDGVM000', 1000, ST_SetSRID(ST_MakePoint(-89.0,-54.25),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 189, 750, 'GS01SUMO-RII11-02-DOSTAD202', 80, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 189, 751, 'GS01SUMO-RII11-02-FLORDG203', 80, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDBP', 188, 752, 'GS01SUMO-RID16-03-CTDBPF000', 12, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 188, 753, 'GS01SUMO-RID16-00-ACOMM0000', 12, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2W', 189, 754, 'GS01SUMO-RII11-02-PCO2WC304', 130, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 208, 755, 'GS05MOAS-PG002-02-FLORDM000', 1000, ST_SetSRID(ST_MakePoint(-89.0,-54.25),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 195, 756, 'GS02HYPM-WFP02-03-DOSTAL000', 2400, ST_SetSRID(ST_MakePoint(-89.28,-54.41),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 199, 757, 'GS03FLMA-RIS02-08-CTDMOG', 180, ST_SetSRID(ST_MakePoint(-88.89,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 196, 758, 'GS02HYPM-WFP03-03-DOSTAL000', 4600, ST_SetSRID(ST_MakePoint(-89.28,-54.41),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 208, 759, 'GS05MOAS-PG002-01-CTDGVM000', 1000, ST_SetSRID(ST_MakePoint(-89.0,-54.25),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 206, 760, 'GS05MOAS-GL003-02-DOSTAM000', 1000, ST_SetSRID(ST_MakePoint(-89.0,-54.25),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 199, 761, 'GS03FLMA-RIS02-02-ACOMM0', 40, ST_SetSRID(ST_MakePoint(-88.89,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 202, 762, 'GS03FLMB-RIS02-08-CTDMOG', 180, ST_SetSRID(ST_MakePoint(-88.67,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('OPTAA', 188, 763, 'GS01SUMO-RID16-01-OPTAAD000', 12, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('SPKIR', 190, 764, 'GS01SUMO-SBD11-05-SPKIRB000', 5, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDBP', 189, 765, 'GS01SUMO-RII11-02-CTDBPP201', 80, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('ACOMM', 205, 766, 'GS05MOAS-GL002-03-ACOMMM000', 1000, ST_SetSRID(ST_MakePoint(-89.0,-54.25),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 199, 767, 'GS03FLMA-RIS02-04-CTDMOG', 40, ST_SetSRID(ST_MakePoint(-88.89,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 205, 768, 'GS05MOAS-GL002-02-DOSTAM000', 1000, ST_SetSRID(ST_MakePoint(-89.0,-54.25),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 204, 769, 'GS05MOAS-GL001-02-DOSTAM000', 1000, ST_SetSRID(ST_MakePoint(-89.0,-54.25),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORT', 201, 770, 'GS03FLMB-RIS01-01-FLORTD', 40, ST_SetSRID(ST_MakePoint(-88.67,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDGV', 207, 771, 'GS05MOAS-PG001-01-CTDGVM000', 1000, ST_SetSRID(ST_MakePoint(-89.0,-54.25),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORT', 198, 772, 'GS03FLMA-RIS01-01-FLORTD', 40, ST_SetSRID(ST_MakePoint(-88.89,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('NUTNR', 188, 773, 'GS01SUMO-RID16-07-NUTNRB000', 12, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2W', 189, 774, 'GS01SUMO-RII11-02-PCO2WC104', 40, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PARAD', 208, 775, 'GS05MOAS-PG002-04-PARADM000', 1000, ST_SetSRID(ST_MakePoint(-89.0,-54.25),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 189, 776, 'GS01SUMO-RII11-02-CTDMOR013', 750, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 189, 777, 'GS01SUMO-RII11-02-CTDMOR015', 1500, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 189, 778, 'GS01SUMO-RII11-02-CTDMOR014', 1000, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 196, 779, 'GS02HYPM-WFP03-01-FLORDL000', 4600, ST_SetSRID(ST_MakePoint(-89.28,-54.41),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PHSEN', 198, 780, 'GS03FLMA-RIS01-02-PHSENE', 40, ST_SetSRID(ST_MakePoint(-88.89,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 198, 781, 'GS03FLMA-RIS01-03-DOSTAD', 40, ST_SetSRID(ST_MakePoint(-88.89,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PCO2W', 188, 782, 'GS01SUMO-RID16-05-PCO2WB000', 12, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FDCHP', 191, 783, 'GS01SUMO-SBD12-08-FDCHPA000', 5, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 202, 784, 'GS03FLMB-RIS02-05-CTDMOG', 60, ST_SetSRID(ST_MakePoint(-88.67,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 204, 785, 'GS05MOAS-GL001-01-FLORDM000', 1000, ST_SetSRID(ST_MakePoint(-89.0,-54.25),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('MOPAK', 190, 786, 'GS01SUMO-SBD11-01-MOPAK0000', 0, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDPF', 196, 787, 'GS02HYPM-WFP03-04-CTDPFL000', 4600, ST_SetSRID(ST_MakePoint(-89.28,-54.41),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 199, 788, 'GS03FLMA-RIS02-09-CTDMOG', 250, ST_SetSRID(ST_MakePoint(-88.89,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORD', 189, 789, 'GS01SUMO-RII11-02-FLORDG103', 40, ST_SetSRID(ST_MakePoint(-89.28,-54.47),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 202, 790, 'GS03FLMB-RIS02-14-CTDMOH', 1500, ST_SetSRID(ST_MakePoint(-88.67,-54.08),4326) );  --
+insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('CTDMO', 199, 791, 'GS03FLMA-RIS02-06-CTDMOG', 90, ST_SetSRID(ST_MakePoint(-88.89,-54.08),4326) );  --
 
+-- GS array
 
 insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('OBSSP', 241, 792, 'RS03ECAL-MJ03E-09-OBSSPA304', 1518, ST_SetSRID(ST_MakePoint(-129.98,45.95),4326) );  --
 insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('DOSTA', 233, 793, 'RS03AXPS-LJ03A-06-DOSTAD301', 2597, ST_SetSRID(ST_MakePoint(-129.6,46.07),4326) );  --
@@ -2858,6 +2917,8 @@ insert into instrument_deployments (display_name, platform_deployment_id, instru
 insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('PREST', 219, 922, 'RS01SLBS-MJ01A-06-PRESTA101', 2906, ST_SetSRID(ST_MakePoint(-125.35,44.55),4326) );  --
 insert into instrument_deployments (display_name, platform_deployment_id, instrument_id, reference_designator, depth, geo_location)  values('FLORT', 234, 923, 'RS03AXPS-LV03A-04-FLORTA302', 2500, ST_SetSRID(ST_MakePoint(-129.6,46.07),4326) );  --
 
+-- RS array
+
 
 -- platformnames
 
@@ -2930,7 +2991,7 @@ insert into platformnames (reference_designator, array_type, array_name, site, p
 insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'CE09OSSM-SBD11', 'Coastal', 'Endurance', 'WA Offshore', 'Surface Mooring', 'Surface Buoy');
 insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'CE09OSSM-SBD12', 'Coastal', 'Endurance', 'WA Offshore', 'Surface Mooring', 'Surface Buoy');
 
--- CE array : 68 platformnames
+-- CE array
 
 insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'GP02HYPM', 'Global', 'Station Papa', 'Apex', 'Profiler Mooring', NULL);
 insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'GP02HYPM-MPC04', 'Global', 'Station Papa', 'Apex', 'Profiler Mooring', 'Submerged Buoy');
@@ -2950,6 +3011,7 @@ insert into platformnames (reference_designator, array_type, array_name, site, p
 insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'GP05MOAS-PG001', 'Global', 'Station Papa', 'Mobile', '(Open Ocean)', 'Profiler');
 insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'GP05MOAS-PG002', 'Global', 'Station Papa', 'Mobile', '(Open Ocean)', 'Profiler');
 
+-- GP array
 
 insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'CP01CNSM', 'Coastal', 'Pioneer', 'Central', 'Surface Mooring', NULL);
 insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'CP01CNSM-MFD00', 'Coastal', 'Pioneer', 'Central', 'Surface Mooring', 'Multi-Function Node');
@@ -3010,6 +3072,7 @@ insert into platformnames (reference_designator, array_type, array_name, site, p
 insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'CP05MOAS-GL005', 'Coastal', 'Pioneer', 'Mobile', '(Coastal)', 'Glider');
 insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'CP05MOAS-GL006', 'Coastal', 'Pioneer', 'Mobile', '(Coastal)', 'Glider');
 
+-- CP array
 
 insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'GA01SUMO', 'Global', 'Argentine Basin', 'Apex', 'Surface Mooring', NULL);
 insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'GA01SUMO-RID16', 'Global', 'Argentine Basin', 'Apex', 'Surface Mooring', 'Mooring Riser');
@@ -3034,6 +3097,7 @@ insert into platformnames (reference_designator, array_type, array_name, site, p
 insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'GA05MOAS-PG001', 'Global', 'Argentine Basin', 'Mobile', '(Open Ocean)', 'Profiler');
 insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'GA05MOAS-PG002', 'Global', 'Argentine Basin', 'Mobile', '(Open Ocean)', 'Profiler');
 
+-- GA array
 
 insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'GI01SUMO', 'Global', 'Irminger Sea', 'Southern Hydrate Ridge Summit', 'Surface Mooring', NULL);
 insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'GI01SUMO-RID16', 'Global', 'Irminger Sea', 'Southern Hydrate Ridge Summit', 'Surface Mooring', 'Mooring Riser');
@@ -3057,6 +3121,7 @@ insert into platformnames (reference_designator, array_type, array_name, site, p
 insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'GI05MOAS-PG001', 'Global', 'Irminger Sea', 'Mobile', '(Open Ocean)', 'Profiler');
 insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'GI05MOAS-PG002', 'Global', 'Irminger Sea', 'Mobile', '(Open Ocean)', 'Profiler');
 
+-- GI array
 
 insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'GS01SUMO', 'Global', 'Southern Ocean', 'Apex', 'Surface Mooring', NULL);
 insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'GS01SUMO-RID16', 'Global', 'Southern Ocean', 'Apex', 'Surface Mooring', 'Mooring Riser');
@@ -3081,44 +3146,48 @@ insert into platformnames (reference_designator, array_type, array_name, site, p
 insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'GS05MOAS-PG001', 'Global', 'Southern Ocean', 'Mobile', '(Open Ocean)', 'Profiler');
 insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'GS05MOAS-PG002', 'Global', 'Southern Ocean', 'Mobile', '(Open Ocean)', 'Profiler');
 
+-- GS array
 
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SBPD', 'Cabled', 'Regional Scale', 'Slope Base', 'Profiler Mooring', NULL);
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SBPD-DP01A', 'Cabled', 'Regional Scale', 'Slope Base', 'Profiler Mooring', 'Profiler');
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SBPD-PD01A', 'Cabled', 'Regional Scale', 'Slope Base', 'Profiler Mooring', 'Profiler Dock');
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SBPS', 'Cabled', 'Regional Scale', 'Slope Base', 'Profiler Mooring', NULL);
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SBPS-LJ01A', 'Cabled', 'Regional Scale', 'Slope Base', 'Profiler Mooring', 'Junction Box');
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SBPS-LV01A', 'Cabled', 'Regional Scale', 'Slope Base', 'Profiler Mooring', 'Junction Box');
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SBPS-PC01A', 'Cabled', 'Regional Scale', 'Slope Base', 'Profiler Mooring', 'Interface Controller');
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SBPS-SC01A', 'Cabled', 'Regional Scale', 'Slope Base', 'Profiler Mooring', 'Profiler Controller');
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SBPS-SF01A', 'Cabled', 'Regional Scale', 'Slope Base', 'Profiler Mooring', 'Profiler');
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SLBS', 'Cabled', 'Regional Scale', 'Slope Base', 'Slope Base', NULL);
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SLBS-MJ01A', 'Cabled', 'Regional Scale', 'Slope Base', 'Slope Base', 'Junction Box');
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SUM1', 'Cabled', 'Regional Scale', 'Southern Hydrate Ridge Summit', 'Junction Box', NULL);
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SUM1-LJ01B', 'Cabled', 'Regional Scale', 'Southern Hydrate Ridge Summit', 'Junction Box', 'Junction Box');
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SUM2', 'Cabled', 'Regional Scale', 'Southern Hydrate Ridge Summit', 'Junction Box', NULL);
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SUM2-MJ01B', 'Cabled', 'Regional Scale', 'Southern Hydrate Ridge Summit', 'Junction Box', 'Junction Box');
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03ASHS', 'Cabled', 'Regional Scale', 'ASHES', 'ASHES', NULL);
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03ASHS-ID03A', 'Cabled', 'Regional Scale', 'ASHES', 'ASHES', 'HD Camera');
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03ASHS-MJ03B', 'Cabled', 'Regional Scale', 'ASHES', 'ASHES', 'Junction Box');
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03AXBS', 'Cabled', 'Regional Scale', 'Axial Base', 'Slope Base', NULL);
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03AXBS-MJ03A', 'Cabled', 'Regional Scale', 'Axial Base', 'Slope Base', 'Junction Box');
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03AXPD', 'Cabled', 'Regional Scale', 'Axial Base', 'Profiler Mooring', NULL);
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03AXPD-DP03A', 'Cabled', 'Regional Scale', 'Axial Base', 'Profiler Mooring', 'Profiler');
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03AXPD-PD03A', 'Cabled', 'Regional Scale', 'Axial Base', 'Profiler Mooring', 'Profiler Dock');
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03AXPS', 'Cabled', 'Regional Scale', 'Axial Base', 'Profiler Mooring', NULL);
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03AXPS-LJ03A', 'Cabled', 'Regional Scale', 'Axial Base', 'Profiler Mooring', 'Junction Box');
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03AXPS-LV03A', 'Cabled', 'Regional Scale', 'Axial Base', 'Profiler Mooring', 'Junction Box');
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03AXPS-PC03A', 'Cabled', 'Regional Scale', 'Axial Base', 'Profiler Mooring', 'Interface Controller');
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03AXPS-SC03A', 'Cabled', 'Regional Scale', 'Axial Base', 'Profiler Mooring', 'Profiler Controller');
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03AXPS-SF03A', 'Cabled', 'Regional Scale', 'Axial Base', 'Profiler Mooring', 'Profiler');
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03CCAL', 'Cabled', 'Regional Scale', 'Central Caldera', 'Junction Box', NULL);
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03CCAL-MJ03F', 'Cabled', 'Regional Scale', 'Central Caldera', 'Junction Box', 'Junction Box');
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03ECAL', 'Cabled', 'Regional Scale', 'Eastern Caldera', 'Junction Box', NULL);
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03ECAL-MJ03E', 'Cabled', 'Regional Scale', 'Eastern Caldera', 'Junction Box', 'Junction Box');
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03INT1', 'Cabled', 'Regional Scale', 'International District', 'Junction Box', NULL);
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03INT1-MJ03C', 'Cabled', 'Regional Scale', 'International District', 'Junction Box', 'Junction Box');
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03INT2', 'Cabled', 'Regional Scale', 'International District', 'Junction Box', NULL);
-insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03INT2-MJ03D', 'Cabled', 'Regional Scale', 'International District', 'Junction Box', 'Junction Box');
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SBPD', 'Cabled', 'Continental Margin', 'Slope Base', 'Profiler Mooring', NULL);
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SBPD-DP01A', 'Cabled', 'Continental Margin', 'Slope Base', 'Profiler Mooring', 'Profiler');
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SBPD-PD01A', 'Cabled', 'Continental Margin', 'Slope Base', 'Profiler Mooring', 'Profiler Dock');
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SBPS', 'Cabled', 'Continental Margin', 'Slope Base', 'Profiler Mooring', NULL);
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SBPS-LJ01A', 'Cabled', 'Continental Margin', 'Slope Base', 'Profiler Mooring', 'Junction Box');
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SBPS-LV01A', 'Cabled', 'Continental Margin', 'Slope Base', 'Profiler Mooring', 'Junction Box');
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SBPS-PC01A', 'Cabled', 'Continental Margin', 'Slope Base', 'Profiler Mooring', 'Interface Controller');
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SBPS-SC01A', 'Cabled', 'Continental Margin', 'Slope Base', 'Profiler Mooring', 'Profiler Controller');
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SBPS-SF01A', 'Cabled', 'Continental Margin', 'Slope Base', 'Profiler Mooring', 'Profiler');
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SLBS', 'Cabled', 'Continental Margin', 'Slope Base', 'Junction Box', NULL);
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SLBS-MJ01A', 'Cabled', 'Continental Margin', 'Slope Base', 'Junction Box', 'Junction Box');
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SUM1', 'Cabled', 'Continental Margin', 'Southern Hydrate Ridge Summit', 'Junction Box', NULL);
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SUM1-LJ01B', 'Cabled', 'Continental Margin', 'Southern Hydrate Ridge Summit', 'Junction Box', 'Junction Box');
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SUM2', 'Cabled', 'Continental Margin', 'Southern Hydrate Ridge Summit', 'Junction Box', NULL);
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS01SUM2-MJ01B', 'Cabled', 'Continental Margin', 'Southern Hydrate Ridge Summit', 'Junction Box', 'Junction Box');
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03ASHS', 'Cabled', 'Axial Seamount', 'ASHES', 'Junction Box', NULL);
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03ASHS-ID03A', 'Cabled', 'Axial Seamount', 'ASHES', 'Junction Box', 'HD Camera');
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03ASHS-MJ03B', 'Cabled', 'Axial Seamount', 'ASHES', 'Junction Box', 'Junction Box');
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03AXBS', 'Cabled', 'Axial Seamount', 'Axial Base', 'Junction Box', NULL);
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03AXBS-MJ03A', 'Cabled', 'Axial Seamount', 'Axial Base', 'Junction Box', 'Junction Box');
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03AXPD', 'Cabled', 'Axial Seamount', 'Axial Base', 'Profiler Mooring', NULL);
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03AXPD-DP03A', 'Cabled', 'Axial Seamount', 'Axial Base', 'Profiler Mooring', 'Profiler');
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03AXPD-PD03A', 'Cabled', 'Axial Seamount', 'Axial Base', 'Profiler Mooring', 'Profiler Dock');
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03AXPS', 'Cabled', 'Axial Seamount', 'Axial Base', 'Profiler Mooring', NULL);
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03AXPS-LJ03A', 'Cabled', 'Axial Seamount', 'Axial Base', 'Profiler Mooring', 'Junction Box');
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03AXPS-LV03A', 'Cabled', 'Axial Seamount', 'Axial Base', 'Profiler Mooring', 'Junction Box');
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03AXPS-PC03A', 'Cabled', 'Axial Seamount', 'Axial Base', 'Profiler Mooring', 'Interface Controller');
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03AXPS-SC03A', 'Cabled', 'Axial Seamount', 'Axial Base', 'Profiler Mooring', 'Profiler Controller');
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03AXPS-SF03A', 'Cabled', 'Axial Seamount', 'Axial Base', 'Profiler Mooring', 'Profiler');
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03CCAL', 'Cabled', 'Axial Seamount', 'Central Caldera', 'Junction Box', NULL);
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03CCAL-MJ03F', 'Cabled', 'Axial Seamount', 'Central Caldera', 'Junction Box', 'Junction Box');
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03ECAL', 'Cabled', 'Axial Seamount', 'Eastern Caldera', 'Junction Box', NULL);
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03ECAL-MJ03E', 'Cabled', 'Axial Seamount', 'Eastern Caldera', 'Junction Box', 'Junction Box');
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03INT1', 'Cabled', 'Axial Seamount', 'International District', 'Junction Box', NULL);
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03INT1-MJ03C', 'Cabled', 'Axial Seamount', 'International District', 'Junction Box', 'Junction Box');
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03INT2', 'Cabled', 'Axial Seamount', 'International District', 'Junction Box', NULL);
+insert into platformnames (reference_designator, array_type, array_name, site, platform, assembly) values( 'RS03INT2-MJ03D', 'Cabled', 'Axial Seamount', 'International District', 'Junction Box', 'Junction Box');
+
+-- RS array
+
 
 -- instrumentnames
 
@@ -3176,6 +3245,8 @@ insert into instrumentnames (id, instrument_class, display_name) values( 51, 'ZP
 insert into instrumentnames (id, instrument_class, display_name) values( 52, 'ZPLSG', 'Bio-acoustic Sonar (Global)');
 
 -- total instrumentnames: 52
+
+
 
 -- From Luke: the instrument deployments were referencing the platform numbers,
 -- not the record ids. This is a migration script
