@@ -116,21 +116,6 @@ class uFrameAssetCollection(object):
 # as well as cleaning up each of the route implementation (CRUD).
 class uFrameEventCollection(object):
     __endpoint__ = 'events'
-    # m@c: Updated 03/03/2015
-    assetEventType = None
-    integratedInto = {}
-    notes = []
-    startDate = None
-    endDate = None
-    attachments = None
-    eventId = None
-    eventDescription = None
-    recordedBy = None
-    assets = {}
-    identifier = None
-    traceId = None
-    overwriteAllowed = None
-
     #Create a json object that contains all uframe assets.
     #This will be the collection that will may be parsed.
     obj = None
@@ -150,24 +135,53 @@ class uFrameEventCollection(object):
         self.obj = data.json()
         return self.obj
 
-    def from_json(json):
-        assetEventType = json.get('assetEventType')
-        integratedInto = json.get('integratedInto')
-        notes = json.get('notes')
+    def from_json(self, json):
+        eventClass = json.get('@class')
+        referenceDesignator = json.get('referenceDesignator')
+        deploymentNumber = json.get('deploymentNumber')
+        deploymentName = json.get('deploymentName')
+        deploymentDepth = json.get('deploymentDepth')
+        depthUnitString = json.get('depthUnitString')
+        deploymentDocUrls = json.get('deploymentDocUrls')
+        cruiseNumber = json.get('cruiseNumber')
+        locationLonLat = json.get('locationLonLat')
+        locationName = json.get('locationName')
+        eventType = json.get('eventType')
         startDate = json.get('startDate')
         endDate = json.get('endDate')
-        attachments = json.get('attachments')
         eventId = json.get('eventId')
         eventDescription = json.get('eventDescription')
         recordedBy = json.get('recordedBy')
-        assets = json.get('assets')
-        ### These are not returned, for now they don't exist in uframe.
-        identifier = json.get('identifier')
-        traceId = json.get('traceId')
-        overwriteAllowed = json.get('overwriteAllowed')
-        ########
-        return uFrameEventCollection(assetEventType = assetEventType, integratedInto = integratedInto, notes = notes, startDate = startDate, endDate = endDate, attachments = attachments, eventId = eventId, eventDescription = eventDescription, recordedBy = recordedBy, assets = assets)
+        asset = json.get('asset')
+        notes = json.get('notes')
+        attachments = json.get('attachments')
+        tense = json.get('tense')
+        lastModifiedTimestamp = json.get('lastModifiedTimestamp')
 
+        formatted_return = {
+            '@class' : eventClass,
+            'referenceDesignator': referenceDesignator,
+            'deploymentNumber': deploymentNumber,
+            'deploymentName': deploymentName,
+            'deploymentDepth': deploymentDepth,
+            'depthUnitString': depthUnitString,
+            'deploymentDocUrls': deploymentDocUrls,
+            'cruiseNumber': cruiseNumber,
+            'locationLonLat': locationLonLat,
+            'locationName': locationName,
+            'eventType': eventType,
+            'startDate': startDate,
+            'endDate': endDate,
+            'eventId': eventId,
+            'eventDescription': eventDescription,
+            'recordedBy': recordedBy,
+            'asset': asset,
+            'notes': notes,
+            'attachments': attachments,
+            'tense': tense,
+            'lastModifiedTimestamp': lastModifiedTimestamp
+        }
+        return formatted_return
 
     #Displays the default top level attributes of this class.
     def __repr__(self):
@@ -205,35 +219,23 @@ class uFrameEventCollection(object):
 
 @api.route('/assets', methods=['GET'])
 def get_assets():
-    '''
-    Lists all the assets
-    '''
     #set up all the contaners.
     data = {}
     #create uframe instance, and fetch the data.
     uframe_obj = uFrameAssetCollection()
     data = uframe_obj.to_json()
-    #parse the result and assign ref_des as top element.
     return jsonify({ 'assets' : data })
 
 #Read (object)
 @api.route('/assets/<int:id>', methods=['GET'])
 def get_asset(id):
-    '''
-    Lists one asset by id
-    '''
     uframe_obj = uFrameAssetCollection()
     data = uframe_obj.to_json(id)
-    #parse the result and assign ref_des as top element.
     return jsonify(**data)
 
 #Create
 @api.route('/assets', methods=['POST'])
 def create_asset():
-    from ooiservices.app.uframe.assetController import uFrameAssetCollection as Uframe
-    '''
-    Create an asset from json input.
-    '''
     data = json.loads(request.data)
     uframe_obj = uFrameAssetCollection()
     post_body = uframe_obj.from_json(data)
@@ -261,9 +263,6 @@ def update_asset(id):
 #Read (list)
 @api.route('/events', methods=['GET'])
 def get_events():
-    '''
-    Lists all the events
-    '''
     #set up all the contaners.
     data = {}
     #create uframe instance, and fetch the data.
@@ -275,16 +274,33 @@ def get_events():
 #Read (object)
 @api.route('/events/<int:id>', methods=['GET'])
 def get_event(id):
-    '''
-    Lists one event by id
-    '''
     #set up all the contaners.
     data = {}
     #create uframe instance, and fetch the data.
     uframe_obj = uFrameEventCollection()
     data = uframe_obj.fetch(id)
-    #parse the result and assign ref_des as top element.
     return jsonify(**data)
+
+#Create
+@api.route('/events', methods=['POST'])
+def create_event():
+    data = json.loads(request.data)
+    uframe_obj = uFrameEventCollection()
+    post_body = uframe_obj.from_json(data)
+    uframe_events_url = _uframe_url(uframe_obj.__endpoint__)
+    response = requests.post(uframe_events_url, data=json.dumps(post_body), headers=_api_headers())
+    return response.text
+
+#Update
+@api.route('/events/<int:id>', methods=['PUT'])
+def update_event(id):
+    data = json.loads(request.data)
+    uframe_obj = uFrameEventCollection()
+    put_body = uframe_obj.from_json(data)
+    uframe_events_url = _uframe_url(uframe_obj.__endpoint__, id)
+    response = requests.put(uframe_events_url, data=json.dumps(put_body), headers=_api_headers())
+    return response.text
+
 ### ---------------------------------------------------------------------------
 ### END Events CRUD methods.
 ### ---------------------------------------------------------------------------
