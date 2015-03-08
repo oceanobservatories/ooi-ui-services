@@ -5,7 +5,7 @@ uframe assets endpoint and class definition.
 '''
 __author__ = 'M@Campbell'
 
-from flask import jsonify, current_app, url_for, Flask, make_response
+from flask import jsonify, current_app, url_for, Flask, make_response, request
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app import db, cache, celery
 from ooiservices.app.main.authentication import auth,verify_auth
@@ -29,9 +29,13 @@ def _uframe_url(endpoint, id=None):
         uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (endpoint, id)
     else:
         uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/%s' % endpoint
-
     return uframe_url
 
+def _api_headers():
+    return {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    }
 
 
 #This class will handle the default checks of the uframe assets endpoint
@@ -42,7 +46,7 @@ class uFrameAssetCollection(object):
     classType =  None
     metaData = []
     assetInfo = None
-    manufacturerInfo = None
+    manufactureInfo = None
     notes = None
     assetId = None
     attachments = []
@@ -62,9 +66,7 @@ class uFrameAssetCollection(object):
 
     def to_json(self,id=None):
         data = []
-
         uframe_assets_url = _uframe_url(self.__endpoint__, id)
-
         try:
             data = requests.get(uframe_assets_url)
         except:
@@ -73,10 +75,12 @@ class uFrameAssetCollection(object):
         return self.obj
 
     def from_json(self, json):
+        # This currently is a 1 to 1 mapping from UI to uFrame.
+        # Below section is from UI
         classType = json.get('@class')
         metaData = json.get('metaData')
         assetInfo = json.get('assetInfo')
-        manufacturerInfo = json.get('manufactureInfo')
+        manufactureInfo = json.get('manufactureInfo')
         notes = json.get('notes')
         assetId = json.get('assetId')
         attachments = json.get('attachments')
@@ -87,7 +91,22 @@ class uFrameAssetCollection(object):
         traceId = json.get('traceId')
         overwriteAllowed = json.get('overwriteAllowed')
         #####
-        return uFrameAssetCollection(classType = classType, metaData = metaData, assetInfo = assetInfo, manufacturerInfo = manufacturerInfo, notes = notes, assetId = assetId, attachments = attachments, purchaseAndDeliveryInfo = purchaseAndDeliveryInfo, physicalInfo = physicalInfo)
+
+        #Below section's keys are uFrame specific and shouldn't be modified
+        #unless necessary to support uframe updates.
+        formatted_return = {
+                "@class": classType,
+                "metaData": metaData,
+                "assetInfo": assetInfo,
+                "manufacturerInfo": manufactureInfo,
+                "notes": notes,
+                "assetId": assetId,
+                "attachments": attachments,
+                "purchaseAndDeliveryInfo": purchaseAndDeliveryInfo,
+                "physicalInfo": physicalInfo,
+                "manufactureInfo": manufactureInfo
+                }
+        return formatted_return
 
     #Displays the default top level attributes of this class.
     def __repr__(self):
@@ -155,6 +174,88 @@ class uFrameEventCollection(object):
         return '<EventID: %r>' % (self.assetId)
 
 ### ---------------------------------------------------------------------------
+### BEGIN Assets CRUD methods.
+### ---------------------------------------------------------------------------
+#Read (list)
+    ##TABLE THIS FOR NOW...
+    '''@api.route('/assets', methods=['GET'])
+    def get_asset_list():
+        #set up all the contaners.
+        d = {}
+        data = {}
+        ref_des = None
+        temp_body = []
+        #create uframe instance, and fetch the data.
+        uframe_obj = uFrameAssetCollection()
+        temp_list = uframe_obj.to_json()
+        #parse the result and assign ref_des as top element.
+        for row in temp_list:
+            if row['metaData'] is not None:
+                for metaData in row['metaData']:
+                    if metaData['key'] == 'Ref Des':
+                        ref_des = (metaData['value'])
+                    else:
+                        d[metaData['key']] = metaData['value']
+                temp_body.append(d)
+                if len(temp_body) > 0:
+                    data[ref_des] = temp_body
+                temp_body = []
+        return jsonify({ 'assets' : data })
+    '''
+
+@api.route('/assets', methods=['GET'])
+def get_assets():
+    '''
+    Lists all the assets
+    '''
+    #set up all the contaners.
+    data = {}
+    #create uframe instance, and fetch the data.
+    uframe_obj = uFrameAssetCollection()
+    data = uframe_obj.to_json()
+    #parse the result and assign ref_des as top element.
+    return jsonify({ 'assets' : data })
+
+#Read (object)
+@api.route('/assets/<int:id>', methods=['GET'])
+def get_asset(id):
+    '''
+    Lists one asset by id
+    '''
+    uframe_obj = uFrameAssetCollection()
+    data = uframe_obj.to_json(id)
+    #parse the result and assign ref_des as top element.
+    return jsonify(**data)
+
+#Create
+@api.route('/assets', methods=['POST'])
+def create_asset():
+    from ooiservices.app.uframe.assetController import uFrameAssetCollection as Uframe
+    '''
+    Create an asset from json input.
+    '''
+    data = json.loads(request.data)
+    uframe_obj = uFrameAssetCollection()
+    post_body = uframe_obj.from_json(data)
+    uframe_assets_url = _uframe_url(uframe_obj.__endpoint__)
+    response = requests.post(uframe_assets_url, data=json.dumps(post_body), headers=_api_headers())
+    return response.text
+
+#Update
+@api.route('/assets/<int:id>', methods=['PUT'])
+def update_asset(id):
+    data = json.loads(request.data)
+    uframe_obj = uFrameAssetCollection()
+    put_body = uframe_obj.from_json(data)
+    uframe_assets_url = _uframe_url(uframe_obj.__endpoint__, id)
+    response = requests.put(uframe_assets_url, data=json.dumps(put_body), headers=_api_headers())
+    return response.text
+
+### ---------------------------------------------------------------------------
+### END Assets CRUD methods.
+### ---------------------------------------------------------------------------
+
+### ---------------------------------------------------------------------------
 ### BEGIN Events CRUD methods.
 ### ---------------------------------------------------------------------------
 #Read (list)
@@ -186,63 +287,6 @@ def get_event(id):
     return jsonify(**data)
 ### ---------------------------------------------------------------------------
 ### END Events CRUD methods.
-### ---------------------------------------------------------------------------
-
-### ---------------------------------------------------------------------------
-### BEGIN Assets CRUD methods.
-### ---------------------------------------------------------------------------
-#Read (list)
-    ##TABLE THIS FOR NOW...
-    '''@api.route('/assets', methods=['GET'])
-    def get_asset_list():
-        #set up all the contaners.
-        d = {}
-        data = {}
-        ref_des = None
-        temp_body = []
-        #create uframe instance, and fetch the data.
-        uframe_obj = uFrameAssetCollection()
-        temp_list = uframe_obj.to_json()
-        #parse the result and assign ref_des as top element.
-        for row in temp_list:
-            if row['metaData'] is not None:
-                for metaData in row['metaData']:
-                    if metaData['key'] == 'Ref Des':
-                        ref_des = (metaData['value'])
-                    else:
-                        d[metaData['key']] = metaData['value']
-                temp_body.append(d)
-                if len(temp_body) > 0:
-                    data[ref_des] = temp_body
-                temp_body = []
-        return jsonify({ 'assets' : data })
-    '''
-@api.route('/assets', methods=['GET'])
-def get_assets():
-    '''
-    Lists all the assets
-    '''
-    #set up all the contaners.
-    data = {}
-    #create uframe instance, and fetch the data.
-    uframe_obj = uFrameAssetCollection()
-    data = uframe_obj.to_json()
-    #parse the result and assign ref_des as top element.
-    return jsonify({ 'assets' : data })
-
-#Read (object)
-@api.route('/assets/<int:id>', methods=['GET'])
-def get_asset(id):
-    '''
-    Lists one asset by id
-    '''
-    uframe_obj = uFrameAssetCollection()
-    data = uframe_obj.to_json(id)
-    #parse the result and assign ref_des as top element.
-    return jsonify(**data)
-
-### ---------------------------------------------------------------------------
-### END Assets CRUD methods.
 ### ---------------------------------------------------------------------------
 
 ### ---------------------------------------------------------------------------
