@@ -43,7 +43,7 @@ def _api_headers():
         'Content-Type': 'application/json'
     }
 
-def _remove_characters(to_translate, translate_to=u' '):
+def _normalize(to_translate, translate_to=u' '):
     ascii =  ''.join([i if ord(i) < 128 else ' ' for i in to_translate])
     not_letters_or_digits = u'\'\"'
     translate_table = dict((ord(char), translate_to) for char in not_letters_or_digits)
@@ -52,8 +52,8 @@ def _remove_characters(to_translate, translate_to=u' '):
 
 def _convert_lat_lon(lat, lon):
     from LatLon import string2latlon
-    conv_lat = _remove_characters(lat)
-    conv_lon = _remove_characters(lon)
+    conv_lat = _normalize(lat)
+    conv_lon = _normalize(lon)
     try:
         coords = string2latlon(conv_lat, conv_lon, 'd% %D% %H')
         return coords.to_string('D')
