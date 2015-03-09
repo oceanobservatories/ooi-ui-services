@@ -55,8 +55,8 @@ def _convert_lat_lon(lat, lon):
     conv_lat = _normalize(lat)
     conv_lon = _normalize(lon)
     try:
-        coords = string2latlon(conv_lat, conv_lon, 'd% %D% %H')
-        return coords.to_string('D')
+        coords = string2latlon(conv_lat, conv_lon, 'd% %M% %H')
+        return coords.to_string('d% %M')
     except Exception as e:
         return "Error: %s" % e
 
@@ -230,6 +230,8 @@ def get_assets():
                     lon = metaData['value']
             if len(lat) > 0 and len(lon) > 0:
                 row['coordinates'] = _convert_lat_lon(lat, lon)
+                lat = ""
+                lon = ""
     return jsonify({ 'assets' : data })
 
 #Read (object)
@@ -246,6 +248,8 @@ def get_asset(id):
             lon = metaData['value']
     if len(lat) > 0 and len(lon) > 0:
         data['coordinates'] = _convert_lat_lon(lat, lon)
+        lat = ""
+        lon = ""
     return jsonify(**data)
 
 #Create
