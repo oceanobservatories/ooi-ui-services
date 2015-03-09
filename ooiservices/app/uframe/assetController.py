@@ -53,7 +53,6 @@ def _convert_lat_lon(lat, lon):
     except Exception as e:
         return "Error: %s" % e
 
-
 #This class will handle the default checks of the uframe assets endpoint
 # as well as cleaning up each of the route implementation (CRUD).
 class uFrameAssetCollection(object):
@@ -365,9 +364,6 @@ def get_asset_serials():
                 data.append(serial['serialNumber'])
     data = _remove_duplicates(data)
     return jsonify({ 'serial_numbers' : data })
-
-
-
 
 @api.route('/assets/condense', methods=['GET'])
 def get_asset_list():
