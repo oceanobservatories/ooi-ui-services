@@ -37,6 +37,22 @@ def _api_headers():
         'Content-Type': 'application/json'
     }
 
+def _remove_characters(to_translate, translate_to=u' '):
+    ascii =  ''.join([i if ord(i) < 128 else ' ' for i in to_translate])
+    not_letters_or_digits = u'\'\"'
+    translate_table = dict((ord(char), translate_to) for char in not_letters_or_digits)
+    return ascii.translate(translate_table)
+
+def _convert_lat_lon(lat, lon):
+    from LatLon import string2latlon
+    conv_lat = _remove_characters(lat)
+    conv_lon = _remove_characters(lon)
+    try:
+        coords = string2latlon(conv_lat, conv_lon, 'd%  %D%  %H')
+        return coords.to_string('D')
+    except Exception as e:
+        return "Error: %s" % e
+
 
 #This class will handle the default checks of the uframe assets endpoint
 # as well as cleaning up each of the route implementation (CRUD).
@@ -190,33 +206,6 @@ class uFrameEventCollection(object):
 ### ---------------------------------------------------------------------------
 ### BEGIN Assets CRUD methods.
 ### ---------------------------------------------------------------------------
-#Read (list)
-    ##TABLE THIS FOR NOW...
-    '''@api.route('/assets', methods=['GET'])
-    def get_asset_list():
-        #set up all the contaners.
-        d = {}
-        data = {}
-        ref_des = None
-        temp_body = []
-        #create uframe instance, and fetch the data.
-        uframe_obj = uFrameAssetCollection()
-        temp_list = uframe_obj.to_json()
-        #parse the result and assign ref_des as top element.
-        for row in temp_list:
-            if row['metaData'] is not None:
-                for metaData in row['metaData']:
-                    if metaData['key'] == 'Ref Des':
-                        ref_des = (metaData['value'])
-                    else:
-                        d[metaData['key']] = metaData['value']
-                temp_body.append(d)
-                if len(temp_body) > 0:
-                    data[ref_des] = temp_body
-                temp_body = []
-        return jsonify({ 'assets' : data })
-    '''
-
 @api.route('/assets', methods=['GET'])
 def get_assets():
     #set up all the contaners.
@@ -224,6 +213,17 @@ def get_assets():
     #create uframe instance, and fetch the data.
     uframe_obj = uFrameAssetCollection()
     data = uframe_obj.to_json()
+    lat = ""
+    lon = ""
+    for row in data:
+        if row['metaData'] is not None:
+            for metaData in row['metaData']:
+                if metaData['key'] == 'Latitude':
+                    lat = metaData['value']
+                elif metaData['key'] == 'Longitude':
+                    lon = metaData['value']
+            if len(lat) > 0 and len(lon) > 0:
+                row['coordinates'] = _convert_lat_lon(lat, lon)
     return jsonify({ 'assets' : data })
 
 #Read (object)
@@ -231,6 +231,15 @@ def get_assets():
 def get_asset(id):
     uframe_obj = uFrameAssetCollection()
     data = uframe_obj.to_json(id)
+    lat = ""
+    lon = ""
+    for metaData in data['metaData']:
+        if metaData['key'] == 'Latitude':
+            lat = metaData['value']
+        elif metaData['key'] == 'Longitude':
+            lon = metaData['value']
+    if len(lat) > 0 and len(lon) > 0:
+        data['coordinates'] = _convert_lat_lon(lat, lon)
     return jsonify(**data)
 
 #Create
@@ -358,3 +367,28 @@ def get_asset_serials():
     return jsonify({ 'serial_numbers' : data })
 
 
+
+
+@api.route('/assets/condense', methods=['GET'])
+def get_asset_list():
+    #set up all the contaners.
+    d = {}
+    data = {}
+    ref_des = None
+    temp_body = []
+    #create uframe instance, and fetch the data.
+    uframe_obj = uFrameAssetCollection()
+    temp_list = uframe_obj.to_json()
+    #parse the result and assign ref_des as top element.
+    for row in temp_list:
+        if row['metaData'] is not None:
+            for metaData in row['metaData']:
+                if metaData['key'] == 'Ref Des':
+                    ref_des = (metaData['value'])
+                else:
+                    d[metaData['key']] = metaData['value']
+            temp_body.append(d)
+            if len(temp_body) > 0:
+                data[ref_des] = temp_body
+            temp_body = []
+    return jsonify({ 'assets' : data })
