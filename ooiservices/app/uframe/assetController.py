@@ -13,6 +13,12 @@ from ooiservices.app.main.errors import internal_server_error
 import json
 import requests
 
+def _normalize_whitespace(string):
+    import re
+    string = string.strip()
+    string = re.sub(r'\s+', ' ', string)
+    return string
+
 def _remove_duplicates(values):
     output = []
     seen = set()
@@ -41,14 +47,15 @@ def _remove_characters(to_translate, translate_to=u' '):
     ascii =  ''.join([i if ord(i) < 128 else ' ' for i in to_translate])
     not_letters_or_digits = u'\'\"'
     translate_table = dict((ord(char), translate_to) for char in not_letters_or_digits)
-    return ascii.translate(translate_table)
+    normalized = _normalize_whitespace(ascii.translate(translate_table))
+    return normalized
 
 def _convert_lat_lon(lat, lon):
     from LatLon import string2latlon
     conv_lat = _remove_characters(lat)
     conv_lon = _remove_characters(lon)
     try:
-        coords = string2latlon(conv_lat, conv_lon, 'd%  %D%  %H')
+        coords = string2latlon(conv_lat, conv_lon, 'd% %D% %H')
         return coords.to_string('D')
     except Exception as e:
         return "Error: %s" % e
