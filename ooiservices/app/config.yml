@@ -12,7 +12,7 @@ COMMON: &common
     HOST: localhost
     PORT: 4000
     JSONIFY_PRETTYPRINT_REGULAR: true
-    UFRAME_URL: 'http://localhost:12570'
+    UFRAME_URL: 'http://localhost:12575'
     UFRAME_ASSETS_URL: 'http://localhost:12573'
     UFRAME_URL_BASE: '/sensor/inv'
     REDMINE_KEY: 'XXXXXXXXXXXXX'
