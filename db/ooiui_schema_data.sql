@@ -14,6 +14,7 @@ SET search_path = ooiui, public, pg_catalog;
 
 -- organizations
 insert into organizations(organization_name) values ('ASA');
+insert into organizations(organization_name) values ('Rutgers');
 insert into organizations(organization_name) values ('Eastern Ocean Platforms, Inc.');
 insert into organizations(organization_name) values ('Offshore Instruments, Inc.');
 insert into organizations(organization_name) values ('West Coast Labs, Inc.');

@@ -815,13 +815,15 @@ class User(UserMixin, db.Model):
 
 
     @staticmethod
-    def insert_user(username='admin', password=None, first_name='First', last_name='Last', email='FirstLast@somedomain.com', org_name='ASA'):
+    def insert_user(username='admin', password=None, first_name='First', last_name='Last', email='FirstLast@somedomain.com', org_name='ASA', phone_primary='8001234567'):
         user = User(password=password, first_name=first_name, active=True)
         user.validate_username(username)
         user.validate_email(email)
         user.user_name = username
         user.email = email
         user.user_id = username
+        user.last_name = last_name
+        user.phone_primary = phone_primary
         org = Organization.query.filter(Organization.organization_name == org_name).first()
         user.organization_id = org.id
         db.session.add(user)
