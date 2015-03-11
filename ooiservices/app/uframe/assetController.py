@@ -87,6 +87,10 @@ def _convert_water_depth(depth):
         d['unit'] = "m"
         return d
 
+def _associate_events(id):
+    pass
+
+
 #This class will handle the default checks of the uframe assets endpoint
 # as well as cleaning up each of the route implementation (CRUD).
 class uFrameAssetCollection(object):
