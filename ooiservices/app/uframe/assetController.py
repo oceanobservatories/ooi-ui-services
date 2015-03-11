@@ -300,6 +300,8 @@ def get_asset(id):
             date_launch = metaData['value']
         if metaData['key'] == "Anchor Launch Time":
             time_launch = metaData['value']
+        if metaData['key'] == 'Water Depth':
+            depth = metaData['value']
     if len(lat) > 0 and len(lon) > 0:
         data['coordinates'] = _convert_lat_lon(lat, lon)
         lat = ""
