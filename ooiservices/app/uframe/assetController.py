@@ -88,8 +88,12 @@ def _convert_water_depth(depth):
         return d
 
 def _associate_events(id):
-    pass
-
+    uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/assets/%s/event' % (id)
+    try:
+        data = requests.get(uframe_url)
+        return data.json()
+    except:
+        return data.text
 
 #This class will handle the default checks of the uframe assets endpoint
 # as well as cleaning up each of the route implementation (CRUD).
@@ -230,6 +234,7 @@ class uFrameEventCollection(object):
 ### ---------------------------------------------------------------------------
 ### BEGIN Assets CRUD methods.
 ### ---------------------------------------------------------------------------
+#Read (list)
 @api.route('/assets', methods=['GET'])
 def get_assets():
     #set up all the contaners.
@@ -347,6 +352,9 @@ def update_asset(id):
     response = requests.put(uframe_assets_url, data=json.dumps(put_body), headers=_api_headers())
     return response.text
 
+#Delete
+#Not supported
+
 ### ---------------------------------------------------------------------------
 ### END Assets CRUD methods.
 ### ---------------------------------------------------------------------------
@@ -394,6 +402,9 @@ def update_event(id):
     uframe_events_url = _uframe_url(uframe_obj.__endpoint__, id)
     response = requests.put(uframe_events_url, data=json.dumps(put_body), headers=_api_headers())
     return response.text
+
+#Delete
+#Not supported
 
 ### ---------------------------------------------------------------------------
 ### END Events CRUD methods.
