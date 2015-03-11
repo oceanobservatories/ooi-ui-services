@@ -244,6 +244,7 @@ def get_assets():
     ref_des = ""
     depth = ""
     for row in data:
+        row['class'] = row.pop('@class')
         if row['metaData'] is not None:
             for metaData in row['metaData']:
                 if metaData['key'] == 'Latitude':
@@ -291,6 +292,7 @@ def get_asset(id):
     time_launch = ""
     ref_des = ""
     depth = ""
+    data['class'] = data.pop('@class')
     for metaData in data['metaData']:
         if metaData['key'] == 'Latitude':
             lat = metaData['value']
