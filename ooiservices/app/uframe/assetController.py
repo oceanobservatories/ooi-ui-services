@@ -5,21 +5,23 @@ uframe assets endpoint and class definition.
 '''
 __author__ = 'M@Campbell'
 
-from flask import jsonify, current_app, url_for, Flask, make_response, request
+from flask import jsonify, current_app, Flask, make_response, request
 from ooiservices.app.uframe import uframe as api
-from ooiservices.app import db, cache, celery
 from ooiservices.app.main.authentication import auth,verify_auth
 from ooiservices.app.main.errors import internal_server_error
+from LatLon import string2latlon
 import json
 import requests
+import re
 
 def _normalize_whitespace(string):
-    import re
+    #Requires re
     string = string.strip()
     string = re.sub(r'\s+', ' ', string)
     return string
 
 def _remove_duplicates(values):
+    #Requires re
     output = []
     seen = set()
     for value in values:
@@ -30,12 +32,19 @@ def _remove_duplicates(values):
             seen.add(value)
     return output
 
-def _uframe_url(endpoint, id=None):
+def _uframe_collection(endpoint, id=None):
+    data = None
     if id is not None:
         uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (endpoint, id)
     else:
         uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/%s' % endpoint
-    return uframe_url
+    try:
+        data = requests.get(uframe_url)
+        return data.json()
+    except:
+        if data == None:
+            raise Exception("uframe connection cannot be established for: Assets")
+        raise data.status_code
 
 def _api_headers():
     return {
@@ -51,14 +60,32 @@ def _normalize(to_translate, translate_to=u' '):
     return normalized
 
 def _convert_lat_lon(lat, lon):
-    from LatLon import string2latlon
+    #Requires LatLon
     conv_lat = _normalize(lat)
     conv_lon = _normalize(lon)
     try:
         coords = string2latlon(conv_lat, conv_lon, 'd% %M% %H')
-        return coords.to_string('d% %M')
+        return coords.to_string('D')
     except Exception as e:
         return "Error: %s" % e
+
+def _convert_date_time(date, time="00:00"):
+    #For now, just concat the date and time:
+    return "%s %s" % (date, time)
+
+def _convert_water_depth(depth):
+    d = {}
+    if len(depth.split( )) == 2:
+        value = depth.split()[0]
+        unit = depth.split()[1]
+        d['value'] = float(value)
+        d['unit'] = str(unit)
+        return d
+    else:
+        no_alpha = re.sub("[^0-9]", "", depth)
+        d['value'] = float(no_alpha)
+        d['unit'] = "m"
+        return d
 
 #This class will handle the default checks of the uframe assets endpoint
 # as well as cleaning up each of the route implementation (CRUD).
@@ -87,14 +114,8 @@ class uFrameAssetCollection(object):
         pass
 
     def to_json(self,id=None):
-        data = []
-        uframe_assets_url = _uframe_url(self.__endpoint__, id)
-        try:
-            data = requests.get(uframe_assets_url)
-        except:
-            raise data.status_code
-        self.obj = data.json()
-        return self.obj
+        data = _uframe_collection(self.__endpoint__, id)
+        return data
 
     def from_json(self, json):
         # This currently is a 1 to 1 mapping from UI to uFrame.
@@ -147,15 +168,8 @@ class uFrameEventCollection(object):
         pass
 
     def to_json(self,id=None):
-        data = []
-        print(id)
-        uframe_events_url = _uframe_url(self.__endpoint__, id)
-        try:
-            data = requests.get(uframe_events_url)
-        except:
-            raise data.status_code
-        self.obj = data.json()
-        return self.obj
+        data = _uframe_collection(self.__endpoint__, id)
+        return data
 
     def from_json(self, json):
         eventClass = json.get('@class')
@@ -221,17 +235,45 @@ def get_assets():
     data = uframe_obj.to_json()
     lat = ""
     lon = ""
+    date_launch = ""
+    time_launch = ""
+    ref_des = ""
+    depth = ""
     for row in data:
         if row['metaData'] is not None:
             for metaData in row['metaData']:
                 if metaData['key'] == 'Latitude':
                     lat = metaData['value']
-                elif metaData['key'] == 'Longitude':
+                if metaData['key'] == 'Longitude':
                     lon = metaData['value']
+                if metaData['key'] == "Anchor Launch Date":
+                    date_launch = metaData['value']
+                if metaData['key'] == "Anchor Launch Time":
+                    time_launch = metaData['value']
+                if metaData['key'] == 'Water Depth':
+                    depth = metaData['value']
+                if metaData['key'] == 'Ref Des':
+                    ref_des = (metaData['value'])
             if len(lat) > 0 and len(lon) > 0:
                 row['coordinates'] = _convert_lat_lon(lat, lon)
                 lat = ""
                 lon = ""
+            if len(date_launch) > 0 and len(time_launch) > 0:
+                row['launch_date_time'] = _convert_date_time(date_launch, time_launch)
+                date_launch = ""
+                time_launch = ""
+            elif len(date_launch) > 0:
+                row['launch_date_time'] = _convert_date_time(date_launch)
+                date_launch = ""
+                time_launch = ""
+            if len(depth) > 0:
+                row['water_depth'] = _convert_water_depth(depth)
+                depth = ""
+            if len(ref_des) > 0:
+                row['ref_des'] = ref_des
+                ref_des = ""
+
+        row['metaData'] = ""
     return jsonify({ 'assets' : data })
 
 #Read (object)
@@ -241,15 +283,40 @@ def get_asset(id):
     data = uframe_obj.to_json(id)
     lat = ""
     lon = ""
+    date_launch = ""
+    time_launch = ""
+    ref_des = ""
+    depth = ""
     for metaData in data['metaData']:
         if metaData['key'] == 'Latitude':
             lat = metaData['value']
-        elif metaData['key'] == 'Longitude':
+        if metaData['key'] == 'Longitude':
             lon = metaData['value']
+        if metaData['key'] == "Anchor Launch Date":
+            date_launch = metaData['value']
+        if metaData['key'] == "Anchor Launch Time":
+            time_launch = metaData['value']
     if len(lat) > 0 and len(lon) > 0:
         data['coordinates'] = _convert_lat_lon(lat, lon)
         lat = ""
         lon = ""
+    if len(date_launch) > 0 and len(time_launch) > 0:
+        data['launch_date_time'] = _convert_date_time(date_launch, time_launch)
+        date_launch = ""
+        time_launch = ""
+    elif len(date_launch) > 0:
+        data['launch_date_time'] = _convert_date_time(date_launch)
+        date_launch = ""
+        time_launch = ""
+    if len(depth) > 0:
+        data['water_depth'] = _convert_water_depth(depth)
+        depth = ""
+    if len(ref_des) > 0:
+        data['ref_des'] = ref_des
+        ref_des = ""
+
+    data['events'] = _associate_events(id)
+
     return jsonify(**data)
 
 #Create
