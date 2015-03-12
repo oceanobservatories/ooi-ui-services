@@ -64,7 +64,10 @@ def _convert_lat_lon(lat, lon):
     conv_lat = _normalize(lat)
     conv_lon = _normalize(lon)
     try:
-        coords = string2latlon(conv_lat, conv_lon, 'd% %M% %H')
+        if len(conv_lat.split()) == 4  and len(conv_lon.split()) == 4:
+            coords = string2latlon(conv_lat, conv_lon, 'd% %m% %M% %H')
+        else:
+            coords = string2latlon(conv_lat, conv_lon, 'd% %M% %H')
         return coords.to_string('D')
     except Exception as e:
         return "Error: %s" % e
@@ -88,10 +91,13 @@ def _convert_water_depth(depth):
         return d
 
 def _associate_events(id):
-    uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/assets/%s/event' % (id)
+    d = {}
+    uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/assets/%s/events' % (id)
     try:
         data = requests.get(uframe_url)
-        return data.json()
+        d = data.json()
+        d['asset'] = ""
+        return d
     except:
         return data.text
 
@@ -301,8 +307,10 @@ def get_asset(id):
     for metaData in data['metaData']:
         if metaData['key'] == 'Latitude':
             lat = metaData['value']
+            metaData['value'] = _normalize(metaData['value'])
         if metaData['key'] == 'Longitude':
             lon = metaData['value']
+            metaData['value'] = _normalize(metaData['value'])
         if metaData['key'] == "Anchor Launch Date":
             date_launch = metaData['value']
         if metaData['key'] == "Anchor Launch Time":
