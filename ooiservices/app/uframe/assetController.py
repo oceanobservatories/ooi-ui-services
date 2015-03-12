@@ -10,6 +10,7 @@ from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.authentication import auth,verify_auth
 from ooiservices.app.main.errors import internal_server_error
 from LatLon import string2latlon
+from ooiservices.app import cache
 import json
 import requests
 import re
@@ -241,6 +242,7 @@ class uFrameEventCollection(object):
 ### BEGIN Assets CRUD methods.
 ### ---------------------------------------------------------------------------
 #Read (list)
+@cache.memoize(timeout=3600)
 @api.route('/assets', methods=['GET'])
 def get_assets():
     #set up all the contaners.
@@ -289,7 +291,12 @@ def get_assets():
                 row['ref_des'] = ref_des
                 ref_des = ""
 
-        row['metaData'] = ""
+        #Clear out these fields, not needed for now.
+        #Will all persist in the GET (object) route
+        row.pop('metaData', None)
+        row.pop('physicalInfo', None)
+        row.pop('purchaseAndDeliveryInfo', None)
+
     return jsonify({ 'assets' : data })
 
 #Read (object)
@@ -371,6 +378,7 @@ def update_asset(id):
 ### BEGIN Events CRUD methods.
 ### ---------------------------------------------------------------------------
 #Read (list)
+@cache.memoize(timeout=3600)
 @api.route('/events', methods=['GET'])
 def get_events():
     #set up all the contaners.
