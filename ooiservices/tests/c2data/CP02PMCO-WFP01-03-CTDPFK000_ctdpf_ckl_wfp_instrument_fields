@@ -1,0 +1,5 @@
+[
+  {"name":"pressure", "units": "counts", "type": "Float32", "value":"13244"},
+  {"name":"temperature", "units": "counts", "type": "Float32", "value":"173220"},
+  {"name":"conductivity", "units": "counts", "type": "Float32", "value":"413737"}
+]
