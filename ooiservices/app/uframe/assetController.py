@@ -5,7 +5,7 @@ uframe assets endpoint and class definition.
 '''
 __author__ = 'M@Campbell'
 
-from flask import jsonify, current_app, Flask, make_response, request
+from flask import jsonify, current_app, Flask, make_response, request, url_for
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.authentication import auth,verify_auth
 from ooiservices.app.main.errors import internal_server_error
@@ -92,15 +92,18 @@ def _convert_water_depth(depth):
         return d
 
 def _associate_events(id):
-    d = {}
     uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/assets/%s/events' % (id)
-    try:
-        data = requests.get(uframe_url)
-        d = data.json()
-        d['asset'] = ""
-        return d
-    except:
-        return data.text
+    d = {'url': url_for('uframe.get_event', id=id), 'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/events/%s' % id}
+
+    data = requests.get(uframe_url)
+    json_data = data.json()
+    for row in json_data:
+        d['eventId'] = row['eventId']
+        d['class'] = row['@class']
+        d['notes'] = len(row['notes'])
+
+    return d
+
 
 #This class will handle the default checks of the uframe assets endpoint
 # as well as cleaning up each of the route implementation (CRUD).
@@ -262,8 +265,10 @@ def get_assets():
             for metaData in row['metaData']:
                 if metaData['key'] == 'Latitude':
                     lat = metaData['value']
+                    metaData['value'] = _normalize(metaData['value'])
                 if metaData['key'] == 'Longitude':
                     lon = metaData['value']
+                    metaData['value'] = _normalize(metaData['value'])
                 if metaData['key'] == "Anchor Launch Date":
                     date_launch = metaData['value']
                 if metaData['key'] == "Anchor Launch Time":
@@ -312,6 +317,9 @@ def get_asset(id):
     depth = ""
     data['class'] = data.pop('@class')
     for metaData in data['metaData']:
+        #Please, make fun of Rutgers for this.
+        if metaData['key'] == 'Laditude ':
+            metaData['key'] = 'Latitude'
         if metaData['key'] == 'Latitude':
             lat = metaData['value']
             metaData['value'] = _normalize(metaData['value'])
@@ -344,7 +352,6 @@ def get_asset(id):
         ref_des = ""
 
     data['events'] = _associate_events(id)
-
     return jsonify(**data)
 
 #Create
@@ -386,6 +393,8 @@ def get_events():
     #create uframe instance, and fetch the data.
     uframe_obj = uFrameEventCollection()
     data = uframe_obj.to_json()
+    for row in data:
+        row['class'] = row.pop('@class')
     #parse the result and assign ref_des as top element.
     return jsonify({ 'events' : data })
 
@@ -396,7 +405,7 @@ def get_event(id):
     data = {}
     #create uframe instance, and fetch the data.
     uframe_obj = uFrameEventCollection()
-    data = uframe_obj.fetch(id)
+    data = uframe_obj.to_json(id)
     return jsonify(**data)
 
 #Create
