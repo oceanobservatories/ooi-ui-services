@@ -1,5 +1,5 @@
 [
-  {"name":"wfp_number_samples", "units": "counts", "type": "Float32", "value":"594"},
-  {"name":"wfp_time_off", "units": "s", "type": "Float32", "value":"1399119006"},
-  {"name":"wfp_time_on", "units": "s", "type": "Float32", "value":"1399118402"}
+  {"name":"wfp_number_samples", "units": "counts", "type": "Float32", "value":"594", "commands":"SET, RESET"},
+  {"name":"wfp_time_off", "units": "s", "type": "Float32", "value":"1399119006", "commands":"SET, RESET"},
+  {"name":"wfp_time_on", "units": "s", "type": "Float32", "value":"1399118402", "commands":"SET, RESET"},
 ]

@@ -16,6 +16,7 @@ from ooiservices.app.models import Instrumentname # Stream, StreamParameter, Org
 import json
 import requests
 from ooiservices.app.main.errors import internal_server_error
+import os
 
 # - - - - - - - - - - - - - - - - - - - - - - - -
 # C2 array
@@ -26,6 +27,7 @@ def c2_get_array_display(array_code):
     #C2 get array display
     contents = []
     array_info = {}
+    reference_designator = array_code
     array = Array.query.filter_by(array_code=array_code).first_or_404()
 
     # get ordered set of platform_deployments for array.id
@@ -75,14 +77,14 @@ def c2_get_array_display(array_code):
     response_dict = {}
     response_dict['display_name'] = array.display_name
     response_dict['data'] = contents                       # rows for Current Status grid
-    response_dict['history'] = get_history()                #TODO get real history
+    response_dict['history'] = c2_get_array_history(reference_designator)
     return jsonify(array_display=response_dict)
 
 
-def get_history():
+def get_history(reference_designator):
     #TODO get history from correct source
     # C2 make fake history for event, command and configuration
-    history = {}
+    history = { 'history': {'event': [], 'command': [], 'configuration':[]} }
     history['event'] = []
     history['command'] = []
     history['configuration'] = []
@@ -118,10 +120,14 @@ def c2_get_platform_display(reference_designator):
     # Sample: http://localhost:4000/c2/platform_display/CP02PMCO-WFP01   (id==104)
     contents = []
     platform_info = {}
+    response_dict = {}
     platform_deployment = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first_or_404()
-    pd = platform_deployment.to_json()
-    platform_deployment_id = pd['id']
-    platform_deployment_display_name = pd['display_name']
+    json_platform_deployment = platform_deployment.to_json()
+    platform_deployment_id = json_platform_deployment['id']
+    platform_deployment_display_name = json_platform_deployment['display_name']
+    response_dict['display_name']  = platform_deployment_display_name
+    response_dict['reference_designator']  = reference_designator
+    response_dict['platform_deployment_id']  = platform_deployment_id
 
     # get ordered set of instrument_deployments for reference_designator (platform)
     instrument_deployments = \
@@ -130,13 +136,12 @@ def c2_get_platform_display(reference_designator):
         instrument_name = Instrumentname.query.filter(Instrumentname.instrument_class == i_d.display_name).first()
         if instrument_name:
             i_d.display_name = instrument_name.display_name
-    ids = [instrument_deployment.to_json() for instrument_deployment in instrument_deployments]
-
-    # create list of reference_designators and accumulate dict result (key=reference_designator) for use in response
+    json_instrument_deployments = [instrument_deployment.to_json() for instrument_deployment in instrument_deployments]
+    # create list of reference_designators (instrument_deployment_rds) and accumulate dict result (key=reference_designator) for use in response
     # (Set all operational_status values to 'Online' by default)
-    id_rds = []
-    for id in ids:
-        id_rds.append(id['reference_designator'])
+    instrument_deployment_rds = []
+    for id in json_instrument_deployments:
+        instrument_deployment_rds.append(id['reference_designator'])
         id_row = {}
         id_row['instrument_deployment_id'] = id['id']
         id_row['display_name'] = id['display_name']
@@ -146,6 +151,7 @@ def c2_get_platform_display(reference_designator):
         platform_info[id['reference_designator']] = id_row
 
     # Get operational status for all instruments in platform with reference_designator
+    #TODO def c2_get_instruments_operational_status(instruments), return statuses
     '''
     try:
         response = get_uframe_instruments_operational_status(reference_designator)
@@ -158,23 +164,25 @@ def c2_get_platform_display(reference_designator):
     '''
     response_text = json_get_uframe_instruments_operational_status(reference_designator)
     data = json.loads(response_text)
-    # Add operational status to output info
+
+    # Add operational status to output
     for d in data:
         rd = d['id']
         stat = d['status']
         if rd in platform_info:
             platform_info[rd]['operational_status'] = stat
 
-    #TODO Review and remove if not needed for platforms (possibly required/helpful for navigation directly to instruments display)
+    #TODO Review and remove if not needed for platforms (possibly required/helpful for UI navigation directly to instruments display)
+    #TODO def c2_get_instruments_streams(instruments) return streams (dict keyed by instrument reference_designator)
     # Get list of stream_name(s) supported by instruments in this platform (multiple)
     # Note: to be used in UI for pull down list; based on selection, the ui requests instrument fields for that stream.
     '''
     try:
-        streams = get_uframe_instruments_streams(id_rds)
+        streams = get_uframe_instruments_streams(instrument_deployment_rds)
     except Exception, err:
         return internal_server_error(err.message)
     '''
-    streams = json_get_uframe_instruments_streams(id_rds)
+    streams = json_get_uframe_instruments_streams(instrument_deployment_rds)
 
     #Add streams for each instrument to output info
     for item in platform_info:
@@ -182,41 +190,29 @@ def c2_get_platform_display(reference_designator):
         if res['reference_designator'] in streams:
             res['streams'] = streams[res['reference_designator']]
 
-    #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # create list (ordered by reference_designator) of dictionaries representing row(s) for 'data'
-    for r in id_rds:
+    # 'data' == rows for initial grid ('Current Status')
+    for r in instrument_deployment_rds:
         if r in platform_info:
             contents.append(platform_info[r])
+    response_dict['data'] = contents
 
-    # prepare output
-    response_dict = {}
-    response_dict['data'] = contents                       # rows for Current Status grid
-    response_dict['display_name'] = platform_deployment_display_name
-    response_dict['history'] = get_history()
+    # Get history, add history to output
+    response_dict['history'] = c2_get_platform_history(reference_designator)
+    # Get ports_display, add ports_display to output
+    response_dict['ports_display'] = c2_get_platform_ports_display(reference_designator)
+
     return jsonify(platform_display=response_dict)
 
-# - - - - - - - - - - - - - - - - - - - - - - - -
-# C2 instrument routes
-# - - - - - - - - - - - - - - - - - - - - - - - -
-#TODO enable auth
-@api.route('/c2/instrument_display/<string:reference_designator>', methods=['GET'])
-#@auth.login_required
-def c2_get_instrument_display(reference_designator):
-    # C2 get instrument display
-    # iff instrument has one stream, data is populated with fields for stream; commands populated also
-    # Sample request:
-    #   http://localhost:4000/c2/instrument_display/CP02PMCO-WFP01-05-PARADK000     (1 stream, data populated)
-    #   http://localhost:4000/c2/instrument_display/CP02PMCO-WFP01-02-DOFSTK000     (2 streams, no data)
-    response_dict = {}
-    response_dict['data'] = []
-    instrument_deployment = InstrumentDeployment.query.filter_by(reference_designator=reference_designator).first_or_404()
-    id = instrument_deployment.to_json()
-    instrument_deployment_display_name = id['display_name']
-    instrument_deployment_id = id['id']
-
-    #TODO def c2_get_instrument_streams(reference_designator) returns streams, [fields, commands]
-    # Get instrument stream(s) list
-    # Note: used in UI for pull down list; based on selection, the ui requests instrument fields for that stream.)
+def c2_get_instrument_streams(reference_designator):
+    '''
+    C2 Get instrument stream(s) list, return streams, fields where
+        streams is [stream_name1, stream_name2, ...] and
+        fields  is fields = [{field}, {field},...]
+    Uses:
+        c2_get_instrument_stream_fields(reference_designator, stream_name) returns fields list [{field1}, {field2},...]
+    '''
+    fields = []
     '''
     try:
         streams = get_uframe_instrument_streams(reference_designator)
@@ -226,44 +222,34 @@ def c2_get_instrument_display(reference_designator):
     '''
     response_text = json_get_uframe_instrument_streams(reference_designator)
     streams = json.loads(response_text)
-    # Add instrument streams to output
-    response_dict['streams'] = streams      # = c2_get_instrument_streams(reference_designator)
-
-    # Get instrument stream fields if one stream; get commands iff one stream
-    fields = []
-    '''
+    # Get instrument fields iff one stream
     if streams:
         if len(streams) == 1:
-            try:
-                # Get list of fields, where each field is dict fields = [{field}, {field},...]
-                response = get_uframe_instrument_fields(reference_designator, stream_name)
-                if response.status_code == 200:
-                    fields = json.loads(response.text)
-
-            except Exception, err:
-                message = '(get_uframe_instrument_fields) error: '
-                return internal_server_error('%s: %s' % (message, err.message))
-
-            #TODO get commands...def c2_get_instrument_stream_commands(reference_designator, stream_name)
-            response_dict['commands'] = []  # = get_instrument_stream_commands(reference_designator, stream_name)
-    '''
-    if streams:
-        if len(streams) == 1:
-            # Get list of fields, where each field is dict fields = [{field}, {field},...]
             stream_name = streams[0]
-            response_text = json_get_uframe_instrument_fields(reference_designator, stream_name)
-            fields = json.loads(response_text)
-            #TODO get commands...def c2_get_instrument_stream_commands(reference_designator, stream_name)
-            response_dict['commands'] = []  # = get_instrument_stream_commands(reference_designator, stream_name)
+            # Get list of fields, where each field is dictionary; fields = [{field}, {field},...]
+            fields = c2_get_instrument_stream_fields(reference_designator, stream_name)
+    return streams, fields
 
-    # Add field for instrument stream (empty if instrument has more than one stream, or no stream)
-    response_dict['data'] = fields
+def c2_get_instrument_stream_fields(reference_designator, stream_name):
+    # C2 get instrument stream fields, return fields (as list [{field1}, {field2},...])
+    '''
+    fields = []
+    try:
+        # Get list of fields, where each field is dict fields = [{field}, {field},...]
+        response = get_uframe_instrument_fields(reference_designator, stream_name)
+        if response.status_code == 200:
+            fields = json.loads(response.text)
+    except Exception, err:
+        message = '(get_uframe_instrument_fields) error: '
+        return internal_server_error('%s: %s' % (message, err.message))
+    '''
+    response_text = json_get_uframe_instrument_fields(reference_designator, stream_name)
+    fields = json.loads(response_text)
+    return fields
 
-    # Get ports, add to output
-    response_dict['ports'] = []     #TODO def c2_get_instrument_ports(reference_designator)
-
-    # Get operational status
-    operational_status = 'Unknown'  #TODO def c2_get_instrument_operational_status(reference_designator)
+def c2_get_instrument_operational_status(reference_designator):
+    # C2 get instrument operational status, return status (where status is operational status display value)
+    status = 'Unknown'
     '''
     try:
         response = get_uframe_instrument_operational_status(reference_designator)
@@ -275,13 +261,86 @@ def c2_get_instrument_display(reference_designator):
         return internal_server_error('%s: %s' %(message, err.message))
     '''
     response_text = json_get_uframe_instrument_operational_status(reference_designator)
-    operational_status = json.loads(response_text)
-    # Prepare output result
-    response_dict['operational_status'] = operational_status            #TODO get real operational_status
-    response_dict['history'] = get_history()                            #TODO get real history for instrument
+    if response_text:
+        status = json.loads(response_text)
+    return status
+
+#TODO for instrument_display
+def c2_get_instrument_ports_display(reference_designator):
+    #Get C2 instrument ports (display), return ports (dictionary { 'ports': 'TBD' })
+    ports = []
+    return ports
+
+def c2_get_instrument_history(reference_designator):
+    # C2 get instrument history, return history (
+    #   where history is data dict { 'history': {'event': [], 'command': [], 'configuration':[]} } )
+    history = get_history(reference_designator)
+    return history
+
+def c2_get_array_history(reference_designator):
+    # C2 get array history, return history
+    #   where history is data dict { 'history': {'event': [], 'command': [], 'configuration':[]} }
+    history = get_history(reference_designator)
+    return history
+
+#TODO for platform_display
+def c2_get_platform_history(reference_designator):
+    # C2 get platform history, return history
+    #   where history is data dict { 'history': {'event': [], 'command': [], 'configuration':[]} }
+    history = get_history(reference_designator)
+    return history
+
+def c2_get_platform_ports_display(reference_designator):
+    #Get C2 platform ports (display), return ports (dictionary { 'ports': 'TBD' })
+    ports = []
+    return ports
+
+# - - - - - - - - - - - - - - - - - - - - - - - -
+# C2 instrument routes
+# - - - - - - - - - - - - - - - - - - - - - - - -
+#TODO enable auth
+@api.route('/c2/instrument_display/<string:reference_designator>', methods=['GET'])
+#@auth.login_required
+def c2_get_instrument_display(reference_designator):
+    # C2 get instrument display
+    '''
+    iff instrument has one stream, data is populated with fields for stream
+    Sample request:
+       http://localhost:4000/c2/instrument_display/CP02PMCO-WFP01-05-PARADK000     (1 stream, data populated)
+       http://localhost:4000/c2/instrument_display/CP02PMCO-WFP01-02-DOFSTK000     (2 streams, no data)
+    Uses:
+        c2_get_instrument_streams(reference_designator) returns streams, fields
+        c2_get_instrument_ports(reference_designator) returns ports
+        c2_get_instrument_operational_status(reference_designator) returns status
+        c2_get_instrument_history(reference_designator) returns history
+    '''
+    response_dict = {}
+    response_dict['data'] = []
+    instrument_deployment = InstrumentDeployment.query.filter_by(reference_designator=reference_designator).first_or_404()
+    id = instrument_deployment.to_json()
+    instrument_deployment_display_name = id['display_name']
+    instrument_deployment_id = id['id']
+
+    # Add to output
     response_dict['display_name'] = instrument_deployment_display_name
-    response_dict['id'] = instrument_deployment_id
+    response_dict['instrument_deployment_id'] = instrument_deployment_id
     response_dict['reference_designator'] = reference_designator
+
+    # Get streams and fields, add to output
+    streams, fields = c2_get_instrument_streams(reference_designator)
+    response_dict['streams'] = streams
+    response_dict['data'] = fields
+
+    # Get ports, add to output
+    response_dict['ports_display'] = c2_get_instrument_ports_display(reference_designator)
+
+    # Get operational status, add to output
+    status = c2_get_instrument_operational_status(reference_designator)
+    response_dict['operational_status'] = status
+
+    # Get history, add to output
+    response_dict['history'] = c2_get_instrument_history(reference_designator)
+
     return jsonify(instrument_display=response_dict)
 
 #TODO enable auth
@@ -289,6 +348,7 @@ def c2_get_instrument_display(reference_designator):
 #@auth.login_required
 def c2_get_instrument_fields(reference_designator, stream_name):
     # C2 get instrument stream fields
+    # Used by UI when c2 instrument display stream selection pulldown changes (stream1 selected, then select stream2)
     '''
     Sample requests:
         http://localhost:4000/c2/instrument/CP02PMCO-SBS01-01-MOPAK0000/mopak_o_dcl_accel/fields
@@ -356,57 +416,26 @@ def c2_update_instrument_field_value(reference_designator, stream_name, field, c
 @api.route('/c2/instrument/<string:reference_designator>/operational_status', methods=['GET'])
 #@auth.login_required
 def c2_get_instrument_operational_status(reference_designator):
-    # C2 get operational status value for instrument with reference_designator
-    print reference_designator
+    # C2 get instrument operational status
     return jsonify({'instrument_operational_status': [reference_designator]})
 '''
 
 #TODO - routes under review
 '''
 #TODO enable auth and code
+@api.route('/c2/array/<string:reference_designator>/operational_status', methods=['GET'])
+#@auth.login_required
+def c2_get_array_operational_status(reference_designator):
+    # C2 get array operational status
+    return jsonify({'array_operational_status': [reference_designator]})
+
+#TODO enable auth and code
 @api.route('/c2/platform/<string:reference_designator>/operational_status', methods=['GET'])
 #@auth.login_required
 def c2_get_platform_operational_status(reference_designator):
-    # C2 get operational status value for instrument with reference_designator
-
+    # C2 get instrument operational status
     print reference_designator
     return jsonify({'platform_operational_status': [reference_designator]})
-
-#TODO enable auth and code
-@api.route('/c2/platform/<string:reference_designator>/history', methods=['GET'])
-#@auth.login_required
-def c2_get_platform_history(reference_designator, type):
-    # C2 get all types of history for instrument with reference_designator
-    type = 'all'
-    return jsonify({'complete_history': [reference_designator]})
-
-#TODO enable auth and code
-@api.route('/c2/platform/<string:reference_designator>/history/<string:type>', methods=['GET'])
-#@auth.login_required
-def c2_get_platform_history_by_type(reference_designator, type):
-    # C2 get specific type of history for instrument with reference_designator
-    # valid type values = { all | event | command | config }
-    return jsonify({'platform_operational_status': [reference_designator]})
-
-#TODO enable auth and code
-@api.route('/c2/instrument/<string:reference_designator>/history', methods=['GET'])
-#@auth.login_required
-def c2_get_instrument_history(reference_designator, type):
-    # C2 get all types of history for instrument with reference_designator
-    type = 'all'
-    print reference_designator
-    return jsonify({'complete_history': [reference_designator]})
-
-#TODO enable auth and code
-@api.route('/c2/instrument/<string:reference_designator>/history/<string:type>', methods=['GET'])
-#@auth.login_required
-def c2_get_instrument_history_by_type(reference_designator, type):
-    # C2 get specific type of history for instrument with reference_designator
-    # valid type values = { all | event | command | config }
-    print reference_designator
-    return jsonify({'instrument_operational_status': [reference_designator]})
-
-
 '''
 
 #TODO supporting methods - history
@@ -414,7 +443,7 @@ def c2_get_instrument_history_by_type(reference_designator, type):
 #TODO enable cache and code
 #@cache.memoize(timeout=3600)
 def get_uframe_array_history(array_code):
-    #Lists complete history for array (i.e. 'CP')
+    #Lists complete history (event, configuration and command) for array (i.e. 'CP')
     try:
         uframe_data = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
         url = '/'.join([uframe_data, array_code, 'history'])
@@ -429,7 +458,7 @@ def get_uframe_array_event_history(array_code):
     #Lists event history for array (i.e. 'CP')
     try:
         uframe_data = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        url = '/'.join([uframe_data, array_code, 'event_history'])
+        url = '/'.join([uframe_data, array_code, 'history', 'event'])
         current_app.logger.info("GET %s", url)
         response = requests.get(url)
         return response
@@ -441,7 +470,20 @@ def get_uframe_array_command_history(array_code):
     #Lists command history for array (i.e. 'CP')
     try:
         uframe_data = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        url = '/'.join([uframe_data, array_code, 'command_history'])
+        url = '/'.join([uframe_data, array_code, 'history', 'command'])
+        current_app.logger.info("GET %s", url)
+        response = requests.get(url)
+        return response
+    except:
+        return internal_server_error('uframe connection cannot be made.')
+
+#TODO enable cache and code
+#@cache.memoize(timeout=3600)
+def get_uframe_array_configuration_history(array_code):
+    #Lists configuration history for array (i.e. 'CP')
+    try:
+        uframe_data = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+        url = '/'.join([uframe_data, array_code, 'history', 'configuration])
         current_app.logger.info("GET %s", url)
         response = requests.get(url)
         return response
@@ -455,26 +497,25 @@ def get_uframe_array_command_history(array_code):
 @api.route('/c2/instrument/<string:reference_designator>/commands/<string:field>', methods=['GET'])
 #@auth.login_required
 def c2_get_instrument_commands(reference_designator, field):
-    # C2 get all commands for field for instrument with reference_designator
-    print reference_designator
+    # C2 get all commands for field for instrument
     return jsonify({'commands': [reference_designator]})
 
-@api.route('/c2/instrument/<string:reference_designator>/<string:field>', methods=['GET'])
+@api.route('/c2/instrument/<string:reference_designator>/<string:stream>/<string:field>', methods=['GET'])
 #@auth.login_required
 def c2_get_instrument_field(reference_designator, field):
-    # C2 get field=field for instrument with reference_designator
-    print reference_designator
-    return jsonify({'instrument_field': [reference_designator]})
+    # C2 get instrument stream field for
+    return jsonify({'field': [reference_designator]})
 '''
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# C2 json uframe helper methods (json_* version of get_uframe_* methods)
+# C2 json uframe helper methods (json_* version of get_uframe_* methods; one to one)
 # uses file data (./ooiuiservices/tests/c2data/*)
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def read_store(filename):
     '''
     open filename, read data, close file and return data
     '''
-    c2_data_path = './ooiservices/tests/c2data'
+    APP_ROOT = os.path.dirname(os.path.abspath(__file__))   # refers to application_top
+    c2_data_path = os.path.join(APP_ROOT, '..', '..', 'tests', 'c2data')
     data = None
     try:
         tmp = "/".join([c2_data_path, filename])
