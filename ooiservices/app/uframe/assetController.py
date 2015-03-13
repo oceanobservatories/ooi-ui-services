@@ -102,7 +102,9 @@ def _associate_events(id):
         d['eventId'] = row['eventId']
         d['class'] = row['@class']
         d['notes'] = len(row['notes'])
+	d['startDate'] = row['startDate']
         result.append(d)
+
     return result
 
 #This class will handle the default checks of the uframe assets endpoint
