@@ -305,7 +305,7 @@ def get_assets():
         row.pop('physicalInfo', None)
         row.pop('purchaseAndDeliveryInfo', None)
         row.update({'url': url_for('uframe.get_asset', id=row['assetId']),
-                'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/assets/%s' % row['assetId']})
+                'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (uframe_obj.__endpoint__, row['assetId'])})
 
     return jsonify({ 'assets' : data })
 
@@ -401,7 +401,7 @@ def get_events():
     for row in data:
         row['class'] = row.pop('@class')
         row.update({'url': url_for('uframe.get_event', id=row['eventId']),
-            'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/event/%s' % row['eventId']})
+            'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (uframe_obj.__endpoint__, row['eventId'])})
         row.pop('asset')
     #parse the result and assign ref_des as top element.
     return jsonify({ 'events' : data })
