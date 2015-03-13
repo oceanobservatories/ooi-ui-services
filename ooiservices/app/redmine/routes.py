@@ -34,10 +34,8 @@ def create_redmine_ticket():
     Create new ticket
     '''
 
-    print 'new ticket created'
     # Get request data
     data = request.data
-    print data
     # Check that there is actually data
     if not data:
         return Response(response='{"error":"Invalid request"}',
@@ -45,7 +43,6 @@ def create_redmine_ticket():
                         mimetype="application/json")
 
     dataDict = json.loads(data)
-    print dataDict
 
     # Define required and recommended ticket fields
     required_fields = ['project_id', 'subject']
@@ -84,7 +81,6 @@ def get_all_redmine_tickets():
     '''
     List all redmine tickets
     ''' 
-    print ' get all redmine tickets'
     redmine = redmine_login()
     if 'project' not in request.args:
         return Response(response="{error: Invalid request: project_id not defined}",
