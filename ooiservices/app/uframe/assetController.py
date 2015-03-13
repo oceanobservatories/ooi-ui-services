@@ -105,7 +105,6 @@ def _associate_events(id):
         result.append(d)
     return result
 
-
 #This class will handle the default checks of the uframe assets endpoint
 # as well as cleaning up each of the route implementation (CRUD).
 class uFrameAssetCollection(object):
@@ -264,6 +263,9 @@ def get_assets():
         row['class'] = row.pop('@class')
         if row['metaData'] is not None:
             for metaData in row['metaData']:
+                #Please, make fun of Rutgers for this.
+                if metaData['key'] == 'Laditude ':
+                    metaData['key'] = 'Latitude'
                 if metaData['key'] == 'Latitude':
                     lat = metaData['value']
                     metaData['value'] = _normalize(metaData['value'])
@@ -302,6 +304,8 @@ def get_assets():
         row.pop('metaData', None)
         row.pop('physicalInfo', None)
         row.pop('purchaseAndDeliveryInfo', None)
+        row.update({'url': url_for('uframe.get_asset', id=row['assetId']),
+                'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/assets/%s' % row['assetId']})
 
     return jsonify({ 'assets' : data })
 
@@ -396,6 +400,9 @@ def get_events():
     data = uframe_obj.to_json()
     for row in data:
         row['class'] = row.pop('@class')
+        row.update({'url': url_for('uframe.get_event', id=row['eventId']),
+            'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/event/%s' % row['eventId']})
+        row.pop('asset')
     #parse the result and assign ref_des as top element.
     return jsonify({ 'events' : data })
 
