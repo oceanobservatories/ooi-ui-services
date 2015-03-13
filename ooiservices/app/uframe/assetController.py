@@ -5,11 +5,12 @@ uframe assets endpoint and class definition.
 '''
 __author__ = 'M@Campbell'
 
-from flask import jsonify, current_app, Flask, make_response, request
+from flask import jsonify, current_app, Flask, make_response, request, url_for
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.authentication import auth,verify_auth
 from ooiservices.app.main.errors import internal_server_error
 from LatLon import string2latlon
+from ooiservices.app import cache
 import json
 import requests
 import re
@@ -64,7 +65,10 @@ def _convert_lat_lon(lat, lon):
     conv_lat = _normalize(lat)
     conv_lon = _normalize(lon)
     try:
-        coords = string2latlon(conv_lat, conv_lon, 'd% %M% %H')
+        if len(conv_lat.split()) == 4  and len(conv_lon.split()) == 4:
+            coords = string2latlon(conv_lat, conv_lon, 'd% %m% %M% %H')
+        else:
+            coords = string2latlon(conv_lat, conv_lon, 'd% %M% %H')
         return coords.to_string('D')
     except Exception as e:
         return "Error: %s" % e
@@ -88,12 +92,20 @@ def _convert_water_depth(depth):
         return d
 
 def _associate_events(id):
-    uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/assets/%s/event' % (id)
-    try:
-        data = requests.get(uframe_url)
-        return data.json()
-    except:
-        return data.text
+    uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/assets/%s/events' % (id)
+    result = []
+    data = requests.get(uframe_url)
+    json_data = data.json()
+    for row in json_data:
+        d = {'url': url_for('uframe.get_event', id=row['eventId']),
+                'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/events/%s' % row['eventId']}
+        d['eventId'] = row['eventId']
+        d['class'] = row['@class']
+        d['notes'] = len(row['notes'])
+	d['startDate'] = row['startDate']
+        result.append(d)
+
+    return result
 
 #This class will handle the default checks of the uframe assets endpoint
 # as well as cleaning up each of the route implementation (CRUD).
@@ -235,6 +247,7 @@ class uFrameEventCollection(object):
 ### BEGIN Assets CRUD methods.
 ### ---------------------------------------------------------------------------
 #Read (list)
+@cache.memoize(timeout=3600)
 @api.route('/assets', methods=['GET'])
 def get_assets():
     #set up all the contaners.
@@ -252,10 +265,15 @@ def get_assets():
         row['class'] = row.pop('@class')
         if row['metaData'] is not None:
             for metaData in row['metaData']:
+                #Please, make fun of Rutgers for this.
+                if metaData['key'] == 'Laditude ':
+                    metaData['key'] = 'Latitude'
                 if metaData['key'] == 'Latitude':
                     lat = metaData['value']
+                    metaData['value'] = _normalize(metaData['value'])
                 if metaData['key'] == 'Longitude':
                     lon = metaData['value']
+                    metaData['value'] = _normalize(metaData['value'])
                 if metaData['key'] == "Anchor Launch Date":
                     date_launch = metaData['value']
                 if metaData['key'] == "Anchor Launch Time":
@@ -283,7 +301,14 @@ def get_assets():
                 row['ref_des'] = ref_des
                 ref_des = ""
 
-        row['metaData'] = ""
+        #Clear out these fields, not needed for now.
+        #Will all persist in the GET (object) route
+        row.pop('metaData', None)
+        row.pop('physicalInfo', None)
+        row.pop('purchaseAndDeliveryInfo', None)
+        row.update({'url': url_for('uframe.get_asset', id=row['assetId']),
+                'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (uframe_obj.__endpoint__, row['assetId'])})
+
     return jsonify({ 'assets' : data })
 
 #Read (object)
@@ -299,10 +324,15 @@ def get_asset(id):
     depth = ""
     data['class'] = data.pop('@class')
     for metaData in data['metaData']:
+        #Please, make fun of Rutgers for this.
+        if metaData['key'] == 'Laditude ':
+            metaData['key'] = 'Latitude'
         if metaData['key'] == 'Latitude':
             lat = metaData['value']
+            metaData['value'] = _normalize(metaData['value'])
         if metaData['key'] == 'Longitude':
             lon = metaData['value']
+            metaData['value'] = _normalize(metaData['value'])
         if metaData['key'] == "Anchor Launch Date":
             date_launch = metaData['value']
         if metaData['key'] == "Anchor Launch Time":
@@ -329,7 +359,6 @@ def get_asset(id):
         ref_des = ""
 
     data['events'] = _associate_events(id)
-
     return jsonify(**data)
 
 #Create
@@ -363,6 +392,7 @@ def update_asset(id):
 ### BEGIN Events CRUD methods.
 ### ---------------------------------------------------------------------------
 #Read (list)
+@cache.memoize(timeout=3600)
 @api.route('/events', methods=['GET'])
 def get_events():
     #set up all the contaners.
@@ -370,6 +400,11 @@ def get_events():
     #create uframe instance, and fetch the data.
     uframe_obj = uFrameEventCollection()
     data = uframe_obj.to_json()
+    for row in data:
+        row['class'] = row.pop('@class')
+        row.update({'url': url_for('uframe.get_event', id=row['eventId']),
+            'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (uframe_obj.__endpoint__, row['eventId'])})
+        row.pop('asset')
     #parse the result and assign ref_des as top element.
     return jsonify({ 'events' : data })
 
@@ -380,7 +415,7 @@ def get_event(id):
     data = {}
     #create uframe instance, and fetch the data.
     uframe_obj = uFrameEventCollection()
-    data = uframe_obj.fetch(id)
+    data = uframe_obj.to_json(id)
     return jsonify(**data)
 
 #Create
