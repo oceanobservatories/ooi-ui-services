@@ -93,16 +93,17 @@ def _convert_water_depth(depth):
 
 def _associate_events(id):
     uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/assets/%s/events' % (id)
-    d = {'url': url_for('uframe.get_event', id=id), 'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/events/%s' % id}
-
+    result = []
     data = requests.get(uframe_url)
     json_data = data.json()
     for row in json_data:
+        d = {'url': url_for('uframe.get_event', id=row['eventId']),
+                'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/events/%s' % row['eventId']}
         d['eventId'] = row['eventId']
         d['class'] = row['@class']
         d['notes'] = len(row['notes'])
-
-    return d
+        result.append(d)
+    return result
 
 
 #This class will handle the default checks of the uframe assets endpoint
