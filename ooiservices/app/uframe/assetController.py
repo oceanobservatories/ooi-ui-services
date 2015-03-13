@@ -9,7 +9,6 @@ from flask import jsonify, current_app, Flask, make_response, request, url_for
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.authentication import auth,verify_auth
 from ooiservices.app.main.errors import internal_server_error
-from LatLon import string2latlon
 from ooiservices.app import cache
 import json
 import requests
@@ -61,17 +60,79 @@ def _normalize(to_translate, translate_to=u' '):
     return normalized
 
 def _convert_lat_lon(lat, lon):
-    #Requires LatLon
-    conv_lat = _normalize(lat)
-    conv_lon = _normalize(lon)
     try:
-        if len(conv_lat.split()) == 4  and len(conv_lon.split()) == 4:
-            coords = string2latlon(conv_lat, conv_lon, 'd% %m% %M% %H')
-        else:
-            coords = string2latlon(conv_lat, conv_lon, 'd% %M% %H')
-        return coords.to_string('D')
+        _lat = _get_latlon(lat)
+        _lon = _get_latlon(lon)
+        coords = (_lat, _lon)
+        return coords
     except Exception as e:
         return "Error: %s" % e
+
+def _get_latlon(item):
+    '''
+    given raw string for lat or lon, scrub and calculate float result;
+    finally truncate to _decimal_places; default is 7 decimal places.
+    returns: lat or lon as decimal degrees (float) or None
+    '''
+    _decimal_places = 7
+    result = None
+    degrees = 0.0
+    minutes = 0.0
+    seconds = 0.0
+    # scrub input
+    tmp, dir = _scrub_latlon(item)
+    # process input and round result to _decimal places
+    if tmp:
+        ds = tmp.split('^')
+        degrees = float(ds[0])
+        if "'" in tmp:
+            # minutes and seconds
+            part2 = str(ds[1])
+            g = part2.split("'")
+            minutes = float(g[0])
+            seconds = float(g[1])
+        else:
+            # minutes, no seconds
+            minutes = float(ds[1])
+        val = degrees +  ((minutes + (seconds/60.00000))/60.00000)
+        if dir:
+            if dir == 'W' or dir == 'S':
+                val = val*-1.0
+        # round to _decimal_places
+        tmp = str(round(val,_decimal_places))
+        result = float(tmp)
+    return result
+
+def _scrub_latlon(item):
+    # examples of input item, where d is degree symbol:
+    # latitude:  40d05' 45.792" N
+    # longitude: 70d52' 46.986"W
+    # latitude:  39d56' 16.422"N
+    # longitude: 70d53' 13.002"W
+    # latitude:  50d 04.70' N
+    # longitude: 144d 48.32' W
+    result = None
+    l = item
+    special = u"\xb0"
+    a = l.replace(special,"^")
+    p = a.replace(" ", "")
+    # determine dir value
+    if 'N' in p:
+        dir = 'N'
+    elif 'W' in p:
+        dir = 'W'
+    elif 'S' in p:
+        dir = 'S'
+    elif 'E' in p:
+        dir = 'E'
+    single_quote_check = "'" + dir
+    double_quote_check = '"' + dir
+    if dir in p:
+        if p.endswith(single_quote_check) or p.endswith(double_quote_check):
+            result = p[:-2]
+        else:
+            result = p
+    return result, dir
 
 def _convert_date_time(date, time="00:00"):
     #For now, just concat the date and time:
