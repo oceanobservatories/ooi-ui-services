@@ -80,10 +80,10 @@ def _get_latlon(item):
     minutes = 0.0
     seconds = 0.0
     # scrub input
-    tmp, dir = _scrub_latlon(item)
+    tmp = _normalize(item)
     # process input and round result to _decimal places
     if tmp:
-        ds = tmp.split('^')
+        ds = tmp.split(' ')
         degrees = float(ds[0])
         if "'" in tmp:
             # minutes and seconds
@@ -95,44 +95,12 @@ def _get_latlon(item):
             # minutes, no seconds
             minutes = float(ds[1])
         val = degrees +  ((minutes + (seconds/60.00000))/60.00000)
-        if dir:
-            if dir == 'W' or dir == 'S':
-                val = val*-1.0
+        if 'W' or 'S' in tmp:
+            val = val*-1.0
         # round to _decimal_places
         tmp = str(round(val,_decimal_places))
         result = float(tmp)
     return result
-
-def _scrub_latlon(item):
-    # examples of input item, where d is degree symbol:
-    # latitude:  40d05' 45.792" N
-    # longitude: 70d52' 46.986"W
-    # latitude:  39d56' 16.422"N
-    # longitude: 70d53' 13.002"W
-    # latitude:  50d 04.70' N
-    # longitude: 144d 48.32' W
-    result = None
-    l = item
-    special = u"\xb0"
-    a = l.replace(special,"^")
-    p = a.replace(" ", "")
-    # determine dir value
-    if 'N' in p:
-        dir = 'N'
-    elif 'W' in p:
-        dir = 'W'
-    elif 'S' in p:
-        dir = 'S'
-    elif 'E' in p:
-        dir = 'E'
-    single_quote_check = "'" + dir
-    double_quote_check = '"' + dir
-    if dir in p:
-        if p.endswith(single_quote_check) or p.endswith(double_quote_check):
-            result = p[:-2]
-        else:
-            result = p
-    return result, dir
 
 def _convert_date_time(date, time="00:00"):
     #For now, just concat the date and time:
