@@ -20,22 +20,23 @@ from ooiservices.app.decorators import scope_required
 # C2 array
 # - - - - - - - - - - - - - - - - - - - - - - - -
 #TODO enable auth and scope
+'''
 @api.route('/c2/array_display/<string:array_code>', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
 def c2_get_array_display(array_code):
     #C2 get array display, return array_display dict with: abstract, data, history
-    '''
-    Uses:
-        c2_get_platforms_operational_status(reference_designator), return statuses
-        c2_get_array_history(reference_designator)
-        *c2_get_array_status_display(reference_designator), return status_display (content of Status tab)
-        *c2_get_array_mission_display(reference_designator), return mission_display (content of Mission tab)
-        * under construction
-    Sample:
-        http://localhost:4000/c2/array_display/CP   (operational_status available for some platforms)
-        http://localhost:4000/c2/array_display/GS   (operational_status not available)
-    '''
+    #
+    #Uses:
+    #    c2_get_platforms_operational_status(reference_designator), return statuses
+    #    c2_get_array_history(reference_designator)
+    #    *c2_get_array_status_display(reference_designator), return status_display (content of Status tab)
+    #    *c2_get_array_mission_display(reference_designator), return mission_display (content of Mission tab)
+    #    * under construction
+    #Sample:
+    #    http://localhost:4000/c2/array_display/CP   (operational_status available for some platforms)
+    #    http://localhost:4000/c2/array_display/GS   (operational_status not available)
+    #
     response_dict = {}
     contents = []
     array_info = {}
@@ -88,27 +89,115 @@ def c2_get_array_display(array_code):
     # Create mission_display dict (contents for Mission tab), add to output (TODO)
     response_dict['mission_display'] = c2_get_array_mission_display(reference_designator)
     return jsonify(array_display=response_dict)
+'''
+#TODO (start) -- for array_display
+@api.route('/c2/array/<string:array_code>/abstract', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'user_admin')
+def c2_get_array_abstract(array_code):
+    #Get C2 array abstract (display), return abstract
+    response_dict = {}
+    array = Array.query.filter_by(array_code=array_code).first_or_404()
+    response_dict = {}
+    response_dict['display_name'] = array.display_name
+    response_dict['reference_designator'] = array.array_code
+    response_dict['array_id'] = array.id
+    response_dict['operational_status'] = c2_get_array_operational_status(array_code)
+    return jsonify(abstract=response_dict)
+
+@api.route('/c2/array/<string:array_code>/current_status_display', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'user_admin')
+def c2_get_array_current_status_display(array_code):
+    # C2 get array Current Status tab contents, return current_status_display
+    response_dict = {}
+    contents = []
+    array_info = {}
+    reference_designator = array_code
+    array = Array.query.filter_by(array_code=array_code).first_or_404()
+
+    # Get data, add to output
+    # get ordered set of platform_deployments for array.id
+    platform_deployments = \
+        PlatformDeployment.query.filter_by(array_id=array.id).order_by(PlatformDeployment.reference_designator).all()
+
+    # create list of reference_designators and accumulate dict result (key=reference_designator) for use in response
+    # (Set all operational_status values to 'Unknown' by default)
+    platforms = []
+    for platform_deployment in platform_deployments:
+        platforms.append(platform_deployment.reference_designator)
+        row = {}
+        row['platform_deployment_id'] = platform_deployment.id
+        row['display_name'] = platform_deployment.proper_display_name
+        row['reference_designator'] = platform_deployment.reference_designator
+        row['operational_status'] = 'Unknown'
+        array_info[platform_deployment.reference_designator] = row
+
+    # Get operational status for all platforms in array
+    statuses = c2_get_platforms_operational_status(reference_designator)
+    if statuses:
+        for d in statuses:
+            rd = d['id']
+            stat = d['status']
+            if rd in array_info:
+                array_info[rd]['operational_status'] = stat
+
+    # create list of dictionaries representing data row(s), ordered by reference_designator
+    for r in platforms:
+        if r in array_info:
+            contents.append(array_info[r])
+    return jsonify(current_status_display=contents)
+
+@api.route('/c2/array/<string:array_code>/history', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'user_admin')
+def c2_get_array_history(array_code):
+    # C2 get array history, return history
+    #   where history is data dict { 'history': {'event': [], 'command': [], 'configuration':[]} }
+    history = { 'event': [], 'command': [], 'configuration':[] }
+    if array_code:
+        history = get_history(array_code)
+    return jsonify(history=history)
+
+@api.route('/c2/array/<string:array_code>/status_display', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'user_admin')
+def c2_get_array_status_display(array_code):
+    #Get C2 array status (display), return status_display (contents of platform Status tab)
+    status_display = {}
+    return jsonify(status_display=status_display)
+
+@api.route('/c2/array/<string:array_code>/mission_display', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'user_admin')
+def c2_get_array_mission_display(array_code):
+    #Get C2 array mission (display), return mission_display (contents of platform Mission tab)
+    mission_display = {}
+    return jsonify(mission_display=mission_display)
+
+#TODO (end) -- for array_display
 
 # - - - - - - - - - - - - - - - - - - - - - - - -
 # C2 platform
 # - - - - - - - - - - - - - - - - - - - - - - - -
 #TODO enable auth and scope
+'''
 @api.route('/c2/platform_display/<string:reference_designator>', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
 def c2_get_platform_display(reference_designator):
     # C2 get platform display, return platform_display dict with: abstract, data, history, ports_display
-    '''
-    Uses:
-        c2_get_instruments_operational_status(reference_designator), return statuses
-        c2_get_instruments_streams(instrument_deployment_rds), return streams
-        c2_get_platform_history(reference_designator), return history
-        *c2_get_platform_ports_display(reference_designator), return port_display (contents of Ports tab)
-        *c2_get_platform_status_display(reference_designator), return status_display (contents of Status tab)
-        *c2_get_platform_mission_display(reference_designator), return mission_display (contents of Mission tab)
-        * under construction
-    Sample: http://localhost:4000/c2/platform_display/CP02PMCO-WFP01   (id==104)
-    '''
+    #
+    #Uses:
+    #    c2_get_instruments_operational_status(reference_designator), return statuses
+    #    c2_get_instruments_streams(instrument_deployment_rds), return streams
+    #    c2_get_platform_history(reference_designator), return history
+    #    *c2_get_platform_ports_display(reference_designator), return port_display (contents of Ports tab)
+    #    *c2_get_platform_status_display(reference_designator), return status_display (contents of Status tab)
+    #    *c2_get_platform_mission_display(reference_designator), return mission_display (contents of Mission tab)
+    #    * under construction
+    #Sample: http://localhost:4000/c2/platform_display/CP02PMCO-WFP01   (id==104)
+
     contents = []
     platform_info = {}
     response_dict = {}
@@ -176,30 +265,158 @@ def c2_get_platform_display(reference_designator):
     # Create mission_display dict (contents for Mission tab), add to output (TODO)
     response_dict['mission_display'] = c2_get_platform_mission_display(reference_designator)
     return jsonify(platform_display=response_dict)
+'''
+
+#TODO enable auth and scope
+@api.route('/c2/platform/<string:reference_designator>/abstract', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'user_admin')
+def c2_get_platform_abstract(reference_designator):
+    #Get C2 platform abstract, return abstract
+    response_dict = {}
+    platform_deployment = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first_or_404()
+    response_dict = {}
+    response_dict['display_name'] = platform_deployment.display_name
+    response_dict['reference_designator'] = platform_deployment.reference_designator
+    response_dict['platform_deployment_id'] = platform_deployment.id
+    response_dict['operational_status'] = c2_get_platform_operational_status(reference_designator)
+    return jsonify(abstract=response_dict)
+
+#TODO enable auth and scope
+@api.route('/c2/platform/<string:reference_designator>/current_status_display', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'user_admin')
+def c2_get_platform_current_status_display(reference_designator):
+    #Get C2 platform Current Status tab contents, return current_status_display
+    contents = []
+    platform_info = {}
+    response_dict = {}
+    platform_deployment = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first_or_404()
+    response_dict['abstract'] = {}
+    response_dict['abstract']['display_name'] = platform_deployment.display_name
+    response_dict['abstract']['reference_designator'] = platform_deployment.reference_designator
+    response_dict['abstract']['platform_deployment_id'] = platform_deployment.id
+    response_dict['abstract']['operational_status'] = c2_get_platform_operational_status(reference_designator)
+
+    # get ordered set of instrument_deployments for platform
+    instrument_deployments = \
+        InstrumentDeployment.query.filter_by(platform_deployment_id=platform_deployment.id).all()
+    for i_d in instrument_deployments:
+        instrument_name = Instrumentname.query.filter(Instrumentname.instrument_class == i_d.display_name).first()
+        if instrument_name:
+            i_d.display_name = instrument_name.display_name
+
+    # create list of reference_designators (instruments) and
+    # accumulate dict result (key=reference_designator) for output
+    instruments = []
+    for instrument_deployment in instrument_deployments:
+        instruments.append(instrument_deployment.reference_designator)
+        row = {}
+        row['instrument_deployment_id'] = instrument_deployment.id
+        row['display_name'] = instrument_deployment.display_name
+        row['reference_designator'] = instrument_deployment.reference_designator
+        row['operational_status'] = 'Unknown'
+        row['streams'] = []
+        platform_info[instrument_deployment.reference_designator] = row
+
+    # Get operational status for all instruments in platform; add to output
+    statuses = c2_get_instruments_operational_status(platform_deployment.reference_designator)
+    if statuses:
+        for d in statuses:
+            rd = d['id']
+            stat = d['status']
+            if rd in platform_info:
+                platform_info[rd]['operational_status'] = stat
+
+    # Get streams for all instruments; add to output
+    streams = c2_get_instruments_streams(instruments)
+    if streams:
+        for item in platform_info:
+            res = platform_info[item]
+            if res['reference_designator'] in streams:
+                res['streams'] = streams[res['reference_designator']]
+
+    # Create list of dictionaries representing row(s) for 'data' (ordered by reference_designator)
+    # 'data' == rows for initial grid ('Current Status')
+    for instrument_deployment_reference_designator in instruments:
+        if instrument_deployment_reference_designator in platform_info:
+            contents.append(platform_info[instrument_deployment_reference_designator])
+    return jsonify(current_status_display=contents)
+
+#TODO enable auth and scope
+@api.route('/c2/platform/<string:reference_designator>/history', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'user_admin')
+def c2_get_platform_history(reference_designator):
+    # C2 get platform history, return history
+    #   where history is data dict { 'history': {'event': [], 'command': [], 'configuration':[]} }
+    history = { 'event': [], 'command': [], 'configuration':[] }
+    if reference_designator:
+        history = get_history(reference_designator)
+    return jsonify(history=history)
+
+#TODO enable auth and scope
+@api.route('/c2/platform/<string:reference_designator>/ports_display', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'user_admin')
+def c2_get_platform_ports_display(reference_designator):
+    #Get C2 platform Ports tab contents, return ports_display
+    ports_display =  {}
+    return jsonify(ports_display=ports_display)
+
+#TODO enable auth and scope
+@api.route('/c2/platform/<string:reference_designator>/status_display', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'user_admin')
+def c2_get_platform_status_display(reference_designator):
+    #Get C2 platform Status tab contents, return status_display
+    status_display = {}
+    return jsonify(status_display=status_display)
+
+#TODO enable auth and scope
+@api.route('/c2/platform/<string:reference_designator>/mission_display', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'user_admin')
+def c2_get_platform_mission_display(reference_designator):
+    #Get C2 platform Mission tab contents, return mission_display
+    mission_display = {}
+    return jsonify(mission_display=mission_display)
+
+#TODO enable auth and scope
+@api.route('/c2/platform/<string:reference_designator>/commands', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'user_admin')
+def c2_get_platform_commands(reference_designator):
+    #Get C2 platform commands (pulldown list) contents, return commands
+    commands =  {}
+    if reference_designator:
+        commands =  {}
+    return jsonify(commands=commands)
 
 # - - - - - - - - - - - - - - - - - - - - - - - -
 # C2 instrument
 # - - - - - - - - - - - - - - - - - - - - - - - -
 #TODO enable auth and scope
+'''
 @api.route('/c2/instrument_display/<string:reference_designator>', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
 def c2_get_instrument_display(reference_designator):
     # C2 get instrument display, return platform_display dict with: abstract, data, history, ports_display, streams
-    '''
-    iff instrument has one stream, data is populated with fields for stream
-    Sample request:
-       http://localhost:4000/c2/instrument_display/CP02PMCO-WFP01-05-PARADK000     (1 stream, data populated)
-       http://localhost:4000/c2/instrument_display/CP02PMCO-WFP01-02-DOFSTK000     (2 streams, no data)
-    Uses:
-        c2_get_instrument_streams(reference_designator) returns streams, fields
-        *c2_get_instrument_ports(reference_designator) returns ports
-        c2_get_instrument_operational_status(reference_designator) returns status
-        c2_get_instrument_history(reference_designator) returns history
-        *c2_get_instrument_status_display return status_display (content of Status tab)
-        *c2_get_instrument_mission_display return mission_display (content of Mission tab)
-        * under construction
-    '''
+    #
+    #iff instrument has one stream, data is populated with fields for stream
+    #Sample request:
+    #   http://localhost:4000/c2/instrument_display/CP02PMCO-WFP01-05-PARADK000     (1 stream, data populated)
+    #   http://localhost:4000/c2/instrument_display/CP02PMCO-WFP01-02-DOFSTK000     (2 streams, no data)
+    #Uses:
+    #    c2_get_instrument_streams(reference_designator) returns streams, fields
+    #    *c2_get_instrument_ports(reference_designator) returns ports
+    #    c2_get_instrument_operational_status(reference_designator) returns status
+    #    c2_get_instrument_history(reference_designator) returns history
+    #   *c2_get_instrument_status_display return status_display (content of Status tab)
+    #    *c2_get_instrument_mission_display return mission_display (content of Mission tab)
+    #    * under construction
+    #
     response_dict = {}
     response_dict['data'] = []
     instrument_deployment = InstrumentDeployment.query.filter_by(reference_designator=reference_designator).first_or_404()
@@ -243,6 +460,102 @@ def c2_get_instrument_display(reference_designator):
     # Create mission_display dict (contents for Mission tab), add to output (TODO)
     response_dict['mission_display'] = c2_get_instrument_mission_display(reference_designator)
     return jsonify(instrument_display=response_dict)
+'''
+
+#TODO (start) -- for instrument_display
+@api.route('/c2/instrument/<string:reference_designator>/abstract', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'user_admin')
+def c2_get_instrument_abstract(reference_designator):
+    # C2 get instrument abstract, return abstract
+    response_dict = {}
+    response_dict['data'] = []
+    instrument_deployment = InstrumentDeployment.query.filter_by(reference_designator=reference_designator).first_or_404()
+
+    # Add abstract to output
+    response_dict = {}
+    response_dict['display_name'] = instrument_deployment.display_name
+    response_dict['reference_designator'] = instrument_deployment.reference_designator
+    response_dict['instrument_deployment_id'] = instrument_deployment.id
+    response_dict['operational_status'] = c2_get_instrument_operational_status(reference_designator)
+    return jsonify(abstract=response_dict)
+
+#TODO enable auth and scope
+@api.route('/c2/instrument/<string:reference_designator>/streams', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'user_admin')
+def c2_get_instrument_streams(reference_designator):
+    # C2 get instrument streams, return streams
+    streams = None
+    try:
+        streams, fields = c2_get_instrument_streams(reference_designator)
+    except Exception, err:
+        return bad_request(err.message)             # 400 - bad request (no streams or fields; bad reference_designator, etc.)
+
+    '''
+    if streams:
+        response_dict['streams']  = streams
+        if fields:
+            response_dict['data'] = fields          # iff one stream, then field data
+        else:
+            response_dict['data'] = []              # no streams or more than one stream
+    else:
+        response_dict['streams']  = []              # no streams, then no fields (error)
+        response_dict['data']     = []
+    '''
+    return jsonify(streams=streams)
+
+#TODO enable auth and scope
+@api.route('/c2/instrument/<string:reference_designator>/history', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'user_admin')
+def c2_get_instrument_history(reference_designator):
+    # C2 get instrument history, return history
+    #   where history is data dict { 'event': [], 'command': [], 'configuration':[] }
+    history = { 'event': [], 'command': [], 'configuration':[] }
+    if reference_designator:
+        history = get_history(reference_designator)
+    return jsonify(history=history)
+
+#TODO enable auth and scope
+@api.route('/c2/instrument/<string:reference_designator>/ports_display', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'user_admin')
+def c2_get_instrument_ports_display(reference_designator):
+    #Get C2 instrument Ports tab contents, return ports_display
+    ports_display =  {}
+    if reference_designator:
+        ports_display =  {}
+    return jsonify(ports_display=ports_display)
+
+#TODO enable auth and scope
+@api.route('/c2/instrument/<string:reference_designator>/status_display', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'user_admin')
+def c2_get_instrument_status_display(reference_designator):
+    #Get C2 instrument Status tab contents, return status_display
+    status_display = {}
+    return jsonify(status_display=status_display)
+
+#TODO enable auth and scope
+@api.route('/c2/instrument/<string:reference_designator>/mission_display', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'user_admin')
+def c2_get_instrument_mission_display(reference_designator):
+    #Get C2 instrument Mission tab contents, return mission_display
+    mission_display = {}
+    return jsonify(mission_display=mission_display)
+
+#TODO enable auth and scope
+@api.route('/c2/instrument/<string:reference_designator>/commands', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'user_admin')
+def c2_get_instrument_commands(reference_designator):
+    #Get C2 instrument commands (pulldown list) contents, return commands
+    commands =  {}
+    if reference_designator:
+        commands =  {}
+    return jsonify(commands=commands)
 
 #TODO enable auth and scope
 @api.route('/c2/instrument/<string:reference_designator>/<string:stream_name>/fields', methods=['GET'])
@@ -746,26 +1059,7 @@ def c2_get_array_operational_status(reference_designator):
                     if result[0]['id'] == reference_designator:
                         status = result[0]['status']
     return status
-#TODO (start) -- for array_display
-def c2_get_array_history(reference_designator):
-    # C2 get array history, return history
-    #   where history is data dict { 'history': {'event': [], 'command': [], 'configuration':[]} }
-    history = { 'event': [], 'command': [], 'configuration':[] }
-    if reference_designator:
-        history = get_history(reference_designator)     #TODO finish this
-    return history
-# Add route here (?)
-def c2_get_array_status_display(reference_designator):
-    #Get C2 array status (display), return status_display (contents of platform Status tab)
-    status_display = {}
-    return status_display;
-# Add route here (?)
-def c2_get_array_mission_display(reference_designator):
-    #Get C2 array mission (display), return mission_display (contents of platform Mission tab)
-    mission_display = {}
-    return mission_display;
 
-#TODO (end) -- for array_display
 
 #TODO get history from proper source
 def get_history(reference_designator):
@@ -860,32 +1154,6 @@ def c2_get_platform_operational_status(reference_designator):
                         status = result[0]['status']
     return status
 
-#TODO (start) for platform_display
-def c2_get_platform_history(reference_designator):
-    # C2 get platform history, return history
-    #   where history is data dict { 'history': {'event': [], 'command': [], 'configuration':[]} }
-    history = { 'event': [], 'command': [], 'configuration':[] }
-    if reference_designator:
-        history = get_history(reference_designator)
-    return history
-
-# Add route here (?)
-def c2_get_platform_ports_display(reference_designator):
-    #Get C2 platform ports display, return ports_display (dictionary { 'ports': 'TBD' })
-    ports_display =  {}
-    return ports_display
-# Add route here (?)
-def c2_get_platform_status_display(reference_designator):
-    #Get C2 platform status (display), return status_display (contents of platform Status tab)
-    status_display = {}
-    return status_display;
-# Add route here (?)
-def c2_get_platform_mission_display(reference_designator):
-    #Get C2 platform mission (display), return mission_display (contents of platform Mission tab)
-    mission_display = {}
-    return mission_display;
-
-#TODO (end) for platform_display
 
 #----------------------------------------------------
 # -- Helpers for instrument display
@@ -948,32 +1216,7 @@ def c2_get_instrument_operational_status(reference_designator):
                         status = result[0]['status']
     return status
 
-#TODO (start) -- for instrument_display
-def c2_get_instrument_history(reference_designator):
-    # C2 get instrument history, return history (
-    #   where history is data dict { 'event': [], 'command': [], 'configuration':[] }
-    history = { 'event': [], 'command': [], 'configuration':[] }
-    if reference_designator:
-        history = get_history(reference_designator)
-    return history
-# Add route here (?)
-def c2_get_instrument_ports_display(reference_designator):
-    #Get C2 instrument ports (display), return ports dictionary { 'ports': 'TBD' }
-    ports_display =  {'ports_display': 'TBD'}
-    if reference_designator:
-        ports_display =  {'ports_display': 'for ' + reference_designator}
-    return ports_display
-# Add route here (?)
-def c2_get_instrument_status_display(reference_designator):
-    #Get C2 instrument status (display), return status_display (contents of platform Status tab)
-    status_display = {}
-    return status_display;
-# Add route here (?)
-def c2_get_instrument_mission_display(reference_designator):
-    #Get C2 instrument mission (display), return mission_display (contents of platform Mission tab)
-    mission_display = {}
-    return mission_display;
-#TODO (end) -- for instrument_display
+
 
 def c2_get_instruments_operational_status(instruments):
     # Get operational status for all instruments in platform with reference_designator

@@ -172,6 +172,45 @@ class UserTestCase(unittest.TestCase):
 
     #Test C2 API routes
     def test_array_display_route(self):
+        #TODO redo tests to support breakout of array_display, platform_display and instrument_display into
+        #TODO individual routes. Add tests accordingly.
+        '''
+        redo tests as follows
+        This:
+        http://localhost:4000/c2/array_display/CP
+
+        Replaced with:
+
+        http://localhost:4000/c2/array/CP/abstract
+        http://localhost:4000/c2/array/CP/current_status_display
+        http://localhost:4000/c2/array/CP/history
+        http://localhost:4000/c2/array/CP/status_display
+        http://localhost:4000/c2/array/CP/mission_display
+
+        This:
+        http://localhost:4000/c2/platform_display/CP02PMCO-WFP01
+
+        Replaced with:
+
+        http://localhost:4000/c2/platform/CP02PMCO-WFP01/abstract
+        http://localhost:4000/c2/platform/CP02PMCO-WFP01/current_status_display
+        http://localhost:4000/c2/platform/CP02PMCO-WFP01/history
+        http://localhost:4000/c2/platform/CP02PMCO-WFP01/status_display
+        http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission_display
+
+        This:
+        http://localhost:4000/c2/instrument_display/CP02PMCO-WFP01-05-PARADK000
+
+        Replaced with:
+        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/abstract
+        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/streams
+        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/commands
+        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/history
+        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/status_display
+        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/mission_display
+        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-02-DOFSTK000/dofst_k_wfp_metadata/fields
+        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/parad_k_stc_imodem_instrument/fields
+        '''
 
         content_type = 'application/json'
 
@@ -366,6 +405,7 @@ class UserTestCase(unittest.TestCase):
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Basic positive tests
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        '''
         # Test /c2/array_display/array_code
         # http://localhost:4000/c2/array_display/CE
         array_code='CE'
@@ -417,6 +457,7 @@ class UserTestCase(unittest.TestCase):
         response = self.client.get(url_for('main.c2_get_instrument_display', reference_designator=instrument),
                                    content_type=content_type, headers=headers)
         self.assertTrue(response.status_code == 200)
+        '''
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # test fields for instrument_deployment stream_name
@@ -459,6 +500,7 @@ class UserTestCase(unittest.TestCase):
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # negative test(s)
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        '''
         # Negative tests for: /c2/array_display/array_code
         # http://localhost:4000/c2/array_display/
         array_code=''
@@ -471,7 +513,9 @@ class UserTestCase(unittest.TestCase):
         response = self.client.get(url_for('main.c2_get_array_display', array_code=array_code),
                                    content_type=content_type, headers=headers)
         self.assertTrue(response.status_code == 404)
+        '''
 
+        '''
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Negative tests for: /c2/platform_display/reference_designator
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -486,7 +530,9 @@ class UserTestCase(unittest.TestCase):
         response = self.client.get(url_for('main.c2_get_platform_display', reference_designator=platform),
                                    content_type=content_type, headers=headers)
         self.assertTrue(response.status_code == 404)
+        '''
 
+        '''
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Negative tests for: /c2/instrument_display/reference_designator
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -501,6 +547,7 @@ class UserTestCase(unittest.TestCase):
         response = self.client.get(url_for('main.c2_get_instrument_display', reference_designator=instrument),
                                    content_type=content_type, headers=headers)
         self.assertTrue(response.status_code == 404)
+        '''
 
         #  Negative tests for: /c2/instrument/reference_designator/stream_name/fields
         # http://localhost:4000/c2/instrument//ctdpf_ckl_wfp_metadata/fields
