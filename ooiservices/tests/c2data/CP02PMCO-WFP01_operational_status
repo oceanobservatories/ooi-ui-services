@@ -1,7 +1,3 @@
 [
-    {"id":"CP02PMCO-WFP01-03-CTDPFK000","status":"Online"},
-    {"id":"CP02PMCO-WFP01-04-FLORTK000","status":"Online"},
-    {"id":"CP02PMCO-WFP01-05-PARADK000","status":"Online"},
-    {"id":"CP02PMCO-WFP01-02-DOFSTK000","status":"Online"},
-    {"id":"CP02PMCO-WFP01-01-VEL3DK000","status":"Online"}
+    {"id":"CP02PMCO-WFP01","status":"Online"}
 ]
