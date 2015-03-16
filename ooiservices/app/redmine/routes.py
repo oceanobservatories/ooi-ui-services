@@ -36,7 +36,6 @@ def create_redmine_ticket():
 
     # Get request data
     data = request.data
-
     # Check that there is actually data
     if not data:
         return Response(response='{"error":"Invalid request"}',
@@ -81,8 +80,7 @@ def create_redmine_ticket():
 def get_all_redmine_tickets():
     '''
     List all redmine tickets
-    '''
-
+    ''' 
     redmine = redmine_login()
     if 'project' not in request.args:
         return Response(response="{error: Invalid request: project_id not defined}",
@@ -91,7 +89,6 @@ def get_all_redmine_tickets():
 
     proj = request.args['project']
 
-    # project = redmine.project.get('ooinet-user-interface-development').refresh()
     project = redmine.project.get(proj).refresh()
 
     issues = dict(issues=[])
@@ -187,14 +184,15 @@ def get_redmine_users():
                         status=400,
                         mimetype="application/json")
 
-    proj = request.args['project']
-    project = redmine.project.get(proj).refresh()
-
+    all_users = redmine.user.all(offset=1, limit=100)
     users = dict(users=[],user_id=[])
     
-    for user in project.memberships:
+    for n in xrange(len(all_users)):
+      user = str(all_users[n])
+      user_id = int(all_users[n]['id'])
 
-        users['users'].append([user['user']['name'],user['id']])
+      users['users'].append([user,user_id])
 
+       
 
     return jsonify(users)

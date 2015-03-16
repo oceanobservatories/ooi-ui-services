@@ -15,7 +15,7 @@ COMMON: &common
     UFRAME_URL: 'http://localhost:12570'
     UFRAME_ASSETS_URL: 'http://localhost:12573'
     UFRAME_URL_BASE: '/sensor/inv'
-    REDMINE_KEY: 'XXXXXXXXXXXXX'
+    REDMINE_KEY: XXXXXXXXXXXXXXXXXXXXXXXXXXXXX
     UI_API_KEY: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
     REDMINE_URL: 'https://uframe-cm.ooi.rutgers.edu'
     REDMINE_PROJECT_ID: 'ooi-ui-api-testing'
