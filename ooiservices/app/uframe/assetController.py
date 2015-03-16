@@ -85,15 +85,9 @@ def _get_latlon(item):
     if tmp:
         ds = tmp.split(' ')
         degrees = float(ds[0])
-        if "'" in tmp:
-            # minutes and seconds
-            part2 = str(ds[1])
-            g = part2.split("'")
-            minutes = float(g[0])
-            seconds = float(g[1])
-        else:
-            # minutes, no seconds
-            minutes = float(ds[1])
+        minutes = float(ds[1])
+        if len(ds) == 4:
+            seconds = float(ds[2])
         val = degrees +  ((minutes + (seconds/60.00000))/60.00000)
         if 'W' or 'S' in tmp:
             val = val*-1.0
