@@ -44,7 +44,7 @@ def _uframe_collection(endpoint, id=None):
     except:
         if data == None:
             raise Exception("uframe connection cannot be established for: Assets")
-        raise data.status_code
+        return data.status_code
 
 def _api_headers():
     return {
@@ -390,7 +390,7 @@ def create_asset():
     data = json.loads(request.data)
     uframe_obj = uFrameAssetCollection()
     post_body = uframe_obj.from_json(data)
-    uframe_assets_url = _uframe_url(uframe_obj.__endpoint__)
+    uframe_assets_url = _uframe_collection(uframe_obj.__endpoint__)
     response = requests.post(uframe_assets_url, data=json.dumps(post_body), headers=_api_headers())
     return response.text
 
@@ -400,7 +400,7 @@ def update_asset(id):
     data = json.loads(request.data)
     uframe_obj = uFrameAssetCollection()
     put_body = uframe_obj.from_json(data)
-    uframe_assets_url = _uframe_url(uframe_obj.__endpoint__, id)
+    uframe_assets_url = _uframe_collection(uframe_obj.__endpoint__, id)
     response = requests.put(uframe_assets_url, data=json.dumps(put_body), headers=_api_headers())
     return response.text
 
@@ -447,7 +447,7 @@ def create_event():
     data = json.loads(request.data)
     uframe_obj = uFrameEventCollection()
     post_body = uframe_obj.from_json(data)
-    uframe_events_url = _uframe_url(uframe_obj.__endpoint__)
+    uframe_events_url = _uframe_collection(uframe_obj.__endpoint__)
     response = requests.post(uframe_events_url, data=json.dumps(post_body), headers=_api_headers())
     return response.text
 
@@ -457,7 +457,7 @@ def update_event(id):
     data = json.loads(request.data)
     uframe_obj = uFrameEventCollection()
     put_body = uframe_obj.from_json(data)
-    uframe_events_url = _uframe_url(uframe_obj.__endpoint__, id)
+    uframe_events_url = _uframe_collection(uframe_obj.__endpoint__, id)
     response = requests.put(uframe_events_url, data=json.dumps(put_body), headers=_api_headers())
     return response.text
 
