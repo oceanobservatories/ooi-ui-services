@@ -266,7 +266,7 @@ class uFrameEventCollection(object):
         return data
 
     def from_json(self, json):
-        eventClass = json.get('@class')
+        eventClass = json.get('class')
         referenceDesignator = json.get('referenceDesignator')
         deploymentNumber = json.get('deploymentNumber')
         deploymentName = json.get('deploymentName')
@@ -279,7 +279,6 @@ class uFrameEventCollection(object):
         eventType = json.get('eventType')
         startDate = json.get('startDate')
         endDate = json.get('endDate')
-        eventId = json.get('eventId')
         eventDescription = json.get('eventDescription')
         recordedBy = json.get('recordedBy')
         asset = json.get('asset')
@@ -302,7 +301,6 @@ class uFrameEventCollection(object):
             'eventType': eventType,
             'startDate': startDate,
             'endDate': endDate,
-            'eventId': eventId,
             'eventDescription': eventDescription,
             'recordedBy': recordedBy,
             'asset': asset,
@@ -489,9 +487,11 @@ def get_events():
 def get_event(id):
     #set up all the contaners.
     data = {}
+    asset_id = ""
     #create uframe instance, and fetch the data.
     uframe_obj = uFrameEventCollection()
     data = uframe_obj.to_json(id)
+    data['class'] = data.pop('@class')
     return jsonify(**data)
 
 #Create
