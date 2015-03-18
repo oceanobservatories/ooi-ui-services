@@ -352,7 +352,7 @@ def plot_multiple_yaxes(fig, ax, xdata, ydata, colors, title, scatter=False,
         # else:
         # y_axis[ind].yaxis.set_major_formatter(ScalarFormatter(useOffset=False))
         # y_axis[ind].ticklabel_format(useOffset=False, axis='y')
-        y_axis[ind].set_ylabel(key, labelpad=15, **axis_font)
+        y_axis[ind].set_ylabel(key, labelpad=10, **axis_font)
         y_axis[ind].yaxis.label.set_color(colors[ind])
         y_axis[ind].spines[spine_directions[ind]].set_color(colors[ind])
         y_axis[ind].tick_params(axis='y', labelsize=8)
