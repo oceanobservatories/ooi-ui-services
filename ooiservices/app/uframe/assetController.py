@@ -44,7 +44,7 @@ def _uframe_collection(endpoint, id=None):
     except:
         if data == None:
             raise Exception("uframe connection cannot be established for: Assets")
-        return data.status_code
+        raise Exception("%s" % data.status_code)
 
 def _api_headers():
     return {
