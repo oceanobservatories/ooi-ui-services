@@ -3,29 +3,28 @@
 uframe endpoints
 
 '''
-__author__ = 'Andy Bird'
-#base
-from flask import jsonify, request, current_app, url_for, Flask, make_response, url_for
-from ooiservices.app import db, cache, celery
+
+# base
+from flask import jsonify, request, current_app, make_response
+from ooiservices.app import cache
 from ooiservices.app.uframe import uframe as api
-from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment,Stream, StreamParameter, Organization, Instrumentname,Annotation
-from ooiservices.app.main.authentication import auth,verify_auth
+from ooiservices.app.main.authentication import auth
 from ooiservices.app.main.errors import internal_server_error
 from urllib import urlencode
-#data ones
+# data ones
 from ooiservices.app.uframe.data import get_data, COSMO_CONSTANT
 from ooiservices.app.uframe.plotting import generate_plot
 from datetime import datetime
 from dateutil.parser import parse as parse_date
 import requests
-#additional ones
-import json
-import datetime
-import math
+# additional ones
 import csv
 import io
 import numpy as np
 import pytz
+
+__author__ = 'Andy Bird'
+
 
 def dfs_streams():
     response = get_uframe_moorings()
@@ -36,11 +35,10 @@ def dfs_streams():
     platforms = []
     for mooring in mooring_list:
         if 'VALIDATE' in mooring:
-            continue # Don't know what this is, but we don't want it
+            continue  # Don't know what this is, but we don't want it
         response = get_uframe_platforms(mooring)
         if response.status_code != 200:
             continue
-        
         platform_tmp = [(mooring, p) for p in response.json()]
         platforms.extend(platform_tmp)
 
@@ -71,6 +69,7 @@ def dfs_streams():
         streams.extend(stream_tmp)
     return streams
 
+
 def split_stream_name(ui_stream_name):
     '''
     Splits the hypenated reference designator and stream type into a tuple of
@@ -80,15 +79,18 @@ def split_stream_name(ui_stream_name):
     instrument, stream_type, stream = instrument.split('_', 2)
     return (mooring, platform, instrument, stream_type, stream)
 
+
 def combine_stream_name(mooring, platform, instrument, stream_type, stream):
     first_part = '-'.join([mooring, platform, instrument])
     all_of_it = '_'.join([first_part, stream_type, stream])
     return all_of_it
 
+
 def iso_to_timestamp(iso8601):
     dt = parse_date(iso8601)
-    t = (dt - datetime(1970,1,1,tzinfo=pytz.utc)).total_seconds()
+    t = (dt - datetime(1970, 1, 1, tzinfo=pytz.utc)).total_seconds()
     return t
+
 
 def dict_from_stream(mooring, platform, instrument, stream_type, stream):
     from ooiservices.app.main.routes import get_display_name_by_rd
@@ -102,21 +104,19 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream):
         raise IOError("Failed to get stream contents from uFrame")
     data = response.json()
     data_dict = {}
-    preferred = data[0][u'preferred_timestamp']
+    # preferred = data[0][u'preferred_timestamp']
     data_dict['start'] = data[0]['pk']['time'] - COSMO_CONSTANT
     data_dict['end'] = data[-1]['pk']['time'] - COSMO_CONSTANT
     data_dict['reference_designator'] = '-'.join([mooring, platform, instrument])
     data_dict['display_name'] = get_display_name_by_rd(ref)
     data_dict['csv_download'] = "/".join([SERVICE_LOCATION, 'uframe/get_csv', stream_name, ref])
-    data_dict['json_download'] = "/".join([SERVICE_LOCATION,'uframe/get_json',stream_name,ref])
-    data_dict['netcdf_download'] = "/".join([SERVICE_LOCATION,'uframe/get_netcdf',stream_name,ref])
-    data_dict['profile_json_download'] = "/".join([SERVICE_LOCATION,'uframe/get_profiles',ref,stream_name])
+    data_dict['json_download'] = "/".join([SERVICE_LOCATION, 'uframe/get_json', stream_name, ref])
+    data_dict['netcdf_download'] = "/".join([SERVICE_LOCATION, 'uframe/get_netcdf', stream_name, ref])
+    data_dict['profile_json_download'] = "/".join([SERVICE_LOCATION, 'uframe/get_profiles', ref, stream_name])
     data_dict['stream_name'] = stream_name
     data_dict['variables'] = data[1].keys()
     data_dict['variable_types'] = {k : type(data[1][k]).__name__ for k in data[1].keys() }
     return data_dict
-
-
 
 
 @api.route('/stream')
@@ -143,10 +143,11 @@ def streams_list():
         if request.args.get('reference_designator'):
             if request.args.get('reference_designator') != data_dict['reference_designator']:
                 continue
-            
+
         retval.append(data_dict)
 
     return jsonify(streams=retval)
+
 
 @cache.memoize(timeout=3600)
 def get_uframe_moorings():
@@ -161,6 +162,7 @@ def get_uframe_moorings():
     except:
         return internal_server_error('uframe connection cannot be made.')
 
+
 @cache.memoize(timeout=3600)
 def get_uframe_platforms(mooring):
     '''
@@ -173,6 +175,7 @@ def get_uframe_platforms(mooring):
         return response
     except:
         return internal_server_error('uframe connection cannot be made.')
+
 
 @cache.memoize(timeout=3600)
 def get_uframe_instruments(mooring, platform):
@@ -187,6 +190,7 @@ def get_uframe_instruments(mooring, platform):
     except:
         return internal_server_error('uframe connection cannot be made.')
 
+
 @cache.memoize(timeout=3600)
 def get_uframe_stream_types(mooring, platform, instrument):
     '''
@@ -199,6 +203,7 @@ def get_uframe_stream_types(mooring, platform, instrument):
         return response
     except:
         return internal_server_error('uframe connection cannot be made.')
+
 
 @cache.memoize(timeout=3600)
 def get_uframe_streams(mooring, platform, instrument, stream_type):
@@ -221,8 +226,8 @@ def get_uframe_stream(mooring, platform, instrument, stream):
     '''
     try:
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        current_app.logger.info("GET %s", "/".join([UFRAME_DATA,mooring, platform, instrument, stream]))
-        response = requests.get("/".join([UFRAME_DATA,mooring, platform, instrument, stream]))
+        current_app.logger.info("GET %s", "/".join([UFRAME_DATA, mooring, platform, instrument, stream]))
+        response = requests.get("/".join([UFRAME_DATA, mooring, platform, instrument, stream]))
         return response
     except:
         return internal_server_error('uframe connection cannot be made.')
@@ -235,11 +240,11 @@ def get_uframe_stream_metadata(mooring, platform, instrument, stream):
     '''
     try:
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        response = requests.get("/".join([UFRAME_DATA,mooring, platform, instrument, stream, 'metadata']))
+        response = requests.get("/".join([UFRAME_DATA, mooring, platform, instrument, stream, 'metadata']))
         return response
     except:
         return internal_server_error('uframe connection cannot be made.')
-    
+
 
 @cache.memoize(timeout=3600)
 def get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream):
@@ -248,26 +253,27 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
     '''
     try:
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        response =  requests.get("/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream]))
+        response = requests.get("/".join([UFRAME_DATA, mooring, platform, instrument, stream_type, stream]))
         if response.status_code != 200:
-            #print response.text
+            # print response.text
             pass
         return response
     except:
         return internal_server_error('uframe connection cannot be made.')
+
 
 @cache.memoize(timeout=3600)
 def get_uframe_stream_contents_bounded(mooring, platform, instrument, stream_type, stream, start_time, end_time):
     '''
     Gets the bounded stream contents, start_time and end_time need to be datetime objects
     '''
-    try:        
+    try:
         query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])        
-        response =  requests.get(url)
+        url = "/".join([UFRAME_DATA, mooring, platform, instrument, stream_type, stream + query])
+        response = requests.get(url)
         if response.status_code != 200:
-            #print response.text
+            # print response.text
             pass
         return response
     except:
@@ -275,8 +281,8 @@ def get_uframe_stream_contents_bounded(mooring, platform, instrument, stream_typ
 
 
 @auth.login_required
-@api.route('/get_csv/<string:stream>/<string:ref>',methods=['GET'])
-def get_csv(stream,ref):
+@api.route('/get_csv/<string:stream>/<string:ref>', methods=['GET'])
+def get_csv(stream, ref):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
     data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
@@ -290,34 +296,36 @@ def get_csv(stream,ref):
     for row in data:
         f.writerow(row)
 
-    filename = '-'.join([stream,ref])
+    filename = '-'.join([stream, ref])
 
     buf = output.getvalue()
     returned_csv = make_response(buf)
-    returned_csv.headers["Content-Disposition"] = "attachment; filename=%s.csv"%filename
+    returned_csv.headers["Content-Disposition"] = "attachment; filename=%s.csv" % filename
     returned_csv.headers["Content-Type"] = "text/csv"
 
     output.close()
     return returned_csv
 
+
 @auth.login_required
-@api.route('/get_json/<string:stream>/<string:ref>',methods=['GET'])
-def get_json(stream,ref):
+@api.route('/get_json/<string:stream>/<string:ref>', methods=['GET'])
+def get_json(stream, ref):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
     data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
     if data.status_code != 200:
         return data.text, data.status_code, dict(data.headers)
     response = '{"data":%s}' % data.content
-    filename = '-'.join([stream,ref])
+    filename = '-'.join([stream, ref])
     returned_json = make_response(response)
-    returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json"%filename
+    returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json" % filename
     returned_json.headers["Content-Type"] = "application/json"
     return returned_json
 
+
 @auth.login_required
-@api.route('/get_netcdf/<string:stream>/<string:ref>',methods=['GET'])
-def get_netcdf(stream,ref):
+@api.route('/get_netcdf/<string:stream>/<string:ref>', methods=['GET'])
+def get_netcdf(stream, ref):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
     UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
@@ -328,66 +336,72 @@ def get_netcdf(stream,ref):
     if response.status_code != 200:
         return response.text, response.status_code
 
-    filename = '-'.join([stream,ref])
+    filename = '-'.join([stream, ref])
     buf = response.content
     returned_netcdf = make_response(buf)
-    returned_netcdf.headers["Content-Disposition"] = "attachment; filename=%s.nc"%filename
+    returned_netcdf.headers["Content-Disposition"] = "attachment; filename=%s.nc" % filename
     returned_netcdf.headers["Content-Type"] = "application/x-netcdf"
 
     return returned_netcdf
 
 
 @auth.login_required
-@api.route('/get_data/<string:instrument>/<string:stream>/<string:yvar>/<string:xvar>',methods=['GET'])
-def get_data_api(stream, instrument,yvar,xvar):    
-    return jsonify(**get_data(stream,instrument,yvar,xvar))
+@api.route('/get_data/<string:instrument>/<string:stream>/<string:yvar>/<string:xvar>', methods=['GET'])
+def get_data_api(stream, instrument, yvar, xvar):
+    return jsonify(**get_data(stream, instrument, yvar, xvar))
+
 
 @auth.login_required
 @api.route('/plot/<string:instrument>/<string:stream>', methods=['GET'])
 def get_svg_plot(instrument, stream):
     plot_format = request.args.get('format', 'svg')
-    #time series vs profile
+
+    # time series vs profile
     plot_layout = request.args.get('plotLayout', 'timeseries')
     xvar = request.args.get('xvar', 'time')
-    yvar = request.args.get('yvar',None)
-    #create bool from request
-    use_line = to_bool(request.args.get('line',True))
-    use_scatter = to_bool(request.args.get('scatter',True))
-    #get titles and labels
+    yvar = request.args.get('yvar', None)
+
+    # There can be multiple variables so get into a list
+    xvar = xvar.split(',')
+    yvar = yvar.split(',')
+
+    # create bool from request
+    use_line = to_bool(request.args.get('line', True))
+    use_scatter = to_bool(request.args.get('scatter', True))
+
+    # get titles and labels
     title = request.args.get('title', '%s Data' % stream)
-    xlabel = request.args.get('xlabel', xvar)
-    ylabel = request.args.get('ylabel', yvar)
     profileid = request.args.get('profileId', None)
 
-    #need a yvar for sure
+    # need a yvar for sure
     if yvar is None:
-        return jsonify(error='Error: yvar is required'), 400        
+        return jsonify(error='Error: yvar is required'), 400
 
-    height = float(request.args.get('height', 100)) # px
-    width = float(request.args.get('width', 100)) # px
+    height = float(request.args.get('height', 100))  # px
+    width = float(request.args.get('width', 100))  # px
 
-    #do conversion of the data from pixels to inches for plot
+    # do conversion of the data from pixels to inches for plot
     height_in = height / 96.
     width_in = width / 96.
 
-    #get the data
-    if plot_layout == "timeseries":
-        data = get_data(stream,instrument,yvar,xvar);
+    # get the data
+    if plot_layout in ["timeseries", "ts_diagram"]:
+        data = get_data(stream, instrument, yvar, xvar)
     elif plot_layout == "depthprofile":
-        #if yvar != 'pressure':
-        #    return jsonify(error='invalid profile request'), 400            
-        data = get_process_profile_data(stream,instrument,yvar,xvar);        
+        # if yvar != 'pressure':
+        #    return jsonify(error='invalid profile request'), 400
+        data = get_process_profile_data(stream, instrument, yvar[0], xvar[0])
 
     data['title'] = title
     data['height'] = height_in
     data['width'] = width_in
 
-    #return if error
+    # return if error
     if 'error' in data:
         return jsonify(error=data['error']), 400
 
-    #generate plot
-    buf = generate_plot(data,                        
+    # generate plot
+    buf = generate_plot(data,
                         plot_format,
                         plot_layout,
                         use_line,
@@ -399,11 +413,12 @@ def get_svg_plot(instrument, stream):
         'png' : 'image/png'
     }
 
-    return buf.read(), 200, {'Content-Type':content_header_map[plot_format]}
+    return buf.read(), 200, {'Content-Type': content_header_map[plot_format]}
 
-def get_process_profile_data(stream,instrument,yvar,xvar):
-    data = get_profile_data(instrument,stream)    
-    #check the data is in the first row
+
+def get_process_profile_data(stream, instrument, yvar, xvar):
+    data = get_profile_data(instrument, stream)
+    # check the data is in the first row
     '''
     if yvar not in data[0] or xvar not in data[0]:
         data = {'error':'requested fields not in data'}
@@ -419,44 +434,45 @@ def get_process_profile_data(stream,instrument,yvar,xvar):
 
     profile_count = -1
 
-    for i,row in enumerate(data): 
-        if (row['profile_id']) >= 0:                        
-            profile_id = int(row['profile_id'])    
-            
-            if profile_id not in profile_id_list:                
+    for i, row in enumerate(data):
+        if (row['profile_id']) >= 0:
+            profile_id = int(row['profile_id'])
+
+            if profile_id not in profile_id_list:
                 y_data.append([])
                 x_data.append([])
                 profile_id_list.append(profile_id)
-                profile_count+=1
+                profile_count += 1
 
             try:
                 y_data[profile_count].append(row[yvar])
                 x_data[profile_count].append(row[xvar])
-            except Exception,e:                
-                return {'error':'profiles not present in data,maybe a bug?'}
-    
-    return {'x':x_data,'y':y_data,'x_field':xvar,"y_field":yvar}
+            except Exception:
+                return {'error': 'profiles not present in data, maybe a bug?'}
 
-def get_profile_data(instrument,stream):
+    return {'x': x_data, 'y': y_data, 'x_field': xvar, "y_field": yvar}
+
+
+def get_profile_data(instrument, stream):
     '''
     process uframe data into profiles
     '''
     data = []
-    dt_bounds = ''
-    #instrument = instrument.replace('-','/',2)
-    #url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE'] +'/' + instrument+ "/telemetered/"+stream + "/" + dt_bounds               
-    #response = requests.get(url)
+    # dt_bounds = ''
+    # instrument = instrument.replace('-','/',2)
+    # url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE'] +'/' + instrument+ "/telemetered/"+stream + "/" + dt_bounds
+    # response = requests.get(url)
     mooring, platform, instrument, stream_type, stream = split_stream_name('_'.join([instrument, stream]))
     if 'startdate' in request.args and 'enddate' in request.args:
-        st_date = request.args['startdate']       
-        ed_date = request.args['enddate']           
-        response = get_uframe_stream_contents_bounded(mooring, platform, instrument, stream_type, stream,st_date,ed_date)
+        st_date = request.args['startdate']
+        ed_date = request.args['enddate']
+        response = get_uframe_stream_contents_bounded(mooring, platform, instrument, stream_type, stream, st_date, ed_date)
     else:
         response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
 
     if response.status_code != 200:
         raise IOError("Failed to get data from uFrame")
-    data = response.json()  
+    data = response.json()
     # Note: assumes data has depth and time is ordinal
     # Need to add assertions and try and exceptions to check data
 
@@ -476,53 +492,52 @@ def get_profile_data(instrument,stream):
     INT = 10
     # tz length must equal profile_list length
 
-    maxi = np.amax(tz[:,0])
-    mini =np.amin(tz[:,0])
-    #getting a range from min to max time with 10 seconds or milliseconds. I have no idea.
-    ts =(np.arange(np.amin(tz[:,0]), np.amax(tz[:,0]), INT)).T
+    # maxi = np.amax(tz[:, 0])
+    # mini = np.amin(tz[:, 0])
+    # getting a range from min to max time with 10 seconds or milliseconds. I have no idea.
+    ts = (np.arange(np.amin(tz[:, 0]), np.amax(tz[:, 0]), INT)).T
 
-    #interpolation adds additional points on the line within f(t), f(t+1)  time is a function of depth
-    itz = np.interp(ts,tz[:,0],tz[:,1])
+    # interpolation adds additional points on the line within f(t), f(t+1)  time is a function of depth
+    itz = np.interp(ts, tz[:, 0], tz[:, 1])
 
-
-    newtz= np.column_stack((ts, itz))
+    newtz = np.column_stack((ts, itz))
     # 5 unit moving average
     WINDOW = 5
-    weights = np.repeat(1.0, WINDOW)/ WINDOW
-    ma =np.convolve(newtz[:,1], weights)[WINDOW-1:-(WINDOW-1)]
-    #take the diff and change negatives to -1 and postives to 1
+    weights = np.repeat(1.0, WINDOW) / WINDOW
+    ma = np.convolve(newtz[:, 1], weights)[WINDOW-1:-(WINDOW-1)]
+    # take the diff and change negatives to -1 and postives to 1
     dZ = np.sign(np.diff(ma))
 
     # repeat for second derivative
     dZ = np.convolve(dZ, weights)[WINDOW-1:-(WINDOW-1)]
     dZ = np.sign(dZ)
 
-    r0=1
-    r1 = len(dZ)+1
+    r0 = 1
+    r1 = len(dZ) + 1
     dZero = np.diff(dZ)
 
-    start =[]
-    stop =[]
-    #find where the slope changes
-    dr = [start.append(i)  for (i, val) in enumerate(dZero) if val !=0]
+    start = []
+    stop = []
+    # find where the slope changes
+    dr = [start.append(i) for (i, val) in enumerate(dZero) if val != 0]
 
     for i in range(len(start)-1):
         stop.append(start[i+1])
 
     stop.append(start[0])
     start_stop = np.column_stack((start, stop))
-    start_times = np.take(newtz[:,0], start)
-    stop_times = np.take(newtz[:,0], stop)
+    start_times = np.take(newtz[:, 0], start)
+    stop_times = np.take(newtz[:, 0], stop)
     start_times = start_times - INT*2
     stop_times = stop_times + INT*2
 
-    depth_profiles=[]
+    depth_profiles = []
 
     for i in range(len(start_times)):
-        profile_id=i
-        proInds= origTz[(origTz[:,0] >= start_times[i]) & (origTz[:,0] <= stop_times[i])]
+        profile_id = i
+        proInds = origTz[(origTz[:, 0] >= start_times[i]) & (origTz[:, 0] <= stop_times[i])]
         value = proInds.shape[0]
-        z = np.full((value,1), profile_id)
+        z = np.full((value, 1), profile_id)
         pro = np.append(proInds, z, axis=1)
         depth_profiles.append(pro)
 
@@ -530,29 +545,29 @@ def get_profile_data(instrument,stream):
     # I NEED to CHECK FOR DUPLICATE TIMES !!!!! NOT YET DONE!!!!
     # Start stop times may result in over laps on original data set. (see function above)
     # May be an issue, requires further enquiry
-    profile_list= []
+    profile_list = []
     for row in data:
         try:
-            #Need to add epsilon. Floating point error may occur
+            # Need to add epsilon. Floating point error may occur
             where = np.argwhere(depth_profiles == float(row['pk']['time']))
             index = where[0]
             rowloc = index[0]
-            if len(where) and int(row['pressure']) ==  depth_profiles[rowloc][1]:
-                row['profile_id']=depth_profiles[rowloc][2]
+            if len(where) and int(row['pressure']) == depth_profiles[rowloc][1]:
+                row['profile_id'] = depth_profiles[rowloc][2]
                 profile_list.append(row)
 
         except IndexError:
-            row['profile_id']= None
+            row['profile_id'] = None
             profile_list.append(row)
-    #profile length should equal tz  length
-    return  profile_list
+    # profile length should equal tz  length
+    return profile_list
 
 
-#@auth.login_required
+# @auth.login_required
 @api.route('/get_profiles/<string:stream>/<string:instrument>', methods=['GET'])
-def get_profiles(stream, instrument):  
-    filename = '-'.join([stream,instrument,"profiles"])
-    content_headers = {'Content-Type':'application/json', 'Content-Disposition':"attachment; filename=%s.json"%filename}
+def get_profiles(stream, instrument):
+    filename = '-'.join([stream, instrument, "profiles"])
+    content_headers = {'Content-Type': 'application/json', 'Content-Disposition': "attachment; filename=%s.json" % filename}
     try:
         profiles = get_profile_data(instrument, stream)
     except Exception as e:
@@ -561,9 +576,11 @@ def get_profiles(stream, instrument):
         return jsonify(), 204, content_headers
 
     return jsonify(profiles=profiles), 200, content_headers
-    
+
+
 def make_cache_key():
     return urlencode(request.args)
+
 
 def to_bool(value):
     """
@@ -571,6 +588,8 @@ def to_bool(value):
            Possible True  values: 1, True, "1", "TRue", "yes", "y", "t"
            Possible False values: 0, False, None, [], {}, "", "0", "faLse", "no", "n", "f", 0.0, ...
     """
-    if str(value).lower() in ("yes", "y", "true",  "t", "1"): return True
-    if str(value).lower() in ("no",  "n", "false", "f", "0", "0.0", "", "none", "[]", "{}"): return False
+    if str(value).lower() in ("yes", "y", "true",  "t", "1"):
+        return True
+    if str(value).lower() in ("no",  "n", "false", "f", "0", "0.0", "", "none", "[]", "{}"):
+        return False
     raise Exception('Invalid value for boolean conversion: ' + str(value))
