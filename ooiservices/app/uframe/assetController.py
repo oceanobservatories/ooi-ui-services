@@ -181,7 +181,7 @@ class uFrameAssetCollection(object):
         coordinates = json.get('coordinates')
         launch_date_time = json.get('launch_date_time')
         water_depth = json.get('water_depth')
-
+        ref_des = json.get('ref_des')
         ### These are not returned, for now they don't exist in uframe.
         identifier = json.get('identifier')
         traceId = json.get('traceId')
@@ -193,6 +193,7 @@ class uFrameAssetCollection(object):
         dict_lat = {}
         dict_lon = {}
         dict_launch_date = {}
+        dict_ref_des = {}
         if water_depth is not None:
             dict_depth = {
                 "key": "Water Depth",
@@ -220,6 +221,13 @@ class uFrameAssetCollection(object):
                 "type": "java.lang.String"
             }
             metaData.append(dict_launch_date)
+        if ref_des is not None:
+            dict_ref_des = {
+              "key": "Ref Des",
+              "type": "java.lang.String",
+              "value": ref_des
+            }
+            metaData.append(dict_ref_des)
 
         #Below section's keys are uFrame specific and shouldn't be modified
         #unless necessary to support uframe updates.
