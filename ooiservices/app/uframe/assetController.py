@@ -32,19 +32,22 @@ def _remove_duplicates(values):
             seen.add(value)
     return output
 
-def _uframe_collection(endpoint, id=None):
-    data = None
+def _uframe_url(endpoint, id=None):
     if id is not None:
         uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (endpoint, id)
     else:
         uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/%s' % endpoint
+    return uframe_url
+
+def _uframe_collection(uframe_url):
+    data = []
     try:
         data = requests.get(uframe_url)
         return data.json()
     except:
         if data == None:
             raise Exception("uframe connection cannot be established for: Assets")
-        raise data.status_code
+        raise Exception("%s" % data.status_code)
 
 def _api_headers():
     return {
@@ -102,6 +105,8 @@ def _convert_date_time(date, time="00:00"):
 
 def _convert_water_depth(depth):
     d = {}
+    if type(depth) is not str:
+        depth = "0 m"
     if len(depth.split( )) == 2:
         value = depth.split()[0]
         unit = depth.split()[1]
@@ -157,14 +162,14 @@ class uFrameAssetCollection(object):
         pass
 
     def to_json(self,id=None):
-        data = _uframe_collection(self.__endpoint__, id)
+        url = _uframe_url(self.__endpoint__, id)
+        data = _uframe_collection(url)
         return data
 
     def from_json(self, json):
         # This currently is a 1 to 1 mapping from UI to uFrame.
         # Below section is from UI
-        classType = json.get('@class')
-        metaData = json.get('metaData')
+        classType = json.get('class')
         assetInfo = json.get('assetInfo')
         manufactureInfo = json.get('manufactureInfo')
         notes = json.get('notes')
@@ -172,11 +177,47 @@ class uFrameAssetCollection(object):
         attachments = json.get('attachments')
         purchaseAndDeliveryInfo = json.get('purchaseAndDeliveryInfo')
         physicalInfo = json.get('physicalInfo')
+        coordinates = json.get('coordinates')
+        launch_date_time = json.get('launch_date_time')
+        water_depth = json.get('water_depth')
         ### These are not returned, for now they don't exist in uframe.
         identifier = json.get('identifier')
         traceId = json.get('traceId')
         overwriteAllowed = json.get('overwriteAllowed')
         #####
+        #Build metadata dictionary
+        metaData = []
+        dict_depth = {}
+        dict_lat = {}
+        dict_lon = {}
+        dict_launch_date = {}
+        if water_depth is not None:
+            dict_depth = {
+                "key": "Water Depth",
+                "value": "%s %s" % (water_depth['value'], water_depth['unit']),
+                "type": "java.lang.String"
+            }
+            metaData.append(dict_depth)
+        if coordinates is not None and len(coordinates) == 2:
+            dict_lat = {
+                "key": "Latitude",
+                "value": coordinates[0],
+                "type": "java.lang.String"
+            }
+            metaData.append(dict_lat)
+            dict_lon =  {
+                "key": "Longitude",
+                "value": coordinates[1],
+                "type": "java.lang.String"
+            }
+            metaData.append(dict_lon)
+        if launch_date_time is not None:
+            dict_launch_date =  {
+                "key": "Anchor Launch Date",
+                "value": launch_date_time,
+                "type": "java.lang.String"
+            }
+            metaData.append(dict_launch_date)
 
         #Below section's keys are uFrame specific and shouldn't be modified
         #unless necessary to support uframe updates.
@@ -189,8 +230,7 @@ class uFrameAssetCollection(object):
                 "assetId": assetId,
                 "attachments": attachments,
                 "purchaseAndDeliveryInfo": purchaseAndDeliveryInfo,
-                "physicalInfo": physicalInfo,
-                "manufactureInfo": manufactureInfo
+                "physicalInfo": physicalInfo
                 }
         return formatted_return
 
@@ -211,7 +251,8 @@ class uFrameEventCollection(object):
         pass
 
     def to_json(self,id=None):
-        data = _uframe_collection(self.__endpoint__, id)
+        url = _uframe_url(self.__endpoint__, id)
+        data = _uframe_collection(url)
         return data
 
     def from_json(self, json):
@@ -390,7 +431,9 @@ def create_asset():
     data = json.loads(request.data)
     uframe_obj = uFrameAssetCollection()
     post_body = uframe_obj.from_json(data)
+    #return json.dumps(post_body)
     uframe_assets_url = _uframe_url(uframe_obj.__endpoint__)
+    #return uframe_assets_url
     response = requests.post(uframe_assets_url, data=json.dumps(post_body), headers=_api_headers())
     return response.text
 
