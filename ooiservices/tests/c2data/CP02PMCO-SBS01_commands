@@ -1,7 +1,7 @@
 [
     {"TURN_ON_PORT": { "display_name": "Turn on port"} },
     {"TURN_OFF_PORT": { "display_name": "Turn off port"} },
-    {"TURN_ON_PORT_INSTRUMENT" : { "display_name": "Turn on port (instrument)"} },
+    {"TURN_ON_PORT_INSTRUMENT": { "display_name": "Turn on port (instrument)"} },
     {"TURN_OFF_PORT_INSTRUMENT": { "display_name": "Turn off port (instrument)"} },
-    {"SET_INTERVAL_INSTRUMENT": { "display_name": "Set interval (instrument)", "default_interval": "1"} }
+    {"SET_INTERVAL_INSTRUMENT": { "display_name": "Set interval (instrument)",  "interval": ""} }
 ]
