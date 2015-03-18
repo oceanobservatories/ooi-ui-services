@@ -85,7 +85,7 @@ def _get_latlon(item):
     # scrub input
     tmp = _normalize(item)
     # process input and round result to _decimal places
-    if tmp:
+    if len(tmp.split(' ')) > 1:
         ds = tmp.split(' ')
         degrees = float(ds[0])
         minutes = float(ds[1])
@@ -97,7 +97,9 @@ def _get_latlon(item):
         # round to _decimal_places
         tmp = str(round(val,_decimal_places))
         result = float(tmp)
-    return result
+        return result
+    else:
+        return tmp
 
 def _convert_date_time(date, time="00:00"):
     #For now, just concat the date and time:
@@ -167,7 +169,6 @@ class uFrameAssetCollection(object):
         return data
 
     def from_json(self, json):
-        # This currently is a 1 to 1 mapping from UI to uFrame.
         # Below section is from UI
         classType = json.get('class')
         assetInfo = json.get('assetInfo')
@@ -180,6 +181,7 @@ class uFrameAssetCollection(object):
         coordinates = json.get('coordinates')
         launch_date_time = json.get('launch_date_time')
         water_depth = json.get('water_depth')
+        ref_des = json.get('ref_des')
         ### These are not returned, for now they don't exist in uframe.
         identifier = json.get('identifier')
         traceId = json.get('traceId')
@@ -191,6 +193,7 @@ class uFrameAssetCollection(object):
         dict_lat = {}
         dict_lon = {}
         dict_launch_date = {}
+        dict_ref_des = {}
         if water_depth is not None:
             dict_depth = {
                 "key": "Water Depth",
@@ -218,6 +221,13 @@ class uFrameAssetCollection(object):
                 "type": "java.lang.String"
             }
             metaData.append(dict_launch_date)
+        if ref_des is not None:
+            dict_ref_des = {
+              "key": "Ref Des",
+              "type": "java.lang.String",
+              "value": ref_des
+            }
+            metaData.append(dict_ref_des)
 
         #Below section's keys are uFrame specific and shouldn't be modified
         #unless necessary to support uframe updates.
