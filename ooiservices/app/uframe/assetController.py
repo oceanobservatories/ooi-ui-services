@@ -5,10 +5,9 @@ uframe assets endpoint and class definition.
 '''
 __author__ = 'M@Campbell'
 
-from flask import jsonify, current_app, Flask, make_response, request, url_for
+from flask import jsonify, current_app, request, url_for
 from ooiservices.app.uframe import uframe as api
-from ooiservices.app.main.authentication import auth,verify_auth
-from ooiservices.app.main.errors import internal_server_error
+from ooiservices.app.main.authentication import auth
 from ooiservices.app import cache
 import json
 import requests
@@ -275,6 +274,7 @@ class uFrameEventCollection(object):
         deploymentDepth = json.get('deploymentDepth')
         depthUnitString = json.get('depthUnitString')
         deploymentDocUrls = json.get('deploymentDocUrls')
+        deploymentLocation = json.get('deploymentLocation')
         cruiseNumber = json.get('cruiseNumber')
         locationLonLat = json.get('locationLonLat')
         locationName = json.get('locationName')
@@ -297,6 +297,7 @@ class uFrameEventCollection(object):
             'deploymentDepth': deploymentDepth,
             'depthUnitString': depthUnitString,
             'deploymentDocUrls': deploymentDocUrls,
+            'deploymentLocation': deploymentLocation,
             'cruiseNumber': cruiseNumber,
             'locationLonLat': locationLonLat,
             'locationName': locationName,
