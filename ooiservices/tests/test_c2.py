@@ -317,7 +317,7 @@ class UserTestCase(unittest.TestCase):
         array_CE, array_GP, array_CP = self.setup_array_data()
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Setup data - arrays
+        # Setup data - platforms
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         array_CP_platforms = []
         CP02PMCO_WFP01, CP02PMCO_SBS01, CP02PMUI_RII01 = self.create_CP_platform_deployments()
@@ -457,15 +457,13 @@ class UserTestCase(unittest.TestCase):
         self.assertTrue(self._check_instrument_deployment_fields_provided(MOPAK0000_data))
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # End of data setup.
+        # End of data setup and verification.
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Now have two arrays, three platforms, each populated with instruments
         # Have list of:
         #   platform_deployments for array CP: array_CP_platforms
         #   instrument_deployments for each platform - platform_1_instrument_deployments, platform_2_instrument_deployments
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        #content_type =  'application/json'
-        #headers = self.get_api_headers('admin', 'test')
 
     def test_c2_array_routes(self):
 
@@ -473,15 +471,30 @@ class UserTestCase(unittest.TestCase):
         root = self.root
         if verbose: print '\n'
         '''
-        Test array routes, platform == 'CP':
+        Test array routes:
+        Array:  CE
+        http://localhost:4000/c2/array/CE/abstract
+        http://localhost:4000/c2/array/CE/current_status_display
+        http://localhost:4000/c2/array/CE/history
+        http://localhost:4000/c2/array/CE/status_display
+        http://localhost:4000/c2/array/CE/mission_display
 
+        Array:  GP
+        http://localhost:4000/c2/array/GP/abstract
+        http://localhost:4000/c2/array/GP/current_status_display
+        http://localhost:4000/c2/array/GP/history
+        http://localhost:4000/c2/array/GP/status_display
+        http://localhost:4000/c2/array/GP/mission_display
+
+        Array:  CP
         http://localhost:4000/c2/array/CP/abstract
         http://localhost:4000/c2/array/CP/current_status_display
         http://localhost:4000/c2/array/CP/history
         http://localhost:4000/c2/array/CP/status_display
         http://localhost:4000/c2/array/CP/mission_display
+
         '''
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Start data setup.
         # Summary: 2 platform deployments, three instrument deployments
         # Contents:
@@ -495,15 +508,18 @@ class UserTestCase(unittest.TestCase):
         #
         #     3. platform deployment:       CP02PMUI_RII01
         #         instrument deployment(1): CP02PMUI-RII01-02-ADCPTG000
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Setup data - Arrays
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         array_CE, array_GP, array_CP = self.setup_array_data()
+        arrays = [array_CE, array_GP, array_CP]
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Platforms
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         array_CP_platforms = []
         CP02PMCO_WFP01, CP02PMCO_SBS01, CP02PMUI_RII01 = self.create_CP_platform_deployments()
-
         CP02PMCO_WFP01_rd = CP02PMCO_WFP01.reference_designator
         CP02PMCO_SBS01_rd = CP02PMCO_SBS01.reference_designator
         CP02PMUI_RII01_rd = CP02PMUI_RII01.reference_designator
@@ -511,11 +527,9 @@ class UserTestCase(unittest.TestCase):
         # platform deployment 1
         CP02PMCO_WFP01_id = CP02PMCO_WFP01.id
         array_CP_platforms.append(CP02PMCO_WFP01_rd)
-
         # platform deployment 2
         CP02PMCO_SBS01_id = CP02PMCO_SBS01.id
         array_CP_platforms.append(CP02PMCO_SBS01_rd)
-
         # platform deployment 3
         CP02PMUI_RII01_id = CP02PMUI_RII01.id
         array_CP_platforms.append(CP02PMUI_RII01_rd)
@@ -550,47 +564,50 @@ class UserTestCase(unittest.TestCase):
         ADCPTG000 = self.create_instrument_deployment(ADCPTG000_rd, CP02PMUI_RII01_id)
         ADCPTG000_id = ADCPTG000.id
 
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # End of data setup. (Now have three arrays, three platforms, each populated with instruments)
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Proceed with C2 tests
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         content_type =  'application/json'
         headers = self.get_api_headers('admin', 'test')
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Basic positive tests - array
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        #http://localhost:4000/c2/array/CP/abstract
+        # http://localhost:4000/c2/array/CP/abstract
         array_code='CP'
-        url = url_for('main.c2_get_array_abstract', array_code=array_code)
-        if verbose: print root+url
-        response = self.client.get(url, content_type=content_type, headers=headers)
-        self.assertTrue(response.status_code == 200)
+        for array in arrays:
+            array_code = array.array_code
+            if verbose: print '\nArray: ', array_code
+            url = url_for('main.c2_get_array_abstract', array_code=array_code)
+            if verbose: print root+url
+            response = self.client.get(url, content_type=content_type, headers=headers)
+            self.assertTrue(response.status_code == 200)
 
-        #http://localhost:4000/c2/array/CP/current_status_display
-        url = url_for('main.c2_get_array_current_status_display', array_code=array_code)
-        if verbose: print root+url
-        response = self.client.get(url,content_type=content_type, headers=headers)
-        self.assertTrue(response.status_code == 200)
+            # http://localhost:4000/c2/array/CP/current_status_display
+            url = url_for('main.c2_get_array_current_status_display', array_code=array_code)
+            if verbose: print root+url
+            response = self.client.get(url,content_type=content_type, headers=headers)
+            self.assertTrue(response.status_code == 200)
 
-        #http://localhost:4000/c2/array/CP/history
-        url = url_for('main.c2_get_array_history', array_code=array_code)
-        if verbose: print root+url
-        response = self.client.get(url,content_type=content_type, headers=headers)
-        self.assertTrue(response.status_code == 200)
+            # http://localhost:4000/c2/array/CP/history
+            url = url_for('main.c2_get_array_history', array_code=array_code)
+            if verbose: print root+url
+            response = self.client.get(url,content_type=content_type, headers=headers)
+            self.assertTrue(response.status_code == 200)
 
-        #http://localhost:4000/c2/array/CP/status_display
-        url = url_for('main.c2_get_array_status_display', array_code=array_code)
-        if verbose: print root+url
-        response = self.client.get(url, content_type=content_type, headers=headers)
-        self.assertTrue(response.status_code == 200)
+            # http://localhost:4000/c2/array/CP/status_display
+            url = url_for('main.c2_get_array_status_display', array_code=array_code)
+            if verbose: print root+url
+            response = self.client.get(url, content_type=content_type, headers=headers)
+            self.assertTrue(response.status_code == 200)
 
-        #http://localhost:4000/c2/array/CP/mission_display
-        url = url_for('main.c2_get_array_mission_display', array_code=array_code)
-        if verbose: print root+url
-        response = self.client.get(url,content_type=content_type, headers=headers)
-        self.assertTrue(response.status_code == 200)
+            # http://localhost:4000/c2/array/CP/mission_display
+            url = url_for('main.c2_get_array_mission_display', array_code=array_code)
+            if verbose: print root+url
+            response = self.client.get(url,content_type=content_type, headers=headers)
+            self.assertTrue(response.status_code == 200)
 
         if verbose: print '\n'
 
@@ -638,6 +655,9 @@ class UserTestCase(unittest.TestCase):
         #         instrument deployment(1): CP02PMUI-RII01-02-ADCPTG000
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         content_type = 'application/json'
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Setup data - Arrays
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         array_CE, array_GP, array_CP = self.setup_array_data()
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -798,6 +818,7 @@ class UserTestCase(unittest.TestCase):
         http://localhost:4000/c2/platform/CP02PMCO-WFP01/status_display
         http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission_display
         http://localhost:4000/c2/platform/CP02PMCO-WFP01/commands
+        http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission/instruments_list
 
         Platform:  CP02PMCO-SBS01
         http://localhost:4000/c2/platform/CP02PMCO-SBS01/abstract
@@ -807,6 +828,7 @@ class UserTestCase(unittest.TestCase):
         http://localhost:4000/c2/platform/CP02PMCO-SBS01/status_display
         http://localhost:4000/c2/platform/CP02PMCO-SBS01/mission_display
         http://localhost:4000/c2/platform/CP02PMCO-SBS01/commands
+        http://localhost:4000/c2/platform/CP02PMCO-SBS01/mission/instruments_list
 
         Platform:  CP02PMUI-RII01
         http://localhost:4000/c2/platform/CP02PMUI-RII01/abstract
@@ -816,6 +838,7 @@ class UserTestCase(unittest.TestCase):
         http://localhost:4000/c2/platform/CP02PMUI-RII01/status_display
         http://localhost:4000/c2/platform/CP02PMUI-RII01/mission_display
         http://localhost:4000/c2/platform/CP02PMUI-RII01/commands
+        http://localhost:4000/c2/platform/CP02PMUI-RII01/mission/instruments_list
 
         '''
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -909,11 +932,10 @@ class UserTestCase(unittest.TestCase):
             #http://localhost:4000/c2/platform/CP02PMCO-WFP01/abstract
             url = url_for('main.c2_get_platform_abstract', reference_designator=platform)
             if verbose: print root+url
-            response = self.client.get(url,
-                                       content_type=content_type, headers=headers)
+            response = self.client.get(url,content_type=content_type, headers=headers)
             self.assertTrue(response.status_code == 200)
 
-            #http://localhost:4000/c2/platform/CP02PMCO-WFP01/current_status_display
+            # http://localhost:4000/c2/platform/CP02PMCO-WFP01/current_status_display
             url = url_for('main.c2_get_platform_current_status_display', reference_designator=platform)
             if verbose: print root+url
             response = self.client.get(url, content_type=content_type, headers=headers)
@@ -922,8 +944,7 @@ class UserTestCase(unittest.TestCase):
             #http://localhost:4000/c2/platform/CP02PMCO-WFP01/ports_display
             url = url_for('main.c2_get_platform_ports_display', reference_designator=platform)
             if verbose: print root+url
-            response = self.client.get(url,
-                                       content_type=content_type, headers=headers)
+            response = self.client.get(url, content_type=content_type, headers=headers)
             self.assertTrue(response.status_code == 200)
 
             #http://localhost:4000/c2/platform/CP02PMCO-WFP01/history
@@ -946,6 +967,12 @@ class UserTestCase(unittest.TestCase):
 
             #http://localhost:4000/c2/platform/CP02PMCO-WFP01/commands
             url = url_for('main.c2_get_platform_commands', reference_designator=platform)
+            if verbose: print root+url
+            response = self.client.get(url, content_type=content_type, headers=headers)
+            self.assertTrue(response.status_code == 200)
+
+            # http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission/instruments_list
+            url = url_for('main.c2_get_platform_mission_instruments_list', reference_designator=platform)
             if verbose: print root+url
             response = self.client.get(url, content_type=content_type, headers=headers)
             self.assertTrue(response.status_code == 200)
@@ -1146,6 +1173,15 @@ class UserTestCase(unittest.TestCase):
         self.assertTrue('message' in data)
         self.assertEquals(data['message'], error_text)
 
+        # http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission/instruments_list
+        url = url_for('main.c2_get_platform_mission_instruments_list', reference_designator=platform)
+        if verbose: print root+url
+        response = self.client.get(url, content_type=content_type, headers=headers)
+        self.assertTrue(response.status_code == 400)
+        data = json.loads(response.data)
+        self.assertTrue('message' in data)
+        self.assertEquals(data['message'], error_text)
+
         # TODO platform with invalid operational status (400)
 
         if verbose: print '\n'
@@ -1158,7 +1194,7 @@ class UserTestCase(unittest.TestCase):
         if verbose: print '\n'
 
         '''
-        Exercise a variety of routes:
+        Exercise a variety of instrument routes:
         Instrument:  CP02PMCO-WFP01-02-DOFSTK000
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-02-DOFSTK000/abstract
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-02-DOFSTK000/ports_display
@@ -1278,11 +1314,10 @@ class UserTestCase(unittest.TestCase):
         platform_instruments.append(MOPAK0000_rd)
 
         # (platform deployment 3) instrument deployment 1
-        ADCPTG000_rd = 'CP02PMUI-RII01-02-ADCPTG000'
-        ADCPTG000 = self.create_instrument_deployment(ADCPTG000_rd, CP02PMUI_RII01_id)
-        ADCPTG000_id = ADCPTG000.id
-        #platform_instruments.append(ADCPTG000_rd)
-
+        # ADCPTG000_rd = 'CP02PMUI-RII01-02-ADCPTG000'
+        # ADCPTG000 = self.create_instrument_deployment(ADCPTG000_rd, CP02PMUI_RII01_id)
+        # ADCPTG000_id = ADCPTG000.id
+        # platform_instruments.append(ADCPTG000_rd)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # End of data setup. (Now have three arrays, three platforms, each populated with instruments)
@@ -1434,9 +1469,6 @@ class UserTestCase(unittest.TestCase):
 
         * empty url params, 404 is returned
         '''
-
-
-
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Start data setup.
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1775,7 +1807,7 @@ class UserTestCase(unittest.TestCase):
         #http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission_selection/mission4
         mission_plan_store = 'mission4'
         url = url_for('main.c2_get_platform_mission_selection',
-                      reference_designator=platform, mission_plan_store=mission_plan_store)
+                        reference_designator=platform, mission_plan_store=mission_plan_store)
         if verbose: print root+url
         response = self.client.get(url, content_type=content_type, headers=headers)
         self.assertTrue(response.status_code == 200)
@@ -1784,7 +1816,7 @@ class UserTestCase(unittest.TestCase):
         # http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission_selection/no_such_mission_store
         bad_mission_plan_store = 'no_such_mission_store'
         url = url_for('main.c2_get_platform_mission_selection',
-                                    reference_designator=platform, mission_plan_store=bad_mission_plan_store)
+                        reference_designator=platform, mission_plan_store=bad_mission_plan_store)
         if verbose: print root+url
         response = self.client.get(url,content_type=content_type, headers=headers)
         self.assertTrue(response.status_code == 200)
@@ -1798,7 +1830,7 @@ class UserTestCase(unittest.TestCase):
         empty_platform = ''
         mission_plan_store = 'mission4'
         url = url_for('main.c2_get_platform_mission_selection',
-                                    reference_designator=empty_platform, mission_plan_store=mission_plan_store)
+                        reference_designator=empty_platform, mission_plan_store=mission_plan_store)
         if verbose: print root+url
         response = self.client.get(url,content_type=content_type, headers=headers)
         self.assertTrue(response.status_code == 404)
@@ -1807,7 +1839,7 @@ class UserTestCase(unittest.TestCase):
         empty_platform = ''
         bad_mission_plan_store = 'no_such_mission_store'
         url = url_for('main.c2_get_platform_mission_selection',
-                                    reference_designator=empty_platform, mission_plan_store=bad_mission_plan_store)
+                        reference_designator=empty_platform, mission_plan_store=bad_mission_plan_store)
         if verbose: print root+url
         response = self.client.get(url,content_type=content_type, headers=headers)
         self.assertTrue(response.status_code == 404)
@@ -1815,7 +1847,7 @@ class UserTestCase(unittest.TestCase):
         # http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission_selection/
         empty_mission_plan_store = ''
         url = url_for('main.c2_get_platform_mission_selection',
-                                    reference_designator=platform, mission_plan_store=empty_mission_plan_store)
+                        reference_designator=platform, mission_plan_store=empty_mission_plan_store)
         if verbose: print root+url
         response = self.client.get(url,content_type=content_type, headers=headers)
         self.assertTrue(response.status_code == 404)
@@ -1823,7 +1855,7 @@ class UserTestCase(unittest.TestCase):
         # http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission_selection/empty_mission
         mission_plan_store = 'empty_mission'
         url = url_for('main.c2_get_platform_mission_selection',
-                                    reference_designator=platform, mission_plan_store=mission_plan_store)
+                        reference_designator=platform, mission_plan_store=mission_plan_store)
         if verbose: print root+url
         response = self.client.get(url, content_type=content_type, headers=headers)
         self.assertTrue(response.status_code == 200)
@@ -1850,7 +1882,7 @@ class UserTestCase(unittest.TestCase):
         # http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/mission_selection/mission4
         mission_plan_store = 'mission4'
         url = url_for('main.c2_get_instrument_mission_selection',
-                                    reference_designator=instrument, mission_plan_store=mission_plan_store)
+                        reference_designator=instrument, mission_plan_store=mission_plan_store)
         if verbose: print root+url
         response = self.client.get(url,content_type=content_type, headers=headers)
         self.assertTrue(response.status_code == 200)
@@ -1858,7 +1890,7 @@ class UserTestCase(unittest.TestCase):
         # http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/mission_selection/mission_does_not_exist
         mission_plan_store_does_not_exist = 'mission_does_not_exist'
         url = url_for('main.c2_get_instrument_mission_selection',
-                                    reference_designator=instrument, mission_plan_store=mission_plan_store_does_not_exist)
+                        reference_designator=instrument, mission_plan_store=mission_plan_store_does_not_exist)
         if verbose: print root+url
         response = self.client.get(url,content_type=content_type, headers=headers)
         self.assertTrue(response.status_code == 200)

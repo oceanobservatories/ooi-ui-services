@@ -136,7 +136,6 @@ def c2_get_platform_abstract(reference_designator):
     response_dict['display_name'] = platform_deployment.display_name
     response_dict['reference_designator'] = platform_deployment.reference_designator
     response_dict['platform_deployment_id'] = platform_deployment.id
-    result = c2_get_platform_operational_status(reference_designator)
     response_dict['operational_status'] = c2_get_platform_operational_status(reference_designator)
     return jsonify(abstract=response_dict)
 
@@ -210,12 +209,139 @@ def c2_get_platform_history(reference_designator):
 #@auth.login_required
 #@scope_required(u'user_admin')
 def c2_get_platform_ports_display(reference_designator):
+    #Get C2 platform Ports tab contents, return ports_display ([{},{},...] where
+    # dicts for each instrument_deployment in platform_deployment:
+    #    {
+    #       'port'              : '##',                 # string, two char port number
+    #       'port_status'       : 'Online',             # string, one of {'Online' | 'Offline' | 'Unknown'}
+    #       'port_available'    : 'False',              # bool, if True port is available for assignment
+    #       'instrument'        : reference_designator  # string, reference_designator
+    #       'class'             : iclass,               # string, 'AAAAA' i.e. instrument class
+    #       'series'            : iseries,              # string, 'A', i.e. instrument series
+    #       'sequence'          : iseq,                 # string, instrument sequence number
+    #       'instrument_status' : istatus               # string, one of {'Online' | 'Offline' | 'Unknown'}
+    # }
+    #   For example:
+    #   ports_display =  [{'port': '##', 'port_status': 'Online', 'port_available': 'True',
+    #                      'instrument': 'reference_designator', 'class': 'AAAAA',  'series': 'A',
+    #                      'sequence': '###', 'instrument_status': 'Online'}, {}, {}, ...]
+    #   UI Note:
+    #   For UI display use:     port, port_status, class, instrument_status  (See wireframe C2 - Ports)
+    #   For UI navigation(?):   to instrument (ala reference_designator),
+    #   (i.e. populate using: /c2/instrument/reference_designator/route_endpoint
+    #       where platform endpoints are: abstract, current_status_display, history, status_display, mission_display, commands
+    #
+    # Samples:
+    # http://localhost:4000/c2/platform/CP02PMCO-WFP01/ports_display    Pioneer (CP)
+    # http://localhost:4000/c2/platform/CP02PMCO-RII01/ports_display    Pioneer (CP)
+    # http://localhost:4000/c2/platform/CP02PMCO-SBS01/ports_display    Pioneer (CP)
+    # http://localhost:4000/c2/platform/CE01ISSM-MFD00/ports_display    Endurance (CE)
+    # http://localhost:4000/c2/platform/RS03ECAL-MJ03E/ports_display    Regional Scale (RS)
+    contents = []
+    platform_info = {}
     platform_deployment = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first()
     if not platform_deployment:
         return bad_request('unknown platform_deployment (reference_designator: \'%s\')' % reference_designator)
-    #Get C2 platform Ports tab contents, return ports_display
-    ports_display =  {}
-    return jsonify(ports_display=ports_display)
+    # get ordered set of instrument_deployments for platform
+    instrument_deployments = \
+        InstrumentDeployment.query.filter_by(platform_deployment_id=platform_deployment.id).all()
+    '''
+    # hold for now
+    for i_d in instrument_deployments:
+        instrument_name = Instrumentname.query.filter(Instrumentname.instrument_class == i_d.display_name).first()
+        if instrument_name:
+            i_d.display_name = instrument_name.display_name
+    '''
+    # create list of reference_designators (instruments) and accumulate dict result (key=reference_designator) for output
+    instruments = []
+    for instrument_deployment in instrument_deployments:
+        rd = instrument_deployment.reference_designator
+        instruments.append(instrument_deployment.reference_designator)
+        port    = rd[15:15+2]
+        iclass  = rd[18:18+5]
+        iseries = rd[23:23+1]
+        iseq    = rd[24:24+3]
+        row = {}
+        row['port'] = port
+        row['port_status'] = c2_get_platform_operational_status(reference_designator) # same as platform for now
+        row['port_available'] = str(True)
+        if row['port_status'] == 'Online' or row['port_status'] == 'Unknown':
+            row['port_available'] = str(False)
+
+        row['instrument'] = instrument_deployment.reference_designator
+        row['class'] = iclass
+        row['series']= iseries
+        row['sequence'] = iseq
+        row['instrument_status'] = 'Unknown'
+        #row['instrument_deployment_id'] = instrument_deployment.id
+        #row['display_name'] = instrument_deployment.display_name
+        platform_info[instrument_deployment.reference_designator] = row
+    # Get operational status for all instruments in platform; add to output
+    statuses = c2_get_instruments_operational_status(platform_deployment.reference_designator)
+    if statuses:
+        for d in statuses:
+            rd = d['id']
+            stat = d['status']
+            if rd in platform_info:
+                platform_info[rd]['instrument_status'] = stat
+    # Create list of dictionaries representing row(s) for 'data' (ordered by reference_designator)
+    # 'data' == rows for initial grid ('Current Status')
+    for instrument_deployment_reference_designator in instruments:
+        if instrument_deployment_reference_designator in platform_info:
+            contents.append(platform_info[instrument_deployment_reference_designator])
+    return jsonify(ports_display=contents)
+
+# review this with Jim
+#TODO enable auth and scope
+@api.route('/c2/platform/<string:reference_designator>/mission/instruments_list', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'user_admin')
+def c2_get_platform_mission_instruments_list(reference_designator):
+    # C2 get [platform] Mission tab instruments_list, return instruments [{instrument1}, {instrument2}, ...]
+    # where each instrument dictionary (is a row in instruments list) contains:
+    #   {'reference_designator': reference_designator, 'instrument_deployment_id': id, 'display_name': display_name }
+    #
+    # Samples:
+    #   http://localhost:4000/c2/platform/CP02PMCO-SBS01/mission/instruments_list
+    #   http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission/instruments_list
+    contents = []
+    platform_info = {}
+    platform_deployment = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first()
+    if not platform_deployment:
+        return bad_request('unknown platform_deployment (reference_designator: \'%s\')' % reference_designator)
+    # get ordered set of instrument_deployments for platform
+    instrument_deployments = \
+        InstrumentDeployment.query.filter_by(platform_deployment_id=platform_deployment.id).all()
+    for i_d in instrument_deployments:
+        instrument_name = Instrumentname.query.filter(Instrumentname.instrument_class == i_d.display_name).first()
+        if instrument_name:
+            i_d.display_name = instrument_name.display_name
+    # create list of reference_designators (instruments) and accumulate dict result (key=reference_designator) for output
+    instruments = []
+    for instrument_deployment in instrument_deployments:
+        instruments.append(instrument_deployment.reference_designator)
+        row = {}
+        row['reference_designator'] = instrument_deployment.reference_designator
+        row['instrument_deployment_id'] = instrument_deployment.id
+        row['display_name'] = instrument_deployment.display_name
+        platform_info[instrument_deployment.reference_designator] = row
+    '''
+    (hold for now - not sure we need status)
+    # Get operational status for all instruments in platform; add to output
+    statuses = c2_get_instruments_operational_status(platform_deployment.reference_designator)
+    if statuses:
+        for d in statuses:
+            rd = d['id']
+            stat = d['status']
+            if rd in platform_info:
+                platform_info[rd]['instrument_status'] = stat
+    '''
+    # Create list of dictionaries representing row(s) for 'data' (ordered by reference_designator)
+    # 'data' == rows for initial grid ('Current Status')
+    for instrument_deployment_reference_designator in instruments:
+        if instrument_deployment_reference_designator in platform_info:
+            contents.append(platform_info[instrument_deployment_reference_designator])
+    return jsonify(instruments=contents)
 
 #TODO enable auth and scope
 @api.route('/c2/platform/<string:reference_designator>/status_display', methods=['GET'])
@@ -259,7 +385,7 @@ def c2_get_platform_commands(reference_designator):
 # - - - - - - - - - - - - - - - - - - - - - - - -
 # C2 instrument
 # - - - - - - - - - - - - - - - - - - - - - - - -
-#TODO (start) -- for instrument_display
+#TODO enable auth and scope
 @api.route('/c2/instrument/<string:reference_designator>/abstract', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
@@ -493,7 +619,7 @@ def c2_get_platform_mission_selection(reference_designator, mission_plan_store):
 #@auth.login_required
 #@scope_required(u'user_admin')
 def c2_get_instrument_mission_selection(reference_designator, mission_plan_store):
-    # C2 get [instrument] selected mission_plan content, return mission_plan
+    # C2 get [instrument] selected mission_plan content from store (file, uframe), return mission_plan
     instrument_deployment = InstrumentDeployment.query.filter_by(reference_designator=reference_designator).first()
     if not instrument_deployment:
         return bad_request('unknown instrument_deployment (reference_designator: \'%s\')' % reference_designator)
@@ -510,18 +636,6 @@ def c2_get_instrument_mission_selection(reference_designator, mission_plan_store
 
 #TODO enable auth and scope; code - under construction
 '''
-@api.route('/c2/instrument/<string:reference_designator>/<string:mission_plan_store>/instruments_list', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
-def c2_get_instrument_mission_plan_instruments(reference_designator, mission_plan_store):
-    # C2 get [instrument] mission plan instruments_list (defined in mission plan), return instruments
-    instrument_deployment = InstrumentDeployment.query.filter_by(reference_designator=reference_designator).first_or_404()
-    if not mission_plan_store:
-        return bad_request('mission_plan_store parameter is empty')
-    instruments = []
-    return jsonify(instruments=instruments)
-
-
 #curl -X PUT http://localhost:4000/c2/instrument_update/CP02PMCO-SBS01-01-MOPAK0000?stream=mopak_o_dcl_accel&field=qualityflag&command=set&value=bad
 @api.route('/c2/instrument_update/<string:reference_designator>/<string:stream_name>/<string:field>/<string:command>/<string:value>', methods=['PUT'])
 #@auth.login_required
@@ -544,8 +658,11 @@ def c2_update_instrument_field_value(reference_designator, stream_name, field, c
 def c2_get_instrument_operational_status(reference_designator):
     # C2 get instrument operational status
     return jsonify({'instrument_operational_status': [reference_designator]})
-'''
 
+
+
+
+'''
 #----------------------------------------------------
 #-- file based helpers for array_display
 #----------------------------------------------------
