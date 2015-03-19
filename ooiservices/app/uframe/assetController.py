@@ -101,9 +101,11 @@ def _get_latlon(item):
     else:
         return tmp
 
-def _convert_date_time(date, time="00:00"):
-    #For now, just concat the date and time:
-    return "%s %s" % (date, time)
+def _convert_date_time(date, time=None):
+    if time is None:
+        return date
+    else:
+        return "%s %s" % (date, time)
 
 def _convert_water_depth(depth):
     d = {}
@@ -333,53 +335,54 @@ def get_assets():
     time_launch = ""
     ref_des = ""
     depth = ""
-    for row in data:
-        row['class'] = row.pop('@class')
-        if row['metaData'] is not None:
-            for metaData in row['metaData']:
-                #Please, make fun of Rutgers for this.
-                if metaData['key'] == 'Laditude ':
-                    metaData['key'] = 'Latitude'
-                if metaData['key'] == 'Latitude':
-                    lat = metaData['value']
-                    metaData['value'] = _normalize(metaData['value'])
-                if metaData['key'] == 'Longitude':
-                    lon = metaData['value']
-                    metaData['value'] = _normalize(metaData['value'])
-                if metaData['key'] == "Anchor Launch Date":
-                    date_launch = metaData['value']
-                if metaData['key'] == "Anchor Launch Time":
-                    time_launch = metaData['value']
-                if metaData['key'] == 'Water Depth':
-                    depth = metaData['value']
-                if metaData['key'] == 'Ref Des':
-                    ref_des = (metaData['value'])
-            if len(lat) > 0 and len(lon) > 0:
-                row['coordinates'] = _convert_lat_lon(lat, lon)
-                lat = ""
-                lon = ""
-            if len(date_launch) > 0 and len(time_launch) > 0:
-                row['launch_date_time'] = _convert_date_time(date_launch, time_launch)
-                date_launch = ""
-                time_launch = ""
-            elif len(date_launch) > 0:
-                row['launch_date_time'] = _convert_date_time(date_launch)
-                date_launch = ""
-                time_launch = ""
-            if len(depth) > 0:
-                row['water_depth'] = _convert_water_depth(depth)
-                depth = ""
-            if len(ref_des) > 0:
-                row['ref_des'] = ref_des
-                ref_des = ""
+    try:
+        for row in data:
+            if row['metaData'] is not None:
+                for metaData in row['metaData']:
+                    #Please, make fun of Rutgers for this.
+                    if metaData['key'] == 'Laditude ':
+                        metaData['key'] = 'Latitude'
+                    if metaData['key'] == 'Latitude':
+                        lat = metaData['value']
+                        metaData['value'] = _normalize(metaData['value'])
+                    if metaData['key'] == 'Longitude':
+                        lon = metaData['value']
+                        metaData['value'] = _normalize(metaData['value'])
+                    if metaData['key'] == "Anchor Launch Date":
+                        date_launch = metaData['value']
+                    if metaData['key'] == "Anchor Launch Time":
+                        time_launch = metaData['value']
+                    if metaData['key'] == 'Water Depth':
+                        depth = metaData['value']
+                    if metaData['key'] == 'Ref Des':
+                        ref_des = (metaData['value'])
+                if len(lat) > 0 and len(lon) > 0:
+                    row['coordinates'] = _convert_lat_lon(lat, lon)
+                    lat = ""
+                    lon = ""
+                if len(date_launch) > 0 and len(time_launch) > 0:
+                    row['launch_date_time'] = _convert_date_time(date_launch, time_launch)
+                    date_launch = ""
+                    time_launch = ""
+                elif len(date_launch) > 0:
+                    row['launch_date_time'] = _convert_date_time(date_launch)
+                    date_launch = ""
+                    time_launch = ""
+                if len(depth) > 0:
+                    row['water_depth'] = _convert_water_depth(depth)
+                    depth = ""
+                if len(ref_des) > 0:
+                    row['ref_des'] = ref_des
+                    ref_des = ""
 
-        #Clear out these fields, not needed for now.
-        #Will all persist in the GET (object) route
-        row.pop('metaData', None)
-        row.pop('physicalInfo', None)
-        row.pop('purchaseAndDeliveryInfo', None)
-        row.update({'url': url_for('uframe.get_asset', id=row['assetId']),
-                'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (uframe_obj.__endpoint__, row['assetId'])})
+                row['class'] = row.pop('@class')
+                row.pop('metaData', None)
+                row.pop('physicalInfo', None)
+                row.pop('purchaseAndDeliveryInfo', None)
+                row.update({'url': url_for('uframe.get_asset', id=row['assetId']),
+                        'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (uframe_obj.__endpoint__, row['assetId'])})
+    except KeyError:
+        pass
 
     return jsonify({ 'assets' : data })
 
@@ -394,43 +397,47 @@ def get_asset(id):
     time_launch = ""
     ref_des = ""
     depth = ""
-    data['class'] = data.pop('@class')
-    for metaData in data['metaData']:
-        #Please, make fun of Rutgers for this.
-        if metaData['key'] == 'Laditude ':
-            metaData['key'] = 'Latitude'
-        if metaData['key'] == 'Latitude':
-            lat = metaData['value']
-            metaData['value'] = _normalize(metaData['value'])
-        if metaData['key'] == 'Longitude':
-            lon = metaData['value']
-            metaData['value'] = _normalize(metaData['value'])
-        if metaData['key'] == "Anchor Launch Date":
-            date_launch = metaData['value']
-        if metaData['key'] == "Anchor Launch Time":
-            time_launch = metaData['value']
-        if metaData['key'] == 'Water Depth':
-            depth = metaData['value']
-    if len(lat) > 0 and len(lon) > 0:
-        data['coordinates'] = _convert_lat_lon(lat, lon)
-        lat = ""
-        lon = ""
-    if len(date_launch) > 0 and len(time_launch) > 0:
-        data['launch_date_time'] = _convert_date_time(date_launch, time_launch)
-        date_launch = ""
-        time_launch = ""
-    elif len(date_launch) > 0:
-        data['launch_date_time'] = _convert_date_time(date_launch)
-        date_launch = ""
-        time_launch = ""
-    if len(depth) > 0:
-        data['water_depth'] = _convert_water_depth(depth)
-        depth = ""
-    if len(ref_des) > 0:
-        data['ref_des'] = ref_des
-        ref_des = ""
+    try:
+        for metaData in data['metaData']:
+            #Please, make fun of Rutgers for this.
+            if metaData['key'] == 'Laditude ':
+                metaData['key'] = 'Latitude'
+            if metaData['key'] == 'Latitude':
+                lat = metaData['value']
+                metaData['value'] = _normalize(metaData['value'])
+            if metaData['key'] == 'Longitude':
+                lon = metaData['value']
+                metaData['value'] = _normalize(metaData['value'])
+            if metaData['key'] == "Anchor Launch Date":
+                date_launch = metaData['value']
+            if metaData['key'] == "Anchor Launch Time":
+                time_launch = metaData['value']
+            if metaData['key'] == 'Water Depth':
+                depth = metaData['value']
+        if len(lat) > 0 and len(lon) > 0:
+            data['coordinates'] = _convert_lat_lon(lat, lon)
+            lat = ""
+            lon = ""
+        if len(date_launch) > 0 and len(time_launch) > 0:
+            data['launch_date_time'] = _convert_date_time(date_launch, time_launch)
+            date_launch = ""
+            time_launch = ""
+        elif len(date_launch) > 0:
+            data['launch_date_time'] = _convert_date_time(date_launch)
+            date_launch = ""
+            time_launch = ""
+        if len(depth) > 0:
+            data['water_depth'] = _convert_water_depth(depth)
+            depth = ""
+        if len(ref_des) > 0:
+            data['ref_des'] = ref_des
+            ref_des = ""
 
-    data['events'] = _associate_events(id)
+        data['events'] = _associate_events(id)
+        data['class'] = data.pop('@class')
+    except KeyError:
+        pass
+
     return jsonify(**data)
 
 #Create
@@ -474,12 +481,15 @@ def get_events():
     #create uframe instance, and fetch the data.
     uframe_obj = uFrameEventCollection()
     data = uframe_obj.to_json()
-    for row in data:
-        row['class'] = row.pop('@class')
-        row.update({'url': url_for('uframe.get_event', id=row['eventId']),
-            'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (uframe_obj.__endpoint__, row['eventId'])})
-        row.pop('asset')
-    #parse the result and assign ref_des as top element.
+    try:
+        for row in data:
+            row['class'] = row.pop('@class')
+            row.update({'url': url_for('uframe.get_event', id=row['eventId']),
+                'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (uframe_obj.__endpoint__, row['eventId'])})
+            row.pop('asset')
+        #parse the result and assign ref_des as top element.
+    except KeyError:
+        pass
     return jsonify({ 'events' : data })
 
 #Read (object)
@@ -491,7 +501,10 @@ def get_event(id):
     #create uframe instance, and fetch the data.
     uframe_obj = uFrameEventCollection()
     data = uframe_obj.to_json(id)
-    data['class'] = data.pop('@class')
+    try:
+        data['class'] = data.pop('@class')
+    except KeyError:
+        pass
     return jsonify(**data)
 
 #Create
