@@ -40,7 +40,33 @@
     "key" : "Water Depth",
     "type" : "java.lang.String",
     "metaId" : 3093
-  } ],
+  }, {
+    "value" : "NONE",
+    "key" : "Water Depth",
+    "type" : "java.lang.String",
+    "metaId" : 3093
+  },{
+    "value" : 40.7632,
+    "key" : "Latitude ",
+    "type" : "java.lang.String",
+    "metaId" : 3095
+  }, {
+    "value" : -70.7831,
+    "key" : "Longitude",
+    "type" : "java.lang.String",
+    "metaId" : 3094
+  }
+  , {
+    "value" : "40Â°05' 45.792\" S",
+    "key" : "Latitude",
+    "type" : "java.lang.String",
+    "metaId" : 3094
+  }, {
+    "value" : "70Â°52' 46.986\"E",
+    "key" : "Longitude",
+    "type" : "java.lang.String",
+    "metaId" : 3094
+  }],
   "attachments" : [ ],
   "assetId" : 5,
   "assetInfo" : {

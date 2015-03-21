@@ -9,7 +9,6 @@ from flask import jsonify, current_app, request, url_for, make_response
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.authentication import auth
 from ooiservices.app import cache
-from LatLon import string2latlon
 import json
 import requests
 import re
@@ -67,19 +66,45 @@ def _normalize(to_translate, translate_to=u' '):
         return "%s" % e
 
 def _convert_lat_lon(lat, lon):
-    #Requires LatLon
-    conv_lat = _normalize(lat)
-    conv_lon = _normalize(lon)
     try:
-        if len(conv_lat.split()) == 4  and len(conv_lon.split()) == 4:
-            coords = string2latlon(conv_lat, conv_lon, 'd% %m% %M% %H')
-        else:
-            coords = string2latlon(conv_lat, conv_lon, 'd% %M% %H')
-        str_coords = coords.to_string('D')
-        float_coords = [float(str_coords[0]), float(str_coords[1])]
-        return float_coords
+        _lat = _get_latlon(lat)
+        if "S" in lat:
+            _lat = _lat*-1
+        _lon = _get_latlon(lon)
+        if "W" in lon:
+            _lon = _lon*-1
+        coords = (_lat, _lon)
+        return coords
     except Exception as e:
         return "Error: %s" % e
+
+def _get_latlon(item):
+    '''
+    given raw string for lat or lon, scrub and calculate float result;
+    finally truncate to _decimal_places; default is 7 decimal places.
+    returns: lat or lon as decimal degrees (float) or None
+    '''
+    _decimal_places = 7
+    result = None
+    degrees = 0.0
+    minutes = 0.0
+    seconds = 0.0
+    # scrub input
+    tmp = _normalize(item)
+    # process input and round result to _decimal places
+    if len(tmp.split(' ')) > 1:
+        ds = tmp.split(' ')
+        degrees = float(ds[0])
+        minutes = float(ds[1])
+        if len(ds) == 4:
+            seconds = float(ds[2])
+        val = degrees +  ((minutes + (seconds/60.00000))/60.00000)
+        # round to _decimal_places
+        tmp = str(round(val,_decimal_places))
+        result = float(tmp)
+        return result
+    else:
+        return tmp
 
 def _convert_date_time(date, time=None):
     if time is None:
@@ -105,7 +130,7 @@ def _convert_water_depth(depth):
         return {'message': 'Conversion Error!',
                 'input': depth}
 
-def _associate_events(id):
+def _associate_events(id, data):
     uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/assets/%s/events' % (id)
     result = []
     data = requests.get(uframe_url)

@@ -15,8 +15,7 @@ from flask import url_for, jsonify
 from ooiservices.app import create_app, db
 from ooiservices.app.models import User, UserScope, UserScopeLink, Organization
 from collections import OrderedDict
-
-
+from ooiservices.app.uframe.assetController import uFrameAssetCollection
 
 '''
 These tests are additional to the normal testing performed by coverage; each of
@@ -29,11 +28,6 @@ class PrivateMethodsTest(unittest.TestCase):
         self.app = create_app('TESTING_CONFIG')
         self.app_context = self.app.app_context()
         self.app_context.push()
-        db.create_all()
-        test_password = 'test'
-        Organization.insert_org()
-        UserScope.insert_scopes()
-        User.insert_user(password=test_password)
 
         self.client = self.app.test_client(use_cookies=False)
         self.basedir = os.path.abspath(os.path.dirname(__file__))
@@ -45,8 +39,6 @@ class PrivateMethodsTest(unittest.TestCase):
         self.event_json = doc
 
     def tearDown(self):
-        db.session.remove()
-        db.drop_all()
         self.app_context.pop()
 
     def get_api_headers(self, username, password):
@@ -114,9 +106,18 @@ class PrivateMethodsTest(unittest.TestCase):
 
     #_convert_lat_lon
         from ooiservices.app.uframe.assetController import _convert_lat_lon
+        #Test a North West input
         normalized_lon = _normalize(self.asset_json['metaData'][1]['value'])
         coords = _convert_lat_lon(normalized_lat, normalized_lon)
-        self.assertTrue(coords == [40.7632, -70.7831])
+        self.assertTrue(coords == (40.0960533, -70.8797183))
+        #Test a South input:
+        south_lat = _normalize(self.asset_json['metaData'][11]['value'])
+        south_coords = _convert_lat_lon(south_lat, normalized_lon)
+        self.assertTrue(south_coords == (-40.0960533, -70.8797183))
+        #Test a East input:
+        east_lon = _normalize(self.asset_json['metaData'][12]['value'])
+        east_coords = _convert_lat_lon(normalized_lat, east_lon)
+        self.assertTrue(east_coords == (40.0960533, 70.8797183))
         #Test bad input:
         bad_coords = _convert_lat_lon("ABC", "DEF")
         self.assertTrue("Error" in bad_coords)
@@ -142,9 +143,55 @@ class PrivateMethodsTest(unittest.TestCase):
         #Water depth without a space between value and units.
         raw_depth = self.asset_json['metaData'][7]['value']
         converted_water_depth = _convert_water_depth(raw_depth)
-        print converted_water_depth
         self.assertTrue(converted_water_depth['value'] == 148)
         self.assertTrue(converted_water_depth['unit'] == 'm')
+        #Test a bad entry
+        raw_depth = self.asset_json['metaData'][8]['value']
+        converted_water_depth = _convert_water_depth(raw_depth)
+        self.assertTrue('Error' in converted_water_depth['message'])
 
+    #_associate_events
+        #TODO: This will need to be tackled when uframe is more permanent
 
+class AssetCollectionTest(unittest.TestCase):
+    def setUp(self):
+        self.app = create_app('TESTING_CONFIG')
+        self.app_context = self.app.app_context()
+        self.app_context.push()
+        db.create_all()
+        test_password = 'test'
+        Organization.insert_org()
+        UserScope.insert_scopes()
+        User.insert_user(password=test_password)
 
+        self.client = self.app.test_client(use_cookies=False)
+        self.basedir = os.path.abspath(os.path.dirname(__file__))
+        with open(self.basedir + '/mock_data/asset_post.json', 'r') as f:
+            doc = json.load(f)
+        self.asset_json_in = doc
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
+
+    def get_api_headers(self, username, password):
+        return {
+            'Authorization': 'Basic ' + b64encode(
+                (username + ':' + password).encode('utf-8')).decode('utf-8'),
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+
+    def test_uFrameAssetCollection_class(self):
+        obj = uFrameAssetCollection()
+        self.assertTrue(isinstance(obj, object))
+
+    #to_json
+        asset_object = obj.to_json(1)
+        self.assertTrue(isinstance(asset_object, dict))
+
+    #from_json
+        data = self.asset_json_in
+        asset_json = obj.from_json(data)
+        #print asset_json
