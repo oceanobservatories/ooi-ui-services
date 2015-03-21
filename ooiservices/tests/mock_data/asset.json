@@ -26,15 +26,20 @@
     "type" : "java.lang.String",
     "metaId" : 3091
   }, {
+    "value" : "17:29",
+    "key" : "Anchor Launch Time",
+    "type" : "java.lang.String",
+    "metaId" : 3092
+  }, {
     "value" : "KN-217",
     "key" : "Cruise Number",
     "type" : "java.lang.String",
     "metaId" : 3090
   }, {
-    "value" : "17:29",
-    "key" : "Anchor Launch Time",
+    "value" : "148m",
+    "key" : "Water Depth",
     "type" : "java.lang.String",
-    "metaId" : 3092
+    "metaId" : 3093
   } ],
   "attachments" : [ ],
   "assetId" : 5,

@@ -89,19 +89,21 @@ def _convert_date_time(date, time=None):
 
 def _convert_water_depth(depth):
     d = {}
-    if type(depth) is not str:
-        depth = "0 m"
-    if len(depth.split( )) == 2:
-        value = depth.split()[0]
-        unit = depth.split()[1]
-        d['value'] = float(value)
-        d['unit'] = str(unit)
-        return d
-    else:
-        no_alpha = re.sub("[^0-9]", "", depth)
-        d['value'] = float(no_alpha)
-        d['unit'] = "m"
-        return d
+    try:
+        if len(depth.split( )) == 2:
+            value = depth.split()[0]
+            unit = depth.split()[1]
+            d['value'] = float(value)
+            d['unit'] = str(unit)
+            return d
+        else:
+            no_alpha = re.sub("[^0-9]", "", depth)
+            d['value'] = float(no_alpha)
+            d['unit'] = "m"
+            return d
+    except ValueError as ve:
+        return {'message': 'Conversion Error!',
+                'input': depth}
 
 def _associate_events(id):
     uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/assets/%s/events' % (id)

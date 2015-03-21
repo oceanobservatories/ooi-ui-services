@@ -121,4 +121,30 @@ class PrivateMethodsTest(unittest.TestCase):
         bad_coords = _convert_lat_lon("ABC", "DEF")
         self.assertTrue("Error" in bad_coords)
 
+    #_convert_date_time
+        from ooiservices.app.uframe.assetController import _convert_date_time
+        #Date with no time:
+        raw_date = self.asset_json['metaData'][4]['value']
+        date = _convert_date_time(raw_date)
+        self.assertTrue(date == '13-Apr-14')
+        #Date and time:
+        raw_time = self.asset_json['metaData'][5]['value']
+        date_time = _convert_date_time(raw_date, raw_time)
+        self.assertTrue(date_time == '13-Apr-14 17:29')
+
+    #_convert_water_depth
+        from ooiservices.app.uframe.assetController import _convert_water_depth
+        #Water depth with a space between the value and units.
+        raw_depth = self.asset_json['metaData'][3]['value']
+        converted_water_depth = _convert_water_depth(raw_depth)
+        self.assertTrue(converted_water_depth['value'] == 148)
+        self.assertTrue(converted_water_depth['unit'] == 'm')
+        #Water depth without a space between value and units.
+        raw_depth = self.asset_json['metaData'][7]['value']
+        converted_water_depth = _convert_water_depth(raw_depth)
+        print converted_water_depth
+        self.assertTrue(converted_water_depth['value'] == 148)
+        self.assertTrue(converted_water_depth['unit'] == 'm')
+
+
 
