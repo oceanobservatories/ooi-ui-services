@@ -66,20 +66,20 @@ def _normalize(to_translate, translate_to=u' '):
         return "%s" % e
 
 def _convert_lat_lon(lat, lon):
+
     try:
+
         _lat = _get_latlon(lat)
         _lon = _get_latlon(lon)
+        if not (isinstance(lat, float) and isinstance(lon, float)):
+            if "S" in lat:
+                _lat = _lat*-1.0
+            if "W" in lon:
+                _lon = _lon*-1.0
+        coords = (_lat, _lon)
+        return coords
     except Exception as e:
         return "Error: %s" % e
-
-    if not (isinstance(lat, float) and isinstance(lon, float)):
-        if "S" in lat:
-            _lat = _lat*-1.0
-        if "W" in lon:
-            _lon = _lon*-1.0
-
-    coords = (_lat, _lon)
-    return coords
 
 def _get_latlon(item):
     '''
@@ -93,9 +93,9 @@ def _get_latlon(item):
     minutes = 0.0
     seconds = 0.0
     # scrub input
+    tmp = _normalize(item)
     # process input and round result to _decimal places
-    if not isinstance(item, float):
-        tmp = _normalize(item)
+    if isinstance(item, unicode) and len(tmp.split()) > 1:
         ds = tmp.split(' ')
         degrees = float(ds[0])
         minutes = float(ds[1])
@@ -107,7 +107,7 @@ def _get_latlon(item):
         result = float(tmp)
         return result
     else:
-        return item
+        return float(item)
 
 def _convert_date_time(date, time=None):
     if time is None:
@@ -256,10 +256,6 @@ class uFrameAssetCollection(object):
                 }
         return formatted_return
 
-    #Displays the default top level attributes of this class.
-    def __repr__(self):
-        return '<AssetID: %r>' % (self.assetId)
-
 #This class will handle the default checks of the uframe event endpoint
 # as well as cleaning up each of the route implementation (CRUD).
 class uFrameEventCollection(object):
@@ -330,10 +326,6 @@ class uFrameEventCollection(object):
             'lastModifiedTimestamp': lastModifiedTimestamp
         }
         return formatted_return
-
-    #Displays the default top level attributes of this class.
-    def __repr__(self):
-        return '<EventID: %r>' % (self.assetId)
 
 ### ---------------------------------------------------------------------------
 ### BEGIN Assets CRUD methods.

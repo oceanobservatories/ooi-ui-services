@@ -10,8 +10,8 @@
    ],
    "class":".AssetRecord",
    "coordinates":[
-      0,
-      0
+      0.0,
+      0.0
    ],
    "launch_date_time":"2013-11-21T05:00:00.000Z",
    "manufactureInfo":{
@@ -27,5 +27,6 @@
    "water_depth":{
       "unit":"m",
       "value":133.5
-   }
+   },
+   "ref_des": "CP01CNSM"
 }
