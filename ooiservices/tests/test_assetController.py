@@ -16,6 +16,7 @@ from ooiservices.app import create_app, db
 from ooiservices.app.models import User, UserScope, UserScopeLink, Organization
 from collections import OrderedDict
 from ooiservices.app.uframe.assetController import uFrameAssetCollection
+from ooiservices.app.uframe.assetController import uFrameEventCollection
 
 '''
 These tests are additional to the normal testing performed by coverage; each of
@@ -175,6 +176,9 @@ class AssetCollectionTest(unittest.TestCase):
             doc = json.load(f)
         self.asset_json_in = doc
 
+        with open(self.basedir + '/mock_results/asset_from.json', 'r') as f:
+            doc = json.load(f)
+        self.asset_from_json = doc
     def tearDown(self):
         db.session.remove()
         db.drop_all()
@@ -199,4 +203,58 @@ class AssetCollectionTest(unittest.TestCase):
     #from_json
         data = self.asset_json_in
         asset_json = obj.from_json(data)
-        #print asset_json
+        check_depth = self.asset_from_json['metaData'][0]['value']
+        self.assertTrue(check_depth == "133.5 m")
+        check_lat = self.asset_from_json['metaData'][1]['value']
+        self.assertTrue(check_lat == 0.0)
+        check_lon = self.asset_from_json['metaData'][2]['value']
+        self.assertTrue(check_lon == 0.0)
+        check_time = self.asset_from_json['metaData'][3]['value']
+        self.assertTrue(check_time == "2013-11-21T05:00:00.000Z")
+        check_ref_des = self.asset_from_json['metaData'][4]['value']
+        self.assertTrue(check_ref_des == "CP01CNSM")
+
+
+class EventCollectionTest(unittest.TestCase):
+    def setUp(self):
+        self.app = create_app('TESTING_CONFIG')
+        self.app_context = self.app.app_context()
+        self.app_context.push()
+        db.create_all()
+        test_password = 'test'
+        Organization.insert_org()
+        UserScope.insert_scopes()
+        User.insert_user(password=test_password)
+
+        self.client = self.app.test_client(use_cookies=False)
+        self.basedir = os.path.abspath(os.path.dirname(__file__))
+        with open(self.basedir + '/mock_data/event_post.json', 'r') as f:
+            doc = json.load(f)
+        self.event_json_in = doc
+
+        with open(self.basedir + '/mock_results/event_from.json', 'r') as f:
+            doc = json.load(f)
+        self.event_from_json = doc
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
+
+    def get_api_headers(self, username, password):
+        return {
+            'Authorization': 'Basic ' + b64encode(
+                (username + ':' + password).encode('utf-8')).decode('utf-8'),
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    def test_uFrameEventCollection_class(self):
+        obj = uFrameEventCollection()
+        self.assertTrue(isinstance(obj, object))
+
+    #to_json
+        event_object = obj.to_json(1)
+        self.assertTrue(isinstance(event_object, dict))
+        data = self.event_json_in
+        event_json = obj.from_json(data)
+        check_location = self.event_from_json['deploymentLocation']
+        self.assertTrue(check_location == [0.0, 0.0])
