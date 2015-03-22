@@ -121,6 +121,11 @@ class PrivateMethodsTest(unittest.TestCase):
         #Test bad input:
         bad_coords = _convert_lat_lon("ABC", "DEF")
         self.assertTrue("Error" in bad_coords)
+        #Test the conversion does not happen when the lat/lon is in dec deg.
+        dec_deg_lat = self.asset_json['metaData'][9]['value']
+        dec_deg_lon = self.asset_json['metaData'][10]['value']
+        no_convert = _convert_lat_lon(dec_deg_lat, dec_deg_lon)
+        self.assertTrue(no_convert == (dec_deg_lat, dec_deg_lon))
 
     #_convert_date_time
         from ooiservices.app.uframe.assetController import _convert_date_time
