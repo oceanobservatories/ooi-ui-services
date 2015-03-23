@@ -122,7 +122,59 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream):
     data_dict['variable_types'] = {k : type(data[1][k]).__name__ for k in data[1].keys() }
     return data_dict
 
-
+@api.route('/glider_tracks')
+#@auth.login_required
+def get_glider_track():
+    ret = {
+    "type": "LineString", 
+    "coordinates": [
+        [
+            -70.347525, 
+            39.99977166666667
+        ], 
+        [
+            -70.34499333333333, 
+            39.999625
+        ], 
+        [
+            -70.34427333333333, 
+            39.999563333333334
+        ], 
+        [
+            -70.34345833333333, 
+            39.99932833333333
+        ], 
+        [
+            -70.34478666666666, 
+            40.005401666666664
+        ], 
+        [
+            -70.344305, 
+            40.00524166666667
+        ], 
+        [
+            -70.344305, 
+            40.00524166666667
+        ], 
+        [
+            -70.344305, 
+            40.00524166666667
+        ], 
+        [
+            -70.344305, 
+            40.00524166666667
+        ], 
+        [
+            -70.33288666666667, 
+            40.00106666666667
+        ], 
+        [
+            -70.332245, 
+            40.00081333333333
+        ]
+    ]
+    }
+    return jsonify(track=ret)
 
 
 @api.route('/stream')
