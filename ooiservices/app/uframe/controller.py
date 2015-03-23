@@ -189,14 +189,17 @@ def get_uframe_glider_track(ref):
     # we will always want the telemetered data, and the engineering stream
     # data should reside in the same place
     res = get_json('telemetered_glider_eng_telemetered', ref)
-    if res.status_code != 200:
-        return res.data, res.status_code, dict(res.headers)
-    res_arr = json.loads(res.data)['data']
-    # load the JSON into a shapely LineString.
-    track = LineString([(pt['m_gps_lon'], pt['m_gps_lat']) for pt in res_arr if
-                        pt['m_gps_lon'] != 'NaN' and pt['m_gps_lat'] != 'NaN'])
-    # serialize the Python object of containing tracks to GeoJSON
-    return Response(json.dumps(mapping(track)), mimetype='application/json')
+    if res.status_code == 200:
+        res_arr = json.loads(res.data)['data']
+        # load the JSON into a shapely LineString.
+        track = LineString([(pt['m_gps_lon'], pt['m_gps_lat'])
+                            for pt in res_arr if pt['m_gps_lon'] != 'NaN' and
+                            pt['m_gps_lat'] != 'NaN'])
+        # serialize the Python object of containing tracks to GeoJSON
+        return Response(json.dumps(mapping(track)), mimetype='application/json')
+    else:
+        # if not a valid response, attempt to return the response as is.
+        return res.text, res.status_code, res.headers.items()
 
 @cache.memoize(timeout=3600)
 def get_uframe_instruments(mooring, platform):
@@ -330,14 +333,16 @@ def get_json(stream,ref):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
     data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
-    if data.status_code != 200:
-        return data.text, data.status_code, dict(data.headers)
-    response = '{"data":%s}' % data.content
-    filename = '-'.join([stream,ref])
-    returned_json = make_response(response)
-    returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json"%filename
-    returned_json.headers["Content-Type"] = "application/json"
-    return returned_json
+    if data.status_code == 200:
+        response = '{"data":%s}' % data.content
+        filename = '-'.join([stream,ref])
+        returned_json = make_response(response)
+        returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json"%filename
+        returned_json.headers["Content-Type"] = "application/json"
+        return returned_json
+    # 500 errors don't appear to contain the text attribute
+    else:
+        return data
 
 @auth.login_required
 @api.route('/get_netcdf/<string:stream>/<string:ref>',methods=['GET'])
