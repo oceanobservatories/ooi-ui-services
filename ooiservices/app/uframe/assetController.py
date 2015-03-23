@@ -5,7 +5,7 @@ uframe assets endpoint and class definition.
 '''
 __author__ = 'M@Campbell'
 
-from flask import jsonify, current_app, request, url_for
+from flask import jsonify, current_app, request, url_for, make_response
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.authentication import auth
 from ooiservices.app import cache
@@ -44,27 +44,38 @@ def _uframe_collection(uframe_url):
         data = requests.get(uframe_url)
         return data.json()
     except:
-        if data == None:
-            raise Exception("uframe connection cannot be established for: Assets")
-        raise Exception("%s" % data.status_code)
+        data = {'error': 'INTERNAL_SERVER_ERROR',
+                'status_code': 500,
+                'message': 'Cannot connect to uframe.'}
+        return data
 
-def _api_headers():
+def _uframe_headers():
     return {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
     }
 
 def _normalize(to_translate, translate_to=u' '):
-    ascii =  ''.join([i if ord(i) < 128 else ' ' for i in to_translate])
-    not_letters_or_digits = u'\'\"'
-    translate_table = dict((ord(char), translate_to) for char in not_letters_or_digits)
-    normalized = _normalize_whitespace(ascii.translate(translate_table))
-    return normalized
+    try:
+        ascii =  ''.join([i if ord(i) < 128 else ' ' for i in to_translate])
+        scrub = u'\'\"'
+        translate_table = dict((ord(char), translate_to) for char in scrub)
+        normalized = _normalize_whitespace(ascii.translate(translate_table))
+        return normalized
+    except Exception as e:
+        return "%s" % e
 
 def _convert_lat_lon(lat, lon):
+
     try:
+
         _lat = _get_latlon(lat)
         _lon = _get_latlon(lon)
+        if not (isinstance(lat, float) and isinstance(lon, float)):
+            if "S" in lat:
+                _lat = _lat*-1.0
+            if "W" in lon:
+                _lon = _lon*-1.0
         coords = (_lat, _lon)
         return coords
     except Exception as e:
@@ -84,21 +95,19 @@ def _get_latlon(item):
     # scrub input
     tmp = _normalize(item)
     # process input and round result to _decimal places
-    if len(tmp.split(' ')) > 1:
+    if isinstance(item, unicode) and len(tmp.split()) > 1:
         ds = tmp.split(' ')
         degrees = float(ds[0])
         minutes = float(ds[1])
         if len(ds) == 4:
             seconds = float(ds[2])
         val = degrees +  ((minutes + (seconds/60.00000))/60.00000)
-        if 'W' or 'S' in tmp:
-            val = val*-1.0
         # round to _decimal_places
         tmp = str(round(val,_decimal_places))
         result = float(tmp)
         return result
     else:
-        return tmp
+        return float(item)
 
 def _convert_date_time(date, time=None):
     if time is None:
@@ -108,21 +117,23 @@ def _convert_date_time(date, time=None):
 
 def _convert_water_depth(depth):
     d = {}
-    if type(depth) is not str:
-        depth = "0 m"
-    if len(depth.split( )) == 2:
-        value = depth.split()[0]
-        unit = depth.split()[1]
-        d['value'] = float(value)
-        d['unit'] = str(unit)
-        return d
-    else:
-        no_alpha = re.sub("[^0-9]", "", depth)
-        d['value'] = float(no_alpha)
-        d['unit'] = "m"
-        return d
+    try:
+        if len(depth.split( )) == 2:
+            value = depth.split()[0]
+            unit = depth.split()[1]
+            d['value'] = float(value)
+            d['unit'] = str(unit)
+            return d
+        else:
+            no_alpha = re.sub("[^0-9]", "", depth)
+            d['value'] = float(no_alpha)
+            d['unit'] = "m"
+            return d
+    except ValueError as ve:
+        return {'message': 'Conversion Error!',
+                'input': depth}
 
-def _associate_events(id):
+def _associate_events(id, data):
     uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/assets/%s/events' % (id)
     result = []
     data = requests.get(uframe_url)
@@ -245,10 +256,6 @@ class uFrameAssetCollection(object):
                 }
         return formatted_return
 
-    #Displays the default top level attributes of this class.
-    def __repr__(self):
-        return '<AssetID: %r>' % (self.assetId)
-
 #This class will handle the default checks of the uframe event endpoint
 # as well as cleaning up each of the route implementation (CRUD).
 class uFrameEventCollection(object):
@@ -289,6 +296,13 @@ class uFrameEventCollection(object):
         tense = json.get('tense')
         lastModifiedTimestamp = json.get('lastModifiedTimestamp')
 
+        #Update deploymentLocation to send a float even if Lat/Lon is an int.
+        if deploymentLocation is not None:
+            deploymentLocation = [
+                float(deploymentLocation[0]),
+                float(deploymentLocation[1])
+            ]
+
         formatted_return = {
             '@class' : eventClass,
             'referenceDesignator': referenceDesignator,
@@ -314,10 +328,6 @@ class uFrameEventCollection(object):
         }
         return formatted_return
 
-    #Displays the default top level attributes of this class.
-    def __repr__(self):
-        return '<EventID: %r>' % (self.assetId)
-
 ### ---------------------------------------------------------------------------
 ### BEGIN Assets CRUD methods.
 ### ---------------------------------------------------------------------------
@@ -340,7 +350,6 @@ def get_assets():
         for row in data:
             if row['metaData'] is not None:
                 for metaData in row['metaData']:
-                    #Please, make fun of Rutgers for this.
                     if metaData['key'] == 'Laditude ':
                         metaData['key'] = 'Latitude'
                     if metaData['key'] == 'Latitude':
@@ -382,7 +391,7 @@ def get_assets():
                 row.pop('purchaseAndDeliveryInfo', None)
                 row.update({'url': url_for('uframe.get_asset', id=row['assetId']),
                         'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (uframe_obj.__endpoint__, row['assetId'])})
-    except KeyError:
+    except (KeyError, TypeError, AttributeError):
         pass
 
     return jsonify({ 'assets' : data })
@@ -400,7 +409,6 @@ def get_asset(id):
     depth = ""
     try:
         for metaData in data['metaData']:
-            #Please, make fun of Rutgers for this.
             if metaData['key'] == 'Laditude ':
                 metaData['key'] = 'Latitude'
             if metaData['key'] == 'Latitude':
@@ -436,12 +444,13 @@ def get_asset(id):
 
         data['events'] = _associate_events(id)
         data['class'] = data.pop('@class')
-    except KeyError:
+    except (KeyError, TypeError):
         pass
 
     return jsonify(**data)
 
 #Create
+@auth.login_required
 @api.route('/assets', methods=['POST'])
 def create_asset():
     data = json.loads(request.data)
@@ -450,17 +459,18 @@ def create_asset():
     #return json.dumps(post_body)
     uframe_assets_url = _uframe_url(uframe_obj.__endpoint__)
     #return uframe_assets_url
-    response = requests.post(uframe_assets_url, data=json.dumps(post_body), headers=_api_headers())
+    response = requests.post(uframe_assets_url, data=json.dumps(post_body), headers=_uframe_headers())
     return response.text
 
 #Update
+@auth.login_required
 @api.route('/assets/<int:id>', methods=['PUT'])
 def update_asset(id):
     data = json.loads(request.data)
     uframe_obj = uFrameAssetCollection()
     put_body = uframe_obj.from_json(data)
     uframe_assets_url = _uframe_url(uframe_obj.__endpoint__, id)
-    response = requests.put(uframe_assets_url, data=json.dumps(put_body), headers=_api_headers())
+    response = requests.put(uframe_assets_url, data=json.dumps(put_body), headers=_uframe_headers())
     return response.text
 
 #Delete
@@ -489,7 +499,7 @@ def get_events():
                 'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (uframe_obj.__endpoint__, row['eventId'])})
             row.pop('asset')
         #parse the result and assign ref_des as top element.
-    except KeyError:
+    except (KeyError, TypeError, AttributeError):
         pass
     return jsonify({ 'events' : data })
 
@@ -504,28 +514,30 @@ def get_event(id):
     data = uframe_obj.to_json(id)
     try:
         data['class'] = data.pop('@class')
-    except KeyError:
+    except (KeyError, TypeError):
         pass
     return jsonify(**data)
 
 #Create
+@auth.login_required
 @api.route('/events', methods=['POST'])
 def create_event():
     data = json.loads(request.data)
     uframe_obj = uFrameEventCollection()
     post_body = uframe_obj.from_json(data)
     uframe_events_url = _uframe_url(uframe_obj.__endpoint__)
-    response = requests.post(uframe_events_url, data=json.dumps(post_body), headers=_api_headers())
+    response = requests.post(uframe_events_url, data=json.dumps(post_body), headers=_uframe_headers())
     return response.text
 
 #Update
+@auth.login_required
 @api.route('/events/<int:id>', methods=['PUT'])
 def update_event(id):
     data = json.loads(request.data)
     uframe_obj = uFrameEventCollection()
     put_body = uframe_obj.from_json(data)
     uframe_events_url = _uframe_url(uframe_obj.__endpoint__, id)
-    response = requests.put(uframe_events_url, data=json.dumps(put_body), headers=_api_headers())
+    response = requests.put(uframe_events_url, data=json.dumps(put_body), headers=_uframe_headers())
     return response.text
 
 #Delete
@@ -569,44 +581,3 @@ def get_asset_classes_list():
             data.append(row['@class'])
     data = _remove_duplicates(data)
     return jsonify({ 'class_types' : data })
-
-@api.route('/asset/serials', methods=['GET'])
-def get_asset_serials():
-    '''
-    Lists all the class types available from uFrame.
-    '''
-    data = []
-    manufInfo = []
-    uframe_obj = uFrameAssetCollection()
-    temp_list = uframe_obj.to_json()
-    for row in temp_list:
-        if row['manufactureInfo'] is not None:
-            manufInfo.append(row['manufactureInfo'])
-            for serial in manufInfo:
-                data.append(serial['serialNumber'])
-    data = _remove_duplicates(data)
-    return jsonify({ 'serial_numbers' : data })
-
-@api.route('/assets/condense', methods=['GET'])
-def get_asset_list():
-    #set up all the contaners.
-    d = {}
-    data = {}
-    ref_des = None
-    temp_body = []
-    #create uframe instance, and fetch the data.
-    uframe_obj = uFrameAssetCollection()
-    temp_list = uframe_obj.to_json()
-    #parse the result and assign ref_des as top element.
-    for row in temp_list:
-        if row['metaData'] is not None:
-            for metaData in row['metaData']:
-                if metaData['key'] == 'Ref Des':
-                    ref_des = (metaData['value'])
-                else:
-                    d[metaData['key']] = metaData['value']
-            temp_body.append(d)
-            if len(temp_body) > 0:
-                data[ref_des] = temp_body
-            temp_body = []
-    return jsonify({ 'assets' : data })
