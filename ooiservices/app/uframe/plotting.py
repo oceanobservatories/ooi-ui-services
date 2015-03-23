@@ -322,7 +322,7 @@ def plot_multiple_yaxes(fig, ax, xdata, ydata, colors, title, scatter=False,
     set_spine_direction(y_axis[1], "top")
 
     # Define the axes position offsets for each 'extra' axis
-    offset = [1.20, -0.20, 1.40, -0.40]
+    offset = [1.10, -0.10, 1.20, -0.20]
     spine_directions = ["left", "right", "left", "right", "left", "right"]
     count = 0
     for i in range(2, n_vars):
@@ -355,15 +355,15 @@ def plot_multiple_yaxes(fig, ax, xdata, ydata, colors, title, scatter=False,
         y_axis[ind].set_ylabel(key, labelpad=10, **axis_font)
         y_axis[ind].yaxis.label.set_color(colors[ind])
         y_axis[ind].spines[spine_directions[ind]].set_color(colors[ind])
-        y_axis[ind].tick_params(axis='y', labelsize=8)
+        y_axis[ind].tick_params(axis='y', labelsize=8, colors=colors[ind])
 
-        for obj in y_axis[ind].yaxis.get_ticklines():
-            # `obj` is a matplotlib.lines.Line2D instance
-            obj.set_color(colors[ind])
-            obj.set_markeredgewidth(2)
+        # for obj in y_axis[ind].yaxis.get_ticklines():
+        #     # `obj` is a matplotlib.lines.Line2D instance
+        #     obj.set_color(colors[ind])
+        #     obj.set_markeredgewidth(2)
 
-        for obj in y_axis[ind].yaxis.get_ticklabels():
-            obj.set_color(colors[ind])
+        # for obj in y_axis[ind].yaxis.get_ticklabels():
+        #     obj.set_color(colors[ind])
 
     get_time_label(ax, xdata)
     fig.autofmt_xdate()
