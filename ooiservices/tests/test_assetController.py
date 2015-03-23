@@ -159,6 +159,7 @@ class PrivateMethodsTest(unittest.TestCase):
     #_associate_events
         #TODO: This will need to be tackled when uframe is more permanent
 
+
 class AssetCollectionTest(unittest.TestCase):
     def setUp(self):
         self.app = create_app('TESTING_CONFIG')
@@ -214,6 +215,40 @@ class AssetCollectionTest(unittest.TestCase):
         check_ref_des = self.asset_from_json['metaData'][4]['value']
         self.assertTrue(check_ref_des == "CP01CNSM")
 
+    '''
+    Test the CRUD routes for uframe assets.
+    Until uframe is public, TRAVIS CI will always fail this test with not uframe.
+    Be sure to test with uframe running.
+    '''
+    #get_assets
+    @skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
+    def test_get_assets(self):
+        headers = self.get_api_headers('admin', 'test')
+        response = self.client.get(url_for('uframe.get_assets'), headers=headers)
+        self.assertTrue(response.status_code == 200)
+
+    @skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
+    def test_get_asset(self):
+        headers = self.get_api_headers('admin', 'test')
+        response = self.client.get(url_for('uframe.get_asset', id=1), headers=headers)
+        self.assertTrue(response.status_code == 200)
+
+    @skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
+    def test_post_asset(self):
+        headers = self.get_api_headers('admin', 'test')
+        data = self.asset_json_in
+        response = self.client.post(url_for('uframe.create_asset'), headers=headers, \
+            data=json.dumps(data))
+        self.assertTrue(response.status_code == 200)
+
+    @skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
+    def test_put_asset(self):
+        headers = self.get_api_headers('admin', 'test')
+        data = {"ref_des": "ABCDE"}
+        response = self.client.put(url_for('uframe.update_asset', id=1), \
+            headers=headers, data=json.dumps(data))
+        self.assertTrue(response.status_code == 200)
+
 
 class EventCollectionTest(unittest.TestCase):
     def setUp(self):
@@ -258,3 +293,36 @@ class EventCollectionTest(unittest.TestCase):
         event_json = obj.from_json(data)
         check_location = self.event_from_json['deploymentLocation']
         self.assertTrue(check_location == [0.0, 0.0])
+    '''
+    Test the CRUD routes for uframe events.
+    Until uframe is public, TRAVIS CI will always fail this test with not uframe.
+    Be sure to test with uframe running.
+    '''
+    #get_assets
+    @skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
+    def test_get_events(self):
+        headers = self.get_api_headers('admin', 'test')
+        response = self.client.get(url_for('uframe.get_events'), headers=headers)
+        self.assertTrue(response.status_code == 200)
+
+    @skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
+    def test_get_event(self):
+        headers = self.get_api_headers('admin', 'test')
+        response = self.client.get(url_for('uframe.get_event', id=1), headers=headers)
+        self.assertTrue(response.status_code == 200)
+
+    @skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
+    def test_post_event(self):
+        headers = self.get_api_headers('admin', 'test')
+        data = self.event_json_in
+        response = self.client.post(url_for('uframe.create_event'), headers=headers, \
+            data=json.dumps(data))
+        self.assertTrue(response.status_code == 200)
+
+    @skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
+    def test_put_event(self):
+        headers = self.get_api_headers('admin', 'test')
+        data = {"recordedBy": "Campbell"}
+        response = self.client.put(url_for('uframe.update_event', id=1), \
+            headers=headers, data=json.dumps(data))
+        self.assertTrue(response.status_code == 200)

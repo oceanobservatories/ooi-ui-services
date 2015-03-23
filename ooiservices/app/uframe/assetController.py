@@ -297,10 +297,11 @@ class uFrameEventCollection(object):
         lastModifiedTimestamp = json.get('lastModifiedTimestamp')
 
         #Update deploymentLocation to send a float even if Lat/Lon is an int.
-        deploymentLocation = [
-            float(deploymentLocation[0]),
-            float(deploymentLocation[1])
-        ]
+        if deploymentLocation is not None:
+            deploymentLocation = [
+                float(deploymentLocation[0]),
+                float(deploymentLocation[1])
+            ]
 
         formatted_return = {
             '@class' : eventClass,
