@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-uframe assets endpoint and class definition.
+uframe assets and events endpoint and class definition.
 
 '''
 __author__ = 'M@Campbell'
@@ -14,13 +14,20 @@ import requests
 import re
 
 def _normalize_whitespace(string):
-    #Requires re
+    '''
+    Requires re
+    - Removes extra white space from a string.
+
+    '''
     string = string.strip()
     string = re.sub(r'\s+', ' ', string)
     return string
 
 def _remove_duplicates(values):
-    #Requires re
+    '''
+    Requires re
+    - Removes duplicate values, useful in getting a concise list.
+    '''
     output = []
     seen = set()
     for value in values:
@@ -32,6 +39,11 @@ def _remove_duplicates(values):
     return output
 
 def _uframe_url(endpoint, id=None):
+    '''
+    Two options for creating the uframe url:
+    - If an id is provided, the return is a url points to a specific id.
+    - If no id, a url for a GET list or a post is returned.
+    '''
     if id is not None:
         uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (endpoint, id)
     else:
@@ -39,6 +51,10 @@ def _uframe_url(endpoint, id=None):
     return uframe_url
 
 def _uframe_collection(uframe_url):
+    '''
+    After a url is determined, this method will do the heavy lifting of contacting
+    uframe and either getting the json back, or returning a 500 error.
+    '''
     data = []
     try:
         data = requests.get(uframe_url)
@@ -50,12 +66,23 @@ def _uframe_collection(uframe_url):
         return data
 
 def _uframe_headers():
+    '''
+    No special headers are needed to connect to uframe.  This def simply states
+    the default content type, and would be where authentication would be added
+    if there ever is a need.
+    '''
     return {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
     }
 
 def _normalize(to_translate, translate_to=u' '):
+    '''
+    Some of the strings from uframe contain special, non ascii characters, these
+    need to be removed.
+    This method is primarily used to normalize the Lat/Lon values so it can be
+    later converted to decimal degrees.
+    '''
     try:
         ascii =  ''.join([i if ord(i) < 128 else ' ' for i in to_translate])
         scrub = u'\'\"'
@@ -66,7 +93,13 @@ def _normalize(to_translate, translate_to=u' '):
         return "%s" % e
 
 def _convert_lat_lon(lat, lon):
+    '''
+    This is a wrapper method for _get_latlon, and basically just handles packaging
+    and returning a Lat/Lon pair.
 
+    A update to this def will assign the directional value if needed (neg).  This
+    is a result of an obscure bug found in testing.
+    '''
     try:
 
         _lat = _get_latlon(lat)
@@ -110,12 +143,19 @@ def _get_latlon(item):
         return float(item)
 
 def _convert_date_time(date, time=None):
+    '''
+    The date time is only concatenated unless there is no time.
+    '''
     if time is None:
         return date
     else:
         return "%s %s" % (date, time)
 
 def _convert_water_depth(depth):
+    '''
+    uframe returns the value and units in one string, this method splits out
+    the value from the unit and returns a dict with the appropriate values.
+    '''
     d = {}
     try:
         if len(depth.split( )) == 2:
@@ -134,6 +174,11 @@ def _convert_water_depth(depth):
                 'input': depth}
 
 def _associate_events(id, data):
+    '''
+    When an individual asset is requested from GET(id) all the events for that
+    asset need to be associated.  This is represented in a list of URIs, one
+    for it's services endpoint and one for it's direct endpoint in uframe.
+    '''
     uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/assets/%s/events' % (id)
     result = []
     data = requests.get(uframe_url)
@@ -149,9 +194,21 @@ def _associate_events(id, data):
 
     return result
 
-#This class will handle the default checks of the uframe assets endpoint
-# as well as cleaning up each of the route implementation (CRUD).
 class uFrameAssetCollection(object):
+    '''
+    uFrameAssetCollection:
+    - Represents the latest attributes of the uframe endpoint.
+    - Important methods:
+        to_json(id=None):
+            Reaches out to uframe and gets either the complete list of assets, or
+            if an id is provided, an individual object.
+        from_json():
+            Prepares a JSON packet to be sent as either a POST or a PUT to uframe.
+            There are some translation from what is sent from ooi ui, and what uframe
+            is expecting.
+            Please review method for further details.
+    '''
+
     __endpoint__ = 'assets'
     # m@c: Updated 03/03/2015
     classType =  None
@@ -256,9 +313,22 @@ class uFrameAssetCollection(object):
                 }
         return formatted_return
 
-#This class will handle the default checks of the uframe event endpoint
-# as well as cleaning up each of the route implementation (CRUD).
+
 class uFrameEventCollection(object):
+    '''
+    uFrameEventCollection:
+    - Represents the latest attributes of the uframe endpoint.
+    - Important methods:
+        to_json(id=None):
+            Reaches out to uframe and gets either the complete list of events, or
+            if an id is provided, an individual object.
+        from_json():
+            Prepares a JSON packet to be sent as either a POST or a PUT to uframe.
+            There are some translation from what is sent from ooi ui, and what uframe
+            is expecting.
+            Please review method for further details.
+    '''
+
     __endpoint__ = 'events'
     #Create a json object that contains all uframe assets.
     #This will be the collection that will may be parsed.
@@ -335,6 +405,9 @@ class uFrameEventCollection(object):
 @cache.memoize(timeout=3600)
 @api.route('/assets', methods=['GET'])
 def get_assets():
+    '''
+    Listing GET request of all assets.  This method is cached for 1 hour.
+    '''
     #set up all the contaners.
     data = {}
     #create uframe instance, and fetch the data.
@@ -399,6 +472,9 @@ def get_assets():
 #Read (object)
 @api.route('/assets/<int:id>', methods=['GET'])
 def get_asset(id):
+    '''
+    Object response for the GET(id) request.  This response is NOT cached.
+    '''
     uframe_obj = uFrameAssetCollection()
     data = uframe_obj.to_json(id)
     lat = ""
@@ -453,6 +529,11 @@ def get_asset(id):
 @auth.login_required
 @api.route('/assets', methods=['POST'])
 def create_asset():
+    '''
+    Create a new asset, the return will be right from uframe if all goes well.
+    Either a success or an error message.
+    Login required.
+    '''
     data = json.loads(request.data)
     uframe_obj = uFrameAssetCollection()
     post_body = uframe_obj.from_json(data)
@@ -466,6 +547,11 @@ def create_asset():
 @auth.login_required
 @api.route('/assets/<int:id>', methods=['PUT'])
 def update_asset(id):
+    '''
+    Update an existing asset, the return will be right from uframe if all goes well.
+    Either a success or an error message.
+    Login required.
+    '''
     data = json.loads(request.data)
     uframe_obj = uFrameAssetCollection()
     put_body = uframe_obj.from_json(data)
@@ -487,6 +573,9 @@ def update_asset(id):
 @cache.memoize(timeout=3600)
 @api.route('/events', methods=['GET'])
 def get_events():
+    '''
+    Listing GET request of all events.  This method is cached for 1 hour.
+    '''
     #set up all the contaners.
     data = {}
     #create uframe instance, and fetch the data.
@@ -506,6 +595,9 @@ def get_events():
 #Read (object)
 @api.route('/events/<int:id>', methods=['GET'])
 def get_event(id):
+    '''
+    Object response for the GET(id) request.  This response is NOT cached.
+    '''
     #set up all the contaners.
     data = {}
     asset_id = ""
@@ -522,6 +614,11 @@ def get_event(id):
 @auth.login_required
 @api.route('/events', methods=['POST'])
 def create_event():
+    '''
+    Create a new event, the return will be right from uframe if all goes well.
+    Either a success or an error message.
+    Login required.
+    '''
     data = json.loads(request.data)
     uframe_obj = uFrameEventCollection()
     post_body = uframe_obj.from_json(data)
@@ -533,6 +630,11 @@ def create_event():
 @auth.login_required
 @api.route('/events/<int:id>', methods=['PUT'])
 def update_event(id):
+    '''
+    Update an existing event, the return will be right from uframe if all goes well.
+    Either a success or an error message.
+    Login required.
+    '''
     data = json.loads(request.data)
     uframe_obj = uFrameEventCollection()
     put_body = uframe_obj.from_json(data)
