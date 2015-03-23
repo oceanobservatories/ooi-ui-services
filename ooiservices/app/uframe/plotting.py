@@ -322,14 +322,8 @@ def plot_multiple_yaxes(fig, ax, xdata, ydata, colors, title, scatter=False,
     set_spine_direction(y_axis[1], "top")
 
     # Define the axes position offsets for each 'extra' axis
-    offset = [1.10, -0.10, 1.20, -0.20]
+    offset = [1.20, -0.20, 1.40, -0.40]
     spine_directions = ["left", "right", "left", "right", "left", "right"]
-    count = 0
-    for i in range(2, n_vars):
-        y_axis[i].spines[spine_directions[count+1]].set_position(("axes", offset[count]))
-        make_patch_spines_invisible(y_axis[i])
-        set_spine_direction(y_axis[i], spine_directions[count+1])
-        count += 1
 
     # Adjust the axes left/right accordingly
     if n_vars >= 4:
@@ -337,36 +331,31 @@ def plot_multiple_yaxes(fig, ax, xdata, ydata, colors, title, scatter=False,
     elif n_vars == 3:
         plt.subplots_adjust(left=0.0, right=0.7)
 
-    fmt = ScalarFormatter()
-    fmt.set_scientific(True)
-    fmt.set_powerlimits((-4, 6))
+    count = 0
+    for i in range(2, n_vars):
+        y_axis[i].spines[spine_directions[count+1]].set_position(("axes", offset[count]))
+        make_patch_spines_invisible(y_axis[i])
+        set_spine_direction(y_axis[i], spine_directions[count+1])
+        count += 1
+
     # Plot the data
     for ind, key in enumerate(ydata):
 
         y_axis[ind].plot(xdata, ydata[key], colors[ind], **kwargs)
+
         # Label the y-axis and set text color:
-        # y_axis[ind].yaxis.get_major_locator()._nbins = 5
-        # y_axis[ind].yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
-        # if ind < 2:
-        y_axis[ind].yaxis.set_major_formatter(fmt)
-        # else:
-        # y_axis[ind].yaxis.set_major_formatter(ScalarFormatter(useOffset=False))
-        # y_axis[ind].ticklabel_format(useOffset=False, axis='y')
+
+        # Been experimenting with other ways to handle tick labels with spines
+        y_axis[ind].yaxis.get_major_formatter().set_useOffset(False)
+
         y_axis[ind].set_ylabel(key, labelpad=10, **axis_font)
         y_axis[ind].yaxis.label.set_color(colors[ind])
         y_axis[ind].spines[spine_directions[ind]].set_color(colors[ind])
         y_axis[ind].tick_params(axis='y', labelsize=8, colors=colors[ind])
 
-        # for obj in y_axis[ind].yaxis.get_ticklines():
-        #     # `obj` is a matplotlib.lines.Line2D instance
-        #     obj.set_color(colors[ind])
-        #     obj.set_markeredgewidth(2)
-
-        # for obj in y_axis[ind].yaxis.get_ticklabels():
-        #     obj.set_color(colors[ind])
-
     get_time_label(ax, xdata)
     fig.autofmt_xdate()
+
     ax.tick_params(axis='x', labelsize=10)
     ax.set_title(title, y=1.05, **title_font)
     ax.grid(True)
