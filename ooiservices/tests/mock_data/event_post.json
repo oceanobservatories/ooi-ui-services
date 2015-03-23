@@ -1,0 +1,34 @@
+{
+   "asset":{
+      "@class":".AssetRecord",
+      "assetId":4
+   },
+   "attachments":[],
+   "class":".DeploymentEvent",
+   "cruiseNumber":"",
+   "deploymentDepth":0,
+   "deploymentDocUrls":[
+
+   ],
+   "deploymentLocation":[
+      0,
+      0
+   ],
+   "deploymentName":"fasdfasdf",
+   "deploymentNumber":4,
+   "depthUnitString":"m",
+   "endDate":null,
+   "eventDescription":"",
+   "eventType":"",
+   "notes":[
+      ""
+   ],
+   "recordedBy":"",
+   "referenceDesignator":{
+      "full":false,
+      "node":null,
+      "sensor":null,
+      "subsite":""
+   },
+   "startDate":null
+}
