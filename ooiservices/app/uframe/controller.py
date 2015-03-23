@@ -3,12 +3,17 @@
 uframe endpoints
 
 '''
-
-# base
-from flask import jsonify, request, current_app, make_response
-from ooiservices.app import cache
+__author__ = 'Andy Bird'
+#base
+from flask import (jsonify, request, current_app, url_for, Flask, make_response,
+                   url_for, Response)
+from ooiservices.app import db, cache, celery
 from ooiservices.app.uframe import uframe as api
-from ooiservices.app.main.authentication import auth
+from ooiservices.app.models import (Array, PlatformDeployment,
+                                    InstrumentDeployment, Stream,
+                                    StreamParameter, Organization,
+                                    Instrumentname, Annotation)
+from ooiservices.app.main.authentication import auth,verify_auth
 from ooiservices.app.main.errors import internal_server_error
 from urllib import urlencode
 # data ones
@@ -17,14 +22,16 @@ from ooiservices.app.uframe.plotting import generate_plot
 from datetime import datetime
 from dateutil.parser import parse as parse_date
 import requests
-# additional ones
+# primarily for encoding coordinates to GeoJSON
+from shapely.geometry import LineString, mapping
+#additional ones
+import json
+import datetime
+import math
 import csv
 import io
 import numpy as np
 import pytz
-
-__author__ = 'Andy Bird'
-
 
 def dfs_streams():
     response = get_uframe_moorings()
@@ -39,6 +46,7 @@ def dfs_streams():
         response = get_uframe_platforms(mooring)
         if response.status_code != 200:
             continue
+        
         platform_tmp = [(mooring, p) for p in response.json()]
         platforms.extend(platform_tmp)
 
@@ -104,7 +112,7 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream):
         raise IOError("Failed to get stream contents from uFrame")
     data = response.json()
     data_dict = {}
-    # preferred = data[0][u'preferred_timestamp']
+    preferred = data[0][u'preferred_timestamp']
     data_dict['start'] = data[0]['pk']['time'] - COSMO_CONSTANT
     data_dict['end'] = data[-1]['pk']['time'] - COSMO_CONSTANT
     data_dict['reference_designator'] = '-'.join([mooring, platform, instrument])
@@ -176,6 +184,34 @@ def get_uframe_platforms(mooring):
     except:
         return internal_server_error('uframe connection cannot be made.')
 
+@api.route('/get_glider_track/<string:ref>')
+def get_uframe_glider_track(ref):
+    '''
+    Given a reference designator, returns a GeoJSON LineString for glider
+    tracks
+    '''
+    # we will always want the telemetered data, and the engineering stream
+    # data should reside in the same place
+    res = get_json('telemetered_glider_eng_telemetered', ref)
+    try:
+        if res.status_code == 200:
+            res_arr = json.loads(res.data)['data']
+            # load the JSON into a shapely LineString.
+            track = LineString([(pt['m_gps_lon'], pt['m_gps_lat'])
+                                for pt in res_arr if pt['m_gps_lon'] != 'NaN'
+                                and pt['m_gps_lat'] != 'NaN'])
+            # serialize the Python object of containing tracks to GeoJSON
+            return Response(json.dumps(mapping(track)),
+                            mimetype='application/json')
+        else:
+            # if not a valid response, attempt to return the response as is.
+            # FIXME: possibly dead code due to tuple return of non-200 responses
+            # from get_json
+            return res.text, res.status_code, res.headers.items()
+    except AttributeError:
+        # if status_code attribute isn't found, it's likely we have a tuple
+        # with the response data instead
+        return res
 
 @cache.memoize(timeout=3600)
 def get_uframe_instruments(mooring, platform):
@@ -247,17 +283,17 @@ def get_uframe_stream_metadata(mooring, platform, instrument, stream):
 
 
 @cache.memoize(timeout=3600)
-def get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream):
+def get_uframe_stream_contents(mooring, platform, instrument, stream_type,
+                               stream):
     '''
     Gets the stream contents
     '''
     try:
-        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        response = requests.get("/".join([UFRAME_DATA, mooring, platform, instrument, stream_type, stream]))
-        if response.status_code != 200:
-            # print response.text
-            pass
-        return response
+        UFRAME_DATA = (current_app.config['UFRAME_URL'] +
+                       current_app.config['UFRAME_URL_BASE'])
+        url = '/'.join([UFRAME_DATA, mooring, platform, instrument, stream_type,
+                        stream])
+        return requests.get(url)
     except:
         return internal_server_error('uframe connection cannot be made.')
 
