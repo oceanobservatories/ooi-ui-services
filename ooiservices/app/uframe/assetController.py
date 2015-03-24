@@ -173,7 +173,7 @@ def _convert_water_depth(depth):
         return {'message': 'Conversion Error!',
                 'input': depth}
 
-def _associate_events(id, data):
+def _associate_events(id):
     '''
     When an individual asset is requested from GET(id) all the events for that
     asset need to be associated.  This is represented in a list of URIs, one
