@@ -13,6 +13,7 @@ from flask.ext.cache import Cache
 from flask_wtf.csrf import CsrfProtect
 from celery import Celery
 from flask_redis import Redis
+from flask_cors import CORS
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -24,6 +25,7 @@ db = SQLAlchemy()
 csrf = CsrfProtect()
 celery = Celery('__main__')
 redis_store = Redis()
+cors = CORS()
 
 def create_app(config_name):
     app = Flask(__name__)
@@ -67,6 +69,7 @@ def create_app(config_name):
     cache.init_app(app)
     csrf.init_app(app)
     redis_store.init_app(app)
+    cors.init_app(app)
 
     from ooiservices.app.main import api as main_blueprint
     app.register_blueprint(main_blueprint)
