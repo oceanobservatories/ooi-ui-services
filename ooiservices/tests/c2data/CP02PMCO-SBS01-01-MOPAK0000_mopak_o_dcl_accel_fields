@@ -1,19 +1,8 @@
 [
-  {"name":"mopak_accelx", "units": "g0", "type": "Float32", "value":"-0.014237497001886368"},
-  {"name":"mopak_accely", "units": "g0", "type": "Float32", "value":"-0.025225423276424408"},
-  {"name":"mopak_accelz", "units": "g0", "type": "Float32", "value":"0.9145522117614746"},
-  {"name":"mopak_ang_ratex", "units": "rad s-1", "type": "Float32", "value":"0.10187259316444397"},
-  {"name":"mopak_ang_ratey", "units": "rad s-1", "type": "Float32", "value":"0.11844490468502045"},
-  {"name":"mopak_ang_ratez", "units": "rad s-1", "type": "Float32", "value":"-7.388237281702459E-4"},
-  {"name":"mopak_magx", "units": "Gs", "type": "Float32", "value":"-0.19699561595916748"},
-  {"name":"mopak_magy", "units": "Gs", "type": "Float32", "value":"0.1564895361661911"},
-  {"name":"mopak_magz", "units": "Gs", "type": "Float32", "value":"-0.6981976628303528"},
-  {"name":"mopak_timer", "units":  "counts", "type": "Float32", "value":"170956"},
-  {"name":"driver_timestamp", "units": "UTC", "type": "Float64", "value": "3.6337987874117002E9"},
-  {"name":"internal_timestamp", "units": "UTC", "type": "Float64", "value": "3.60959236E9"},
-  {"name":"port_timestamp", "units": "UTC", "type": "Float64", "value":"0.0"},
-  {"name":"preferred_timestamp", "units": "1", "type": "String", "value": "internal_timestamp"},
-  {"name":"quality_flag", "units": "1", "type": "String", "value": "ok"},
-  {"name":"ingestion_timestamp", "units": "UTC", "type": "Float64", "value": "3.633798807148E9"},
-  {"name":"provenance", "units": "1", "type": "Float32", "value": "3113"}
+  {"name":"control_String", "units": "1", "type": "String", "value": "ok"},
+  {"name": "control_Float32", "units": "g0", "type": "Float32", "value": "10.485762503"},
+  {"name":"control_Float64", "units": "UTC", "type": "Float64", "value": "3.6337987874117002E9"},
+  {"name":"control_Int32", "units":  "counts", "type": "Int32", "value":"37"},
+  {"name":"control_Int16", "units":  "counts", "type": "Int16", "value":"116"},
+  {"name":"control_Byte", "units":  "counts", "type": "Byte", "value":"1"}
 ]

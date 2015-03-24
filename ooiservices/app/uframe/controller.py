@@ -165,7 +165,9 @@ def get_uframe_moorings():
     try:
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
         current_app.logger.info("GET %s", UFRAME_DATA)
-        response = requests.get(UFRAME_DATA)
+        timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
+        timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
+        response = requests.get(UFRAME_DATA, timeout=(timeout, timeout_read))
         return response
     except:
         return internal_server_error('uframe connection cannot be made.')
@@ -179,7 +181,9 @@ def get_uframe_platforms(mooring):
     try:
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE'] + '/' + mooring
         current_app.logger.info("GET %s", UFRAME_DATA)
-        response = requests.get(UFRAME_DATA)
+        timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
+        timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
+        response = requests.get(UFRAME_DATA, timeout=(timeout, timeout_read))
         return response
     except:
         return internal_server_error('uframe connection cannot be made.')
@@ -222,7 +226,9 @@ def get_uframe_instruments(mooring, platform):
     try:
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE'] + '/' + mooring + '/' + platform
         current_app.logger.info("GET %s", UFRAME_DATA)
-        response = requests.get(UFRAME_DATA)
+        timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
+        timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
+        response = requests.get(UFRAME_DATA, timeout=(timeout, timeout_read))
         return response
     except:
         return internal_server_error('uframe connection cannot be made.')
@@ -236,10 +242,13 @@ def get_uframe_stream_types(mooring, platform, instrument):
     try:
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
         current_app.logger.info("GET %s", '/'.join([UFRAME_DATA, mooring, platform, instrument]))
-        response = requests.get('/'.join([UFRAME_DATA, mooring, platform, instrument]))
+        url = '/'.join([UFRAME_DATA, mooring, platform, instrument])
+        timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
+        timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
+        response = requests.get(url, timeout=(timeout, timeout_read))
         return response
-    except:
-        return internal_server_error('uframe connection cannot be made.')
+    except Exception, err:
+        return internal_server_error('uframe connection cannot be made. error: %s' % err.message)
 
 
 @cache.memoize(timeout=3600)
@@ -249,7 +258,11 @@ def get_uframe_streams(mooring, platform, instrument, stream_type):
     '''
     try:
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        response = requests.get('/'.join([UFRAME_DATA, mooring, platform, instrument, stream_type]))
+
+        url = '/'.join([UFRAME_DATA, mooring, platform, instrument, stream_type])
+        timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
+        timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
+        response = requests.get(url, timeout=(timeout, timeout_read))
         current_app.logger.info("GET %s", '/'.join([UFRAME_DATA, mooring, platform, instrument, stream_type]))
         return response
     except:
@@ -263,8 +276,11 @@ def get_uframe_stream(mooring, platform, instrument, stream):
     '''
     try:
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        current_app.logger.info("GET %s", "/".join([UFRAME_DATA, mooring, platform, instrument, stream]))
-        response = requests.get("/".join([UFRAME_DATA, mooring, platform, instrument, stream]))
+        current_app.logger.info("GET %s", "/".join([UFRAME_DATA,mooring, platform, instrument, stream]))
+        url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream])
+        timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
+        timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
+        response = requests.get(url, timeout=(timeout, timeout_read))
         return response
     except:
         return internal_server_error('uframe connection cannot be made.')
@@ -280,6 +296,7 @@ def get_uframe_stream_metadata(stream,ref):
     stream_type, stream = stream.split('_', 1)
     try:
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+
         url = "/".join([UFRAME_DATA, mooring, platform, instrument, 'metadata'])
         response = requests.get(url)
         if response.status_code == 200:
@@ -315,11 +332,14 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type,
     Gets the stream contents
     '''
     try:
-        UFRAME_DATA = (current_app.config['UFRAME_URL'] +
-                       current_app.config['UFRAME_URL_BASE'])
-        url = '/'.join([UFRAME_DATA, mooring, platform, instrument, stream_type,
-                        stream])
-        return requests.get(url)
+        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+        url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream])
+        timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
+        timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
+        response =  requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            pass
+        return response
     except:
         return internal_server_error('uframe connection cannot be made.')
 
@@ -332,10 +352,11 @@ def get_uframe_stream_contents_bounded(mooring, platform, instrument, stream_typ
     try:
         query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        url = "/".join([UFRAME_DATA, mooring, platform, instrument, stream_type, stream + query])
-        response = requests.get(url)
+        url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])
+        timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
+        timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
+        response =  requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
-            # print response.text
             pass
         return response
     except:
@@ -394,7 +415,9 @@ def get_netcdf(stream, ref):
     url = '/'.join([UFRAME_DATA, mooring, platform, instrument, stream_type, stream])
     NETCDF_LINK = url+'?format=application/netcdf'
 
-    response = requests.get(NETCDF_LINK)
+    timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
+    timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
+    response = requests.get(NETCDF_LINK, timeout=(timeout, timeout_read))
     if response.status_code != 200:
         return response.text, response.status_code
 

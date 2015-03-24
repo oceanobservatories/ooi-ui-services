@@ -5,21 +5,20 @@ API v1.0 List for Command and Control (C2)
 '''
 __author__ = 'Edna Donoughe'
 
-from flask import jsonify, current_app
+from flask import jsonify
 from ooiservices.app.main import api
 from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment
 from ooiservices.app.models import Instrumentname
-import json, requests, os
-from ooiservices.app.main.errors import internal_server_error, bad_request
-from ooiservices.app import cache
-from authentication import auth
+import json, os
+from ooiservices.app.main.errors import bad_request
+from ooiservices.app.main.authentication import auth
 from ooiservices.app.decorators import scope_required
-#from ooiservices.app import db
+import simplejson
 
 # - - - - - - - - - - - - - - - - - - - - - - - -
 # C2 array routes
 # - - - - - - - - - - - - - - - - - - - - - - - -
-#TODO enable auth and scope
+#TODO enable auth and scope; get operational status from uframe
 @api.route('/c2/array/<string:array_code>/abstract', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
@@ -36,7 +35,7 @@ def c2_get_array_abstract(array_code):
     response_dict['operational_status'] = c2_get_array_operational_status(array_code)
     return jsonify(abstract=response_dict)
 
-#TODO enable auth and scope
+#TODO enable auth and scope; get operational status from uframe
 @api.route('/c2/array/<string:array_code>/current_status_display', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
@@ -48,12 +47,10 @@ def c2_get_array_current_status_display(array_code):
     array = Array.query.filter_by(array_code=array_code).first()
     if not array:
         return bad_request('unknown array (array_code: \'%s\')' % array_code)
-
     # Get data, add to output
     # get ordered set of platform_deployments for array.id
     platform_deployments = \
         PlatformDeployment.query.filter_by(array_id=array.id).order_by(PlatformDeployment.reference_designator).all()
-
     # create list of reference_designators and accumulate dict result (key=reference_designator) for use in response
     # (Set all operational_status values to 'Unknown' by default)
     platforms = []
@@ -65,7 +62,6 @@ def c2_get_array_current_status_display(array_code):
         row['reference_designator'] = platform_deployment.reference_designator
         row['operational_status'] = 'Unknown'
         array_info[platform_deployment.reference_designator] = row
-
     # Get operational status for all platforms in array
     statuses = c2_get_platforms_operational_status(reference_designator)
     if statuses:
@@ -74,7 +70,6 @@ def c2_get_array_current_status_display(array_code):
             stat = d['status']
             if rd in array_info:
                 array_info[rd]['operational_status'] = stat
-
     # create list of dictionaries representing data row(s), ordered by reference_designator
     for r in platforms:
         if r in array_info:
@@ -95,7 +90,7 @@ def c2_get_array_history(array_code):
         history = get_history(array_code)
     return jsonify(history=history)
 
-#TODO enable auth and scope
+#TODO enable auth and scope; complete using uframe status
 @api.route('/c2/array/<string:array_code>/status_display', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
@@ -107,22 +102,10 @@ def c2_get_array_status_display(array_code):
     status_display = {}
     return jsonify(status_display=status_display)
 
-#TODO enable auth and scope
-@api.route('/c2/array/<string:array_code>/mission_display', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
-def c2_get_array_mission_display(array_code):
-    #Get C2 array mission (display), return mission_display (contents of platform Mission tab)
-    array = Array.query.filter_by(array_code=array_code).first()
-    if not array:
-        return bad_request('unknown array (array_code: \'%s\')' % array_code)
-    mission_display = {}
-    return jsonify(mission_display=mission_display)
-
 # - - - - - - - - - - - - - - - - - - - - - - - -
 # C2 platform
 # - - - - - - - - - - - - - - - - - - - - - - - -
-#TODO enable auth and scope
+#TODO enable auth and scope; get operational status from uframe
 @api.route('/c2/platform/<string:reference_designator>/abstract', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
@@ -140,6 +123,7 @@ def c2_get_platform_abstract(reference_designator):
     return jsonify(abstract=response_dict)
 
 #TODO enable auth and scope
+#TODO complete with actual status from uframe
 @api.route('/c2/platform/<string:reference_designator>/current_status_display', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
@@ -196,8 +180,7 @@ def c2_get_platform_current_status_display(reference_designator):
 #@scope_required(u'user_admin')
 def c2_get_platform_history(reference_designator):
     # C2 get platform history, return history
-    platform_deployment = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first()
-    if not platform_deployment:
+    if not _platform_deployment(reference_designator):
         return bad_request('unknown platform_deployment (reference_designator: \'%s\')' % reference_designator)
     history = { 'event': [], 'command': [], 'configuration':[] }
     if reference_designator:
@@ -205,6 +188,7 @@ def c2_get_platform_history(reference_designator):
     return jsonify(history=history)
 
 #TODO enable auth and scope
+#TODO complete with port and instrument status from uframe
 @api.route('/c2/platform/<string:reference_designator>/ports_display', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
@@ -229,7 +213,8 @@ def c2_get_platform_ports_display(reference_designator):
     #   For UI display use:     port, port_status, class, instrument_status  (See wireframe C2 - Ports)
     #   For UI navigation(?):   to instrument (ala reference_designator),
     #   (i.e. populate using: /c2/instrument/reference_designator/route_endpoint
-    #       where platform endpoints are: abstract, current_status_display, history, status_display, mission_display, commands
+    #       where platform endpoints are: abstract, current_status_display, history, , commands,
+    #           status_display, mission_display
     #
     # Samples:
     # http://localhost:4000/c2/platform/CP02PMCO-WFP01/ports_display    Pioneer (CP)
@@ -267,14 +252,11 @@ def c2_get_platform_ports_display(reference_designator):
         row['port_available'] = str(True)
         if row['port_status'] == 'Online' or row['port_status'] == 'Unknown':
             row['port_available'] = str(False)
-
         row['instrument'] = instrument_deployment.reference_designator
         row['class'] = iclass
         row['series']= iseries
         row['sequence'] = iseq
         row['instrument_status'] = 'Unknown'
-        #row['instrument_deployment_id'] = instrument_deployment.id
-        #row['display_name'] = instrument_deployment.display_name
         platform_info[instrument_deployment.reference_designator] = row
     # Get operational status for all instruments in platform; add to output
     statuses = c2_get_instruments_operational_status(platform_deployment.reference_designator)
@@ -291,90 +273,25 @@ def c2_get_platform_ports_display(reference_designator):
             contents.append(platform_info[instrument_deployment_reference_designator])
     return jsonify(ports_display=contents)
 
-# review this with Jim
-#TODO enable auth and scope
-@api.route('/c2/platform/<string:reference_designator>/mission/instruments_list', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
-def c2_get_platform_mission_instruments_list(reference_designator):
-    # C2 get [platform] Mission tab instruments_list, return instruments [{instrument1}, {instrument2}, ...]
-    # where each instrument dictionary (is a row in instruments list) contains:
-    #   {'reference_designator': reference_designator, 'instrument_deployment_id': id, 'display_name': display_name }
-    #
-    # Samples:
-    #   http://localhost:4000/c2/platform/CP02PMCO-SBS01/mission/instruments_list
-    #   http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission/instruments_list
-    contents = []
-    platform_info = {}
-    platform_deployment = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first()
-    if not platform_deployment:
-        return bad_request('unknown platform_deployment (reference_designator: \'%s\')' % reference_designator)
-    # get ordered set of instrument_deployments for platform
-    instrument_deployments = \
-        InstrumentDeployment.query.filter_by(platform_deployment_id=platform_deployment.id).all()
-    for i_d in instrument_deployments:
-        instrument_name = Instrumentname.query.filter(Instrumentname.instrument_class == i_d.display_name).first()
-        if instrument_name:
-            i_d.display_name = instrument_name.display_name
-    # create list of reference_designators (instruments) and accumulate dict result (key=reference_designator) for output
-    instruments = []
-    for instrument_deployment in instrument_deployments:
-        instruments.append(instrument_deployment.reference_designator)
-        row = {}
-        row['reference_designator'] = instrument_deployment.reference_designator
-        row['instrument_deployment_id'] = instrument_deployment.id
-        row['display_name'] = instrument_deployment.display_name
-        platform_info[instrument_deployment.reference_designator] = row
-    '''
-    (hold for now - not sure we need status)
-    # Get operational status for all instruments in platform; add to output
-    statuses = c2_get_instruments_operational_status(platform_deployment.reference_designator)
-    if statuses:
-        for d in statuses:
-            rd = d['id']
-            stat = d['status']
-            if rd in platform_info:
-                platform_info[rd]['instrument_status'] = stat
-    '''
-    # Create list of dictionaries representing row(s) for 'data' (ordered by reference_designator)
-    # 'data' == rows for initial grid ('Current Status')
-    for instrument_deployment_reference_designator in instruments:
-        if instrument_deployment_reference_designator in platform_info:
-            contents.append(platform_info[instrument_deployment_reference_designator])
-    return jsonify(instruments=contents)
-
-#TODO enable auth and scope
+#TODO enable auth and scope; complete using status from uframe
 @api.route('/c2/platform/<string:reference_designator>/status_display', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
 def c2_get_platform_status_display(reference_designator):
     #Get C2 platform Status tab contents, return status_display
-    platform_deployment = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first()
-    if not platform_deployment:
+    if not _platform_deployment(reference_designator):
         return bad_request('unknown platform_deployment (reference_designator: \'%s\')' % reference_designator)
     status_display = {}
     return jsonify(status_display=status_display)
 
 #TODO enable auth and scope
-@api.route('/c2/platform/<string:reference_designator>/mission_display', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
-def c2_get_platform_mission_display(reference_designator):
-    #Get C2 platform Mission tab contents, return mission_display
-    platform_deployment = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first()
-    if not platform_deployment:
-        return bad_request('unknown platform_deployment (reference_designator: \'%s\')' % reference_designator)
-    mission_display = {}
-    return jsonify(mission_display=mission_display)
-
-#TODO enable auth and scope
+#TODO complete with commands provided by uframe (TBD)
 @api.route('/c2/platform/<string:reference_designator>/commands', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
 def c2_get_platform_commands(reference_designator):
     #Get C2 platform commands (pulldown list) contents, return commands [{},{},...]
-    platform_deployment = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first()
-    if not platform_deployment:
+    if not _platform_deployment(reference_designator):
         return bad_request('unknown platform_deployment (reference_designator: \'%s\')' % reference_designator)
     commands = []
     response_text = json_get_uframe_platform_commands(reference_designator)
@@ -413,11 +330,10 @@ def c2_get_instrument_abstract(reference_designator):
 def c2_get_instrument_streams(reference_designator):
     # C2 get instrument streams, return streams
     try:
-        instrument_deployment = InstrumentDeployment.query.filter_by(reference_designator=reference_designator).first()
-        if not instrument_deployment:
+        if not _instrument_deployment(reference_designator):
             return bad_request('unknown instrument_deployment (reference_designator: \'%s\')' % reference_designator)
         streams, fields = _c2_get_instrument_streams(reference_designator)
-        if streams == None:
+        if not streams:
             return bad_request('Failed to retrieve streams for instrument (reference designator \'%s\')' % reference_designator)
     except Exception, err:
         return bad_request(err.message)
@@ -428,57 +344,42 @@ def c2_get_instrument_streams(reference_designator):
 #@auth.login_required
 #@scope_required(u'user_admin')
 def c2_get_instrument_history(reference_designator):
-    # C2 get instrument history, return history (history = { 'event': [], 'command': [], 'configuration':[] })
-    instrument_deployment = InstrumentDeployment.query.filter_by(reference_designator=reference_designator).first()
-    if not instrument_deployment:
+    # C2 get instrument history, return history
+    # (history = { 'event': [], 'command': [], 'configuration':[] })
+    if not _instrument_deployment(reference_designator):
         return bad_request('unknown instrument_deployment (reference_designator: \'%s\')' % reference_designator)
     history = get_history(reference_designator)
     return jsonify(history=history)
 
-#TODO enable auth and scope
+#TODO enable auth and scope; contents TBD by UI
 @api.route('/c2/instrument/<string:reference_designator>/ports_display', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
 def c2_get_instrument_ports_display(reference_designator):
     #Get C2 instrument Ports tab contents, return ports_display
-    instrument_deployment = InstrumentDeployment.query.filter_by(reference_designator=reference_designator).first()
-    if not instrument_deployment:
+    if not _instrument_deployment(reference_designator):
         return bad_request('unknown instrument_deployment (reference_designator: \'%s\')' % reference_designator)
     ports_display =  {}
     return jsonify(ports_display=ports_display)
 
-#TODO enable auth and scope
+#TODO enable auth and scope; uframe status required
 @api.route('/c2/instrument/<string:reference_designator>/status_display', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
 def c2_get_instrument_status_display(reference_designator):
     #Get C2 instrument Status tab contents, return status_display
-    instrument_deployment = InstrumentDeployment.query.filter_by(reference_designator=reference_designator).first()
-    if not instrument_deployment:
+    if not _instrument_deployment(reference_designator):
         return bad_request('unknown instrument_deployment (reference_designator: \'%s\')' % reference_designator)
     status_display = {}
     return jsonify(status_display=status_display)
 
-#TODO enable auth and scope
-@api.route('/c2/instrument/<string:reference_designator>/mission_display', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
-def c2_get_instrument_mission_display(reference_designator):
-    #Get C2 instrument Mission tab contents, return mission_display
-    instrument_deployment = InstrumentDeployment.query.filter_by(reference_designator=reference_designator).first()
-    if not instrument_deployment:
-        return bad_request('unknown instrument_deployment (reference_designator: \'%s\')' % reference_designator)
-    mission_display = {}
-    return jsonify(mission_display=mission_display)
-
-#TODO enable auth and scope
+#TODO enable auth and scope; uframe data required
 @api.route('/c2/instrument/<string:reference_designator>/commands', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
 def c2_get_instrument_commands(reference_designator):
     #Get C2 instrument commands (pulldown list) contents, return commands [{},{},...]
-    instrument_deployment = InstrumentDeployment.query.filter_by(reference_designator=reference_designator).first()
-    if not instrument_deployment:
+    if not _instrument_deployment(reference_designator):
         return bad_request('unknown instrument_deployment (reference_designator: \'%s\')' % reference_designator)
     commands = []
     response_text = json_get_uframe_instrument_commands(reference_designator)
@@ -501,15 +402,13 @@ def c2_get_instrument_fields(reference_designator, stream_name):
         http://localhost:4000/c2/instrument/CP02PMCO-SBS01-01-MOPAK0000/mopak_o_dcl_accel/fields
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-02-DOFSTK000/dofst_k_wfp_metadata/fields
     Errors:
-        bad_request('reference_designator parameter is empty')
-        bad_request('stream_name parameter is empty')
         bad_request('Invalid reference designator for instrument (\'%s\').' % reference_designator)
         bad_request('Failed to retrieve stream data for instrument (reference designator \'%s\')' % reference_designator)
         bad_request('Invalid stream name (\'%s\') for instrument (\'%s\')' % (stream_name, reference_designator))
+        bad_request('Malformed fields data; not in valid json format (\'%s\',\'%s\')' % (reference_designator, stream_name))
     '''
     # Validate reference_designator known instrument_deployment
-    instrument_deployment = InstrumentDeployment.query.filter_by(reference_designator=reference_designator).first()
-    if not instrument_deployment:
+    if not _instrument_deployment(reference_designator):
         return bad_request('unknown instrument_deployment (reference_designator: \'%s\')' % reference_designator)
     streams = None
     response_text = json_get_uframe_instrument_streams(reference_designator)
@@ -524,10 +423,10 @@ def c2_get_instrument_fields(reference_designator, stream_name):
     # Verify valid stream_name (verify stream requested is one of streams available for this instrument)
     if stream_name not in streams:
         return bad_request('Invalid stream name (\'%s\') for instrument (\'%s\')' % (stream_name, reference_designator))
-
-    display_content = {}
     # Get and add fields to output
+    display_content = {}
     field_contents = []
+    fields = None
     try:
         fields = c2_get_instrument_stream_fields(reference_designator, stream_name)
     except Exception, err:
@@ -545,148 +444,185 @@ def c2_get_instrument_fields(reference_designator, stream_name):
             field = {}
             for k,v in elem.iteritems():
                 field[k] = v
-            field['id'] = inx
             if field['name'] not in ofields:
+                field['id'] = inx
                 fields[field['name']] = field
                 ofields.append(field['name'])
-            inx += 1
+                inx += 1
         for field_name in ofields:
             field_contents.append(fields[field_name])
     display_content['data'] = field_contents
-
     # prepare output result
     result = []
-    display_content['stream_name'] = stream_name
+    #display_content['stream_name'] = stream_name
     result.append(display_content)
     return jsonify(fields=result)
 
-#TODO breakout c2_mission routes
-@api.route('/c2/platform/<string:reference_designator>/mission_selections', methods=['GET'])
+#TODO enable auth and scope
+@api.route('/c2/instrument_update/<string:reference_designator>/<string:stream_name>/<string:field_name>/<string:command_name>/<string:field_value>',methods=['PUT'])
 #@auth.login_required
 #@scope_required(u'user_admin')
-def c2_get_platform_mission_selections(reference_designator):
-    # C2 get platform Mission tab mission selections content, return mission_selections [{},{}...]
-    # return list of platform mission plans
-    platform_deployment = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first()
-    if not platform_deployment:
-        return bad_request('unknown platform_deployment (reference_designator: \'%s\')' % reference_designator)
-    response_text = json_get_uframe_mission_selections(reference_designator)
-    if response_text:
-        try:
-            mission_selections = json.loads(response_text)
-        except:
-            return bad_request('Malformed mission_selections; not in valid json format. (reference designator \'%s\')' % reference_designator)
-    return jsonify(mission_selections=mission_selections)
-
-@api.route('/c2/instrument/<string:reference_designator>/mission_selections', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
-def c2_get_instrument_mission_selections(reference_designator):
-    # C2 get instrument Mission tab mission selections content, return mission_selections [{},{}...]
-    # return list of instrument mission plans
-    instrument_deployment = InstrumentDeployment.query.filter_by(reference_designator=reference_designator).first()
-    if not instrument_deployment:
-        return bad_request('unknown instrument_deployment (reference_designator: \'%s\')' % reference_designator)
-    mission_selections = []
-    response_text = json_get_uframe_mission_selections(reference_designator)
-    if response_text:
-        try:
-            mission_selections = json.loads(response_text)
-        except:
-            return bad_request('Malformed mission_selections; not in valid json format. (reference designator \'%s\')' % reference_designator)
-    return jsonify(mission_selections=mission_selections)
-
-@api.route('/c2/platform/<string:reference_designator>/mission_selection/<string:mission_plan_store>', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
-def c2_get_platform_mission_selection(reference_designator, mission_plan_store):
-    # C2 get [platform] selected mission_plan content, return mission_plan
-    platform_deployment = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first()
-    if not platform_deployment:
-        return bad_request('unknown platform_deployment (reference_designator: \'%s\')' % reference_designator)
-    if not mission_plan_store:
-        return bad_request('mission_plan_store parameter is empty')
-    mission_plan = []
-    response_text = json_get_uframe_mission_selection(mission_plan_store)
-    if response_text:
-        try:
-            mission_plan.append(response_text)
-        except:
-            return bad_request('Malformed mission_plan data; not in valid json format. (reference designator \'%s\')' % reference_designator)
-    return jsonify(mission_plan=mission_plan)
-
-@api.route('/c2/instrument/<string:reference_designator>/mission_selection/<string:mission_plan_store>', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
-def c2_get_instrument_mission_selection(reference_designator, mission_plan_store):
-    # C2 get [instrument] selected mission_plan content from store (file, uframe), return mission_plan
-    instrument_deployment = InstrumentDeployment.query.filter_by(reference_designator=reference_designator).first()
-    if not instrument_deployment:
-        return bad_request('unknown instrument_deployment (reference_designator: \'%s\')' % reference_designator)
-    if not mission_plan_store:
-        return bad_request('mission_plan_store parameter is empty')
-    mission_plan = []
-    response_text = json_get_uframe_mission_selection(mission_plan_store)
-    if response_text:
-        try:
-            mission_plan.append(response_text)
-        except:
-            return bad_request('Malformed mission_plan data; not in valid json format. (reference designator \'%s\')' % reference_designator)
-    return jsonify(mission_plan=mission_plan)
-
-#TODO enable auth and scope; code - under construction
-'''
-#curl -X PUT http://localhost:4000/c2/instrument_update/CP02PMCO-SBS01-01-MOPAK0000?stream=mopak_o_dcl_accel&field=qualityflag&command=set&value=bad
-@api.route('/c2/instrument_update/<string:reference_designator>/<string:stream_name>/<string:field>/<string:command>/<string:value>', methods=['PUT'])
-#@auth.login_required
-@scope_required(u'user_admin')
-def c2_update_instrument_field_value(reference_designator, stream_name, field, command, value):
-    # C2 update instrument stream field with value using command
+def c2_update_instrument_field_value(reference_designator, stream_name, field_name, command_name, field_value):
+    # C2 update instrument stream field with value using command (just value update now)
+    # TODO review instrument update requirements;
+    # TODO attributes other than value; type checking for valid types; verify command
+    # Samples:
     # http://localhost:4000/c2/instrument_update/CP02PMCO-SBS01-01-MOPAK0000/mopak_o_dcl_accel/quality_flag/set/bad
-    id = InstrumentDeployment.query.filter_by(reference_designator=reference_designator).first_or_404()
-    instrument_deployment = id.to_json()
-    instrument_deployment_display_name = instrument_deployment['display_name']
-    instrument_deployment_id = instrument_deployment['id']
-    fields = c2_get_instrument_fields(reference_designator,stream_name)
-    #data = request.json or {}
-    return jsonify({'instrument_field_value': [reference_designator]})
+    if not _instrument_deployment(reference_designator):
+        return bad_request('unknown instrument_deployment (reference_designator: \'%s\')' % reference_designator)
+    if not stream_name:
+        return bad_request('stream_name parameter is empty')
+    if not field_name:
+        return bad_request('field parameter is empty')
+    if not command_name:
+        return bad_request('command parameter is empty')
+    try:
+        available_streams, available_fields = _c2_get_instrument_streams(reference_designator)
+    except Exception, err:
+        return bad_request('c2_get_instrument_streams exception: %s' % err.message)
+    if available_streams == None:
+        return bad_request('no streams for instrument_deployment (reference_designator: \'%s\')' % \
+            (reference_designator))
+    if stream_name not in available_streams:
+        return bad_request('unknown stream (\'%s\') for instrument_deployment (reference_designator: \'%s\')' % \
+        (stream_name,reference_designator))
+    fields = available_fields
+    if not available_fields:
+        response_text = c2_get_instrument_fields(reference_designator,stream_name)
+        try:
+            fields = json.loads(response_text)
+        except:
+            return bad_request('Malformed fields data; not in valid json format. (reference designator \'%s\')' %
+                               reference_designator)
+    if not fields:
+        return bad_request('No fields for stream (\'%s\') in instrument_deployment (reference designator \'%s\')' %
+                           (stream_name, reference_designator))
+    # verify field_name in fields
+    field = None
+    out_fields = []
+    for _field in fields:
+        if _field['name'] == field_name:
+            field = _field
+        else:
+            out_fields.append(_field)
+    if not field:
+        return bad_request('Unknown field_name (\'%s\') for stream (\'%s\') in instrument_deployment (reference_designator: \'%s\')' % \
+            (field_name, stream_name, reference_designator))
+    #valid_commands = ['SET']
+    #valid_unit_types = ['UTC', 'rad s-1', 'Gs', 'mV', '1']
+    #Verify type of value against field value type
+    valid_value_types = ['Float32', 'Float64', 'String', 'Int16', 'Int32']   # 'Byte'
+    _field_type = field['type']
+    if not _field_type:
+        return bad_request('field type (\'%s\') not defined for field (\'%s\') in stream (\'%s\') in instrument_deployment (reference_designator: \'%s\')' % \
+                                (_field_type, field, stream_name, reference_designator))
+    if _field_type not in valid_value_types:
+        return bad_request('Unknown field type (\'%s\') for field (\'%s\') in stream (\'%s\') in instrument_deployment (reference_designator: \'%s\')' % \
+                            (_field_type, field, stream_name, reference_designator))
+    # Update attribute 'value' based on field type
+    try:
+        if _field_type == 'Float32' or _field_type == 'Float64':
+            value = float(field_value)
+        elif _field_type == 'String':
+            value = str(field_value)
+        elif _field_type == 'Int16' or _field_type == 'Int32':
+            value = int(field_value)
+        else:
+            raise Exception()
+    except:
+        return bad_request('field_value (\'%s\') not of type %s for stream (\'%s\') in instrument_deployment (reference_designator: \'%s\')' % \
+                            (field_value, _field_type, stream_name, reference_designator))
+    field['value'] = str(value)
+    out_fields.append(field)
+    # Update store
+    try:
+        filename = "_".join([reference_designator, stream_name, 'fields'])
+        write_store(filename, out_fields)
+    except:
+        return bad_request('Failed to write store (\'%s\') for field (\'%s\') in stream (\'%s\') in instrument_deployment (reference_designator: \'%s\')' % \
+                (filename,  field_name, stream_name,reference_designator))
+    return jsonify({'message': 'field updated', 'field': field_name, 'value': value }), 200
 
-#TODO enable auth and scope; code
-@api.route('/c2/instrument/<string:reference_designator>/operational_status', methods=['GET'])
+#TODO enable auth and scope, under constructions; tests required!!!
+
+@api.route('/c2/instrument/<string:reference_designator>/<string:stream_name>/<string:field_name>', methods=['GET'])
 #@auth.login_required
-@scope_required(u'user_admin')
-def c2_get_instrument_operational_status(reference_designator):
-    # C2 get instrument operational status
-    return jsonify({'instrument_operational_status': [reference_designator]})
+#@scope_required(u'user_admin')
+def c2_get_instrument_stream_field(reference_designator, stream_name, field_name):
+    # C2 get instrument field_name
+    # Sample:
+    #   http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/parad_k_stc_imodem_instrument/parad_k_par
+    if not _instrument_deployment(reference_designator):
+        return bad_request('unknown instrument_deployment (reference_designator: \'%s\')' % reference_designator)
+    if not stream_name:
+        return bad_request('stream_name parameter is empty')
+    if not field_name:
+        return bad_request('field parameter is empty')
+    try:
+        available_streams, available_fields = _c2_get_instrument_streams(reference_designator)
+    except Exception, err:
+        return bad_request('c2_get_instrument_streams exception: %s' % err.message)
+    if available_streams == None:
+        return bad_request('no streams for instrument_deployment (reference_designator: \'%s\')' % \
+            (reference_designator))
+    if stream_name not in available_streams:
+        return bad_request('unknown stream (\'%s\') for instrument_deployment (reference_designator: \'%s\')' % \
+        (stream_name,reference_designator))
+    fields = available_fields
+    if not available_fields:
+        response_text = c2_get_instrument_fields(reference_designator,stream_name)
+        try:
+            fields = json.loads(response_text)
+        except:
+            return bad_request('Malformed fields data; not in valid json format. (reference designator \'%s\')' %
+                               reference_designator)
+    if not fields:
+        return bad_request('No fields for stream (\'%s\') in instrument_deployment (reference designator \'%s\')' %
+                           (stream_name, reference_designator))
+    # verify field in fields
+    field = None
+    out_fields = []
+    _field = {}
+    for _field in fields:
+        if _field['name'] == field_name:
+            field = _field
+        else:
+            out_fields.append(_field)
+    if not field:
+        return bad_request('unknown field (\'%s\') for stream (\'%s\') in instrument_deployment (reference_designator: \'%s\')' % \
+            (field_name, stream_name, reference_designator))
+    return jsonify(field=field)
 
-
-
-
-'''
 #----------------------------------------------------
-#-- file based helpers for array_display
+# general helpers
 #----------------------------------------------------
-#TODO get history from proper source
+def _platform_deployment(reference_designator):
+    result = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first()
+    return result
+
+def _instrument_deployment(reference_designator):
+    result = InstrumentDeployment.query.filter_by(reference_designator=reference_designator).first()
+    return result
+
+#TODO get history from proper source (TBD)
 def get_history(reference_designator):
     # C2 make fake history for event, command and configuration
     history = { 'event': [], 'command': [], 'configuration':[] }
     history['event'] = []
     history['command'] = []
     history['configuration'] = []
-
+    # command history
     commands = {}
     commands[1] = { 'msg': 'CMD item 3', 'timestamp' : '2014-11-23T20:00:00' }
     commands[2] = { 'msg': 'Failed Sample Freq from 10 hz to 1 hz', 'timestamp' : '2015-02-04T04:13:56' }
     commands[3] = { 'msg': 'Changed Ping Freq from 10hz to 1 Hz', 'timestamp' : '2015-02-04T07:39:12' }
     history['command'].append(commands)
-
-    # for Power Controller
+    # event history
     events = {}
     events[1] = { 'msg': '2014-10-11T14:00 Turned On' }
     events[2] = { 'msg': '2014-11-11T22:00 Turned Off' }
     history['event'].append(events)
-
-    # for Power Controller
+    # configuration history
     configuration = {}
     configuration[1] = { 'msg': '2014-11-12T14:00 Initial Configuration' }
     configuration[2] = { 'msg': '2014-11-19T22:00 Loaded PowerSave.config - we needed to turn off' }
@@ -695,6 +631,9 @@ def get_history(reference_designator):
     history['configuration'].append(configuration)
     return history
 
+#----------------------------------------------------
+#-- file based helpers for array_display (replace)
+#----------------------------------------------------
 def c2_get_platforms_operational_status(reference_designator):
     # Get C2 platform statuses (list of dict) [ {}, {}, {}, ...]
     statuses = None
@@ -725,6 +664,7 @@ def c2_get_array_operational_status(reference_designator):
 #----------------------------------------------------
 #-- file based helpers for platform_display
 #----------------------------------------------------
+#TODO get_instrument_stream
 def _c2_get_instrument_streams(reference_designator):
     '''
     C2 Get instrument stream(s) list, return streams, fields where
@@ -735,8 +675,7 @@ def _c2_get_instrument_streams(reference_designator):
     '''
     fields = None
     streams = None
-    instrument_deployment = InstrumentDeployment.query.filter_by(reference_designator=reference_designator).first()
-    if not instrument_deployment:
+    if not _instrument_deployment(reference_designator):
         return bad_request('unknown instrument_deployment (reference_designator: \'%s\')' % reference_designator)
     response_text = json_get_uframe_instrument_streams(reference_designator)
     if response_text:
@@ -782,9 +721,8 @@ def c2_get_platform_operational_status(reference_designator):
 #----------------------------------------------------
 def c2_get_instrument_stream_fields(reference_designator, stream_name):
     # C2 get instrument stream fields, return fields (as list [{field1}, {field2},...])
-    instrument_deployment = InstrumentDeployment.query.filter_by(reference_designator=reference_designator).first()
-    if not instrument_deployment:
-        raise Exception('unknown instrument_deployment (reference_designator: \'%s\')' % reference_designator)
+    if not _instrument_deployment(reference_designator):
+        return bad_request('unknown instrument_deployment (reference_designator: \'%s\')' % reference_designator)
     fields = []
     response_text = json_get_uframe_instrument_fields(reference_designator, stream_name)
     if response_text:
@@ -794,8 +732,7 @@ def c2_get_instrument_stream_fields(reference_designator, stream_name):
 def c2_get_instrument_operational_status(reference_designator):
     # C2 get instrument operational status, return status (where status is operational status display value)
     status = 'Unknown'
-    instrument_deployment = InstrumentDeployment.query.filter_by(reference_designator=reference_designator).first()
-    if not instrument_deployment:
+    if not _instrument_deployment(reference_designator):
         return bad_request('unknown instrument_deployment (reference_designator: \'%s\')' % reference_designator)
     response_text = json_get_uframe_instrument_operational_status(reference_designator)
     if response_text:
@@ -936,28 +873,19 @@ def json_get_uframe_instrument_commands(instrument):
         return None
     return data
 
-def json_get_uframe_mission_selections(reference_designator):
+def write_store(filename, data):
+    '''
+    open filename, write data list and close file
+    note: used by c2_update_instrument_field_value
+    '''
     try:
-        data = None
-        if reference_designator:
-            if len(reference_designator) == 27:
-                mission_type = 'instrument'
-            elif len(reference_designator) == 14:
-                mission_type = 'platform'
-            else:
-                return []
-            filename = "_".join([mission_type, 'missions'])
-            data = read_store(filename)
-    except:
-        return None
-    return data
-
-def json_get_uframe_mission_selection(mission_plan_filename):
-    try:
-        data = None
-        if mission_plan_filename:
-            data = read_store(mission_plan_filename)
-    except:
-        return None
-    return data
+        APP_ROOT = os.path.dirname(os.path.abspath(__file__))   # refers to application_top
+        c2_data_path = os.path.join(APP_ROOT, '..', '..', 'tests', 'c2data')
+        tmp = "/".join([c2_data_path, filename])
+        f = open(tmp, 'wb')
+        simplejson.dump(data, f)
+        f.close()
+    except Exception, err:
+        raise Exception('%s' % err.message)
+    return None
 
