@@ -670,6 +670,43 @@ class Stream(db.Model):
         return json_stream
 
 
+class SystemEventDefinition(db.Model):
+    """
+    Stores the definition for a single Alert/Alarm
+    """
+    __tablename__ = 'system_event_definitions'
+    __table_args__ = {u'schema': __schema__}
+
+    id = db.Column(db.Integer, primary_key=True)
+    uframe_definition_id = db.Column(db.Integer, nullable=False) # This id comes from uFrame after a successful POST
+    reference_designator = db.Column(db.Text, nullable=False) # This is the refdef for the instrument
+    stream_name = db.Column(db.Text, nullable=False)
+    stream_parameter = db.Column(db.Text, nullable=False)
+    operator = db.Column(db.Text, nullable=False) # > >= < <= =
+    values = db.Column(db.Text, nullable=False) # Typically single value but could be list for a <> operator
+    organization_ids = db.Column(db.Text, nullable=False) # List of organization_id(s) from the organizations table
+    user_ids = db.Column(db.Text, nullable=False) # List of user_id(s) from the users table
+    created_time = db.Column(db.DateTime(True), nullable=False)
+    priority = db.Column(db.Text, nullable=False)
+    active = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))
+    description = db.Column(db.Text, nullable=True)
+
+
+class SystemEvent(db.Model):
+    """
+    Stores the Alerts/Alarms ingested from uFrame
+    """
+    __tablename__ = 'system_events'
+    __table_args__ = {u'schema': __schema__}
+
+    id = db.Column(db.Integer, primary_key=True)
+    uframe_event_id = db.Column(db.Integer, nullable=False) # This id comes from uFrame
+    system_event_definition_id = db.Column(db.ForeignKey(u'' + __schema__ + '.system_event_definitions.id'), nullable=False)
+    event_time = db.Column(db.DateTime(True), nullable=False)
+    event_type = db.Column(db.Text, nullable=False) # Alert or Alarm
+    event_response = db.Column(db.Text, nullable=False)
+
+
 class UserScopeLink(db.Model):
     __tablename__ = 'user_scope_link'
     __table_args__ = {u'schema': __schema__}
