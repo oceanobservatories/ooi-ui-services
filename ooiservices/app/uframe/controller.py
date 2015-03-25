@@ -23,7 +23,7 @@ from datetime import datetime
 from dateutil.parser import parse as parse_date
 import requests
 # primarily for encoding coordinates to GeoJSON
-from shapely.geometry import LineString, mapping
+from geojson import LineString
 #additional ones
 import json
 import datetime
@@ -201,7 +201,7 @@ def get_uframe_glider_track(ref):
                                 for pt in res_arr if pt['m_gps_lon'] != 'NaN'
                                 and pt['m_gps_lat'] != 'NaN'])
             # serialize the Python object of containing tracks to GeoJSON
-            return Response(json.dumps(mapping(track)),
+            return Response(json.dumps(track),
                             mimetype='application/json')
         else:
             # if not a valid response, attempt to return the response as is.

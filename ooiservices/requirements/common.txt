@@ -29,7 +29,7 @@ psycopg2==2.5.4
 py==1.4.25
 pytest==2.6.3
 requests==2.4.3
-shapely==1.5.7
+geojson==1.0.9
 wsgiref==0.1.2
 python-dateutil==2.4.0
 GeoAlchemy2==0.2.4
