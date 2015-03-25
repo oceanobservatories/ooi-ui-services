@@ -248,7 +248,7 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
     '''
     try:
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        response =  requests.get("/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream]))
+        response =  requests.get("/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream+'?execDPA=true']))
         if response.status_code != 200:
             #print response.text
             pass
@@ -262,7 +262,7 @@ def get_uframe_stream_contents_bounded(mooring, platform, instrument, stream_typ
     Gets the bounded stream contents, start_time and end_time need to be datetime objects
     '''
     try:        
-        query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
+        query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
         url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])        
         response =  requests.get(url)
@@ -279,7 +279,7 @@ def get_uframe_stream_contents_bounded(mooring, platform, instrument, stream_typ
 def get_csv(stream,ref):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
-    data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
+    data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream + '?execDPA=true')
     if data.status_code != 200:
         return data.text, data.status_code, dict(data.headers)
 
@@ -305,7 +305,7 @@ def get_csv(stream,ref):
 def get_json(stream,ref):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
-    data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
+    data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream + '?execDPA=true')
     if data.status_code != 200:
         return data.text, data.status_code, dict(data.headers)
     response = '{"data":%s}' % data.content
@@ -317,11 +317,11 @@ def get_json(stream,ref):
 
 @auth.login_required
 @api.route('/get_netcdf/<string:stream>/<string:ref>',methods=['GET'])
-def get_netcdf(stream,ref):
+def get_netcdf(stream, ref):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
     UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-    url = '/'.join([UFRAME_DATA, mooring, platform, instrument, stream_type, stream])
+    url = '/'.join([UFRAME_DATA, mooring, platform, instrument, stream_type, stream + '?execDPA=true'])
     NETCDF_LINK = url+'?format=application/netcdf'
 
     response = requests.get(NETCDF_LINK)
@@ -339,7 +339,7 @@ def get_netcdf(stream,ref):
 
 @auth.login_required
 @api.route('/get_data/<string:instrument>/<string:stream>/<string:yvar>/<string:xvar>',methods=['GET'])
-def get_data_api(stream, instrument,yvar,xvar):    
+def get_data_api(stream, instrument, yvar, xvar):
     return jsonify(**get_data(stream,instrument,yvar,xvar))
 
 @auth.login_required
@@ -372,11 +372,11 @@ def get_svg_plot(instrument, stream):
 
     #get the data
     if plot_layout == "timeseries":
-        data = get_data(stream,instrument,yvar,xvar);
+        data = get_data(stream, instrument, yvar, xvar)
     elif plot_layout == "depthprofile":
         #if yvar != 'pressure':
         #    return jsonify(error='invalid profile request'), 400            
-        data = get_process_profile_data(stream,instrument,yvar,xvar);        
+        data = get_process_profile_data(stream, instrument, yvar, xvar)
 
     data['title'] = title
     data['height'] = height_in
@@ -401,8 +401,8 @@ def get_svg_plot(instrument, stream):
 
     return buf.read(), 200, {'Content-Type':content_header_map[plot_format]}
 
-def get_process_profile_data(stream,instrument,yvar,xvar):
-    data = get_profile_data(instrument,stream)    
+def get_process_profile_data(stream, instrument, yvar, xvar):
+    data = get_profile_data(instrument, stream)
     #check the data is in the first row
     '''
     if yvar not in data[0] or xvar not in data[0]:
@@ -437,7 +437,7 @@ def get_process_profile_data(stream,instrument,yvar,xvar):
     
     return {'x':x_data,'y':y_data,'x_field':xvar,"y_field":yvar}
 
-def get_profile_data(instrument,stream):
+def get_profile_data(instrument, stream):
     '''
     process uframe data into profiles
     '''
@@ -490,7 +490,7 @@ def get_profile_data(instrument,stream):
     WINDOW = 5
     weights = np.repeat(1.0, WINDOW)/ WINDOW
     ma =np.convolve(newtz[:,1], weights)[WINDOW-1:-(WINDOW-1)]
-    #take the diff and change negatives to -1 and postives to 1
+    #take the diff and change negatives to -1 and positives to 1
     dZ = np.sign(np.diff(ma))
 
     # repeat for second derivative
