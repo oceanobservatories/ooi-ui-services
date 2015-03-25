@@ -1,8 +1,1 @@
-[
-  {"name":"control_String", "units": "1", "type": "String", "value": "ok"},
-  {"name": "control_Float32", "units": "g0", "type": "Float32", "value": "10.485762503"},
-  {"name":"control_Float64", "units": "UTC", "type": "Float64", "value": "3.6337987874117002E9"},
-  {"name":"control_Int32", "units":  "counts", "type": "Int32", "value":"37"},
-  {"name":"control_Int16", "units":  "counts", "type": "Int16", "value":"116"},
-  {"name":"control_Byte", "units":  "counts", "type": "Byte", "value":"1"}
-]
+[{"units": "UTC", "type": "Float64", "name": "control_Float64", "value": "3.6337987874117002E9"}, {"units": "counts", "type": "Int16", "name": "control_Int16", "value": "116"}, {"units": "counts", "type": "Byte", "name": "control_Byte", "value": "1"}, {"units": "counts", "type": "Int32", "name": "control_Int32", "value": "314"}, {"units": "g0", "type": "Float32", "name": "control_Float32", "value": "10.485762503"}, {"units": "1", "type": "String", "name": "control_String", "value": "ok"}]

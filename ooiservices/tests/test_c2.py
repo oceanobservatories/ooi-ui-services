@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 '''
 Specific testing for Command and Control (C2)
-To determine C2 routes for examples or coverage, set verbose to True.
+To determine C2 routes (for examples or coverage), set verbose to True.
 To debug a specific test, set debug to True while debugging.
 (Always set verbose and debug to False at check in.)
 '''
@@ -582,14 +582,12 @@ class UserTestCase(unittest.TestCase):
             http://localhost:4000/c2/array//history
             http://localhost:4000/c2/array//status_display
             http://localhost:4000/c2/array//mission_display
-
         Following tests should generate bad_request (400), with consistent error message:
             http://localhost:4000/c2/array/no_such_array/abstract
             http://localhost:4000/c2/array/no_such_array/current_status_display
             http://localhost:4000/c2/array/no_such_array/history
             http://localhost:4000/c2/array/no_such_array/status_display
             http://localhost:4000/c2/array/no_such_array/mission_display
-
         All tests returning bad_request (400) shall have following error:
             {
               "error": "bad request",
@@ -706,7 +704,7 @@ class UserTestCase(unittest.TestCase):
         self.assertTrue('message' in data)
         self.assertEquals(data['message'], error_text)
 
-        # http://localhost:4000/c2/array/CP/current_status_display
+        # http://localhost:4000/c2/array/no_such_array/current_status_display
         url = url_for('main.c2_get_array_current_status_display', array_code=array_code)
         if verbose: print root+url
         response = self.client.get(url, content_type=content_type, headers=headers)
@@ -715,7 +713,7 @@ class UserTestCase(unittest.TestCase):
         self.assertTrue('message' in data)
         self.assertEquals(data['message'], error_text)
 
-        # http://localhost:4000/c2/array/CP/history
+        # http://localhost:4000/c2/array/no_such_array/history
         url = url_for('main.c2_get_array_history', array_code=array_code)
         if verbose: print root+url
         response = self.client.get(url, content_type=content_type, headers=headers)
@@ -724,7 +722,7 @@ class UserTestCase(unittest.TestCase):
         self.assertTrue('message' in data)
         self.assertEquals(data['message'], error_text)
 
-        # http://localhost:4000/c2/array/CP/status_display
+        # http://localhost:4000/c2/array/no_such_array/status_display
         url = url_for('main.c2_get_array_status_display', array_code=array_code)
         if verbose: print root+url
         response = self.client.get(url, content_type=content_type, headers=headers)
@@ -733,7 +731,7 @@ class UserTestCase(unittest.TestCase):
         self.assertTrue('message' in data)
         self.assertEquals(data['message'], error_text)
 
-        # http://localhost:4000/c2/array/CP/mission_display
+        # http://localhost:4000/c2/array/no_such_array/mission_display
         url = url_for('main.c2_get_array_mission_display', array_code=array_code)
         if verbose: print root+url
         response = self.client.get(url, content_type=content_type, headers=headers)
@@ -809,7 +807,6 @@ class UserTestCase(unittest.TestCase):
         CP02PMCO_WFP01_rd = CP02PMCO_WFP01.reference_designator
         CP02PMCO_SBS01_rd = CP02PMCO_SBS01.reference_designator
         CP02PMUI_RII01_rd = CP02PMUI_RII01.reference_designator
-
         # platform deployment 1
         CP02PMCO_WFP01_id = CP02PMCO_WFP01.id
         array_CP_platforms.append(CP02PMCO_WFP01_rd)
@@ -848,7 +845,6 @@ class UserTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         content_type =  'application/json'
         headers = self.get_api_headers('admin', 'test')
-
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Basic positive tests - platform
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -922,21 +918,18 @@ class UserTestCase(unittest.TestCase):
             http://localhost:4000/c2/platform/BAD/commands
             http://localhost:4000/c2/platform/BAD/mission_selections
             http://localhost:4000/c2/platform/BAD/mission_selection/mission4
-
         All shall return error (400) with following bad_request message (consistency):
             {
               "error": "bad request",
               "message": "unknown platform_deployment (reference_designator: 'BAD')"
             }
         '''
-
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Proceed with C2 tests
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         content_type =  'application/json'
         headers = self.get_api_headers('admin', 'test')
         error_text = "unknown platform_deployment (reference_designator: 'BAD')"
-
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # basic negative tests - platform is 'BAD'
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1156,7 +1149,6 @@ class UserTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         content_type = 'application/json'
         headers = self.get_api_headers('admin', 'test')
-
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Basic positive tests - instrument
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1240,44 +1232,22 @@ class UserTestCase(unittest.TestCase):
         # test fields for instrument_deployment stream_name
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # http://localhost:4000/c2/instrument/CP02PMCO-WFP01-02-DOFSTK000/dofst_k_wfp_metadata/fields
-        instrument = DOFSTK000.reference_designator
-        stream = 'dofst_k_wfp_metadata'
-        url = url_for('main.c2_get_instrument_fields', reference_designator=instrument, stream_name=stream)
-        if verbose: print root+url
-        response = self.client.get(url, content_type=content_type, headers=headers)
-        self.assertTrue(response.status_code == 200)
-
-        # http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/parad_k_stc_imodem_instrument/fields
-        instrument = PARADK000.reference_designator
-        stream = 'parad_k_stc_imodem_instrument'
-        url = url_for('main.c2_get_instrument_fields', reference_designator=instrument, stream_name=stream)
-        if verbose: print root+url
-        response = self.client.get(url, content_type=content_type, headers=headers)
-        self.assertTrue(response.status_code == 200)
-
-        # http://localhost:4000/c2/instrument/CP02PMCO-SBS01-01-MOPAK0000/mopak_o_dcl_accel/fields
-        instrument = MOPAK0000.reference_designator
-        stream = 'mopak_o_dcl_accel'
-        url = url_for('main.c2_get_instrument_fields', reference_designator=instrument, stream_name=stream)
-        if verbose: print root+url
-        response = self.client.get(url, content_type=content_type, headers=headers)
-        self.assertTrue(response.status_code == 200)
-
-        # http://localhost:4000/c2/instrument/CP02PMCO-WFP01-03-CTDPFK000/ctdpf_ckl_wfp_instrument/fields
-        instrument = CTDPFK000.reference_designator
-        stream = 'ctdpf_ckl_wfp_instrument'
-        url = url_for('main.c2_get_instrument_fields', reference_designator=instrument, stream_name=stream)
-        if verbose: print root+url
-        response = self.client.get(url, content_type=content_type, headers=headers)
-        self.assertTrue(response.status_code == 200)
-
-        # http://localhost:4000/c2/instrument/CP02PMCO-WFP01-03-CTDPFK000/ctdpf_ckl_wfp_metadata/fields
-        instrument = CTDPFK000.reference_designator
-        stream = 'ctdpf_ckl_wfp_metadata'
-        url = url_for('main.c2_get_instrument_fields', reference_designator=instrument, stream_name=stream)
-        if verbose: print root+url
-        response = self.client.get(url, content_type=content_type, headers=headers)
-        self.assertTrue(response.status_code == 200)
+        test_data = []
+        test_data.append( (DOFSTK000.reference_designator, 'dofst_k_wfp_metadata' ) )
+        test_data.append( (PARADK000.reference_designator, 'parad_k_stc_imodem_instrument' ) )
+        test_data.append( (MOPAK0000.reference_designator, 'mopak_o_dcl_accel' ) )
+        test_data.append( (CTDPFK000.reference_designator, 'ctdpf_ckl_wfp_instrument' ) )
+        test_data.append( (CTDPFK000.reference_designator, 'ctdpf_ckl_wfp_metadata' ) )
+        for data in test_data:
+            instrument = data[0]
+            stream = data[1]
+            url = url_for('main.c2_get_instrument_fields', reference_designator=instrument, stream_name=stream)
+            if verbose: print root+url
+            response = self.client.get(url, content_type=content_type, headers=headers)
+            self.assertTrue(response.status_code == 200)
+            data = json.loads(response.data)
+            self.assertTrue('fields' in data)
+            self.assertTrue(len(data['fields']) > 0)
 
         if verbose: print '\n'
 
@@ -1701,435 +1671,9 @@ class UserTestCase(unittest.TestCase):
 
         if verbose: print '\n'
 
-    def _c2_instrument_update_field_negative_string(self):
-        #TODO test to complete, change def name to have prefix test, fill out tests
-        #TODO update required when uframe (or other service) is available for test data
-        verbose = self.verbose
-        root = self.root
-        if verbose: print '\n'
-        debug = False
-        if debug: print '\n\ntest_c2_instrument_update_field_negative_string (debug on)'
-        # for an instrument stream, get original field value, set to new value and check, then set back to original value
-        # e.g. set field_name 'quality_flag' from 'ok' to 'ok*', then back to 'ok'
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Setup data - Arrays
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        self.setup_array_data()
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Setup data - Platforms
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        CP02PMCO_WFP01, CP02PMCO_SBS01, CP02PMUI_RII01 = self.create_CP_platform_deployments()
-        CP02PMCO_SBS01_rd = CP02PMCO_SBS01.reference_designator
-        # platform deployment 2
-        CP02PMCO_SBS01_id = CP02PMCO_SBS01.id
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Setup data - Instrument (Create instrument deployment for platform 2)
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        MOPAK0000_rd = 'CP02PMCO-SBS01-01-MOPAK0000'
-        MOPAK0000 = self.create_instrument_deployment(MOPAK0000_rd, CP02PMCO_SBS01_id)
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # End of data setup. (Now have three arrays, three platforms, each populated with instruments)
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Proceed with C2 tests
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Basic positive tests for instrument_update route
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # set constants to be held throughout unit test; only variable is field_value
-        const_instrument = MOPAK0000.reference_designator
-        self.assertEquals(const_instrument, MOPAK0000_rd)
-        const_stream_name = 'mopak_o_dcl_accel'
-        const_command_name = 'SET'
-        const_field_name = 'control_String'
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # GET instrument stream original fields; save to restore values
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if debug: print '\nGET current field_value'
-        response = self.GET_instrument_fields(verbose, const_instrument, const_stream_name)
-        self.assertTrue(response.status_code == 200)
-        data = json.loads(response.data)
-        # check data
-        self.assertTrue(len(data) > 0)
-        self.assertTrue('fields' in data)
-        #self.assertTrue('stream_name' in data['fields'][0])
-        self.assertTrue('data' in data['fields'][0])
-        # create a list_of_fields from response.data
-        list_of_fields = data['fields'][0]['data']
-        self.assertTrue(list_of_fields != None)
-        self.assertTrue(len(list_of_fields) > 0)
-        # create keyed dict for original fields (dict key='name'); save
-        original_fields = self.get_fields(list_of_fields)
-        # check original field name and value
-        self.assertTrue(original_fields[const_field_name]['name'] == const_field_name)
-        original_field_value = original_fields[const_field_name]['value']
-        original_field_type = original_fields[const_field_name]['type']
-        if debug:
-            print 'field name:  \'%s\'' % const_field_name
-            print 'field value: \'%s\'' % original_field_value
-            print 'field type: \'%s\'\n' % original_field_type
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # PUT new value (new_field_value=original_field_value = '*')
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if debug: print 'PUT new field_value'
-        new_field_value = original_field_value + '*'
-        response = self.PUT_instrument_update(verbose, const_instrument, const_stream_name, const_field_name,
-                                              const_command_name, new_field_value)
-        self.assertTrue(response.status_code == 200)
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # GET to verify new value applied to field_name; verify other values remain same
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if debug: print 'GET verify new field_value'
-        response = self.GET_instrument_fields(verbose, const_instrument, const_stream_name)
-        self.assertTrue(response.status_code == 200)
-        # check data
-        data = json.loads(response.data)
-        self.assertTrue(len(data) > 0)
-        self.assertTrue('fields' in data)
-        #self.assertTrue('stream_name' in data['fields'][0])
-        self.assertTrue('data' in data['fields'][0])
-        # create a new_list_of_fields from response.data
-        new_list_of_fields = data['fields'][0]['data']
-        self.assertTrue(new_list_of_fields != None)
-        self.assertTrue(len(new_list_of_fields) > 0)
-        # create keyed dict for new fields (dict key='name'); save
-        new_fields = self.get_fields(new_list_of_fields)
-        if debug:
-            print 'field_name:  ', const_field_name
-            print 'new_field_value: \'%s\'\n' % new_field_value
-        self.assertTrue(new_fields[const_field_name]['name'] == const_field_name)
-        self.assertTrue(new_fields[const_field_name]['value'] == new_field_value)
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # PUT original field_value (field_value=original_field_value)
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # verify original value applied and TODO other values remain same
-        if debug: print 'PUT original field_value'
-        response = self.PUT_instrument_update(verbose, const_instrument, const_stream_name, const_field_name,
-                                              const_command_name, original_field_value)
-        self.assertTrue(response.status_code == 200)
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # GET - verify contents - should be in original state (restored_list_of_fields=original_fields)
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if debug: print 'GET to verify back to original field_value'
-        response = self.GET_instrument_fields(verbose, const_instrument, const_stream_name)
-        self.assertTrue(response.status_code == 200)
-        data = json.loads(response.data)
-        #check data
-        self.assertTrue(len(data) > 0)
-        self.assertTrue('fields' in data)
-        #self.assertTrue('stream_name' in data['fields'][0])
-        self.assertTrue('data' in data['fields'][0])
-        # create a restored_list_of_fields from response.data
-        restored_list_of_fields = data['fields'][0]['data']
-        self.assertTrue(list_of_fields != None)
-        self.assertTrue(len(list_of_fields) > 0)
-        # create keyed dict for restored fields (dict key='name')
-        restored_fields = self.get_fields(restored_list_of_fields)
-        self.assertTrue(restored_fields[const_field_name]['value'] == original_fields[const_field_name]['value'])
-        if debug:
-            print 'field_name:  ', const_field_name
-            print 'field_value: \'%s\'' % restored_fields[const_field_name]['value']
-
-    def _c2_instrument_update_field_negative_float(self):
-        #TODO test to complete, change def name to have prefix test, fill out tests
-        #TODO update is required when uframe (or other service) is available for test data
-        verbose = self.verbose
-        root = self.root
-        if verbose: print '\n'
-        debug = False
-        if debug: print '\n\ntest_c2_instrument_update_field_negative_float (debug on)'
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # for an instrument stream, get original field value, set to new value and check, then set back to original value
-        # e.g. set field_name 'control_Float32' from original_value to original_vale+10.5, then back to original_value
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Setup data - Arrays
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        self.setup_array_data()
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Setup data - Platform - (using platform 2 (CP02PMCO_SBS01))
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        CP02PMCO_WFP01, CP02PMCO_SBS01, CP02PMUI_RII01 = self.create_CP_platform_deployments()
-        # platform deployment 2
-        CP02PMCO_SBS01_id = CP02PMCO_SBS01.id
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Setup data - Instrument (Create instrument deployment for platform 2)
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        MOPAK0000_rd = 'CP02PMCO-SBS01-01-MOPAK0000'
-        MOPAK0000 = self.create_instrument_deployment(MOPAK0000_rd, CP02PMCO_SBS01_id)
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # End of data setup. (Now have three arrays, three platforms, each populated with instruments)
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Proceed with C2 tests
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        content_type = 'application/json'
-        headers = self.get_api_headers('admin', 'test')
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Basic positive tests for instrument_update route
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # set constants to be held throughout unit test; only variable is field_value
-        const_instrument = MOPAK0000.reference_designator     # 'CP02PMCO-SBS01-01-MOPAK0000'
-        self.assertEquals(const_instrument, MOPAK0000_rd)
-        const_stream_name = 'mopak_o_dcl_accel'
-        const_command_name = 'SET'
-        const_field_name = 'control_Float32'
-        constant_type = 'Float32'
-        original_field_value = '0.0101010101'
-        delta = 10.5
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # GET instrument stream original fields; save to restore values
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if debug: print '\nGET current field_value'
-        response = self.GET_instrument_fields(verbose, const_instrument, const_stream_name)
-        self.assertTrue(response.status_code == 200)
-        data = json.loads(response.data)
-        # check data
-        self.assertTrue(len(data) > 0)
-        self.assertTrue('fields' in data)
-        #self.assertTrue('stream_name' in data['fields'][0])
-        self.assertTrue('data' in data['fields'][0])
-        # create a list_of_fields from response.data
-        list_of_fields = data['fields'][0]['data']
-        self.assertTrue(list_of_fields != None)
-        self.assertTrue(len(list_of_fields) > 0)
-        # create keyed dict for original fields (dict key='name'); save
-        original_fields = self.get_fields(list_of_fields)
-        # check original field name and value
-        self.assertTrue(original_fields[const_field_name]['name'] == const_field_name)
-        s_original_field_value = original_fields[const_field_name]['value']
-        original_field_type = original_fields[const_field_name]['type']
-        self.assertEquals(original_field_type, constant_type)
-        try:
-            original_field_value = float(s_original_field_value)
-        except:
-            # Raise error to fail test
-            self.assertTrue('original field value not of type Float32' == 0)
-        if debug:
-            print 'field name:  \'%s\'' % const_field_name
-            print 'field value: \'%r\'' % original_field_value
-            print 'field type: \'%s\'\n' % original_field_type
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # PUT new value (new_field_value=original_field_value = '*')
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if debug: print 'PUT new field_value'
-        new_field_value = original_field_value + delta
-        response = self.PUT_instrument_update(verbose, const_instrument, const_stream_name, const_field_name,
-                                              const_command_name, new_field_value)
-        self.assertTrue(response.status_code == 200)
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # GET to verify new value applied to field_name; verify other values remain same
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if debug: print 'GET verify new field_value'
-        response = self.GET_instrument_fields(verbose, const_instrument, const_stream_name)
-        self.assertTrue(response.status_code == 200)
-        # check data
-        data = json.loads(response.data)
-        self.assertTrue(len(data) > 0)
-        self.assertTrue('fields' in data)
-        #self.assertTrue('stream_name' in data['fields'][0])
-        self.assertTrue('data' in data['fields'][0])
-        # create a new_list_of_fields from response.data
-        new_list_of_fields = data['fields'][0]['data']
-        self.assertTrue(new_list_of_fields != None)
-        self.assertTrue(len(new_list_of_fields) > 0)
-        # create keyed dict for new fields (dict key='name'); save
-        new_fields = self.get_fields(new_list_of_fields)
-        if debug:
-            print 'field_name:  ', const_field_name
-            print 'new_field_value: \'%r\'\n' % new_field_value
-        try:
-            new_field_value_returned = float(new_fields[const_field_name]['value'])
-            self.assertTrue(new_field_value_returned == new_field_value)
-            self.assertTrue(new_fields[const_field_name]['name'] == const_field_name)
-        except:
-            # Raise error to fail test
-            self.assertTrue('original field value not of type Float32' == 0)
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # PUT original field_value (field_value=original_field_value)
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # verify original value applied and TODO verify other values remain same
-        if debug: print 'PUT original field_value'
-        response = self.PUT_instrument_update(verbose, const_instrument, const_stream_name, const_field_name,
-                                              const_command_name, original_field_value)
-        self.assertTrue(response.status_code == 200)
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # GET - verify contents - should be in original state (restored_list_of_fields=original_fields)
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if debug: print 'GET to verify back to original field_value'
-        response = self.GET_instrument_fields(verbose, const_instrument, const_stream_name)
-        self.assertTrue(response.status_code == 200)
-        data = json.loads(response.data)
-        #check data
-        self.assertTrue(len(data) > 0)
-        self.assertTrue('fields' in data)
-        #self.assertTrue('stream_name' in data['fields'][0])
-        self.assertTrue('data' in data['fields'][0])
-        # create a restored_list_of_fields from response.data
-        restored_list_of_fields = data['fields'][0]['data']
-        self.assertTrue(list_of_fields != None)
-        self.assertTrue(len(list_of_fields) > 0)
-        # create keyed dict for restored fields (dict key='name')
-        restored_fields = self.get_fields(restored_list_of_fields)
-        try:
-            restored_field_value = float(restored_fields[const_field_name]['value'])
-        except:
-            # Raise error to fail test
-            self.assertTrue('original field value not of type Float32' == 0)
-        self.assertTrue(restored_field_value == original_field_value)
-        if debug:
-            print 'field_name:  ', const_field_name
-            print 'field_value: \'%r\'' % restored_field_value
-
-    def _c2_instrument_update_field_negative_int(self):
-        #TODO test to complete, change def name to have prefix test, fill out tests
-        #TODO update is required when uframe (or other service) is available for test data
-        verbose = self.verbose
-        root = self.root
-        if verbose: print '\n'
-        debug = False
-        if debug: print '\n\ntest_c2_instrument_update_field_negative_int (debug on)'
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # for an instrument stream, get original field value, set to new value and check, then set back to original value
-        # e.g. set field_name 'control_Float32' from original_value to original_vale+10.5, then back to original_value
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Setup data - Arrays
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        self.setup_array_data()
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Setup data - Platform - (using platform 2 (CP02PMCO_SBS01))
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        CP02PMCO_WFP01, CP02PMCO_SBS01, CP02PMUI_RII01 = self.create_CP_platform_deployments()
-        # platform deployment 2
-        CP02PMCO_SBS01_id = CP02PMCO_SBS01.id
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Setup data - Instrument (Create instrument deployment for platform 2)
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        MOPAK0000_rd = 'CP02PMCO-SBS01-01-MOPAK0000'
-        MOPAK0000 = self.create_instrument_deployment(MOPAK0000_rd, CP02PMCO_SBS01_id)
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # End of data setup. (Now have three arrays, three platforms, each populated with instruments)
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Proceed with C2 tests
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        content_type = 'application/json'
-        headers = self.get_api_headers('admin', 'test')
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Basic positive tests for instrument_update route
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # set constants to be held throughout unit test; only variable is field_value
-        const_instrument = MOPAK0000.reference_designator     # 'CP02PMCO-SBS01-01-MOPAK0000'
-        self.assertEquals(const_instrument, MOPAK0000_rd)
-        const_stream_name = 'mopak_o_dcl_accel'
-        const_command_name = 'SET'
-        const_field_name = 'control_Int32'
-        constant_type = 'Int32'
-        original_field_value = '37'
-        delta = 277
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # GET instrument stream original fields; save to restore values
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if debug: print '\nGET current field_value'
-        response = self.GET_instrument_fields(verbose, const_instrument, const_stream_name)
-        self.assertTrue(response.status_code == 200)
-        data = json.loads(response.data)
-        # check data
-        self.assertTrue(len(data) > 0)
-        self.assertTrue('fields' in data)
-        #self.assertTrue('stream_name' in data['fields'][0])
-        self.assertTrue('data' in data['fields'][0])
-        # create a list_of_fields from response.data
-        list_of_fields = data['fields'][0]['data']
-        self.assertTrue(list_of_fields != None)
-        self.assertTrue(len(list_of_fields) > 0)
-        # create keyed dict for original fields (dict key='name'); save
-        original_fields = self.get_fields(list_of_fields)
-        # check original field name and value
-        self.assertTrue(original_fields[const_field_name]['name'] == const_field_name)
-        s_original_field_value = original_fields[const_field_name]['value']
-        original_field_type = original_fields[const_field_name]['type']
-        self.assertEquals(original_field_type, constant_type)
-        try:
-            original_field_value = int(s_original_field_value)
-        except:
-            # Raise error to fail test
-            self.assertTrue('original field value not of type Int32' == 0)
-        if debug:
-            print 'field name:  \'%s\'' % const_field_name
-            print 'field value: \'%r\'' % original_field_value
-            print 'field type: \'%s\'\n' % original_field_type
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # PUT new value (new_field_value=original_field_value = '*')
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if debug: print 'PUT new field_value'
-        new_field_value = original_field_value + delta
-        response = self.PUT_instrument_update(verbose, const_instrument, const_stream_name, const_field_name,
-                                              const_command_name, new_field_value)
-        self.assertTrue(response.status_code == 200)
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # GET to verify new value applied to field_name; verify other values remain same
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if debug: print 'GET verify new field_value'
-        response = self.GET_instrument_fields(verbose, const_instrument, const_stream_name)
-        self.assertTrue(response.status_code == 200)
-        # check data
-        data = json.loads(response.data)
-        self.assertTrue(len(data) > 0)
-        self.assertTrue('fields' in data)
-        #self.assertTrue('stream_name' in data['fields'][0])
-        self.assertTrue('data' in data['fields'][0])
-        # create a new_list_of_fields from response.data
-        new_list_of_fields = data['fields'][0]['data']
-        self.assertTrue(new_list_of_fields != None)
-        self.assertTrue(len(new_list_of_fields) > 0)
-        # create keyed dict for new fields (dict key='name'); save
-        new_fields = self.get_fields(new_list_of_fields)
-        if debug:
-            print 'field_name:  ', const_field_name
-            print 'new_field_value: \'%r\'\n' % new_field_value
-        try:
-            new_field_value_returned = int(new_fields[const_field_name]['value'])
-            self.assertTrue(new_field_value_returned == new_field_value)
-            self.assertTrue(new_fields[const_field_name]['name'] == const_field_name)
-        except:
-            # Raise error to fail test
-            self.assertTrue('original field value not of type Int32' == 0)
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # PUT original field_value (field_value=original_field_value)
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # verify original value applied and TODO verify other values remain same
-        if debug: print 'PUT original field_value'
-        response = self.PUT_instrument_update(verbose, const_instrument, const_stream_name, const_field_name,
-                                              const_command_name, original_field_value)
-        self.assertTrue(response.status_code == 200)
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # GET - verify contents - should be in original state (restored_list_of_fields=original_fields)
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if debug: print 'GET to verify back to original field_value'
-        response = self.GET_instrument_fields(verbose, const_instrument, const_stream_name)
-        self.assertTrue(response.status_code == 200)
-        data = json.loads(response.data)
-        #check data
-        self.assertTrue(len(data) > 0)
-        self.assertTrue('fields' in data)
-        #self.assertTrue('stream_name' in data['fields'][0])
-        self.assertTrue('data' in data['fields'][0])
-        # create a restored_list_of_fields from response.data
-        restored_list_of_fields = data['fields'][0]['data']
-        self.assertTrue(list_of_fields != None)
-        self.assertTrue(len(list_of_fields) > 0)
-        # create keyed dict for restored fields (dict key='name')
-        restored_fields = self.get_fields(restored_list_of_fields)
-        try:
-            restored_field_value = int(restored_fields[const_field_name]['value'])
-        except:
-            # Raise error to fail test
-            self.assertTrue('original field value not of type Int32' == 0)
-        self.assertTrue(restored_field_value == original_field_value)
-        if debug:
-            print 'field_name:  ', const_field_name
-            print 'field_value: \'%r\'' % restored_field_value
-
     def _c2_instrument_update_field(self):
-        #TODO use this test during development only; it modifies data files
-        #TODO  disable before check in (remove prefix test from def name)
+        #TODO use this test during development only since it modifies data files
+        #TODO disable before check in (remove prefix test from def name)
         #TODO enable when file based data is no longer used for testing
 
         field_name = 'control_Int32'
@@ -2199,10 +1743,8 @@ class UserTestCase(unittest.TestCase):
         # check data
         self.assertTrue(len(data) > 0)
         self.assertTrue('fields' in data)
-        #self.assertTrue('stream_name' in data['fields'][0])
-        self.assertTrue('data' in data['fields'][0])
         # create a list_of_fields from response.data
-        list_of_fields = data['fields'][0]['data']
+        list_of_fields = data['fields']
         self.assertTrue(list_of_fields != None)
         self.assertTrue(len(list_of_fields) > 0)
         # create keyed dict for original fields (dict key='name'); save
@@ -2254,10 +1796,8 @@ class UserTestCase(unittest.TestCase):
         data = json.loads(response.data)
         self.assertTrue(len(data) > 0)
         self.assertTrue('fields' in data)
-        #self.assertTrue('stream_name' in data['fields'][0])
-        self.assertTrue('data' in data['fields'][0])
         # create a new_list_of_fields from response.data
-        new_list_of_fields = data['fields'][0]['data']
+        new_list_of_fields = data['fields']
         self.assertTrue(new_list_of_fields != None)
         self.assertTrue(len(new_list_of_fields) > 0)
         # create keyed dict for new fields (dict key='name'); save
@@ -2307,10 +1847,8 @@ class UserTestCase(unittest.TestCase):
         #check data
         self.assertTrue(len(data) > 0)
         self.assertTrue('fields' in data)
-        #self.assertTrue('stream_name' in data['fields'][0])
-        self.assertTrue('data' in data['fields'][0])
         # create a restored_list_of_fields from response.data
-        restored_list_of_fields = data['fields'][0]['data']
+        restored_list_of_fields = data['fields']
         self.assertTrue(list_of_fields != None)
         self.assertTrue(len(list_of_fields) > 0)
         # create keyed dict for restored fields (dict key='name')
@@ -2354,8 +1892,23 @@ class UserTestCase(unittest.TestCase):
 
     def GET_instrument_fields(self, verbose, reference_designator, stream_name):
         '''
-        data:  [{  u'data': [{u'units': u'g0', u'type': u'Float32', u'id': 1,
-                              u'value': u'-0.014237497001886368', u'name': u'mopak_accelx'}, ... ]}]
+        data:
+        {"fields": [
+                    {
+                      "id": 1,
+                      "name": "parad_k_par",
+                      "type": "Float32",
+                      "units": "umol photons m-2 s-1",
+                      "value": "0.27"
+                    },
+                    {
+                      "id": 2,
+                      "name": "preferred_timestamp",
+                      "type": "String",
+                      "units": "1",
+                      "value": "internal_timestamp"
+                    },...
+                    ]
         '''
         root = self.root
         content_type = 'application/json'

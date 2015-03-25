@@ -19,12 +19,32 @@ import simplejson
 # C2 array routes
 # - - - - - - - - - - - - - - - - - - - - - - - -
 #TODO enable auth and scope; get operational status from uframe
+@api.route('/c2/arrays', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'user_admin')
+def c2_get_arrays():
+    #Get C2 arrays, return list of abstracts for each array
+    list_of_arrays = []
+    arrays = Array.query.all()
+    for array in arrays:
+        item = get_array_abstract(array.array_code)
+        if item:
+            list_of_arrays.append(item)
+    return jsonify(arrays=list_of_arrays)
+
+#TODO enable auth and scope; get operational status from uframe
 @api.route('/c2/array/<string:array_code>/abstract', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
 def c2_get_array_abstract(array_code):
     #Get C2 array abstract (display), return abstract
-    response_dict = {}
+    array = Array.query.filter_by(array_code=array_code).first()
+    if not array:
+        return bad_request('unknown array (array_code: \'%s\')' % array_code)
+    response_dict = get_array_abstract(array_code)
+    return jsonify(abstract=response_dict)
+
+def get_array_abstract(array_code):
     array = Array.query.filter_by(array_code=array_code).first()
     if not array:
         return bad_request('unknown array (array_code: \'%s\')' % array_code)
@@ -33,7 +53,7 @@ def c2_get_array_abstract(array_code):
     response_dict['reference_designator'] = array.array_code
     response_dict['array_id'] = array.id
     response_dict['operational_status'] = c2_get_array_operational_status(array_code)
-    return jsonify(abstract=response_dict)
+    return response_dict
 
 #TODO enable auth and scope; get operational status from uframe
 @api.route('/c2/array/<string:array_code>/current_status_display', methods=['GET'])
@@ -273,7 +293,8 @@ def c2_get_platform_ports_display(reference_designator):
             contents.append(platform_info[instrument_deployment_reference_designator])
     return jsonify(ports_display=contents)
 
-#TODO enable auth and scope; complete using status from uframe
+#TODO enable auth and scope
+#TODO complete using status from uframe
 @api.route('/c2/platform/<string:reference_designator>/status_display', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
@@ -407,7 +428,7 @@ def c2_get_instrument_fields(reference_designator, stream_name):
         bad_request('Invalid stream name (\'%s\') for instrument (\'%s\')' % (stream_name, reference_designator))
         bad_request('Malformed fields data; not in valid json format (\'%s\',\'%s\')' % (reference_designator, stream_name))
     '''
-    # Validate reference_designator known instrument_deployment
+    # Verify reference_designator is for known instrument_deployment; get streams
     if not _instrument_deployment(reference_designator):
         return bad_request('unknown instrument_deployment (reference_designator: \'%s\')' % reference_designator)
     streams = None
@@ -424,9 +445,9 @@ def c2_get_instrument_fields(reference_designator, stream_name):
     if stream_name not in streams:
         return bad_request('Invalid stream name (\'%s\') for instrument (\'%s\')' % (stream_name, reference_designator))
     # Get and add fields to output
-    display_content = {}
+    #display_content = {}
     field_contents = []
-    fields = None
+    #fields = None
     try:
         fields = c2_get_instrument_stream_fields(reference_designator, stream_name)
     except Exception, err:
@@ -451,23 +472,23 @@ def c2_get_instrument_fields(reference_designator, stream_name):
                 inx += 1
         for field_name in ofields:
             field_contents.append(fields[field_name])
-    display_content['data'] = field_contents
+    #display_content['data'] = field_contents
     # prepare output result
-    result = []
+    #result = []
     #display_content['stream_name'] = stream_name
-    result.append(display_content)
-    return jsonify(fields=result)
+    #result.append(display_content)
+    #return jsonify(fields=result)
+    return jsonify(fields=field_contents)
 
 #TODO enable auth and scope
 @api.route('/c2/instrument_update/<string:reference_designator>/<string:stream_name>/<string:field_name>/<string:command_name>/<string:field_value>',methods=['PUT'])
 #@auth.login_required
 #@scope_required(u'user_admin')
 def c2_update_instrument_field_value(reference_designator, stream_name, field_name, command_name, field_value):
-    # C2 update instrument stream field with value using command (just value update now)
-    # TODO review instrument update requirements;
+    # C2 update instrument stream field value with value provided using command (just value update now)
     # TODO attributes other than value; type checking for valid types; verify command
     # Samples:
-    # http://localhost:4000/c2/instrument_update/CP02PMCO-SBS01-01-MOPAK0000/mopak_o_dcl_accel/quality_flag/set/bad
+    # http://localhost:4000/c2/instrument_update/CP02PMCO-SBS01-01-MOPAK0000/mopak_o_dcl_accel/control_String/set/bad
     if not _instrument_deployment(reference_designator):
         return bad_request('unknown instrument_deployment (reference_designator: \'%s\')' % reference_designator)
     if not stream_name:
@@ -544,7 +565,6 @@ def c2_update_instrument_field_value(reference_designator, stream_name, field_na
     return jsonify({'message': 'field updated', 'field': field_name, 'value': value }), 200
 
 #TODO enable auth and scope, under constructions; tests required!!!
-
 @api.route('/c2/instrument/<string:reference_designator>/<string:stream_name>/<string:field_name>', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
@@ -748,7 +768,7 @@ def c2_get_instrument_operational_status(reference_designator):
     return status
 
 def c2_get_instruments_operational_status(instruments):
-    # Get operational status for all instruments in platform with reference_designator
+    # Get operational status for all instruments in platform
     statuses = None
     response_text = json_get_uframe_instruments_operational_status(instruments)
     if response_text:
@@ -772,6 +792,7 @@ def c2_get_instruments_streams(instruments):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # C2 helper for file data (./ooiuiservices/tests/c2data/*)
 # Each of these will be replaced with interface to uframe or interface other than file
+# TODO replace all file based data with uframe data
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def read_store(filename):
     '''
