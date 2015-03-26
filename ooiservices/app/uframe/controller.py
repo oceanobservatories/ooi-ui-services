@@ -321,7 +321,13 @@ def get_uframe_stream_contents_bounded(mooring, platform, instrument, stream_typ
 def get_csv(stream, ref):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
-    data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
+
+    if 'startdate' in request.args and 'enddate' in request.args:
+        st_date = request.args['startdate']       
+        ed_date = request.args['enddate']           
+        data = get_uframe_stream_contents_bounded(mooring, platform, instrument, stream_type, stream,st_date,ed_date)
+    else:
+        data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
     if data.status_code != 200:
         return data.text, data.status_code, dict(data.headers)
 
@@ -348,7 +354,14 @@ def get_csv(stream, ref):
 def get_json(stream, ref):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
-    data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
+
+    if 'startdate' in request.args and 'enddate' in request.args:
+        st_date = request.args['startdate']       
+        ed_date = request.args['enddate']
+        data = get_uframe_stream_contents_bounded(mooring, platform, instrument, stream_type, stream,st_date,ed_date)
+    else:        
+        data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
+    
     if data.status_code != 200:
         return data.text, data.status_code, dict(data.headers)
     response = '{"data":%s}' % data.content
