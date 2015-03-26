@@ -184,6 +184,7 @@ def get_uframe_platforms(mooring):
     except:
         return internal_server_error('uframe connection cannot be made.')
 
+@auth.login_required
 @api.route('/get_glider_track/<string:ref>')
 def get_uframe_glider_track(ref):
     '''
@@ -205,13 +206,13 @@ def get_uframe_glider_track(ref):
                             mimetype='application/json')
         else:
             # if not a valid response, attempt to return the response as is.
-            # FIXME: possibly dead code due to tuple return of non-200 responses
-            # from get_json
-            return res.text, res.status_code, res.headers.items()
+            return Response(json.dumps({'type': "LineString",'coordinates':[],'note':'invalid status code'}),
+                            mimetype='application/json')
+            #return res.text, res.status_code, res.headers.items()
     except AttributeError:
-        # if status_code attribute isn't found, it's likely we have a tuple
-        # with the response data instead
-        return res
+        #return nothing
+        return Response(json.dumps({'type': "LineString",'coordinates':[],'note':'AttributeError'}),
+                            mimetype='application/json')
 
 @cache.memoize(timeout=3600)
 def get_uframe_instruments(mooring, platform):
