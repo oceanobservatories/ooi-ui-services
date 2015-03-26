@@ -689,6 +689,7 @@ class SystemEventDefinition(db.Model):
     user_ids = db.Column(db.Text, nullable=False) # List of user_id(s) from the users table
     created_time = db.Column(db.DateTime(True), nullable=False)
     priority = db.Column(db.Text, nullable=False)
+    notification_types = db.Column(db.Text, nullable=True) #  Array [text_message, phone_call, email, redmine, log]
     active = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))
     description = db.Column(db.Text, nullable=True)
 
@@ -706,6 +707,7 @@ class SystemEventDefinition(db.Model):
             'user_ids' : self.user_ids,
             'created_time' : self.created_time,
             'priority' : self.priority,
+            'notification_types' : self.notification_types,
             'active' : self.active,
             'description' : self.description
         }
