@@ -681,6 +681,7 @@ class SystemEventDefinition(db.Model):
     uframe_definition_id = db.Column(db.Integer, nullable=False) # This id comes from uFrame after a successful POST
     reference_designator = db.Column(db.Text, nullable=False) # This is the refdef for the instrument
     stream_name = db.Column(db.Text, nullable=False)
+    stream_type = db.Column(db.Text, nullable=False)
     stream_parameter = db.Column(db.Text, nullable=False)
     operator = db.Column(db.Text, nullable=False) # > >= < <= =
     values = db.Column(db.Text, nullable=False) # Typically single value but could be list for a <> operator
@@ -690,6 +691,25 @@ class SystemEventDefinition(db.Model):
     priority = db.Column(db.Text, nullable=False)
     active = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))
     description = db.Column(db.Text, nullable=True)
+
+    def to_json(self):
+        json_system_event_definition = {
+            'id' : self.id,
+            'uframe_definition_id' : self.uframe_definition_id,
+            'reference_designator' : self.reference_designator,
+            'stream_name' : self.stream_name,
+            'stream_type' : self.stream_type,
+            'stream_parameter' : self.stream_parameter,
+            'operator' : self.operator,
+            'values' : self.values,
+            'organization_ids' : self.organization_ids,
+            'user_ids' : self.user_ids,
+            'created_time' : self.created_time,
+            'priority' : self.priority,
+            'active' : self.active,
+            'description' : self.description
+        }
+        return json_system_event_definition
 
 
 class SystemEvent(db.Model):
@@ -705,6 +725,29 @@ class SystemEvent(db.Model):
     event_time = db.Column(db.DateTime(True), nullable=False)
     event_type = db.Column(db.Text, nullable=False) # Alert or Alarm
     event_response = db.Column(db.Text, nullable=False)
+
+    event = db.relationship(u'SystemEventDefinition')
+
+    @staticmethod
+    def insert_event(uframe_event_id, system_event_definition_id, event_time, event_type, event_response):
+        new_event = SystemEvent()
+        new_event.uframe_event_id = uframe_event_id
+        new_event.system_event_definition_id =system_event_definition_id
+        new_event.event_time = event_time
+        new_event.event_type = event_type
+        new_event.event_response = event_response
+        db.session.add(new_event)
+        db.session.commit()
+
+    def to_json(self):
+        json_system_event = {
+            'id' : self.id,
+            'uframe_event_id' : self.uframe_event_id,
+            'system_event_definition_id' : self.system_event_definition_id,
+            'event_time' : self.event_time,
+            'event_type' : self.event_type,
+            'event_response' : self.event_response
+        }
 
 
 class UserScopeLink(db.Model):
