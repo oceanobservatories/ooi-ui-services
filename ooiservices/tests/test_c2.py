@@ -521,7 +521,6 @@ class UserTestCase(unittest.TestCase):
         array_CP_platforms.append(CP02PMCO_SBS01_rd)
         # platform deployment 3
         array_CP_platforms.append(CP02PMUI_RII01_rd)
-
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # End of data setup. (Now have three arrays, three platforms, each populated with instruments)
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -532,8 +531,16 @@ class UserTestCase(unittest.TestCase):
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Basic positive tests - array
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # http://localhost:4000/c2/arrays
+        url = url_for('main.c2_get_arrays')
+        if verbose: print root+url
+        response = self.client.get(url, content_type=content_type, headers=headers)
+        self.assertTrue(response.status_code == 200)
+        data = json.loads(response.data)
+        self.assertTrue('arrays' in data)
+        self.assertTrue(len(data['arrays']) == len(arrays))
+
         # http://localhost:4000/c2/array/CP/abstract
-        array_code='CP'
         for array in arrays:
             array_code = array.array_code
             if verbose: print '\nArray: ', array_code
@@ -541,13 +548,21 @@ class UserTestCase(unittest.TestCase):
             if verbose: print root+url
             response = self.client.get(url, content_type=content_type, headers=headers)
             self.assertTrue(response.status_code == 200)
+            data = json.loads(response.data)
+            self.assertTrue('abstract' in data)
+            self.assertTrue(len(data['abstract']) > 0)
 
             # http://localhost:4000/c2/array/CP/current_status_display
             url = url_for('main.c2_get_array_current_status_display', array_code=array_code)
             if verbose: print root+url
             response = self.client.get(url,content_type=content_type, headers=headers)
             self.assertTrue(response.status_code == 200)
-
+            data = json.loads(response.data)
+            self.assertTrue('current_status_display' in data)
+            if array_code == 'CP':
+                self.assertTrue(len(data['current_status_display']) > 0)
+            else:
+                self.assertTrue(len(data['current_status_display']) == 0)
             # http://localhost:4000/c2/array/CP/history
             url = url_for('main.c2_get_array_history', array_code=array_code)
             if verbose: print root+url
@@ -582,6 +597,7 @@ class UserTestCase(unittest.TestCase):
             http://localhost:4000/c2/array//history
             http://localhost:4000/c2/array//status_display
             http://localhost:4000/c2/array//mission_display
+
         Following tests should generate bad_request (400), with consistent error message:
             http://localhost:4000/c2/array/no_such_array/abstract
             http://localhost:4000/c2/array/no_such_array/current_status_display
@@ -611,12 +627,9 @@ class UserTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         content_type = 'application/json'
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Setup data - Arrays
+        # Setup data - Arrays and Platforms
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         self.setup_array_data()
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Platforms
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         array_CP_platforms = []
         CP02PMCO_WFP01, CP02PMCO_SBS01, CP02PMUI_RII01 = self.create_CP_platform_deployments()
         CP02PMCO_WFP01_rd = CP02PMCO_WFP01.reference_designator
@@ -634,24 +647,22 @@ class UserTestCase(unittest.TestCase):
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Instruments
-        # Create multiple instrument deployments for multiple platforms
-        # Total number of instruments (5) created across all platforms (3)
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # (platform deployment 1) instrument deployment 1
         DOFSTK000_rd = 'CP02PMCO-WFP01-02-DOFSTK000'
-        DOFSTK000 = self.create_instrument_deployment(DOFSTK000_rd, CP02PMCO_WFP01_id)
+        self.create_instrument_deployment(DOFSTK000_rd, CP02PMCO_WFP01_id)
         # (platform deployment 1) instrument deployment 2
         CTDPFK000_rd = 'CP02PMCO-WFP01-03-CTDPFK000'
-        CTDPFK000 = self.create_instrument_deployment(CTDPFK000_rd, CP02PMCO_WFP01_id)
+        self.create_instrument_deployment(CTDPFK000_rd, CP02PMCO_WFP01_id)
         # (platform deployment 1) instrument deployment 3
         PARADK000_rd = 'CP02PMCO-WFP01-05-PARADK000'
-        PARADK000 = self.create_instrument_deployment(PARADK000_rd, CP02PMCO_WFP01_id)
+        self.create_instrument_deployment(PARADK000_rd, CP02PMCO_WFP01_id)
         # (platform deployment 2) instrument deployment 1
         MOPAK0000_rd = 'CP02PMCO-SBS01-01-MOPAK0000'
-        MOPAK0000 = self.create_instrument_deployment(MOPAK0000_rd, CP02PMCO_SBS01_id)
+        self.create_instrument_deployment(MOPAK0000_rd, CP02PMCO_SBS01_id)
         # (platform deployment 3) instrument deployment 1
         ADCPTG000_rd = 'CP02PMUI-RII01-02-ADCPTG000'
-        ADCPTG000 = self.create_instrument_deployment(ADCPTG000_rd, CP02PMUI_RII01_id)
+        self.create_instrument_deployment(ADCPTG000_rd, CP02PMUI_RII01_id)
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # End of data setup. (Now have three arrays, three platforms, each populated with instruments)
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -663,7 +674,14 @@ class UserTestCase(unittest.TestCase):
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Basic negative tests - array
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # http://localhost:4000/c2/array//current_status_display
+        # http://localhost:4000/c2/array/no/abstract
+        array_code='NO'
+        url = url_for('main.c2_get_array_abstract', array_code=array_code)
+        if verbose: print root+url
+        response = self.client.get(url, content_type=content_type, headers=headers)
+        self.assertTrue(response.status_code == 400)
+
+        # http://localhost:4000/c2/array//abstract
         array_code=''
         url = url_for('main.c2_get_array_abstract', array_code=array_code)
         if verbose: print root+url
@@ -780,28 +798,10 @@ class UserTestCase(unittest.TestCase):
         http://localhost:4000/c2/platform/CP02PMUI-RII01/mission/instruments_list
 
         '''
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Start data setup.
-        # Summary: 2 platform deployments, three instrument deployments
-        # Contents:
-        #     1. platform deployment:       CP02PMCO-WFP01
-        #         instrument deployment(1): CP02PMCO-WFP01-02-DOFSTK000,
-        #                              (2): CP02PMCO-WFP01-03-CTDPFK000
-        #                              (3): CP02PMCO-WFP01-05-PARADK000
-        #
-        #     2. platform deployment:       CP02PMCO-SBS01
-        #         instrument deployment(1): CP02PMCO-SBS01-01-MOPAK0000
-        #
-        #     3. platform deployment:       CP02PMUI_RII01
-        #         instrument deployment(1): CP02PMUI-RII01-02-ADCPTG000
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Setup data - Arrays
+        # Setup data - Arrays and Platforms
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         self.setup_array_data()
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Setup data - Platforms
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         array_CP_platforms = []
         CP02PMCO_WFP01, CP02PMCO_SBS01, CP02PMUI_RII01 = self.create_CP_platform_deployments()
         CP02PMCO_WFP01_rd = CP02PMCO_WFP01.reference_designator
@@ -818,26 +818,24 @@ class UserTestCase(unittest.TestCase):
         array_CP_platforms.append(CP02PMUI_RII01_rd)
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Setup data - Instruments
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Create multiple instrument deployments for multiple platforms
-        # Total number of instruments (5) created across all platforms (3)
+        # Setup data - Instruments (used by /ports_display)
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # (platform deployment 1) instrument deployment 1
         DOFSTK000_rd = 'CP02PMCO-WFP01-02-DOFSTK000'
-        DOFSTK000 = self.create_instrument_deployment(DOFSTK000_rd, CP02PMCO_WFP01_id)
+        self.create_instrument_deployment(DOFSTK000_rd, CP02PMCO_WFP01_id)
         # (platform deployment 1) instrument deployment 2
         CTDPFK000_rd = 'CP02PMCO-WFP01-03-CTDPFK000'
-        CTDPFK000 = self.create_instrument_deployment(CTDPFK000_rd, CP02PMCO_WFP01_id)
+        self.create_instrument_deployment(CTDPFK000_rd, CP02PMCO_WFP01_id)
         # (platform deployment 1) instrument deployment 3
         PARADK000_rd = 'CP02PMCO-WFP01-05-PARADK000'
-        PARADK000 = self.create_instrument_deployment(PARADK000_rd, CP02PMCO_WFP01_id)
+        self.create_instrument_deployment(PARADK000_rd, CP02PMCO_WFP01_id)
         # (platform deployment 2) instrument deployment 1
         MOPAK0000_rd = 'CP02PMCO-SBS01-01-MOPAK0000'
-        MOPAK0000 = self.create_instrument_deployment(MOPAK0000_rd, CP02PMCO_SBS01_id)
+        self.create_instrument_deployment(MOPAK0000_rd, CP02PMCO_SBS01_id)
         # (platform deployment 3) instrument deployment 1
         ADCPTG000_rd = 'CP02PMUI-RII01-02-ADCPTG000'
-        ADCPTG000 = self.create_instrument_deployment(ADCPTG000_rd, CP02PMUI_RII01_id)
+        self.create_instrument_deployment(ADCPTG000_rd, CP02PMUI_RII01_id)
+
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # End of data setup. (Now have three arrays, three platforms, each populated with instruments)
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -869,6 +867,9 @@ class UserTestCase(unittest.TestCase):
             if verbose: print root+url
             response = self.client.get(url, content_type=content_type, headers=headers)
             self.assertTrue(response.status_code == 200)
+            data = json.loads(response.data)
+            self.assertTrue('ports_display' in data)
+            self.assertTrue(len(data['ports_display']) > 0)
 
             #http://localhost:4000/c2/platform/CP02PMCO-WFP01/history
             url = url_for('main.c2_get_platform_history', reference_designator=platform)
@@ -1029,7 +1030,6 @@ class UserTestCase(unittest.TestCase):
 
         if verbose: print '\n'
 
-
     def test_c2_instrument_routes(self):
 
         verbose = self.verbose
@@ -1097,12 +1097,9 @@ class UserTestCase(unittest.TestCase):
         #         instrument deployment(1): CP02PMUI-RII01-02-ADCPTG000
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Setup data - Arrays
+        # Setup data - Arrays and Platforms
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         self.setup_array_data()
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Setup data - Platforms
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         array_CP_platforms = []
         CP02PMCO_WFP01, CP02PMCO_SBS01, CP02PMUI_RII01 = self.create_CP_platform_deployments()
         CP02PMCO_WFP01_rd = CP02PMCO_WFP01.reference_designator
@@ -1227,8 +1224,6 @@ class UserTestCase(unittest.TestCase):
         if verbose: print '\n'
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Basic positive tests - instrument deployment fields
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # test fields for instrument_deployment stream_name
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # http://localhost:4000/c2/instrument/CP02PMCO-WFP01-02-DOFSTK000/dofst_k_wfp_metadata/fields
@@ -1285,16 +1280,10 @@ class UserTestCase(unittest.TestCase):
             http://localhost:4000/c2/instrument/CP02PMUI-RII01-02-ADCPTG00XX/history
         * empty url params, 404 is returned
         '''
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Start data setup.
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Setup data - Arrays
+        # Setup data - Arrays and Platforms
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         self.setup_array_data()
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Setup data - Platforms
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         array_CP_platforms = []
         CP02PMCO_WFP01, CP02PMCO_SBS01, CP02PMUI_RII01 = self.create_CP_platform_deployments()
         CP02PMCO_WFP01_rd = CP02PMCO_WFP01.reference_designator
@@ -1312,9 +1301,6 @@ class UserTestCase(unittest.TestCase):
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Setup data - Instruments
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Create multiple instrument deployments for multiple platforms
-        # Total number of instruments (5) created across all platforms (3)
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # (platform deployment 1) instrument deployment 1
         DOFSTK000_rd = 'CP02PMCO-WFP01-02-DOFSTK000'
@@ -1509,9 +1495,9 @@ class UserTestCase(unittest.TestCase):
             http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission_selections
             http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission_selection/mission4
             http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission_selection/no_such_mission_store
-            *http://localhost:4000/c2/platform//mission_selection/mission4
-            *http://localhost:4000/c2/platform//mission_selection/no_such_mission_store
-            *http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission_selection/
+            http://localhost:4000/c2/platform//mission_selection/mission4
+            http://localhost:4000/c2/platform//mission_selection/no_such_mission_store
+            http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission_selection/
             http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission_selection/empty_mission
             http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/mission_display
             http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/mission_selections
@@ -1519,12 +1505,9 @@ class UserTestCase(unittest.TestCase):
             http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/mission_selection/mission_does_not_exist
         '''
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Setup data - Arrays
+        # Setup data - Arrays and Platforms
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         self.setup_array_data()
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Setup data - Platforms
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         array_CP_platforms = []
         CP02PMCO_WFP01, CP02PMCO_SBS01, CP02PMUI_RII01 = self.create_CP_platform_deployments()
         CP02PMCO_WFP01_rd = CP02PMCO_WFP01.reference_designator
@@ -1541,9 +1524,6 @@ class UserTestCase(unittest.TestCase):
         array_CP_platforms.append(CP02PMUI_RII01_rd)
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Setup data - Instruments
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Create multiple instrument deployments for multiple platforms
-        # Total number of instruments (5) created across all platforms (3)
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # (platform deployment 1) instrument deployment 1
         DOFSTK000_rd = 'CP02PMCO-WFP01-02-DOFSTK000'
@@ -1702,7 +1682,7 @@ class UserTestCase(unittest.TestCase):
         if debug: print '\n\ntest_instrument_update_fields (type=%s) (debug on)' % constant_type
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # for an instrument stream, get original field value, set to new value and check, then set back to original value
-        # e.g. set field_name 'control_Float32' from original_value to original_vale+10.5, then back to original_value
+        # e.g. set field_name 'control_TYPENAME' from original_value to original_value+delta, then back to original_value
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Setup data - Arrays
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

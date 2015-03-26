@@ -18,7 +18,7 @@ import simplejson
 # - - - - - - - - - - - - - - - - - - - - - - - -
 # C2 array routes
 # - - - - - - - - - - - - - - - - - - - - - - - -
-#TODO enable auth and scope; get operational status from uframe
+#TODO enable auth and scope
 @api.route('/c2/arrays', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
@@ -45,6 +45,7 @@ def c2_get_array_abstract(array_code):
     return jsonify(abstract=response_dict)
 
 def get_array_abstract(array_code):
+    # raise, don't return error
     array = Array.query.filter_by(array_code=array_code).first()
     if not array:
         return bad_request('unknown array (array_code: \'%s\')' % array_code)
@@ -215,33 +216,28 @@ def c2_get_platform_history(reference_designator):
 def c2_get_platform_ports_display(reference_designator):
     #Get C2 platform Ports tab contents, return ports_display ([{},{},...] where
     # dicts for each instrument_deployment in platform_deployment:
-    #    {
-    #       'port'              : '##',                 # string, two char port number
-    #       'port_status'       : 'Online',             # string, one of {'Online' | 'Offline' | 'Unknown'}
-    #       'port_available'    : 'False',              # bool, if True port is available for assignment
-    #       'instrument'        : reference_designator  # string, reference_designator
-    #       'class'             : iclass,               # string, 'AAAAA' i.e. instrument class
-    #       'series'            : iseries,              # string, 'A', i.e. instrument series
-    #       'sequence'          : iseq,                 # string, instrument sequence number
-    #       'instrument_status' : istatus               # string, one of {'Online' | 'Offline' | 'Unknown'}
-    # }
     #   For example:
-    #   ports_display =  [{'port': '##', 'port_status': 'Online', 'port_available': 'True',
-    #                      'instrument': 'reference_designator', 'class': 'AAAAA',  'series': 'A',
-    #                      'sequence': '###', 'instrument_status': 'Online'}, {}, {}, ...]
-    #   UI Note:
-    #   For UI display use:     port, port_status, class, instrument_status  (See wireframe C2 - Ports)
-    #   For UI navigation(?):   to instrument (ala reference_designator),
-    #   (i.e. populate using: /c2/instrument/reference_designator/route_endpoint
-    #       where platform endpoints are: abstract, current_status_display, history, , commands,
-    #           status_display, mission_display
+    #   http://localhost:4000/c2/platform/CP02PMCO-WFP01/ports_display
+    #   response:
+    #   {"ports_display": [
+    #                        {
+    #                          "class": "PARAD",
+    #                          "instrument": "CP02PMCO-WFP01-05-PARADK000",
+    #                          "instrument_status": "Online",
+    #                          "port": "05",
+    #                          "port_available": "False",
+    #                          "port_status": "Online",
+    #                          "sequence": "000",
+    #                          "series": "K"
+    #                        },
+    #                   ...]}
     #
     # Samples:
-    # http://localhost:4000/c2/platform/CP02PMCO-WFP01/ports_display    Pioneer (CP)
-    # http://localhost:4000/c2/platform/CP02PMCO-RII01/ports_display    Pioneer (CP)
-    # http://localhost:4000/c2/platform/CP02PMCO-SBS01/ports_display    Pioneer (CP)
-    # http://localhost:4000/c2/platform/CE01ISSM-MFD00/ports_display    Endurance (CE)
-    # http://localhost:4000/c2/platform/RS03ECAL-MJ03E/ports_display    Regional Scale (RS)
+    #   http://localhost:4000/c2/platform/CP02PMCO-WFP01/ports_display    Pioneer (CP)
+    #   http://localhost:4000/c2/platform/CP02PMCO-RII01/ports_display    Pioneer (CP)
+    #   http://localhost:4000/c2/platform/CP02PMCO-SBS01/ports_display    Pioneer (CP)
+    #   http://localhost:4000/c2/platform/CE01ISSM-MFD00/ports_display    Endurance (CE)
+    #   http://localhost:4000/c2/platform/RS03ECAL-MJ03E/ports_display    Regional Scale (RS)
     contents = []
     platform_info = {}
     platform_deployment = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first()
@@ -306,7 +302,7 @@ def c2_get_platform_status_display(reference_designator):
     return jsonify(status_display=status_display)
 
 #TODO enable auth and scope
-#TODO complete with commands provided by uframe (TBD)
+#TODO complete with commands from uframe (TBD)
 @api.route('/c2/platform/<string:reference_designator>/commands', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
@@ -399,7 +395,7 @@ def c2_get_instrument_status_display(reference_designator):
 #@auth.login_required
 #@scope_required(u'user_admin')
 def c2_get_instrument_commands(reference_designator):
-    #Get C2 instrument commands (pulldown list) contents, return commands [{},{},...]
+    #Get C2 instrument commands, return commands [{},{},...]
     if not _instrument_deployment(reference_designator):
         return bad_request('unknown instrument_deployment (reference_designator: \'%s\')' % reference_designator)
     commands = []
@@ -428,7 +424,7 @@ def c2_get_instrument_fields(reference_designator, stream_name):
         bad_request('Invalid stream name (\'%s\') for instrument (\'%s\')' % (stream_name, reference_designator))
         bad_request('Malformed fields data; not in valid json format (\'%s\',\'%s\')' % (reference_designator, stream_name))
     '''
-    # Verify reference_designator is for known instrument_deployment; get streams
+    # Verify reference_designator is for existing instrument_deployment; get streams
     if not _instrument_deployment(reference_designator):
         return bad_request('unknown instrument_deployment (reference_designator: \'%s\')' % reference_designator)
     streams = None
@@ -445,9 +441,7 @@ def c2_get_instrument_fields(reference_designator, stream_name):
     if stream_name not in streams:
         return bad_request('Invalid stream name (\'%s\') for instrument (\'%s\')' % (stream_name, reference_designator))
     # Get and add fields to output
-    #display_content = {}
     field_contents = []
-    #fields = None
     try:
         fields = c2_get_instrument_stream_fields(reference_designator, stream_name)
     except Exception, err:
@@ -472,12 +466,6 @@ def c2_get_instrument_fields(reference_designator, stream_name):
                 inx += 1
         for field_name in ofields:
             field_contents.append(fields[field_name])
-    #display_content['data'] = field_contents
-    # prepare output result
-    #result = []
-    #display_content['stream_name'] = stream_name
-    #result.append(display_content)
-    #return jsonify(fields=result)
     return jsonify(fields=field_contents)
 
 #TODO enable auth and scope
@@ -564,7 +552,7 @@ def c2_update_instrument_field_value(reference_designator, stream_name, field_na
                 (filename,  field_name, stream_name,reference_designator))
     return jsonify({'message': 'field updated', 'field': field_name, 'value': value }), 200
 
-#TODO enable auth and scope, under constructions; tests required!!!
+#TODO enable auth and scope
 @api.route('/c2/instrument/<string:reference_designator>/<string:stream_name>/<string:field_name>', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
@@ -624,7 +612,7 @@ def _instrument_deployment(reference_designator):
     result = InstrumentDeployment.query.filter_by(reference_designator=reference_designator).first()
     return result
 
-#TODO get history from proper source (TBD)
+#TODO get history from proper source
 def get_history(reference_designator):
     # C2 make fake history for event, command and configuration
     history = { 'event': [], 'command': [], 'configuration':[] }
@@ -651,9 +639,9 @@ def get_history(reference_designator):
     history['configuration'].append(configuration)
     return history
 
-#----------------------------------------------------
-#-- file based helpers for array_display (replace)
-#----------------------------------------------------
+#--------------------------------------------------------------
+#-- file based helpers for array_display (replace with uframe)
+#--------------------------------------------------------------
 def c2_get_platforms_operational_status(reference_designator):
     # Get C2 platform statuses (list of dict) [ {}, {}, {}, ...]
     statuses = None
