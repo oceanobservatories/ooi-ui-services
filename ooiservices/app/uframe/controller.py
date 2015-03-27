@@ -319,7 +319,6 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type,
                        current_app.config['UFRAME_URL_BASE'])
         url = '/'.join([UFRAME_DATA, mooring, platform, instrument, stream_type,
                         stream])
-        print "******",url
         return requests.get(url)
     except:
         return internal_server_error('uframe connection cannot be made.')
