@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 '''
 Specific testing for Command and Control (C2)
-To determine C2 routes (for examples or coverage), set verbose to True.
-To debug a specific test, set debug to True while debugging.
-(Always set verbose and debug to False at check in.)
 '''
 __author__ = 'Edna Donoughe'
 
@@ -36,6 +33,7 @@ class UserTestCase(unittest.TestCase):
         test_username = 'admin'
         test_password = 'test'
         Organization.insert_org()
+
         User.insert_user(username=test_username, password=test_password)
 
         self.client = self.app.test_client(use_cookies=False)
@@ -187,6 +185,19 @@ class UserTestCase(unittest.TestCase):
             db.session.add(ADCPTG000)
             db.session.commit()
             instrument_deployment = ADCPTG000
+
+        elif instrument_reference_designator == 'CP02TEST-SBS01-01-MOPAK0000':
+            test = InstrumentDeployment(reference_designator=instrument_reference_designator)
+            test.depth = 1000.0
+            test.display_name = 'Test instrument'
+            test.end_date = dt.datetime.now()
+            test.geo_location = 'POINT(-70 40)'
+            test.platform_deployment_id = platform_deployment_id
+            test.reference_designator = instrument_reference_designator
+            test.start_date = dt.datetime.now()
+            db.session.add(test)
+            db.session.commit()
+            instrument_deployment = test
         else:
             instrument_deployment = InstrumentDeployment(reference_designator=instrument_reference_designator)
             instrument_deployment.reference_designator = platform_deployment_id
@@ -238,10 +249,6 @@ class UserTestCase(unittest.TestCase):
         self.assertTrue(response.status_code == 200)
         response = self.client.get(url_for('main.get_array', id='CP'), content_type=content_type)
         self.assertTrue(response.status_code == 200)
-
-        # verify resulting fields for array are returned
-        #response_data = response.data
-        #self.assertTrue(self._check_array_fields_provided(response_data))
 
         response = self.client.get(url_for('main.get_arrays'), content_type=content_type)
         self.assertTrue(response.status_code == 200)
@@ -797,6 +804,31 @@ class UserTestCase(unittest.TestCase):
         http://localhost:4000/c2/platform/CP02PMUI-RII01/commands
         http://localhost:4000/c2/platform/CP02PMUI-RII01/mission/instruments_list
 
+        Manually testing RS:
+        http://localhost:4000/c2/platform/RS03ASHS-ID03A/abstract
+        http://localhost:4000/c2/platform/RS03ASHS-ID03A/current_status_display
+        http://localhost:4000/c2/platform/RS03ASHS-ID03A/ports_display
+        http://localhost:4000/c2/platform/RS03ASHS-ID03A/history
+        *http://localhost:4000/c2/platform/RS03ASHS-ID03A/status_display
+        *http://localhost:4000/c2/platform/RS03ASHS-ID03A/mission_display
+        http://localhost:4000/c2/platform/RS03ASHS-ID03A/commands
+        http://localhost:4000/c2/platform/RS03ASHS-ID03A/mission/instruments_list
+
+        http://localhost:4000/c2/instrument/RS03ASHS-ID03A-06-CAMHDA301/abstract
+        http://localhost:4000/c2/instrument/RS03ASHS-ID03A-06-CAMHDA301/commands
+        http://localhost:4000/c2/instrument/RS03ASHS-ID03A-06-CAMHDA301/history
+        http://localhost:4000/c2/instrument/RS03ASHS-ID03A-06-CAMHDA301/streams
+        http://localhost:4000/c2/instrument/RS03ASHS-ID03A-06-CAMHDA301/stream1/fields
+        http://localhost:4000/c2/instrument/RS03ASHS-ID03A-06-CAMHDA301/stream_types
+        http://localhost:4000/c2/instrument/RS03ASHS-ID03A-06-CAMHDA301/ports_display
+
+        http://localhost:4000/c2/instrument/RS03ASHS-MJ03B-05-OBSSPA302/abstract
+        http://localhost:4000/c2/instrument/RS03ASHS-MJ03B-05-OBSSPA302/commands
+        http://localhost:4000/c2/instrument/RS03ASHS-MJ03B-05-OBSSPA302/streams
+        http://localhost:4000/c2/instrument/RS03ASHS-MJ03B-05-OBSSPA302/stream_types
+        http://localhost:4000/c2/instrument/RS03ASHS-MJ03B-05-OBSSPA302/ports_display
+
+
         '''
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Setup data - Arrays and Platforms
@@ -922,7 +954,7 @@ class UserTestCase(unittest.TestCase):
         All shall return error (400) with following bad_request message (consistency):
             {
               "error": "bad request",
-              "message": "unknown platform_deployment (reference_designator: 'BAD')"
+              "message": "unknown platform_deployment ('BAD')"
             }
         '''
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -930,7 +962,7 @@ class UserTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         content_type =  'application/json'
         headers = self.get_api_headers('admin', 'test')
-        error_text = "unknown platform_deployment (reference_designator: 'BAD')"
+        error_text = "unknown platform_deployment ('BAD')"
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # basic negative tests - platform is 'BAD'
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1046,6 +1078,7 @@ class UserTestCase(unittest.TestCase):
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-02-DOFSTK000/history
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-02-DOFSTK000/status_display
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-02-DOFSTK000/mission_display
+        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-02-DOFSTK000/stream_types
 
         Instrument:  CP02PMCO-WFP01-03-CTDPFK000
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-03-CTDPFK000/abstract
@@ -1055,6 +1088,7 @@ class UserTestCase(unittest.TestCase):
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-03-CTDPFK000/history
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-03-CTDPFK000/status_display
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-03-CTDPFK000/mission_display
+        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-03-CTDPFK000/stream_types
 
         Instrument:  CP02PMCO-WFP01-05-PARADK000
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/abstract
@@ -1064,6 +1098,7 @@ class UserTestCase(unittest.TestCase):
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/history
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/status_display
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/mission_display
+        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/stream_types
 
         Instrument:  CP02PMCO-SBS01-01-MOPAK0000
         http://localhost:4000/c2/instrument/CP02PMCO-SBS01-01-MOPAK0000/abstract
@@ -1073,6 +1108,8 @@ class UserTestCase(unittest.TestCase):
         http://localhost:4000/c2/instrument/CP02PMCO-SBS01-01-MOPAK0000/history
         http://localhost:4000/c2/instrument/CP02PMCO-SBS01-01-MOPAK0000/status_display
         http://localhost:4000/c2/instrument/CP02PMCO-SBS01-01-MOPAK0000/mission_display
+        http://localhost:4000/c2/instrument/CP02PMCO-SBS01-01-MOPAK0000/stream_types
+        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/parad_k_stc_imodem_instrument/parad_k_par
 
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-02-DOFSTK000/dofst_k_wfp_metadata/fields
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/parad_k_stc_imodem_instrument/fields
@@ -1080,6 +1117,16 @@ class UserTestCase(unittest.TestCase):
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-03-CTDPFK000/ctdpf_ckl_wfp_instrument/fields
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-03-CTDPFK000/ctdpf_ckl_wfp_metadata/fields
 
+        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-02-DOFSTK000/streams
+        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-02-DOFSTK000/dofst_k_wfp_metadata/fields
+        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-02-DOFSTK000/dofst_k_wfp_instrument/fields
+        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-03-CTDPFK000/streams
+        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-03-CTDPFK000/ctdpf_ckl_wfp_metadata/fields
+        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-03-CTDPFK000/ctdpf_ckl_wfp_instrument/fields
+        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/streams
+        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/parad_k_stc_imodem_instrument/fields
+        http://localhost:4000/c2/instrument/CP02PMCO-SBS01-01-MOPAK0000/streams
+        http://localhost:4000/c2/instrument/CP02PMCO-SBS01-01-MOPAK0000/mopak_o_dcl_accel/fields
         '''
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Start data setup.
@@ -1089,10 +1136,8 @@ class UserTestCase(unittest.TestCase):
         #         instrument deployment(1): CP02PMCO-WFP01-02-DOFSTK000,
         #                              (2): CP02PMCO-WFP01-03-CTDPFK000
         #                              (3): CP02PMCO-WFP01-05-PARADK000
-        #
         #     2. platform deployment:       CP02PMCO-SBS01
         #         instrument deployment(1): CP02PMCO-SBS01-01-MOPAK0000
-        #
         #     3. platform deployment:       CP02PMUI_RII01
         #         instrument deployment(1): CP02PMUI-RII01-02-ADCPTG000
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1194,11 +1239,17 @@ class UserTestCase(unittest.TestCase):
             response = self.client.get(url, content_type=content_type, headers=headers)
             self.assertTrue(response.status_code == 200)
 
+            #http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/stream_types
+            url = url_for('main.c2_get_instrument_stream_types', reference_designator=instrument)
+            if verbose: print root+url
+            response = self.client.get(url, content_type=content_type, headers=headers)
+            self.assertTrue(response.status_code == 200)
+
         # Field specific tests
         # http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/parad_k_stc_imodem_instrument/parad_k_par
         instrument = PARADK000.reference_designator
         stream_name = 'parad_k_stc_imodem_instrument'
-        field_name = 'parad_k_par'
+        field_name = 'sampling_interval'
         url = url_for('main.c2_get_instrument_stream_field', reference_designator=instrument,
                       stream_name=stream_name, field_name=field_name)
         if verbose: print root+url
@@ -1208,15 +1259,12 @@ class UserTestCase(unittest.TestCase):
         res = {}
         res = data['field']
         # verify expected attributes are present
-        self.assertTrue('units' in res)
-        self.assertTrue('name' in res)
-        self.assertTrue('value' in res)
-        self.assertTrue('type' in res)
-        valid_attributes = ['units','name','value','type']
-        # verify only expected (valid) attributes for field
+        valid_attributes = ['units', 'name', 'value', 'type', 'display_name']
+        for attribute in valid_attributes:
+            self.assertTrue(attribute in res)
+        # verify only expected (valid) attributes for field are present
         for k,v in res.iteritems():
             self.assertTrue(k in valid_attributes)
-
         #http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/parad_k_stc_imodem_instrument/fields
         #http://localhost:4000/c2/instrument/CP02PMCO-WFP01-03-CTDPFK000/commands
         #http://localhost:4000/c2/instrument/CP02PMCO-WFP01-02-DOFSTK000/dofst_k_wfp_metadata/fields
@@ -1244,6 +1292,36 @@ class UserTestCase(unittest.TestCase):
             self.assertTrue('fields' in data)
             self.assertTrue(len(data['fields']) > 0)
 
+        #TODO for each instrument, get streams, for each stream get fields
+        if verbose: print '\n'
+        for instrument in platform_instruments:
+            url = url_for('main.c2_get_instrument_streams', reference_designator=instrument)
+            if verbose: print root+url
+            response = self.client.get(url, content_type=content_type, headers=headers)
+            self.assertTrue(response.status_code == 200)
+            '''
+            if not response.data:
+                if debug: print 'no streams for instrument: ', instrument
+                self.assertTrue(1==0)
+            '''
+            data = json.loads(response.data)
+            self.assertTrue('streams' in data)
+            streams = data['streams']['stream_names']
+            if streams:
+                if len(streams) > 0:
+                    for stream in streams:
+                        #print '\n\n*** instrument: ',instrument
+                        #print '\n\n*** stream: ',stream
+                        url = url_for('main.c2_get_instrument_fields', reference_designator=instrument, stream_name=stream)
+                        if verbose: print root+url
+                        response = self.client.get(url, content_type=content_type, headers=headers)
+                        self.assertTrue(response.status_code == 200)
+                        data = json.loads(response.data)
+                        self.assertTrue('fields' in data)
+                        self.assertTrue(len(data['fields']) > 0)
+                else:
+                    if verbose: print '\n***no streams for instrument: ', instrument
+
         if verbose: print '\n'
 
     def test_c2_instrument_routes_negative(self):
@@ -1258,27 +1336,30 @@ class UserTestCase(unittest.TestCase):
             http://localhost:4000/c2/instrument/BAD/status_display
             http://localhost:4000/c2/instrument/BAD/mission_display
             http://localhost:4000/c2/instrument/BAD/commands
+            http://localhost:4000/c2/instrument/BAD/streams
             http://localhost:4000/c2/instrument/BAD/mission_selections
             http://localhost:4000/c2/instrument/BAD/mission_selection/mission4
+            http://localhost:4000/c2/instrument/BAD/stream_types
 
         All shall return error (400) with following bad_request message (tested for consistency):
             {
               "error": "bad request",
-              "message": "unknown platform_deployment (reference_designator: 'BAD')"
+              "message": "unknown platform_deployment ('BAD')"
             }
 
         Additional negative tests:
             http://localhost:4000/c2/instrument/CP02PMUI-RII01-02-ADCPTG000/commands
             http://localhost:4000/c2/instrument/CP02PMCO-WFP01-03-CTDPFK000/commands
-            http://localhost:4000/c2/instrument//ctdpf_ckl_wfp_metadata/fields                      (*)
+            http://localhost:4000/c2/instrument//ctdpf_ckl_wfp_metadata/fields
             http://localhost:4000/c2/instrument/no_such_instrument/ctdpf_ckl_wfp_metadata/fields
-            http://localhost:4000/c2/instrument/CP02PMCO-WFP01-03-CTDPFK000//fields                 (*)
+            http://localhost:4000/c2/instrument/CP02PMCO-WFP01-03-CTDPFK000//fields
             http://localhost:4000/c2/instrument/CP02PMCO-WFP01-03-CTDPFK000/no_such_stream/fields
             http://localhost:4000/c2/instrument/CP02PMUI-RII01-02-ADCPTG000/streams
-            http://localhost:4000/c2/instrument/CP02PMUI-RII01-02-ADCPTG00XX/streams
-            http://localhost:4000/c2/instrument/CP02PMUI-RII01-02-ADCPTG00XX/history
-            http://localhost:4000/c2/instrument/CP02PMUI-RII01-02-ADCPTG00XX/history
-        * empty url params, 404 is returned
+            http://localhost:4000/c2/instrument/CP02PMUI-RII01-02-ADCPTG0XX/streams
+            http://localhost:4000/c2/instrument/CP02PMUI-RII01-02-ADCPTG0XX/stream_types
+            http://localhost:4000/c2/instrument/CP02PMUI-RII01-02-ADCPTG0XX/history
+
+        Note, when empty url params, 404 is returned
         '''
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Setup data - Arrays and Platforms
@@ -1325,7 +1406,7 @@ class UserTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         content_type =  'application/json'
         headers = self.get_api_headers('admin', 'test')
-        error_text = "unknown instrument_deployment (reference_designator: 'BAD')"
+        error_text = "unknown instrument_deployment ('BAD')"
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # basic negative tests - instrument
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1412,11 +1493,17 @@ class UserTestCase(unittest.TestCase):
         self.assertTrue('message' in data)
         self.assertEquals(data['message'], error_text)
 
+        #http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/stream_types
+        url = url_for('main.c2_get_instrument_stream_types', reference_designator=instrument)
+        if verbose: print root+url
+        response = self.client.get(url, content_type=content_type, headers=headers)
+        self.assertTrue(response.status_code == 400)
+
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Basic negative tests - instrument
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # http://localhost:4000/c2/instrument/CP02PMUI-RII01-02-ADCPTG000/commands
-        # message: "Failed to retrieve commands for instrument (reference designator 'CP02PMUI-RII01-02-ADCPTG000')"
+        # message: "Failed to retrieve commands for instrument ('CP02PMUI-RII01-02-ADCPTG000')"
         instrument = ADCPTG000.reference_designator #'CP02PMUI-RII01-02-ADCPTG000'
         url = url_for('main.c2_get_instrument_commands', reference_designator=instrument)
         if verbose: print root+url
@@ -1476,9 +1563,23 @@ class UserTestCase(unittest.TestCase):
 
         # Negative tests for invalid instrument - 400 same message for all! CHECK
         # http://localhost:4000/c2/instrument/CP02PMUI-RII01-02-ADCPTG000XX/streams
-        # "unknown instrument (reference_designator: 'CP02PMUI-RII01-02-ADCPTG0XXX')"
-        invalid_instrument_no_streams = 'CP02PMUI-RII01-02-ADCPTG00XX'
+        # "unknown instrument_deployment('CP02PMUI-RII01-02-ADCPTG0XXX')"
+        invalid_instrument_no_streams = 'CP02PMUI-RII01-02-ADCPTG0XX'
         url = url_for('main.c2_get_instrument_streams', reference_designator=invalid_instrument_no_streams)
+        if verbose: print root+url
+        response = self.client.get(url, content_type=content_type, headers=headers)
+        self.assertTrue(response.status_code == 400)
+
+        #http://localhost:4000/c2/instrument/CP02PMUI-RII01-02-ADCPTG00XX/stream_types
+        invalid_instrument = 'CP02PMUI-RII01-02-ADCPTG0XX'
+        url = url_for('main.c2_get_instrument_stream_types', reference_designator=invalid_instrument)
+        if verbose: print root+url
+        response = self.client.get(url, content_type=content_type, headers=headers)
+        self.assertTrue(response.status_code == 400)
+
+        #http://localhost:4000/c2/instrument/CP02PMUI-RII01-02-ADCPTG00XX/history
+        invalid_instrument = 'CP02PMUI-RII01-02-ADCPTG0XX'
+        url = url_for('main.c2_get_instrument_history', reference_designator=invalid_instrument)
         if verbose: print root+url
         response = self.client.get(url, content_type=content_type, headers=headers)
         self.assertTrue(response.status_code == 400)
@@ -1652,24 +1753,24 @@ class UserTestCase(unittest.TestCase):
         if verbose: print '\n'
 
     def _c2_instrument_update_field(self):
-        #TODO use this test during development only since it modifies data files
-        #TODO disable before check in (remove prefix test from def name)
-        #TODO enable when file based data is no longer used for testing
+        # use this test during development only since it modifies data files
+        # disable before check in (remove prefix test from def name)
+        # enable when file based data is no longer used for testing
 
-        field_name = 'control_Int32'
-        field_type = 'Int32'
+        field_name = 'control_int'
+        field_type = 'int'
         field_value = '37'
         delta = 277
         self._instrument_update_fields(field_name, field_type, field_value, delta)
 
-        field_name = 'control_Float32'
-        field_type = 'Float32'
+        field_name = 'control_float'
+        field_type = 'float'
         field_value = '0.0101010101'
         delta = 10.5
         self._instrument_update_fields(field_name, field_type, field_value, delta)
 
-        field_name = 'control_String'
-        field_type = 'String'
+        field_name = 'control_string'
+        field_type = 'string'
         field_value = 'ok'
         delta = '*'
         self._instrument_update_fields(field_name, field_type, field_value, delta)
@@ -1694,24 +1795,18 @@ class UserTestCase(unittest.TestCase):
         # platform deployment 2
         CP02PMCO_SBS01_id = CP02PMCO_SBS01.id
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Setup data - Instrument (Create instrument deployment for platform 2)
+        # Setup data - Instrument (Create TEST instrument deployment for platform 2)
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        MOPAK0000_rd = 'CP02PMCO-SBS01-01-MOPAK0000'
+        # http://localhost:4000/c2/instrument/CP02TEST-SBS01-01-MOPAK0000/test/fields
+        MOPAK0000_rd = 'CP02TEST-SBS01-01-MOPAK0000'
         MOPAK0000 = self.create_instrument_deployment(MOPAK0000_rd, CP02PMCO_SBS01_id)
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # End of data setup. (Now have three arrays, three platforms, each populated with instruments)
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Proceed with C2 tests
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        content_type = 'application/json'
-        headers = self.get_api_headers('admin', 'test')
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Basic positive tests for instrument_update route
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # set constants to be held throughout unit test; only variable is field_value
         const_instrument = MOPAK0000.reference_designator
         self.assertEquals(const_instrument, MOPAK0000_rd)
-        const_stream_name = 'mopak_o_dcl_accel'
+        const_stream_name = 'fields'
         const_command_name = 'SET'
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # GET instrument stream original fields; save to restore values
@@ -1735,22 +1830,22 @@ class UserTestCase(unittest.TestCase):
         original_field_type = original_fields[const_field_name]['type']
         self.assertEquals(original_field_type, constant_type)
         try:
-            if constant_type == 'Int32' or constant_type == 'Int64':
+            if constant_type == 'int':
                 original_field_value = int(s_original_field_value)
-            elif constant_type == 'String':
+            elif constant_type == 'string':
                 original_field_value = str(s_original_field_value)
-            elif constant_type == 'Float32' or constant_type == 'Float64':
+            elif constant_type == 'float':
                 original_field_value = float(s_original_field_value)
             else:
                 raise Exception('')
         except:
             # Raise error to fail test
-            if constant_type == 'Int32' or constant_type == 'Int64':
-                self.assertTrue('original field value not of type Int' == 0)
-            elif constant_type == 'String':
-                self.assertTrue('original field value not of type String' == 0)
-            elif constant_type == 'Float32' or constant_type == 'Float64':
-                self.assertTrue('original field value not of type Float' == 0)
+            if constant_type == 'int':
+                self.assertTrue('original field value not of type int' == 0)
+            elif constant_type == 'string':
+                self.assertTrue('original field value not of type string' == 0)
+            elif constant_type == 'float':
+                self.assertTrue('original field value not of type float' == 0)
             else:
                 self.assertTrue('original field value not of type specified' == 0)
         if debug:
@@ -1786,25 +1881,25 @@ class UserTestCase(unittest.TestCase):
             print 'field_name:  ', const_field_name
             print 'new_field_value: \'%r\'\n' % new_field_value
         try:
-            if constant_type == 'Int32' or constant_type == 'Int64':
+            if constant_type == 'int':
                 new_field_value_returned = int(new_fields[const_field_name]['value'])
                 self.assertTrue(new_field_value_returned == new_field_value)
-            elif constant_type == 'String':
+            elif constant_type == 'string':
                 new_field_value_returned = str(new_fields[const_field_name]['value'])
                 self.assertTrue(new_field_value_returned == new_field_value)
-            elif constant_type == 'Float32' or constant_type == 'Float64':
+            elif constant_type == 'float':
                 new_field_value_returned = float(new_fields[const_field_name]['value'])
                 self.assertTrue(new_field_value_returned == new_field_value)
             else:
                 raise Exception('')
         except:
             # Raise error to fail test
-            if constant_type == 'Int32' or constant_type == 'Int64':
-                self.assertTrue('original field value not of type Int' == 0)
-            elif constant_type == 'String':
-                self.assertTrue('original field value not of type String' == 0)
-            elif constant_type == 'Float32' or constant_type == 'Float64':
-                self.assertTrue('original field value not of type Float' == 0)
+            if constant_type == 'int':
+                self.assertTrue('original field value not of type int' == 0)
+            elif constant_type == 'string':
+                self.assertTrue('original field value not of type string' == 0)
+            elif constant_type == 'float':
+                self.assertTrue('original field value not of type float' == 0)
             else:
                 self.assertTrue('original field value not of type specified' == 0)
 
@@ -1834,22 +1929,22 @@ class UserTestCase(unittest.TestCase):
         # create keyed dict for restored fields (dict key='name')
         restored_fields = self.get_fields(restored_list_of_fields)
         try:
-            if constant_type == 'Int32' or constant_type == 'Int64':
+            if constant_type == 'int':
                 restored_field_value = int(restored_fields[const_field_name]['value'])
-            elif constant_type == 'String':
+            elif constant_type == 'string':
                 restored_field_value = str(restored_fields[const_field_name]['value'])
-            elif constant_type == 'Float32' or constant_type == 'Float64':
+            elif constant_type == 'float':
                 restored_field_value = float(restored_fields[const_field_name]['value'])
             else:
                 raise Exception()
         except:
             # Raise error to fail test
-            if constant_type == 'Int32' or constant_type == 'Int64':
-                self.assertTrue('original field value not of type Int' == 0)
-            elif constant_type == 'String':
-                self.assertTrue('original field value not of type String' == 0)
-            elif constant_type == 'Float32' or constant_type == 'Float64':
-                self.assertTrue('original field value not of type Float' == 0)
+            if constant_type == 'int':
+                self.assertTrue('original field value not of type int' == 0)
+            elif constant_type == 'string':
+                self.assertTrue('original field value not of type string' == 0)
+            elif constant_type == 'float':
+                self.assertTrue('original field value not of type float' == 0)
             else:
                 self.assertTrue('original field value not of type specified' == 0)
 
@@ -1857,6 +1952,79 @@ class UserTestCase(unittest.TestCase):
         if debug:
             print 'field_name:  ', const_field_name
             print 'field_value: %r' % restored_field_value
+
+    def test_c2_instrument_update_fields_negative(self):
+        verbose = self.verbose
+        root = self.root
+        if verbose: print '\n'
+        debug = False
+        if debug: print '\n\ntest_c2_instrument_update_fields_negative (invalid type) (debug on)'
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Setup data - Arrays and Platforms - (using platform 2 (CP02PMCO_SBS01))
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        self.setup_array_data()
+        CP02PMCO_WFP01, CP02PMCO_SBS01, CP02PMUI_RII01 = self.create_CP_platform_deployments()
+        # platform deployment 2
+        CP02PMCO_SBS01_id = CP02PMCO_SBS01.id
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Setup data - Instrument (Create TEST instrument deployment for platform 2)
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        MOPAK0000_rd = 'CP02TEST-SBS01-01-MOPAK0000'
+        MOPAK0000 = self.create_instrument_deployment(MOPAK0000_rd, CP02PMCO_SBS01_id)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Proceed with C2 tests
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        content_type = 'application/json'
+        headers = self.get_api_headers('admin', 'test')
+        valid_types = ['int', 'string', 'float']
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Basic tests for instrument_update route
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # set constants to be held throughout unit test; only variable is field_value
+        const_instrument = MOPAK0000.reference_designator
+        self.assertEquals(const_instrument, MOPAK0000_rd)
+        const_stream_name = 'test'
+        const_command_name = 'SET'
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # GET instrument stream where type is unknown
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if debug: print '\nGET current field_value containing invalid type value'
+        response = self.GET_instrument_fields(verbose, const_instrument, const_stream_name)
+        self.assertTrue(response.status_code == 200)
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # PUT new value when invalid field_type
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if debug: print 'PUT new field_value, invalid field_type'
+        const_field_name = 'control_bad'
+        original_field_value = '314'
+        delta = '37'
+        new_field_value = original_field_value + delta
+        response = self.PUT_instrument_update(verbose, const_instrument, const_stream_name, const_field_name,
+                                              const_command_name, new_field_value)
+        self.assertTrue(response.status_code == 400)
+
+        if debug: print 'PUT new field_value int when field_type is float'
+        const_field_name = 'control_float'
+        original_field_value = '314'
+        delta = '37'
+        new_field_value = original_field_value + delta
+        response = self.PUT_instrument_update(verbose, const_instrument, const_stream_name, const_field_name,
+                                              const_command_name, new_field_value)
+        self.assertTrue(response.status_code == 200)
+
+        if debug: print 'PUT new field_value string when field_type is float'
+        const_field_name = 'control_float'
+        new_field_value = 'hello there'
+        response = self.PUT_instrument_update(verbose, const_instrument, const_stream_name, const_field_name,
+                                              const_command_name, new_field_value)
+        self.assertTrue(response.status_code == 400)
+
+        if debug: print 'PUT new field_value string when field_type is int'
+        const_field_name = 'control_int'
+        new_field_value = 'hello there'
+        response = self.PUT_instrument_update(verbose, const_instrument, const_stream_name, const_field_name,
+                                              const_command_name, new_field_value)
+        self.assertTrue(response.status_code == 400)
 
     # helpers
     def get_fields(self, list_of_fields):
@@ -1872,23 +2040,27 @@ class UserTestCase(unittest.TestCase):
 
     def GET_instrument_fields(self, verbose, reference_designator, stream_name):
         '''
+        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/parad_k_stc_imodem_instrument/fields
         data:
-        {"fields": [
-                    {
-                      "id": 1,
-                      "name": "parad_k_par",
-                      "type": "Float32",
-                      "units": "umol photons m-2 s-1",
-                      "value": "0.27"
-                    },
-                    {
-                      "id": 2,
-                      "name": "preferred_timestamp",
-                      "type": "String",
-                      "units": "1",
-                      "value": "internal_timestamp"
-                    },...
-                    ]
+        {
+          "fields": [
+            {
+              "display_name": "Sampling Interval",
+              "id": 1,
+              "name": "sampling_interval",
+              "type": "int",
+              "units": "seconds",
+              "value": "3600"
+            },
+            {
+              "display_name": "Battery Check Interval",
+              "id": 2,
+              "name": "battery_check_interval",
+              "type": "int",
+              "units": "seconds",
+              "value": "7200"
+            },
+            ...]
         '''
         root = self.root
         content_type = 'application/json'

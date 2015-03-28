@@ -1,8 +1,6 @@
 [
-  {"name":"parad_k_par", "units": "umol photons m-2 s-1", "type": "Float32", "value":"0.27" },
-  {"name":"preferred_timestamp", "units": "1", "type": "String", "value": "internal_timestamp" },
-  {"name":"par_val_v", "units": "mV", "type": "Float32", "value": "30.600000381469727" },
-  {"name":"wfp_timestamp", "units": "UTC", "type": "Float64", "value": "1400603565" },
-  {"name":"internal_timestamp", "units": "UTC", "type": "Float64", "value": "3.60959236E9" },
-  {"name":"driver_timestamp", "units": "UTC", "type": "Float64", "value": "3.6337987874117002E9" }
+  {"name":"sampling_interval", "display_name":"Sampling Interval", "units": "seconds", "type": "int", "value":"3600" },
+  {"name":"battery_check_interval", "display_name":"Battery Check Interval", "units": "seconds", "type": "int", "value": "7200" },
+  {"name":"send_data", "display_name":"Send Data", "units": "seconds", "type": "int", "value":"10800" },
+  {"name":"salinity_check_interval", "display_name":"Salinity Check Interval", "units": "seconds", "type": "int", "value": "7200" }
 ]

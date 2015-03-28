@@ -1,0 +1,1 @@
+[{"units": "counts", "type": "Byte", "name": "control_Byte", "value": "1"}, {"units": "1", "type": "unknown_type", "name": "control_bad", "value": "ok"}, {"units": "counts", "type": "int", "name": "control_int", "value": "314"}, {"units": "1", "type": "string", "name": "control_string", "value": "ok"}, {"units": "g0", "type": "float", "name": "control_float", "value": "31437.0"}]
