@@ -255,6 +255,7 @@ class uFrameAssetCollection(object):
         identifier = json.get('identifier')
         traceId = json.get('traceId')
         overwriteAllowed = json.get('overwriteAllowed')
+        platform = json.get('platform')
         #####
         #Build metadata dictionary
         metaData = []
@@ -266,37 +267,38 @@ class uFrameAssetCollection(object):
         if water_depth is not None:
             dict_depth = {
                 "key": "Water Depth",
-                "value": "%s %s" % (water_depth['value'], water_depth['unit']),
-                "type": "java.lang.String"
+                "value": "%s %s" % (water_depth['value'], water_depth['unit'])
             }
             metaData.append(dict_depth)
         if coordinates is not None and len(coordinates) == 2:
             dict_lat = {
                 "key": "Latitude",
-                "value": coordinates[0],
-                "type": "java.lang.String"
+                "value": coordinates[0]
             }
             metaData.append(dict_lat)
             dict_lon =  {
                 "key": "Longitude",
-                "value": coordinates[1],
-                "type": "java.lang.String"
+                "value": coordinates[1]
             }
             metaData.append(dict_lon)
         if launch_date_time is not None:
             dict_launch_date =  {
                 "key": "Anchor Launch Date",
-                "value": launch_date_time,
-                "type": "java.lang.String"
+                "value": launch_date_time
             }
             metaData.append(dict_launch_date)
         if ref_des is not None:
             dict_ref_des = {
               "key": "Ref Des",
-              "type": "java.lang.String",
               "value": ref_des
             }
             metaData.append(dict_ref_des)
+        if platform is not None:
+            dict_platform = {
+              "key": "Platform",
+              "value": platform
+            }
+            metaData.append(dict_platform)
 
         #Below section's keys are uFrame specific and shouldn't be modified
         #unless necessary to support uframe updates.
@@ -437,6 +439,8 @@ def get_assets():
                         time_launch = metaData['value']
                     if metaData['key'] == 'Water Depth':
                         depth = metaData['value']
+                    if metaData['key'] == 'Ref Des SN':
+                        metaData['key'] = 'Ref Des'
                     if metaData['key'] == 'Ref Des':
                         ref_des = (metaData['value'])
                 if len(lat) > 0 and len(lon) > 0:
@@ -499,6 +503,10 @@ def get_asset(id):
                 time_launch = metaData['value']
             if metaData['key'] == 'Water Depth':
                 depth = metaData['value']
+            if metaData['key'] == 'Ref Des SN':
+                metaData['key'] = 'Ref Des'
+            if metaData['key'] == 'Ref Des':
+                ref_des = (metaData['value'])
         if len(lat) > 0 and len(lon) > 0:
             data['coordinates'] = _convert_lat_lon(lat, lon)
             lat = ""
@@ -652,7 +660,7 @@ def update_event(id):
 ### ---------------------------------------------------------------------------
 ### The following routes are for generating drop down lists, used in filtering view.
 ### ---------------------------------------------------------------------------
-
+@cache.memoize(timeout=3600)
 @api.route('/asset/types', methods=['GET'])
 def get_asset_types():
     '''
@@ -670,6 +678,7 @@ def get_asset_types():
     data = _remove_duplicates(data)
     return jsonify({ 'asset_types' : data })
 
+@cache.memoize(timeout=3600)
 @api.route('/asset/classes', methods=['GET'])
 def get_asset_classes_list():
     '''
@@ -683,3 +692,88 @@ def get_asset_classes_list():
             data.append(row['@class'])
     data = _remove_duplicates(data)
     return jsonify({ 'class_types' : data })
+
+@cache.memoize(timeout=3600)
+@api.route('/asset/serials', methods=['GET'])
+
+@cache.memoize(timeout=3600)
+def get_asset_serials():
+    '''
+    Lists all the class types available from uFrame.
+    '''
+    data = []
+    manufInfo = []
+    uframe_obj = uFrameAssetCollection()
+    temp_list = uframe_obj.to_json()
+    for row in temp_list:
+        if row['manufactureInfo'] is not None:
+            manufInfo.append(row['manufactureInfo'])
+            for serial in manufInfo:
+                data.append(serial['serialNumber'])
+    data = _remove_duplicates(data)
+    return jsonify({ 'serial_numbers' : data })
+
+@cache.memoize(timeout=3600)
+@api.route('/assets/condense', methods=['GET'])
+def get_asset_list():
+    #set up all the contaners.
+    d = {}
+    data = {}
+    ref_des = None
+    temp_body = []
+    #create uframe instance, and fetch the data.
+    uframe_obj = uFrameAssetCollection()
+    temp_list = uframe_obj.to_json()
+    #parse the result and assign ref_des as top element.
+    for row in temp_list:
+        if row['metaData'] is not None:
+            for metaData in row['metaData']:
+                if metaData['key'] == 'Ref Des':
+                    ref_des = (metaData['value'])
+                else:
+                    d[metaData['key']] = metaData['value']
+            temp_body.append(d)
+            if len(temp_body) > 0:
+                data[ref_des] = temp_body
+            temp_body = []
+    return jsonify({ 'assets' : data })
+
+@api.route('/assets/platforms', methods=['GET'])
+def get_platforms():
+    '''
+    This method only gets a list of all identified platforms.
+    '''
+    platform = None
+    lat = ""
+    lon = ""
+    coords = [ None, None]
+    temp_body = []
+    data = []
+    d = {}
+    uframe_obj = uFrameAssetCollection()
+    temp_list = uframe_obj.to_json()
+    for row in temp_list:
+        asset_id = row['assetId']
+        description = row['assetInfo']
+        if row['metaData'] is not None:
+            for metaData in row['metaData']:
+                if metaData['key'] == "Platform":
+                    platform = _normalize(metaData['value'])
+                    if metaData['key'] == 'Laditude ':
+                        metaData['key'] = 'Latitude'
+                    if metaData['key'] == 'Latitude':
+                        lat = metaData['value']
+                        metaData['value'] = _normalize(metaData['value'])
+                    if metaData['key'] == 'Longitude':
+                        lon = metaData['value']
+                        metaData['value'] = _normalize(metaData['value'])
+            if len(lat) > 0 and len(lon) > 0:
+                coords = _convert_lat_lon(lat, lon)
+                lat = ""
+                lon = ""
+            if platform is not None:
+                d[platform] = { "assetId": asset_id,
+                                "assetInfo": description,
+                                'url': url_for('uframe.get_asset', id=row['assetId']),
+                                "coordinates": coords}
+    return jsonify(**d)
