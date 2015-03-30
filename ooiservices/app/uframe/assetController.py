@@ -14,6 +14,11 @@ import requests
 import re
 import httplib
 
+'''
+Default number of times to retry the connection:
+'''
+requests.adapters.DEFAULT_RETRIES = 2
+
 def _normalize_whitespace(string):
     '''
     Requires re
@@ -468,15 +473,18 @@ def get_assets():
                     Create a url to uframe which can be used to navigate
                     to the stream data.
                     '''
-                    ref_des_split = ref_des.split('-')
-                    stream_url =  current_app.config['UFRAME_URL'] + \
-                    '/sensor/inv/%s' % (ref_des_split[0])
-                    res = requests.head(stream_url)
-                    content_length = int(res.headers['content-length'])
-                    if content_length > 0:
-                        row.update({'stream_url': stream_url})
-                    ref_des = ""
-                    content_length = 0
+                    try:
+                        ref_des_split = ref_des.split('-')
+                        stream_url =  current_app.config['UFRAME_URL'] + \
+                        '/sensor/inv/%s' % (ref_des_split[0])
+                        res = requests.head(stream_url, timeout=(.5, 3))
+                        content_length = int(res.headers['content-length'])
+                        if content_length > 0:
+                            row.update({'stream_url': stream_url})
+                        ref_des = ""
+                        content_length = 0
+                    except (requests.exceptions.ConnectTimeout, requests.exceptions.ReadTimeout) as e:
+                        row.update({'stream_url': "Request Time Out"})
 
             row['class'] = row.pop('@class')
             row.pop('metaData', None)
@@ -713,8 +721,6 @@ def get_asset_classes_list():
 
 @cache.memoize(timeout=3600)
 @api.route('/asset/serials', methods=['GET'])
-
-@cache.memoize(timeout=3600)
 def get_asset_serials():
     '''
     Lists all the class types available from uFrame.
@@ -730,28 +736,3 @@ def get_asset_serials():
                 data.append(serial['serialNumber'])
     data = _remove_duplicates(data)
     return jsonify({ 'serial_numbers' : data })
-
-@cache.memoize(timeout=3600)
-@api.route('/assets/condense', methods=['GET'])
-def get_asset_list():
-    #set up all the contaners.
-    d = {}
-    data = {}
-    ref_des = None
-    temp_body = []
-    #create uframe instance, and fetch the data.
-    uframe_obj = uFrameAssetCollection()
-    temp_list = uframe_obj.to_json()
-    #parse the result and assign ref_des as top element.
-    for row in temp_list:
-        if row['metaData'] is not None:
-            for metaData in row['metaData']:
-                if metaData['key'] == 'Ref Des':
-                    ref_des = (metaData['value'])
-                else:
-                    d[metaData['key']] = metaData['value']
-            temp_body.append(d)
-            if len(temp_body) > 0:
-                data[ref_des] = temp_body
-            temp_body = []
-    return jsonify({ 'assets' : data })
