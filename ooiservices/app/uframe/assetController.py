@@ -309,6 +309,12 @@ class uFrameAssetCollection(object):
             }
             temp_metaData.append(dict_platform)
 
+        #TODO:
+        #temp_metaData needs to be checked against the existing metaData and
+        #appended or updated as necessary.  For now, temp_metaData goes no where
+        #, as it would over write the existing values.
+
+
         #Below section's keys are uFrame specific and shouldn't be modified
         #unless necessary to support uframe updates.
         formatted_return = {
@@ -578,6 +584,8 @@ def create_asset():
 
 #Update
 #@auth.login_required
+#mjc 03/30/2015
+#TODO: PUT Disabled due to data loss associated with metaData not being returned.
 #@api.route('/assets/<int:id>', methods=['PUT'])
 def update_asset(id):
     '''
@@ -661,8 +669,10 @@ def create_event():
     return response.text
 
 #Update
+#mjc 03/30/2015
+#TODO: PUT Disabled due to data loss associated with metaData not being returned.
 @auth.login_required
-@api.route('/events/<int:id>', methods=['PUT'])
+#@api.route('/events/<int:id>', methods=['PUT'])
 def update_event(id):
     '''
     Update an existing event, the return will be right from uframe if all goes well.
