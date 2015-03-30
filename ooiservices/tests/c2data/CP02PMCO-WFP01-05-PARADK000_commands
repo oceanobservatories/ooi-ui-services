@@ -1,6 +1,6 @@
 [
-    {"SET_SAMPLING_INTERVAL": { "display_name": "Set Sampling Interval", "field_name":"sampling_interval"} },
-    {"SET_BATTERY_CHECK_INTERVAL": { "display_name": "Set Battery Check Interval", "field_name":"battery_check_interval"} },
-    {"SET_DATA_TRANSMISSION_INTERVAL": { "display_name": "Set Data Transmission Interval", "field_name":"send_data_interval"} },
-    {"SET_SALINITY_CHECK_INTERVAL": { "display_name": "Salinity Check Interval", "field_name":"salinity_check_interval"} }
+    {"command": "SET_SAMPLING_INTERVAL", "display_name": "Set Sampling Interval", "field_name":"sampling_interval"},
+    {"command": "SET_BATTERY_CHECK_INTERVAL", "display_name": "Set Battery Check Interval", "field_name":"battery_check_interval"},
+    {"command": "SET_DATA_TRANSMISSION_INTERVAL", "display_name": "Set Data Transmission Interval", "field_name":"send_data_interval"},
+    {"command": "SET_SALINITY_CHECK_INTERVAL", "display_name": "Salinity Check Interval", "field_name":"salinity_check_interval"}
 ]

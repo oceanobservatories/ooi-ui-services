@@ -1067,7 +1067,7 @@ class UserTestCase(unittest.TestCase):
         verbose = self.verbose
         root = self.root
         if verbose: print '\n'
-
+        debug = False
         '''
         Exercise a variety of instrument routes:
         Instrument:  CP02PMCO-WFP01-02-DOFSTK000
@@ -1319,6 +1319,20 @@ class UserTestCase(unittest.TestCase):
                         data = json.loads(response.data)
                         self.assertTrue('fields' in data)
                         self.assertTrue(len(data['fields']) > 0)
+                        data_fields = data['fields']
+                        for field in data_fields:
+                            self.assertTrue('name' in field)
+
+                        field_name = 'sampling_interval'
+                        if debug:
+                            print '\n*** instrument:', instrument
+                            print '\n*** stream:', stream
+                            print '\n*** field_name:', field_name
+                        url = url_for('main.c2_get_instrument_stream_field_commands', reference_designator=instrument,
+                                        stream_name=stream, field_name=field_name)
+                        if verbose: print root+url
+                        response = self.client.get(url, content_type=content_type, headers=headers)
+                        self.assertTrue(response.status_code == 200)
                 else:
                     if verbose: print '\n***no streams for instrument: ', instrument
 
@@ -1586,7 +1600,6 @@ class UserTestCase(unittest.TestCase):
 
         if verbose: print '\n'
 
-
     def test_c2_mission_routes(self):
         verbose = self.verbose
         root = self.root
@@ -1806,7 +1819,7 @@ class UserTestCase(unittest.TestCase):
         # set constants to be held throughout unit test; only variable is field_value
         const_instrument = MOPAK0000.reference_designator
         self.assertEquals(const_instrument, MOPAK0000_rd)
-        const_stream_name = 'fields'
+        const_stream_name = 'test'
         const_command_name = 'SET'
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # GET instrument stream original fields; save to restore values

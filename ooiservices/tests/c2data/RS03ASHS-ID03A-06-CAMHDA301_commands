@@ -1,10 +1,10 @@
 [
-    {"TURN_CAMERA_ON": { "display_name": "Turn Camera On", "field_name":"camera_power"} },
-    {"TURN_CAMERA_OFF": { "display_name": "Turn Camera Off" , "field_name":"camera_power"} },
-    {"TURN_VIDEO_ON": { "display_name": "Turn Video On", "field_name":"video_live"} },
-    {"TURN_VIDEO_OFF": { "display_name": "Turn Video Off" , "field_name":"video_live"} },
-    {"POSITION_TILT": { "display_name": "Change Tilt" , "field_name":"camera_tilt"} },
-    {"SET_SAMPLING_INTERVAL": { "display_name": "Set Sampling Interval", "field_name":"sampling_interval"} },
-    {"SET_BATTERY_CHECK_INTERVAL": { "display_name": "Set Battery Check Interval", "field_name":"battery_check_interval"} },
-    {"SET_DATA_TRANSMISSION_INTERVAL": { "display_name": "Set Data Transmission Interval", "field_name":"send_data_interval"} }
+    {"command": "TURN_CAMERA_ON", "display_name": "Turn Camera On", "field_name":"camera_power"},
+    {"command": "TURN_CAMERA_OFF", "display_name": "Turn Camera Off" , "field_name":"camera_power"},
+    {"command": "TURN_VIDEO_ON", "display_name": "Turn Video On", "field_name":"video_live"},
+    {"command": "TURN_VIDEO_OFF", "display_name": "Turn Video Off" , "field_name":"video_live"},
+    {"command": "POSITION_TILT", "display_name": "Change Tilt" , "field_name":"camera_tilt"},
+    {"command": "SET_SAMPLING_INTERVAL", "display_name": "Set Sampling Interval", "field_name":"sampling_interval"},
+    {"command": "SET_BATTERY_CHECK_INTERVAL", "display_name": "Set Battery Check Interval", "field_name":"battery_check_interval"},
+    {"command": "SET_DATA_TRANSMISSION_INTERVAL", "display_name": "Set Data Transmission Interval", "field_name":"send_data_interval"}
 ]
