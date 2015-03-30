@@ -95,25 +95,23 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream):
     HOST = str(current_app.config['HOST'])
     PORT = str(current_app.config['PORT'])
     SERVICE_LOCATION = 'http://'+HOST+":"+PORT
-    response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
+    ref = mooring + "-" + platform + "-" + instrument
+    response = get_uframe_stream_metadata_times(ref)
     stream_name = '_'.join([stream_type, stream])
     ref = '-'.join([mooring, platform, instrument])
     if response.status_code != 200:
         raise IOError("Failed to get stream contents from uFrame")
     data = response.json()
     data_dict = {}
-    preferred = data[0][u'preferred_timestamp']
-    data_dict['start'] = data[0]['pk']['time'] - COSMO_CONSTANT
-    data_dict['end'] = data[-1]['pk']['time'] - COSMO_CONSTANT
-    data_dict['reference_designator'] = '-'.join([mooring, platform, instrument])
+    data_dict['start'] = data[0]['beginTime']
+    data_dict['end'] = data[0]['endTime']
+    data_dict['reference_designator'] = data[0]['sensor']
     data_dict['display_name'] = get_display_name_by_rd(ref)
     data_dict['csv_download'] = "/".join([SERVICE_LOCATION, 'uframe/get_csv', stream_name, ref])
     data_dict['json_download'] = "/".join([SERVICE_LOCATION,'uframe/get_json',stream_name,ref])
     data_dict['netcdf_download'] = "/".join([SERVICE_LOCATION,'uframe/get_netcdf',stream_name,ref])
     data_dict['profile_json_download'] = "/".join([SERVICE_LOCATION,'uframe/get_profiles',ref,stream_name])
     data_dict['stream_name'] = stream_name
-    data_dict['variables'] = data[1].keys()
-    data_dict['variable_types'] = {k : type(data[1][k]).__name__ for k in data[1].keys() }
     return data_dict
 
 
@@ -239,32 +237,51 @@ def get_uframe_stream_metadata(mooring, platform, instrument, stream):
         return response
     except:
         return internal_server_error('uframe connection cannot be made.')
-    
 
+#@auth.login_required
+@api.route('/get_metadata_times/<string:ref>', methods=['GET'])
 @cache.memoize(timeout=3600)
-def get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream):
+def get_uframe_stream_metadata_times(ref):
     '''
-    Gets the stream contents
+    Returns the uFrame time bounds response for a given stream
     '''
+    mooring, platform, instrument = ref.split('-', 2)
     try:
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        response =  requests.get("/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream]))
-        if response.status_code != 200:
-            #print response.text
-            pass
-        return response
+        response = requests.get("/".join([UFRAME_DATA, mooring, platform, instrument, 'metadata','times']))
+        if response.status_code == 200:
+            return response
+        return jsonify(times={}), 200
     except:
         return internal_server_error('uframe connection cannot be made.')
 
+#@cache.memoize(timeout=3600)
+#def get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream):
+#    '''
+#    Gets the stream contents
+#    '''
+#    try:
+#        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+#        response =  requests.get("/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream]))
+#        if response.status_code != 200:
+#            #print response.text
+#            pass
+#        return response
+#    except:
+#        return internal_server_error('uframe connection cannot be made.')
+
 @cache.memoize(timeout=3600)
-def get_uframe_stream_contents_bounded(mooring, platform, instrument, stream_type, stream, start_time, end_time):
+def get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag):
     '''
     Gets the bounded stream contents, start_time and end_time need to be datetime objects
     '''
     try:        
-        query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
+        if dpa_flag == '0':
+            query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
+        else:
+            query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])        
+        url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])     
         response =  requests.get(url)
         if response.status_code != 200:
             #print response.text
@@ -275,11 +292,20 @@ def get_uframe_stream_contents_bounded(mooring, platform, instrument, stream_typ
 
 
 @auth.login_required
-@api.route('/get_csv/<string:stream>/<string:ref>',methods=['GET'])
-def get_csv(stream,ref):
+@api.route('/get_csv/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>',methods=['GET'])
+def get_csv(stream,ref,start_time,end_time,dpa_flag):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
-    data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
+
+    uframe_data_request_limit = current_app.config['UFRAME_DATA_REQUEST_LIMIT']/1440
+    new_end_time_strp = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ") + datetime.timedelta(days=uframe_data_request_limit)
+    old_end_time_strp = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ") 
+    new_end_time = datetime.datetime.strftime(new_end_time_strp, "%Y-%m-%dT%H:%M:%S.%fZ")
+    if old_end_time_strp > new_end_time_strp:
+        end_time = new_end_time
+
+    data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag)
+
     if data.status_code != 200:
         return data.text, data.status_code, dict(data.headers)
 
@@ -301,13 +327,22 @@ def get_csv(stream,ref):
     return returned_csv
 
 @auth.login_required
-@api.route('/get_json/<string:stream>/<string:ref>',methods=['GET'])
-def get_json(stream,ref):
+@api.route('/get_json/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>',methods=['GET'])
+def get_json(stream,ref,start_time,end_time,dpa_flag):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
-    data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
+
+    uframe_data_request_limit = current_app.config['UFRAME_DATA_REQUEST_LIMIT']/1440
+    new_end_time_strp = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ") + datetime.timedelta(days=uframe_data_request_limit)
+    old_end_time_strp = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ") 
+    new_end_time = datetime.datetime.strftime(new_end_time_strp, "%Y-%m-%dT%H:%M:%S.%fZ")
+    if old_end_time_strp > new_end_time_strp:
+        end_time = new_end_time
+
+    data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag)
+
     if data.status_code != 200:
-        return data.text, data.status_code, dict(data.headers)
+        return data, data.status_code, dict(data.headers)
     response = '{"data":%s}' % data.content
     filename = '-'.join([stream,ref])
     returned_json = make_response(response)
@@ -316,14 +351,26 @@ def get_json(stream,ref):
     return returned_json
 
 @auth.login_required
-@api.route('/get_netcdf/<string:stream>/<string:ref>',methods=['GET'])
-def get_netcdf(stream,ref):
+@api.route('/get_netcdf/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>',methods=['GET'])
+def get_netcdf(stream,ref,start_time,end_time,dpa_flag):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
+
+    uframe_data_request_limit = current_app.config['UFRAME_DATA_REQUEST_LIMIT']/1440
+    new_end_time_strp = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ") + datetime.timedelta(days=uframe_data_request_limit)
+    old_end_time_strp = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ") 
+    new_end_time = datetime.datetime.strftime(new_end_time_strp, "%Y-%m-%dT%H:%M:%S.%fZ")
+    if old_end_time_strp > new_end_time_strp:
+        end_time = new_end_time
+
+    if dpa_flag == '0':
+        query = '?format=application/netcdf&beginDT=%s&endDT=%s' % (start_time, end_time)
+    else:
+        query = '?format=application/netcdf&beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
+
     UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
     url = '/'.join([UFRAME_DATA, mooring, platform, instrument, stream_type, stream])
-    NETCDF_LINK = url+'?format=application/netcdf'
-
+    NETCDF_LINK = url+query
     response = requests.get(NETCDF_LINK)
     if response.status_code != 200:
         return response.text, response.status_code
@@ -447,12 +494,9 @@ def get_profile_data(instrument,stream):
     #url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE'] +'/' + instrument+ "/telemetered/"+stream + "/" + dt_bounds               
     #response = requests.get(url)
     mooring, platform, instrument, stream_type, stream = split_stream_name('_'.join([instrument, stream]))
-    if 'startdate' in request.args and 'enddate' in request.args:
-        st_date = request.args['startdate']       
-        ed_date = request.args['enddate']           
-        response = get_uframe_stream_contents_bounded(mooring, platform, instrument, stream_type, stream,st_date,ed_date)
-    else:
-        response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
+    st_date = request.args['startdate']       
+    ed_date = request.args['enddate']           
+    response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream,st_date,ed_date)
 
     if response.status_code != 200:
         raise IOError("Failed to get data from uFrame")

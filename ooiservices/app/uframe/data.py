@@ -24,7 +24,7 @@ FIELDS_IGNORE = ["stream_name","quality_flag"]
 COSMO_CONSTANT = 2208988800
 
 def get_data(stream, instrument,yfield,xfield,include_time=False):
-    from ooiservices.app.uframe.controller import split_stream_name, get_uframe_stream_contents,get_uframe_stream_contents_bounded
+    from ooiservices.app.uframe.controller import split_stream_name, get_uframe_stream_contents
     #get data from uframe
     #-------------------
     # m@c: 02/01/2015
@@ -39,14 +39,10 @@ def get_data(stream, instrument,yfield,xfield,include_time=False):
 
     try:
 
-        if 'startdate' in request.args and 'enddate' in request.args:
-            st_date = request.args['startdate']       
-            ed_date = request.args['enddate']           
-            response = get_uframe_stream_contents_bounded(mooring, platform, instrument, stream_type, stream,st_date,ed_date)
-            data = response.json()
-        else:
-            response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
-            data = response.json()
+        st_date = request.args['startdate']       
+        ed_date = request.args['enddate']           
+        response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream,st_date,ed_date)
+        data = response.json()
     except Exception,e:
         current_app.logger.exception('Failed to make plot')
         return {'error':'uframe connection cannot be made:'+str(e)}
