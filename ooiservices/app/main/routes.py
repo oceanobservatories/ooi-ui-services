@@ -11,7 +11,6 @@ from ooiservices.app import db, cache
 from authentication import auth
 from ooiservices.app.models import PlatformDeployment, InstrumentDeployment
 from ooiservices.app.models import Stream, StreamParameter, Organization, Instrumentname
-from ooiservices.app.uframe.controller import get_data
 import json
 import yaml
 from wtforms import ValidationError

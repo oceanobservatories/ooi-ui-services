@@ -8,15 +8,14 @@ __author__ = 'M@Campbell'
 from flask import jsonify, current_app, request, url_for, make_response
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.authentication import auth
+from ooiservices.app.main.routes import get_display_name_by_rd
 from ooiservices.app import cache
 import json
 import requests
 import re
-import httplib
 
-'''
-Default number of times to retry the connection:
-'''
+
+#Default number of times to retry the connection:
 requests.adapters.DEFAULT_RETRIES = 2
 
 def _normalize_whitespace(string):
@@ -118,7 +117,8 @@ def _convert_lat_lon(lat, lon):
         coords = (_lat, _lon)
         return coords
     except Exception as e:
-        return "Error: %s" % e
+        coords = (float('NaN'), float('NaN'))
+        return coords
 
 def _get_latlon(item):
     '''
@@ -475,6 +475,14 @@ def get_assets():
                     depth = ""
                 if len(ref_des) > 0:
                     row['ref_des'] = ref_des
+                    '''
+                    Determine the asset name from the DB if there is none.
+                    '''
+                    try:
+                        if row['assetInfo']['name'] == None:
+                            row['assetInfo']['name'] = get_display_name_by_rd(ref_des)
+                    except:
+                        pass
                     '''
                     Create a url to uframe which can be used to navigate
                     to the stream data.
