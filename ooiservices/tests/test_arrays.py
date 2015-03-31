@@ -245,6 +245,24 @@ class UserTestCase(unittest.TestCase):
         self.assertTrue(response.status_code == 200)
 
     # Test [POST] /arrays/ - 'main.create_array'
+    def test_create_array_empty_value(self):
+
+        content_type = 'application/json'
+        headers = self.get_api_headers('admin', 'test')
+
+        # Create array data
+        data = {}
+        data['array_code']   = ''
+        data['array_name']   = 'Regional Scale Node'
+        data['display_name'] = 'Coastal Regional Scale Node'
+        data['description']  = 'Coastal array located off Washington and Oregon coasts.'
+        data["geo_location"] = 'POINT(-70 40)'
+
+        data = json.dumps(data)
+        response = self.client.post(url_for('main.create_array'), headers=headers,data=data)
+        self.assertEquals(response.status_code, 409)
+
+    # Test [POST] /arrays/ - 'main.create_array'
     def test_create_duplicate_array_code(self):
 
         content_type = 'application/json'

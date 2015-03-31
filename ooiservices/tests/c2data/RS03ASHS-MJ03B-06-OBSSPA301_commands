@@ -1,0 +1,5 @@
+[
+    {"command": "SET_SAMPLING_INTERVAL", "display_name": "Set Sampling Interval", "field_name":"sampling_interval"},
+    {"command": "SET_BATTERY_CHECK_INTERVAL", "display_name": "Set Battery Check Interval", "field_name":"battery_check_interval"},
+    {"command": "SET_DATA_TRANSMISSION_INTERVAL", "display_name": "Set Data Transmission Interval", "field_name":"send_data_interval"}
+]
