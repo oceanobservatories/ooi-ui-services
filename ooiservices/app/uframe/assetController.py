@@ -262,6 +262,7 @@ class uFrameAssetCollection(object):
         launch_date_time = json.get('launch_date_time')
         water_depth = json.get('water_depth')
         ref_des = json.get('ref_des')
+        print ref_des
         #meta_data = json.get('metaData')
         ### These are not returned, for now they don't exist in uframe.
         identifier = json.get('identifier')
@@ -330,7 +331,7 @@ class uFrameAssetCollection(object):
                 "attachments": attachments,
                 "purchaseAndDeliveryInfo": purchase_and_delivery_info,
                 "physicalInfo": physical_info,
-                "lastModifiedTimestamp": last_modified_imestamp
+                "lastModifiedTimestamp": last_modified_imestamp,
                 }
         return formatted_return
 
