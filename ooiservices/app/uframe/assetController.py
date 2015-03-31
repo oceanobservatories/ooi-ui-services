@@ -133,12 +133,11 @@ def _get_latlon(item):
     seconds = 0.0
     # scrub input
     tmp = _normalize(item)
-    digits = re.findall("\S.*[0-9.]+", tmp)
-    direction = re.findall("[NSEW]", tmp)
-    tmp = "%s %s" % (digits[0], direction[0])
-    print tmp
     # process input and round result to _decimal places
     if isinstance(item, unicode) and len(tmp.split()) > 1:
+        digits = re.findall("\S.*[0-9.]+", tmp)
+        direction = re.findall("[NSEW]", tmp)
+        tmp = "%s %s" % (digits[0], direction[0])
         ds = tmp.split(' ')
         degrees = float(ds[0])
         minutes = float(ds[1])
