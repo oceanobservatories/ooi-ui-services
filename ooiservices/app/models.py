@@ -693,9 +693,10 @@ class SystemEventDefinition(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     uframe_definition_id = db.Column(db.Integer, nullable=False) # This id comes from uFrame after a successful POST
     reference_designator = db.Column(db.Text, nullable=False) # This is the refdef for the instrument
-    stream_name = db.Column(db.Text, nullable=False)
-    stream_type = db.Column(db.Text, nullable=False)
-    stream_parameter = db.Column(db.Text, nullable=False)
+    array_name = db.Column(db.Text, nullable=False)
+    platform_name = db.Column(db.Text, nullable=False)
+    instrument_name = db.Column(db.Text, nullable=False)
+    instrument_parameter = db.Column(db.Text, nullable=False)
     operator = db.Column(db.Text, nullable=False) # > >= < <= =
     values = db.Column(db.Text, nullable=False) # Typically single value but could be list for a <> operator
     created_time = db.Column(db.DateTime(True), nullable=False)
@@ -704,15 +705,16 @@ class SystemEventDefinition(db.Model):
     description = db.Column(db.Text, nullable=True)
 
     @staticmethod
-    def insert_system_event_definition(uframe_definition_id, reference_designator, stream_name, stream_type,
-                                       stream_parameter, operator, values,
+    def insert_system_event_definition(uframe_definition_id, reference_designator, array_name, platform_name,
+                                       instrument_name, instrument_parameter, operator, values,
                                        created_time, priority, active, description):
         new_definition = SystemEventDefinition()
         new_definition.uframe_definition_id = uframe_definition_id
         new_definition.reference_designator = reference_designator
-        new_definition.stream_name = stream_name
-        new_definition.stream_type = stream_type
-        new_definition.stream_parameter = stream_parameter
+        new_definition.array_name = array_name
+        new_definition.platform_name = platform_name
+        new_definition.instrument_name = instrument_name
+        new_definition.instrument_parameter = instrument_parameter
         new_definition.operator = operator
         new_definition.values = values
         new_definition.created_time = created_time
@@ -726,9 +728,10 @@ class SystemEventDefinition(db.Model):
             'id' : self.id,
             'uframe_definition_id' : self.uframe_definition_id,
             'reference_designator' : self.reference_designator,
-            'stream_name' : self.stream_name,
-            'stream_type' : self.stream_type,
-            'stream_parameter' : self.stream_parameter,
+            'array_name' : self.array_name,
+            'platform_name' : self.platform_name,
+            'instrument_name' : self.instrument_name,
+            'instrument_parameter' : self.instrument_parameter,
             'operator' : self.operator,
             'values' : self.values,
             'created_time' : self.created_time,
