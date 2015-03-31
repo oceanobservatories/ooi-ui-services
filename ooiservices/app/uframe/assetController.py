@@ -117,10 +117,8 @@ def _convert_lat_lon(lat, lon):
         coords = (_lat, _lon)
         return coords
     except Exception as e:
-        #TODO: Figure out the best way to return coordinates that aren't
-        #translated correctly.
-        coords = (0.0, 0.0)
-        return coords
+            coords = (float("NaN"), float("NaN"))
+            return coords
 
 def _get_latlon(item):
     '''
@@ -135,6 +133,10 @@ def _get_latlon(item):
     seconds = 0.0
     # scrub input
     tmp = _normalize(item)
+    digits = re.findall("\S.*[0-9.]+", tmp)
+    direction = re.findall("[NSEW]", tmp)
+    tmp = "%s %s" % (digits[0], direction[0])
+    print tmp
     # process input and round result to _decimal places
     if isinstance(item, unicode) and len(tmp.split()) > 1:
         ds = tmp.split(' ')
@@ -565,12 +567,35 @@ def get_asset(id):
             depth = ""
         if len(ref_des) > 0:
             data['ref_des'] = ref_des
-            ref_des = ""
+            '''
+            Determine the asset name from the DB if there is none.
+            '''
+            try:
+                if data['assetInfo']['name'] == None:
+                    data['assetInfo']['name'] = get_display_name_by_rd(ref_des)
+            except:
+                pass
+            '''
+            Create a url to uframe which can be used to navigate
+            to the stream data.
+            '''
+            try:
+                ref_des_split = ref_des.split('-')
+                stream_url =  current_app.config['UFRAME_URL'] + \
+                '/sensor/inv/%s' % (ref_des_split[0])
+                res = requests.head(stream_url, timeout=(.5, 3))
+                content_length = int(res.headers['content-length'])
+                if content_length > 0:
+                    data.update({'stream_url': stream_url})
+                ref_des = ""
+                content_length = 0
+            except (requests.exceptions.ConnectTimeout, requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
+                data.update({'stream_url': "Request Time Out"})
 
-        data['events'] = _associate_events(id)
-        data['class'] = data.pop('@class')
-    except (KeyError, TypeError):
-        pass
+            data['events'] = _associate_events(id)
+            data['class'] = data.pop('@class')
+    except (KeyError, TypeError, AttributeError) as e:
+        raise e
 
     return jsonify(**data)
 
