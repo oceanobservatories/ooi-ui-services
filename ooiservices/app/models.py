@@ -670,6 +670,88 @@ class Stream(db.Model):
         return json_stream
 
 
+class SystemEventDefinition(db.Model):
+    """
+    Stores the definition for a single Alert/Alarm
+    """
+    __tablename__ = 'system_event_definitions'
+    __table_args__ = {u'schema': __schema__}
+
+    id = db.Column(db.Integer, primary_key=True)
+    uframe_definition_id = db.Column(db.Integer, nullable=False) # This id comes from uFrame after a successful POST
+    reference_designator = db.Column(db.Text, nullable=False) # This is the refdef for the instrument
+    stream_name = db.Column(db.Text, nullable=False)
+    stream_type = db.Column(db.Text, nullable=False)
+    stream_parameter = db.Column(db.Text, nullable=False)
+    operator = db.Column(db.Text, nullable=False) # > >= < <= =
+    values = db.Column(db.Text, nullable=False) # Typically single value but could be list for a <> operator
+    organization_ids = db.Column(db.Text, nullable=False) # List of organization_id(s) from the organizations table
+    user_ids = db.Column(db.Text, nullable=False) # List of user_id(s) from the users table
+    created_time = db.Column(db.DateTime(True), nullable=False)
+    priority = db.Column(db.Text, nullable=False)
+    notification_types = db.Column(db.Text, nullable=True) #  Array [text_message, phone_call, email, redmine, log]
+    active = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))
+    description = db.Column(db.Text, nullable=True)
+
+    def to_json(self):
+        json_system_event_definition = {
+            'id' : self.id,
+            'uframe_definition_id' : self.uframe_definition_id,
+            'reference_designator' : self.reference_designator,
+            'stream_name' : self.stream_name,
+            'stream_type' : self.stream_type,
+            'stream_parameter' : self.stream_parameter,
+            'operator' : self.operator,
+            'values' : self.values,
+            'organization_ids' : self.organization_ids,
+            'user_ids' : self.user_ids,
+            'created_time' : self.created_time,
+            'priority' : self.priority,
+            'notification_types' : self.notification_types,
+            'active' : self.active,
+            'description' : self.description
+        }
+        return json_system_event_definition
+
+
+class SystemEvent(db.Model):
+    """
+    Stores the Alerts/Alarms ingested from uFrame
+    """
+    __tablename__ = 'system_events'
+    __table_args__ = {u'schema': __schema__}
+
+    id = db.Column(db.Integer, primary_key=True)
+    uframe_event_id = db.Column(db.Integer, nullable=False) # This id comes from uFrame
+    system_event_definition_id = db.Column(db.ForeignKey(u'' + __schema__ + '.system_event_definitions.id'), nullable=False)
+    event_time = db.Column(db.DateTime(True), nullable=False)
+    event_type = db.Column(db.Text, nullable=False) # Alert or Alarm
+    event_response = db.Column(db.Text, nullable=False)
+
+    event = db.relationship(u'SystemEventDefinition')
+
+    @staticmethod
+    def insert_event(uframe_event_id, system_event_definition_id, event_time, event_type, event_response):
+        new_event = SystemEvent()
+        new_event.uframe_event_id = uframe_event_id
+        new_event.system_event_definition_id =system_event_definition_id
+        new_event.event_time = event_time
+        new_event.event_type = event_type
+        new_event.event_response = event_response
+        db.session.add(new_event)
+        db.session.commit()
+
+    def to_json(self):
+        json_system_event = {
+            'id' : self.id,
+            'uframe_event_id' : self.uframe_event_id,
+            'system_event_definition_id' : self.system_event_definition_id,
+            'event_time' : self.event_time,
+            'event_type' : self.event_type,
+            'event_response' : self.event_response
+        }
+
+
 class UserScopeLink(db.Model):
     __tablename__ = 'user_scope_link'
     __table_args__ = {u'schema': __schema__}

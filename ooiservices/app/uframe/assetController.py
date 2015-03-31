@@ -12,6 +12,12 @@ from ooiservices.app import cache
 import json
 import requests
 import re
+import httplib
+
+'''
+Default number of times to retry the connection:
+'''
+requests.adapters.DEFAULT_RETRIES = 2
 
 def _normalize_whitespace(string):
     '''
@@ -209,6 +215,8 @@ class uFrameAssetCollection(object):
             Please review method for further details.
     '''
 
+    #Define the connection
+
     __endpoint__ = 'assets'
     # m@c: Updated 03/03/2015
     classType =  None
@@ -251,13 +259,15 @@ class uFrameAssetCollection(object):
         launch_date_time = json.get('launch_date_time')
         water_depth = json.get('water_depth')
         ref_des = json.get('ref_des')
+        metaData = json.get('metaData')
         ### These are not returned, for now they don't exist in uframe.
         identifier = json.get('identifier')
         traceId = json.get('traceId')
         overwriteAllowed = json.get('overwriteAllowed')
+        platform = json.get('platform')
         #####
         #Build metadata dictionary
-        metaData = []
+        temp_metaData = []
         dict_depth = {}
         dict_lat = {}
         dict_lon = {}
@@ -266,37 +276,44 @@ class uFrameAssetCollection(object):
         if water_depth is not None:
             dict_depth = {
                 "key": "Water Depth",
-                "value": "%s %s" % (water_depth['value'], water_depth['unit']),
-                "type": "java.lang.String"
+                "value": "%s %s" % (water_depth['value'], water_depth['unit'])
             }
-            metaData.append(dict_depth)
+            temp_metaData.append(dict_depth)
         if coordinates is not None and len(coordinates) == 2:
             dict_lat = {
                 "key": "Latitude",
-                "value": coordinates[0],
-                "type": "java.lang.String"
+                "value": coordinates[0]
             }
-            metaData.append(dict_lat)
+            temp_metaData.append(dict_lat)
             dict_lon =  {
                 "key": "Longitude",
-                "value": coordinates[1],
-                "type": "java.lang.String"
+                "value": coordinates[1]
             }
-            metaData.append(dict_lon)
+            temp_metaData.append(dict_lon)
         if launch_date_time is not None:
             dict_launch_date =  {
                 "key": "Anchor Launch Date",
-                "value": launch_date_time,
-                "type": "java.lang.String"
+                "value": launch_date_time
             }
-            metaData.append(dict_launch_date)
+            temp_metaData.append(dict_launch_date)
         if ref_des is not None:
             dict_ref_des = {
               "key": "Ref Des",
-              "type": "java.lang.String",
               "value": ref_des
             }
-            metaData.append(dict_ref_des)
+            temp_metaData.append(dict_ref_des)
+        if platform is not None:
+            dict_platform = {
+              "key": "Platform",
+              "value": platform
+            }
+            temp_metaData.append(dict_platform)
+
+        #TODO:
+        #temp_metaData needs to be checked against the existing metaData and
+        #appended or updated as necessary.  For now, temp_metaData goes no where
+        #, as it would over write the existing values.
+
 
         #Below section's keys are uFrame specific and shouldn't be modified
         #unless necessary to support uframe updates.
@@ -437,6 +454,8 @@ def get_assets():
                         time_launch = metaData['value']
                     if metaData['key'] == 'Water Depth':
                         depth = metaData['value']
+                    if metaData['key'] == 'Ref Des SN':
+                        metaData['key'] = 'Ref Des'
                     if metaData['key'] == 'Ref Des':
                         ref_des = (metaData['value'])
                 if len(lat) > 0 and len(lon) > 0:
@@ -456,15 +475,31 @@ def get_assets():
                     depth = ""
                 if len(ref_des) > 0:
                     row['ref_des'] = ref_des
-                    ref_des = ""
+                    '''
+                    Create a url to uframe which can be used to navigate
+                    to the stream data.
+                    '''
+                    try:
+                        ref_des_split = ref_des.split('-')
+                        stream_url =  current_app.config['UFRAME_URL'] + \
+                        '/sensor/inv/%s' % (ref_des_split[0])
+                        res = requests.head(stream_url, timeout=(.5, 3))
+                        content_length = int(res.headers['content-length'])
+                        if content_length > 0:
+                            row.update({'stream_url': stream_url})
+                        ref_des = ""
+                        content_length = 0
+                    except (requests.exceptions.ConnectTimeout, requests.exceptions.ReadTimeout) as e:
+                        row.update({'stream_url': "Request Time Out"})
 
-                row['class'] = row.pop('@class')
-                row.pop('metaData', None)
-                row.pop('physicalInfo', None)
-                row.pop('purchaseAndDeliveryInfo', None)
-                row.update({'url': url_for('uframe.get_asset', id=row['assetId']),
-                        'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (uframe_obj.__endpoint__, row['assetId'])})
-    except (KeyError, TypeError, AttributeError):
+            row['class'] = row.pop('@class')
+            row.pop('metaData', None)
+            row.pop('physicalInfo', None)
+            row.pop('purchaseAndDeliveryInfo', None)
+            row.update({'url': url_for('uframe.get_asset', id=row['assetId']),
+                    'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + \
+                    '/%s/%s' % (uframe_obj.__endpoint__, row['assetId'])})
+    except (KeyError, TypeError, AttributeError) as e:
         pass
 
     return jsonify({ 'assets' : data })
@@ -499,6 +534,10 @@ def get_asset(id):
                 time_launch = metaData['value']
             if metaData['key'] == 'Water Depth':
                 depth = metaData['value']
+            if metaData['key'] == 'Ref Des SN':
+                metaData['key'] = 'Ref Des'
+            if metaData['key'] == 'Ref Des':
+                ref_des = (metaData['value'])
         if len(lat) > 0 and len(lon) > 0:
             data['coordinates'] = _convert_lat_lon(lat, lon)
             lat = ""
@@ -544,8 +583,10 @@ def create_asset():
     return response.text
 
 #Update
-@auth.login_required
-@api.route('/assets/<int:id>', methods=['PUT'])
+#@auth.login_required
+#mjc 03/30/2015
+#TODO: PUT Disabled due to data loss associated with metaData not being returned.
+#@api.route('/assets/<int:id>', methods=['PUT'])
 def update_asset(id):
     '''
     Update an existing asset, the return will be right from uframe if all goes well.
@@ -553,10 +594,11 @@ def update_asset(id):
     Login required.
     '''
     data = json.loads(request.data)
+    data['@class'] = data.pop('class')
+    print json.dumps(data)
     uframe_obj = uFrameAssetCollection()
-    put_body = uframe_obj.from_json(data)
     uframe_assets_url = _uframe_url(uframe_obj.__endpoint__, id)
-    response = requests.put(uframe_assets_url, data=json.dumps(put_body), headers=_uframe_headers())
+    response = requests.put(uframe_assets_url, data=json.dumps(data), headers=_uframe_headers())
     return response.text
 
 #Delete
@@ -627,8 +669,10 @@ def create_event():
     return response.text
 
 #Update
+#mjc 03/30/2015
+#TODO: PUT Disabled due to data loss associated with metaData not being returned.
 @auth.login_required
-@api.route('/events/<int:id>', methods=['PUT'])
+#@api.route('/events/<int:id>', methods=['PUT'])
 def update_event(id):
     '''
     Update an existing event, the return will be right from uframe if all goes well.
@@ -652,7 +696,7 @@ def update_event(id):
 ### ---------------------------------------------------------------------------
 ### The following routes are for generating drop down lists, used in filtering view.
 ### ---------------------------------------------------------------------------
-
+@cache.memoize(timeout=3600)
 @api.route('/asset/types', methods=['GET'])
 def get_asset_types():
     '''
@@ -670,6 +714,7 @@ def get_asset_types():
     data = _remove_duplicates(data)
     return jsonify({ 'asset_types' : data })
 
+@cache.memoize(timeout=3600)
 @api.route('/asset/classes', methods=['GET'])
 def get_asset_classes_list():
     '''
@@ -683,3 +728,21 @@ def get_asset_classes_list():
             data.append(row['@class'])
     data = _remove_duplicates(data)
     return jsonify({ 'class_types' : data })
+
+@cache.memoize(timeout=3600)
+@api.route('/asset/serials', methods=['GET'])
+def get_asset_serials():
+    '''
+    Lists all the class types available from uFrame.
+    '''
+    data = []
+    manufInfo = []
+    uframe_obj = uFrameAssetCollection()
+    temp_list = uframe_obj.to_json()
+    for row in temp_list:
+        if row['manufactureInfo'] is not None:
+            manufInfo.append(row['manufactureInfo'])
+            for serial in manufInfo:
+                data.append(serial['serialNumber'])
+    data = _remove_duplicates(data)
+    return jsonify({ 'serial_numbers' : data })

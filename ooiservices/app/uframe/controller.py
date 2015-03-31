@@ -184,6 +184,7 @@ def get_uframe_platforms(mooring):
     except:
         return internal_server_error('uframe connection cannot be made.')
 
+@auth.login_required
 @api.route('/get_glider_track/<string:ref>')
 def get_uframe_glider_track(ref):
     '''
@@ -205,13 +206,13 @@ def get_uframe_glider_track(ref):
                             mimetype='application/json')
         else:
             # if not a valid response, attempt to return the response as is.
-            # FIXME: possibly dead code due to tuple return of non-200 responses
-            # from get_json
-            return res.text, res.status_code, res.headers.items()
+            return Response(json.dumps({'type': "LineString",'coordinates':[],'note':'invalid status code'}),
+                            mimetype='application/json')
+            #return res.text, res.status_code, res.headers.items()
     except AttributeError:
-        # if status_code attribute isn't found, it's likely we have a tuple
-        # with the response data instead
-        return res
+        #return nothing
+        return Response(json.dumps({'type': "LineString",'coordinates':[],'note':'AttributeError'}),
+                            mimetype='application/json')
 
 @cache.memoize(timeout=3600)
 def get_uframe_instruments(mooring, platform):
@@ -268,16 +269,41 @@ def get_uframe_stream(mooring, platform, instrument, stream):
     except:
         return internal_server_error('uframe connection cannot be made.')
 
-
+@auth.login_required
+@api.route('/get_metadata/<string:stream>/<string:ref>', methods=['GET'])
 @cache.memoize(timeout=3600)
-def get_uframe_stream_metadata(mooring, platform, instrument, stream):
+def get_uframe_stream_metadata(stream,ref):
     '''
     Returns the uFrame metadata response for a given stream
     '''
+    mooring, platform, instrument = ref.split('-', 2)
+    stream_type, stream = stream.split('_', 1)
     try:
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        response = requests.get("/".join([UFRAME_DATA, mooring, platform, instrument, stream, 'metadata']))
-        return response
+        url = "/".join([UFRAME_DATA, mooring, platform, instrument, 'metadata'])
+        response = requests.get(url)
+        if response.status_code == 200:
+            return jsonify(metadata=response.json()), 200
+        return jsonify(metadata={}), 200
+    except:
+        return internal_server_error('uframe connection cannot be made.')
+
+
+@auth.login_required
+@api.route('/get_metadata_times/<string:stream>/<string:ref>', methods=['GET'])
+@cache.memoize(timeout=3600)
+def get_uframe_stream_metadata_times(stream,ref):
+    '''
+    Returns the uFrame time bounds response for a given stream
+    '''
+    mooring, platform, instrument = ref.split('-', 2)
+    stream_type, stream = stream.split('_', 1)
+    try:
+        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+        response = requests.get("/".join([UFRAME_DATA, mooring, platform, instrument, 'metadata','times']))
+        if response.status_code == 200:
+            return jsonify(times=response.json()), 200
+        return jsonify(times={}), 200
     except:
         return internal_server_error('uframe connection cannot be made.')
 
@@ -348,7 +374,8 @@ def get_csv(stream, ref):
 def get_json(stream, ref):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
-    data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
+    data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)    
+
     if data.status_code != 200:
         return data.text, data.status_code, dict(data.headers)
     response = '{"data":%s}' % data.content
@@ -357,7 +384,6 @@ def get_json(stream, ref):
     returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json" % filename
     returned_json.headers["Content-Type"] = "application/json"
     return returned_json
-
 
 @auth.login_required
 @api.route('/get_netcdf/<string:stream>/<string:ref>', methods=['GET'])
