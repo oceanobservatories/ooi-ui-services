@@ -30,9 +30,9 @@ cors = CORS()
 def create_app(config_name):
     app = Flask(__name__)
     env = Environments(app, default_env=config_name)
-    if os.path.exists(os.path.join(basedir, 'local_config.yml')):
+    if os.path.exists(os.path.join(basedir, 'config_local.yml')):
         print 'Using local_config.yml'
-        env.from_yaml(os.path.join(basedir, 'local_config.yml'))
+        env.from_yaml(os.path.join(basedir, 'config_local.yml'))
     else:
         print'Using config.yml'
         env.from_yaml(os.path.join(basedir, 'config.yml'))
