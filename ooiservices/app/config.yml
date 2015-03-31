@@ -24,6 +24,7 @@ COMMON: &common
     WHOOSH_BASE: 'ooiservices/whoosh_index'
     REDIS_URL: 'redis://:password@localhost:6379'
     DEPLOYMENT_SCENARIO: LOCAL_DEVELOPMENT
+    UFRAME_DATA_REQUEST_LIMIT: 2000
 
 DEVELOPMENT: &development
     <<: *common
