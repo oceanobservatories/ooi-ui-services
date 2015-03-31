@@ -254,7 +254,7 @@ class uFrameAssetCollection(object):
         asset_info = json.get('assetInfo')
         manufacture_info = json.get('manufactureInfo')
         notes = json.get('notes')
-        asset_id = json.get('assetId')
+        #asset_id = json.get('assetId')
         attachments = json.get('attachments')
         purchase_and_delivery_info = json.get('purchaseAndDeliveryInfo')
         physical_info = json.get('physicalInfo')
@@ -262,15 +262,16 @@ class uFrameAssetCollection(object):
         launch_date_time = json.get('launch_date_time')
         water_depth = json.get('water_depth')
         ref_des = json.get('ref_des')
-        meta_data = json.get('metaData')
+        #meta_data = json.get('metaData')
         ### These are not returned, for now they don't exist in uframe.
         identifier = json.get('identifier')
         trace_id = json.get('traceId')
         overwrite_allowed = json.get('overwriteAllowed')
         platform = json.get('platform')
+        last_modified_imestamp = json.get("lastModifiedTimestamp")
         #####
         #Build metadata dictionary
-        temp_meta_data = []
+        meta_data = []
         dict_depth = {}
         dict_lat = {}
         dict_lon = {}
@@ -281,36 +282,36 @@ class uFrameAssetCollection(object):
                 "key": "Water Depth",
                 "value": "%s %s" % (water_depth['value'], water_depth['unit'])
             }
-            temp_meta_data.append(dict_depth)
+            meta_data.append(dict_depth)
         if coordinates is not None and len(coordinates) == 2:
             dict_lat = {
                 "key": "Latitude",
                 "value": coordinates[0]
             }
-            temp_meta_data.append(dict_lat)
+            meta_data.append(dict_lat)
             dict_lon =  {
                 "key": "Longitude",
                 "value": coordinates[1]
             }
-            temp_meta_data.append(dict_lon)
+            meta_data.append(dict_lon)
         if launch_date_time is not None:
             dict_launch_date =  {
                 "key": "Anchor Launch Date",
                 "value": launch_date_time
             }
-            temp_meta_data.append(dict_launch_date)
+            meta_data.append(dict_launch_date)
         if ref_des is not None:
             dict_ref_des = {
               "key": "Ref Des",
               "value": ref_des
             }
-            temp_meta_data.append(dict_ref_des)
+            meta_data.append(dict_ref_des)
         if platform is not None:
             dict_platform = {
               "key": "Platform",
               "value": platform
             }
-            temp_meta_data.append(dict_platform)
+            meta_data.append(dict_platform)
 
         #TODO:
         #temp_metaData needs to be checked against the existing metaData and
@@ -326,10 +327,10 @@ class uFrameAssetCollection(object):
                 "assetInfo": asset_info,
                 "manufacturerInfo": manufacture_info,
                 "notes": notes,
-                "assetId": asset_id,
                 "attachments": attachments,
                 "purchaseAndDeliveryInfo": purchase_and_delivery_info,
-                "physicalInfo": physical_info
+                "physicalInfo": physical_info,
+                "lastModifiedTimestamp": last_modified_imestamp
                 }
         return formatted_return
 
@@ -617,10 +618,8 @@ def create_asset():
     return response.text
 
 #Update
-#@auth.login_required
-#mjc 03/30/2015
-#TODO: PUT Disabled due to data loss associated with metaData not being returned.
-#@api.route('/assets/<int:id>', methods=['PUT'])
+@auth.login_required
+@api.route('/assets/<int:id>', methods=['PUT'])
 def update_asset(id):
     '''
     Update an existing asset, the return will be right from uframe if all goes well.
@@ -628,11 +627,11 @@ def update_asset(id):
     Login required.
     '''
     data = json.loads(request.data)
-    data['@class'] = data.pop('class')
-    print json.dumps(data)
     uframe_obj = uFrameAssetCollection()
+    put_body = uframe_obj.from_json(data)
+    print json.dumps(put_body)
     uframe_assets_url = _uframe_url(uframe_obj.__endpoint__, id)
-    response = requests.put(uframe_assets_url, data=json.dumps(data), headers=_uframe_headers())
+    response = requests.put(uframe_assets_url, data=json.dumps(put_body), headers=_uframe_headers())
     return response.text
 
 #Delete
@@ -703,10 +702,8 @@ def create_event():
     return response.text
 
 #Update
-#mjc 03/30/2015
-#TODO: PUT Disabled due to data loss associated with metaData not being returned.
 @auth.login_required
-#@api.route('/events/<int:id>', methods=['PUT'])
+@api.route('/events/<int:id>', methods=['PUT'])
 def update_event(id):
     '''
     Update an existing event, the return will be right from uframe if all goes well.
