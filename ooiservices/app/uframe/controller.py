@@ -20,6 +20,7 @@ from dateutil.parser import parse as parse_date
 import requests
 #additional ones
 import json
+import time
 import datetime
 import math
 import csv
@@ -95,16 +96,19 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream):
     HOST = str(current_app.config['HOST'])
     PORT = str(current_app.config['PORT'])
     SERVICE_LOCATION = 'http://'+HOST+":"+PORT
+    #print "mooring: ", mooring, "   platform: ", platform, "   instrumen: ", instrument, "   stream_type: ", stream_type, "   stream: ", stream
     ref = mooring + "-" + platform + "-" + instrument
     response = get_uframe_stream_metadata_times(ref)
+    #response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
     stream_name = '_'.join([stream_type, stream])
     ref = '-'.join([mooring, platform, instrument])
     if response.status_code != 200:
         raise IOError("Failed to get stream contents from uFrame")
     data = response.json()
     data_dict = {}
-    data_dict['start'] = data[0]['beginTime']
-    data_dict['end'] = data[0]['endTime']
+    #preferred = data[0][u'preferred_timestamp']
+    data_dict['start'] = time.mktime(time.strptime(data[0]['beginTime'], "%Y-%m-%dT%H:%M:%S.%fZ"))
+    data_dict['end'] = time.mktime(time.strptime(data[0]['endTime'], "%Y-%m-%dT%H:%M:%S.%fZ"))
     data_dict['reference_designator'] = data[0]['sensor']
     data_dict['display_name'] = get_display_name_by_rd(ref)
     data_dict['csv_download'] = "/".join([SERVICE_LOCATION, 'uframe/get_csv', stream_name, ref])
@@ -112,6 +116,8 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream):
     data_dict['netcdf_download'] = "/".join([SERVICE_LOCATION,'uframe/get_netcdf',stream_name,ref])
     data_dict['profile_json_download'] = "/".join([SERVICE_LOCATION,'uframe/get_profiles',ref,stream_name])
     data_dict['stream_name'] = stream_name
+    #data_dict['variables'] = data[1].keys()
+    #data_dict['variable_types'] = {k : type(data[1][k]).__name__ for k in data[1].keys() }
     return data_dict
 
 
@@ -246,6 +252,7 @@ def get_uframe_stream_metadata_times(ref):
     Returns the uFrame time bounds response for a given stream
     '''
     mooring, platform, instrument = ref.split('-', 2)
+    #stream_type, stream = stream.split('_', 1)
     try:
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
         response = requests.get("/".join([UFRAME_DATA, mooring, platform, instrument, 'metadata','times']))
@@ -271,6 +278,7 @@ def get_uframe_stream_metadata_times(ref):
 #        return internal_server_error('uframe connection cannot be made.')
 
 @cache.memoize(timeout=3600)
+#def get_uframe_stream_contents_bounded(mooring, platform, instrument, stream_type, stream, start_time, end_time):
 def get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag):
     '''
     Gets the bounded stream contents, start_time and end_time need to be datetime objects
@@ -327,6 +335,7 @@ def get_csv(stream,ref,start_time,end_time,dpa_flag):
     return returned_csv
 
 @auth.login_required
+
 @api.route('/get_json/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>',methods=['GET'])
 def get_json(stream,ref,start_time,end_time,dpa_flag):
     mooring, platform, instrument = ref.split('-', 2)
@@ -338,7 +347,8 @@ def get_json(stream,ref,start_time,end_time,dpa_flag):
     new_end_time = datetime.datetime.strftime(new_end_time_strp, "%Y-%m-%dT%H:%M:%S.%fZ")
     if old_end_time_strp > new_end_time_strp:
         end_time = new_end_time
-
+    print "Begin", start_time
+    print "End", end_time
     data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag)
 
     if data.status_code != 200:
@@ -390,8 +400,10 @@ def get_data_api(stream, instrument,yvar,xvar):
     return jsonify(**get_data(stream,instrument,yvar,xvar))
 
 @auth.login_required
-@api.route('/plot/<string:instrument>/<string:stream>', methods=['GET'])
-def get_svg_plot(instrument, stream):
+@api.route('/plot/<string:stream>/<string:ref>/<string:start_date>/<string:end_date>/<string:dpa_flag>', methods=['GET'])
+def get_svg_plot(instrument, stream, start_date, end_date, dpa_flag):
+    mooring, platform, instrument = ref.split('-', 2)
+    stream_type, stream = stream.split('_', 1)
     plot_format = request.args.get('format', 'svg')
     #time series vs profile
     plot_layout = request.args.get('plotLayout', 'timeseries')
@@ -484,19 +496,20 @@ def get_process_profile_data(stream,instrument,yvar,xvar):
     
     return {'x':x_data,'y':y_data,'x_field':xvar,"y_field":yvar}
 
-def get_profile_data(instrument,stream):
+def get_profile_data(stream, ref, start_date, end_date, dpa_flag):
     '''
     process uframe data into profiles
     '''
     data = []
     dt_bounds = ''
-    #instrument = instrument.replace('-','/',2)
+    mooring, platform, instrument = ref.split('-', 2)
+    stream_type, stream = stream.split('_', 1)
     #url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE'] +'/' + instrument+ "/telemetered/"+stream + "/" + dt_bounds               
     #response = requests.get(url)
     mooring, platform, instrument, stream_type, stream = split_stream_name('_'.join([instrument, stream]))
-    st_date = request.args['startdate']       
-    ed_date = request.args['enddate']           
-    response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream,st_date,ed_date)
+    response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream,start_date,end_date, dpa_flag)
+    #else:
+    #    response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream)
 
     if response.status_code != 200:
         raise IOError("Failed to get data from uFrame")
@@ -593,12 +606,12 @@ def get_profile_data(instrument,stream):
 
 
 #@auth.login_required
-@api.route('/get_profiles/<string:stream>/<string:instrument>', methods=['GET'])
-def get_profiles(stream, instrument):  
-    filename = '-'.join([stream,instrument,"profiles"])
+@api.route('/get_profiles/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>', methods=['GET'])
+def get_profiles(stream, ref, start_time, end_time, dpa_flag ):  
+    filename = '-'.join([stream,ref,"profile"])
     content_headers = {'Content-Type':'application/json', 'Content-Disposition':"attachment; filename=%s.json"%filename}
     try:
-        profiles = get_profile_data(instrument, stream)
+        profiles = get_profile_data(stream, ref, start_time, end_time, dpa_flag)
     except Exception as e:
         return jsonify(error=e.message), 400, content_headers
     if profiles is None:
