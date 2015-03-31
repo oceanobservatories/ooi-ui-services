@@ -117,7 +117,9 @@ def _convert_lat_lon(lat, lon):
         coords = (_lat, _lon)
         return coords
     except Exception as e:
-        coords = (float('NaN'), float('NaN'))
+        #TODO: Figure out the best way to return coordinates that aren't
+        #translated correctly.
+        coords = (0.0, 0.0)
         return coords
 
 def _get_latlon(item):
