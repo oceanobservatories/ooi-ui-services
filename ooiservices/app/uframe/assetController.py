@@ -117,7 +117,7 @@ def _convert_lat_lon(lat, lon):
         coords = (_lat, _lon)
         return coords
     except Exception as e:
-            coords = (float("NaN"), float("NaN"))
+            coords = (0.0, 0.0)
             return coords
 
 def _get_latlon(item):
@@ -262,7 +262,6 @@ class uFrameAssetCollection(object):
         launch_date_time = json.get('launch_date_time')
         water_depth = json.get('water_depth')
         ref_des = json.get('ref_des')
-        print ref_des
         #meta_data = json.get('metaData')
         ### These are not returned, for now they don't exist in uframe.
         identifier = json.get('identifier')
@@ -596,7 +595,7 @@ def get_asset(id):
             data['events'] = _associate_events(id)
             data['class'] = data.pop('@class')
     except (KeyError, TypeError, AttributeError) as e:
-        raise e
+        pass
 
     return jsonify(**data)
 
@@ -630,7 +629,6 @@ def update_asset(id):
     data = json.loads(request.data)
     uframe_obj = uFrameAssetCollection()
     put_body = uframe_obj.from_json(data)
-    print json.dumps(put_body)
     uframe_assets_url = _uframe_url(uframe_obj.__endpoint__, id)
     response = requests.put(uframe_assets_url, data=json.dumps(put_body), headers=_uframe_headers())
     return response.text
