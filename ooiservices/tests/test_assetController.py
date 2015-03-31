@@ -121,7 +121,7 @@ class PrivateMethodsTest(unittest.TestCase):
         self.assertTrue(east_coords == (40.0960533, 70.8797183))
         #Test bad input:
         bad_coords = _convert_lat_lon("ABC", "DEF")
-        self.assertTrue("Error" in bad_coords)
+        self.assertTrue(bad_coords == (0.0, 0.0))
         #Test the conversion does not happen when the lat/lon is in dec deg.
         dec_deg_lat = self.asset_json['metaData'][9]['value']
         dec_deg_lon = self.asset_json['metaData'][10]['value']
@@ -165,6 +165,7 @@ class AssetCollectionTest(unittest.TestCase):
         self.app = create_app('TESTING_CONFIG')
         self.app_context = self.app.app_context()
         self.app_context.push()
+        db.drop_all()
         db.create_all()
         test_password = 'test'
         Organization.insert_org()

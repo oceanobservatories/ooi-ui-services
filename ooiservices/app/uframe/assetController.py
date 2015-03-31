@@ -8,15 +8,14 @@ __author__ = 'M@Campbell'
 from flask import jsonify, current_app, request, url_for, make_response
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.authentication import auth
+from ooiservices.app.main.routes import get_display_name_by_rd
 from ooiservices.app import cache
 import json
 import requests
 import re
-import httplib
 
-'''
-Default number of times to retry the connection:
-'''
+
+#Default number of times to retry the connection:
 requests.adapters.DEFAULT_RETRIES = 2
 
 def _normalize_whitespace(string):
@@ -118,7 +117,8 @@ def _convert_lat_lon(lat, lon):
         coords = (_lat, _lon)
         return coords
     except Exception as e:
-        return "Error: %s" % e
+            coords = (0.0, 0.0)
+            return coords
 
 def _get_latlon(item):
     '''
@@ -135,6 +135,9 @@ def _get_latlon(item):
     tmp = _normalize(item)
     # process input and round result to _decimal places
     if isinstance(item, unicode) and len(tmp.split()) > 1:
+        digits = re.findall("\S.*[0-9.]+", tmp)
+        direction = re.findall("[NSEW]", tmp)
+        tmp = "%s %s" % (digits[0], direction[0])
         ds = tmp.split(' ')
         degrees = float(ds[0])
         minutes = float(ds[1])
@@ -219,18 +222,18 @@ class uFrameAssetCollection(object):
 
     __endpoint__ = 'assets'
     # m@c: Updated 03/03/2015
-    classType =  None
-    metaData = []
-    assetInfo = None
-    manufactureInfo = None
+    class_type =  None
+    meta_data = []
+    asset_info = None
+    manufacture_info = None
     notes = None
-    assetId = None
+    asset_id = None
     attachments = []
-    purchaseAndDeliveryInfo = None
-    physicalInfo = None
+    purchase_and_delivery_info = None
+    physical_info = None
     identifier = None
-    traceId = None
-    overwriteAllowed = False
+    traceI_id = None
+    overwrite_allowed = False
 
     #Create a json object that contains all uframe assets.
     #This will be the collection that will may be parsed.
@@ -247,27 +250,28 @@ class uFrameAssetCollection(object):
 
     def from_json(self, json):
         # Below section is from UI
-        classType = json.get('class')
-        assetInfo = json.get('assetInfo')
-        manufactureInfo = json.get('manufactureInfo')
+        class_type = json.get('class')
+        asset_info = json.get('assetInfo')
+        manufacture_info = json.get('manufactureInfo')
         notes = json.get('notes')
-        assetId = json.get('assetId')
+        #asset_id = json.get('assetId')
         attachments = json.get('attachments')
-        purchaseAndDeliveryInfo = json.get('purchaseAndDeliveryInfo')
-        physicalInfo = json.get('physicalInfo')
+        purchase_and_delivery_info = json.get('purchaseAndDeliveryInfo')
+        physical_info = json.get('physicalInfo')
         coordinates = json.get('coordinates')
         launch_date_time = json.get('launch_date_time')
         water_depth = json.get('water_depth')
         ref_des = json.get('ref_des')
-        metaData = json.get('metaData')
+        #meta_data = json.get('metaData')
         ### These are not returned, for now they don't exist in uframe.
         identifier = json.get('identifier')
-        traceId = json.get('traceId')
-        overwriteAllowed = json.get('overwriteAllowed')
+        trace_id = json.get('traceId')
+        overwrite_allowed = json.get('overwriteAllowed')
         platform = json.get('platform')
+        last_modified_imestamp = json.get("lastModifiedTimestamp")
         #####
         #Build metadata dictionary
-        temp_metaData = []
+        meta_data = []
         dict_depth = {}
         dict_lat = {}
         dict_lon = {}
@@ -278,36 +282,36 @@ class uFrameAssetCollection(object):
                 "key": "Water Depth",
                 "value": "%s %s" % (water_depth['value'], water_depth['unit'])
             }
-            temp_metaData.append(dict_depth)
+            meta_data.append(dict_depth)
         if coordinates is not None and len(coordinates) == 2:
             dict_lat = {
                 "key": "Latitude",
                 "value": coordinates[0]
             }
-            temp_metaData.append(dict_lat)
+            meta_data.append(dict_lat)
             dict_lon =  {
                 "key": "Longitude",
                 "value": coordinates[1]
             }
-            temp_metaData.append(dict_lon)
+            meta_data.append(dict_lon)
         if launch_date_time is not None:
             dict_launch_date =  {
                 "key": "Anchor Launch Date",
                 "value": launch_date_time
             }
-            temp_metaData.append(dict_launch_date)
+            meta_data.append(dict_launch_date)
         if ref_des is not None:
             dict_ref_des = {
               "key": "Ref Des",
               "value": ref_des
             }
-            temp_metaData.append(dict_ref_des)
+            meta_data.append(dict_ref_des)
         if platform is not None:
             dict_platform = {
               "key": "Platform",
               "value": platform
             }
-            temp_metaData.append(dict_platform)
+            meta_data.append(dict_platform)
 
         #TODO:
         #temp_metaData needs to be checked against the existing metaData and
@@ -318,15 +322,15 @@ class uFrameAssetCollection(object):
         #Below section's keys are uFrame specific and shouldn't be modified
         #unless necessary to support uframe updates.
         formatted_return = {
-                "@class": classType,
-                "metaData": metaData,
-                "assetInfo": assetInfo,
-                "manufacturerInfo": manufactureInfo,
+                "@class": class_type,
+                "metaData": meta_data,
+                "assetInfo": asset_info,
+                "manufacturerInfo": manufacture_info,
                 "notes": notes,
-                "assetId": assetId,
                 "attachments": attachments,
-                "purchaseAndDeliveryInfo": purchaseAndDeliveryInfo,
-                "physicalInfo": physicalInfo
+                "purchaseAndDeliveryInfo": purchase_and_delivery_info,
+                "physicalInfo": physical_info,
+                "lastModifiedTimestamp": last_modified_imestamp,
                 }
         return formatted_return
 
@@ -361,57 +365,57 @@ class uFrameEventCollection(object):
         return data
 
     def from_json(self, json):
-        eventClass = json.get('class')
-        referenceDesignator = json.get('referenceDesignator')
-        deploymentNumber = json.get('deploymentNumber')
-        deploymentName = json.get('deploymentName')
-        deploymentDepth = json.get('deploymentDepth')
-        depthUnitString = json.get('depthUnitString')
-        deploymentDocUrls = json.get('deploymentDocUrls')
-        deploymentLocation = json.get('deploymentLocation')
-        cruiseNumber = json.get('cruiseNumber')
-        locationLonLat = json.get('locationLonLat')
-        locationName = json.get('locationName')
-        eventType = json.get('eventType')
-        startDate = json.get('startDate')
-        endDate = json.get('endDate')
-        eventDescription = json.get('eventDescription')
-        recordedBy = json.get('recordedBy')
+        event_class = json.get('class')
+        reference_designator = json.get('referenceDesignator')
+        deployment_number = json.get('deploymentNumber')
+        deployment_name = json.get('deploymentName')
+        deployment_depth = json.get('deploymentDepth')
+        depthUnit_string = json.get('depthUnitString')
+        deployment_doc_urls = json.get('deploymentDocUrls')
+        deployment_location = json.get('deploymentLocation')
+        cruise_number = json.get('cruiseNumber')
+        location_lon_lat = json.get('locationLonLat')
+        location_name = json.get('locationName')
+        event_type = json.get('eventType')
+        start_date = json.get('startDate')
+        end_date = json.get('endDate')
+        event_description = json.get('eventDescription')
+        recorded_by = json.get('recordedBy')
         asset = json.get('asset')
         notes = json.get('notes')
         attachments = json.get('attachments')
         tense = json.get('tense')
-        lastModifiedTimestamp = json.get('lastModifiedTimestamp')
+        last_modified_timestamp = json.get('lastModifiedTimestamp')
 
         #Update deploymentLocation to send a float even if Lat/Lon is an int.
-        if deploymentLocation is not None:
-            deploymentLocation = [
-                float(deploymentLocation[0]),
-                float(deploymentLocation[1])
+        if deployment_location is not None:
+            deployment_location = [
+                float(deployment_location[0]),
+                float(deployment_location[1])
             ]
 
         formatted_return = {
-            '@class' : eventClass,
-            'referenceDesignator': referenceDesignator,
-            'deploymentNumber': deploymentNumber,
-            'deploymentName': deploymentName,
-            'deploymentDepth': deploymentDepth,
-            'depthUnitString': depthUnitString,
-            'deploymentDocUrls': deploymentDocUrls,
-            'deploymentLocation': deploymentLocation,
-            'cruiseNumber': cruiseNumber,
-            'locationLonLat': locationLonLat,
-            'locationName': locationName,
-            'eventType': eventType,
-            'startDate': startDate,
-            'endDate': endDate,
-            'eventDescription': eventDescription,
-            'recordedBy': recordedBy,
+            '@class' : event_class,
+            'referenceDesignator': reference_designator,
+            'deploymentNumber': deployment_number,
+            'deploymentName': deployment_name,
+            'deploymentDepth': deployment_depth,
+            'depthUnitString': depthUnit_string,
+            'deploymentDocUrls': deployment_doc_urls,
+            'deploymentLocation': deployment_location,
+            'cruiseNumber': cruise_number,
+            'locationLonLat': location_lon_lat,
+            'locationName': location_name,
+            'eventType': event_type,
+            'startDate': start_date,
+            'endDate': end_date,
+            'eventDescription': event_description,
+            'recordedBy': recorded_by,
             'asset': asset,
             'notes': notes,
             'attachments': attachments,
             'tense': tense,
-            'lastModifiedTimestamp': lastModifiedTimestamp
+            'lastModifiedTimestamp': last_modified_timestamp
         }
         return formatted_return
 
@@ -439,25 +443,25 @@ def get_assets():
     try:
         for row in data:
             if row['metaData'] is not None:
-                for metaData in row['metaData']:
-                    if metaData['key'] == 'Laditude ':
-                        metaData['key'] = 'Latitude'
-                    if metaData['key'] == 'Latitude':
-                        lat = metaData['value']
-                        metaData['value'] = _normalize(metaData['value'])
-                    if metaData['key'] == 'Longitude':
-                        lon = metaData['value']
-                        metaData['value'] = _normalize(metaData['value'])
-                    if metaData['key'] == "Anchor Launch Date":
-                        date_launch = metaData['value']
-                    if metaData['key'] == "Anchor Launch Time":
-                        time_launch = metaData['value']
-                    if metaData['key'] == 'Water Depth':
-                        depth = metaData['value']
-                    if metaData['key'] == 'Ref Des SN':
-                        metaData['key'] = 'Ref Des'
-                    if metaData['key'] == 'Ref Des':
-                        ref_des = (metaData['value'])
+                for meta_data in row['metaData']:
+                    if meta_data['key'] == 'Laditude ':
+                        meta_data['key'] = 'Latitude'
+                    if meta_data['key'] == 'Latitude':
+                        lat = meta_data['value']
+                        meta_data['value'] = _normalize(meta_data['value'])
+                    if meta_data['key'] == 'Longitude':
+                        lon = meta_data['value']
+                        meta_data['value'] = _normalize(meta_data['value'])
+                    if meta_data['key'] == "Anchor Launch Date":
+                        date_launch = meta_data['value']
+                    if meta_data['key'] == "Anchor Launch Time":
+                        time_launch = meta_data['value']
+                    if meta_data['key'] == 'Water Depth':
+                        depth = meta_data['value']
+                    if meta_data['key'] == 'Ref Des SN':
+                        meta_data['key'] = 'Ref Des'
+                    if meta_data['key'] == 'Ref Des':
+                        ref_des = (meta_data['value'])
                 if len(lat) > 0 and len(lon) > 0:
                     row['coordinates'] = _convert_lat_lon(lat, lon)
                     lat = ""
@@ -476,6 +480,14 @@ def get_assets():
                 if len(ref_des) > 0:
                     row['ref_des'] = ref_des
                     '''
+                    Determine the asset name from the DB if there is none.
+                    '''
+                    try:
+                        if row['assetInfo']['name'] == None:
+                            row['assetInfo']['name'] = get_display_name_by_rd(ref_des)
+                    except:
+                        pass
+                    '''
                     Create a url to uframe which can be used to navigate
                     to the stream data.
                     '''
@@ -489,7 +501,7 @@ def get_assets():
                             row.update({'stream_url': stream_url})
                         ref_des = ""
                         content_length = 0
-                    except (requests.exceptions.ConnectTimeout, requests.exceptions.ReadTimeout) as e:
+                    except (requests.exceptions.ConnectTimeout, requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
                         row.update({'stream_url': "Request Time Out"})
 
             row['class'] = row.pop('@class')
@@ -519,25 +531,25 @@ def get_asset(id):
     ref_des = ""
     depth = ""
     try:
-        for metaData in data['metaData']:
-            if metaData['key'] == 'Laditude ':
-                metaData['key'] = 'Latitude'
-            if metaData['key'] == 'Latitude':
-                lat = metaData['value']
-                metaData['value'] = _normalize(metaData['value'])
-            if metaData['key'] == 'Longitude':
-                lon = metaData['value']
-                metaData['value'] = _normalize(metaData['value'])
-            if metaData['key'] == "Anchor Launch Date":
-                date_launch = metaData['value']
-            if metaData['key'] == "Anchor Launch Time":
-                time_launch = metaData['value']
-            if metaData['key'] == 'Water Depth':
-                depth = metaData['value']
-            if metaData['key'] == 'Ref Des SN':
-                metaData['key'] = 'Ref Des'
-            if metaData['key'] == 'Ref Des':
-                ref_des = (metaData['value'])
+        for meta_data in data['metaData']:
+            if meta_data['key'] == 'Laditude ':
+                meta_data['key'] = 'Latitude'
+            if meta_data['key'] == 'Latitude':
+                lat = meta_data['value']
+                meta_data['value'] = _normalize(meta_data['value'])
+            if meta_data['key'] == 'Longitude':
+                lon = meta_data['value']
+                meta_data['value'] = _normalize(meta_data['value'])
+            if meta_data['key'] == "Anchor Launch Date":
+                date_launch = meta_data['value']
+            if meta_data['key'] == "Anchor Launch Time":
+                time_launch = meta_data['value']
+            if meta_data['key'] == 'Water Depth':
+                depth = meta_data['value']
+            if meta_data['key'] == 'Ref Des SN':
+                meta_data['key'] = 'Ref Des'
+            if meta_data['key'] == 'Ref Des':
+                ref_des = (meta_data['value'])
         if len(lat) > 0 and len(lon) > 0:
             data['coordinates'] = _convert_lat_lon(lat, lon)
             lat = ""
@@ -555,11 +567,34 @@ def get_asset(id):
             depth = ""
         if len(ref_des) > 0:
             data['ref_des'] = ref_des
-            ref_des = ""
+            '''
+            Determine the asset name from the DB if there is none.
+            '''
+            try:
+                if data['assetInfo']['name'] == None:
+                    data['assetInfo']['name'] = get_display_name_by_rd(ref_des)
+            except:
+                pass
+            '''
+            Create a url to uframe which can be used to navigate
+            to the stream data.
+            '''
+            try:
+                ref_des_split = ref_des.split('-')
+                stream_url =  current_app.config['UFRAME_URL'] + \
+                '/sensor/inv/%s' % (ref_des_split[0])
+                res = requests.head(stream_url, timeout=(.5, 3))
+                content_length = int(res.headers['content-length'])
+                if content_length > 0:
+                    data.update({'stream_url': stream_url})
+                ref_des = ""
+                content_length = 0
+            except (requests.exceptions.ConnectTimeout, requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
+                data.update({'stream_url': "Request Time Out"})
 
-        data['events'] = _associate_events(id)
-        data['class'] = data.pop('@class')
-    except (KeyError, TypeError):
+            data['events'] = _associate_events(id)
+            data['class'] = data.pop('@class')
+    except (KeyError, TypeError, AttributeError) as e:
         pass
 
     return jsonify(**data)
@@ -583,10 +618,8 @@ def create_asset():
     return response.text
 
 #Update
-#@auth.login_required
-#mjc 03/30/2015
-#TODO: PUT Disabled due to data loss associated with metaData not being returned.
-#@api.route('/assets/<int:id>', methods=['PUT'])
+@auth.login_required
+@api.route('/assets/<int:id>', methods=['PUT'])
 def update_asset(id):
     '''
     Update an existing asset, the return will be right from uframe if all goes well.
@@ -594,11 +627,10 @@ def update_asset(id):
     Login required.
     '''
     data = json.loads(request.data)
-    data['@class'] = data.pop('class')
-    print json.dumps(data)
     uframe_obj = uFrameAssetCollection()
+    put_body = uframe_obj.from_json(data)
     uframe_assets_url = _uframe_url(uframe_obj.__endpoint__, id)
-    response = requests.put(uframe_assets_url, data=json.dumps(data), headers=_uframe_headers())
+    response = requests.put(uframe_assets_url, data=json.dumps(put_body), headers=_uframe_headers())
     return response.text
 
 #Delete
@@ -669,10 +701,8 @@ def create_event():
     return response.text
 
 #Update
-#mjc 03/30/2015
-#TODO: PUT Disabled due to data loss associated with metaData not being returned.
 @auth.login_required
-#@api.route('/events/<int:id>', methods=['PUT'])
+@api.route('/events/<int:id>', methods=['PUT'])
 def update_event(id):
     '''
     Update an existing event, the return will be right from uframe if all goes well.
@@ -703,14 +733,14 @@ def get_asset_types():
     Lists all the asset types available from uFrame.
     '''
     data = []
-    assetType = []
+    asset_type = []
     uframe_obj = uFrameAssetCollection()
     temp_list = uframe_obj.to_json()
     for row in temp_list:
         if row['assetInfo'] is not None:
-            assetType.append(row['assetInfo'])
-            for assType in assetType:
-                data.append(assType['type'])
+            asset_type.append(row['assetInfo'])
+            for a_t in asset_type:
+                data.append(a_t['type'])
     data = _remove_duplicates(data)
     return jsonify({ 'asset_types' : data })
 
@@ -736,13 +766,13 @@ def get_asset_serials():
     Lists all the class types available from uFrame.
     '''
     data = []
-    manufInfo = []
+    manuf_info = []
     uframe_obj = uFrameAssetCollection()
     temp_list = uframe_obj.to_json()
     for row in temp_list:
         if row['manufactureInfo'] is not None:
-            manufInfo.append(row['manufactureInfo'])
-            for serial in manufInfo:
+            manuf_info.append(row['manufactureInfo'])
+            for serial in manuf_info:
                 data.append(serial['serialNumber'])
     data = _remove_duplicates(data)
     return jsonify({ 'serial_numbers' : data })
