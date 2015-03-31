@@ -30,7 +30,12 @@ cors = CORS()
 def create_app(config_name):
     app = Flask(__name__)
     env = Environments(app, default_env=config_name)
-    env.from_yaml(os.path.join(basedir, 'config.yml'))
+    if os.path.exists(os.path.join(basedir, 'local_config.yml')):
+        print 'Using local_config.yml'
+        env.from_yaml(os.path.join(basedir, 'local_config.yml'))
+    else:
+        print'Using config.yml'
+        env.from_yaml(os.path.join(basedir, 'config.yml'))
     celery.conf.update(BROKER_URL=app.config['REDIS_URL'],
                 CELERY_RESULT_BACKEND=app.config['REDIS_URL'])
 

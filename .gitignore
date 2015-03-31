@@ -1,3 +1,6 @@
+#Local config file:
+local_config.yml
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
