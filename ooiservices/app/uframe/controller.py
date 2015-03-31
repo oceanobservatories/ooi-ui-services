@@ -357,7 +357,7 @@ def validate_date_time(start_time,end_time):
 
 @auth.login_required
 @api.route('/get_csv/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>',methods=['GET'])
-def get_csv(stream, ref):
+def get_csv(stream, ref,start_time,end_time,dpa_flag):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
     
@@ -367,7 +367,7 @@ def get_csv(stream, ref):
 
     data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag)
     if data.status_code != 200:
-        return data.text, data.status_code, dict(data.headers)
+        return data, data.status_code, dict(data.headers)
 
     output = io.BytesIO()
     data = data.json()
