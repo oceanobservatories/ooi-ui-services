@@ -121,7 +121,7 @@ class PrivateMethodsTest(unittest.TestCase):
         self.assertTrue(east_coords == (40.0960533, 70.8797183))
         #Test bad input:
         bad_coords = _convert_lat_lon("ABC", "DEF")
-        self.assertTrue(bad_coords == (0.0, 0.0))
+        self.assertTrue(bad_coords == (float('NaN'), float('NaN')))
         #Test the conversion does not happen when the lat/lon is in dec deg.
         dec_deg_lat = self.asset_json['metaData'][9]['value']
         dec_deg_lon = self.asset_json['metaData'][10]['value']
