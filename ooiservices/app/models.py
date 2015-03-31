@@ -56,10 +56,14 @@ class Annotation(db.Model):
     title = db.Column(db.Text)
     stream_name = db.Column(db.Text)
     instrument_name = db.Column(db.Text)
-    pos_x = db.Column(db.Text)
-    pos_y = db.Column(db.Integer)
-    field_x = db.Column(db.Text)
-    field_y = db.Column(db.Text)
+    pos_x1 = db.Column(db.Text)
+    pos_y1 = db.Column(db.Integer)
+    field_x1 = db.Column(db.Text)
+    field_y1 = db.Column(db.Text)
+    pos_x2 = db.Column(db.Text)
+    pos_y2 = db.Column(db.Integer)
+    field_x2 = db.Column(db.Text)
+    field_y2 = db.Column(db.Text)
 
     user = db.relationship(u'User')
 
@@ -69,15 +73,20 @@ class Annotation(db.Model):
         title = json_annotation.get('title')
         stream_name = json_annotation.get('stream_name')
         instrument_name = json_annotation.get('instrument_name')
-        pos_x = json_annotation.get('pos_x')
-        pos_y = json_annotation.get('pos_y')
-        field_y = json_annotation.get('field_y')
-        field_x = json_annotation.get('field_x')
+        pos_x1 = json_annotation.get('pos_x1')
+        pos_y1 = json_annotation.get('pos_y1')
+        field_y1 = json_annotation.get('field_y1')
+        field_x1 = json_annotation.get('field_x1')
+        pos_x2= json_annotation.get('pos_x2')
+        pos_y2 = json_annotation.get('pos_y2')
+        field_y2 = json_annotation.get('field_y2')
+        field_x2 = json_annotation.get('field_x2')
 
-        return Annotation(comment=comment, \
-            title=title, \
-            stream_name=stream_name, instrument_name=instrument_name, pos_x=pos_x, pos_y=pos_y, \
-            field_x=field_x, field_y=field_y)
+        return Annotation(comment=comment,
+            title=title,
+            stream_name=stream_name, instrument_name=instrument_name, pos_x1=pos_x1, pos_y1=pos_y1,
+            field_x1=field_x1, field_y1=field_y1, pos_x2=pos_x2, pos_y2=pos_y2,
+            field_x2=field_x2, field_y2=field_y2)
 
     def to_json(self):
         json_array = {
@@ -89,10 +98,14 @@ class Annotation(db.Model):
             'title': self.title,
             'stream_name': self.stream_name,
             'instrument_name': self.instrument_name,
-            'pos_x': self.pos_x,
-            'pos_y': self.pos_y,
-            'field_x': self.field_x,
-            'field_y': self.field_y
+            'pos_x1': self.pos_x1,
+            'pos_y1': self.pos_y1,
+            'field_x1': self.field_x1,
+            'field_y1': self.field_y1,
+            'pos_x2': self.pos_x2,
+            'pos_y2': self.pos_y2,
+            'field_x2': self.field_x2,
+            'field_y2': self.field_y2
         }
         return json_array
 
@@ -685,13 +698,28 @@ class SystemEventDefinition(db.Model):
     stream_parameter = db.Column(db.Text, nullable=False)
     operator = db.Column(db.Text, nullable=False) # > >= < <= =
     values = db.Column(db.Text, nullable=False) # Typically single value but could be list for a <> operator
-    organization_ids = db.Column(db.Text, nullable=False) # List of organization_id(s) from the organizations table
-    user_ids = db.Column(db.Text, nullable=False) # List of user_id(s) from the users table
     created_time = db.Column(db.DateTime(True), nullable=False)
     priority = db.Column(db.Text, nullable=False)
-    notification_types = db.Column(db.Text, nullable=True) #  Array [text_message, phone_call, email, redmine, log]
     active = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))
     description = db.Column(db.Text, nullable=True)
+
+    @staticmethod
+    def insert_system_event_definition(uframe_definition_id, reference_designator, stream_name, stream_type,
+                                       stream_parameter, operator, values,
+                                       created_time, priority, active, description):
+        new_definition = SystemEventDefinition()
+        new_definition.uframe_definition_id = uframe_definition_id
+        new_definition.reference_designator = reference_designator
+        new_definition.stream_name = stream_name
+        new_definition.stream_type = stream_type
+        new_definition.stream_parameter = stream_parameter
+        new_definition.operator = operator
+        new_definition.values = values
+        new_definition.created_time = created_time
+        new_definition.priority = priority
+        new_definition.active = active
+        new_definition.description = description
+
 
     def to_json(self):
         json_system_event_definition = {
@@ -703,11 +731,8 @@ class SystemEventDefinition(db.Model):
             'stream_parameter' : self.stream_parameter,
             'operator' : self.operator,
             'values' : self.values,
-            'organization_ids' : self.organization_ids,
-            'user_ids' : self.user_ids,
             'created_time' : self.created_time,
             'priority' : self.priority,
-            'notification_types' : self.notification_types,
             'active' : self.active,
             'description' : self.description
         }
@@ -734,7 +759,7 @@ class SystemEvent(db.Model):
     def insert_event(uframe_event_id, system_event_definition_id, event_time, event_type, event_response):
         new_event = SystemEvent()
         new_event.uframe_event_id = uframe_event_id
-        new_event.system_event_definition_id =system_event_definition_id
+        new_event.system_event_definition_id = system_event_definition_id
         new_event.event_time = event_time
         new_event.event_type = event_type
         new_event.event_response = event_response
@@ -751,6 +776,50 @@ class SystemEvent(db.Model):
             'event_response' : self.event_response
         }
 
+
+class UserEventNotification(db.Model):
+    """
+    Stores the Alerts/Alarms ingested from uFrame
+    """
+    __tablename__ = 'user_event_notifications'
+    __table_args__ = {u'schema': __schema__}
+
+    id = db.Column(db.Integer, primary_key=True)
+    system_event_definition_id = db.Column(db.ForeignKey(u'' + __schema__ + '.system_event_definitions.id'), nullable=False)
+    user_id = db.Column(db.ForeignKey(u'' + __schema__ + '.users.id'), nullable=False)
+    use_email = db.Column(db.Boolean, nullable=True)
+    use_redmine = db.Column(db.Boolean, nullable=True)
+    use_phone = db.Column(db.Boolean, nullable=True)
+    use_log = db.Column(db.Boolean, nullable=True)
+    use_sms = db.Column(db.Boolean, nullable=True)
+
+    event = db.relationship(u'SystemEventDefinition')
+    user = db.relationship(u'User')
+
+    def to_json(self):
+        json_user_notification = {
+            'id': self.id,
+            'system_event_definition_id': self.system_event_definition_id,
+            'user_id': self.user_id,
+            'use_email': self.use_email,
+            'use_redmine': self.use_redmine,
+            'use_phone': self.use_phone,
+            'use_log': self.use_log,
+            'use_sms': self.use_sms
+        }
+
+    @staticmethod
+    def insert_user_event_notification(system_event_definition_id, user_id, use_email, use_redmine, use_phone, use_log, use_sms):
+        new_user_event_notification = UserEventNotification()
+        new_user_event_notification.system_event_definition_id = system_event_definition_id
+        new_user_event_notification.user_id = user_id
+        new_user_event_notification.use_email = use_email
+        new_user_event_notification.use_redmine = use_redmine
+        new_user_event_notification.use_phone = use_phone
+        new_user_event_notification.use_log = use_log
+        new_user_event_notification.use_sms = use_sms
+        db.session.add(new_user_event_notification)
+        db.session.commit()
 
 class UserScopeLink(db.Model):
     __tablename__ = 'user_scope_link'

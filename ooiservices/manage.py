@@ -19,8 +19,12 @@ from ooiservices.app.models import PlatformDeployment, User, UserScope, UserScop
 from datetime import datetime
 
 import yaml
-with open(basedir + '/app/config.yml', 'r') as f:
-    doc = yaml.load(f)
+if os.path.exists(os.path.join(basedir, '/app/config_local.yml')):
+    with open(basedir + '/app/config_local.yml', 'r') as f:
+        doc = yaml.load(f)
+else:
+    with open(basedir + '/app/config.yml', 'r') as f:
+        doc = yaml.load(f)
 env = doc['ENV_NAME']
 
 app = create_app(env)

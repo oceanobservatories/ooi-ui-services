@@ -63,15 +63,18 @@ class AnnotationsTestCase(unittest.TestCase):
         'Test Annotation model'
         #Test the json in the object
         annotation = Annotation()
-        self.assertTrue(annotation.to_json() == {'comment': None, 'created_time': None, \
-            'field_x': None, 'field_y': None, 'id': None, 'instrument_name': None, \
-            'modified_time': None, 'pos_x': None, 'pos_y': None, 'stream_name': None, \
-            'title': None, 'user_name': None})
+        self.assertTrue(annotation.to_json() == {'comment': None, 'created_time': None,
+            'field_x1': None, 'field_y1': None, 'id': None, 'instrument_name': None,
+            'modified_time': None, 'pos_x1': None, 'pos_y1': None, 'stream_name': None,
+            'title': None, 'user_name': None,
+            'field_x2': None, 'field_y2': None, 'pos_x2': None, 'pos_y2': None}
+        )
 
         'Test new annotation submission'
-        new_annotation_json = {'comment': 'test', 'field_x': 'x-files', 'field_y': 'y-files', \
-            'instrument_name': 'CP02PMUO-WFP01-04-FLORTK000', 'pos_x': 5, 'pos_y': 5, \
-            'stream_name': 'flort_kn_stc_imodem_instrument', 'title': 'test'}
+        new_annotation_json = {'comment': 'test', 'field_x1': 'x-files', 'field_y1': 'y-files',
+            'instrument_name': 'CP02PMUO-WFP01-04-FLORTK000', 'pos_x1': 5, 'pos_y1': 5,
+            'stream_name': 'flort_kn_stc_imodem_instrument', 'title': 'test',
+            'field_x2': 'x-files-2', 'field_y2': 'y-files-2', 'pos_x2': 10, 'pos_y2': 10}
         new_annotation = Annotation.from_json(new_annotation_json)
         new_annotation.created_time = datetime.now()
         new_annotation.modified_time = datetime.now()
