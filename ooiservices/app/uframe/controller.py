@@ -120,6 +120,7 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream):
     data_dict['stream_name'] = stream_name
     data_dict['variables'] = []
     data_dict['variable_types'] = {}
+    data_dict['units'] = {}
     data_dict['display_name'] = get_display_name_by_rd(ref)
     data_dict['download'] = {"csv":"/".join([SERVICE_LOCATION, 'uframe/get_csv', stream_name, ref]),
                              "json":"/".join([SERVICE_LOCATION, 'uframe/get_json', stream_name, ref]),
@@ -134,9 +135,10 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream):
             data = data['parameters']
             for field in data:
                 if field not in data_dict['variables']: 
-                    if field['type'] == 'FLOAT':                                    
+                    if field['type'] == 'FLOAT':                                                            
                         data_dict['variables'].append(field['particleKey'])
                         data_dict['variable_types'][field['particleKey']] = field['type'].lower()           
+                        data_dict['units'][field['particleKey']] = field['units']
    
     return data_dict
 
