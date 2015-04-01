@@ -623,6 +623,7 @@ def create_asset():
     uframe_assets_url = _uframe_url(uframe_obj.__endpoint__)
     #return uframe_assets_url
     response = requests.post(uframe_assets_url, data=json.dumps(post_body), headers=_uframe_headers())
+    cache.delete('asset_list')
     return response.text
 
 #Update
@@ -639,6 +640,7 @@ def update_asset(id):
     put_body = uframe_obj.from_json(data)
     uframe_assets_url = _uframe_url(uframe_obj.__endpoint__, id)
     response = requests.put(uframe_assets_url, data=json.dumps(put_body), headers=_uframe_headers())
+    cache.delete('asset_list')
     return response.text
 
 #Delete
@@ -714,6 +716,7 @@ def create_event():
     post_body = uframe_obj.from_json(data)
     uframe_events_url = _uframe_url(uframe_obj.__endpoint__)
     response = requests.post(uframe_events_url, data=json.dumps(post_body), headers=_uframe_headers())
+    cache.delete('event_list')
     return response.text
 
 #Update
@@ -730,6 +733,7 @@ def update_event(id):
     put_body = uframe_obj.from_json(data)
     uframe_events_url = _uframe_url(uframe_obj.__endpoint__, id)
     response = requests.put(uframe_events_url, data=json.dumps(put_body), headers=_uframe_headers())
+    cache.delete('event_list')
     return response.text
 
 #Delete
