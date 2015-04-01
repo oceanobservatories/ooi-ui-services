@@ -11,23 +11,22 @@ from ooiservices.app import db
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.models import SystemEventDefinition, SystemEvent, User
 from ooiservices.app.decorators import scope_required
-from ooiservices.app.main.errors import forbidden, conflict
+from ooiservices.app.main.errors import forbidden, conflict, bad_request
 from datetime import datetime
 
 import json
 
-# Temporary flag to add demo data to alerts and alarms
-# TODO: Remove or set to False after uFrame is connected
-ADD_DEMO_DATA = False
-
 #List all alerts and alarms
 @api.route('/alert_alarm')
 def get_alerts_alarms():
+    result = []
     if 'type' in request.args:
         alerts_alarms = SystemEvent.query.filter_by(type=request.args.get('type'))
     else:
         alerts_alarms = SystemEvent.query.all()
-    return jsonify( {'alert_alarm' : [alert_alarm.to_json() for alert_alarm in alerts_alarms] })
+    if alerts_alarms:
+        result = [alert_alarm.to_json() for alert_alarm in alerts_alarms]
+    return jsonify( {'alert_alarm' : result })
 
 #List an alerts and alarms by id
 @api.route('/alert_alarm/<string:id>')
@@ -50,8 +49,10 @@ def create_alert_alarm():
         alert_alarm.event_response = data['event_response']
         db.session.add(alert_alarm)
         db.session.commit()
+        db.session.flush()
+
         return jsonify(alert_alarm.to_json()), 201
-    except:
+    except Exception as err:
         return conflict('Insufficient data, or bad data format.')
 
 
@@ -101,11 +102,15 @@ def create_alert_alarm_def():
         alert_alarm_def.priority = data['priority']
         alert_alarm_def.active = data['active']
         alert_alarm_def.description = data['description']
-        db.session.add(alert_alarm_def)
-        db.session.commit()
-        # TODO: Remove after uFrame handles alert and alarm generation
-        if ADD_DEMO_DATA:
-            insert_alert_alarm_demo(alert_alarm_def.uframe_definition_id,
+        try:
+            db.session.add(alert_alarm_def)
+            db.session.commit()
+            db.session.flush()
+        except Exception as err:
+            return bad_request(err.message)
+
+        if current_app.config['USE_MOCK_DATA']:
+            insert_alert_alarm_demo(alert_alarm_def.id,
                                     alert_alarm_def.priority,
                                     alert_alarm_def.instrument_name,
                                     alert_alarm_def.instrument_parameter,
@@ -117,8 +122,11 @@ def create_alert_alarm_def():
 
 def insert_alert_alarm_demo(system_event_definition_id, event_type, instrument_name, instrument_parameter, operator, values):
     #uframe_event_id, event_response
-    last_record = SystemEvent.query.last_or_404()
-    last_record_id = int(last_record['uframe_event_id']) + 1
+    records = SystemEvent.query.all()
+    if not records:
+        last_record_id = 1
+    else:
+        last_record_id = len(records) + 1
     uframe_event_id_list = [i+last_record_id for i in xrange(5)]
     event_response_message = "Instrument: {0} boundary condition exceeded where parameter {1} {2} {3}".format(instrument_name, instrument_parameter, operator, values)
     for uframe_event_id in uframe_event_id_list:
@@ -128,5 +136,9 @@ def insert_alert_alarm_demo(system_event_definition_id, event_type, instrument_n
         alert_alarm.event_time = datetime.now()
         alert_alarm.event_type = event_type
         alert_alarm.event_response = event_response_message
-        db.session.add(alert_alarm)
-        db.session.commit()
+        try:
+            db.session.add(alert_alarm)
+            db.session.commit()
+            db.session.flush()
+        except Exception as err:
+            raise Exception(err.message)

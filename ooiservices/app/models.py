@@ -778,6 +778,7 @@ class SystemEvent(db.Model):
             'event_type' : self.event_type,
             'event_response' : self.event_response
         }
+        return json_system_event
 
 
 class UserEventNotification(db.Model):
