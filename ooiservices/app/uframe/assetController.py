@@ -468,9 +468,7 @@ def get_assets():
                     if meta_data['key'] == 'Ref Des':
                         ref_des = (meta_data['value'])
                 if len(lat) > 0 and len(lon) > 0:
-                    coords = _convert_lat_lon(lat,lon)
-                    if coords != (0.0, 0.0):
-                        row['coordinates'] = coords
+                    row['coordinates'] = _convert_lat_lon(lat, lon)
                     lat = ""
                     lon = ""
                 if len(date_launch) > 0 and len(time_launch) > 0:
