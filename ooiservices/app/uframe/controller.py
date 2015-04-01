@@ -133,9 +133,10 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream):
         if "parameters" in data:
             data = data['parameters']
             for field in data:
-                if field['type'] == 'FLOAT':                                    
-                    data_dict['variables'].append(field['particleKey'])
-                    data_dict['variable_types'][field['particleKey']] = field['type'].lower()           
+                if field not in data_dict['variables']: 
+                    if field['type'] == 'FLOAT':                                    
+                        data_dict['variables'].append(field['particleKey'])
+                        data_dict['variable_types'][field['particleKey']] = field['type'].lower()           
    
     return data_dict
 
