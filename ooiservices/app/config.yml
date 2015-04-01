@@ -25,6 +25,7 @@ COMMON: &common
     REDIS_URL: 'redis://:password@localhost:6379'
     DEPLOYMENT_SCENARIO: LOCAL_DEVELOPMENT
     UFRAME_DATA_REQUEST_LIMIT: 2000
+    USE_MOCK_DATA: True
 
 DEVELOPMENT: &development
     <<: *common

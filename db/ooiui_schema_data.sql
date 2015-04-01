@@ -3257,3 +3257,34 @@ UPDATE instrument_deployments SET
 FROM platform_deployments
 WHERE substring(instrument_deployments.reference_designator for 14) = platform_deployments.reference_designator;
 
+-- array_name=CP
+-- platform_name=CP05MOAS-GL004
+
+-- Instrument #1 (rd: CP05MOAS-GL004-03-CTDGVM000)
+
+-- Greater than ">" (alert):
+insert into system_event_definitions(uframe_definition_id, reference_designator, array_name, platform_name, instrument_name, instrument_parameter, operator, values, created_time, priority, active, description) values (10100,'CP05MOAS-GL004-03-CTDGVM000','CP', 'CP05MOAS-GL004', 'CP05MOAS-GL004-03-CTDGVM000','sci_water_temp', '>', '22.8326', '2015-03-31 21:23:31', 'alert', True, 'Monitor water temp does not exceed upper limit');
+
+-- Less than "<" (alarm):
+insert into system_event_definitions(uframe_definition_id, reference_designator, array_name, platform_name, instrument_name, instrument_parameter, operator, values, created_time, priority, active, description) values (10200,'CP05MOAS-GL004-03-CTDGVM000','CP', 'CP05MOAS-GL004', 'CP05MOAS-GL004-03-CTDGVM000','sci_water_pressure', '>', '30.0', '2015-03-31 21:23:31', 'alarm', True, 'Monitor water pressure does not exceed upper limit');
+
+-- Range "<>" (alarm):
+insert into system_event_definitions(uframe_definition_id, reference_designator, array_name, platform_name, instrument_name, instrument_parameter, operator, values, created_time, priority, active, description) values (10300,'CP05MOAS-GL004-03-CTDGVM000','CP', 'CP05MOAS-GL004', 'CP05MOAS-GL004-03-CTDGVM000','sci_water_cond', '<>', '5.0, 6.0', '2015-03-31 21:23:31', 'alarm', True, 'Monitor water cond within limits');
+
+
+
+-- Instrument #2 (rd: CP05MOAS-GL004-00-ENG000000)
+
+-- Outside envelope "outside" (alert) with parameter m_lat:
+insert into system_event_definitions(uframe_definition_id, reference_designator, array_name, platform_name, instrument_name, instrument_parameter, operator, values, created_time, priority, active, description) values (10500,'CP05MOAS-GL004-00-ENG000000','CP', 'CP05MOAS-GL004', 'CP05MOAS-GL004-00-ENG000000','m_lat', 'outside', CAST ( ST_AsGeoJSON(ST_MakeEnvelope(40.075744812556664, -70.35443907147284, 40.4, -70.10, 4326)) AS text), '2015-03-31 21:23:31', 'alert', True, 'Monitor m_lat within envelope');
+
+-- Outside envelope "outside" (alert) with parameter m_lon:
+insert into system_event_definitions(uframe_definition_id, reference_designator, array_name, platform_name, instrument_name, instrument_parameter, operator, values, created_time, priority, active, description) values (10600,'CP05MOAS-GL004-00-ENG000000','CP', 'CP05MOAS-GL004', 'CP05MOAS-GL004-00-ENG000000','m_lon', 'outside', CAST ( ST_AsGeoJSON(ST_MakeEnvelope(40.075744812556664, -70.35443907147284, 40.4, -70.10, 4326)) AS text), '2015-03-31 21:23:31', 'alert', True, 'Monitor m_lon within envelope');
+
+-- Example alert that might come from uFrame
+insert into system_events(uframe_event_id, system_event_definition_id, event_time, event_type, event_response) values(10100, 1, '2015-03-31 21:23:31', 'alert', 'some response');
+insert into system_events(uframe_event_id, system_event_definition_id, event_time, event_type, event_response) values(10200, 2, '2015-03-31 21:23:31', 'alert', 'some response');
+insert into system_events(uframe_event_id, system_event_definition_id, event_time, event_type, event_response) values(10300, 3, '2015-03-31 21:23:31', 'alarm', 'some response');
+insert into system_events(uframe_event_id, system_event_definition_id, event_time, event_type, event_response) values(10500, 4, '2015-03-31 21:23:31', 'alert', 'some response');
+insert into system_events(uframe_event_id, system_event_definition_id, event_time, event_type, event_response) values(10600, 5, '2015-03-31 21:23:31', 'alarm', 'some response');
+
