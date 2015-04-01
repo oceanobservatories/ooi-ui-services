@@ -17,6 +17,7 @@ import re
 
 #Default number of times to retry the connection:
 requests.adapters.DEFAULT_RETRIES = 2
+cache_timeout = 1200
 
 def _normalize_whitespace(string):
     '''
@@ -423,12 +424,16 @@ class uFrameEventCollection(object):
 ### BEGIN Assets CRUD methods.
 ### ---------------------------------------------------------------------------
 #Read (list)
-@cache.memoize(timeout=3600)
 @api.route('/assets', methods=['GET'])
 def get_assets():
     '''
     Listing GET request of all assets.  This method is cached for 1 hour.
     '''
+    #Manually set up the cache
+    cached = cache.get('asset_list')
+    if cached:
+        return cached
+
     #set up all the contaners.
     data = {}
     #create uframe instance, and fetch the data.
@@ -463,7 +468,9 @@ def get_assets():
                     if meta_data['key'] == 'Ref Des':
                         ref_des = (meta_data['value'])
                 if len(lat) > 0 and len(lon) > 0:
-                    row['coordinates'] = _convert_lat_lon(lat, lon)
+                    coords = _convert_lat_lon(lat,lon)
+                    if coords != (0.0, 0.0):
+                        row['coordinates'] = coords
                     lat = ""
                     lon = ""
                 if len(date_launch) > 0 and len(time_launch) > 0:
@@ -514,7 +521,10 @@ def get_assets():
     except (KeyError, TypeError, AttributeError) as e:
         pass
 
-    return jsonify({ 'assets' : data })
+    result = jsonify({ 'assets' : data })
+    cache.set('asset_list', result, timeout=cache_timeout)
+
+    return result
 
 #Read (object)
 @api.route('/assets/<int:id>', methods=['GET'])
@@ -644,12 +654,15 @@ def update_asset(id):
 ### BEGIN Events CRUD methods.
 ### ---------------------------------------------------------------------------
 #Read (list)
-@cache.memoize(timeout=3600)
 @api.route('/events', methods=['GET'])
 def get_events():
     '''
     Listing GET request of all events.  This method is cached for 1 hour.
     '''
+    #Manually set up the cache
+    cached = cache.get('event_list')
+    if cached:
+        return cached
     #set up all the contaners.
     data = {}
     #create uframe instance, and fetch the data.
@@ -664,7 +677,12 @@ def get_events():
         #parse the result and assign ref_des as top element.
     except (KeyError, TypeError, AttributeError):
         pass
-    return jsonify({ 'events' : data })
+
+    result = jsonify({ 'events' : data })
+    cache.set('event_list', result, timeout=cache_timeout)
+
+    return result
+
 
 #Read (object)
 @api.route('/events/<int:id>', methods=['GET'])
