@@ -697,10 +697,10 @@ class SystemEventDefinition(db.Model):
     platform_name = db.Column(db.Text, nullable=False)
     instrument_name = db.Column(db.Text, nullable=False)
     instrument_parameter = db.Column(db.Text, nullable=False)
-    operator = db.Column(db.Text, nullable=False) # > >= < <= =
-    values = db.Column(db.Text, nullable=False) # Typically single value but could be list for a <> operator
+    operator = db.Column(db.Text, nullable=False) # > >= < <= = outside between inside
+    values = db.Column(db.Text, nullable=False) # Typically single value but could be list for a <> operator or geoJSON
     created_time = db.Column(db.DateTime(True), nullable=False)
-    priority = db.Column(db.Text, nullable=False)
+    priority = db.Column(db.Text, nullable=False)  # Alert or Alarm
     active = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))
     description = db.Column(db.Text, nullable=True)
 
@@ -753,7 +753,7 @@ class SystemEvent(db.Model):
     uframe_event_id = db.Column(db.Integer, nullable=False) # This id comes from uFrame
     system_event_definition_id = db.Column(db.ForeignKey(u'' + __schema__ + '.system_event_definitions.id'), nullable=False)
     event_time = db.Column(db.DateTime(True), nullable=False)
-    event_type = db.Column(db.Text, nullable=False) # Alert or Alarm
+    event_type = db.Column(db.Text, nullable=False)  # Alert or Alarm
     event_response = db.Column(db.Text, nullable=False)
 
     event = db.relationship(u'SystemEventDefinition')
