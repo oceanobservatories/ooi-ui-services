@@ -18,7 +18,7 @@ import json
 
 # Temporary flag to add demo data to alerts and alarms
 # TODO: Remove or set to False after uFrame is connected
-ADD_DEMO_DATA = True
+ADD_DEMO_DATA = False
 
 #List all alerts and alarms
 @api.route('/alert_alarm')
