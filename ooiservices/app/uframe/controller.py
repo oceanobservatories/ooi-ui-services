@@ -123,7 +123,9 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream):
                              "netcdf":"/".join([SERVICE_LOCATION, 'uframe/get_netcdf', stream_name, ref]),
                              "profile":"/".join([SERVICE_LOCATION, 'uframe/get_profiles', stream_name, ref])
                             }
-
+                            
+    data_dict['variables'] = ["sci_water_pressure",'sci_water_temp']
+    data_dict['variable_types'] = {'sci_water_pressure':"float",'sci_water_temp':"float"}
     data_dict['stream_name'] = stream_name
     return data_dict
 
