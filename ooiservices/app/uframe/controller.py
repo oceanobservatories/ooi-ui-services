@@ -483,7 +483,7 @@ def get_svg_plot(instrument, stream):
 
     # get titles and labels
     title = request.args.get('title', '%s Data' % stream)
-    profileid = request.args.get('profileId', None)
+    profileid = request.args.get('profileId', None)    
 
     # need a yvar for sure
     if yvar is None:
@@ -518,7 +518,8 @@ def get_svg_plot(instrument, stream):
                         plot_layout,
                         use_line,
                         use_scatter,
-                        profileid)
+                        profileid,
+                        width_in = width_in)
 
     content_header_map = {
         'svg' : 'image/svg+xml',
@@ -578,9 +579,15 @@ def get_profile_data(instrument, stream):
     if 'startdate' in request.args and 'enddate' in request.args:
         st_date = request.args['startdate']
         ed_date = request.args['enddate']
-        response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag)
+        if 'dpa_flag' in request.args:
+            dpa_flag = request.args['dpa_flag']
+        else:    
+            dpa_flag = "0"
+        ed_date = validate_date_time(st_date,ed_date)
+        response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
     else:
-        response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag)
+        current_app.logger.exception('Failed to make plot')
+        return {'error': 'start end dates not applied:'}
 
     if response.status_code != 200:
         raise IOError("Failed to get data from uFrame")
@@ -588,14 +595,11 @@ def get_profile_data(instrument, stream):
     # Note: assumes data has depth and time is ordinal
     # Need to add assertions and try and exceptions to check data
 
-    if 'pressure' not in data[0]:
-        raise ValueError("no pressure data found")
-
     time = []
     depth = []
 
     for row in data:
-        depth.append(int(row['pressure']))
+        depth.append(int(row[request.args['xvar']]))
         time.append(float(row['pk']['time']))
 
     matrix = np.column_stack((time, depth))
@@ -664,7 +668,7 @@ def get_profile_data(instrument, stream):
             where = np.argwhere(depth_profiles == float(row['pk']['time']))
             index = where[0]
             rowloc = index[0]
-            if len(where) and int(row['pressure']) == depth_profiles[rowloc][1]:
+            if len(where) and int(row[request.args['xvar']]) == depth_profiles[rowloc][1]:
                 row['profile_id'] = depth_profiles[rowloc][2]
                 profile_list.append(row)
 

@@ -40,7 +40,7 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
             if 'dpa_flag' in request.args:
                 dpa_flag = request.args['dpa_flag']
             else:    
-                dpa_flag = "0"
+                dpa_flag = "0"   
 
             response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
 
