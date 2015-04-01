@@ -91,7 +91,7 @@ def create_alert_alarm_def():
         # created_time, priority, active, description
         alert_alarm_def.uframe_definition_id = data['uframe_definition_id'] # Returned from POST to uFrame
         alert_alarm_def.reference_designator = data['reference_designator'] # Instrument reference designator
-        alert_alarm_def.array_name = data['array_namee']  # Array reference designator
+        alert_alarm_def.array_name = data['array_name']  # Array reference designator
         alert_alarm_def.platform_name = data['platform_name']  # Platform reference designator
         alert_alarm_def.instrument_name = data['instrument_name']  # Instrument reference designator
         alert_alarm_def.instrument_parameter = data['instrument_parameter']
