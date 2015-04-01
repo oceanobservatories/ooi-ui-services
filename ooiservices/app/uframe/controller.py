@@ -291,9 +291,11 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
         url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])     
         response =  requests.get(url)
+
+        # Verify uFrame response is valid
         if response.status_code != 200:
-            #print response.text
-            pass
+            current_app.logger.info('Error returned from uFrame requesting stream contents: {0}'.format(response.status_code))
+            exit()
         return response
     except:
         return internal_server_error('uframe connection cannot be made.')
@@ -305,7 +307,7 @@ def get_csv(stream,ref,start_time,end_time,dpa_flag):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
 
-    uframe_data_request_limit = current_app.config['UFRAME_DATA_REQUEST_LIMIT']/1440
+    uframe_data_request_limit = int(current_app.config['UFRAME_DATA_REQUEST_LIMIT'])/1440
     new_end_time_strp = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ") + datetime.timedelta(days=uframe_data_request_limit)
     old_end_time_strp = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ") 
     new_end_time = datetime.datetime.strftime(new_end_time_strp, "%Y-%m-%dT%H:%M:%S.%fZ")
