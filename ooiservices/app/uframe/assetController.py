@@ -17,7 +17,7 @@ import re
 
 #Default number of times to retry the connection:
 requests.adapters.DEFAULT_RETRIES = 2
-cache_timeout = 1200
+CACHE_TIMEOUT = 1200
 
 def _normalize_whitespace(string):
     '''
@@ -522,7 +522,11 @@ def get_assets():
         pass
 
     result = jsonify({ 'assets' : data })
-    cache.set('asset_list', result, timeout=cache_timeout)
+<<<<<<< HEAD
+    cache.set('asset_list', result, timeout=CACHE_TIMEOUT)
+=======
+    cache.set('asset_list', result, timeout=300)
+>>>>>>> 7aa0bb6b5b062b617faeb3b4f6b3c20dc5877fd5
 
     return result
 
@@ -679,7 +683,11 @@ def get_events():
         pass
 
     result = jsonify({ 'events' : data })
-    cache.set('event_list', result, timeout=cache_timeout)
+<<<<<<< HEAD
+    cache.set('event_list', result, timeout=CACHE_TIMEOUT)
+=======
+    cache.set('event_list', result, timeout=300)
+>>>>>>> 7aa0bb6b5b062b617faeb3b4f6b3c20dc5877fd5
 
     return result
 
