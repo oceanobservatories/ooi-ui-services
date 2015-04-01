@@ -117,6 +117,9 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream):
     data_dict['start'] = data[0]['beginTime']
     data_dict['end'] = data[0]['endTime']
     data_dict['reference_designator'] = data[0]['sensor']
+    data_dict['stream_name'] = stream_name
+    data_dict['variables'] = []
+    data_dict['variable_types'] = {}
     data_dict['display_name'] = get_display_name_by_rd(ref)
     data_dict['download'] = {"csv":"/".join([SERVICE_LOCATION, 'uframe/get_csv', stream_name, ref]),
                              "json":"/".join([SERVICE_LOCATION, 'uframe/get_json', stream_name, ref]),
@@ -124,9 +127,16 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream):
                              "profile":"/".join([SERVICE_LOCATION, 'uframe/get_profiles', stream_name, ref])
                             }
                             
-    data_dict['variables'] = ["sci_water_pressure",'sci_water_temp']
-    data_dict['variable_types'] = {'sci_water_pressure':"float",'sci_water_temp':"float"}
-    data_dict['stream_name'] = stream_name
+    d = get_uframe_stream_metadata(mooring, platform, instrument, stream_name)   
+    if d.status_code == 200:
+        data = d.json()
+        if "parameters" in data:
+            data = data['parameters']
+            for field in data:
+                if field['type'] == 'FLOAT':                                    
+                    data_dict['variables'].append(field['particleKey'])
+                    data_dict['variable_types'][field['particleKey']] = field['type'].lower()           
+   
     return data_dict
 
 
@@ -293,17 +303,16 @@ def get_uframe_stream(mooring, platform, instrument, stream):
 def get_uframe_instrument_metadata(ref):
     '''
     Returns the uFrame metadata response for a given stream
-    '''
+    '''    
     try:
         mooring, platform, instrument = ref.split('-', 2)
 
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-
-        url = "/".join([UFRAME_DATA, mooring, platform, instrument, 'metadata'])
+        url = "/".join([UFRAME_DATA, mooring, platform, instrument, 'metadata'])        
         response = requests.get(url)
         if response.status_code == 200:
-            return jsonify(metadata=response.json()), 200
-        return jsonify(metadata={}), 200
+            return response
+        return jsonify(metadata={}), 404
     except:
         return internal_server_error('uframe connection cannot be made.')
 
