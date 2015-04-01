@@ -107,15 +107,24 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream):
     PORT = str(current_app.config['PORT'])
     SERVICE_LOCATION = 'http://'+HOST+":"+PORT
     ref = mooring + "-" + platform + "-" + instrument
-    response = get_uframe_stream_metadata_times(ref)
+    response = get_uframe_stream_metadata_times(ref)    
+
     stream_name = '_'.join([stream_type, stream])
     ref = '-'.join([mooring, platform, instrument])
     if response.status_code != 200:
         raise IOError("Failed to get stream contents from uFrame")
     data = response.json()
-    data_dict = {}   
-    data_dict['start'] = data[0]['beginTime']
-    data_dict['end'] = data[0]['endTime']
+    data_dict = {}
+    #sort out the start and end times, as multiple times in a given metadata set
+    if len(data) == 1:   
+        data_dict['start'] = data[0]['beginTime']
+        data_dict['end'] = data[0]['endTime']
+    else:
+        for times in data:
+            if times['method'] == stream_type and times['stream'] == stream:               
+                data_dict['start'] = times['beginTime']
+                data_dict['end'] = times['endTime']
+
     data_dict['reference_designator'] = data[0]['sensor']
     data_dict['stream_name'] = stream_name
     data_dict['variables'] = []
