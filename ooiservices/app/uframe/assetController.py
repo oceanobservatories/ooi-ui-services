@@ -17,7 +17,7 @@ import re
 
 #Default number of times to retry the connection:
 requests.adapters.DEFAULT_RETRIES = 2
-CACHE_TIMEOUT = 1200
+CACHE_TIMEOUT = 3600
 
 def _normalize_whitespace(string):
     '''
