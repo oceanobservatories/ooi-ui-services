@@ -107,24 +107,50 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream):
     PORT = str(current_app.config['PORT'])
     SERVICE_LOCATION = 'http://'+HOST+":"+PORT
     ref = mooring + "-" + platform + "-" + instrument
-    response = get_uframe_stream_metadata_times(ref)
+    response = get_uframe_stream_metadata_times(ref)    
+
     stream_name = '_'.join([stream_type, stream])
     ref = '-'.join([mooring, platform, instrument])
     if response.status_code != 200:
         raise IOError("Failed to get stream contents from uFrame")
     data = response.json()
-    data_dict = {}   
-    data_dict['start'] = data[0]['beginTime']
-    data_dict['end'] = data[0]['endTime']
+    data_dict = {}
+    #sort out the start and end times, as multiple times in a given metadata set
+    if len(data) == 1:   
+        data_dict['start'] = data[0]['beginTime']
+        data_dict['end'] = data[0]['endTime']
+    else:
+        for times in data:
+            if times['method'] == stream_type and times['stream'] == stream:               
+                data_dict['start'] = times['beginTime']
+                data_dict['end'] = times['endTime']
+
     data_dict['reference_designator'] = data[0]['sensor']
+    data_dict['stream_name'] = stream_name
+    data_dict['variables'] = []
+    data_dict['variable_types'] = {}
+    data_dict['units'] = {}
+    data_dict['variables_shape'] = {}
     data_dict['display_name'] = get_display_name_by_rd(ref)
     data_dict['download'] = {"csv":"/".join([SERVICE_LOCATION, 'uframe/get_csv', stream_name, ref]),
                              "json":"/".join([SERVICE_LOCATION, 'uframe/get_json', stream_name, ref]),
                              "netcdf":"/".join([SERVICE_LOCATION, 'uframe/get_netcdf', stream_name, ref]),
                              "profile":"/".join([SERVICE_LOCATION, 'uframe/get_profiles', stream_name, ref])
                             }
-
-    data_dict['stream_name'] = stream_name
+                            
+    d = get_uframe_instrument_metadata(ref)   
+    if d.status_code == 200:
+        data = d.json()
+        if "parameters" in data:
+            data = data['parameters']
+            for field in data:
+                if field['particleKey'] not in data_dict['variables']: 
+                    if field['shape'].lower() == 'scalar' or field['shape'].lower() == 'function':  
+                        data_dict['variables'].append(field['particleKey'])
+                        data_dict['variable_types'][field['particleKey']] = field['type'].lower()           
+                        data_dict['units'][field['particleKey']] = field['units']
+                        data_dict['variables_shape'][field['particleKey']]= field['shape'].lower()    
+   
     return data_dict
 
 
@@ -291,20 +317,18 @@ def get_uframe_stream(mooring, platform, instrument, stream):
 def get_uframe_instrument_metadata(ref):
     '''
     Returns the uFrame metadata response for a given stream
-    '''
+    '''    
     try:
         mooring, platform, instrument = ref.split('-', 2)
 
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-
-        url = "/".join([UFRAME_DATA, mooring, platform, instrument, 'metadata'])
+        url = "/".join([UFRAME_DATA, mooring, platform, instrument, 'metadata'])        
         response = requests.get(url)
         if response.status_code == 200:
-            return jsonify(metadata=response.json()), 200
-        return jsonify(metadata={}), 200
+            return response
+        return jsonify(metadata={}), 404
     except:
         return internal_server_error('uframe connection cannot be made.')
-
 
 @auth.login_required
 @api.route('/get_metadata_times/<string:ref>', methods=['GET'])
@@ -322,7 +346,6 @@ def get_uframe_stream_metadata_times(ref):
         return jsonify(times={}), 200
     except:
         return internal_server_error('uframe connection cannot be made.')
-
 
 @cache.memoize(timeout=3600)
 def get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag):
@@ -458,7 +481,7 @@ def get_svg_plot(instrument, stream):
 
     # get titles and labels
     title = request.args.get('title', '%s Data' % stream)
-    profileid = request.args.get('profileId', None)
+    profileid = request.args.get('profileId', None)    
 
     # need a yvar for sure
     if yvar is None:
@@ -493,7 +516,8 @@ def get_svg_plot(instrument, stream):
                         plot_layout,
                         use_line,
                         use_scatter,
-                        profileid)
+                        profileid,
+                        width_in = width_in)
 
     content_header_map = {
         'svg' : 'image/svg+xml',
@@ -553,9 +577,15 @@ def get_profile_data(instrument, stream):
     if 'startdate' in request.args and 'enddate' in request.args:
         st_date = request.args['startdate']
         ed_date = request.args['enddate']
-        response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag)
+        if 'dpa_flag' in request.args:
+            dpa_flag = request.args['dpa_flag']
+        else:    
+            dpa_flag = "0"
+        ed_date = validate_date_time(st_date,ed_date)
+        response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
     else:
-        response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag)
+        current_app.logger.exception('Failed to make plot')
+        return {'error': 'start end dates not applied:'}
 
     if response.status_code != 200:
         raise IOError("Failed to get data from uFrame")
@@ -563,14 +593,11 @@ def get_profile_data(instrument, stream):
     # Note: assumes data has depth and time is ordinal
     # Need to add assertions and try and exceptions to check data
 
-    if 'pressure' not in data[0]:
-        raise ValueError("no pressure data found")
-
     time = []
     depth = []
 
     for row in data:
-        depth.append(int(row['pressure']))
+        depth.append(int(row[request.args['xvar']]))
         time.append(float(row['pk']['time']))
 
     matrix = np.column_stack((time, depth))
@@ -639,7 +666,7 @@ def get_profile_data(instrument, stream):
             where = np.argwhere(depth_profiles == float(row['pk']['time']))
             index = where[0]
             rowloc = index[0]
-            if len(where) and int(row['pressure']) == depth_profiles[rowloc][1]:
+            if len(where) and int(row[request.args['xvar']]) == depth_profiles[rowloc][1]:
                 row['profile_id'] = depth_profiles[rowloc][2]
                 profile_list.append(row)
 

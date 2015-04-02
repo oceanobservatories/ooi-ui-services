@@ -30,10 +30,10 @@ title_font_default = {'fontname': 'Arial',
                       'weight': 'bold',
                       'verticalalignment': 'bottom'}
 
-colors = ['g', 'k', 'r', 'c', 'b', 'm']
+plt.style.use('bmh')
+colors = plt.rcParams['axes.color_cycle']
 
-
-def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_profile_id=None):
+def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_profile_id=None, width_in= 8.3):
 
     fig, ax = ppl.subplots(1, 1, figsize=(data['width'], data['height']))
     kwargs = dict(linewidth=1.0, alpha=0.7)
@@ -72,6 +72,7 @@ def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_pr
                                 axis_font=axis_font_default,
                                 title_font=title_font_default,
                                 scatter = use_scatter,
+                                width_in = width_in,
                                 **kwargs)
         elif len(data['x_field']) > 1:
             ydata = data['y'][data['y_field'][0]]
@@ -85,6 +86,7 @@ def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_pr
                                 axis_font=axis_font_default,
                                 title_font=title_font_default,
                                 scatter = use_scatter,
+                                width_in = width_in,
                                 **kwargs)
 
     elif plot_layout == "depthprofile":
@@ -216,7 +218,7 @@ def plot_time_series(fig, is_timeseries, ax, x, y, fill=False, title='', xlabel=
 
 @cache.memoize(timeout=3600)
 def plot_multiple_xaxes(ax, xdata, ydata, colors, ylabel='Depth (m)', title='', title_font={},
-                        axis_font={}, **kwargs):
+                        axis_font={},width_in=8.3, **kwargs):
     # Acknowledgment: This function is based on code written by Jae-Joon Lee,
     # URL= http://matplotlib.svn.sourceforge.net/viewvc/matplotlib/trunk/matplotlib/
     # examples/pylab_examples/multiple_yaxis_with_spines.py?revision=7908&view=markup
@@ -284,7 +286,7 @@ def plot_multiple_xaxes(ax, xdata, ydata, colors, ylabel='Depth (m)', title='', 
 
 @cache.memoize(timeout=3600)
 def plot_multiple_yaxes(fig, ax, xdata, ydata, colors, title, scatter=False,
-                        axis_font={}, title_font={}, **kwargs):
+                        axis_font={}, title_font={}, width_in=8.3 ,**kwargs):
     # Plot a timeseries with multiple y-axes
     #
     # ydata is a python dictionary of all the data to plot. Key values are used as plot labels
@@ -322,13 +324,25 @@ def plot_multiple_yaxes(fig, ax, xdata, ydata, colors, title, scatter=False,
     set_spine_direction(y_axis[1], "top")
 
     # Define the axes position offsets for each 'extra' axis
-    offset = [1.20, -0.20, 1.40, -0.40]
     spine_directions = ["left", "right", "left", "right", "left", "right"]
 
-    # Adjust the axes left/right accordingly
-    if n_vars >= 4:
-        plt.subplots_adjust(left=0.3, right=0.7)
+
+    # Adjust the axes left/right accordingly    
+    if n_vars >= 4:        
+        if width_in<8.3:    
+            #set axis location
+            offset = [1.2, -0.2, 1.40, -0.40]
+            #overwrite width
+            l_mod = 0.3
+            r_mod = 0.8
+        else:
+            offset = [1.10, -0.10, 1.20, -0.20]
+            l_mod = 0.5
+            r_mod = 1.2
+
+        plt.subplots_adjust(left=l_mod, right=r_mod)
     elif n_vars == 3:
+        offset = [1.20, -0.20, 1.40, -0.40]
         plt.subplots_adjust(left=0.0, right=0.7)
 
     count = 0
@@ -348,7 +362,7 @@ def plot_multiple_yaxes(fig, ax, xdata, ydata, colors, title, scatter=False,
         # Been experimenting with other ways to handle tick labels with spines
         y_axis[ind].yaxis.get_major_formatter().set_useOffset(False)
 
-        y_axis[ind].set_ylabel(key, labelpad=10, **axis_font)
+        y_axis[ind].set_ylabel(key.replace("_", " "), labelpad=10, **axis_font)
         y_axis[ind].yaxis.label.set_color(colors[ind])
         y_axis[ind].spines[spine_directions[ind]].set_color(colors[ind])
         y_axis[ind].tick_params(axis='y', labelsize=8, colors=colors[ind])
@@ -357,7 +371,7 @@ def plot_multiple_yaxes(fig, ax, xdata, ydata, colors, title, scatter=False,
     fig.autofmt_xdate()
 
     ax.tick_params(axis='x', labelsize=10)
-    ax.set_title(title, y=1.05, **title_font)
+    ax.set_title(title.replace("_", " "), y=1.05, **title_font)
     ax.grid(True)
 
 

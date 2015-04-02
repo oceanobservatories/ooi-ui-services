@@ -37,8 +37,10 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
             ed_date = request.args['enddate']
 
             ed_date = validate_date_time(st_date,ed_date)
-            
-            dpa_flag = "0"
+            if 'dpa_flag' in request.args:
+                dpa_flag = request.args['dpa_flag']
+            else:    
+                dpa_flag = "0"   
 
             response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
 
