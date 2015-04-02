@@ -17,6 +17,7 @@ import re
 
 #Default number of times to retry the connection:
 requests.adapters.DEFAULT_RETRIES = 2
+CACHE_TIMEOUT = 3600
 
 def _normalize_whitespace(string):
     '''
@@ -423,12 +424,16 @@ class uFrameEventCollection(object):
 ### BEGIN Assets CRUD methods.
 ### ---------------------------------------------------------------------------
 #Read (list)
-@cache.memoize(timeout=3600)
 @api.route('/assets', methods=['GET'])
 def get_assets():
     '''
     Listing GET request of all assets.  This method is cached for 1 hour.
     '''
+    #Manually set up the cache
+    cached = cache.get('asset_list')
+    if cached:
+        return cached
+
     #set up all the contaners.
     data = {}
     #create uframe instance, and fetch the data.
@@ -514,7 +519,10 @@ def get_assets():
     except (KeyError, TypeError, AttributeError) as e:
         pass
 
-    return jsonify({ 'assets' : data })
+    result = jsonify({ 'assets' : data })
+    cache.set('asset_list', result, timeout=CACHE_TIMEOUT)
+
+    return result
 
 #Read (object)
 @api.route('/assets/<int:id>', methods=['GET'])
@@ -615,6 +623,7 @@ def create_asset():
     uframe_assets_url = _uframe_url(uframe_obj.__endpoint__)
     #return uframe_assets_url
     response = requests.post(uframe_assets_url, data=json.dumps(post_body), headers=_uframe_headers())
+    cache.delete('asset_list')
     return response.text
 
 #Update
@@ -631,6 +640,7 @@ def update_asset(id):
     put_body = uframe_obj.from_json(data)
     uframe_assets_url = _uframe_url(uframe_obj.__endpoint__, id)
     response = requests.put(uframe_assets_url, data=json.dumps(put_body), headers=_uframe_headers())
+    cache.delete('asset_list')
     return response.text
 
 #Delete
@@ -644,12 +654,15 @@ def update_asset(id):
 ### BEGIN Events CRUD methods.
 ### ---------------------------------------------------------------------------
 #Read (list)
-@cache.memoize(timeout=3600)
 @api.route('/events', methods=['GET'])
 def get_events():
     '''
     Listing GET request of all events.  This method is cached for 1 hour.
     '''
+    #Manually set up the cache
+    cached = cache.get('event_list')
+    if cached:
+        return cached
     #set up all the contaners.
     data = {}
     #create uframe instance, and fetch the data.
@@ -664,7 +677,12 @@ def get_events():
         #parse the result and assign ref_des as top element.
     except (KeyError, TypeError, AttributeError):
         pass
-    return jsonify({ 'events' : data })
+
+    result = jsonify({ 'events' : data })
+    cache.set('event_list', result, timeout=CACHE_TIMEOUT)
+
+    return result
+
 
 #Read (object)
 @api.route('/events/<int:id>', methods=['GET'])
@@ -698,6 +716,7 @@ def create_event():
     post_body = uframe_obj.from_json(data)
     uframe_events_url = _uframe_url(uframe_obj.__endpoint__)
     response = requests.post(uframe_events_url, data=json.dumps(post_body), headers=_uframe_headers())
+    cache.delete('event_list')
     return response.text
 
 #Update
@@ -714,6 +733,7 @@ def update_event(id):
     put_body = uframe_obj.from_json(data)
     uframe_events_url = _uframe_url(uframe_obj.__endpoint__, id)
     response = requests.put(uframe_events_url, data=json.dumps(put_body), headers=_uframe_headers())
+    cache.delete('event_list')
     return response.text
 
 #Delete
