@@ -138,7 +138,7 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream):
                              "profile":"/".join([SERVICE_LOCATION, 'uframe/get_profiles', stream_name, ref])
                             }
                             
-    d = get_uframe_stream_metadata(mooring, platform, instrument, stream_name)   
+    d = get_uframe_instrument_metadata(ref)   
     if d.status_code == 200:
         data = d.json()
         if "parameters" in data:
