@@ -330,6 +330,25 @@ def get_uframe_instrument_metadata(ref):
     except:
         return internal_server_error('uframe connection cannot be made.')
 
+@api.route('/get_instrument_metadata/<string:ref>', methods=['GET'])
+@cache.memoize(timeout=3600)
+def get_uframe_instrument_metadata(ref):
+    '''
+    Returns the uFrame metadata response for a given stream
+    '''
+    try:
+        mooring, platform, instrument = ref.split('-', 2)
+
+        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+
+        url = "/".join([UFRAME_DATA, mooring, platform, instrument, 'metadata'])
+        response = requests.get(url)
+        if response.status_code == 200:
+            return jsonify(metadata=response.json()), 200
+        return jsonify(metadata={}), 200
+    except:
+        return internal_server_error('uframe connection cannot be made.')
+
 
 @auth.login_required
 @api.route('/get_metadata_times/<string:ref>', methods=['GET'])
