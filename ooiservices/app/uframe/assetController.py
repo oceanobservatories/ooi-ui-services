@@ -520,8 +520,8 @@ def get_assets():
         pass
 
     result = jsonify({ 'assets' : data })
-    cache.set('asset_list', result, timeout=CACHE_TIMEOUT)
-
+    if "error" not in data:
+        cache.set('asset_list', result, timeout=CACHE_TIMEOUT)
     return result
 
 #Read (object)
@@ -679,7 +679,8 @@ def get_events():
         pass
 
     result = jsonify({ 'events' : data })
-    cache.set('event_list', result, timeout=CACHE_TIMEOUT)
+    if "error" not in data:
+        cache.set('event_list', result, timeout=CACHE_TIMEOUT)
 
     return result
 
