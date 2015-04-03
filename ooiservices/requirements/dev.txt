@@ -4,4 +4,4 @@ Pygments==1.6
 colorama==0.2.7
 coverage==3.7.1
 httpie==0.7.2
-selenium==2.39.0
+selenium==2.45.0
