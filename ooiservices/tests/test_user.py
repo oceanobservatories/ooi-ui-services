@@ -54,11 +54,18 @@ class UserTestCaseRedmine(unittest.TestCase):
         create user
         '''
         headers = self.get_api_headers('admin', 'test')
-        data = json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing','role_name':'Administrator',
-                           'username': 'test_user','first_name':'Tester','last_name':'Testing','organization_id':1})
+        content_type = 'application/json'
+
+        # 0. get user roles
+        response = self.client.get(url_for('main.get_user_roles'), headers=headers)
+        self.assertTrue(response.status_code == 200)
+        user_roles = json.loads(response.data)
+        data = json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing',
+                           'role_name':'Administrator', 'username': 'test_user','first_name':'Tester',
+                           'last_name':'Testing','organization_id':1, 'role_id': 1})
 
         # 1. Test create user without authorization
-        response = self.client.post(url_for('main.create_user'), content_type='application/json')
+        response = self.client.post(url_for('main.create_user'), content_type=content_type)
         self.assertTrue(response.status_code == 401)
 
         # 2. Test create user as an authorized user (user 'admin')
@@ -70,10 +77,10 @@ class UserTestCaseRedmine(unittest.TestCase):
         response = self.client.post(url_for('main.create_user'), headers=headers, data=data)
         self.assertTrue(response.status_code == 409)
 
-
         # 4. Test password match using bad_data; expect failure
-        bad_data = json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing2','role_name':'Administrator',
-                           'username': 'test_user2','first_name':'Tester','last_name':'Testing','organization_id':1})
+        bad_data = json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing2',
+                               'role_name':'Administrator','username': 'test_user2','first_name':'Tester',
+                               'last_name':'Testing', 'organization_id':1,'role_id': 1})
         response = self.client.post(url_for('main.create_user'), headers=headers, data=bad_data)
         self.assertTrue(response.status_code == 409)
 
@@ -83,23 +90,31 @@ class UserTestCaseRedmine(unittest.TestCase):
     def test_put_user_changes(self):
         '''
         test ability to create new user and change scopes and/or active status of new user
-
         '''
         headers = self.get_api_headers('admin', 'test')
 
         # 1. get current user
         response = self.client.get(url_for('main.get_current_user'), headers=headers)
-        self.assertTrue(response.status_code == 200)
+        self.assertEquals(response.status_code,  200)
 
         # 2. Create new user - test_user duplicate test
-        data=json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing','role_name':'Administrator',
-                           'username': 'test_user','first_name':'Tester','last_name':'Testing','organization_id':1})
+        data=json.dumps({'email': 'test@test', 'password': 'testing', 'repeatPassword': 'testing',
+                         'role_name':'Administrator','username': 'test_user','first_name':'Tester',
+                         'last_name':'Testing', 'organization_id':1, 'role_id': 1})
         response = self.client.post(url_for('main.create_user'), headers=headers, data=data)
         self.assertEquals(response.status_code, 201)
 
-        # 3. Get all users
+        # 3a. Add scope for user_admin
+        UserScope.insert_scopes()
+        admin = User.query.filter_by(user_name='admin').first()
+        scope = UserScope.query.filter_by(scope_name='user_admin').first()
+        admin.scopes.append(scope)
+        db.session.add(admin)
+        db.session.commit()
+
+        # 3b. Get all users
         response = self.client.get(url_for('main.get_users'), headers=headers)
-        self.assertTrue(response.status_code == 200)
+        self.assertEquals(response.status_code, 200)
 
         # 4. Verify user count is now == 2
         response_data = response.data[:]
@@ -111,7 +126,7 @@ class UserTestCaseRedmine(unittest.TestCase):
         self.assertTrue(len(user_list) == 2)
 
         # 5. Update new user's scopes, add scopes = ['asset_manager']
-        expected_data = {'active': True, 'scopes': ['asset_manager']}
+        expected_data = {'active': True, 'scopes': ['asset_manager'], 'role_id': 1}
         data = json.dumps(expected_data)
         response = self.client.put(url_for('main.put_user', id=2), headers=headers, data=data)
         self.assertTrue(response.status_code == 201)
@@ -333,4 +348,3 @@ class UserTestCase(unittest.TestCase):
         self.assertTrue('active' in expected_data)
         self.assertTrue(dict_data['active'] == expected_data['active'])
         self.assertTrue(dict_data['scopes'] == expected_data['scopes'])
-

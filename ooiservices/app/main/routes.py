@@ -81,10 +81,10 @@ def get_platform_deployment_geojson_single():
 
 def get_display_name_by_rd(reference_designator):
     if len(reference_designator) <= 14:
-        platform_deployment_filtered = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first_or_404()
-        display_name = platform_deployment_filtered.proper_display_name
+        platform_deployment_filtered = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first()
         if platform_deployment_filtered is None:
             return None
+        display_name = platform_deployment_filtered.proper_display_name
     elif len(reference_designator) == 27:
         platform_deployment = PlatformDeployment.query.filter_by(reference_designator=reference_designator[:14]).first()
         if platform_deployment is None:
@@ -112,7 +112,7 @@ def get_display_name():
         return '{}', 204
 
     display_name = get_display_name_by_rd(reference_designator)
-    if display_name is None:
+    if not display_name:
         return '{}', 204
 
     return jsonify({ 'proper_display_name' : display_name })

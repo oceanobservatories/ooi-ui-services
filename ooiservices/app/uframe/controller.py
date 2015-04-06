@@ -325,7 +325,8 @@ def get_uframe_instrument_metadata(ref):
         url = "/".join([UFRAME_DATA, mooring, platform, instrument, 'metadata'])        
         response = requests.get(url)
         if response.status_code == 200:
-            return response
+            data = response.json
+            return jsonify(metadata=data['parameters'])
         return jsonify(metadata={}), 404
     except:
         return internal_server_error('uframe connection cannot be made.')
