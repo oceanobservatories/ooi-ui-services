@@ -120,6 +120,43 @@ def create_alert_alarm_def():
     except:
         return conflict('Insufficient data, or bad data format.')
 
+#Update an alert/alarm definition
+@api.route('/alert_alarm_definition/<int:id>', methods=['PUT'])
+# @auth.login_required
+# @scope_required('annotate')
+def update_alert_alarm_def(id):
+    try:
+        data = json.loads(request.data)
+        # alert_alarm_def = SystemEventDefinition()
+        alert_alarm_def = SystemEventDefinition.query.filter_by(uframe_definition_id=id).first()
+        if alert_alarm_def is None:
+            return jsonify(error="Invalid ID, record not found"), 404
+        # uframe_definition_id, reference_designator, array_name, platform_name,
+        # instrument_name, instrument_parameter, operator, values,
+        # created_time, priority, active, description
+        # alert_alarm_def.uframe_definition_id = data['uframe_definition_id'] # Returned from POST to uFrame
+        alert_alarm_def.reference_designator = data['reference_designator'] # Instrument reference designator
+        alert_alarm_def.array_name = data['array_name']  # Array reference designator
+        alert_alarm_def.platform_name = data['platform_name']  # Platform reference designator
+        alert_alarm_def.instrument_name = data['instrument_name']  # Instrument reference designator
+        alert_alarm_def.instrument_parameter = data['instrument_parameter']
+        alert_alarm_def.operator = data['operator']
+        alert_alarm_def.values = data['values']
+        # alert_alarm_def.created_time = datetime.now()
+        alert_alarm_def.priority = data['priority']
+        alert_alarm_def.active = data['active']
+        alert_alarm_def.description = data['description']
+        try:
+            db.session.add(alert_alarm_def)
+            db.session.commit()
+            db.session.flush()
+        except Exception as err:
+            return bad_request(err.message)
+
+        return jsonify(alert_alarm_def.to_json()), 201
+    except:
+        return conflict('Insufficient data, or bad data format.')
+
 def insert_alert_alarm_demo(system_event_definition_id, event_type, instrument_name, instrument_parameter, operator, values):
     #uframe_event_id, event_response
     records = SystemEvent.query.all()
