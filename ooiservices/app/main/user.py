@@ -13,10 +13,6 @@ from ooiservices.app.models import User, UserScope, UserScopeLink
 from ooiservices.app.decorators import scope_required
 from ooiservices.app.redmine.routes import redmine_login
 import json
-from wtforms import ValidationError
-#from base64 import b64encode
-#import requests
-from redmine import Redmine
 
 @api.route('/user/<int:id>', methods=['GET'])
 @auth.login_required
@@ -89,7 +85,7 @@ def create_user():
         new_user.scopes = valid_scopes
         db.session.add(new_user)
         db.session.commit()
-    except ValidationError as e:
+    except Exception as e:
         return jsonify(error=e.message), 409
 
     try:

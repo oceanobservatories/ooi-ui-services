@@ -31,9 +31,7 @@ class UserTestCase(unittest.TestCase):
         User.insert_user(username=test_username, password=test_password)
 
         self.client = self.app.test_client(use_cookies=False)
-
         UserScope.insert_scopes()
-
         admin = User.query.filter_by(user_name='admin').first()
         scope = UserScope.query.filter_by(scope_name='user_admin').first()
         admin.scopes.append(scope)
@@ -66,9 +64,7 @@ class UserTestCase(unittest.TestCase):
     }
     '''
     def _check_instrument_deployment_fields_provided(self, response_data):
-
         #verify all data fields for InstrumentDeployment object are [returned] in response_data
-
         result = False
         try:
             self.assertTrue(len(response_data) > 0)
@@ -81,11 +77,9 @@ class UserTestCase(unittest.TestCase):
             self.assertTrue('start_date' in response_data)
             self.assertTrue('platform_deployment_id' in response_data)
             self.assertTrue('reference_designator'   in response_data)
-
             result = True
         except Exception, err:
             print '\n *** _check_instrument_deployment_fields_provided: error: %s' % err
-
         return result
 
     '''
@@ -200,11 +194,9 @@ class UserTestCase(unittest.TestCase):
         response_data = response.data
 
         self.assertTrue(self._check_instrument_deployment_fields_provided(response_data))
-
         if 'instrument_deployments' in response_data:
             ins_data = json.loads(response_data)
             list_instrument_deployment = ins_data['instrument_deployments']
-
         self.assertEquals(list_instrument_deployment[0], FLORDM000_data)
         self.assertEquals(response.status_code, 200)
 
@@ -236,7 +228,6 @@ class UserTestCase(unittest.TestCase):
         FLORDM000.start_date = dt.datetime.now()
         db.session.add(FLORDM000)
         db.session.commit()
-        FLORDM000_id = FLORDM000.id
 
         # Get all instrument deployments
         response = self.client.get(url_for('main.get_instrument_deployments'), content_type=content_type)
@@ -305,8 +296,6 @@ class UserTestCase(unittest.TestCase):
         db.session.add(PARADM000)
         db.session.commit()
         PARADM000_id = PARADM000.id
-
-
         instrument_name_FLORD = Instrumentname()
         instrument_name_FLORD.instrument_class = 'FLORD'
         instrument_name_FLORD.display_name = '2-Wavelength Fluorometer'
@@ -321,7 +310,6 @@ class UserTestCase(unittest.TestCase):
         db.session.add(instrument_name_PARAD)
         db.session.commit()
 
-        #TODO
         # Scenario:
         # Verify exists: (1) one platform_deployment; (2) two instrument deployments and the
         # todo (3) two instrument deployments are properly formed in platform deployment
@@ -441,71 +429,86 @@ class UserTestCase(unittest.TestCase):
         response = self.client.delete(url_for('main.delete_instrument_deployment', id=9999), headers=headers)
         self.assertEquals(response.status_code, 404)
 
-    # TODO: Requires proper validation in models.InstrumentDeployment from_json method
+
     # Test [POST] /instrument_deployment - 'main.post_instrument_deployment'
-    # def test_post_instrument_deployment(self):
-    #     '''
-    #     create new instrument deployment
-    #     '''
-    #     headers = self.get_api_headers('admin', 'test')
-    #     content_type = 'application/json'
-    #
-    #     # Create platform deployment for foreign key constraints when creating
-    #     # instrument_deployment (note: using platform_deployment with actual id=203)
-    #     GS05MOAS_PG002_rd = 'GS05MOAS-PG002'
-    #     GS05MOAS_PG002 = PlatformDeployment(reference_designator=GS05MOAS_PG002_rd)
-    #     db.session.add(GS05MOAS_PG002)
-    #     db.session.commit()
-    #     GS05MOAS_PG002_id = GS05MOAS_PG002.id
-    #     number_of_platform_deployments = 1
-    #
-    #     # Create instrument(s) for preiously created platform deployment; required for
-    #     # foreign keys - otherwise foreign key violation received.
-    #     number_of_instruments = 1
-    #     FLORDM000_rd = 'GS05MOAS-PG002-02-FLORDM000'
-    #     FLORDM000 = InstrumentDeployment(reference_designator=FLORDM000_rd)
-    #     FLORDM000.depth = 1000.0
-    #     FLORDM000.display_name = '2-Wavelength Fluorometer'
-    #     FLORDM000.end_date = dt.datetime.now()
-    #     FLORDM000.geo_location = 'POINT(-70 40)'
-    #     FLORDM000.platform_deployment_id = GS05MOAS_PG002_id                # actual 754
-    #     FLORDM000.reference_designator = FLORDM000_rd
-    #     FLORDM000.start_date = dt.datetime.now()
-    #     db.session.add(FLORDM000)
-    #     db.session.commit()
-    #     FLORDM000_id = FLORDM000.id
-    #
-    #     # Create data to post
-    #     # {'coordinates': [-70,45],'type': 'Point'},
-    #     # 'POINT(-70 40)',
-    #     FLORDM000_data = {'display_name': '2-Wavelength Fluorometer',
-    #                      'platform_deployment_id': GS05MOAS_PG002_id,
-    #                      'end_date': '2015-02-16',
-    #                      'start_date': '2015-02-15',
-    #                      'reference_designator': 'GS05MOAS-PG002-02-FLORDM000',
-    #                      'depth': 500.0,
-    #                      'geo_location': None,
-    #                      'id': (FLORDM000_id+1)}
-    #
-    #     data = json.dumps(FLORDM000_data)
-    #     response = self.client.post(url_for('main.post_instrument_deployment'), headers=headers, data=data)
-    #     self.assertEquals(response.status_code, 201)
-    #
-    #     # Get new instrument FLORDM000 and compare get results with initial data
-    #     response = self.client.get(url_for('main.get_instrument_deployment', id=(FLORDM000_id+1)), content_type=content_type)
-    #     self.assertTrue(response.status_code == 200)
-    #     get_FLORDM000_data = json.loads(response.data[:])
-    #     self.assertEquals(get_FLORDM000_data, FLORDM000_data)
-    #
-    #     # Create bad data
-    #     bad_data =  {'make': 'mercedes',
-    #                  'model': 'SL450',
-    #                  'engine_style': '2015-02-16'
-    #                 }
-    #     # Send bad data to POST, generate ValueError
-    #     data = json.dumps(bad_data)
-    #     response = self.client.post(url_for('main.post_instrument_deployment'), headers=headers, data=data)
-    #     self.assertEquals(response.status_code, 400)
+    def test_post_instrument_deployment(self):
+        '''
+        create new instrument deployment
+        '''
+        headers = self.get_api_headers('admin', 'test')
+
+        # Create platform deployment for foreign key constraints when creating
+        # instrument_deployment (note: using platform_deployment with actual id=203)
+        GS05MOAS_PG002_rd = 'GS05MOAS-PG002'
+        GS05MOAS_PG002 = PlatformDeployment(reference_designator=GS05MOAS_PG002_rd)
+        db.session.add(GS05MOAS_PG002)
+        db.session.commit()
+        GS05MOAS_PG002_id = GS05MOAS_PG002.id
+        number_of_platform_deployments = 1
+
+        # Create instrument(s) for previously created platform deployment; required for
+        # foreign keys - otherwise foreign key violation received.
+        number_of_instruments = 1
+        FLORDM000_rd = 'GS05MOAS-PG002-02-FLORDM000'
+        FLORDM000 = InstrumentDeployment(reference_designator=FLORDM000_rd)
+        FLORDM000.depth = 1000.0
+        FLORDM000.display_name = '2-Wavelength Fluorometer'
+        FLORDM000.end_date = dt.datetime.now()
+        FLORDM000.geo_location = 'POINT(-70 40)'
+        FLORDM000.platform_deployment_id = GS05MOAS_PG002_id                # actual 754
+        FLORDM000.reference_designator = FLORDM000_rd
+        FLORDM000.start_date = dt.datetime.now()
+        db.session.add(FLORDM000)
+        db.session.commit()
+        FLORDM000_id = FLORDM000.id
+
+        # Create data to post, do successful POST
+        FLORDM000_data = {'display_name': '2-Wavelength Fluorometer',
+                          'platform_deployment_id': GS05MOAS_PG002_id,
+                          'end_date': '2015-02-16',
+                          'start_date': '2015-02-15',
+                          'reference_designator': 'GS05MOAS-PG002-02-FLORDM000',
+                          'depth': 500.0,
+                          'geo_location': None,
+                          'id': (FLORDM000_id+1)}
+        data = json.dumps(FLORDM000_data)
+        response = self.client.post(url_for('main.post_instrument_deployment'), headers=headers, data=data)
+        self.assertEquals(response.status_code, 201)
+
+        # Post invalid platform_deployment_id, raise integrity error
+        FLORDM000_data = {'display_name': '2-Wavelength Fluorometer',
+                          'platform_deployment_id': 9999,
+                          'end_date': '2015-02-16',
+                          'start_date': '2015-02-15',
+                          'reference_designator': 'GS05MOAS-PG002-02-FLORDM000',
+                          'depth': 500.0,
+                          'geo_location': None,
+                          'id': (FLORDM000_id+1)}
+        data = json.dumps(FLORDM000_data)
+        response = self.client.post(url_for('main.post_instrument_deployment'), headers=headers, data=data)
+        self.assertEquals(response.status_code, 400)
+        self.assertTrue('violates foreign key constraint' in response.data)
+
+        # Post data=None, raise ValueError
+        response = self.client.post(url_for('main.post_instrument_deployment'), headers=headers, data=None)
+        self.assertEquals(response.status_code, 400)
+        self.assertTrue('No JSON object could be decoded' in response.data)
+
+        # TODO: Requires proper validation in models.InstrumentDeployment from_json method
+        #     # Get new instrument FLORDM000 and compare get results with initial data
+        #     response = self.client.get(url_for('main.get_instrument_deployment', id=(FLORDM000_id+1)), content_type=content_type)
+        #     self.assertTrue(response.status_code == 200)
+        #     get_FLORDM000_data = json.loads(response.data[:])
+        #     self.assertEquals(get_FLORDM000_data, FLORDM000_data)
+        #     # Create bad data
+        #     bad_data =  {'make': 'mercedes',
+        #                  'model': 'SL450',
+        #                  'engine_style': '2015-02-16'
+        #                 }
+        #     # Send bad data to POST, generate ValueError
+        #     data = json.dumps(bad_data)
+        #     response = self.client.post(url_for('main.post_instrument_deployment'), headers=headers, data=data)
+        #     self.assertEquals(response.status_code, 400)
 
     # Test [PUT] /instrument_deployment/<int:id> - 'main.put_instrument_deployment'
     def test_put_instrument_deployment(self):
@@ -574,56 +577,11 @@ class UserTestCase(unittest.TestCase):
         response = self.client.put(url_for('main.put_instrument_deployment', id=999), headers=headers, data=data)
         self.assertEquals(response.status_code, 404)
 
+        # Send data=None to force ValueError
+        data = json.dumps(modified_FLORDM000_data)
+        response = self.client.put(url_for('main.put_instrument_deployment', id=999), headers=headers, data=None)
+        self.assertEquals(response.status_code, 400)
 
-    #- - - - - - - - - - - - - - - - - - - - - - - - - - -
-    # Test data reference - do not delete
-    '''
-        curl -X GET http://localhost:4000/instrument_deployment?platform_deployment_id=203
-        {
-          "instrument_deployments": [
-            {
-              "depth": 1000.0,
-              "display_name": "2-Wavelength Fluorometer",
-              "end_date": null,
-              "geo_location": null,
-              "id": 754,
-              "platform_deployment_id": 203,
-              "reference_designator": "GS05MOAS-PG002-02-FLORDM000",
-              "start_date": null
-            },
-            {
-              "depth": 1000.0,
-              "display_name": "Photosynthetically Available Radiation",
-              "end_date": null,
-              "geo_location": null,
-              "id": 774,
-              "platform_deployment_id": 203,
-              "reference_designator": "GS05MOAS-PG002-04-PARADM000",
-              "start_date": null
-            },
-            {
-              "depth": 1000.0,
-              "display_name": "Absorption Spectrophotometer",
-              "end_date": null,
-              "geo_location": null,
-              "id": 686,
-              "platform_deployment_id": 203,
-              "reference_designator": "GS05MOAS-PG002-03-OPTAAM000",
-              "start_date": null
-            },
-            {
-              "depth": 1000.0,
-              "display_name": "CTD Glider",
-              "end_date": null,
-              "geo_location": null,
-              "id": 758,
-              "platform_deployment_id": 203,
-              "reference_designator": "GS05MOAS-PG002-01-CTDGVM000",
-              "start_date": null
-            }
-          ]
-        }
-        '''
 
 
 

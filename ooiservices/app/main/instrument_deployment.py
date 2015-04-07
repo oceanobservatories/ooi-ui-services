@@ -44,7 +44,7 @@ def post_instrument_deployment():
         new_deploy = InstrumentDeployment.from_json(data)
         db.session.add(new_deploy)
         db.session.commit()
-    except ValidationError as e:
+    except Exception as e:
         return jsonify(error=e.message), 400
     return jsonify(**new_deploy.to_json()), 201
 
@@ -64,7 +64,7 @@ def put_instrument_deployment(id):
         existingDeply.geo_location = data.get('geo_location', existingDeply.geo_location)
         db.session.add(existingDeply)
         db.session.commit()
-    except ValidationError as e:
+    except Exception as e:
         return jsonify(error=e.message), 400
     return jsonify(**existingDeply.to_json()), 200
 
