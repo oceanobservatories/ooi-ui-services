@@ -5,16 +5,16 @@ API v1.0 List
 '''
 __author__ = 'M@Campbell'
 
-from flask import jsonify, request, current_app, url_for
+from flask import jsonify, request
 from ooiservices.app.main import api
 from ooiservices.app import db
 from authentication import auth
 from ooiservices.app.models import InstrumentDeployment, Instrumentname
 from ooiservices.app.decorators import scope_required
+from ooiservices.app import cache
 import json
-import yaml
-from wtforms import ValidationError
 
+@cache.memoize(timeout=3600)
 @api.route('/instrument_deployment', methods=['GET'])
 def get_instrument_deployments():
     if 'platform_deployment_id' in request.args:
@@ -29,6 +29,7 @@ def get_instrument_deployments():
         instrument_deployments = InstrumentDeployment.query.all()
     return jsonify({ 'instrument_deployments' : [instrument_deployment.to_json() for instrument_deployment in instrument_deployments] })
 
+@cache.memoize(timeout=3600)
 @api.route('/instrument_deployment/<int:id>', methods=['GET'])
 def get_instrument_deployment(id):
     instrument_deployment = InstrumentDeployment.query.get(id)

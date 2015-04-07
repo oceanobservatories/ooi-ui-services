@@ -314,6 +314,53 @@ def get_uframe_stream(mooring, platform, instrument, stream):
     except:
         return internal_server_error('uframe connection cannot be made.')
 
+@api.route('/get_toc')
+@cache.memoize(timeout=3600)
+def get_toc():
+    '''
+    Returns a table of contents based on the uFrame contents
+    '''
+    UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+
+    try:
+        url = "/".join([UFRAME_DATA])
+        response = requests.get(url)
+        if response.status_code == 200:
+            toc = {}
+            moorings = response.json()
+
+            for mooring in moorings:
+                url = "/".join([UFRAME_DATA, mooring])
+                response = requests.get(url)
+                if response.status_code == 200:
+                    platforms = response.json()
+
+                    for platform in platforms:
+                        url = "/".join([UFRAME_DATA, mooring, platform])
+                        response = requests.get(url)
+                        if response.status_code == 200:
+                            instruments = response.json()
+
+                            for instrument in instruments:
+                                url = "/".join([UFRAME_DATA, mooring, platform, instrument, 'metadata'])
+                                response = requests.get(url)
+                                if response.status_code == 200:
+                                    instrument_metadata = response.json()
+                                    instrument_parameters = instrument_metadata['parameters']
+                                    parameters = []
+                                    for ip in instrument_parameters:
+                                        pk = ip['particleKey']
+                                        parameters.append(pk)
+                                    instrument_times = instrument_metadata['times']
+
+                                    # Build the TOC
+                                    toc[mooring+platform+instrument] = {'mooring':mooring, 'platform':platform, 'instrument':instrument, 'instrument_parameters': parameters, 'streams': instrument_times}
+            return jsonify(toc=toc)
+        return jsonify(toc={}), 404
+
+    except:
+        return internal_server_error('uframe connection cannot be made.')
+
 @api.route('/get_instrument_metadata/<string:ref>', methods=['GET'])
 @cache.memoize(timeout=3600)
 def get_uframe_instrument_metadata(ref):
