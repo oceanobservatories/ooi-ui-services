@@ -33,6 +33,7 @@ import io
 import numpy as np
 import pytz
 from ooiservices.app.main.routes import get_display_name_by_rd
+from ooiservices.app.main.arrays import get_arrays, get_array
 
 def dfs_streams():
     response = get_uframe_moorings()
@@ -320,26 +321,124 @@ def get_toc():
     '''
     Returns a table of contents based on the uFrame contents
     '''
+
+    example_toc_response = {
+      "arrays": [
+                  {
+                    "id":"CP",
+                    "display_name":"CP",
+                    "geojson":""
+                  },
+                  {
+                    "id":"CE",
+                    "display_name":"CE",
+                    "geojson":"",
+                  }
+                ],
+      "moorings":[
+                    {
+                     "id":"05MOAS",
+                     "array_id":"CP",
+                     "display_name":"05 mobile assest",
+                     "geojson":"",
+                     },
+                 ],
+      "platforms":[
+                    {
+                      "id":"GL004",
+                      "mooring_id":"SMMFD35",
+                      "display_name":"Coastal Pioneer glider 004",
+                      "geojson":"",
+                    },
+                  ],
+      "instruments":
+        [
+          {
+            "geojson":"<point/line>",
+            "array_id":"CP",
+            "platform_id":"CP01",
+            "mooring_id":"SMMFD35",
+            "display_name":"",
+            "instrument_id":"00-ENG000000",
+            "ref_des":"CP-05MOAS-GL004-00-ENG000000",
+            "instrument_parameters": [
+                                      "message_sent_timestamp",
+                                      "bad_records",
+                                      "internal_timestamp",
+                                      "driver_timestamp",
+                                      "preferred_timestamp",
+                                      "header_timestamp"
+                                      ],
+            "streams": [
+              {
+                "beginTime": "2014-11-06T20:34:31.666Z",
+                "count": 1734,
+                "endTime": "2014-12-14T21:04:36.668Z",
+                "method": "telemetered",
+                "sensor": "CP01CNSM-MFD35-00-DCLENG000",
+                "stream": "cg_dcl_eng_dcl_cpu_uptime"
+              },
+              {
+                "beginTime": "2014-11-06T20:34:31.886Z",
+                "count": 1734,
+                "endTime": "2014-12-14T21:04:36.941Z",
+                "method": "telemetered",
+                "sensor": "CP01CNSM-MFD35-00-DCLENG000",
+                "stream": "cg_dcl_eng_dcl_dlog_mgr"
+              }]
+          }
+        ]
+    }
     UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
 
     try:
         url = "/".join([UFRAME_DATA])
         response = requests.get(url)
         if response.status_code == 200:
-            toc = {}
             moorings = response.json()
 
+            toc = {}
+            mooring_list = []
+            platform_list = []
+            instrument_list = []
+
             for mooring in moorings:
+                mooring_list.append({'reference_designator': mooring,
+                                     'array_code': mooring[:2],
+                                     'display_name': get_display_name_by_rd(mooring),
+                                     'geo_location': {'coordinates':[0,0],'type':'Point'}
+                                     })
+
+            # for mooring in moorings:
                 url = "/".join([UFRAME_DATA, mooring])
                 response = requests.get(url)
                 if response.status_code == 200:
                     platforms = response.json()
 
+
                     for platform in platforms:
+                        pd = PlatformDeployment.query.filter_by(reference_designator="-".join([mooring, platform])).first()
+                        pos = 'null'
+                        if pd:
+                            print pd
+                            print pd.geojson
+                            pos = pd.geojson
+
+                        platform_list.append({'reference_designator': "-".join([mooring, platform]),
+                                              'mooring_code': mooring,
+                                              'platform_code': platform,
+                                              'display_name': get_display_name_by_rd("-".join([mooring, platform])),
+                                              # 'geo_location': {'coordinates':[0,0],'type':'Point'}
+                                              'geo_location': pos
+                                              })
+
+                    # for platform in platforms:
                         url = "/".join([UFRAME_DATA, mooring, platform])
                         response = requests.get(url)
                         if response.status_code == 200:
                             instruments = response.json()
+
+
 
                             for instrument in instruments:
                                 url = "/".join([UFRAME_DATA, mooring, platform, instrument, 'metadata'])
@@ -351,15 +450,32 @@ def get_toc():
                                     for ip in instrument_parameters:
                                         pk = ip['particleKey']
                                         parameters.append(pk)
-                                    instrument_times = instrument_metadata['times']
+
+                                    instrument_streams = instrument_metadata['times']
+
+                                    instrument_list.append({'mooring_code': mooring,
+                                                            'platform_code': platform,
+                                                            'instrument_code': instrument,
+                                                            'reference_designator': "-".join([mooring, platform, instrument]),
+                                                            'display_name': get_display_name_by_rd("-".join([mooring, platform, instrument])),
+                                                            'instrument_parameters': parameters,
+                                                            'streams': instrument_streams
+                                                            })
+
 
                                     # Build the TOC
-                                    toc[mooring+platform+instrument] = {'mooring':mooring, 'platform':platform, 'instrument':instrument, 'instrument_parameters': parameters, 'streams': instrument_times}
+                                    #toc["-".join([mooring, platform, instrument])] = {'mooring':mooring, 'platform':platform, 'instrument':instrument, 'instrument_parameters': parameters, 'streams': instrument_times}
+                    arrays = Array.query.all()
+                    toc['arrays'] = [array.to_json() for array in arrays]
+                    toc['moorings'] = mooring_list
+                    toc['platforms'] = platform_list
+                    toc['instruments'] = instrument_list
+
             return jsonify(toc=toc)
         return jsonify(toc={}), 404
 
-    except:
-        return internal_server_error('uframe connection cannot be made.')
+    except Exception as ex:
+        return internal_server_error('uframe connection cannot be made.' + str(ex.message))
 
 @api.route('/get_instrument_metadata/<string:ref>', methods=['GET'])
 @cache.memoize(timeout=3600)
