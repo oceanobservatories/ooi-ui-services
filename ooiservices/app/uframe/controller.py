@@ -387,11 +387,12 @@ def get_toc():
 
                                     instrument_streams = instrument_metadata['times']
 
+                                    reference_designator = "-".join([mooring, platform, instrument])
                                     instrument_list.append({'mooring_code': mooring,
                                                             'platform_code': platform,
                                                             'instrument_code': instrument,
-                                                            'reference_designator': "-".join([mooring, platform, instrument]),
-                                                            'display_name': get_display_name_by_rd("-".join([mooring, platform, instrument])),
+                                                            'reference_designator': reference_designator,
+                                                            'display_name': get_display_name_by_rd(reference_designator=reference_designator),
                                                             'instrument_parameters': parameters,
                                                             'streams': instrument_streams
                                                             })
