@@ -304,30 +304,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         db.session.commit()
         return array_CE, array_GP, array_CP
 
-    #Test C2 API routes
-    def test_alert_alarm_data_setup_arrays(self):
-        '''
-        general test for array api route for lists
-        '''
-        content_type = 'application/json'
-
-        #Create a sample data set.
-        array_CE, array_GP, array_CP = self.setup_array_data()
-
-        # Check three arrays are available
-        response = self.client.get(url_for('main.get_array', id='CE'), content_type=content_type)
-        self.assertTrue(response.status_code == 200)
-        response = self.client.get(url_for('main.get_array', id='GP'), content_type=content_type)
-        self.assertTrue(response.status_code == 200)
-        response = self.client.get(url_for('main.get_array', id='CP'), content_type=content_type)
-        self.assertTrue(response.status_code == 200)
-
-        response = self.client.get(url_for('main.get_arrays'), content_type=content_type)
-        self.assertTrue(response.status_code == 200)
-        data = json.loads(response.data)
-        self.assertTrue('arrays' in data)
-        self.assertEquals(3, len(data['arrays']))
-
     def test_alert_alarm_array_routes(self):
 
         verbose = self.verbose
@@ -432,7 +408,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         alarm2 = self.create_alert_alarm_definition(CTDPFK000_rd, priority, uframe_id)
         uframe_id += 1
         alarm3 = self.create_alert_alarm_definition(PARADK000_rd, priority, uframe_id)
-        uframe_id += 1
 
         for array in arrays:
             array_code = array.array_code
@@ -477,30 +452,38 @@ class AlertAlarmTestCase(unittest.TestCase):
             self.assertTrue('alert_alarm_definition' in data)
             self.assertTrue(len(data['alert_alarm_definition']) == 2)
 
-        url = url_for('main.get_alert_alarm_def', id=1)
-        #url += '?array_name=%s' % array_code
-        if verbose: print root+url
-        response = self.client.get(url, content_type=content_type, headers=headers)
-        self.assertTrue(response.status_code == 200)
-        data = json.loads(response.data)
-        self.assertTrue('reference_designator' in data)
-        save_instrument_reference_designator = data['reference_designator']
+        # Save current value of USE_MOCK_DATA; restore after this test loop
+        current_mock_value_flag = self.app.config['USE_MOCK_DATA']
+        test_cases = [True, False]
+        for value in test_cases:
+            self.app.config['USE_MOCK_DATA'] = value
+            # GET an alert_alarm_def, create new definition and POST
+            url = url_for('main.get_alert_alarm_def', id=1)
+            #url += '?array_name=%s' % array_code
+            if verbose: print root+url
+            response = self.client.get(url, content_type=content_type, headers=headers)
+            self.assertTrue(response.status_code == 200)
+            data = json.loads(response.data)
+            self.assertTrue('reference_designator' in data)
+            save_instrument_reference_designator = data['reference_designator']
 
-        # Leveraging data from GET above, change a few things and issue POST to create new def and
-        # some 'free' SystemEvent()s
-        content_type = 'application/json'
-        headers = self.get_api_headers('admin', 'test')
-        foo = {}
-        inx = 0
-        for k,v in data.iteritems():
-            if k != 'id':
-                foo[k] = v
-                inx += 1
-        foo['active'] = True
-        foo['description'] = 'some new and fancy description'
-        goo = json.dumps(foo)
-        response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers,data=goo)
-        self.assertEquals(response.status_code, 201)
+            # Leveraging data from GET above, change a few things and issue POST to create new def and
+            # some 'free' SystemEvent()s
+            content_type = 'application/json'
+            headers = self.get_api_headers('admin', 'test')
+            foo = {}
+            inx = 0
+            for k,v in data.iteritems():
+                if k != 'id':
+                    foo[k] = v
+                    inx += 1
+            foo['active'] = True
+            foo['description'] = 'some new and fancy description'
+            goo = json.dumps(foo)
+            response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers,data=goo)
+            self.assertEquals(response.status_code, 201)
+
+        self.app.config['USE_MOCK_DATA'] = current_mock_value_flag
 
         # get alert and all alert alarm defs, count should be three for this instrument, 7 for platform and array
         url = url_for('main.get_alerts_alarms_def')
@@ -510,7 +493,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue(response.status_code == 200)
         data = json.loads(response.data)
         self.assertTrue('alert_alarm_definition' in data)
-        self.assertTrue(len(data['alert_alarm_definition']) == 3)
+        self.assertEquals(len(data['alert_alarm_definition']),4)
 
         platform = foo['reference_designator'][0:14]
         array_code = foo['reference_designator'][0:2]
@@ -523,7 +506,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue(response.status_code == 200)
         data = json.loads(response.data)
         self.assertTrue('alert_alarm_definition' in data)
-        self.assertTrue(len(data['alert_alarm_definition']) == 7)
+        self.assertEquals(len(data['alert_alarm_definition']), 8)
 
         if verbose: print '\nArray: ', array_code
         url = url_for('main.get_alerts_alarms_def')
@@ -533,7 +516,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue(response.status_code == 200)
         data = json.loads(response.data)
         self.assertTrue('alert_alarm_definition' in data)
-        self.assertTrue(len(data['alert_alarm_definition']) == 7)
+        self.assertEquals(len(data['alert_alarm_definition']), 8)
 
         # Check that some ancillary SystemEvent (s) have been created...
         url = url_for('main.get_alerts_alarms')
@@ -545,7 +528,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         if self.app.config['USE_MOCK_DATA']:
             self.assertTrue(len(data['alert_alarm']) > 0)  # turn auto generate SystemEvent == False or remove from loader
         else:
-            self.assertTrue(len(data['alert_alarm']) == 0)  # turn auto generate SystemEvent == False or remove from loader
+            self.assertEquals(len(data['alert_alarm']), 5)  # turn auto generate SystemEvent == False or remove from loader
 
         # Get alert and alarm defs, loop through and POST new SystemEvent for each
         url = url_for('main.get_alerts_alarms_def')
@@ -555,11 +538,10 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue(response.status_code == 200)
         data = json.loads(response.data)
         self.assertTrue('alert_alarm_definition' in data)
-        self.assertTrue(len(data['alert_alarm_definition']) == 3)
-
+        self.assertEquals(len(data['alert_alarm_definition']),4)
         self.assertTrue('alert_alarm_definition' in data)
         definitions = data['alert_alarm_definition']
-        self.assertTrue(len(definitions) == 3)
+        self.assertEquals(len(definitions),4)
 
         inx = 1
         for definition in definitions:
@@ -578,7 +560,6 @@ class AlertAlarmTestCase(unittest.TestCase):
             values = definition['values']
             event_response_message = "Instrument: {0} boundary condition exceeded where parameter {1} {2} {3}".format(instrument_name, instrument_parameter, operator, values)
             event_time = str(dt.datetime.now())
-
             event_data = {}
             event_data['uframe_event_id'] = inx
             event_data['system_event_definition_id'] = system_event_definition_id
@@ -604,6 +585,104 @@ class AlertAlarmTestCase(unittest.TestCase):
             for event in aa_events:
                 print '\n\nevent: ', event
 
+        url = url_for('main.get_alert_alarm', id=1)
+        if verbose: print root+url
+        response = self.client.get(url, content_type=content_type, headers=headers)
+        self.assertEquals(response.status_code, 200)
+
+        response = self.client.post(url_for('main.create_alert_alarm'), headers=headers,data=None)
+        self.assertEquals(response.status_code, 409)
+
+        response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers,data=None)
+        self.assertEquals(response.status_code, 409)
+
+        url = url_for('main.get_alerts_alarms')
+        url += '?type=Alert'
+        if verbose: print root+url
+        response = self.client.get(url, content_type=content_type, headers=headers)
+        self.assertEquals(response.status_code, 200)
+
+        url = url_for('main.get_alerts_alarms_def')
+        if verbose: print root+url
+        response = self.client.get(url, content_type=content_type, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertTrue('alert_alarm_definition' in data)
+        if verbose:
+            for d in data['alert_alarm_definition']:
+                if d['id'] == 2:
+                    print 'uframe_definition_id: ', d['uframe_definition_id']
+
+        #  Force an error (400) on create definition; utilize session.rollback() in except block
+        #  create alert or alarm, note w/o type checking or validation this passes db add and
+        # commit, but fails on jsonify for return
+        z = {}
+        z['uframe_definition_id'] = 10101
+        z['reference_designator'] = None #'CP10-123123'
+        z['array_name'] = 'CP'
+        z['platform_name'] = 'none_such_really_long_wacky_name'
+        z['instrument_name'] = 'CP10-123123'
+        z['instrument_parameter'] = 'param'
+        z['operator'] = '>'
+        z['values'] = '12'
+        z['priority'] = 'foo'
+        z['active'] = str(True)
+        z['description'] = ''
+        stuff = json.dumps(z)
+        response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers,data=stuff)
+        self.assertEquals(response.status_code, 400)
+
+        # this test verifies after the previous error (400), a rollback is issued in except block;
+        # if it hasn't been then this GET would fail
+        url = url_for('main.get_alerts_alarms_def')
+        if verbose: print root+url
+        response = self.client.get(url, content_type=content_type, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertTrue('alert_alarm_definition' in data)
+        self.assertEquals(len(data['alert_alarm_definition']), 8)
+        # save alert definition to use in PUT below
+        alert_definition = None
+        for d in data['alert_alarm_definition']:
+            if d['uframe_definition_id'] == 10101:
+                alert_definition = d
+                break
+
+        # test PUT to update definition (use BAD data on update)
+        response = self.client.get(url_for('main.get_alert_alarm_def', id=2), headers=headers)
+        self.assertEquals(response.status_code, 200)
+
+        response = self.client.get(url_for('main.get_alerts_alarms', type='alert'), headers=headers)
+        self.assertEquals(response.status_code, 200)
+        alerts = json.loads(response.data)
+        self.assertTrue(len(alerts) > 0)
+
+        # do PUT using alert_Definition from above, modify description field; check with GET
+        alert_definition['description'] = 'this is an update!'
+        good_stuff = json.dumps(alert_definition)
+        response = self.client.put(url_for('main.update_alert_alarm_def', id=10101), headers=headers, data=good_stuff)
+        self.assertEquals(response.status_code, 201)
+        response = self.client.get(url_for('main.get_alert_alarm_def', id=alert_definition['id']), headers=headers)
+        self.assertEquals(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertTrue('description' in data)
+        self.assertEquals("this is an update!", data['description'])
+
+        # PUT valid uframe_definition_id but bad data, generate 400
+        response = self.client.put(url_for('main.update_alert_alarm_def', id=10101), headers=headers, data=stuff)
+        self.assertEquals(response.status_code, 400)
+
+        # PUT invalid (nonexistent) uframe_definition_id == 37, generate 404
+        response = self.client.put(url_for('main.update_alert_alarm_def', id=371), headers=headers, data=stuff)
+        self.assertEquals(response.status_code, 404)
+
+        # PUT data=None, generate 409
+        response = self.client.put(url_for('main.update_alert_alarm_def', id=371), headers=headers, data=None)
+        self.assertEquals(response.status_code, 409)
+
+        # GET invalid id=9876
+        response = self.client.get(url_for('main.get_alert_alarm_def', id=9876), headers=headers)
+        self.assertEquals(response.status_code, 404)
 
         if verbose: print '\n'
 
@@ -617,6 +696,14 @@ class AlertAlarmTestCase(unittest.TestCase):
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Basic positive tests - array, platform, instrument w/o data (no alerts or alarms yet)
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        url = url_for('main.get_alerts_alarms_def')
+        if verbose: print root+url
+        response = self.client.get(url, content_type=content_type, headers=headers)
+        self.assertTrue(response.status_code == 200)
+        data = json.loads(response.data)
+        self.assertTrue('alert_alarm_definition' in data)
+        self.assertEquals(len(data['alert_alarm_definition']), 0)
+
         # http://localhost:4000/alert_alarm_definition?array_name=array_code
         for array in arrays:
             array_code = array.array_code
@@ -653,6 +740,18 @@ class AlertAlarmTestCase(unittest.TestCase):
             data = json.loads(response.data)
             self.assertTrue('alert_alarm_definition' in data)
             self.assertTrue(len(data['alert_alarm_definition']) == 0)
+
+        # http://localhost:4000/alert_alarm_definition?reference_designator=instrument
+        for instrument in instruments:
+            if verbose: print '\nReference Designator: ', instrument
+            url = url_for('main.get_alerts_alarms_def')
+            url += '?reference_designator=%s' % instrument
+            if verbose: print root+url
+            response = self.client.get(url, content_type=content_type, headers=headers)
+            self.assertTrue(response.status_code == 200)
+            data = json.loads(response.data)
+            self.assertTrue('alert_alarm_definition' in data)
+            self.assertEquals(len(data['alert_alarm_definition']), 0)
 
         if verbose: print '\n'
 

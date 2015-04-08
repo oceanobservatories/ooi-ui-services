@@ -8,10 +8,10 @@ __author__ = 'James Case'
 from flask import jsonify, request, current_app, url_for, g
 from ooiservices.app.main import api
 from ooiservices.app import db
-from ooiservices.app.main.authentication import auth
 from ooiservices.app.models import SystemEventDefinition, SystemEvent, User
 from ooiservices.app.decorators import scope_required
-from ooiservices.app.main.errors import forbidden, conflict, bad_request
+from ooiservices.app.main.authentication import auth
+from ooiservices.app.main.errors import conflict, bad_request
 from datetime import datetime
 
 import json
@@ -21,7 +21,7 @@ import json
 def get_alerts_alarms():
     result = []
     if 'type' in request.args:
-        alerts_alarms = SystemEvent.query.filter_by(type=request.args.get('type'))
+        alerts_alarms = SystemEvent.query.filter_by(event_type=request.args.get('type'))
     else:
         alerts_alarms = SystemEvent.query.all()
     if alerts_alarms:
@@ -47,10 +47,12 @@ def create_alert_alarm():
         alert_alarm.event_time = datetime.now()
         alert_alarm.event_type = data['event_type']
         alert_alarm.event_response = data['event_response']
-        db.session.add(alert_alarm)
-        db.session.commit()
-        db.session.flush()
-
+        try:
+            db.session.add(alert_alarm)
+            db.session.commit()
+        except:
+            db.session.rollback()
+            return bad_request('IntegrityError creating alert_alarm')
         return jsonify(alert_alarm.to_json()), 201
     except Exception as err:
         return conflict('Insufficient data, or bad data format.')
@@ -106,8 +108,9 @@ def create_alert_alarm_def():
             db.session.add(alert_alarm_def)
             db.session.commit()
             db.session.flush()
-        except Exception as err:
-            return bad_request(err.message)
+        except:
+            db.session.rollback()
+            return bad_request('IntegrityError creating alert_alarm_definition')
 
         if current_app.config['USE_MOCK_DATA']:
             insert_alert_alarm_demo(alert_alarm_def.id,
@@ -129,7 +132,7 @@ def update_alert_alarm_def(id):
         data = json.loads(request.data)
         # alert_alarm_def = SystemEventDefinition()
         alert_alarm_def = SystemEventDefinition.query.filter_by(uframe_definition_id=id).first()
-        if alert_alarm_def is None:
+        if not alert_alarm_def:
             return jsonify(error="Invalid ID, record not found"), 404
         # uframe_definition_id, reference_designator, array_name, platform_name,
         # instrument_name, instrument_parameter, operator, values,
@@ -149,9 +152,9 @@ def update_alert_alarm_def(id):
         try:
             db.session.add(alert_alarm_def)
             db.session.commit()
-            db.session.flush()
-        except Exception as err:
-            return bad_request(err.message)
+        except:
+            db.session.rollback()
+            return bad_request('IntegrityError update_alert_alarm_def')
 
         return jsonify(alert_alarm_def.to_json()), 201
     except:
@@ -177,5 +180,6 @@ def insert_alert_alarm_demo(system_event_definition_id, event_type, instrument_n
             db.session.add(alert_alarm)
             db.session.commit()
             db.session.flush()
-        except Exception as err:
-            raise Exception(err.message)
+        except:
+            db.session.rollback()
+            return bad_request('IntegrityError insert_alert_alarm_demo')
