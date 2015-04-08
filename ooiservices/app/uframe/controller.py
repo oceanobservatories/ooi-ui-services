@@ -132,18 +132,20 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream):
     data_dict['units'] = {}
     data_dict['variables_shape'] = {}
     data_dict['display_name'] = get_display_name_by_rd(ref)
-    data_dict['download'] = {"csv":"/".join([SERVICE_LOCATION, 'uframe/get_csv', stream_name, ref]),
+    data_dict['download'] = {
+                             "csv":"/".join([SERVICE_LOCATION, 'uframe/get_csv', stream_name, ref]),
                              "json":"/".join([SERVICE_LOCATION, 'uframe/get_json', stream_name, ref]),
                              "netcdf":"/".join([SERVICE_LOCATION, 'uframe/get_netcdf', stream_name, ref]),
                              "profile":"/".join([SERVICE_LOCATION, 'uframe/get_profiles', stream_name, ref])
                             }
                             
-    d = get_uframe_instrument_metadata(ref)   
-    if d.status_code == 200:
-        data = d.json()
-        if "parameters" in data:
-            data = data['parameters']
-            for field in data:
+    d = get_uframe_instrument_metadata(ref)     
+    if d.status_code == 200:                    
+        data1 = d.get_data()
+        data1 = json.loads(data1)
+        data1 = data1['metadata']
+        if len(data)>0:            
+            for field in data1:
                 if field['particleKey'] not in data_dict['variables']: 
                     if field['shape'].lower() == 'scalar' or field['shape'].lower() == 'function':  
                         data_dict['variables'].append(field['particleKey'])
@@ -323,12 +325,13 @@ def get_uframe_instrument_metadata(ref):
 
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
         url = "/".join([UFRAME_DATA, mooring, platform, instrument, 'metadata'])        
-        response = requests.get(url)
+  
+        response = requests.get(url)      
         if response.status_code == 200:
-            data = response.json
+            data = response.json()
             return jsonify(metadata=data['parameters'])
         return jsonify(metadata={}), 404
-    except:
+    except Exception,e:        
         return internal_server_error('uframe connection cannot be made.')
 
 @auth.login_required
@@ -360,6 +363,7 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
             query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
         url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])     
+        print url
         response =  requests.get(url)
         if response.status_code != 200:
             #print response.text
