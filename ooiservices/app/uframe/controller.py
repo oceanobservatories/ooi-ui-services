@@ -363,7 +363,7 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
             query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
         url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])     
-        print url
+        # print url
         response =  requests.get(url)
         if response.status_code != 200:
             #print response.text
@@ -374,7 +374,7 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
 
 
 def validate_date_time(start_time,end_time):
-    uframe_data_request_limit = current_app.config['UFRAME_DATA_REQUEST_LIMIT']/1440
+    uframe_data_request_limit = int(current_app.config['UFRAME_DATA_REQUEST_LIMIT'])/1440
     new_end_time_strp = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ") + datetime.timedelta(days=uframe_data_request_limit)
     old_end_time_strp = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ") 
     new_end_time = datetime.datetime.strftime(new_end_time_strp, "%Y-%m-%dT%H:%M:%S.%fZ")
