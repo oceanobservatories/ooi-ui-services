@@ -318,15 +318,19 @@ def get_uframe_stream(mooring, platform, instrument, stream):
 @api.route('/get_toc')
 @cache.memoize(timeout=3600)
 def get_toc():
-    '''
+    """
     Returns a table of contents based on the uFrame contents
-    '''
+    Augmented by the UI database for vocabulary and geographic positions
+    :return: json
+    """
 
     UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+    timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
+    timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
 
     try:
         url = "/".join([UFRAME_DATA])
-        response = requests.get(url)
+        response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code == 200:
             moorings = response.json()
 
@@ -347,7 +351,7 @@ def get_toc():
                                      })
 
                 url = "/".join([UFRAME_DATA, mooring])
-                response = requests.get(url)
+                response = requests.get(url, timeout=(timeout, timeout_read))
                 if response.status_code == 200:
                     platforms = response.json()
 
@@ -361,18 +365,18 @@ def get_toc():
                                               'mooring_code': mooring,
                                               'platform_code': platform,
                                               'display_name': get_display_name_by_rd("-".join([mooring, platform])),
-                                              # 'geo_location': {'coordinates':[0,0],'type':'Point'}
                                               'geo_location': pos
                                               })
 
                         url = "/".join([UFRAME_DATA, mooring, platform])
-                        response = requests.get(url)
+                        response = requests.get(url, timeout=(timeout, timeout_read))
                         if response.status_code == 200:
                             instruments = response.json()
 
                             for instrument in instruments:
                                 url = "/".join([UFRAME_DATA, mooring, platform, instrument, 'metadata'])
-                                response = requests.get(url)
+
+                                response = requests.get(url, timeout=(timeout, timeout_read))
                                 if response.status_code == 200:
                                     instrument_metadata = response.json()
                                     instrument_parameters = instrument_metadata['parameters']
