@@ -484,6 +484,11 @@ def get_assets():
                     depth = ""
                 if len(ref_des) > 0:
                     row['ref_des'] = ref_des
+                    display_name = get_display_name_by_rd(ref_des)
+                    if display_name:
+                        row['display_name'] = display_name
+                    else:
+                        row['display_name'] = 'Metadata Error: Name Not Found'
                     '''
                     Determine the asset name from the DB if there is none.
                     '''
