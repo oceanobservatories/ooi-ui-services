@@ -12,14 +12,14 @@ COMMON: &common
     HOST: localhost
     PORT: 4000
     JSONIFY_PRETTYPRINT_REGULAR: true
-    UFRAME_URL: 'http://d3b.ooi.rutgers.edu:12575'
-    UFRAME_ASSETS_URL: 'http://d3b.ooi.rutgers.edu:12573'
+    UFRAME_URL: 'http://localhost:12575'
+    UFRAME_ASSETS_URL: 'http://localhost:12573'
     UFRAME_URL_BASE: '/sensor/inv'
     UFRAME_TIMEOUT_CONNECT: 5
     UFRAME_TIMEOUT_READ: 30
-    REDMINE_KEY: XXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-    UI_API_KEY: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-    REDMINE_URL:  'https://uframe-cm.ooi.rutgers.edu'
+    REDMINE_KEY: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    UI_API_KEY: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    REDMINE_URL: 'https://uframe-cm.ooi.rutgers.edu'
     REDMINE_PROJECT_ID: 'ooi-ui-api-testing'
     WHOOSH_BASE: 'ooiservices/whoosh_index'
     REDIS_URL: 'redis://:password@localhost:6379'
