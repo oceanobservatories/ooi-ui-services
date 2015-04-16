@@ -33,6 +33,7 @@ import io
 import numpy as np
 import pytz
 from ooiservices.app.main.routes import get_display_name_by_rd
+from ooiservices.app.main.arrays import get_arrays, get_array
 
 def dfs_streams():
     response = get_uframe_moorings()
@@ -198,8 +199,8 @@ def get_uframe_moorings():
         timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
         response = requests.get(UFRAME_DATA, timeout=(timeout, timeout_read))
         return response
-    except:
-        return internal_server_error('uframe connection cannot be made.')
+    except Exception as e:
+        return internal_server_error('uframe connection cannot be made.' + str(e.message))
 
 
 @cache.memoize(timeout=3600)
@@ -214,8 +215,8 @@ def get_uframe_platforms(mooring):
         timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
         response = requests.get(UFRAME_DATA, timeout=(timeout, timeout_read))
         return response
-    except:
-        return internal_server_error('uframe connection cannot be made.')
+    except Exception as e:
+        return internal_server_error('uframe connection cannot be made.' + str(e.message))
 
 @auth.login_required
 @api.route('/get_glider_track/<string:ref>')
@@ -259,8 +260,8 @@ def get_uframe_instruments(mooring, platform):
         timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
         response = requests.get(UFRAME_DATA, timeout=(timeout, timeout_read))
         return response
-    except:
-        return internal_server_error('uframe connection cannot be made.')
+    except Exception as e:
+        return internal_server_error('uframe connection cannot be made.' + str(e.message))
 
 
 @cache.memoize(timeout=3600)
@@ -276,8 +277,8 @@ def get_uframe_stream_types(mooring, platform, instrument):
         timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
         response = requests.get(url, timeout=(timeout, timeout_read))
         return response
-    except Exception, err:
-        return internal_server_error('uframe connection cannot be made. error: %s' % err.message)
+    except Exception as e:
+        return internal_server_error('uframe connection cannot be made. error: %s' %  + str(e.message))
 
 
 @cache.memoize(timeout=3600)
@@ -294,8 +295,8 @@ def get_uframe_streams(mooring, platform, instrument, stream_type):
         response = requests.get(url, timeout=(timeout, timeout_read))
         current_app.logger.info("GET %s", '/'.join([UFRAME_DATA, mooring, platform, instrument, stream_type]))
         return response
-    except:
-        return internal_server_error('uframe connection cannot be made.')
+    except Exception as e:
+        return internal_server_error('uframe connection cannot be made.' + str(e.message))
 
 
 @cache.memoize(timeout=3600)
@@ -311,8 +312,100 @@ def get_uframe_stream(mooring, platform, instrument, stream):
         timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
         response = requests.get(url, timeout=(timeout, timeout_read))
         return response
-    except:
-        return internal_server_error('uframe connection cannot be made.')
+    except Exception as e:
+        return internal_server_error('uframe connection cannot be made.' + str(e.message))
+
+@api.route('/get_toc')
+@cache.memoize(timeout=3600)
+def get_toc():
+    """
+    Returns a table of contents based on the uFrame contents
+    Augmented by the UI database for vocabulary and geographic positions
+    :return: json
+    """
+
+    UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+    timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
+    timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
+
+    try:
+        url = "/".join([UFRAME_DATA])
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code == 200:
+            moorings = response.json()
+
+            toc = {}
+            mooring_list = []
+            platform_list = []
+            instrument_list = []
+
+            for mooring in moorings:
+                pd = PlatformDeployment.query.filter_by(reference_designator=mooring).first()
+                pos = 'null'
+                if pd:
+                    pos = pd.geojson
+                mooring_list.append({'reference_designator': mooring,
+                                     'array_code': mooring[:2],
+                                     'display_name': get_display_name_by_rd(mooring),
+                                     'geo_location': pos
+                                     })
+
+                url = "/".join([UFRAME_DATA, mooring])
+                response = requests.get(url, timeout=(timeout, timeout_read))
+                if response.status_code == 200:
+                    platforms = response.json()
+
+                    for platform in platforms:
+                        pd = PlatformDeployment.query.filter_by(reference_designator="-".join([mooring, platform])).first()
+                        pos = 'null'
+                        if pd:
+                            pos = pd.geojson
+
+                        platform_list.append({'reference_designator': "-".join([mooring, platform]),
+                                              'mooring_code': mooring,
+                                              'platform_code': platform,
+                                              'display_name': get_display_name_by_rd("-".join([mooring, platform])),
+                                              'geo_location': pos
+                                              })
+
+                        url = "/".join([UFRAME_DATA, mooring, platform])
+                        response = requests.get(url, timeout=(timeout, timeout_read))
+                        if response.status_code == 200:
+                            instruments = response.json()
+
+                            for instrument in instruments:
+                                url = "/".join([UFRAME_DATA, mooring, platform, instrument, 'metadata'])
+
+                                response = requests.get(url, timeout=(timeout, timeout_read))
+                                if response.status_code == 200:
+                                    instrument_metadata = response.json()
+                                    instrument_parameters = instrument_metadata['parameters']
+                                    parameters = []
+                                    for ip in instrument_parameters:
+                                        pk = ip['particleKey']
+                                        parameters.append(pk)
+
+                                    instrument_streams = instrument_metadata['times']
+
+                                    reference_designator = "-".join([mooring, platform, instrument])
+                                    instrument_list.append({'mooring_code': mooring,
+                                                            'platform_code': platform,
+                                                            'instrument_code': instrument,
+                                                            'reference_designator': reference_designator,
+                                                            'display_name': get_display_name_by_rd(reference_designator=reference_designator),
+                                                            'instrument_parameters': parameters,
+                                                            'streams': instrument_streams
+                                                            })
+                    arrays = Array.query.all()
+                    toc['arrays'] = [array.to_json() for array in arrays]
+                    toc['moorings'] = mooring_list
+                    toc['platforms'] = platform_list
+                    toc['instruments'] = instrument_list
+            return jsonify(toc=toc)
+        return jsonify(toc={}), 404
+
+    except Exception as e:
+        return internal_server_error('uframe connection cannot be made.' + str(e.message))
 
 @api.route('/get_instrument_metadata/<string:ref>', methods=['GET'])
 @cache.memoize(timeout=3600)
@@ -331,8 +424,8 @@ def get_uframe_instrument_metadata(ref):
             data = response.json()
             return jsonify(metadata=data['parameters'])
         return jsonify(metadata={}), 404
-    except Exception,e:        
-        return internal_server_error('uframe connection cannot be made.')
+    except Exception as e:
+        return internal_server_error('uframe connection cannot be made.' + str(e.message))
 
 @auth.login_required
 @api.route('/get_metadata_times/<string:ref>', methods=['GET'])
@@ -348,36 +441,35 @@ def get_uframe_stream_metadata_times(ref):
         if response.status_code == 200:
             return response
         return jsonify(times={}), 200
-    except:
-        return internal_server_error('uframe connection cannot be made.')
+    except Exception as e:
+        return internal_server_error('uframe connection cannot be made.' + str(e.message))
 
 @cache.memoize(timeout=3600)
 def get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag):
-    '''
+    """
     Gets the bounded stream contents, start_time and end_time need to be datetime objects
-    '''
+    """
     try:        
         if dpa_flag == '0':
             query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
         else:
             query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])     
-        # print url
+        url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])
         response =  requests.get(url)
         if response.status_code != 200:
             #print response.text
             pass
         return response
-    except:
-        return internal_server_error('uframe connection cannot be made.')
+    except Exception as e:
+        return internal_server_error('uframe connection cannot be made.' + str(e.message))
 
 
 def validate_date_time(start_time,end_time):
     uframe_data_request_limit = int(current_app.config['UFRAME_DATA_REQUEST_LIMIT'])/1440
     new_end_time_strp = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ") + datetime.timedelta(days=uframe_data_request_limit)
     old_end_time_strp = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ") 
-    new_end_time = datetime.datetime.strftime(new_end_time_strp, "%Y-%m-%dT%H:%M:%S.%fZ")
+    # new_end_time = datetime.datetime.strftime(new_end_time_strp, "%Y-%m-%dT%H:%M:%S.%fZ")
     if old_end_time_strp > new_end_time_strp:
         end_time = new_end_time
 
