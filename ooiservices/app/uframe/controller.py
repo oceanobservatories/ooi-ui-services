@@ -465,11 +465,11 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
         return internal_server_error('uframe connection cannot be made.' + str(e.message))
 
 
-def validate_date_time(start_time,end_time):
+def validate_date_time(start_time, end_time):
     uframe_data_request_limit = int(current_app.config['UFRAME_DATA_REQUEST_LIMIT'])/1440
     new_end_time_strp = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ") + datetime.timedelta(days=uframe_data_request_limit)
     old_end_time_strp = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ") 
-    # new_end_time = datetime.datetime.strftime(new_end_time_strp, "%Y-%m-%dT%H:%M:%S.%fZ")
+    new_end_time = datetime.datetime.strftime(new_end_time_strp, "%Y-%m-%dT%H:%M:%S.%fZ")
     if old_end_time_strp > new_end_time_strp:
         end_time = new_end_time
 
@@ -578,7 +578,7 @@ def get_svg_plot(instrument, stream):
 
     # get titles and labels
     title = request.args.get('title', '%s Data' % stream)
-    profileid = request.args.get('profileId', None)    
+    profileid = request.args.get('profileId', None)
 
     # need a yvar for sure
     if yvar is None:
@@ -592,12 +592,10 @@ def get_svg_plot(instrument, stream):
     width_in = width / 96.
 
     # get the data
-    if plot_layout in ["timeseries", "ts_diagram"]:
-        data = get_data(stream, instrument, yvar, xvar)
-    elif plot_layout == "depthprofile":
-        # if yvar != 'pressure':
-        #    return jsonify(error='invalid profile request'), 400
+    if plot_layout == "depthprofile":
         data = get_process_profile_data(stream, instrument, yvar[0], xvar[0])
+    else:
+        data = get_data(stream, instrument, yvar, xvar)
 
     data['title'] = title
     data['height'] = height_in
@@ -625,7 +623,7 @@ def get_svg_plot(instrument, stream):
 
 
 def get_process_profile_data(stream, instrument, yvar, xvar):
-    data = get_profile_data(instrument, stream)
+
     # check the data is in the first row
     '''
     if yvar not in data[0] or xvar not in data[0]:
@@ -636,8 +634,11 @@ def get_process_profile_data(stream, instrument, yvar, xvar):
         return data
     '''
 
+    data = get_profile_data(instrument, stream)
+    # print data
     y_data = []
     x_data = []
+    time = []
     profile_id_list = []
 
     profile_count = -1
@@ -649,6 +650,7 @@ def get_process_profile_data(stream, instrument, yvar, xvar):
             if profile_id not in profile_id_list:
                 y_data.append([])
                 x_data.append([])
+                time.append(float(row['pk']['time']))
                 profile_id_list.append(profile_id)
                 profile_count += 1
 
@@ -658,7 +660,7 @@ def get_process_profile_data(stream, instrument, yvar, xvar):
             except Exception:
                 return {'error': 'profiles not present in data, maybe a bug?'}
 
-    return {'x': x_data, 'y': y_data, 'x_field': xvar, "y_field": yvar}
+    return {'x': x_data, 'y': y_data, 'x_field': xvar, "y_field": yvar, 'time': time}
 
 
 def get_profile_data(instrument, stream):
@@ -676,9 +678,9 @@ def get_profile_data(instrument, stream):
         ed_date = request.args['enddate']
         if 'dpa_flag' in request.args:
             dpa_flag = request.args['dpa_flag']
-        else:    
+        else:
             dpa_flag = "0"
-        ed_date = validate_date_time(st_date,ed_date)
+        ed_date = validate_date_time(st_date, ed_date)
         response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
     else:
         current_app.logger.exception('Failed to make plot')
