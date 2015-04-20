@@ -5,7 +5,7 @@ from ooiservices.app import cache
 import numpy as np
 import prettyplotlib as ppl
 from prettyplotlib import plt
-from windrose import WindroseAxes
+from ooiservices.app.uframe.windrose import WindroseAxes
 import matplotlib.dates as mdates
 from matplotlib.ticker import FuncFormatter
 import seawater as sw
