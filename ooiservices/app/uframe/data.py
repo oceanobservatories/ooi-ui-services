@@ -89,7 +89,7 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
 
     for ind, row in enumerate(data):
         # used to handle multiple streams
-        if row['stream_name'] == stream:
+        if row['pk']['stream'] == stream:
             # x
             for xfield in xfields:
                 if xfield == 'time':
