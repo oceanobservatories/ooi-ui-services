@@ -352,9 +352,28 @@ def get_uframe_stream_metadata_times(ref):
         return jsonify(times={}), 200
     except:
         return internal_server_error('uframe connection cannot be made.')
-
-
+        
 def get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag):
+    '''
+    Gets the bounded stream contents, start_time and end_time need to be datetime objects
+    '''
+    try:        
+        if dpa_flag == '0':
+            query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
+        else:
+            query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
+        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+        url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])     
+        # print url
+        response =  requests.get(url)
+        if response.status_code != 200:
+            #print response.text
+            pass
+        return response
+    except:
+        return internal_server_error('uframe connection cannot be made.')
+
+def get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag):
     '''
     Gets the bounded stream contents, start_time and end_time need to be datetime objects
     '''
