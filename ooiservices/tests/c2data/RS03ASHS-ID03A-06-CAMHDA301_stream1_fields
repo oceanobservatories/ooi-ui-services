@@ -1,8 +1,0 @@
-[
-  {"name":"camera_power", "display_name":"Camera Power", "units": "", "type": "string", "value":"On" },
-  {"name":"camera_tilt", "display_name":"Camera Tilt", "units": "degrees", "type": "float", "value":"90" },
-  {"name":"video_live", "display_name":"Video Live", "units": "", "type": "string", "value":"Off" },
-  {"name":"sampling_interval", "display_name":"Sampling Interval", "units": "seconds", "type": "int", "value":"3600" },
-  {"name":"battery_check_interval", "display_name":"Battery Check Interval", "units": "seconds", "type": "int", "value": "7200" },
-  {"name":"send_data", "display_name":"Send Data", "units": "seconds", "type": "int", "value":"10800" }
-]

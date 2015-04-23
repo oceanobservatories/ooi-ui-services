@@ -6,16 +6,16 @@ __author__ = 'Edna Donoughe'
 
 from flask import jsonify
 from ooiservices.app.main import api
-from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment
-from ooiservices.app.models import Instrumentname
+from ooiservices.app.models import Array
 import json
 from ooiservices.app.main.errors import bad_request
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.decorators import scope_required
-from ooiservices.app.main.c2 import read_store, _platform_deployment, _instrument_deployment
+from ooiservices.app.main.c2 import read_store
+from ooiservices.app.main.c2 import _get_platform, _get_instrument, _get_instruments
 
 # - - - - - - - - - - - - - - - - - - - - - - - -
-# C2 array routes
+# C2 Mission Control - array routes
 # - - - - - - - - - - - - - - - - - - - - - - - -
 @api.route('/c2/array/<string:array_code>/mission_display', methods=['GET'])
 #@auth.login_required
@@ -29,7 +29,7 @@ def c2_get_array_mission_display(array_code):
     return jsonify(mission_display=mission_display)
 
 # - - - - - - - - - - - - - - - - - - - - - - - -
-# C2 platform
+# C2 Mission Control - platform
 # - - - - - - - - - - - - - - - - - - - - - - - -
 @api.route('/c2/platform/<string:reference_designator>/mission/instruments_list', methods=['GET'])
 #@auth.login_required
@@ -43,41 +43,30 @@ def c2_get_platform_mission_instruments_list(reference_designator):
     #   http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission/instruments_list
     contents = []
     platform_info = {}
-    platform_deployment = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first()
-    if not platform_deployment:
-        return bad_request('unknown platform_deployment (\'%s\')' % reference_designator)
-    # get ordered set of instrument_deployments for platform
-    instrument_deployments = \
-        InstrumentDeployment.query.filter_by(platform_deployment_id=platform_deployment.id).all()
-    for i_d in instrument_deployments:
-        instrument_name = Instrumentname.query.filter(Instrumentname.instrument_class == i_d.display_name).first()
-        if instrument_name:
-            i_d.display_name = instrument_name.display_name
-    # create list of reference_designators (instruments) and accumulate dict result (key=reference_designator) for output
-    instruments = []
-    for instrument_deployment in instrument_deployments:
-        instruments.append(instrument_deployment.reference_designator)
-        row = {}
-        row['reference_designator'] = instrument_deployment.reference_designator
-        row['instrument_deployment_id'] = instrument_deployment.id
-        row['display_name'] = instrument_deployment.display_name
-        platform_info[instrument_deployment.reference_designator] = row
-    '''
-    (hold for now - not sure we need status)
-    # Get operational status for all instruments in platform; add to output
-    statuses = c2_get_instruments_operational_status(platform_deployment.reference_designator)
-    if statuses:
-        for d in statuses:
-            rd = d['id']
-            stat = d['status']
-            if rd in platform_info:
-                platform_info[rd]['instrument_status'] = stat
-    '''
-    # Create list of dictionaries representing row(s) for 'data' (ordered by reference_designator)
-    # 'data' == rows for initial grid ('Current Status')
-    for instrument_deployment_reference_designator in instruments:
-        if instrument_deployment_reference_designator in platform_info:
-            contents.append(platform_info[instrument_deployment_reference_designator])
+    platform_deployment = _get_platform(reference_designator)
+    if platform_deployment:
+        # get ordered set of instrument_deployments for platform
+        # Get instruments for this platform
+        #_instruments = stuff['instruments']
+        #instruments = []
+        #oinstruments = []
+        instruments, oinstruments = _get_instruments(reference_designator)
+        # create list of reference_designators (instruments) and accumulate dict result (key=reference_designator) for output
+        #instruments = []
+        for instrument_deployment in instruments:
+            row = {}
+            row['reference_designator'] = instrument_deployment['reference_designator']
+            if instrument_deployment['display_name']:
+                row['display_name'] = instrument_deployment['display_name']
+            else:
+                row['display_name'] = instrument_deployment['reference_designator']
+            platform_info[instrument_deployment['reference_designator']] = row
+
+        # Create list of dictionaries representing row(s) for 'data' (ordered by reference_designator)
+        # 'data' == rows for initial grid ('Current Status')
+        for instrument_reference_designator in oinstruments:
+            if instrument_reference_designator in platform_info:
+                contents.append(platform_info[instrument_reference_designator])
     return jsonify(instruments=contents)
 
 @api.route('/c2/platform/<string:reference_designator>/mission_display', methods=['GET'])
@@ -85,22 +74,24 @@ def c2_get_platform_mission_instruments_list(reference_designator):
 #@scope_required(u'user_admin')
 def c2_get_platform_mission_display(reference_designator):
     #Get C2 platform Mission tab contents, return mission_display
-    if not _platform_deployment(reference_designator):
-        return bad_request('unknown platform_deployment (\'%s\')' % reference_designator)
     mission_display = {}
+    platform = _get_platform(reference_designator)
+    if platform:
+        mission_display = {}  # todo populate display content
     return jsonify(mission_display=mission_display)
 
 # - - - - - - - - - - - - - - - - - - - - - - - -
-# C2 instrument
+# C2 Mission Control - instrument
 # - - - - - - - - - - - - - - - - - - - - - - - -
 @api.route('/c2/instrument/<string:reference_designator>/mission_display', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
 def c2_get_instrument_mission_display(reference_designator):
     #Get C2 instrument Mission tab contents, return mission_display
-    if not _instrument_deployment(reference_designator):
-        return bad_request('unknown instrument_deployment (\'%s\')' % reference_designator)
     mission_display = {}
+    instrument = _get_instrument(reference_designator)
+    if instrument:
+        mission_display = {}  # todo populated display content
     return jsonify(mission_display=mission_display)
 
 @api.route('/c2/platform/<string:reference_designator>/mission_selections', methods=['GET'])
@@ -109,9 +100,10 @@ def c2_get_instrument_mission_display(reference_designator):
 def c2_get_platform_mission_selections(reference_designator):
     # C2 get platform Mission tab mission selections content, return mission_selections [{},{}...]
     # return list of platform mission plans
-    if not _platform_deployment(reference_designator):
-        return bad_request('unknown platform_deployment (\'%s\')' % reference_designator)
-    mission_selections = _get_mission_selections(reference_designator)
+    mission_selections = []
+    platform = _get_platform(reference_designator)
+    if platform:
+        mission_selections = _get_mission_selections(reference_designator)
     return jsonify(mission_selections=mission_selections)
 
 @api.route('/c2/instrument/<string:reference_designator>/mission_selections', methods=['GET'])
@@ -120,11 +112,43 @@ def c2_get_platform_mission_selections(reference_designator):
 def c2_get_instrument_mission_selections(reference_designator):
     # C2 get instrument Mission tab mission selections content, return mission_selections [{},{}...]
     # return list of instrument mission plans
-    if not _instrument_deployment(reference_designator):
-        return bad_request('unknown instrument_deployment (\'%s\')' % reference_designator)
-    mission_selections = _get_mission_selections(reference_designator)
+    mission_selections = []
+    instrument = _get_instrument(reference_designator)
+    if instrument:
+        mission_selections = _get_mission_selections(reference_designator)
     return jsonify(mission_selections=mission_selections)
 
+
+
+@api.route('/c2/platform/<string:reference_designator>/mission_selection/<string:mission_plan_store>', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'user_admin')
+def c2_get_platform_mission_selection(reference_designator, mission_plan_store):
+    # C2 get [platform] selected mission_plan content, return mission_plan
+    if not mission_plan_store:
+        return bad_request('mission_plan_store parameter is empty')
+    mission_plan = {}
+    platform = _get_platform(reference_designator)
+    if platform:
+        mission_plan = _get_mission_selection(mission_plan_store)
+    return jsonify(mission_plan=mission_plan)
+
+@api.route('/c2/instrument/<string:reference_designator>/mission_selection/<string:mission_plan_store>', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'user_admin')
+def c2_get_instrument_mission_selection(reference_designator, mission_plan_store):
+    # C2 get [instrument] selected mission_plan content from store (file, uframe), return mission_plan
+    if not mission_plan_store:
+        return bad_request('mission_plan_store parameter is empty')
+    mission_plan = {}
+    instrument = _get_instrument(reference_designator)
+    if instrument:
+        mission_plan = _get_mission_selection(mission_plan_store)
+    return jsonify(mission_plan=mission_plan)
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# private helper methods
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def _get_mission_selections(reference_designator):
     mission_selections = []
     response_text = json_get_uframe_mission_selections(reference_designator)
@@ -136,31 +160,6 @@ def _get_mission_selections(reference_designator):
                                % reference_designator)
     return mission_selections
 
-@api.route('/c2/platform/<string:reference_designator>/mission_selection/<string:mission_plan_store>', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
-def c2_get_platform_mission_selection(reference_designator, mission_plan_store):
-    # C2 get [platform] selected mission_plan content, return mission_plan
-    platform_deployment = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first()
-    if not platform_deployment:
-        return bad_request('unknown platform_deployment (\'%s\')' % reference_designator)
-    if not mission_plan_store:
-        return bad_request('mission_plan_store parameter is empty')
-    mission_plan = _get_mission_selection(mission_plan_store)
-    return jsonify(mission_plan=mission_plan)
-
-@api.route('/c2/instrument/<string:reference_designator>/mission_selection/<string:mission_plan_store>', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
-def c2_get_instrument_mission_selection(reference_designator, mission_plan_store):
-    # C2 get [instrument] selected mission_plan content from store (file, uframe), return mission_plan
-    if not _instrument_deployment(reference_designator):
-        return bad_request('unknown instrument_deployment (\'%s\')' % reference_designator)
-    if not mission_plan_store:
-        return bad_request('mission_plan_store parameter is empty')
-    mission_plan = _get_mission_selection(mission_plan_store)
-    return jsonify(mission_plan=mission_plan)
-
 def _get_mission_selection(mission_plan_store):
     mission_plan = []
     response_text = json_get_uframe_mission_selection(mission_plan_store)
@@ -170,9 +169,8 @@ def _get_mission_selection(mission_plan_store):
         except:
             return bad_request('Malformed mission_plan data; not in valid json format.')
     return mission_plan
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# C2 helper for file data (./ooiuiservices/tests/c2data/*)
+# Private helpers for file data (./ooiuiservices/tests/c2data/*)
 # Each of these will be replaced with interface to uframe or other interface (other than file)
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def json_get_uframe_mission_selections(reference_designator):
