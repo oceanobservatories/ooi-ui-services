@@ -12,6 +12,7 @@ from ooiservices.app import create_app, db
 from ooiservices.app.models import User, UserScope, Organization
 from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment
 import datetime as dt
+from unittest import skipIf
 
 '''
 These tests are additional to the normal testing performed by coverage; each of
