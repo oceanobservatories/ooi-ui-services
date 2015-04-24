@@ -646,7 +646,6 @@ def get_svg_plot(instrument, stream):
     if not data:
         return jsonify(error='no data returned for %s' % plot_layout), 400
 
-
     # return if error
     if 'error' in data:
         print '*** (get_svg_plot) error after calling get_data...'

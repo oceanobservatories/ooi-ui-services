@@ -68,7 +68,7 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
         else:
             if xfield not in data[0]:
                 current_app.logger.exception('requested data xfield not available')
-                return {'error': 'requested data xfield not available'}
+                return {'error': 'requested data xfield (%s) not available' % xfield}
 
     for yfield in yfields:
         if yfield == 'time':
@@ -78,7 +78,7 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
         else:
             if yfield not in data[0]:
                 current_app.logger.exception('requested data yfield (%s) not available' % yfield)
-                return {'error': 'requested data yfield not available'}
+                return {'error': 'requested data yfield (%s) not available' % yfield}
 
     # override the timestamp to the prefered
     # xdata = OrderedDict()
