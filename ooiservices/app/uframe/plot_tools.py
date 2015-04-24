@@ -51,7 +51,7 @@ class OOIPlots(object):
             ax.xaxis.set_major_locator(major)
             ax.xaxis.set_major_formatter(formt)
 
-    @cache.memoize(timeout=3600)
+    #@cache.memoize(timeout=3600)
     def plot_time_series(self, fig, is_timeseries, ax, x, y, fill=True, title='', xlabel='', ylabel='',
                          title_font={}, axis_font={}, line=True, scatter=False , **kwargs):
 
@@ -79,11 +79,14 @@ class OOIPlots(object):
         ax.grid(True)
         if fill:
             miny = min(ax.get_ylim())
-            ax.fill_between(x, y, miny+1e-7, facecolor = h[0].get_color(), alpha=0.15)
+            if not scatter:
+                ax.fill_between(x, y, miny+1e-7, facecolor = h[0].get_color(), alpha=0.15)
+            else:
+                ax.fill_between(x, y, miny+1e-7, facecolor = axis_font_default['color'], alpha=0.15)
 
         plt.tick_params(axis='both', which='major', labelsize=10)
 
-    @cache.memoize(timeout=3600)
+    #@cache.memoize(timeout=3600)
     def plot_stacked_time_series(self, fig, ax, x, y, z, title='', ylabel='',
                                  cbar_title='', title_font={}, axis_font={}, tick_font = {},
                                  **kwargs):
@@ -112,7 +115,7 @@ class OOIPlots(object):
         if tick_font:
             ax.tick_params(**tick_font)
 
-    @cache.memoize(timeout=3600)
+    #@cache.memoize(timeout=3600)
     def plot_profile(self, fig, ax, x, y, xlabel='', ylabel='',
                      axis_font={}, line=True , scatter=False, **kwargs):
 
@@ -133,7 +136,7 @@ class OOIPlots(object):
         ax.grid(True)
         # ax.set_title(title, **title_font)
 
-    @cache.memoize(timeout=3600)
+    #@cache.memoize(timeout=3600)
     def plot_histogram(self, ax, x, bins, title='', xlabel='', title_font={},
                        axis_font={}, tick_font={}, **kwargs):
 
@@ -164,7 +167,7 @@ class OOIPlots(object):
         l = ax.legend(borderaxespad=-3.5, title=label)
         plt.setp(l.get_texts(), fontsize=8)
 
-    @cache.memoize(timeout=3600)
+    #@cache.memoize(timeout=3600)
     def plot_rose(self, magnitude, direction, bins=15, nsector=16,
                   title='', title_font={}, legend_title='', normed=True,
                   opening=0.8, edgecolor='white'):
@@ -184,7 +187,7 @@ class OOIPlots(object):
 
         return fig
 
-    @cache.memoize(timeout=3600)
+    #@cache.memoize(timeout=3600)
     def plot_1d_quiver(self, fig, ax, time, u, v, title='', ylabel='',
                        title_font={}, axis_font={}, tick_font={},
                        legend_title="Magnitude", **kwargs):
@@ -198,7 +201,6 @@ class OOIPlots(object):
         maxmag = max(magnitude)
         ax.set_ylim(-maxmag, maxmag)
         dx = time[-1] - time[0]
-        print dx
         ax.set_xlim(time[0] - 0.05 * dx, time[-1] + 0.05 * dx)
         ax.fill_between(time, magnitude, 0, color='k', alpha=0.1)
 
@@ -243,7 +245,7 @@ class OOIPlots(object):
 
         ax.spines[direction].set_visible(True)
 
-    @cache.memoize(timeout=3600)
+    #@cache.memoize(timeout=3600)
     def plot_multiple_xaxes(self, ax, xdata, ydata, colors, ylabel='Depth (m)', title='', title_font={},
                             axis_font={}, width_in=8.3, **kwargs):
         # Acknowledgment: This function is based on code written by Jae-Joon Lee,
@@ -310,7 +312,7 @@ class OOIPlots(object):
         ax.grid(True)
         ax.set_title(title.replace("_", " "), y=1.23, **title_font)
 
-    @cache.memoize(timeout=3600)
+    #@cache.memoize(timeout=3600)
     def plot_multiple_yaxes(self, fig, ax, xdata, ydata, colors, title, scatter=False,
                             axis_font={}, title_font={}, width_in=8.3 , **kwargs):
         # Plot a timeseries with multiple y-axes
@@ -399,7 +401,7 @@ class OOIPlots(object):
         ax.set_title(title.replace("_", " "), y=1.05, **title_font)
         ax.grid(True)
 
-    @cache.memoize(timeout=3600)
+    #@cache.memoize(timeout=3600)
     def plot_ts_diagram(ax, sal, temp, xlabel='Salinity', ylabel='Temperature', title='',
                         axis_font={}, title_font={}, **kwargs):
 
@@ -448,7 +450,7 @@ class OOIPlots(object):
         ax.set_ylabel(ylabel.replace("_", " "), **axis_font)
         ax.set_title(title.replace("_", " "), **title_font)
 
-    @cache.memoize(timeout=3600)
+    #@cache.memoize(timeout=3600)
     def plot_3d_scatter(self, fig, ax, x, y, z, title='', xlabel='', ylabel='', zlabel='',
                         title_font={}, axis_font={}, tick_font={}):
 

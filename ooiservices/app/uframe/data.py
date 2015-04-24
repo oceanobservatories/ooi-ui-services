@@ -43,16 +43,16 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
                 dpa_flag = "0"   
 
             response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
-
             if response.status_code !=200:
-                return {'error': 'could not get data'}                
+                #return {'error': 'could not get data'}
+                return {'error': '(%s) could not get_uframe_stream_contents' % (response.status_code)}
             data = response.json()
         else:
             current_app.logger.exception('Failed to make plot')
             return {'error': 'start end dates not applied:'}
-    except Exception, e:
+    except Exception as e:
         current_app.logger.exception('Failed to make plot')
-        return {'error': 'uframe connection cannot be made:'+str(e)}
+        return {'error': 'uframe connection cannot be made:'+str(e.message)}
 
     if len(data) == 0:
         return {'error': 'no data available'}
@@ -77,7 +77,7 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
                 return {'error': 'time information not available'}
         else:
             if yfield not in data[0]:
-                current_app.logger.exception('requested data yfield not available')
+                current_app.logger.exception('requested data yfield (%s) not available' % yfield)
                 return {'error': 'requested data yfield not available'}
 
     # override the timestamp to the prefered
@@ -89,7 +89,7 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
 
     for ind, row in enumerate(data):
         # used to handle multiple streams
-        if row['stream_name'] == stream:
+        if row['pk']['stream'] == stream:
             # x
             for xfield in xfields:
                 if xfield == 'time':

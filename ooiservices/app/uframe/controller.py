@@ -102,8 +102,6 @@ def iso_to_timestamp(iso8601):
     return t
 
 def dict_from_stream(mooring, platform, instrument, stream_type, stream):
-    
-    
     HOST = str(current_app.config['HOST'])
     PORT = str(current_app.config['PORT'])
     SERVICE_LOCATION = 'http://'+HOST+":"+PORT
@@ -139,8 +137,8 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream):
                              "netcdf":"/".join([SERVICE_LOCATION, 'uframe/get_netcdf', stream_name, ref]),
                              "profile":"/".join([SERVICE_LOCATION, 'uframe/get_profiles', stream_name, ref])
                             }
-                            
-    d = get_uframe_instrument_metadata(ref)     
+    '''
+    d = get_uframe_instrument_metadata(ref)
     if d.status_code == 200:                    
         data1 = d.get_data()
         data1 = json.loads(data1)
@@ -153,7 +151,18 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream):
                         data_dict['variable_types'][field['particleKey']] = field['type'].lower()           
                         data_dict['units'][field['particleKey']] = field['units']
                         data_dict['variables_shape'][field['particleKey']]= field['shape'].lower()    
-   
+    '''
+    d = get_uframe_instrument_metadata_parameters(ref)
+    if d.status_code == 200:
+        data1 = json.loads(d.content)
+        if len(data1)>0:
+            for field in data1:
+                if field['particleKey'] not in data_dict['variables']:
+                    if field['shape'].lower() == 'scalar' or field['shape'].lower() == 'function':
+                        data_dict['variables'].append(field['particleKey'])
+                        data_dict['variable_types'][field['particleKey']] = field['type'].lower()
+                        data_dict['units'][field['particleKey']] = field['units']
+                        data_dict['variables_shape'][field['particleKey']]= field['shape'].lower()
     return data_dict
 
 
@@ -163,20 +172,24 @@ def streams_list():
     '''
     Accepts stream_name or reference_designator as a URL argument
     '''
-
     if request.args.get('stream_name'):
         try:
             dict_from_stream(request.args.get('stream_name'))
         except Exception as e:
+            print '\n**** (1) exception: ', e.message
             return jsonify(error=e.message), 500
-
-    streams = dfs_streams()
+    try:
+        streams = dfs_streams()
+    except Exception as e:
+        print '\n**** (2) exception: ', e.message
+        return jsonify(error=e.message), 500
 
     retval = []
     for stream in streams:
         try:
             data_dict = dict_from_stream(*stream)
         except Exception as e:
+            print '\n**** (3) exception: ', e.message
             continue
         if request.args.get('reference_designator'):
             if request.args.get('reference_designator') != data_dict['reference_designator']:
@@ -193,15 +206,13 @@ def get_uframe_moorings():
     Lists all the streams
     '''
     try:
-        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        current_app.logger.info("GET %s", UFRAME_DATA)
-        timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
-        timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
-        response = requests.get(UFRAME_DATA, timeout=(timeout, timeout_read))
+        uframe_url, timeout, timeout_read = get_uframe_info()
+        current_app.logger.info("GET %s", uframe_url)
+        print '*** url: ', uframe_url
+        response = requests.get(uframe_url, timeout=(timeout, timeout_read))
         return response
     except Exception as e:
-        return internal_server_error('uframe connection cannot be made.' + str(e.message))
-
+        return _response_internal_server_error()
 
 @cache.memoize(timeout=3600)
 def get_uframe_platforms(mooring):
@@ -209,14 +220,14 @@ def get_uframe_platforms(mooring):
     Lists all the streams
     '''
     try:
-        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE'] + '/' + mooring
-        current_app.logger.info("GET %s", UFRAME_DATA)
-        timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
-        timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
-        response = requests.get(UFRAME_DATA, timeout=(timeout, timeout_read))
+        uframe_url, timeout, timeout_read = get_uframe_info()
+        url = "/".join([uframe_url, mooring])
+        current_app.logger.info("GET %s", url)
+        print '*** url: ', url
+        response = requests.get(url, timeout=(timeout, timeout_read))
         return response
     except Exception as e:
-        return internal_server_error('uframe connection cannot be made.' + str(e.message))
+        return _response_internal_server_error()
 
 @auth.login_required
 @api.route('/get_glider_track/<string:ref>')
@@ -254,15 +265,15 @@ def get_uframe_instruments(mooring, platform):
     Lists all the streams
     '''
     try:
-        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE'] + '/' + mooring + '/' + platform
-        current_app.logger.info("GET %s", UFRAME_DATA)
-        timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
-        timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
-        response = requests.get(UFRAME_DATA, timeout=(timeout, timeout_read))
+        uframe_url, timeout, timeout_read = get_uframe_info()
+        url = "/".join([uframe_url, mooring, platform])
+        current_app.logger.info("GET %s", url)
+        print '*** url: ', url
+        response = requests.get(url, timeout=(timeout, timeout_read))
         return response
     except Exception as e:
-        return internal_server_error('uframe connection cannot be made.' + str(e.message))
-
+        #return internal_server_error('uframe connection cannot be made.' + str(e.message))
+        return _response_internal_server_error()
 
 @cache.memoize(timeout=3600)
 def get_uframe_stream_types(mooring, platform, instrument):
@@ -270,16 +281,14 @@ def get_uframe_stream_types(mooring, platform, instrument):
     Lists all the streams
     '''
     try:
-        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        current_app.logger.info("GET %s", '/'.join([UFRAME_DATA, mooring, platform, instrument]))
-        url = '/'.join([UFRAME_DATA, mooring, platform, instrument])
-        timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
-        timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
+        uframe_url, timeout, timeout_read = get_uframe_info()
+        url = '/'.join([uframe_url, mooring, platform, instrument])
+        current_app.logger.info("GET %s", url)
         response = requests.get(url, timeout=(timeout, timeout_read))
         return response
     except Exception as e:
-        return internal_server_error('uframe connection cannot be made. error: %s' %  + str(e.message))
-
+        #return internal_server_error('uframe connection cannot be made. error: %s' %  + str(e.message))
+        return _response_internal_server_error()
 
 @cache.memoize(timeout=3600)
 def get_uframe_streams(mooring, platform, instrument, stream_type):
@@ -287,13 +296,10 @@ def get_uframe_streams(mooring, platform, instrument, stream_type):
     Lists all the streams
     '''
     try:
-        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-
-        url = '/'.join([UFRAME_DATA, mooring, platform, instrument, stream_type])
-        timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
-        timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
+        uframe_url, timeout, timeout_read = get_uframe_info()
+        url = '/'.join([uframe_url, mooring, platform, instrument, stream_type])
+        current_app.logger.info("GET %s", url)
         response = requests.get(url, timeout=(timeout, timeout_read))
-        current_app.logger.info("GET %s", '/'.join([UFRAME_DATA, mooring, platform, instrument, stream_type]))
         return response
     except Exception as e:
         return internal_server_error('uframe connection cannot be made.' + str(e.message))
@@ -305,16 +311,14 @@ def get_uframe_stream(mooring, platform, instrument, stream):
     Lists the reference designators for the streams
     '''
     try:
-        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        current_app.logger.info("GET %s", "/".join([UFRAME_DATA,mooring, platform, instrument, stream]))
-        url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream])
-        timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
-        timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
+        uframe_url, timeout, timeout_read = get_uframe_info()
+        url = "/".join([uframe_url, mooring, platform, instrument, stream])
+        current_app.logger.info("GET %s", url)
         response = requests.get(url, timeout=(timeout, timeout_read))
         return response
     except Exception as e:
-        return internal_server_error('uframe connection cannot be made.' + str(e.message))
-
+        #return internal_server_error('uframe connection cannot be made.' + str(e.message))
+        return _response_internal_server_error()
 @api.route('/get_toc')
 @cache.memoize(timeout=3600)
 def get_toc():
@@ -323,11 +327,7 @@ def get_toc():
     Augmented by the UI database for vocabulary and geographic positions
     :return: json
     """
-
-    UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-    timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
-    timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
-
+    UFRAME_DATA, timeout, timeout_read = get_uframe_info()
     try:
         url = "/".join([UFRAME_DATA])
         response = requests.get(url, timeout=(timeout, timeout_read))
@@ -415,17 +415,41 @@ def get_uframe_instrument_metadata(ref):
     '''    
     try:
         mooring, platform, instrument = ref.split('-', 2)
-
-        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        url = "/".join([UFRAME_DATA, mooring, platform, instrument, 'metadata'])        
-  
-        response = requests.get(url)      
+        uframe_url, timeout, timeout_read = get_uframe_info()
+        url = "/".join([uframe_url, mooring, platform, instrument, 'metadata'])
+        response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code == 200:
             data = response.json()
             return jsonify(metadata=data['parameters'])
         return jsonify(metadata={}), 404
     except Exception as e:
         return internal_server_error('uframe connection cannot be made.' + str(e.message))
+
+@api.route('/get_metadata_parameters/<string:ref>', methods=['GET'])
+@cache.memoize(timeout=3600)
+def get_uframe_instrument_metadata_parameters(ref):
+    '''
+    Returns the uFrame metadata parameters for a given stream
+    '''
+    try:
+        mooring, platform, instrument = ref.split('-', 2)
+        uframe_url, timeout, timeout_read = get_uframe_info()
+        url = "/".join([uframe_url, mooring, platform, instrument, 'metadata', 'parameters'])
+        #current_app.logger.info("GET %s", url)
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        return response
+    except:
+        return _response_internal_server_error()
+
+def _response_internal_server_error(msg=None):
+    message = json.dumps('"error" : "uframe connection cannot be made."')
+    if msg:
+        message = json.dumps(msg)
+    response = make_response()
+    response.content = message
+    response.status_code = 500
+    response.headers["Content-Type"] = "application/json"
+    return response
 
 @auth.login_required
 @api.route('/get_metadata_times/<string:ref>', methods=['GET'])
@@ -436,33 +460,46 @@ def get_uframe_stream_metadata_times(ref):
     '''
     mooring, platform, instrument = ref.split('-', 2)
     try:
-        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        response = requests.get("/".join([UFRAME_DATA, mooring, platform, instrument, 'metadata','times']))
+        uframe_url, timeout, timeout_read = get_uframe_info()
+        url = "/".join([uframe_url, mooring, platform, instrument, 'metadata','times'])
+        #current_app.logger.info("GET %s", url)
+        response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code == 200:
             return response
         return jsonify(times={}), 200
     except Exception as e:
         return internal_server_error('uframe connection cannot be made.' + str(e.message))
 
-@cache.memoize(timeout=3600)
+#@cache.memoize(timeout=3600)
 def get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag):
     """
-    Gets the bounded stream contents, start_time and end_time need to be datetime objects
+    Gets the bounded stream contents, start_time and end_time need to be datetime objects; returns Respnse object.
     """
     try:        
         if dpa_flag == '0':
             query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
         else:
             query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
-        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])
-        response =  requests.get(url)
+        uframe_url, timeout, timeout_read = get_uframe_info()
+        url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
+        print '***** url: ', url
+        response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
             #print response.text
             pass
         return response
     except Exception as e:
         return internal_server_error('uframe connection cannot be made.' + str(e.message))
+
+def get_uframe_info():
+    '''
+    returns uframe specific configuration information.
+    Namely, uframe_url for {instrument | platform} api, uframe timeout connect and timeout read.
+    '''
+    uframe_url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+    timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
+    timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
+    return uframe_url, timeout, timeout_read
 
 
 def validate_date_time(start_time, end_time):
@@ -472,7 +509,6 @@ def validate_date_time(start_time, end_time):
     new_end_time = datetime.datetime.strftime(new_end_time_strp, "%Y-%m-%dT%H:%M:%S.%fZ")
     if old_end_time_strp > new_end_time_strp:
         end_time = new_end_time
-
     return end_time
 
 
@@ -551,12 +587,18 @@ def get_netcdf(stream, ref):
 
     return returned_netcdf
 
-
 @auth.login_required
 @api.route('/get_data/<string:instrument>/<string:stream>/<string:yvar>/<string:xvar>', methods=['GET'])
 def get_data_api(stream, instrument, yvar, xvar):
+    # return if error
+    resp_data = get_data(stream, instrument, yvar, xvar)
+    if 'error' in resp_data:
+        print '*** (get_data_api) error after calling get_data...'
+        return jsonify(error=data['error']), 400
+    if len(resp_data) == 0:
+        print '*** (get_data_api) error response data empty'
+        return jsonify(error='response data empty'), 400
     return jsonify(**get_data(stream, instrument, yvar, xvar))
-
 
 @auth.login_required
 @api.route('/plot/<string:instrument>/<string:stream>', methods=['GET'])
@@ -593,19 +635,38 @@ def get_svg_plot(instrument, stream):
 
     # get the data
     if plot_layout == "depthprofile":
+        #print '\n*** plot_layout: depthprofile, calling get_process_profile_data'
+        #print '\n*** xvar[0]: ', xvar[0]
         data = get_process_profile_data(stream, instrument, yvar[0], xvar[0])
+
     else:
+        #print '\n*** plot_layout: %s, calling get_data' % plot_layout
         data = get_data(stream, instrument, yvar, xvar)
 
-    data['title'] = title
-    data['height'] = height_in
-    data['width'] = width_in
+    if not data:
+        return jsonify(error='no data returned for %s' % plot_layout), 400
+
 
     # return if error
     if 'error' in data:
+        print '*** (get_svg_plot) error after calling get_data...'
+        print '\n\n*** data[error]: \n\n', data['error']
         return jsonify(error=data['error']), 400
 
+    #print '**** data.status_code: ', data.status_code
     # generate plot
+
+    #print '\n**** response_data: ', data
+
+    some_tuple = ('a', 'b')
+    #print '\n*** type(some_tuple): ', str(type(some_tuple))
+    #print '\n*** str(type(data)): ', str(type(data))
+    if str(type(data)) == str(type(some_tuple)) and plot_layout == "depthprofile":
+        #print '\n*** tuple data for %s, error 400' % plot_layout
+        return jsonify(error='tuple data returned for %s' % plot_layout), 400
+    data['title'] = title
+    data['height'] = height_in
+    data['width'] = width_in
     buf = generate_plot(data,
                         plot_format,
                         plot_layout,
@@ -625,6 +686,18 @@ def get_svg_plot(instrument, stream):
 def get_process_profile_data(stream, instrument, yvar, xvar):
 
     # check the data is in the first row
+    data = None
+    print '\n ****** xvar: ', xvar
+    try:
+        data = get_profile_data(instrument, stream)
+        if not data or data == None:
+            print '\n**** (get_process_profile_data) get_profile_data - no data'
+            return {'error': 'profiles not present in data'}
+    except Exception as e:
+        print '\n**** data: ', data
+        print '\n**** (get_process_profile_data) 500 exception: ', e.message
+        return jsonify(error=e.message), 500
+
     '''
     if yvar not in data[0] or xvar not in data[0]:
         data = {'error':'requested fields not in data'}
@@ -634,30 +707,31 @@ def get_process_profile_data(stream, instrument, yvar, xvar):
         return data
     '''
 
-    data = get_profile_data(instrument, stream)
+    #data = get_profile_data(instrument, stream)
     # print data
     y_data = []
     x_data = []
     time = []
     profile_id_list = []
-
     profile_count = -1
 
+    #print '\n **** get_profile_data: ', data
+
     for i, row in enumerate(data):
+        #print '\n*** row: ', row
         if (row['profile_id']) >= 0:
             profile_id = int(row['profile_id'])
-
             if profile_id not in profile_id_list:
                 y_data.append([])
                 x_data.append([])
                 time.append(float(row['pk']['time']))
                 profile_id_list.append(profile_id)
                 profile_count += 1
-
             try:
                 y_data[profile_count].append(row[yvar])
                 x_data[profile_count].append(row[xvar])
-            except Exception:
+            except Exception as e:
+                print '\n**** (get_process_profile_data) exception: profiles not present in data, maybe a bug? (%s)', e.message
                 return {'error': 'profiles not present in data, maybe a bug?'}
 
     return {'x': x_data, 'y': y_data, 'x_field': xvar, "y_field": yvar, 'time': time}
@@ -668,10 +742,8 @@ def get_profile_data(instrument, stream):
     process uframe data into profiles
     '''
     data = []
-    # dt_bounds = ''
-    # instrument = instrument.replace('-','/',2)
-    # url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE'] +'/' + instrument+ "/telemetered/"+stream + "/" + dt_bounds
-    # response = requests.get(url)
+    print '\n *** instrument: ', instrument
+    print '\n *** stream: ', stream
     mooring, platform, instrument, stream_type, stream = split_stream_name('_'.join([instrument, stream]))
     if 'startdate' in request.args and 'enddate' in request.args:
         st_date = request.args['startdate']
@@ -688,15 +760,45 @@ def get_profile_data(instrument, stream):
 
     if response.status_code != 200:
         raise IOError("Failed to get data from uFrame")
+
+    print '\n retrieved data from uframe for profile processing...'
     data = response.json()
+
     # Note: assumes data has depth and time is ordinal
     # Need to add assertions and try and exceptions to check data
 
     time = []
     depth = []
 
+    test_request_xvar = None
+    request_xvar = None
+    if request.args['xvar']:
+        junk = request.args['xvar']
+        print '\n **** str(type(junk)): ', str(type(junk))
+        test_request_xvar = junk.encode('ascii','ignore')
+        print '\n **** str(type(test_request_xvar)): ', str(type(test_request_xvar))
+        print '\n **** test_request_xvar: ', test_request_xvar
+        #xvar_list = json.loads(test_request_xvar)
+        #print '\n **** xvar_list: ', xvar_list
+        #print '\n **** test_request_xvar: ', test_request_xvar
+        if type(test_request_xvar) == type(''):
+            if ',' in test_request_xvar:
+                chunk_request_var = test_request_xvar.split(',',1)
+                print '\n*** chunk_request_var: ', chunk_request_var
+                if len(chunk_request_var) > 0:
+                    request_xvar = chunk_request_var[0]
+            else:
+                request_xvar = test_request_xvar
+    else:
+        current_app.logger.exception('Failed to make plot - no xvar provided in request')
+        return {'error': 'Failed to make plot - no xvar provided in request'}
+    print '\n ---- request_xvar', request_xvar
+    if not request_xvar:
+        current_app.logger.exception('Failed to make plot - unable to process xvar provided in request')
+        return {'error': 'Failed to make plot - unable to process xvar provided in request'}
+
     for row in data:
-        depth.append(int(row[request.args['xvar']]))
+        depth.append(int(row[request_xvar]))
         time.append(float(row['pk']['time']))
 
     matrix = np.column_stack((time, depth))
@@ -733,12 +835,14 @@ def get_profile_data(instrument, stream):
     stop = []
     # find where the slope changes
     dr = [start.append(i) for (i, val) in enumerate(dZero) if val != 0]
+    if len(start) == 0:
+        return {'error': 'unable to determine where slope changes'}
 
     for i in range(len(start)-1):
         stop.append(start[i+1])
 
     stop.append(start[0])
-    start_stop = np.column_stack((start, stop))
+    #start_stop = np.column_stack((start, stop))
     start_times = np.take(newtz[:, 0], start)
     stop_times = np.take(newtz[:, 0], stop)
     start_times = start_times - INT*2
@@ -765,16 +869,21 @@ def get_profile_data(instrument, stream):
             where = np.argwhere(depth_profiles == float(row['pk']['time']))
             index = where[0]
             rowloc = index[0]
-            if len(where) and int(row[request.args['xvar']]) == depth_profiles[rowloc][1]:
+            #if len(where) and int(row[request.args['xvar']]) == depth_profiles[rowloc][1]:
+            #if len(where) and int(request_xvar) == depth_profiles[rowloc][1]:
+            if len(where) and int(row[request_xvar]) == depth_profiles[rowloc][1]:
                 row['profile_id'] = depth_profiles[rowloc][2]
                 profile_list.append(row)
 
         except IndexError:
+            print '*** (get_profile_data) IndexError: '
             row['profile_id'] = None
             profile_list.append(row)
+        except Exception as err:
+            print '*** (get_profile_data) error: ', err.message
+            return {'error': '%s' % str(err.message)}
     # profile length should equal tz  length
     return profile_list
-
 
 # @auth.login_required
 @api.route('/get_profiles/<string:stream>/<string:instrument>', methods=['GET'])
