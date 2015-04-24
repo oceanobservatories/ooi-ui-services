@@ -32,7 +32,9 @@ import csv
 import io
 import numpy as np
 import pytz
+from contextlib import closing
 from ooiservices.app.main.routes import get_display_name_by_rd
+import time
 
 def dfs_streams():
     response = get_uframe_moorings()
@@ -350,8 +352,7 @@ def get_uframe_stream_metadata_times(ref):
         return jsonify(times={}), 200
     except:
         return internal_server_error('uframe connection cannot be made.')
-
-@cache.memoize(timeout=3600)
+        
 def get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag):
     '''
     Gets the bounded stream contents, start_time and end_time need to be datetime objects
@@ -372,6 +373,58 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
     except:
         return internal_server_error('uframe connection cannot be made.')
 
+def get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag):
+    '''
+    Gets the bounded stream contents, start_time and end_time need to be datetime objects
+    '''
+    try:        
+        if dpa_flag == '0':
+            query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
+        else:
+            query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
+        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+        url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])     
+        # print url
+        
+        TOO_BIG = 1024 * 1024 * 10 # 5MB
+        CHUNK_SIZE = 1024 * 16   #...KB
+        TOTAL_SECONDS = 30
+        dataBlock = ""
+        idx = 0
+
+        #counter
+        t0 = time.time()
+
+        with closing(requests.get(url,stream=True)) as response:
+            content_length = 0
+            for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
+                content_length = content_length + CHUNK_SIZE
+                t1 = time.time()
+                total = t1-t0
+                idx+=1
+                if content_length > TOO_BIG or total > TOTAL_SECONDS:
+                    #('uframe response to large.')
+                    # break it down to the last know good spot
+                    t00 = time.time()
+                    idx_c = dataBlock.rfind('}, {')
+                    dataBlock = dataBlock[:idx_c]
+                    dataBlock+="}]" 
+                    t11 = time.time()
+                    totaln = t11-t00
+
+                    #print "size_limit or time reached",content_length/(1024 * 1024),total,totaln,idx                    
+                    return json.loads(dataBlock),200
+                # all the data is in the resonse return it as normal
+                dataBlock+=chunk
+            
+            #print "transfer complete",content_length/(1024 * 1024),total
+            return json.loads(dataBlock),200            
+        
+    except Exception,e:        
+        return internal_server_error('uframe connection cannot be made.'),500
+
+def processJson():
+    pass
 
 def validate_date_time(start_time,end_time):
     uframe_data_request_limit = int(current_app.config['UFRAME_DATA_REQUEST_LIMIT'])/1440

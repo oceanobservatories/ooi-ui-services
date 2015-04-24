@@ -42,17 +42,17 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
             else:    
                 dpa_flag = "0"   
 
-            response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
+            data, status_code = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
 
-            if response.status_code !=200:
-                return {'error': 'could not get data'}                
-            data = response.json()
+            if status_code !=200:                
+                return {'error': 'could not get data from uframe'}                            
         else:
             current_app.logger.exception('Failed to make plot')
             return {'error': 'start end dates not applied:'}
     except Exception, e:
         current_app.logger.exception('Failed to make plot')
         return {'error': 'uframe connection cannot be made:'+str(e)}
+
 
     if len(data) == 0:
         return {'error': 'no data available'}
