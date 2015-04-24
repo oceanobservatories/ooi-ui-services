@@ -42,6 +42,7 @@ def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_pr
     if "time" == data['x_field'][0]:
         data['x']['time'] = num2date(data['x']['time'], units='seconds since 1900-01-01 00:00:00', calendar='gregorian')
         is_timeseries = True
+        #print '****START', data['x']['time'][0], '*** END', data['x']['time'][-1]
 
     if plot_layout == "timeseries":
 
