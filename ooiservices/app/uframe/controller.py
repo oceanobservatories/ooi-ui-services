@@ -36,6 +36,8 @@ from contextlib import closing
 from ooiservices.app.main.routes import get_display_name_by_rd
 import time
 
+TIMEOUT_VAR = 86400
+
 def dfs_streams():
     response = get_uframe_moorings()
     if response.status_code != 200:
@@ -188,7 +190,7 @@ def streams_list():
     return jsonify(streams=retval)
 
 
-@cache.memoize(timeout=3600)
+@cache.memoize(timeout=TIMEOUT_VAR)
 def get_uframe_moorings():
     '''
     Lists all the streams
@@ -204,7 +206,7 @@ def get_uframe_moorings():
         return internal_server_error('uframe connection cannot be made.')
 
 
-@cache.memoize(timeout=3600)
+@cache.memoize(timeout=TIMEOUT_VAR)
 def get_uframe_platforms(mooring):
     '''
     Lists all the streams
@@ -249,7 +251,7 @@ def get_uframe_glider_track(ref):
         return Response(json.dumps({'type': "LineString",'coordinates':[],'note':'AttributeError'}),
                             mimetype='application/json')
 
-@cache.memoize(timeout=3600)
+@cache.memoize(timeout=TIMEOUT_VAR)
 def get_uframe_instruments(mooring, platform):
     '''
     Lists all the streams
@@ -265,7 +267,7 @@ def get_uframe_instruments(mooring, platform):
         return internal_server_error('uframe connection cannot be made.')
 
 
-@cache.memoize(timeout=3600)
+@cache.memoize(timeout=TIMEOUT_VAR)
 def get_uframe_stream_types(mooring, platform, instrument):
     '''
     Lists all the streams
@@ -282,7 +284,7 @@ def get_uframe_stream_types(mooring, platform, instrument):
         return internal_server_error('uframe connection cannot be made. error: %s' % err.message)
 
 
-@cache.memoize(timeout=3600)
+@cache.memoize(timeout=TIMEOUT_VAR)
 def get_uframe_streams(mooring, platform, instrument, stream_type):
     '''
     Lists all the streams
@@ -300,7 +302,7 @@ def get_uframe_streams(mooring, platform, instrument, stream_type):
         return internal_server_error('uframe connection cannot be made.')
 
 
-@cache.memoize(timeout=3600)
+@cache.memoize(timeout=TIMEOUT_VAR)
 def get_uframe_stream(mooring, platform, instrument, stream):
     '''
     Lists the reference designators for the streams
@@ -317,7 +319,7 @@ def get_uframe_stream(mooring, platform, instrument, stream):
         return internal_server_error('uframe connection cannot be made.')
 
 @api.route('/get_instrument_metadata/<string:ref>', methods=['GET'])
-@cache.memoize(timeout=3600)
+@cache.memoize(timeout=TIMEOUT_VAR)
 def get_uframe_instrument_metadata(ref):
     '''
     Returns the uFrame metadata response for a given stream
@@ -338,7 +340,7 @@ def get_uframe_instrument_metadata(ref):
 
 @auth.login_required
 @api.route('/get_metadata_times/<string:ref>', methods=['GET'])
-@cache.memoize(timeout=3600)
+@cache.memoize(timeout=TIMEOUT_VAR)
 def get_uframe_stream_metadata_times(ref):
     '''
     Returns the uFrame time bounds response for a given stream
@@ -384,14 +386,13 @@ def get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_typ
             query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
         url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])     
-        # print url
         
-        TOO_BIG = 1024 * 1024 * 10 # 5MB
-        CHUNK_SIZE = 1024 * 16   #...KB
+        TOO_BIG = 1024 * 1024 * 25 # 25MB
+        CHUNK_SIZE = 1024 * 32   #...KB
         TOTAL_SECONDS = 30
         dataBlock = ""
         idx = 0
-
+      
         #counter
         t0 = time.time()
 
@@ -412,16 +413,23 @@ def get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_typ
                     t11 = time.time()
                     totaln = t11-t00
 
-                    #print "size_limit or time reached",content_length/(1024 * 1024),total,totaln,idx                    
+                    print "size_limit or time reached",content_length/(1024 * 1024),total,totaln,idx                    
                     return json.loads(dataBlock),200
                 # all the data is in the resonse return it as normal
+                #previousBlock = dataBlock
                 dataBlock+=chunk
-            
             #print "transfer complete",content_length/(1024 * 1024),total
+            if str(dataBlock[-3:-1]) != '} ]':
+                idx_c = dataBlock.rfind('}')
+                dataBlock = dataBlock[:idx_c]
+                dataBlock+="} ]"
+                print 'uFrame appended Error Message to Stream'
+
             return json.loads(dataBlock),200            
         
-    except Exception,e:        
-        return internal_server_error('uframe connection cannot be made.'),500
+    except Exception,e: 
+        #return json.loads(dataBlock), 200
+        return internal_server_error('uframe connection unstable.'),500
 
 def processJson():
     pass
@@ -490,12 +498,12 @@ def get_json(stream,ref,start_time,end_time,dpa_flag):
     return returned_json
 
 @auth.login_required
-@api.route('/get_netcdf/<string:stream>/<string:ref>', methods=['GET'])
-def get_netcdf(stream, ref):
+@api.route('/get_netcdf/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>',methods=['GET'])
+def get_netcdf(stream,ref,start_time,end_time,dpa_flag):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
     UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-    url = '/'.join([UFRAME_DATA, mooring, platform, instrument, stream_type, stream])
+    url = '/'.join([UFRAME_DATA, mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag])
     NETCDF_LINK = url+'?format=application/netcdf'
 
     timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
@@ -640,14 +648,14 @@ def get_profile_data(instrument, stream):
         else:    
             dpa_flag = "0"
         ed_date = validate_date_time(st_date,ed_date)
-        response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
+        response = get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
     else:
         current_app.logger.exception('Failed to make plot')
         return {'error': 'start end dates not applied:'}
 
-    if response.status_code != 200:
+    if response[1] != 200:
         raise IOError("Failed to get data from uFrame")
-    data = response.json()
+    data = response[0]
     # Note: assumes data has depth and time is ordinal
     # Need to add assertions and try and exceptions to check data
 

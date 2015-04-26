@@ -17,7 +17,7 @@ COSMO_CONSTANT = 2208988800
 
 
 def get_data(stream, instrument, yfields, xfields, include_time=True):
-    from ooiservices.app.uframe.controller import split_stream_name, get_uframe_stream_contents,validate_date_time
+    from ooiservices.app.uframe.controller import split_stream_name, get_uframe_stream_contents_chunked,validate_date_time
     '''get data from uframe
     # -------------------
     # m@c: 02/01/2015
@@ -41,9 +41,7 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
                 dpa_flag = request.args['dpa_flag']
             else:    
                 dpa_flag = "0"   
-
-            data, status_code = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
-
+            data, status_code = get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
             if status_code !=200:                
                 return {'error': 'could not get data from uframe'}                            
         else:
