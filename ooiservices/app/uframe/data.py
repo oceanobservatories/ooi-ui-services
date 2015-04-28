@@ -43,7 +43,7 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
                 dpa_flag = "0"   
 
             response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
-
+            
             if response.status_code !=200:
                 return {'error': 'could not get data'}                
             data = response.json()
@@ -84,24 +84,27 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
     # xdata = OrderedDict()
     # ydata = OrderedDict()
 
-    x = OrderedDict({k: np.empty(len(data)) for k in xfields})
-    y = OrderedDict({k: np.empty(len(data)) for k in yfields})
+    x = OrderedDict({k: np.empty(len(data)-1) for k in xfields})
+    y = OrderedDict({k: np.empty(len(data)-1) for k in yfields})    
 
     for ind, row in enumerate(data):
-        # used to handle multiple streams
-        if row['stream_name'] == stream:
-            # x
-            for xfield in xfields:
-                if xfield == 'time':
-                    x[xfield][ind] = float(row['pk']['time'])
-                else:
-                    x[xfield][ind] = row[xfield]
-            # y
-            for yfield in yfields:
-                if yfield == 'time':
-                    y[yfield][ind] = float(row['pk']['time'])
-                else:
-                    y[yfield][ind] = row[yfield]
+        #skip the last row
+        if ind < len(data)-1:
+            # used to handle multiple streams
+            if row['pk']['stream'] == stream:
+                # x
+                for xfield in xfields:
+                    if xfield == 'time':
+                        x[xfield][ind] = float(row['pk']['time'])
+                    else:
+                        x[xfield][ind] = row[xfield]
+                # y
+                for yfield in yfields:
+                    if yfield == 'time':
+                        y[yfield][ind] = float(row['pk']['time'])
+                    else:
+                        y[yfield][ind] = row[yfield]
+
     # generate dict for the data thing
     resp_data = {'x': x,
                  'y': y,
