@@ -27,10 +27,7 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
     #-------------------
     # TODO: create better error handler if uframe is not online/responding
     '''
-    data = []
-
     mooring, platform, instrument, stream_type, stream = split_stream_name('_'.join([instrument, stream]))
-
     try:
         if 'startdate' in request.args and 'enddate' in request.args:
             st_date = request.args['startdate']
@@ -43,42 +40,52 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
                 dpa_flag = "0"   
 
             response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
-
             if response.status_code !=200:
-                return {'error': 'could not get data'}                
+                #return {'error': 'could not get data'}
+                #return {'error': '(%s) could not get_uframe_stream_contents' % str(response.status_code)}
+                raise Exception('(%s) could not get_uframe_stream_contents' % str(response.status_code))
             data = response.json()
         else:
-            current_app.logger.exception('Failed to make plot')
-            return {'error': 'start end dates not applied:'}
-    except Exception, e:
-        current_app.logger.exception('Failed to make plot')
-        return {'error': 'uframe connection cannot be made:'+str(e)}
+            message = 'Failed to make plot - start end dates not applied.'
+            current_app.logger.exception(message)
+            raise Exception(message)
+
+    except Exception as e:
+        message = 'Failed to make plot - received error on uframe request. error: '+ str(e.message)
+        current_app.logger.exception(message)
+        raise Exception(message)
 
     if len(data) == 0:
-        return {'error': 'no data available'}
+        raise Exception('no data available')
 
     if "pk" not in data[0]:
-        current_app.logger.exception('primary information not available')
-        return {'error': 'primary information not available'}
+        message = 'primary information not available'
+        current_app.logger.exception(message)
+        raise Exception(message)
+
     for xfield in xfields:
         if xfield == 'time':
             if "time" not in data[0]['pk']:
-                current_app.logger.exception('time information not available')
-                return {'error': 'time information not available'}
+                message = 'time information not available'
+                current_app.logger.exception(message)
+                raise Exception(message)
         else:
             if xfield not in data[0]:
-                current_app.logger.exception('requested data xfield not available')
-                return {'error': 'requested data xfield not available'}
+                message = 'requested data xfield (%s) not available' % xfield
+                current_app.logger.exception(message)
+                raise Exception(message)
 
     for yfield in yfields:
         if yfield == 'time':
             if "time" not in data[0]['pk']:
-                current_app.logger.exception('time information not available')
-                return {'error': 'time information not available'}
+                message = 'time information not available'
+                current_app.logger.exception(message)
+                raise Exception(message)
         else:
             if yfield not in data[0]:
-                current_app.logger.exception('requested data yfield not available')
-                return {'error': 'requested data yfield not available'}
+                message = 'requested data yfield (%s) not available' % yfield
+                current_app.logger.exception(message)
+                raise Exception(message)
 
     # override the timestamp to the prefered
     # xdata = OrderedDict()
@@ -86,10 +93,9 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
 
     x = OrderedDict({k: np.empty(len(data)) for k in xfields})
     y = OrderedDict({k: np.empty(len(data)) for k in yfields})
-
     for ind, row in enumerate(data):
         # used to handle multiple streams
-        if row['stream_name'] == stream:
+        if row['pk']['stream'] == stream:
             # x
             for xfield in xfields:
                 if xfield == 'time':
