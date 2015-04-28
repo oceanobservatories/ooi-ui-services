@@ -1,5 +1,0 @@
-[
-  {"name":"sampling_interval", "display_name":"Sampling Interval", "units": "seconds", "type": "int", "value":"3600" },
-  {"name":"battery_check_interval", "display_name":"Battery Check Interval", "units": "seconds", "type": "int", "value": "7200" },
-  {"name":"send_data", "display_name":"Send Data", "units": "seconds", "type": "int", "value":"10800" }
-]

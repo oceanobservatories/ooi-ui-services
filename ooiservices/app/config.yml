@@ -15,6 +15,9 @@ COMMON: &common
     UFRAME_URL: 'http://localhost:12575'
     UFRAME_ASSETS_URL: 'http://localhost:12573'
     UFRAME_URL_BASE: '/sensor/inv'
+    UFRAME_INST_URL: 'http://localhost:12572'
+    UFRAME_INST_BASE: '/instrument/api'
+    UFRAME_PLAT_BASE: '/platform/api'
     UFRAME_TIMEOUT_CONNECT: 5
     UFRAME_TIMEOUT_READ: 30
     REDMINE_KEY: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
