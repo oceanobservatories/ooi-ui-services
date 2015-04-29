@@ -751,6 +751,7 @@ def get_events_by_ref_des(ref_des):
                 temp_dict['url'] =  url_for('uframe.get_event', id=row['eventId'])
                 temp_dict['uframe_url'] = current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (uframe_obj.__endpoint__, row['eventId'])
                 result.append(temp_dict)
+                temp_dict = ""
         except:
             pass 
     result = jsonify({ 'events' : result })
