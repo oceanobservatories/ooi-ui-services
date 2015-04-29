@@ -740,7 +740,6 @@ def get_events_by_ref_des(ref_des):
             if row['referenceDesignator']['sensor'] is not None:  
                 instrument = row['referenceDesignator']['sensor']
             concat_ref_des =  '-'.join([platform, mooring, instrument])
-            print concat_ref_des
             if concat_ref_des == ref_des:
                 temp_dict['ref_des'] = concat_ref_des
                 temp_dict['start_date'] = row['startDate']
