@@ -52,8 +52,8 @@ class OOIPlots(object):
             ax.xaxis.set_major_formatter(formt)
 
     #@cache.memoize(timeout=3600)
-    def plot_time_series(self, fig, is_timeseries, ax, x, y, fill=True, title='', xlabel='', ylabel='',
-                         title_font={}, axis_font={}, line=True, scatter=False , **kwargs):
+    def plot_time_series(self, fig, is_timeseries, ax, x, y, fill=False, title='', xlabel='', ylabel='',
+                         title_font={}, axis_font={}, tick_font={}, line=True, scatter=False , **kwargs):
 
         if not title_font:
             title_font = title_font_default
@@ -84,7 +84,9 @@ class OOIPlots(object):
             else:
                 ax.fill_between(x, y, miny+1e-7, facecolor = axis_font_default['color'], alpha=0.15)
 
-        plt.tick_params(axis='both', which='major', labelsize=10)
+        # plt.tick_params(axis='both', which='major', labelsize=10)
+        if tick_font:
+            ax.tick_params(**tick_font)
 
     #@cache.memoize(timeout=3600)
     def plot_stacked_time_series(self, fig, ax, x, y, z, title='', ylabel='',
@@ -117,7 +119,7 @@ class OOIPlots(object):
 
     #@cache.memoize(timeout=3600)
     def plot_profile(self, fig, ax, x, y, xlabel='', ylabel='',
-                     axis_font={}, line=True , scatter=False, **kwargs):
+                     axis_font={}, tick_font={}, line=True , scatter=False, **kwargs):
 
         if not axis_font:
             axis_font = axis_font_default
@@ -130,6 +132,8 @@ class OOIPlots(object):
             ax.set_xlabel(xlabel.replace("_", " "), labelpad=5, **axis_font)
         if ylabel:
             ax.set_ylabel(ylabel.replace("_", " "), labelpad=11, **axis_font)
+        if tick_font:
+            ax.tick_params(**tick_font)
         ax.xaxis.set_label_position('top')  # this moves the label to the top
         ax.xaxis.set_ticks_position('top')
         ax.xaxis.get_major_locator()._nbins = 5
@@ -247,7 +251,7 @@ class OOIPlots(object):
 
     #@cache.memoize(timeout=3600)
     def plot_multiple_xaxes(self, ax, xdata, ydata, colors, ylabel='Depth (m)', title='', title_font={},
-                            axis_font={}, width_in=8.3, **kwargs):
+                            axis_font={}, tick_font={}, width_in=8.3, **kwargs):
         # Acknowledgment: This function is based on code written by Jae-Joon Lee,
         # URL= http://matplotlib.svn.sourceforge.net/viewvc/matplotlib/trunk/matplotlib/
         # examples/pylab_examples/multiple_yaxis_with_spines.py?revision=7908&view=markup
@@ -310,11 +314,13 @@ class OOIPlots(object):
 
         ax.invert_yaxis()
         ax.grid(True)
+        if tick_font:
+            ax.tick_params(**tick_font)
         ax.set_title(title.replace("_", " "), y=1.23, **title_font)
 
     #@cache.memoize(timeout=3600)
     def plot_multiple_yaxes(self, fig, ax, xdata, ydata, colors, title, scatter=False,
-                            axis_font={}, title_font={}, width_in=8.3 , **kwargs):
+                            axis_font={}, title_font={}, tick_font={}, width_in=8.3 , **kwargs):
         # Plot a timeseries with multiple y-axes
         #
         # ydata is a python dictionary of all the data to plot. Key values are used as plot labels
@@ -392,18 +398,20 @@ class OOIPlots(object):
             y_axis[ind].set_ylabel(key.replace("_", " "), labelpad=10, **axis_font)
             y_axis[ind].yaxis.label.set_color(colors[ind])
             y_axis[ind].spines[spine_directions[ind]].set_color(colors[ind])
-            y_axis[ind].tick_params(axis='y', labelsize=8, colors=colors[ind])
+            if tick_font:
+                labelsize = tick_font['labelsize']
+            y_axis[ind].tick_params(axis='y', labelsize=labelsize, colors=colors[ind])
 
         self.get_time_label(ax, xdata)
         fig.autofmt_xdate()
 
-        ax.tick_params(axis='x', labelsize=10)
+        # ax.tick_params(axis='x', labelsize=10)
         ax.set_title(title.replace("_", " "), y=1.05, **title_font)
         ax.grid(True)
 
     #@cache.memoize(timeout=3600)
-    def plot_ts_diagram(ax, sal, temp, xlabel='Salinity', ylabel='Temperature', title='',
-                        axis_font={}, title_font={}, **kwargs):
+    def plot_ts_diagram(self, ax, sal, temp, xlabel='Salinity', ylabel='Temperature', title='',
+                        axis_font={}, title_font={}, tick_font={}, **kwargs):
 
         if not axis_font:
             axis_font = axis_font_default
@@ -446,9 +454,12 @@ class OOIPlots(object):
         plt.clabel(cs, fontsize=12, inline=1, fmt='%1.0f')  # Label every second level
         ppl.scatter(ax, sal, temp, **kwargs)
 
-        ax.set_xlabel(xlabel.replace("_", " "), **axis_font)
-        ax.set_ylabel(ylabel.replace("_", " "), **axis_font)
+        ax.set_xlabel(xlabel.replace("_", " "), labelpad=10, **axis_font)
+        ax.set_ylabel(ylabel.replace("_", " "), labelpad=10, **axis_font)
         ax.set_title(title.replace("_", " "), **title_font)
+        ax.set_aspect(1./ax.get_data_ratio())  # make axes square
+        if tick_font:
+            ax.tick_params(**tick_font)
 
     #@cache.memoize(timeout=3600)
     def plot_3d_scatter(self, fig, ax, x, y, z, title='', xlabel='', ylabel='', zlabel='',

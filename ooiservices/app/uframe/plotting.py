@@ -12,21 +12,9 @@ import matplotlib.dates as mdates
 import io
 import numpy as np
 import prettyplotlib as ppl
+from flask import current_app
 
 __author__ = 'Andy Bird'
-
-# Define some default settings for fonts
-axis_font_default = {'fontname': 'Calibri',
-                     'size': '12',
-                     'color': 'black',
-                     'weight': 'bold',
-                     'verticalalignment': 'bottom'}
-
-title_font_default = {'fontname': 'Arial',
-                      'size': '16',
-                      'color': 'black',
-                      'weight': 'bold',
-                      'verticalalignment': 'bottom'}
 
 # Define the matplotlib style sheet and some colors from that style
 plt.style.use('bmh')
@@ -38,7 +26,30 @@ ooi_plots = OOIPlots()
 
 def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_profile_id=None, width_in= 8.3):
 
-    fig, ax = ppl.subplots(1, 1, figsize=(data['width'], data['height']))
+    # Generate the plot figure and axes
+    width = data['width']
+    height = data['height']
+    fig, ax = ppl.subplots(1, 1, figsize=(width, height))
+
+    # Define the fonts
+    title_font = {'fontname': 'Calibri',
+                  'size': '16',
+                  'color': 'black',
+                  'weight': 'bold'}
+
+    axis_font = {'fontname': 'Calibri',
+                 'size': '14',
+                 'weight': 'bold'}
+
+    tick_font = {'axis': 'both',
+                 'labelsize': 10,
+                 'width': 1,
+                 'color': 'k'}
+
+    # Calculate the hypotenuse to determine appropriate font sizes
+    hypot = np.sqrt(width**2 + height**2)
+    tick_font['labelsize'] = int(hypot)
+    axis_font['size'] = int(hypot) + 4
 
     # plot_layout = 'quiver'
     is_timeseries = False
@@ -50,6 +61,8 @@ def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_pr
         '''
         Plot time series data
         '''
+
+        current_app.logger.debug('Plotting Time Series')
 
         # Define some plot parameters
         kwargs = dict(linewidth=1.5, alpha=0.7)
@@ -64,8 +77,9 @@ def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_pr
                                        title=data['title'],
                                        xlabel=xlabel,
                                        ylabel=ylabel,
-                                       title_font=title_font_default,
-                                       axis_font=axis_font_default,
+                                       title_font=title_font,
+                                       axis_font=axis_font,
+                                       tick_font=tick_font,
                                        line = use_line,
                                        scatter = use_scatter,
                                        **kwargs)
@@ -78,8 +92,9 @@ def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_pr
                                            ydata,
                                            colors,
                                            title=data['title'],
-                                           axis_font=axis_font_default,
-                                           title_font=title_font_default,
+                                           axis_font=axis_font,
+                                           title_font=title_font,
+                                           tick_font=tick_font,
                                            scatter = use_scatter,
                                            width_in = width_in,
                                            **kwargs)
@@ -89,20 +104,22 @@ def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_pr
         Plot depth profiles (overlay)
         '''
 
+        current_app.logger.debug('Plotting Depth Profile')
         # Define some plot parameters
         kwargs = dict(linewidth=1.5, alpha=0.7)
 
         if plot_profile_id is None:
 
             for profile_id in range(0, np.shape(data['x'])[0]):
-                #print data['time'][profile_id]
+                # print data['time'][profile_id]
                 ooi_plots.plot_profile(fig,
                                        ax,
                                        data['x'][profile_id],
                                        data['y'][profile_id],
                                        xlabel=data['x_field'],
                                        ylabel=data['y_field'],
-                                       axis_font=axis_font_default,
+                                       axis_font=axis_font,
+                                       tick_font=tick_font,
                                        line=use_line,
                                        scatter=use_scatter,
                                        **kwargs)
@@ -115,7 +132,8 @@ def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_pr
                                        data['y'][int(plot_profile_id)],
                                        xlabel=data['x_field'],
                                        ylabel=data['y_field'],
-                                       axis_font=axis_font_default,
+                                       axis_font=axis_font,
+                                       tick_font=tick_font,
                                        line=use_line,
                                        scatter=use_scatter,
                                        **kwargs)
@@ -127,7 +145,8 @@ def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_pr
                                        data['y'][0],
                                        xlabel=data['x_field'],
                                        ylabel=data['y_field'],
-                                       axis_font=axis_font_default,
+                                       axis_font=axis_font,
+                                       tick_font=tick_font,
                                        line=use_line,
                                        scatter=use_scatter,
                                        **kwargs)
@@ -138,32 +157,39 @@ def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_pr
         Plot a Temperature-Salinity diagram
         '''
 
+        current_app.logger.debug('Plotting T-S Diagram')
+
         # Define some plot parameters
         kwargs = dict(color='r', marker='o')
 
         # This should be used with 'real' data only (NO COUNTS!!)
-        x = np.asarray(data['x'])
-        y = np.asarray(data['y'])
+        x = data['y'][data['y_field'][0]]
+        y = data['y'][data['y_field'][1]]
+        xlabel = data['y_field'][0]
+        ylabel = data['y_field'][1]
 
         ooi_plots.plot_ts_diagram(ax, x, y,
                                   title=data['title'],
-                                  xlabel=data['x_field'],
-                                  ylabel=data['y_field'],
-                                  title_font=title_font_default,
-                                  axis_font=axis_font_default,
+                                  xlabel=xlabel,
+                                  ylabel=ylabel,
+                                  title_font=title_font,
+                                  axis_font=axis_font,
+                                  tick_font=tick_font,
                                   **kwargs)
 
     elif plot_layout == 'quiver':
         '''
         Plot magnitude and direction as a time series on a quiver plot
         '''
-        kwargs = dict(color='#0000FF',
-                      units='y',
+
+        current_app.logger.debug('Plotting Quiver')
+        # color='#0000FF',
+        # edgecolors='#000000',
+        kwargs = dict(units='y',
                       scale_units='y',
                       scale=1,
                       headlength=10,
                       headaxislength=5,
-                      edgecolors='#000000',
                       width=0.1,
                       alpha=0.5)
         time = mdates.date2num(data['x']['time'])
@@ -173,15 +199,17 @@ def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_pr
         ooi_plots.plot_1d_quiver(fig, ax, time, u, v,
                                  title=data['title']+'\n'+'Quiver Plot',
                                  ylabel='Velocity (m/s)',
-                                 title_font=title_font_default,
-                                 axis_font=axis_font_default)
+                                 tick_font=tick_font,
+                                 title_font=title_font,
+                                 axis_font=axis_font)
 
     elif plot_layout == '3d_scatter':
         '''
         Plot 3d scatter plot
         '''
 
-        # print 'Plotting 3D Scatter'
+        current_app.logger.debug('Plotting 3D Scatter')
+
         time = data['x']['time']
         xlabel = data['y_field'][0]
         ylabel = data['y_field'][1]
@@ -195,8 +223,9 @@ def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_pr
                                   xlabel=xlabel,
                                   ylabel=ylabel,
                                   zlabel=zlabel,
-                                  title_font=title_font_default,
-                                  axis_font=axis_font_default)
+                                  title_font=title_font,
+                                  tick_font=tick_font,
+                                  axis_font=axis_font)
 
     buf = io.BytesIO()
 
@@ -208,8 +237,6 @@ def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_pr
     plt.savefig(buf, format=plot_format)
     buf.seek(0)
 
-    #plt.clf()
-    #plt.cla()
     plt.close(fig)
 
     return buf

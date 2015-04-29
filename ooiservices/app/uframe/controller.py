@@ -176,12 +176,12 @@ def streams_list():
         try:
             dict_from_stream(request.args.get('stream_name'))
         except Exception as e:
-            print '\n**** (1) exception: ', e.message
+            current_app.logger.exception('**** (1) exception: ' + e.message)
             return jsonify(error=e.message), 500
     try:
         streams = dfs_streams()
     except Exception as e:
-        print '\n**** (2) exception: ', e.message
+        current_app.logger.exception('**** (2) exception: ' + e.message)
         return jsonify(error=e.message), 500
 
     retval = []
@@ -189,7 +189,7 @@ def streams_list():
         try:
             data_dict = dict_from_stream(*stream)
         except Exception as e:
-            print '\n**** (3) exception: ', e.message
+            current_app.logger.exception('\n**** (3) exception: ' + e.message)
             continue
         if request.args.get('reference_designator'):
             if request.args.get('reference_designator') != data_dict['reference_designator']:
@@ -208,7 +208,6 @@ def get_uframe_moorings():
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
         current_app.logger.info("GET %s", uframe_url)
-        print '*** url: ', uframe_url
         response = requests.get(uframe_url, timeout=(timeout, timeout_read))
         return response
     except Exception as e:
@@ -222,8 +221,7 @@ def get_uframe_platforms(mooring):
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, mooring])
-        current_app.logger.info("GET %s", url)
-        print '*** url: ', url
+        current_app.logger.info("GET %s", uframe_url)
         response = requests.get(url, timeout=(timeout, timeout_read))
         return response
     except Exception as e:
@@ -268,7 +266,6 @@ def get_uframe_instruments(mooring, platform):
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, mooring, platform])
         current_app.logger.info("GET %s", url)
-        print '*** url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read))
         return response
     except Exception as e:
@@ -482,7 +479,7 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
             query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
-        print '***** url: ', url
+        current_app.logger.debug('***** url: ' + url)
         response = requests.get(url, timeout=(timeout, timeout_read))
         if not response:
             raise Exception('No data available from uFrame for this request.')
@@ -598,7 +595,6 @@ def get_data_api(stream, instrument, yvar, xvar):
 @api.route('/plot/<string:instrument>/<string:stream>', methods=['GET'])
 def get_svg_plot(instrument, stream):
     plot_format = request.args.get('format', 'svg')
-
     # time series vs profile
     plot_layout = request.args.get('plotLayout', 'timeseries')
     xvar = request.args.get('xvar', 'time')
@@ -634,7 +630,6 @@ def get_svg_plot(instrument, stream):
         else:
             data = get_data(stream, instrument, yvar, xvar)
     except Exception as err:
-        #print '\n**** (get_svg_plot) exception: ', str(err.message)
         current_app.logger.exception(str(err.message))
         return jsonify(error=str(err.message)), 400
 
@@ -643,15 +638,11 @@ def get_svg_plot(instrument, stream):
 
     # return if error
     if 'error' in data or 'Error' in data:
-        #print '*** (get_svg_plot) Error after calling get_data...'
         return jsonify(error=data['error']), 400
 
     # generate plot
     some_tuple = ('a', 'b')
-    #print '\n*** type(some_tuple): ', str(type(some_tuple))
-    #print '\n*** str(type(data)): ', str(type(data))
     if str(type(data)) == str(type(some_tuple)) and plot_layout == "depthprofile":
-        #print '\n*** tuple data for %s, error 400' % plot_layout
         return jsonify(error='tuple data returned for %s' % plot_layout), 400
     data['title'] = title
     data['height'] = height_in
@@ -740,7 +731,7 @@ def get_profile_data(instrument, stream):
         if response.status_code != 200:
             raise IOError("uFrame unable to get data for this request.")
 
-        print '\n --- retrieved data from uframe for profile processing...'
+        current_app.logger.debug('\n --- retrieved data from uframe for profile processing...')
         data = response.json()
 
         # Note: assumes data has depth and time is ordinal
@@ -854,7 +845,7 @@ def get_profile_data(instrument, stream):
         return profile_list
 
     except Exception as err:
-        print '\n***** (pass) exception: ', str(err.message)
+        current_app.logger.exception('\n***** (pass) exception: ' + str(err.message))
         pass
 
 # @auth.login_required
