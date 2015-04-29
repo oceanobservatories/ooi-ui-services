@@ -721,8 +721,8 @@ def get_events_by_ref_des(ref_des):
         return cached
 
     #Create the container for the processed response
-    result = {}
-
+    result = []
+    temp_dict = {}
     #variables used in loop
     platform = ""
     mooring = ""
@@ -740,19 +740,21 @@ def get_events_by_ref_des(ref_des):
             if row['referenceDesignator']['sensor'] is not None:  
                 instrument = row['referenceDesignator']['sensor']
             concat_ref_des =  '-'.join([platform, mooring, instrument])
+            print concat_ref_des
             if concat_ref_des == ref_des:
-                result['ref_des'] = concat_ref_des
-                result['start_date'] = row['startDate']
-                result['class'] = row['@class']
-                result['event_description'] = row['eventDescription']
-                result['event_type'] = row['eventType']
-                result['notes'] = row['notes']
-                result['url'] =  url_for('uframe.get_event', id=row['eventId'])
-                result['uframe_url'] = current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (uframe_obj.__endpoint__, row['eventId'])
+                temp_dict['ref_des'] = concat_ref_des
+                temp_dict['start_date'] = row['startDate']
+                temp_dict['class'] = row['@class']
+                temp_dict['event_description'] = row['eventDescription']
+                temp_dict['event_type'] = row['eventType']
+                temp_dict['notes'] = row['notes']
+                temp_dict['url'] =  url_for('uframe.get_event', id=row['eventId'])
+                temp_dict['uframe_url'] = current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (uframe_obj.__endpoint__, row['eventId'])
+                result.append(temp_dict)
         except:
-            print "nope! %s, %s" % (concat_ref_des, ref_des)
-    
-    return jsonify(**result)
+            pass 
+    result = jsonify({ 'events' : result })
+    return result
 
 
 #Create
