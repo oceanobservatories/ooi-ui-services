@@ -95,7 +95,7 @@ def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_pr
         if plot_profile_id is None:
 
             for profile_id in range(0, np.shape(data['x'])[0]):
-                print data['time'][profile_id]
+                #print data['time'][profile_id]
                 ooi_plots.plot_profile(fig,
                                        ax,
                                        data['x'][profile_id],
@@ -208,7 +208,8 @@ def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_pr
     plt.savefig(buf, format=plot_format)
     buf.seek(0)
 
-    plt.clf()
-    plt.cla()
+    #plt.clf()
+    #plt.cla()
+    plt.close(fig)
 
     return buf
