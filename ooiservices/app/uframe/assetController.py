@@ -708,6 +708,55 @@ def get_event(id):
         pass
     return jsonify(**data)
 
+#Read (object)
+@api.route('/events/<string:ref_des>', methods=['GET'])
+def get_events_by_ref_des(ref_des):
+    '''
+    Return all the events and their cooresponding asset ID when
+    provided a reference designator (Logical Instrument).
+    '''
+    #Setup the cache, just in case
+    cached = cache.get('events_by_ref_des')
+    if cached:
+        return cached
+
+    #Create the container for the processed response
+    result = []
+    temp_dict = {}
+    #variables used in loop
+    platform = ""
+    mooring = ""
+    instrument = ""
+
+    #Get all the events to begin searching though...
+    uframe_obj = uFrameEventCollection()
+    data = uframe_obj.to_json()
+    for row in data:
+        try:
+            if  row['referenceDesignator']['subsite'] is not None:
+                platform = row['referenceDesignator']['subsite']
+            if row['referenceDesignator']['node'] is not None:
+                mooring = row['referenceDesignator']['node']
+            if row['referenceDesignator']['sensor'] is not None:  
+                instrument = row['referenceDesignator']['sensor']
+            concat_ref_des =  '-'.join([platform, mooring, instrument])
+            if concat_ref_des == ref_des:
+                temp_dict['ref_des'] = concat_ref_des
+                temp_dict['start_date'] = row['startDate']
+                temp_dict['class'] = row['@class']
+                temp_dict['event_description'] = row['eventDescription']
+                temp_dict['event_type'] = row['eventType']
+                temp_dict['notes'] = row['notes']
+                temp_dict['url'] =  url_for('uframe.get_event', id=row['eventId'])
+                temp_dict['uframe_url'] = current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (uframe_obj.__endpoint__, row['eventId'])
+                result.append(temp_dict)
+                temp_dict = ""
+        except:
+            pass 
+    result = jsonify({ 'events' : result })
+    return result
+
+
 #Create
 @auth.login_required
 @api.route('/events', methods=['POST'])
