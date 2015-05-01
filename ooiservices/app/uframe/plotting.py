@@ -227,9 +227,31 @@ def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_pr
                                   tick_font=tick_font,
                                   axis_font=axis_font)
 
+    elif plot_layout == 'rose':
+        '''
+        Plot rose
+        '''
+        plt.close(fig)  # Need to create new fig and axes here
+        current_app.logger.debug('Plotting Rose')
+
+        xlabel = data['y_field'][0]
+        ylabel = data['y_field'][1]
+        magnitude = data['y'][xlabel]
+        direction = data['y'][ylabel]
+        size = height if height <= width else width
+        size = 6 if size < 6 else size
+        print size
+        hypot = np.sqrt(size**2 + size**2) + 1
+        fig = ooi_plots.plot_rose(magnitude, direction,
+                                  figsize=size,
+                                  bins=5,
+                                  title=data['title'],
+                                  title_font=title_font,
+                                  fontsize=int(hypot)+2)
+
     buf = io.BytesIO()
 
-    plt.tight_layout()
+    # plt.tight_layout()
     # plt.tick_params(axis='both', which='major', labelsize=10)
 
     if plot_format not in ['svg', 'png']:

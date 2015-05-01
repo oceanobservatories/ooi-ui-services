@@ -46,7 +46,7 @@ class OOIPlots(object):
             formt = mdates.AutoDateFormatter(major, defaultfmt=u'%Y-%m-%d')
             formt.scaled[1.0] = '%Y-%m-%d'
             formt.scaled[30] = '%Y-%m'
-            formt.scaled[1./24.] = '%Y-%m-%d %H:%M:%S'
+            formt.scaled[1./24.] = '%Y-%m-%d %H:%M'
             # formt.scaled[1./(24.*60.)] = FuncFormatter(format_func)
             ax.xaxis.set_major_locator(major)
             ax.xaxis.set_major_formatter(formt)
@@ -159,34 +159,39 @@ class OOIPlots(object):
         # ax.grid(True)
 
     # A quick way to create new windrose axes...
-    def new_axes(self):
-        fig = plt.figure(figsize=(8, 8), dpi=80, facecolor='w', edgecolor='w')
+    def new_axes(self, figsize):
+        fig = plt.figure(figsize=(figsize, figsize), facecolor='w', edgecolor='w')
         rect = [0.1, 0.1, 0.8, 0.8]
         ax = WindroseAxes(fig, rect, axisbg='w')
         fig.add_axes(ax)
         return fig, ax
 
-    def set_legend(self, ax, label=''):
+    def set_legend(self, ax, label='', fontsize=8):
         """Adjust the legend box."""
-        l = ax.legend(borderaxespad=-3.5, title=label)
-        plt.setp(l.get_texts(), fontsize=8)
+         # Shrink current axis by 20%
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width * 0.7, box.height])
+
+        # Put a legend to the right of the current axis
+        l = ax.legend(title=label, loc='lower left', bbox_to_anchor=(1, 0))
+        plt.setp(l.get_texts(), fontsize=fontsize)
 
     #@cache.memoize(timeout=3600)
-    def plot_rose(self, magnitude, direction, bins=15, nsector=16,
+    def plot_rose(self, magnitude, direction, bins=8, nsector=16, figsize=8,
                   title='', title_font={}, legend_title='', normed=True,
-                  opening=0.8, edgecolor='white'):
+                  opening=0.8, edgecolor='white', fontsize=8):
 
         if not title_font:
             title_font = title_font_default
 
-        fig, ax = self.new_axes()
+        fig, ax = self.new_axes(figsize)
         magnitude = magnitude[~np.isnan(magnitude)]
         direction = direction[~np.isnan(direction)]
         cmap = plt.cm.rainbow
         ax.bar(direction, magnitude, bins=bins, normed=normed, cmap=cmap,
                opening=opening, edgecolor=edgecolor, nsector=nsector)
 
-        self.set_legend(ax, legend_title)
+        self.set_legend(ax, legend_title, fontsize)
         ax.set_title(title.replace("_", " "), **title_font)
 
         return fig
