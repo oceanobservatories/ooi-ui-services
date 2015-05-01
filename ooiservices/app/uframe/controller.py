@@ -792,17 +792,16 @@ def get_profile_data(instrument, stream):
             else:
                 dpa_flag = "0"
             ed_date = validate_date_time(st_date, ed_date)
-            response = get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
+            data, status_code = get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
         else:
             message = 'Failed to make plot - start end dates not applied'
             current_app.logger.exception(message)
             raise Exception(message)
 
-        if response[1] != 200:
+        if status_code != 200:
             raise IOError("uFrame unable to get data for this request.")
 
         print '\n --- retrieved data from uframe for profile processing...'
-        data = response[0]
 
         # Note: assumes data has depth and time is ordinal
         # Need to add assertions and try and exceptions to check data
