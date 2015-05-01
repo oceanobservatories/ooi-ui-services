@@ -445,6 +445,41 @@ class LogEntry(db.Model):
         entry.organization_id = data.get('organization_id')
         return entry
 
+class LogEntryComment(db.Model):
+    __tablename__ = 'log_entry_comments'
+    __table_args__ = {u'schema':__schema__}
+
+    id = db.Column(db.Integer, primary_key=True)
+    comment_time = db.Column(db.DateTime(True), nullable=False, server_default=db.text("now()"))
+    comment = db.Column(db.Text)
+    retired = db.Column(db.Boolean, server_default=expression.false())
+    user_id = db.Column(db.ForeignKey(u'' + __schema__ + '.users.id'), nullable=False)
+    log_entry_id = db.Column(db.ForeignKey(u'' + __schema__ + '.log_entries.id'), nullable=False)
+
+    user = db.relationship(u'User')
+    log_entry = db.relationship(u'LogEntry')
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'comment_time' : self.comment_time.isoformat(),
+            'comment' : self.comment,
+            'user' : {
+                'id' : self.user.id,
+                'name' : ' '.join([self.user.first_name, self.user.last_name])
+            },
+            'log_entry_id' : self.log_entry_id
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        comment = cls()
+        if 'comment_time' in data:
+            comment.comment_time = data.get('comment_time')
+        comment.comment = data.get('comment')
+        comment.user_id = data.get('user_id')
+        comment.log_entry_id = data.get('log_entry_id')
+        return comment
 
 class Manufacturer(db.Model):
     __tablename__ = 'manufacturers'

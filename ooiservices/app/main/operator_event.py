@@ -10,6 +10,7 @@ from ooiservices.app.main import api
 from ooiservices.app import db
 from authentication import auth
 from ooiservices.app.models import OperatorEvent, OperatorEventType, Watch, Organization, LogEntry
+from ooiservices.app.models import LogEntryComment
 from datetime import datetime
 from wtforms import ValidationError
 import json
@@ -258,4 +259,74 @@ def delete_log_entry(id):
     log_entry.retired = True
     db.session.add(log_entry)
     db.session.commit()
+    return jsonify(), 204
+
+@api.route('/log_entry_comment', methods=['GET'])
+def get_log_entry_comments():
+    if 'log_entry_id' in request.args:
+        comments = LogEntryComment.query.filter(LogEntryComment.log_entry_id == request.args['log_entry_id'], sa.not_(LogEntryComment.retired)).all()
+    else:
+        comments = LogEntryComment.query.filter(sa.not_(LogEntryComment.retired)).all()
+    comments = [c.to_json() for c in comments]
+    return jsonify(log_entry_comments=comments)
+
+@api.route('/log_entry_comment', methods=['POST'])
+@auth.login_required
+def post_log_entry_comment():
+    data = json.loads(request.data) or {}
+    if 'log_entry_id' not in data:
+        return jsonify(error='Parent log_entry_id required'), 400
+    data['user_id'] = g.current_user.id
+    if 'comment_time' in data:
+        del data['comment_time']
+    comment = LogEntryComment.from_dict(data)
+    db.session.add(comment)
+    db.session.commit()
+    return jsonify(comment.to_json())
+
+@api.route('/log_entry_comment/<int:id>', methods=['GET'])
+def get_log_entry_comment(id):
+    comment = LogEntryComment.query.get(id)
+    if not comment or comment.retired:
+        return jsonify(), 204
+    return jsonify(comment.to_json())
+
+@api.route('/log_entry_comment/<int:id>', methods=['PUT'])
+@auth.login_required
+def put_log_entry_comment(id):
+    data = json.loads(request.data) or {}
+    # Get the record, if it's not found or retired return a 404
+    comment = LogEntryComment.query.get(id)
+    if not comment or comment.retired:
+        return jsonify(error='No matching records'), 404
+
+    # Make sure it's the original author or an admin
+    user_id = comment.user_id
+    current_scopes = [s.scope_name for s in g.current_user.scopes]
+    if g.current_user.id != user_id and 'user_admin' not in current_scopes:
+        return jsonify(error='Unauthorized: This user lacks sufficient privileges to change this entry'), 401
+    
+    comment.comment = data.get('comment')
+    db.session.add(comment)
+    db.session.commit()
+    return jsonify(comment.to_json())
+
+@api.route('/log_entry_comment/<int:id>', methods=['DELETE'])
+@auth.login_required
+def delete_log_entry_comment(id):
+    # Get the record, if it's not found or retired return a 404
+    comment = LogEntryComment.query.get(id)
+    if not comment or comment.retired:
+        return jsonify(error='No matching records'), 404
+
+    # Make sure it's the original author or an admin
+    user_id = comment.user_id
+    current_scopes = [s.scope_name for s in g.current_user.scopes]
+    if g.current_user.id != user_id and 'user_admin' not in current_scopes:
+        return jsonify(error='Unauthorized: This user lacks sufficient privileges to change this entry'), 401
+
+    comment.retired = True
+    db.session.add(comment)
+    db.session.commit()
+
     return jsonify(), 204

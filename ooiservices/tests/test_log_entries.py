@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 '''
 Tests for log entry API
 
@@ -56,7 +57,7 @@ class TestLogEntries(unittest.TestCase):
             'Content-Type': 'application/json'
         }
 
-    def test_get_entries(self):
+    def test_entries_and_comments(self):
 
         headers = self.get_api_headers('admin', 'test')
 
@@ -152,6 +153,50 @@ class TestLogEntries(unittest.TestCase):
         response = self.client.get('/log_entry/%s' % entry_id)
         self.assertEquals(response.status_code, 204)
 
+        # GET /log_entry_comment?log_entry_id=:id
+        response = self.client.get('/log_entry_comment?log_entry_id=%s' % entry_id)
+        self.assertEquals(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertEquals(data['log_entry_comments'], [])
+
+        # POST /log_entry_comment
+        data = {
+            'comment' : u'これもいつか過ぎ去るものです',
+            'log_entry_id' : entry_id
+        }
+        response = self.client.post('/log_entry_comment', data=json.dumps(data), headers=headers)
+        self.assertEquals(response.status_code, 200)
+        comment = json.loads(response.data)
+        self.assertEquals(comment['comment'], data['comment'])
+        log_entry_comment_id = comment['id']
+
+        # GET /log_entry_comment?log_entry_id=:id
+        response = self.client.get('/log_entry_comment?log_entry_id=%s' % entry_id)
+        self.assertEquals(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertEquals(len(data['log_entry_comments']), 1)
+
+        # PUT /log_entry_comment/:id
+        data = {
+            'comment' : u'This too shall pass.',
+            'log_entry_id' : entry_id
+        }
+        response = self.client.put('/log_entry_comment/%s' % log_entry_comment_id, data=json.dumps(data), headers=headers)
+        self.assertEquals(response.status_code, 200)
+
+        # GET /log_entry_comment/:id
+        response = self.client.get('/log_entry_comment/%s' % log_entry_comment_id)
+        self.assertEquals(response.status_code, 200)
+        comment = json.loads(response.data)
+        self.assertEquals(comment['comment'], data['comment'])
+
+        # DELETE /log_entry_comment/:id
+        response = self.client.delete('/log_entry_comment/%s' % log_entry_comment_id, headers=headers)
+        self.assertEquals(response.status_code, 204)
+
+        # GET /log_entry_comment/:id
+        response = self.client.get('/log_entry_comment/%s' % log_entry_comment_id)
+        self.assertEquals(response.status_code, 204)
 
     def test_authorizations(self):
         joe_headers = self.get_api_headers('joe', 'joe')
