@@ -13,16 +13,14 @@ SET client_min_messages = warning;
 SET search_path = ooiui, public, pg_catalog;
 
 -- organizations
-insert into organizations(organization_name) values ('ASA');
-insert into organizations(organization_name) values ('Rutgers');
-insert into organizations(organization_name) values ('Eastern Ocean Platforms, Inc.');
-insert into organizations(organization_name) values ('Offshore Instruments, Inc.');
-insert into organizations(organization_name) values ('West Coast Labs, Inc.');
-insert into organizations(organization_name) values ('National Science Foundation');
-insert into organizations(organization_name) values ('Ocean Leadership');
-insert into organizations(organization_name) values ('WHOI');
-insert into organizations(organization_name) values ('Scripps');
-insert into organizations(organization_name) values ('UW');
+insert into organizations(organization_name, organization_long_name) values ('RPS ASA', 'Applied Science Associates');
+insert into organizations(organization_name, organization_long_name) values ('Rutgers', 'University of Rutgers');
+insert into organizations(organization_name, organization_long_name) values ('WHOI', 'Woods Hole Oceanographic Institution');
+insert into organizations(organization_name, organization_long_name) values ('OSU', 'Oregon State University');
+insert into organizations(organization_name, organization_long_name) values ('COL', 'Consortium of Ocean Leadership');
+insert into organizations(organization_name, organization_long_name) values ('NSF', 'National Science Foundation');
+insert into organizations(organization_name, organization_long_name) values ('SIO', 'Scripps Institution of Oceanography');
+insert into organizations(organization_name, organization_long_name) values ('UW', 'Univeristy of Washington');
 -- total organizations: 9
 
 -- placeholders (for tables: asset_types, assets, assemblies and installation_records):

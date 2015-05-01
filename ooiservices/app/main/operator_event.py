@@ -9,10 +9,11 @@ from flask import jsonify, request, current_app, url_for, g
 from ooiservices.app.main import api
 from ooiservices.app import db
 from authentication import auth
-from ooiservices.app.models import OperatorEvent, OperatorEventType, Watch, Organization
+from ooiservices.app.models import OperatorEvent, OperatorEventType, Watch, Organization, LogEntry
 from datetime import datetime
-import json
 from wtforms import ValidationError
+import json
+import sqlalchemy as sa
 
 @api.route('/watch', methods=['GET'])
 def get_watches():
@@ -187,3 +188,74 @@ def post_operator_event():
 def get_operator_event_types():
     operator_event_types = [o.serialize() for o in OperatorEventType.query.all()]
     return jsonify(operator_event_types=operator_event_types)
+
+@api.route('/log_entry', methods=['GET'])
+def get_log_entries():
+    if 'organization_id' in request.args:
+        log_entries = LogEntry.query.filter(LogEntry.organization_id == request.args['organization_id'],sa.not_(LogEntry.retired)).all()
+    else:
+        log_entries = LogEntry.query.filter(sa.not_(LogEntry.retired)).all()
+    if not log_entries:
+        return jsonify({}), 204
+    log_entries = [l.to_json() for l in log_entries]
+    return jsonify(log_entries=log_entries)
+
+@api.route('/log_entry/<int:id>', methods=['GET'])
+def get_log_entry(id):
+    log_entry = LogEntry.query.get(id)
+    if not log_entry or log_entry.retired:
+        return jsonify({}), 204
+    return jsonify(log_entry.to_json())
+
+@api.route('/log_entry', methods=['POST'])
+@auth.login_required
+def post_log_entry():
+    data = json.loads(request.data) or {}
+    if not data:
+        return jsonify(error='Empty request'), 400
+    data['user_id'] = g.current_user.id
+    data['organization_id'] = data.get('organization_id') or g.current_user.organization_id
+    if 'entry_time' in data:
+        del data['entry_time']
+    try:
+        entry = LogEntry.from_dict(data)
+    except Exception as e:
+        return jsonify(error=e.message), 400
+    db.session.add(entry)
+    db.session.commit()
+    return jsonify(entry.to_json())
+
+@api.route('/log_entry/<int:id>', methods=['PUT'])
+@auth.login_required
+def put_log_entry(id):
+    data = json.loads(request.data) or {}
+    log_entry = LogEntry.query.get(id)
+    if not log_entry:
+        return jsonify(error="No matching record"), 404
+    user_id = log_entry.user_id
+    current_scopes = [s.scope_name for s in g.current_user.scopes]
+    if g.current_user.id != user_id and 'user_admin' not in current_scopes:
+        return jsonify(error='Unauthorized: This user lacks sufficient privileges to change this entry'), 401
+    log_entry.log_entry_type = data.get('log_entry_type')
+    if 'entry_title' not in data:
+        return jsonify(error='entry_title required to create LogEntry'), 400
+    log_entry.entry_title = data.get('entry_title')
+    log_entry.entry_description = data.get('entry_description')
+    db.session.add(log_entry)
+    db.session.commit()
+    return jsonify(log_entry.to_json())
+
+@api.route('/log_entry/<int:id>', methods=['DELETE'])
+@auth.login_required
+def delete_log_entry(id):
+    log_entry = LogEntry.query.get(id)
+    if not log_entry:
+        return jsonify(error='No matching record'), 404
+    user_id = log_entry.user_id
+    current_scopes = [s.scope_name for s in g.current_user.scopes]
+    if g.current_user.id != user_id and 'user_admin' not in current_scopes:
+        return jsonify(error='Unauthorized: This user lacks sufficient privileges to change this entry'), 401
+    log_entry.retired = True
+    db.session.add(log_entry)
+    db.session.commit()
+    return jsonify(), 204

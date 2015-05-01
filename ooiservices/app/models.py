@@ -6,6 +6,7 @@ OOI Models
 __author__ = 'M@Campbell'
 
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy.sql import expression
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app
 from ooiservices.app import db, login_manager
@@ -396,6 +397,55 @@ class Instrument(db.Model):
     manufacturer = db.relationship(u'Manufacturer')
     model = db.relationship(u'InstrumentModel')
 
+class LogEntry(db.Model):
+    __tablename__ = 'log_entries'
+    __table_args__ = {u'schema':__schema__}
+
+    id = db.Column(db.Integer, primary_key=True)
+    log_entry_type = db.Column(db.Text, nullable=False)
+    entry_time = db.Column(db.DateTime(True), nullable=False, server_default=db.text("now()"))
+    entry_title = db.Column(db.Text, nullable=False)
+    entry_description = db.Column(db.Text)
+    retired = db.Column(db.Boolean, server_default=expression.false())
+    user_id = db.Column(db.ForeignKey(u'' + __schema__ + '.users.id'), nullable=False)
+    organization_id = db.Column(db.ForeignKey(u'' + __schema__ + '.organizations.id'), nullable=False)
+    
+    user = db.relationship(u'User')
+    organization = db.relationship(u'Organization')
+
+    def to_json(self):
+        return {
+            'id' : self.id,
+            'log_entry_type' : self.log_entry_type,
+            'event_time' : self.entry_time.isoformat(),
+            'entry_title' : self.entry_title,
+            'entry_description' : self.entry_description,
+            'user' : {
+                'id' : self.user_id,
+                'name' : ' '.join([self.user.first_name, self.user.last_name])
+            },
+            'organization' : {
+                'id' : self.organization_id,
+                'name' : self.organization.organization_name,
+                'long_name' : self.organization.organization_long_name
+            }
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        entry = cls()
+        entry.log_entry_type = data.get('log_entry_type', 'INFO')
+        if 'entry_title' not in data:
+            raise ValueError('entry_title required to create LogEntry')
+        entry.entry_title = data.get('entry_title')
+        if 'entry_time' in data:
+            entry.entry_time = data.get('entry_time')
+        entry.entry_description = data.get('entry_description')
+        entry.user_id = data.get('user_id')
+        entry.organization_id = data.get('organization_id')
+        return entry
+
+
 class Manufacturer(db.Model):
     __tablename__ = 'manufacturers'
     __table_args__ = {u'schema': __schema__}
@@ -476,13 +526,16 @@ class Organization(db.Model, DictSerializableMixin):
 
     id = db.Column(db.Integer, primary_key=True)
     organization_name = db.Column(db.Text, nullable=False)
+    organization_long_name = db.Column(db.Text)
+    image_url = db.Column(db.Text)
+
     users = db.relationship(u'User')
 
     @staticmethod
     def insert_org():
-        org = Organization.query.filter(Organization.organization_name == 'ASA').first()
+        org = Organization.query.filter(Organization.organization_name == 'RPS ASA').first()
         if org is None:
-            org = Organization(organization_name = 'ASA')
+            org = Organization(organization_name = 'RPS ASA')
             db.session.add(org)
             db.session.commit()
 
@@ -970,7 +1023,7 @@ class User(UserMixin, db.Model):
 
 
     @staticmethod
-    def insert_user(username='admin', password=None, first_name='First', last_name='Last', email='FirstLast@somedomain.com', org_name='ASA', phone_primary='8001234567'):
+    def insert_user(username='admin', password=None, first_name='First', last_name='Last', email='FirstLast@somedomain.com', org_name='RPS ASA', phone_primary='8001234567'):
         user = User(password=password, first_name=first_name, active=True)
         user.validate_username(username)
         user.validate_email(email)
