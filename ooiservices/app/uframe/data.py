@@ -17,7 +17,7 @@ COSMO_CONSTANT = 2208988800
 
 
 def get_data(stream, instrument, yfields, xfields, include_time=True):
-    from ooiservices.app.uframe.controller import split_stream_name, get_uframe_stream_contents,validate_date_time
+    from ooiservices.app.uframe.controller import split_stream_name, get_uframe_stream_contents_chunked,validate_date_time
     '''get data from uframe
     # -------------------
     # m@c: 02/01/2015
@@ -39,12 +39,11 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
             else:    
                 dpa_flag = "0"   
 
-            response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
-            if response.status_code !=200:
+            data, status_code = get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
+            if status_code !=200:
                 #return {'error': 'could not get data'}
                 #return {'error': '(%s) could not get_uframe_stream_contents' % str(response.status_code)}
-                raise Exception('(%s) could not get_uframe_stream_contents' % str(response.status_code))
-            data = response.json()
+                raise Exception('(%s) could not get_uframe_stream_contents' % str(status_code))
         else:
             message = 'Failed to make plot - start end dates not applied.'
             current_app.logger.exception(message)
