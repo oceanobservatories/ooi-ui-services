@@ -489,13 +489,15 @@ class OOIPlots(object):
             count += 1
 
         # Plot the data
+        legend_handles = []
+        legend_labels = []
         for ind, data in enumerate(datasets):
             xlabel = data['x_field'][0]
             ylabel = data['y_field'][0]
             xdata = data['x'][xlabel]
             ydata = data['y'][ylabel]
 
-            y_axis[ind].plot(xdata, ydata, colors[ind], **kwargs)
+            h, = y_axis[ind].plot(xdata, ydata, colors[ind], label=data['title'], **kwargs)
 
             # Label the y-axis and set text color:
 
@@ -508,13 +510,16 @@ class OOIPlots(object):
             if tick_font:
                 labelsize = tick_font['labelsize']
             y_axis[ind].tick_params(axis='y', labelsize=labelsize, colors=colors[ind])
+            legend_handles.append(h)
+            legend_labels.append(data['title'][0:20])
 
         self.get_time_label(ax, xdata)
         fig.autofmt_xdate()
 
-        title = datasets[0]['title']
+        legend = ax.legend(legend_handles, legend_labels)
+
         # ax.tick_params(axis='x', labelsize=10)
-        ax.set_title(title.replace("_", " "), y=1.05, **title_font)
+        # ax.set_title(title.replace("_", " "), y=1.05, **title_font)
         ax.grid(True)
         plt.tight_layout()
 

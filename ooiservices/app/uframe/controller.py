@@ -677,9 +677,10 @@ def get_svg_plot(instrument, stream):
         data['height'] = height_in
         data['width'] = width_in
     else:
-        data[0]['title'] = title
-        data[0]['height'] = height_in
-        data[0]['width'] = width_in
+        for idx, streamx in enumerate(stream):
+            data[idx]['title'] = streamx
+            data[idx]['height'] = height_in
+            data[idx]['width'] = width_in
 
     buf = generate_plot(data,
                         plot_format,
