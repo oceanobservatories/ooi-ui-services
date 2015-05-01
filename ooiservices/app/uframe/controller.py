@@ -625,8 +625,8 @@ def get_json(stream,ref,start_time,end_time,dpa_flag):
     return returned_json
 
 @auth.login_required
-+@api.route('/get_netcdf/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>',methods=['GET'])
-+def get_netcdf(stream,ref,start_time,end_time,dpa_flag):
+@api.route('/get_netcdf/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>',methods=['GET'])
+def get_netcdf(stream,ref,start_time,end_time,dpa_flag):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
     uframe_url, timeout, timeout_read = get_uframe_info()
