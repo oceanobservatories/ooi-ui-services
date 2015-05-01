@@ -24,14 +24,9 @@ colors = plt.rcParams['axes.color_cycle']
 ooi_plots = OOIPlots()
 
 
-def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_profile_id=None, width_in= 8.3):
+def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_profile_id=None, width_in= 8.3):
 
-    # Generate the plot figure and axes
-    width = data['width']
-    height = data['height']
-    fig, ax = ppl.subplots(1, 1, figsize=(width, height))
-
-    # Define the fonts
+    # Define some fonts
     title_font = {'fontname': 'Calibri',
                   'size': '16',
                   'color': 'black',
@@ -46,17 +41,32 @@ def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_pr
                  'width': 1,
                  'color': 'k'}
 
+    # Generate the plot figure and axes
+    if isinstance(data, dict):
+        width = data['width']
+        height = data['height']
+
+        is_timeseries = False
+        if "time" == data['x_field'][0]:
+            data['x']['time'] = num2date(data['x']['time'], units='seconds since 1900-01-01 00:00:00', calendar='gregorian')
+            is_timeseries = True
+    else:
+        width = data[0]['width']
+        height = data[0]['height']
+        for idx, dataset in enumerate(data):
+            if "time" == dataset['x_field'][0]:
+              data[idx]['x']['time'] = num2date(data[idx]['x']['time'], units='seconds since 1900-01-01 00:00:00', calendar='gregorian')
+
+    fig, ax = ppl.subplots(1, 1, figsize=(width, height))
+
+    
+
     # Calculate the hypotenuse to determine appropriate font sizes
     hypot = np.sqrt(width**2 + height**2)
     tick_font['labelsize'] = int(hypot)
     axis_font['size'] = int(hypot) + 4
 
-    # plot_layout = 'quiver'
-    is_timeseries = False
-    if "time" == data['x_field'][0]:
-        data['x']['time'] = num2date(data['x']['time'], units='seconds since 1900-01-01 00:00:00', calendar='gregorian')
-        is_timeseries = True
-
+    # Check the plot type and generate the plot!
     if plot_layout == "timeseries":
         '''
         Plot time series data
@@ -67,7 +77,17 @@ def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_pr
         # Define some plot parameters
         kwargs = dict(linewidth=1.5, alpha=0.7)
 
-        if len(data['x_field']) == 1 and len(data['y_field']) == 1:
+        # First check if we have a multiple stream data
+        if isinstance(data, list):
+            current_app.logger.debug('Plotting Multiple Streams')
+            ooi_plots.plot_multiple_streams(fig, ax, data, colors,
+                                            title_font=title_font,
+                                            axis_font=axis_font,
+                                            tick_font=tick_font,
+                                            width_in = width_in,
+                                            **kwargs)
+        # Check for a single time series plot
+        elif len(data['x_field']) == 1 and len(data['y_field']) == 1:
             xlabel = data['x_field'][0]
             ylabel = data['y_field'][0]
             xdata = data['x'][xlabel]
@@ -80,24 +100,26 @@ def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_pr
                                        title_font=title_font,
                                        axis_font=axis_font,
                                        tick_font=tick_font,
-                                       line = use_line,
-                                       scatter = use_scatter,
+                                       scatter=use_scatter,
+                                       events=events,
                                        **kwargs)
+
+        # Must be a multiple yaxes plot, single stream
         else:
             xdata = data['x']['time']
             ydata = data['y']
 
-            ooi_plots. plot_multiple_yaxes(fig, ax,
-                                           xdata,
-                                           ydata,
-                                           colors,
-                                           title=data['title'],
-                                           axis_font=axis_font,
-                                           title_font=title_font,
-                                           tick_font=tick_font,
-                                           scatter = use_scatter,
-                                           width_in = width_in,
-                                           **kwargs)
+            ooi_plots.plot_multiple_yaxes(fig, ax,
+                                          xdata,
+                                          ydata,
+                                          colors,
+                                          title=data['title'],
+                                          axis_font=axis_font,
+                                          title_font=title_font,
+                                          tick_font=tick_font,
+                                          scatter = use_scatter,
+                                          width_in = width_in,
+                                          **kwargs)
 
     elif plot_layout == "depthprofile":
         '''
@@ -120,7 +142,6 @@ def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_pr
                                        ylabel=data['y_field'],
                                        axis_font=axis_font,
                                        tick_font=tick_font,
-                                       line=use_line,
                                        scatter=use_scatter,
                                        **kwargs)
         else:
@@ -134,7 +155,6 @@ def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_pr
                                        ylabel=data['y_field'],
                                        axis_font=axis_font,
                                        tick_font=tick_font,
-                                       line=use_line,
                                        scatter=use_scatter,
                                        **kwargs)
             else:
@@ -147,7 +167,6 @@ def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_pr
                                        ylabel=data['y_field'],
                                        axis_font=axis_font,
                                        tick_font=tick_font,
-                                       line=use_line,
                                        scatter=use_scatter,
                                        **kwargs)
         plt.gca().invert_yaxis()
@@ -240,7 +259,6 @@ def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_pr
         direction = data['y'][ylabel]
         size = height if height <= width else width
         size = 6 if size < 6 else size
-        print size
         hypot = np.sqrt(size**2 + size**2) + 1
         fig = ooi_plots.plot_rose(magnitude, direction,
                                   figsize=size,
@@ -251,7 +269,7 @@ def generate_plot(data, plot_format, plot_layout, use_line, use_scatter, plot_pr
 
     buf = io.BytesIO()
 
-    # plt.tight_layout()
+    
     # plt.tick_params(axis='both', which='major', labelsize=10)
 
     if plot_format not in ['svg', 'png']:

@@ -19,6 +19,7 @@ from urllib import urlencode
 # data ones
 from ooiservices.app.uframe.data import get_data, COSMO_CONSTANT
 from ooiservices.app.uframe.plotting import generate_plot
+from ooiservices.app.uframe.assetController import get_events_by_ref_des
 from datetime import datetime
 from dateutil.parser import parse as parse_date
 import requests
@@ -594,6 +595,14 @@ def get_data_api(stream, instrument, yvar, xvar):
 @auth.login_required
 @api.route('/plot/<string:instrument>/<string:stream>', methods=['GET'])
 def get_svg_plot(instrument, stream):
+    # from ooiservices.app.uframe.controller import split_stream_name
+
+    # Ok first make a list out of stream and instrument
+    instrument = instrument.split(',')
+    instrument.append(instrument[0])
+    stream = stream.split(',')
+    stream.append(stream[0])
+
     plot_format = request.args.get('format', 'svg')
     # time series vs profile
     plot_layout = request.args.get('plotLayout', 'timeseries')
@@ -602,14 +611,26 @@ def get_svg_plot(instrument, stream):
 
     # There can be multiple variables so get into a list
     xvar = xvar.split(',')
+    xvar.append(xvar[0])
     yvar = yvar.split(',')
 
     # create bool from request
-    use_line = to_bool(request.args.get('line', True))
+    # use_line = to_bool(request.args.get('line', True))
     use_scatter = to_bool(request.args.get('scatter', True))
+    use_event = to_bool(request.args.get('event', True))
+
+    # Get Events!
+    events = {}
+    if use_event:
+        try:
+            response = get_events_by_ref_des(instrument[0])
+            events = json.loads(response.data)
+        except Exception as err:
+            current_app.logger.exception(str(err.message))
+            return jsonify(error=str(err.message)), 400
 
     # get titles and labels
-    title = request.args.get('title', '%s Data' % stream)
+    title = request.args.get('title', '%s Data' % stream[0])
     profileid = request.args.get('profileId', None)
 
     # need a yvar for sure
@@ -623,12 +644,19 @@ def get_svg_plot(instrument, stream):
     height_in = height / 96.
     width_in = width / 96.
 
-    # get the data
+    # get the data from uFrame
     try:
         if plot_layout == "depthprofile":
             data = get_process_profile_data(stream, instrument, yvar[0], xvar[0])
         else:
-            data = get_data(stream, instrument, yvar, xvar)
+            if len(instrument) == 0:
+                data = get_data(stream, instrument, yvar, xvar)
+            else:  # Multiple datasets
+                data = []
+                for idx, instr in enumerate(instrument):
+                    stream_data = get_data(stream[idx], instr, [yvar[idx]], [xvar[idx]])
+                    data.append(stream_data)
+
     except Exception as err:
         current_app.logger.exception(str(err.message))
         return jsonify(error=str(err.message)), 400
@@ -644,16 +672,22 @@ def get_svg_plot(instrument, stream):
     some_tuple = ('a', 'b')
     if str(type(data)) == str(type(some_tuple)) and plot_layout == "depthprofile":
         return jsonify(error='tuple data returned for %s' % plot_layout), 400
-    data['title'] = title
-    data['height'] = height_in
-    data['width'] = width_in
+    if isinstance(data, dict):
+        data['title'] = title
+        data['height'] = height_in
+        data['width'] = width_in
+    else:
+        data[0]['title'] = title
+        data[0]['height'] = height_in
+        data[0]['width'] = width_in
+
     buf = generate_plot(data,
                         plot_format,
                         plot_layout,
-                        use_line,
                         use_scatter,
+                        events,
                         profileid,
-                        width_in = width_in)
+                        width_in=width_in)
 
     content_header_map = {
         'svg' : 'image/svg+xml',
