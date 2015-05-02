@@ -19,6 +19,8 @@ class TestLogEntries(unittest.TestCase):
         self.app = create_app('TESTING_CONFIG')
         self.app_context = self.app.app_context()
         self.app_context.push()
+        from sqlalchemy.orm.mapper import configure_mappers
+        configure_mappers()
         db.create_all()
 
         test_username = 'admin'
@@ -232,7 +234,12 @@ class TestLogEntries(unittest.TestCase):
         self.assertEquals(response.status_code, 200)
         entries = json.loads(response.data)
         self.assertEquals(len(entries['log_entries']), 1)
-
+        
+        # GET /log_entry?search=dragon
+        response = self.client.get('/log_entry?search=dragon')
+        self.assertEquals(response.status_code, 200)
+        entries = json.loads(response.data)
+        self.assertEquals(len(entries['log_entries']), 1)
 
     def test_authorizations(self):
         joe_headers = self.get_api_headers('joe', 'joe')

@@ -9,12 +9,13 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.sql import expression
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app
+from flask.ext.sqlalchemy import BaseQuery
 from ooiservices.app import db, login_manager
 from flask.ext.login import UserMixin
 from wtforms import ValidationError
 from geoalchemy2.types import Geometry
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy_searchable import make_searchable
+from sqlalchemy_searchable import make_searchable, SearchQueryMixin
 from sqlalchemy_utils.types import TSVectorType
 from datetime import datetime
 import geoalchemy2.functions as func
@@ -42,7 +43,8 @@ class DictSerializableMixin(object):
 
 #--------------------------------------------------------------------------------
 
-make_searchable()
+class QueryMixin(BaseQuery, SearchQueryMixin):
+    pass
 
 #--------------------------------------------------------------------------------
 
@@ -404,6 +406,7 @@ class Instrument(db.Model):
     model = db.relationship(u'InstrumentModel')
 
 class LogEntry(db.Model):
+    query_class = QueryMixin
     __tablename__ = 'log_entries'
     __table_args__ = {u'schema':__schema__}
 

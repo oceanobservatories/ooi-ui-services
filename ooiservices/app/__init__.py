@@ -11,6 +11,7 @@ from flask.ext.login import LoginManager
 from flask_environments import Environments
 from flask.ext.cache import Cache
 from flask_wtf.csrf import CsrfProtect
+from sqlalchemy_searchable import make_searchable
 from celery import Celery
 from flask_redis import Redis
 from flask_cors import CORS
@@ -22,6 +23,7 @@ login_manager.session_protection = 'strong'
 
 cache = Cache(config={'CACHE_TYPE':'simple'})
 db = SQLAlchemy()
+make_searchable()
 csrf = CsrfProtect()
 celery = Celery('__main__')
 redis_store = Redis()

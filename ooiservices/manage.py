@@ -156,6 +156,8 @@ def deploy(password, bulkload):
     psql('-c', 'create database ooiuitest;', '-U', 'postgres')
     psql('ooiuitest', '-c', 'create schema ooiui')
     psql('ooiuitest', '-c', 'create extension postgis')
+    from sqlalchemy.orm.mapper import configure_mappers
+    configure_mappers()
     db.create_all()
     if bulkload:
         with open('db/ooiui_schema_data.sql') as f:

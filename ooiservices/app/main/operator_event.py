@@ -212,7 +212,7 @@ def get_log_entries():
         query = LogEntry.query.filter(sa.not_(LogEntry.retired))
 
     if 'search' in request.args:
-        query = search(query, request.args['search'])
+        query = query.search(request.args['search'])
 
     log_entries = query.order_by(sa.desc(LogEntry.entry_time)).limit(limit).offset(offset).all()
 
