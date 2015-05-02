@@ -198,6 +198,42 @@ class TestLogEntries(unittest.TestCase):
         response = self.client.get('/log_entry_comment/%s' % log_entry_comment_id)
         self.assertEquals(response.status_code, 204)
 
+    def test_search(self):
+        headers = self.get_api_headers('admin', 'test')
+        entries = [
+            {
+                'log_entry_type' : 'INFO',
+                'entry_title' : 'First Entry',
+                'entry_description' : "This one is about the sword in the stone."
+            },
+            {
+                'log_entry_type' : 'INFO',
+                'entry_title' : 'Second Entry',
+                'entry_description' : "A dragon magically appears."
+            },
+            {
+                'log_entry_type' : 'INFO',
+                'entry_title' : 'Third Entry',
+                'entry_description' : "Japanese Language Lessons"
+            },
+            {
+                'log_entry_type' : 'INFO',
+                'entry_title' : 'Last Entry',
+                'entry_description' : "It's the end of the world and we know it."
+            }
+        ]
+        # POST /log_entry
+        for entry in entries:
+            response = self.client.post('/log_entry', data=json.dumps(entry), headers=headers)
+            self.assertEquals(response.status_code, 200)
+
+        # GET /log_entry?search=Japanese
+        response = self.client.get('/log_entry?search=Japanese')
+        self.assertEquals(response.status_code, 200)
+        entries = json.loads(response.data)
+        self.assertEquals(len(entries['log_entries']), 1)
+
+
     def test_authorizations(self):
         joe_headers = self.get_api_headers('joe', 'joe')
         bob_headers = self.get_api_headers('bob', 'bob')

@@ -14,6 +14,8 @@ from flask.ext.login import UserMixin
 from wtforms import ValidationError
 from geoalchemy2.types import Geometry
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy_searchable import make_searchable
+from sqlalchemy_utils.types import TSVectorType
 from datetime import datetime
 import geoalchemy2.functions as func
 import json
@@ -37,6 +39,10 @@ class DictSerializableMixin(object):
             return v.isoformat()
         return v
 
+
+#--------------------------------------------------------------------------------
+
+make_searchable()
 
 #--------------------------------------------------------------------------------
 
@@ -407,6 +413,7 @@ class LogEntry(db.Model):
     entry_title = db.Column(db.Text, nullable=False)
     entry_description = db.Column(db.Text)
     retired = db.Column(db.Boolean, server_default=expression.false())
+    search_vector = db.Column(TSVectorType('entry_title', 'entry_description'))
     user_id = db.Column(db.ForeignKey(u'' + __schema__ + '.users.id'), nullable=False)
     organization_id = db.Column(db.ForeignKey(u'' + __schema__ + '.organizations.id'), nullable=False)
     
@@ -417,12 +424,13 @@ class LogEntry(db.Model):
         return {
             'id' : self.id,
             'log_entry_type' : self.log_entry_type,
-            'event_time' : self.entry_time.isoformat(),
+            'entry_time' : self.entry_time.isoformat(),
             'entry_title' : self.entry_title,
             'entry_description' : self.entry_description,
             'user' : {
                 'id' : self.user_id,
-                'name' : ' '.join([self.user.first_name, self.user.last_name])
+                'first_name' : self.user.first_name,
+                'last_name' : self.user.last_name
             },
             'organization' : {
                 'id' : self.organization_id,

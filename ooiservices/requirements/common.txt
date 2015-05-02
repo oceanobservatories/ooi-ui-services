@@ -43,3 +43,4 @@ prettyplotlib==0.1.7
 Flask-Cors==1.10.3
 seawater==3.3.2
 simplejson==3.6.5
+SQLAlchemy-Searchable==0.9.2

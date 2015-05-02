@@ -13,6 +13,7 @@ from ooiservices.app.models import OperatorEvent, OperatorEventType, Watch, Orga
 from ooiservices.app.models import LogEntryComment
 from datetime import datetime
 from wtforms import ValidationError
+from sqlalchemy_searchable import search
 import json
 import sqlalchemy as sa
 
@@ -192,12 +193,32 @@ def get_operator_event_types():
 
 @api.route('/log_entry', methods=['GET'])
 def get_log_entries():
-    if 'organization_id' in request.args:
-        log_entries = LogEntry.query.filter(LogEntry.organization_id == request.args['organization_id'],sa.not_(LogEntry.retired)).all()
+    # Limits and offsets
+    if 'limit' in request.args:
+        limit = int(request.args['limit'])
+        if limit > 100:
+            limit = 100
     else:
-        log_entries = LogEntry.query.filter(sa.not_(LogEntry.retired)).all()
+        limit = 10
+
+    if 'offset' in request.args:
+        offset = int(request.args['offset'])
+    else:
+        offset = 0
+
+    if 'organization_id' in request.args:
+        query = LogEntry.query.filter(LogEntry.organization_id == request.args['organization_id'],sa.not_(LogEntry.retired))
+    else:
+        query = LogEntry.query.filter(sa.not_(LogEntry.retired))
+
+    if 'search' in request.args:
+        query = search(query, request.args['search'])
+
+    log_entries = query.order_by(sa.desc(LogEntry.entry_time)).limit(limit).offset(offset).all()
+
     if not log_entries:
         return jsonify({}), 204
+
     log_entries = [l.to_json() for l in log_entries]
     return jsonify(log_entries=log_entries)
 
