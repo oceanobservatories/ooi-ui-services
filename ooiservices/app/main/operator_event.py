@@ -285,9 +285,10 @@ def delete_log_entry(id):
 @api.route('/log_entry_comment', methods=['GET'])
 def get_log_entry_comments():
     if 'log_entry_id' in request.args:
-        comments = LogEntryComment.query.filter(LogEntryComment.log_entry_id == request.args['log_entry_id'], sa.not_(LogEntryComment.retired)).all()
+        query = LogEntryComment.query.filter(LogEntryComment.log_entry_id == request.args['log_entry_id'], sa.not_(LogEntryComment.retired))
     else:
-        comments = LogEntryComment.query.filter(sa.not_(LogEntryComment.retired)).all()
+        query = LogEntryComment.query.filter(sa.not_(LogEntryComment.retired))
+    comments = query.order_by(sa.desc(LogEntryComment.comment_time)).all()
     comments = [c.to_json() for c in comments]
     return jsonify(log_entry_comments=comments)
 
