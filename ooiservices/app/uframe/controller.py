@@ -35,6 +35,8 @@ import numpy as np
 import pytz
 from ooiservices.app.main.routes import get_display_name_by_rd
 from ooiservices.app.main.arrays import get_arrays, get_array
+from contextlib import closing
+import time 
 
 def dfs_streams():
     response = get_uframe_moorings()
@@ -491,6 +493,65 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
     except Exception as e:
         return internal_server_error('uFrame connection cannot be made. ' + str(e.message))
 
+def get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag):
+    '''
+    Gets the bounded stream contents, start_time and end_time need to be datetime objects
+    '''
+    try:        
+        if dpa_flag == '0':
+            query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
+        else:
+            query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
+        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+        url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])     
+        
+        print "***:",url
+
+        TOO_BIG = 1024 * 1024 * 15 # 15MB
+        CHUNK_SIZE = 1024 * 32   #...KB
+        TOTAL_SECONDS = 20
+        dataBlock = ""
+        idx = 0
+      
+        #counter
+        t0 = time.time()
+
+        with closing(requests.get(url,stream=True)) as response:
+            content_length = 0
+            for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
+                content_length = content_length + CHUNK_SIZE
+                t1 = time.time()
+                total = t1-t0
+                idx+=1
+                if content_length > TOO_BIG or total > TOTAL_SECONDS:
+                    #('uframe response to large.')
+                    # break it down to the last know good spot
+                    t00 = time.time()
+                    idx_c = dataBlock.rfind('}, {')
+                    dataBlock = dataBlock[:idx_c]
+                    dataBlock+="}]" 
+                    t11 = time.time()
+                    totaln = t11-t00
+
+                    print "size_limit or time reached",content_length/(1024 * 1024),total,totaln,idx                    
+                    return json.loads(dataBlock),200
+                # all the data is in the resonse return it as normal
+                #previousBlock = dataBlock
+                dataBlock+=chunk
+            #print "transfer complete",content_length/(1024 * 1024),total
+            
+            #if str(dataBlock[-3:-1]) != '} ]':
+            #    idx_c = dataBlock.rfind('}')
+            #    dataBlock = dataBlock[:idx_c]
+            #    dataBlock+="} ]"
+            #    print 'uFrame appended Error Message to Stream',"\n",dataBlock[-3:-1]
+
+            return json.loads(dataBlock),200            
+        
+    except Exception,e: 
+        #return json.loads(dataBlock), 200
+        return internal_server_error('uframe connection unstable.'),500
+
 def get_uframe_info():
     '''
     returns uframe configuration information. (uframe_url, uframe timeout_connect and timeout_read.)
@@ -562,12 +623,12 @@ def get_json(stream,ref,start_time,end_time,dpa_flag):
     return returned_json
 
 @auth.login_required
-@api.route('/get_netcdf/<string:stream>/<string:ref>', methods=['GET'])
-def get_netcdf(stream, ref):
+@api.route('/get_netcdf/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>', methods=['GET'])
+def get_netcdf(stream, ref,start_time,end_time,dpa_flag):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
     uframe_url, timeout, timeout_read = get_uframe_info()
-    url = '/'.join([uframe_url, mooring, platform, instrument, stream_type, stream])
+    url = '/'.join([uframe_url, mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag])
     NETCDF_LINK = url+'?format=application/netcdf'
     response = requests.get(NETCDF_LINK, timeout=(timeout, timeout_read))
     if response.status_code != 200:
@@ -599,9 +660,10 @@ def get_svg_plot(instrument, stream):
 
     # Ok first make a list out of stream and instrument
     instrument = instrument.split(',')
-    instrument.append(instrument[0])
+    #instrument.append(instrument[0])
+
     stream = stream.split(',')
-    stream.append(stream[0])
+    #stream.append(stream[0])
 
     plot_format = request.args.get('format', 'svg')
     # time series vs profile
@@ -611,8 +673,18 @@ def get_svg_plot(instrument, stream):
 
     # There can be multiple variables so get into a list
     xvar = xvar.split(',')
-    xvar.append(xvar[0])
+    #xvar.append(xvar[0])
+
     yvar = yvar.split(',')
+    #yvar.append(yvar[0])
+
+    if len(instrument) == len(stream) and len(yvar) ==  len(xvar) and len(instrument) == len(xvar):
+        pass # everything the same
+    else:
+        instrument = [instrument[0]]
+        stream = [stream[0]]
+        yvar = [yvar[0]]
+        xvar = [xvar[0]]
 
     # create bool from request
     # use_line = to_bool(request.args.get('line', True))
@@ -649,9 +721,9 @@ def get_svg_plot(instrument, stream):
         if plot_layout == "depthprofile":
             data = get_process_profile_data(stream, instrument, yvar[0], xvar[0])
         else:
-            if len(instrument) == 0:
-                data = get_data(stream, instrument, yvar, xvar)
-            else:  # Multiple datasets
+            if len(instrument) == 1:
+                data = get_data(stream[0], instrument[0], [yvar[0]], [xvar[0]])
+            elif len(instrument) > 1:  # Multiple datasets
                 data = []
                 for idx, instr in enumerate(instrument):
                     stream_data = get_data(stream[idx], instr, [yvar[idx]], [xvar[idx]])
@@ -757,17 +829,16 @@ def get_profile_data(instrument, stream):
             else:
                 dpa_flag = "0"
             ed_date = validate_date_time(st_date, ed_date)
-            response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
+            data, status_code = get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
         else:
             message = 'Failed to make plot - start end dates not applied'
             current_app.logger.exception(message)
             raise Exception(message)
 
-        if response.status_code != 200:
+        if status_code != 200:
             raise IOError("uFrame unable to get data for this request.")
 
-        current_app.logger.debug('\n --- retrieved data from uframe for profile processing...')
-        data = response.json()
+        current_app.logger.debug('\n --- retrieved data from uframe for profile processing...')       
 
         # Note: assumes data has depth and time is ordinal
         # Need to add assertions and try and exceptions to check data
