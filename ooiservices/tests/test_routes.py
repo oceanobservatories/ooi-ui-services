@@ -12,8 +12,12 @@ from flask import url_for
 from ooiservices.app import create_app, db
 from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameter
 from ooiservices.app.models import Organization, User, UserScope
+import flask.ext.whooshalchemy as whooshalchemy
 import datetime as dt
 
+app = create_app('TESTING_CONFIG')
+app.config['WHOOSH_BASE'] = 'ooiservices/whoosh_index'
+whooshalchemy.whoosh_index(app, PlatformDeployment)
 '''
 These tests are additional to the normal testing performed by coverage; each of
 these tests are to validate model logic outside of db management.
@@ -21,7 +25,7 @@ these tests are to validate model logic outside of db management.
 '''
 class UserTestCase(unittest.TestCase):
     def setUp(self):
-        self.app = create_app('TESTING_CONFIG')
+        self.app = app
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
@@ -149,13 +153,14 @@ class UserTestCase(unittest.TestCase):
         response = self.client.get('/organization', content_type=content_type)
         self.assertEquals(response.status_code, 200)
         data = json.loads(response.data)
-        self.assertEquals(data, {'organizations':[{'id':1, 'organization_name' : 'ASA'}]})
+        expectation = {u'organizations':[{u'id':1, u'organization_long_name' : None, u'organization_name' : u'RPS ASA', u'image_url':None}]}
+        self.assertEquals(data, expectation)
 
         # Get organization by id
         response = self.client.get('/organization/1', content_type=content_type)
         self.assertEquals(response.status_code, 200)
         data = json.loads(response.data)
-        self.assertEquals(data, {'id':1, 'organization_name' : 'ASA'})
+        self.assertEquals(data, expectation['organizations'][0])
 
         # Get non-existant organization (bad id value); expect failure
         response = self.client.get('/organization/999', content_type=content_type)
