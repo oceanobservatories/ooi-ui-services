@@ -30,9 +30,10 @@ py==1.4.25
 pytest==2.6.3
 requests==2.4.3
 geojson==1.0.9
+-e git+https://github.com/lukecampbell/geoalchemy2.git@master#egg=geoalchemy2
 wsgiref==0.1.2
 python-dateutil==2.4.0
-GeoAlchemy2==0.2.4
+#GeoAlchemy2==0.2.4
 sh==1.11
 Flask-Cache==0.13.1
 python-redmine==1.0.3
