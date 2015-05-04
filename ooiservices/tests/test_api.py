@@ -125,7 +125,8 @@ class TOCTestCase(unittest.TestCase):
 
     def test_organization(self):
         organization = Organization()
-        organization.organization_name = 'Hyperion'
+        organization.organization_name = 'HPN'
+        organization.organization_long_name = 'Hyperion'
         db.session.add(organization)
         db.session.commit()
 
@@ -133,13 +134,13 @@ class TOCTestCase(unittest.TestCase):
         self.assertEquals(response.status_code, 200)
 
         data = json.loads(response.data)
-        self.assertEquals(data, {'organizations':[{'id':1, 'organization_name' : 'Hyperion'}]})
+        self.assertEquals(data, {'organizations':[{'id':1, 'organization_name' : 'HPN', 'organization_long_name':'Hyperion', 'image_url':None}]})
 
         response = self.client.get('/organization/1', content_type='application/json')
         self.assertEquals(response.status_code, 200)
 
         data = json.loads(response.data)
-        self.assertEquals(data, {'id':1, 'organization_name' : 'Hyperion'})
+        self.assertEquals(data, {'id':1, 'organization_name':'HPN', 'organization_long_name' : 'Hyperion', 'image_url':None})
 
 
 
