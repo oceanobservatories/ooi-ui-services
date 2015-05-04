@@ -673,12 +673,9 @@ def get_svg_plot(instrument, stream):
 
     # There can be multiple variables so get into a list
     xvar = xvar.split(',')
-    #xvar.append(xvar[0])
-
     yvar = yvar.split(',')
-    #yvar.append(yvar[0])
 
-    if len(instrument) == len(stream) and len(yvar) ==  len(xvar) and len(instrument) == len(xvar):
+    if len(instrument) == len(stream):
         pass # everything the same
     else:
         instrument = [instrument[0]]
@@ -722,7 +719,7 @@ def get_svg_plot(instrument, stream):
             data = get_process_profile_data(stream, instrument, yvar[0], xvar[0])
         else:
             if len(instrument) == 1:
-                data = get_data(stream[0], instrument[0], [yvar[0]], [xvar[0]])
+                data = get_data(stream[0], instrument[0], yvar, xvar)
             elif len(instrument) > 1:  # Multiple datasets
                 data = []
                 for idx, instr in enumerate(instrument):
