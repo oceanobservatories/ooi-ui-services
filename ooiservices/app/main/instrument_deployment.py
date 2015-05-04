@@ -53,7 +53,7 @@ def post_instrument_deployment():
 @api.route('/instrument_deployment/<int:id>', methods=['PUT'])
 def put_instrument_deployment(id):
     try:
-        data = json.loads(request.data)
+        data = json.loads(request.data or {})
         existingDeply = InstrumentDeployment.query.get(id)
         if existingDeply is None:
             return jsonify(error="Invalid ID, record not found"), 404
