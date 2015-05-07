@@ -557,7 +557,6 @@ def c2_get_instrument_driver_status(reference_designator):
         return jsonify(status)
     except Exception as err:
         return bad_request(err.message)
-        #return jsonify(status)
 
 #@api.route('/c2/instrument/<string:reference_designator>/start', methods=['POST'])
 #@auth.login_required
@@ -909,7 +908,6 @@ def _c2_get_instrument_driver_status(reference_designator):
         response = uframe_get_instrument_driver_status(reference_designator)
         if response.status_code !=200:
             raise Exception('error retrieving instrument overall state from uframe')
-            #data = {}
         if response.content:
             try:
                 data = json.loads(response.content)
@@ -931,8 +929,8 @@ def uframe_get_instrument_driver_status(reference_designator):
         current_app.logger.info("GET %s", url)
         response = requests.get(url, timeout=(timeout, timeout_read))
         return response
-    except:
-        return _response_internal_server_error()
+    except Exception as err:
+        return _response_internal_server_error(str(err.message))
 
 def _c2_instrument_driver_start(reference_designator, data):
     '''
@@ -1365,7 +1363,8 @@ def _c2_get_instrument_driver_metadata(reference_designator):
         data = None
         response = uframe_get_instrument_driver_command(reference_designator, 'metadata')
         if response.status_code !=200:
-            raise Exception('error retrieving instrument metadata from uframe')
+            if response.content:
+                raise Exception('error retrieving instrument metadata from uframe')
         if response.content:
             try:
                 data = json.loads(response.content)
@@ -1492,7 +1491,8 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
         # Get current over_all state, return in status attribute of result
         try:
             status = _c2_get_instrument_driver_status(reference_designator)
-        except:
+        except Exception as err:
+            current_app.logger.info("ERROR %s", err.message)
             status = {}
         result['status'] = status
 
@@ -1517,6 +1517,7 @@ def _uframe_post_instrument_driver_set(reference_designator, command, data):
         response = requests.post(url, timeout=(timeout, timeout_read), headers=_post_headers())
         return response
     except Exception as err:
+        current_app.logger.info("ERROR %s", err.message)
         return _response_internal_server_error(str(err.message))
 
 #TODO enable kwargs parameter
@@ -1589,7 +1590,8 @@ def _c2_instrument_driver_execute(reference_designator, data):
         # Get current over_all state, return in status attribute of result
         try:
             status = _c2_get_instrument_driver_status(reference_designator)
-        except:
+        except Exception as err:
+            current_app.logger.info("ERROR %s", err.message)
             status = {}
         result['status'] = status
 
@@ -1612,8 +1614,9 @@ def uframe_get_instrument_driver_command(reference_designator, command):
         current_app.logger.info("GET %s", url)
         response = requests.get(url, timeout=(timeout, timeout_read))
         return response
-    except:
-        return _response_internal_server_error()
+    except Exception as err:
+        current_app.logger.info("ERROR %s", err.message)
+        return _response_internal_server_error(str(err.message))
 
 def uframe_post_instrument_driver_command(reference_designator, command, suffix):
     '''
@@ -1628,6 +1631,7 @@ def uframe_post_instrument_driver_command(reference_designator, command, suffix)
         response = requests.post(url, timeout=(timeout, timeout_read), headers=_post_headers())
         return response
     except Exception as err:
+        current_app.logger.info("ERROR %s", err.message)
         return _response_internal_server_error(str(err.message))
 
 def get_uframe_info(type='instrument'):
