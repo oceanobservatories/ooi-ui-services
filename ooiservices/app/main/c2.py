@@ -1449,6 +1449,10 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
       timeout:  in milliseconds, default value is 60000
     Sample: localhost:12572/instrument/api/reference_designator/resource [POST]
     '''
+    result = {}
+    response_status = {}
+    response_status['status_code'] = 200
+    response_status['message'] = ""
     insufficient_data = 'Insufficient data, or bad data format.'
     message = 'uframe error reported in _c2_set_instrument_driver_parameters'
     valid_args = [ 'resource', 'timeout']
@@ -1458,29 +1462,41 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
         if not data:
             raise Exception(insufficient_data)
         try:
-            result = convert(data)
+            payload = convert(data)
         except Exception as err:
             raise Exception('dictionary conversion failed; %s' % str(err.message))
 
         # validate arguments required for uframe
         for arg in valid_args:
-            if arg not in result:
+            if arg not in payload:
                 raise Exception(insufficient_data)
 
-        response = _uframe_post_instrument_driver_set(reference_designator, 'resource', result)
+        response = _uframe_post_instrument_driver_set(reference_designator, 'resource', payload)
         if response.status_code !=200:
+            if response.content:
+                message = '(%s) %s' % (str(response.status_code), str(response.content))
             raise Exception(message)
-        response_data = None
         if response.content:
             try:
                 response_data = json.loads(response.content)
             except:
                 raise Exception('Malformed data; not in valid json format.')
-            # Evaluate response content for error in 'value' list
+            # Evaluate response content for error (review 'value' list in response_data )
             if response_data:
-                _eval_POST_response_data(response_data, message)
-        return response_data
+                status_code, status_type, status_message = _new_eval_POST_response_data(response_data, message)
+                response_status['status_code'] = status_code
+                response_status['message'] = status_message
 
+        # Add response attribute information to result
+        result['response'] = response_status
+        # Get current over_all state, return in status attribute of result
+        try:
+            status = _c2_get_instrument_driver_status(reference_designator)
+        except:
+            status = {}
+        result['status'] = status
+
+        return result
     except:
         raise
 
