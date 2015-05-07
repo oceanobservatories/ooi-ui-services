@@ -547,7 +547,7 @@ def c2_get_instrument_driver_status(reference_designator):
     Get the current overall state of the specified instrument (id is the reference designator of the instrument).
     If the query option "blocking" is specified as true, then this call will block until a state change,
     allowing for a push-like interface for web clients.
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/status
+    Sample: localhost:12572/instrument/api/reference_designator/status
     '''
     status = []
     try:
@@ -574,7 +574,7 @@ def c2_instrument_driver_start(reference_designator):
         eventPort:  unique port for the zeromq event interface
     Pete anticipates that this data will be supplied by asset management and this call will
     no longer require parameters. The action itself will still require a POST call.
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/start
+    Sample: localhost:12572/instrument/api/reference_designator/start
     '''
     start = []
     try:
@@ -592,7 +592,7 @@ def c2_instrument_driver_start(reference_designator):
 def c2_instrument_driver_stop(reference_designator):
     '''
     Stop the specified driver and corresponding agent. Return json.
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/stop
+    Sample: localhost:12572/instrument/api/reference_designator/stop
     '''
     stop = []
     try:
@@ -611,7 +611,7 @@ def c2_get_instrument_driver_ping(reference_designator):
     Get instrument driver status ('ping'). Returns json.
     This initiates a simple callback into the instrument driver class from the zeromq wrapper,
     indicating the driver is still running. Does not verify connectivity with the instrument itself.
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/ping
+    Sample: localhost:12572/instrument/api/reference_designator/ping
     '''
     ping = []
     try:
@@ -629,7 +629,7 @@ def c2_instrument_driver_initialize(reference_designator):
     '''
     Initialize the instrument driver. Valid only from the disconnected state,
     returns the driver to the unconfigured state.
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/initialize
+    Sample: localhost:12572/instrument/api/reference_designator/initialize
     '''
     initialize = []
     try:
@@ -649,7 +649,7 @@ def c2_instrument_driver_configure(reference_designator):
     Accepts the following urlencoded parameters:
         config:     Port agent config, JSON encoded
         timeout:    timeout for command, in milliseconds, defaults to 2000
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/configure
+    Sample: localhost:12572/instrument/api/reference_designator/configure
     '''
     configure = []
     try:
@@ -670,7 +670,7 @@ def c2_instrument_driver_initparams(reference_designator):
     Accepts the following urlencoded parameters:
         config:     Startup config, JSON encoded
         timeout:    timeout for command, in milliseconds, defaults to 2000
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/initparams
+    Sample: localhost:12572/instrument/api/reference_designator/initparams
     '''
     initparams = []
     try:
@@ -691,7 +691,7 @@ def c2_instrument_driver_connect(reference_designator):
     Command the driver to connect to the instrument. Returns json.
     Accepts the following urlencoded parameters:
         timeout: timeout for command, in milliseconds, defaults to 60000
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/connect
+    Sample: localhost:12572/instrument/api/reference_designator/connect
     '''
     connect = [reference_designator]
     try:
@@ -711,7 +711,7 @@ def c2_instrument_driver_disconnect(reference_designator):
     Command the driver to disconnect to the instrument. Returns json.
     Accepts the following urlencoded parameters:
         timeout: timeout for command, in milliseconds, defaults to 60000
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/disconnect
+    Sample: localhost:12572/instrument/api/reference_designator/disconnect
     '''
     disconnect = []
     try:
@@ -731,7 +731,7 @@ def c2_instrument_driver_discover(reference_designator):
     Command the driver to discover the current instrument state. returns json
     Accepts the following urlencoded parameters:
         timeout:    timeout for command, in milliseconds, defaults to 60000
-    Sample: http://host:12572/instrument/api/TEST-TEST-TEST/discover
+    Sample: http://host:12572/instrument/api/reference_designator/discover
     '''
     discover = []
     try:
@@ -749,7 +749,7 @@ def c2_instrument_driver_discover(reference_designator):
 def c2_get_instrument_driver_metadata(reference_designator):
     '''
     Returns the instrument driver metadata. Returns json.
-    Sample: http://host:12572/instrument/api/TEST-TEST-TEST/metadata
+    Sample: http://host:12572/instrument/api/reference_designator/metadata
     '''
     metadata = []
     try:
@@ -766,7 +766,7 @@ def c2_get_instrument_driver_metadata(reference_designator):
 def c2_get_instrument_driver_capabilities(reference_designator):
     '''
     Return the instrument driver capabilities available in the current state. Returns json.
-    Sample: http://host:12572/instrument/api/TEST-TEST-TEST/capabilities
+    Sample: http://host:12572/instrument/api/reference_designator/capabilities
     '''
     capabilities = []
     try:
@@ -783,7 +783,7 @@ def c2_get_instrument_driver_capabilities(reference_designator):
 def c2_get_instrument_driver_state(reference_designator):
     '''
     Return the instrument driver state. Returns json.
-    Sample: http://host:12572/instrument/api/TEST-TEST-TEST/state
+    Sample: http://host:12572/instrument/api/reference_designator/state
     '''
     state = []
     try:
@@ -794,14 +794,15 @@ def c2_get_instrument_driver_state(reference_designator):
     except Exception as err:
         return bad_request(err.message)
 
+#TODO - consider adding GET for single parameter? Discuss.
 #@api.route('/c2/instrument/<string:reference_designator>/resource', methods=['GET'])
-#@api.route('/c2/instrument/<string:reference_designator>/parameters', methods=['GET'])
+@api.route('/c2/instrument/<string:reference_designator>/parameters', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
 def c2_get_instrument_driver_parameters(reference_designator):
     '''
     Return the instrument driver parameters. returns json
-    sample: http://host:12572/instrument/api/TEST-TEST-TEST/resource
+    sample: http://host:12572/instrument/api/reference_designator/resource
     '''
     parameters = []
     try:
@@ -812,8 +813,8 @@ def c2_get_instrument_driver_parameters(reference_designator):
     except Exception as err:
         return bad_request(err.message)
 
-# TODO - this fails to return a response from uframe
-#@api.route('/c2/instrument/<string:reference_designator>/parameters', methods=['POST'])
+
+@api.route('/c2/instrument/<string:reference_designator>/parameters', methods=['POST'])
 #@auth.login_required
 #@scope_required(u'user_admin')
 def c2_set_instrument_driver_parameters(reference_designator):
@@ -822,7 +823,7 @@ def c2_set_instrument_driver_parameters(reference_designator):
     Accepts the following urlencoded parameters:
         resource:   JSON-encoded dictionary of parameter:value pairs
         timeout:    in milliseconds, default value is 60000
-    Sample: http://host:12572/instrument/api/TEST-TEST-TEST/resource
+    Sample: http://host:12572/instrument/api/reference_designator/resource
     '''
     parameters = []
     try:
@@ -901,7 +902,7 @@ def _c2_get_instrument_driver_status(reference_designator):
     Returns response.content as json.
     If the query option "blocking" is specified as true, then this call will block until a state change,
     allowing for a push-like interface for web clients.
-    Sample: http://host:12572/instrument/api/TEST-TEST-TEST
+    Sample: http://host:12572/instrument/api/reference_designator
     '''
     try:
         data = None
@@ -922,7 +923,7 @@ def _c2_get_instrument_driver_status(reference_designator):
 def uframe_get_instrument_driver_status(reference_designator):
     '''
     Returns the uframe response for status of single instrument agent
-    Sample: http://host:12572/instrument/api/TEST-TEST-TEST
+    Sample: http://host:12572/instrument/api/reference_designator
     '''
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
@@ -1013,7 +1014,7 @@ def uframe_start_instrument_agent_and_driver(reference_designator, payload):
         host:       hostname where the driver will be run (currently only localhost supported)
         commandPort:unique port for the zeromq command interface
         eventPort:  unique port for the zeromq event interface
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/start [POST]
+    Sample: localhost:12572/instrument/api/reference_designator/start [POST]
     '''
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
@@ -1054,13 +1055,12 @@ def _c2_instrument_driver_stop(reference_designator):
 def uframe_instrument_driver_stop(reference_designator):
     '''
     Stop an instrument agent and the corresponding driver.
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/stop
+    Sample: localhost:12572/instrument/api/reference_designator/stop
     '''
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, reference_designator])
         #current_app.logger.info("DELETE %s", url)
-        #print "DELETE %s" % url
         response = requests.delete(url, timeout=(timeout, timeout_read), headers=_headers())
         return response
     except:
@@ -1072,7 +1072,7 @@ def _c2_get_instrument_driver_ping(reference_designator):
     Get instrument driver status ('ping'). This initiates a simple callback into
     the instrument driver class from the zeromq wrapper, indicating the driver is still running.
     Does not verify connectivity with the instrument itself.
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/ping
+    Sample: localhost:12572/instrument/api/reference_designator/ping
     '''
     try:
         data = None
@@ -1092,7 +1092,7 @@ def _c2_instrument_driver_initialize(reference_designator):
     '''
     Initialize the instrument driver. Valid only from the disconnected state,
     returns the driver to the unconfigured state. Returns response.content as json.
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/initialize [POST]
+    Sample: localhost:12572/instrument/api/reference_designator/initialize [POST]
     '''
     insufficient_data = 'Insufficient data, or bad data format.'
     message = 'uframe error reported in _c2_instrument_driver_initialize'
@@ -1119,7 +1119,7 @@ def uframe_instrument_driver_initialize(reference_designator):
     '''
     Initialize the instrument driver. Valid only from the disconnected state,
     returns the driver to the unconfigured state.
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/initialize [POST]
+    Sample: localhost:12572/instrument/api/reference_designator/initialize [POST]
     '''
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
@@ -1136,7 +1136,7 @@ def _c2_instrument_driver_configure(reference_designator, data):
     Accepts the following urlencoded parameters:
         config: Port agent config, JSON encoded
         timeout: timeout for command, in milliseconds, defaults to 2000
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/configure [POST]
+    Sample: localhost:12572/instrument/api/reference_designator/configure [POST]
     '''
     insufficient_data = 'Insufficient data, or bad data format.'
     message = 'uframe error reported in _c2_instrument_driver_configure'
@@ -1177,7 +1177,7 @@ def _c2_instrument_driver_initparams(reference_designator, data):
     Accepts the following urlencoded parameters:
         config: Startup config, JSON encoded
         timeout: timeout for command, in milliseconds, defaults to 2000
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/initparams [POST]
+    Sample: localhost:12572/instrument/api/reference_designator/initparams [POST]
     config = {'parameters': None}
     '''
     insufficient_data = 'Insufficient data, or bad data format.'
@@ -1224,13 +1224,12 @@ def uframe_set_instrument_driver_initparams(reference_designator, command, paylo
     Accepts the following urlencoded parameters:
         config: Startup config, JSON encoded
         timeout: timeout for command, in milliseconds, defaults to 2000
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/initparams [POST]
+    Sample: localhost:12572/instrument/api/reference_designator/initparams [POST]
     '''
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, reference_designator, command])
         #current_app.logger.info("POST %s", url)
-        #print '\n-> url: ', url
         urlencode(payload)
         response = requests.post(url, timeout=(timeout, timeout_read),data=payload, headers=_post_headers())
         return response
@@ -1242,7 +1241,7 @@ def _c2_instrument_driver_connect(reference_designator, data):
     Command the driver to connect to the instrument. Returns response.content as json
     Accepts the following urlencoded parameters:
         timeout: timeout for command, in milliseconds, defaults to 60000
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/connect [POST]
+    Sample: localhost:12572/instrument/api/reference_designator/connect [POST]
     '''
     insufficient_data = 'Insufficient data, or bad data format.'
     message = 'uframe error reported in _c2_instrument_driver_connect'
@@ -1282,7 +1281,7 @@ def _c2_instrument_driver_disconnect(reference_designator, data):
     Command the driver to disconnect from the instrument. Returns response.content as json
     Accepts the following urlencoded parameters:
        timeout: timeout for command, in milliseconds, defaults to 60000
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/disconnect todo [POST]
+    Sample: localhost:12572/instrument/api/reference_designator/disconnect [POST]
     '''
     insufficient_data = 'Insufficient data, or bad data format.'
     message = 'uframe error reported in _c2_instrument_driver_disconnect'
@@ -1322,7 +1321,7 @@ def _c2_instrument_driver_discover(reference_designator, data):
     Command the driver to discover the current instrument state. Returns response.content as json
     Accepts the following urlencoded parameters:
        timeout: timeout for command, in milliseconds, defaults to 60000
-    Sample:  localhost:12572/instrument/api/TEST-TEST-TEST/discover todo [POST]
+    Sample:  localhost:12572/instrument/api/reference_designator/discover [POST]
     '''
     insufficient_data = 'Insufficient data, or bad data format.'
     message = 'uframe error reported in c2_instrument_driver_discover'
@@ -1360,7 +1359,7 @@ def _c2_instrument_driver_discover(reference_designator, data):
 def _c2_get_instrument_driver_metadata(reference_designator):
     '''
     Return the instrument driver metadata. Returns response.content as json
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/metadata [GET]
+    Sample: localhost:12572/instrument/api/reference_designator/metadata [GET]
     '''
     try:
         data = None
@@ -1379,7 +1378,7 @@ def _c2_get_instrument_driver_metadata(reference_designator):
 def _c2_get_instrument_driver_capabilities(reference_designator):
     '''
     Return the instrument driver capabilities available in the current state.
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/capabilities [GET]
+    Sample: localhost:12572/instrument/api/reference_designator/capabilities [GET]
     '''
     try:
         data = None
@@ -1398,7 +1397,7 @@ def _c2_get_instrument_driver_capabilities(reference_designator):
 def _c2_get_instrument_driver_state(reference_designator):
     '''
     Return the instrument driver state. Returns response.content as json
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/state [GET]
+    Sample: localhost:12572/instrument/api/reference_designator/state [GET]
     '''
     try:
         data = None
@@ -1418,7 +1417,7 @@ def _c2_get_instrument_driver_state(reference_designator):
 def _c2_get_instrument_driver_parameters(reference_designator):
     '''
     Return the instrument driver parameters. Returns response.content as json
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/resource
+    Sample: localhost:12572/instrument/api/reference_designator/resource
     '''
     try:
         data = None
@@ -1434,13 +1433,21 @@ def _c2_get_instrument_driver_parameters(reference_designator):
     except:
         raise
 
+def convert(data):
+    test = dict([(str(k), v) for k, v in data.items()])
+    for k,v in test.items():
+        if type(v) == type({'a':1}):
+            result = dict([(str(kk), vv) for kk, vv in v.items()])
+            test[k] = result
+    return test
+
 def _c2_set_instrument_driver_parameters(reference_designator, data):
     '''
     Set one or more instrument driver parameters. Returns response.content as json
     Accepts the following urlencoded parameters:
       resource: JSON-encoded dictionary of parameter:value pairs
       timeout:  in milliseconds, default value is 60000
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/resource todo [POST]
+    Sample: localhost:12572/instrument/api/reference_designator/resource [POST]
     '''
     insufficient_data = 'Insufficient data, or bad data format.'
     message = 'uframe error reported in _c2_set_instrument_driver_parameters'
@@ -1450,18 +1457,17 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
             raise Exception(insufficient_data)
         if not data:
             raise Exception(insufficient_data)
+        try:
+            result = convert(data)
+        except Exception as err:
+            raise Exception('dictionary conversion failed; %s' % str(err.message))
 
         # validate arguments required for uframe
         for arg in valid_args:
-            if arg not in data:
-                #print '-> arg %s is required, not in data' % arg
+            if arg not in result:
                 raise Exception(insufficient_data)
-        # create post body using valid_args
-        payload = {}
-        for k,v in data.iteritems():
-            if k in valid_args:
-                payload[k] = v
-        response = uframe_post_instrument_driver_command(reference_designator, 'resource', payload)
+
+        response = _uframe_post_instrument_driver_set(reference_designator, 'resource', result)
         if response.status_code !=200:
             raise Exception(message)
         response_data = None
@@ -1474,9 +1480,30 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
             if response_data:
                 _eval_POST_response_data(response_data, message)
         return response_data
+
     except:
         raise
 
+def _uframe_post_instrument_driver_set(reference_designator, command, data):
+    '''
+    Return the uframe response of instrument driver command and suffix provided for POST.
+    example of suffix = '?command=%22DRIVER_EVENT_STOP_AUTOSAMPLE%22&timeout=60000'
+    '''
+    # info: resource=%7B%22ave%22%3A+20%7D&timeout=6000
+    #
+    try:
+        suffix = urlencode(data)
+        suffix = suffix.replace('%27', '%22')
+        uframe_url, timeout, timeout_read = get_uframe_info()
+        url = "/".join([uframe_url, reference_designator, command])
+        url = "?".join([url, suffix])
+        current_app.logger.info("POST %s", url)
+        response = requests.post(url, timeout=(timeout, timeout_read), headers=_post_headers())
+        return response
+    except Exception as err:
+        return _response_internal_server_error(str(err.message))
+
+#TODO enable kwargs parameter
 def _c2_instrument_driver_execute(reference_designator, data):
     '''
     Command the driver to execute a capability. Returns response.content as json. [POST]
@@ -1515,20 +1542,6 @@ def _c2_instrument_driver_execute(reference_designator, data):
             raise Exception(insufficient_data)
         if not data:
             raise Exception(insufficient_data)
-        '''
-        # validate arguments required for uframe
-        for arg in valid_args:
-            if arg not in data:
-                raise Exception(insufficient_data)
-        '''
-        '''
-        # post body using valid_args
-        payload = {}
-        for k,v in data.iteritems():
-            if k in valid_args:
-                payload[k] = v
-        #print '-> payload: ', payload
-        '''
         # Prepare url suffix for post (todo revisit this)
         suffix = ''
         for k,v in data.iteritems():
@@ -1551,7 +1564,6 @@ def _c2_instrument_driver_execute(reference_designator, data):
                 raise Exception('Malformed data; not in valid json format.')
             # Evaluate response content for error (review 'value' list in response_data )
             if response_data:
-                #print '-> calling _new_eval_POST_response_data'
                 status_code, status_type, status_message = _new_eval_POST_response_data(response_data, message)
                 response_status['status_code'] = status_code
                 response_status['message'] = status_message
@@ -1581,8 +1593,7 @@ def uframe_get_instrument_driver_command(reference_designator, command):
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, reference_designator, command])
-        #print '\n-> url: ', url
-        #current_app.logger.info("GET %s", url)
+        current_app.logger.info("GET %s", url)
         response = requests.get(url, timeout=(timeout, timeout_read))
         return response
     except:
@@ -1594,22 +1605,18 @@ def uframe_post_instrument_driver_command(reference_designator, command, suffix)
     example of suffix = '?command=%22DRIVER_EVENT_STOP_AUTOSAMPLE%22&timeout=60000'
     '''
     try:
-        #print '-> suffix: ', suffix
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, reference_designator, command])
         url = "?".join([url, suffix])
-        #print '-> url: ', url
-        #current_app.logger.info("POST %s", url)
+        current_app.logger.info("POST %s", url)
         response = requests.post(url, timeout=(timeout, timeout_read), headers=_post_headers())
         return response
     except Exception as err:
-        #print '\n--> [POST] exception: ', err.message
         return _response_internal_server_error(str(err.message))
 
 def get_uframe_info(type='instrument'):
     '''
     returns uframe specific configuration information.
-    Namely, uframe_url for {instrument | platform} api, uframe timeout connect and timeout read.
     '''
     if type == 'instrument':
         uframe_url = "".join([current_app.config['UFRAME_INST_URL'], current_app.config['UFRAME_INST_BASE']])
@@ -1639,12 +1646,9 @@ def _post_headers():
 
 def _headers():
     '''
-    urlencoded values for uframe POST.
+    for uframe POST.
     '''
-    return {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-    }
+    return {"Content-Type": "application/json"}
 
 def _eval_POST_response_data(response_data, msg):
     '''
@@ -1771,8 +1775,6 @@ def _get_toc():
                 toc['instruments'] = instrument_list
         return toc
     except Exception as e:
-        #print '\n ***** Exception: ', e.message
-        #raise
         return None
 
 def _get_platforms(array):
@@ -1822,7 +1824,7 @@ def _get_instrument(reference_designator):
 
 def _get_instruments(platform):
     # Returns list of all instruments (dict) for specified platform (reference_designator).
-    instruments = []        # list of disctionaries
+    instruments = []        # list of dictionaries
     oinstruments = []       # list of reference_designators
     dataset = _get_toc()
     _instruments = dataset['instruments']
