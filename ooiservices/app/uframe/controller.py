@@ -40,49 +40,69 @@ import time
 from ooiservices.app.models import PlatformDeployment
 
 def dfs_streams():
-    response = get_uframe_moorings()
-    if response.status_code != 200:
-        current_app.logger.error("Failed to get a valid response from uframe")
-        raise IOError('Failed to get response from uFrame')
-    mooring_list = response.json()
-    platforms = []
-    for mooring in mooring_list:
-        if 'VALIDATE' in mooring:
-            continue  # Don't know what this is, but we don't want it
-        response = get_uframe_platforms(mooring)
-        if response.status_code != 200:
-            continue
-        
-        platform_tmp = [(mooring, p) for p in response.json()]
-        platforms.extend(platform_tmp)
 
-    instruments = []
-    for platform in platforms:
-        response = get_uframe_instruments(*platform)
-        if response.status_code != 200:
-            continue
-        instrument_tmp = [platform + (i,) for i in response.json()]
-        instruments.extend(instrument_tmp)
+    uframe_url, timeout, timeout_read = get_uframe_info()
 
-    stream_types = []
-    for instrument in instruments:
-        response = get_uframe_stream_types(*instrument)
-        if response.status_code != 200:
-            continue
-
-        stream_tmp = [instrument + (s,) for s in response.json()]
-        stream_types.extend(stream_tmp)
+    TOC = uframe_url+'/toc'
 
     streams = []
-    for stream_type in stream_types:
-        response = get_uframe_streams(*stream_type)
-        if response.status_code != 200:
-            continue
 
-        stream_tmp = [stream_type + (s,) for s in response.json()]
-        streams.extend(stream_tmp)
+    toc = requests.get(TOC, timeout=(timeout, timeout_read))
+    toc = toc.json()
+
+    for instrument in toc:
+        
+        parameters_dict = parameters_in_instrument(instrument)
+        streams = data_streams_in_instrument(instrument, parameters_dict, streams)
+
     return streams
 
+def parameters_in_instrument(instrument):
+    parameters_dict = {}
+    parameter_list = []
+   
+    stream_parameters = []
+    stream_variable_type = []
+    stream_units = []
+    stream_variables_shape = []
+   
+    for parameter in instrument['instrument_parameters']:
+        if parameter['shape'].lower() in ['scalar', 'function']:
+            if parameter['stream'] not in parameters_dict.iterkeys():
+
+                parameters_dict[parameter['stream']] = []
+                parameters_dict[parameter['stream']+'_variable_type'] = []
+                parameters_dict[parameter['stream']+'_units'] = []
+                parameters_dict[parameter['stream']+'_variables_shape'] = []
+
+
+            parameters_dict[parameter['stream']].append(parameter['particleKey'])
+            parameters_dict[parameter['stream']+'_variable_type'].append(parameter['type'].lower())
+            parameters_dict[parameter['stream']+'_units'].append(parameter['units'])
+            parameters_dict[parameter['stream']+'_variables_shape'].append(parameter['shape'].lower())
+
+    return parameters_dict
+
+def data_streams_in_instrument(instrument, parameters_dict, streams):
+    for data_stream in instrument['streams']:
+       stream = (
+           instrument['platform_code'],
+           instrument['mooring_code'],
+           instrument['instrument_code'],
+           data_stream['method'],
+           data_stream['stream'],
+           instrument['reference_designator'],
+           data_stream['beginTime'],
+           data_stream['endTime'],
+           parameters_dict[data_stream['stream']],
+           parameters_dict[data_stream['stream']+'_variable_type'],
+           parameters_dict[data_stream['stream']+'_units'],
+           parameters_dict[data_stream['stream']+'_variables_shape']
+           )
+       #current_app.logger.info("GET %s", each['reference_designator'])
+       streams.append(stream)
+
+    return streams
 
 def split_stream_name(ui_stream_name):
     '''
@@ -105,30 +125,19 @@ def iso_to_timestamp(iso8601):
     t = (dt - datetime(1970, 1, 1, tzinfo=pytz.utc)).total_seconds()
     return t
 
-def dict_from_stream(mooring, platform, instrument, stream_type, stream):
+def dict_from_stream(mooring, platform, instrument, stream_type, stream, reference_designator, beginTime, endTime, variables, variable_type, units, variables_shape):
     HOST = str(current_app.config['HOST'])
     PORT = str(current_app.config['PORT'])
     SERVICE_LOCATION = 'http://'+HOST+":"+PORT
+    
     ref = mooring + "-" + platform + "-" + instrument
-    response = get_uframe_stream_metadata_times(ref)    
-
     stream_name = '_'.join([stream_type, stream])
     ref = '-'.join([mooring, platform, instrument])
-    if response.status_code != 200:
-        raise IOError("Failed to get stream contents from uFrame")
-    data = response.json()
+    
     data_dict = {}
-    #sort out the start and end times, as multiple times in a given metadata set
-    if len(data) == 1:   
-        data_dict['start'] = data[0]['beginTime']
-        data_dict['end'] = data[0]['endTime']
-    else:
-        for times in data:
-            if times['method'] == stream_type and times['stream'] == stream:               
-                data_dict['start'] = times['beginTime']
-                data_dict['end'] = times['endTime']
-
-    data_dict['reference_designator'] = data[0]['sensor']
+    data_dict['start'] = beginTime
+    data_dict['end'] = endTime
+    data_dict['reference_designator'] = reference_designator
     data_dict['stream_name'] = stream_name
     data_dict['variables'] = []
     data_dict['variable_types'] = {}
@@ -141,32 +150,11 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream):
                              "netcdf":"/".join([SERVICE_LOCATION, 'uframe/get_netcdf', stream_name, ref]),
                              "profile":"/".join([SERVICE_LOCATION, 'uframe/get_profiles', stream_name, ref])
                             }
-    '''
-    d = get_uframe_instrument_metadata(ref)
-    if d.status_code == 200:                    
-        data1 = d.get_data()
-        data1 = json.loads(data1)
-        data1 = data1['metadata']
-        if len(data)>0:            
-            for field in data1:
-                if field['particleKey'] not in data_dict['variables']: 
-                    if field['shape'].lower() == 'scalar' or field['shape'].lower() == 'function':  
-                        data_dict['variables'].append(field['particleKey'])
-                        data_dict['variable_types'][field['particleKey']] = field['type'].lower()           
-                        data_dict['units'][field['particleKey']] = field['units']
-                        data_dict['variables_shape'][field['particleKey']]= field['shape'].lower()    
-    '''
-    d = get_uframe_instrument_metadata_parameters(ref)
-    if d.status_code == 200:
-        data1 = json.loads(d.content)
-        if len(data1)>0:
-            for field in data1:
-                if field['particleKey'] not in data_dict['variables']:
-                    if field['shape'].lower() == 'scalar' or field['shape'].lower() == 'function':
-                        data_dict['variables'].append(field['particleKey'])
-                        data_dict['variable_types'][field['particleKey']] = field['type'].lower()
-                        data_dict['units'][field['particleKey']] = field['units']
-                        data_dict['variables_shape'][field['particleKey']]= field['shape'].lower()
+    data_dict['variables'] = variables
+    data_dict['variable_type'] = variable_type
+    data_dict['units'] = units
+    data_dict['variables_shape'] = variables_shape
+    
     return data_dict
 
 
@@ -205,32 +193,6 @@ def streams_list():
 
 
 #@cache.memoize(timeout=3600)
-def get_uframe_moorings():
-    '''
-    Lists all the streams
-    '''
-    try:
-        uframe_url, timeout, timeout_read = get_uframe_info()
-        current_app.logger.info("GET %s", uframe_url)
-        response = requests.get(uframe_url, timeout=(timeout, timeout_read))
-        return response
-    except Exception as e:
-        return _response_internal_server_error()
-
-#@cache.memoize(timeout=3600)
-def get_uframe_platforms(mooring):
-    '''
-    Lists all the streams
-    '''
-    try:
-        uframe_url, timeout, timeout_read = get_uframe_info()
-        url = "/".join([uframe_url, mooring])
-        current_app.logger.info("GET %s", uframe_url)
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        return response
-    except Exception as e:
-        return _response_internal_server_error()
-
 @auth.login_required
 @api.route('/get_glider_track/<string:ref>')
 def get_uframe_glider_track(ref):
@@ -260,36 +222,6 @@ def get_uframe_glider_track(ref):
         #return nothing
         return Response(json.dumps({'type': "LineString",'coordinates':[],'note':'AttributeError'}),
                             mimetype='application/json')
-
-#@cache.memoize(timeout=3600)
-def get_uframe_instruments(mooring, platform):
-    '''
-    Lists all the streams
-    '''
-    try:
-        uframe_url, timeout, timeout_read = get_uframe_info()
-        url = "/".join([uframe_url, mooring, platform])
-        current_app.logger.info("GET %s", url)
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        return response
-    except Exception as e:
-        #return internal_server_error('uframe connection cannot be made.' + str(e.message))
-        return _response_internal_server_error()
-
-#@cache.memoize(timeout=3600)
-def get_uframe_stream_types(mooring, platform, instrument):
-    '''
-    Lists all the stream types
-    '''
-    try:
-        uframe_url, timeout, timeout_read = get_uframe_info()
-        url = '/'.join([uframe_url, mooring, platform, instrument])
-        current_app.logger.info("GET %s", url)
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        return response
-    except Exception as e:
-        #return internal_server_error('uframe connection cannot be made. error: %s' %  + str(e.message))
-        return _response_internal_server_error()
 
 #@cache.memoize(timeout=3600)
 def get_uframe_streams(mooring, platform, instrument, stream_type):
@@ -340,7 +272,6 @@ def get_uframe_toc():
         return d
     else:
         return []
-
 
 @api.route('/get_toc')
 @cache.memoize(timeout=1600)
