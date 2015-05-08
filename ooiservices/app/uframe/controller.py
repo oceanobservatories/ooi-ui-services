@@ -37,6 +37,7 @@ from ooiservices.app.main.routes import get_display_name_by_rd
 from ooiservices.app.main.arrays import get_arrays, get_array
 from contextlib import closing
 import time 
+from ooiservices.app.models import PlatformDeployment
 
 def dfs_streams():
     response = get_uframe_moorings()
@@ -324,7 +325,20 @@ def get_uframe_toc():
     uframe_url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_TOC']
     r = requests.get(uframe_url)
     if r.status_code == 200:
-        return r.json()
+        d =  r.json()
+        for row in d:
+            try:
+                instrument_display_name = PlatformDeployment._get_display_name(row['reference_designator'])
+                split_name = instrument_display_name.split(' - ')
+                print row['reference_designator']
+                row['instrument_display_name'] = split_name[-1]
+                row['platform_display_name'] = split_name[0]           
+                row['mooring_display_name'] = split_name[1]
+            except:
+                row['instrument_display_name'] = ""
+                row['platform_display_name'] = ""
+                row['mooring_display_name'] = ""            
+        return d
     else:
         return []
 
