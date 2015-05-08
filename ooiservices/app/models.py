@@ -638,10 +638,6 @@ class PlatformDeployment(db.Model, DictSerializableMixin):
             return array_type + ' ' + array_name + ' ' + site + ' ' + platform + ' - ' + assembly
         else:
             return array_type + ' ' + array_name + ' ' + site + ' ' + platform
-    
-    @classmethod
-    def test(cls):
-        print "hello"
 
     @classmethod
     def _get_display_name(cls, reference_designator):
