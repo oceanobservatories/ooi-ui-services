@@ -22,8 +22,8 @@ import datetime as dt
 # C2 array routes
 # - - - - - - - - - - - - - - - - - - - - - - - -
 @api.route('/c2/arrays', methods=['GET'])
-@auth.login_required
-@scope_required(u'user_admin')
+#@auth.login_required
+#@scope_required(u'user_admin')
 def c2_get_arrays():
     #Get C2 arrays, return list of array abstracts
     list_of_arrays = []
@@ -35,8 +35,8 @@ def c2_get_arrays():
     return jsonify(arrays=list_of_arrays)
 
 @api.route('/c2/array/<string:array_code>/abstract', methods=['GET'])
-@auth.login_required
-@scope_required(u'user_admin')
+#@auth.login_required
+#@scope_required(u'user_admin')
 def c2_get_array_abstract(array_code):
     '''
     Get C2 array abstract (display), return abstract
@@ -66,8 +66,8 @@ def get_array_abstract(array_code):
 
 #TODO get operational status from uframe
 @api.route('/c2/array/<string:array_code>/current_status_display', methods=['GET'])
-@auth.login_required
-@scope_required(u'user_admin')
+#@auth.login_required
+#@scope_required(u'user_admin')
 def c2_get_array_current_status_display(array_code):
     '''
     C2 get array Current Status tab contents, return current_status_display
@@ -103,8 +103,8 @@ def c2_get_array_current_status_display(array_code):
     return jsonify(current_status_display=contents)
 
 @api.route('/c2/array/<string:array_code>/history', methods=['GET'])
-@auth.login_required
-@scope_required(u'user_admin')
+#@auth.login_required
+#@scope_required(u'user_admin')
 def c2_get_array_history(array_code):
     '''
     C2 get array history, return history
@@ -121,8 +121,8 @@ def c2_get_array_history(array_code):
 # C2 platform
 # - - - - - - - - - - - - - - - - - - - - - - - -
 @api.route('/c2/platform/<string:reference_designator>/abstract', methods=['GET'])
-@auth.login_required
-@scope_required(u'user_admin')
+#@auth.login_required
+#@scope_required(u'user_admin')
 def c2_get_platform_abstract(reference_designator):
     #Get C2 platform abstract, return abstract
     response_dict = {}
@@ -138,8 +138,8 @@ def c2_get_platform_abstract(reference_designator):
     return jsonify(abstract=response_dict)
 
 @api.route('/c2/platform/<string:reference_designator>/current_status_display', methods=['GET'])
-@auth.login_required
-@scope_required(u'user_admin')
+#@auth.login_required
+#@scope_required(u'user_admin')
 def c2_get_platform_current_status_display(reference_designator):
     '''
     Get C2 platform Current Status tab contents, return current_status_display.
@@ -172,8 +172,8 @@ def c2_get_platform_current_status_display(reference_designator):
     return jsonify(current_status_display=contents)
 
 @api.route('/c2/platform/<string:reference_designator>/history', methods=['GET'])
-@auth.login_required
-@scope_required(u'user_admin')
+#@auth.login_required
+#@scope_required(u'user_admin')
 def c2_get_platform_history(reference_designator):
     '''
     C2 get platform history
@@ -188,8 +188,8 @@ def c2_get_platform_history(reference_designator):
     return jsonify(history=history)
 
 @api.route('/c2/platform/<string:reference_designator>/ports_display', methods=['GET'])
-@auth.login_required
-@scope_required(u'user_admin')
+#@auth.login_required
+#@scope_required(u'user_admin')
 def c2_get_platform_ports_display(reference_designator):
     '''
     Get C2 platform Ports tab contents, return ports_display ([{},{},...]
@@ -256,8 +256,8 @@ def c2_get_platform_ports_display(reference_designator):
 
 #TODO complete with commands from uframe when platform/api available (post R5)
 @api.route('/c2/platform/<string:reference_designator>/commands', methods=['GET'])
-@auth.login_required
-@scope_required(u'user_admin')
+#@auth.login_required
+#@scope_required(u'user_admin')
 def c2_get_platform_commands(reference_designator):
     #Get C2 platform commands return commands [{},{},...]
     commands = []
@@ -274,8 +274,8 @@ def c2_get_platform_commands(reference_designator):
 # C2 instrument
 # - - - - - - - - - - - - - - - - - - - - - - - -
 @api.route('/c2/instrument/<string:reference_designator>/abstract', methods=['GET'])
-@auth.login_required
-@scope_required(u'user_admin')
+#@auth.login_required
+#@scope_required(u'user_admin')
 def c2_get_instrument_abstract(reference_designator):
     '''
     C2 get instrument abstract
@@ -303,8 +303,8 @@ def c2_get_instrument_abstract(reference_designator):
     return jsonify(abstract=response_dict)
 
 @api.route('/c2/instrument/<string:reference_designator>/history', methods=['GET'])
-@auth.login_required
-@scope_required(u'user_admin')
+#@auth.login_required
+#@scope_required(u'user_admin')
 def c2_get_instrument_history(reference_designator):
     '''
     C2 get instrument history, return history
@@ -319,8 +319,8 @@ def c2_get_instrument_history(reference_designator):
     return jsonify(history=history)
 
 @api.route('/c2/instrument/<string:reference_designator>/ports_display', methods=['GET'])
-@auth.login_required
-@scope_required(u'user_admin')
+#@auth.login_required
+#@scope_required(u'user_admin')
 def c2_get_instrument_ports_display(reference_designator):
     '''
     Get C2 instrument Ports tab contents, return ports_display
@@ -450,7 +450,7 @@ def c2_get_platform_operational_status(reference_designator):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # TODO Read notes here on migration from file based interface to uframe supported interface
 # C2 helper for file data (./ooiuiservices/tests/c2data/*)
-# All file based methods are targeted for migration to uframe base interface.
+# All file based methods are targeted for migration to uframe interface.
 # Each is marked for targeted migration step (A, B, C, etc)
 # migration B - things where we need platform/api or other (rollup from instruments?)
 # migration C - items where it is not clear how to best accomplish (maybe rollup platforms?)
@@ -511,8 +511,8 @@ def json_get_uframe_platform_operational_status(platform):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 @api.route('/c2/instruments/status', methods=['GET'])
-@auth.login_required
-@scope_required(u'user_admin')
+#@auth.login_required
+#@scope_required(u'user_admin')
 def c2_get_instruments_status():
     '''
     # get status of all instrument agents, return json.
@@ -529,8 +529,8 @@ def c2_get_instruments_status():
 
 @api.route('/c2/instrument/<string:reference_designator>/commands', methods=['GET'])
 @api.route('/c2/instrument/<string:reference_designator>/status', methods=['GET'])
-@auth.login_required
-@scope_required(u'user_admin')
+#@auth.login_required
+#@scope_required(u'user_admin')
 def c2_get_instrument_driver_status(reference_designator):
     '''
     Get the current overall state of the specified instrument (id is the reference designator of the instrument).
@@ -732,8 +732,8 @@ def c2_instrument_driver_discover(reference_designator):
         return bad_request(err.message)
 
 @api.route('/c2/instrument/<string:reference_designator>/metadata', methods=['GET'])
-@auth.login_required
-@scope_required(u'user_admin')
+#@auth.login_required
+#@scope_required(u'user_admin')
 def c2_get_instrument_driver_metadata(reference_designator):
     '''
     Returns the instrument driver metadata. Returns json.
@@ -749,8 +749,8 @@ def c2_get_instrument_driver_metadata(reference_designator):
         return bad_request(err.message)
 
 @api.route('/c2/instrument/<string:reference_designator>/capabilities', methods=['GET'])
-@auth.login_required
-@scope_required(u'user_admin')
+#@auth.login_required
+#@scope_required(u'user_admin')
 def c2_get_instrument_driver_capabilities(reference_designator):
     '''
     Return the instrument driver capabilities available in the current state. Returns json.
@@ -766,8 +766,8 @@ def c2_get_instrument_driver_capabilities(reference_designator):
         return bad_request(err.message)
 
 @api.route('/c2/instrument/<string:reference_designator>/state', methods=['GET'])
-@auth.login_required
-@scope_required(u'user_admin')
+#@auth.login_required
+#@scope_required(u'user_admin')
 def c2_get_instrument_driver_state(reference_designator):
     '''
     Return the instrument driver state. Returns json.
@@ -885,8 +885,8 @@ def c2_get_instrument_driver_parameter_values(reference_designator):
         return bad_request(err.message)
 
 @api.route('/c2/instrument/<string:reference_designator>/parameters', methods=['POST'])
-@auth.login_required
-@scope_required(u'user_admin')
+#@auth.login_required
+#@scope_required(u'user_admin')
 def c2_set_instrument_driver_parameters(reference_designator):
     '''
     Set one or more instrument driver parameters. Returns json.
@@ -907,8 +907,8 @@ def c2_set_instrument_driver_parameters(reference_designator):
         return bad_request(message)
 
 @api.route('/c2/instrument/<string:reference_designator>/execute', methods=['POST'])
-@auth.login_required
-@scope_required(u'user_admin')
+#@auth.login_required
+#@scope_required(u'user_admin')
 def c2_instrument_driver_execute(reference_designator):
     '''
     Command the driver to execute a capability. Returns json.
@@ -1077,7 +1077,6 @@ def _c2_instrument_driver_start(reference_designator, data):
                 payload[k] = v
         response = uframe_start_instrument_agent_and_driver(reference_designator, payload)
         if response.status_code != 200:
-            #raise Exception(message)
             raise Exception('(%s) %s' % (str(response.status_code), response.content))
         response_data = None
         if response.content:
@@ -1905,7 +1904,7 @@ def _c2_instrument_driver_execute(reference_designator, data):
 
         response = uframe_post_instrument_driver_command(reference_designator, 'execute', suffix)
         if response.status_code !=200:
-            message = '(%s) execute %s failed, no content returned.' % str(response.status_code, command_name)
+            message = '(%s) execute %s failed.' % (str(response.status_code), command_name)
             if response.content:
                 message = '(%s) %s' % (str(response.status_code), str(response.content))
             raise Exception(message)
@@ -1924,26 +1923,29 @@ def _c2_instrument_driver_execute(reference_designator, data):
         # Add response attribute information to result
         result['response'] = response_status
 
-        # If ACQUIRE command, retrieve status or data contents based on ACQUIRE command type; return in acquire_result
-        # attribute of response.
-        acquire_result = None
-        if executing_acquire_command:
-            try:
-                acquire_result = _get_data_from_stream(reference_designator, command_name)
-                if acquire_result is None:
+        # If command executed successfully, and command is type ACQUIRE, fetch stream contents
+        if result['response']['status_code'] == 200:
+            # If ACQUIRE command, retrieve status or data contents based on ACQUIRE command type; return in acquire_result
+            # attribute of response.
+            acquire_result = None
+            if executing_acquire_command:
+                try:
+                    acquire_result = _get_data_from_stream(reference_designator, command_name)
+                    if acquire_result is None:
+                        response_status['status_code'] = 400
+                        response_status['message'] = '(%s) Failed to retrieve stream contents. ' % command_name
+                except Exception as err:
+                    message = str(err.message)
                     response_status['status_code'] = 400
-                    response_status['message'] = '(%s) Failed to retrieve stream contents. ' % command_name
-            except Exception as err:
-                message = str(err.message)
-                response_status['status_code'] = 400
-                response_status['message'] = message
+                    response_status['message'] = message
 
-            # Populate return status due to failure to obtain stream contents; response_data already populated.
-            if acquire_result is None:
-                result['status'] = response_data
-                result['response'] = response_status
-            else:
-                result['acquire_result'] = acquire_result
+                # Populate return status due to failure to obtain stream contents; response_data already populated.
+                if acquire_result is None:
+                    #result['status'] = response_data
+                    result['response'] = response_status
+                    result['acquire_result'] = []
+                else:
+                    result['acquire_result'] = acquire_result
 
         # Get over_all state, return in status attribute of result
         try:
@@ -1951,6 +1953,8 @@ def _c2_instrument_driver_execute(reference_designator, data):
         except Exception as err:
             status = {}
         result['status'] = status
+
+        #print '\n*** result[response]: ', result['response']
 
         return result
     except:
@@ -2032,13 +2036,32 @@ def _get_data_from_stream(reference_designator, command_name):
         response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream_name,
                                    formatted_start_time, formatted_end_time, dpa_flag)
 
-        if response.status_code != 200:
-            message = 'Failed to retrieve stream (%s) contents.' % stream_name
+        if response is None:
+            message = 'Get stream contents failed for stream (%s).' % stream_name
             raise Exception(message)
-        try:
-            result = response.json()
-        except:
-            message = 'Failed to process stream (%s) contents to json.' % stream_name
+
+        if response.status_code != 200:
+            #if response.content:
+            #    print '\n*** error response.content: ', response.content
+            message = '(%s) Failed to retrieve stream (%s) contents.' % (str(response.status_code), stream_name)
+            raise Exception(message)
+
+        if response.content:
+            try:
+                error_check = json.dumps(response.content)
+                if 'Error' in error_check or 'HTTPConnectionPool' in error_check or 'Read timed out' in error_check:
+                    message = 'Failed to retrieve valid stream (%s) contents; uframe error: %s.' % (stream_name, error_check)
+                    raise Exception(message)
+                else:
+                    try:
+                        result = response.json()
+                    except:
+                        message = 'Failed to process stream (%s) contents to json.' % (stream_name)
+                        raise Exception(message)
+            except:
+                raise
+        else:
+            message = 'Failed to retrieve stream (%s) contents from uframe'
             raise Exception(message)
 
     except Exception as err:
@@ -2087,13 +2110,16 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
         response = requests.get(url, timeout=(timeout, timeout_read))
         if not response:
             message = 'No data available from uFrame for this request.'
+            #print '\n*** message: ', message
             raise Exception(message)
         if response.status_code != 200:
             message = '(%s) failed to retrieve stream contents from uFrame.', response.status_code
+            #print '\n*** message: ', message
             raise Exception(message)
         return response
     except Exception as err:
         message = str(err.message)
+        #print '\n*** (exception) message: ', message
         return _response_internal_server_error(message)
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
