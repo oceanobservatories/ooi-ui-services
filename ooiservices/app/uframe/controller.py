@@ -37,6 +37,7 @@ from ooiservices.app.main.routes import get_display_name_by_rd
 from ooiservices.app.main.arrays import get_arrays, get_array
 from contextlib import closing
 import time 
+from ooiservices.app.models import PlatformDeployment
 
 def dfs_streams():
     response = get_uframe_moorings()
@@ -319,91 +320,34 @@ def get_uframe_stream(mooring, platform, instrument, stream):
     except Exception as e:
         #return internal_server_error('uframe connection cannot be made.' + str(e.message))
         return _response_internal_server_error()
+
+def get_uframe_toc():
+    uframe_url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_TOC']
+    r = requests.get(uframe_url)
+    if r.status_code == 200:
+        d =  r.json()
+        for row in d:
+            try:
+                instrument_display_name = PlatformDeployment._get_display_name(row['reference_designator'])
+                split_name = instrument_display_name.split(' - ')
+                row['instrument_display_name'] = split_name[-1]
+                row['platform_display_name'] = split_name[0]           
+                row['mooring_display_name'] = split_name[1]
+            except:
+                row['instrument_display_name'] = ""
+                row['platform_display_name'] = ""
+                row['mooring_display_name'] = ""            
+        return d
+    else:
+        return []
+
+
 @api.route('/get_toc')
-@cache.memoize(timeout=3600)
+@cache.memoize(timeout=1600)
 def get_toc():
-    """
-    Returns a table of contents based on the uFrame contents
-    Augmented by the UI database for vocabulary and geographic positions
-    :return: json
-    """
-    UFRAME_DATA, timeout, timeout_read = get_uframe_info()
     try:
-        url = "/".join([UFRAME_DATA])
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        if response.status_code == 200:
-            moorings = response.json()
-
-            toc = {}
-            mooring_list = []
-            platform_list = []
-            instrument_list = []
-
-            for mooring in moorings:
-                pd = PlatformDeployment.query.filter_by(reference_designator=mooring).first()
-                pos = 'null'
-                if pd:
-                    pos = pd.geojson
-                mooring_list.append({'reference_designator': mooring,
-                                     'array_code': mooring[:2],
-                                     'display_name': get_display_name_by_rd(mooring),
-                                     'geo_location': pos
-                                     })
-
-                url = "/".join([UFRAME_DATA, mooring])
-                response = requests.get(url, timeout=(timeout, timeout_read))
-                if response.status_code == 200:
-                    platforms = response.json()
-
-                    for platform in platforms:
-                        pd = PlatformDeployment.query.filter_by(reference_designator="-".join([mooring, platform])).first()
-                        pos = 'null'
-                        if pd:
-                            pos = pd.geojson
-
-                        platform_list.append({'reference_designator': "-".join([mooring, platform]),
-                                              'mooring_code': mooring,
-                                              'platform_code': platform,
-                                              'display_name': get_display_name_by_rd("-".join([mooring, platform])),
-                                              'geo_location': pos
-                                              })
-
-                        url = "/".join([UFRAME_DATA, mooring, platform])
-                        response = requests.get(url, timeout=(timeout, timeout_read))
-                        if response.status_code == 200:
-                            instruments = response.json()
-
-                            for instrument in instruments:
-                                url = "/".join([UFRAME_DATA, mooring, platform, instrument, 'metadata'])
-
-                                response = requests.get(url, timeout=(timeout, timeout_read))
-                                if response.status_code == 200:
-                                    instrument_metadata = response.json()
-                                    instrument_parameters = instrument_metadata['parameters']
-                                    parameters = []
-                                    for ip in instrument_parameters:
-                                        pk = ip['particleKey']
-                                        parameters.append(pk)
-
-                                    instrument_streams = instrument_metadata['times']
-
-                                    reference_designator = "-".join([mooring, platform, instrument])
-                                    instrument_list.append({'mooring_code': mooring,
-                                                            'platform_code': platform,
-                                                            'instrument_code': instrument,
-                                                            'reference_designator': reference_designator,
-                                                            'display_name': get_display_name_by_rd(reference_designator=reference_designator),
-                                                            'instrument_parameters': parameters,
-                                                            'streams': instrument_streams
-                                                            })
-                    arrays = Array.query.all()
-                    toc['arrays'] = [array.to_json() for array in arrays]
-                    toc['moorings'] = mooring_list
-                    toc['platforms'] = platform_list
-                    toc['instruments'] = instrument_list
-            return jsonify(toc=toc)
-        return jsonify(toc={}), 404
-
+        data = get_uframe_toc()
+        return jsonify(toc=data)
     except Exception as e:
         return internal_server_error('uframe connection cannot be made.' + str(e.message))
 

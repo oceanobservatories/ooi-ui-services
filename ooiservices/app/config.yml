@@ -15,6 +15,7 @@ COMMON: &common
     UFRAME_URL: 'http://localhost:12575'
     UFRAME_ASSETS_URL: 'http://localhost:12573'
     UFRAME_URL_BASE: '/sensor/inv'
+    UFRAME_TOC: '/sensor/inv/toc'
     UFRAME_INST_URL: 'http://localhost:12572'
     UFRAME_INST_BASE: '/instrument/api'
     UFRAME_PLAT_BASE: '/platform/api'

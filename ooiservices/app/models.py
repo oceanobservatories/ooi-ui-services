@@ -629,7 +629,8 @@ class PlatformDeployment(db.Model, DictSerializableMixin):
         }
         return json_platform_deployment
 
-    def _f_concat_rd(self, array_type, array_name, site, platform, assembly, instrument_name):
+    @classmethod
+    def _f_concat_rd(cls, array_type, array_name, site, platform, assembly, instrument_name):
 
         if assembly is not None and instrument_name is not None:
             return array_type + ' ' + array_name + ' ' + site + ' ' + platform + ' - ' + assembly + ' - ' + instrument_name
@@ -638,7 +639,8 @@ class PlatformDeployment(db.Model, DictSerializableMixin):
         else:
             return array_type + ' ' + array_name + ' ' + site + ' ' + platform
 
-    def _get_display_name(self, reference_designator):
+    @classmethod
+    def _get_display_name(cls, reference_designator):
 
         '''
         sample reference_designators for tests:
@@ -662,7 +664,7 @@ class PlatformDeployment(db.Model, DictSerializableMixin):
             return reference_designator
 
         if rd_len == 8:
-            return self._f_concat_rd(p_n.array_type, p_n.array_name, p_n.site, p_n.platform, None, None)
+            return cls._f_concat_rd(p_n.array_type, p_n.array_name, p_n.site, p_n.platform, None, None)
 
         elif rd_len == 14:
             assy = reference_designator[9:14]
@@ -673,7 +675,7 @@ class PlatformDeployment(db.Model, DictSerializableMixin):
             else:
                 platform_text = p_n.assembly
 
-            return self._f_concat_rd(p_n.array_type, p_n.array_name, p_n.site, p_n.platform, platform_text, None)
+            return cls._f_concat_rd(p_n.array_type, p_n.array_name, p_n.site, p_n.platform, platform_text, None)
 
         elif rd_len == 27:
             inst = reference_designator[18:23]
@@ -687,9 +689,9 @@ class PlatformDeployment(db.Model, DictSerializableMixin):
 
             i_n = Instrumentname.query.filter(Instrumentname.instrument_class == inst).first()
             if not i_n:
-                return self._f_concat_rd(p_n.array_type, p_n.array_name, p_n.site, p_n.platform, platform_text, inst)
+                return cls._f_concat_rd(p_n.array_type, p_n.array_name, p_n.site, p_n.platform, platform_text, inst)
 
-            return self._f_concat_rd(p_n.array_type, p_n.array_name, p_n.site, p_n.platform, platform_text, i_n.display_name)
+            return cls._f_concat_rd(p_n.array_type, p_n.array_name, p_n.site, p_n.platform, platform_text, i_n.display_name)
         return None
 
     def __repr__(self):
