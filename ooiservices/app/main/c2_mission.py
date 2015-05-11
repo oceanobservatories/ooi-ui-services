@@ -18,8 +18,8 @@ from ooiservices.app.main.c2 import _get_platform, _get_instrument, _get_instrum
 # C2 Mission Control - array routes
 # - - - - - - - - - - - - - - - - - - - - - - - -
 @api.route('/c2/array/<string:array_code>/mission_display', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'user_admin')
 def c2_get_array_mission_display(array_code):
     #Get C2 array mission (display), return mission_display (contents of platform Mission tab)
     array = Array.query.filter_by(array_code=array_code).first()
@@ -32,8 +32,8 @@ def c2_get_array_mission_display(array_code):
 # C2 Mission Control - platform
 # - - - - - - - - - - - - - - - - - - - - - - - -
 @api.route('/c2/platform/<string:reference_designator>/mission/instruments_list', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'user_admin')
 def c2_get_platform_mission_instruments_list(reference_designator):
     # C2 get [platform] Mission tab instruments_list, return instruments [{instrument1}, {instrument2}, ...]
     # where each instrument dictionary (is a row in instruments list) contains:
@@ -66,8 +66,8 @@ def c2_get_platform_mission_instruments_list(reference_designator):
     return jsonify(instruments=contents)
 
 @api.route('/c2/platform/<string:reference_designator>/mission_display', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'user_admin')
 def c2_get_platform_mission_display(reference_designator):
     #Get C2 platform Mission tab contents, return mission_display
     mission_display = {}
@@ -80,8 +80,8 @@ def c2_get_platform_mission_display(reference_designator):
 # C2 Mission Control - instrument
 # - - - - - - - - - - - - - - - - - - - - - - - -
 @api.route('/c2/instrument/<string:reference_designator>/mission_display', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'user_admin')
 def c2_get_instrument_mission_display(reference_designator):
     #Get C2 instrument Mission tab contents, return mission_display
     mission_display = {}
@@ -91,8 +91,8 @@ def c2_get_instrument_mission_display(reference_designator):
     return jsonify(mission_display=mission_display)
 
 @api.route('/c2/platform/<string:reference_designator>/mission_selections', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'user_admin')
 def c2_get_platform_mission_selections(reference_designator):
     # C2 get platform Mission tab mission selections content, return mission_selections [{},{}...]
     # return list of platform mission plans
@@ -103,8 +103,8 @@ def c2_get_platform_mission_selections(reference_designator):
     return jsonify(mission_selections=mission_selections)
 
 @api.route('/c2/instrument/<string:reference_designator>/mission_selections', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'user_admin')
 def c2_get_instrument_mission_selections(reference_designator):
     # C2 get instrument Mission tab mission selections content, return mission_selections [{},{}...]
     # return list of instrument mission plans
@@ -115,8 +115,8 @@ def c2_get_instrument_mission_selections(reference_designator):
     return jsonify(mission_selections=mission_selections)
 
 @api.route('/c2/platform/<string:reference_designator>/mission_selection/<string:mission_plan_store>', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'user_admin')
 def c2_get_platform_mission_selection(reference_designator, mission_plan_store):
     # C2 get [platform] selected mission_plan content, return mission_plan
     if not mission_plan_store:
@@ -128,8 +128,8 @@ def c2_get_platform_mission_selection(reference_designator, mission_plan_store):
     return jsonify(mission_plan=mission_plan)
 
 @api.route('/c2/instrument/<string:reference_designator>/mission_selection/<string:mission_plan_store>', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'user_admin')
 def c2_get_instrument_mission_selection(reference_designator, mission_plan_store):
     # C2 get [instrument] selected mission_plan content from store (file, uframe), return mission_plan
     if not mission_plan_store:

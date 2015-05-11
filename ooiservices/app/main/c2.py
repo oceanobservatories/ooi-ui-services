@@ -511,8 +511,8 @@ def json_get_uframe_platform_operational_status(platform):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 @api.route('/c2/instruments/status', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'user_admin')
 def c2_get_instruments_status():
     '''
     # get status of all instrument agents, return json.
@@ -529,8 +529,8 @@ def c2_get_instruments_status():
 
 @api.route('/c2/instrument/<string:reference_designator>/commands', methods=['GET'])
 @api.route('/c2/instrument/<string:reference_designator>/status', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'user_admin')
 def c2_get_instrument_driver_status(reference_designator):
     '''
     Get the current overall state of the specified instrument (id is the reference designator of the instrument).
@@ -732,8 +732,8 @@ def c2_instrument_driver_discover(reference_designator):
         return bad_request(err.message)
 
 @api.route('/c2/instrument/<string:reference_designator>/metadata', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'user_admin')
 def c2_get_instrument_driver_metadata(reference_designator):
     '''
     Returns the instrument driver metadata. Returns json.
@@ -749,8 +749,8 @@ def c2_get_instrument_driver_metadata(reference_designator):
         return bad_request(err.message)
 
 @api.route('/c2/instrument/<string:reference_designator>/capabilities', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'user_admin')
 def c2_get_instrument_driver_capabilities(reference_designator):
     '''
     Return the instrument driver capabilities available in the current state. Returns json.
@@ -766,8 +766,8 @@ def c2_get_instrument_driver_capabilities(reference_designator):
         return bad_request(err.message)
 
 @api.route('/c2/instrument/<string:reference_designator>/state', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'user_admin')
 def c2_get_instrument_driver_state(reference_designator):
     '''
     Return the instrument driver state. Returns json.
@@ -885,8 +885,8 @@ def c2_get_instrument_driver_parameter_values(reference_designator):
         return bad_request(err.message)
 
 @api.route('/c2/instrument/<string:reference_designator>/parameters', methods=['POST'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'user_admin')
 def c2_set_instrument_driver_parameters(reference_designator):
     '''
     Set one or more instrument driver parameters. Returns json.
@@ -907,8 +907,8 @@ def c2_set_instrument_driver_parameters(reference_designator):
         return bad_request(message)
 
 @api.route('/c2/instrument/<string:reference_designator>/execute', methods=['POST'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'user_admin')
 def c2_instrument_driver_execute(reference_designator):
     '''
     Command the driver to execute a capability. Returns json.
