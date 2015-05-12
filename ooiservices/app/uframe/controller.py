@@ -537,7 +537,7 @@ def get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_typ
                     t00 = time.time()
                     idx_c = dataBlock.rfind('}, {')
                     dataBlock = dataBlock[:idx_c]
-                    dataBlock+="}]" 
+                    dataBlock+="} ]" 
                     t11 = time.time()
                     totaln = t11-t00
 
@@ -553,7 +553,11 @@ def get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_typ
             #    dataBlock = dataBlock[:idx_c]
             #    dataBlock+="} ]"
             #    print 'uFrame appended Error Message to Stream',"\n",dataBlock[-3:-1]
-
+            idx_c = dataBlock.rfind('} ]')
+            print idx_c
+            if idx_c == -1:
+                dataBlock+="]"
+            
             return json.loads(dataBlock),200            
         
     except Exception,e: 
