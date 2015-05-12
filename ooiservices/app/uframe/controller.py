@@ -260,11 +260,18 @@ def get_uframe_toc():
         d =  r.json()
         for row in d:
             try:
+                # FIX FOR THE WRONG WAY ROUND
+                temp1 = row['platform_code']
+                temp2 = row['mooring_code']
+                row['mooring_code'] = temp1
+                row['platform_code'] = temp2
+                #
+
                 instrument_display_name = PlatformDeployment._get_display_name(row['reference_designator'])
                 split_name = instrument_display_name.split(' - ')
                 row['instrument_display_name'] = split_name[-1]
-                row['platform_display_name'] = split_name[0]           
-                row['mooring_display_name'] = split_name[1]
+                row['mooring_display_name'] = split_name[0]           
+                row['platform_display_name'] = split_name[1]
             except:
                 row['instrument_display_name'] = ""
                 row['platform_display_name'] = ""
@@ -272,6 +279,63 @@ def get_uframe_toc():
         return d
     else:
         return []
+
+@api.route('/get_structured_toc')
+@cache.memoize(timeout=1600)
+def get_structured_toc():
+    try:
+        mooring_list = []
+        mooring_key = []
+        
+        platform_list = []
+        platform_key = []
+        
+        instrument_list = []                
+        instrument_key = []
+        
+        data = get_uframe_toc()        
+
+        for d in data:
+            if d['reference_designator'] not in instrument_key:
+                instrument_list.append({'array_code':d['reference_designator'][0:2],
+                                        'display_name': d['instrument_display_name'],
+                                        'mooring_code': d['mooring_code'],
+                                        'platform_code': d['platform_code'],
+                                        'instrument_code': d['platform_code'],
+                                        'streams':d['streams'],
+                                        'instrument_parameters':d['instrument_parameters'],
+                                        'reference_designator':d['reference_designator']
+                                     })
+
+                instrument_key.append(d['reference_designator'])
+
+            if d['platform_code'] not in platform_key:
+                platform_list.append({'array_code':d['reference_designator'][0:2],
+                                      'platform_code':d['platform_code'],
+                                      'mooring_code':d['mooring_code'],
+                                      'reference_designator':d['reference_designator'],
+                                      'display_name': d['platform_display_name']
+                                        })
+
+                platform_key.append(d['platform_code'])
+
+            if d['mooring_code'] not in mooring_key:
+                mooring_list.append({'array_code':d['reference_designator'][0:2],
+                                     'mooring_code':d['mooring_code'],
+                                     'platform_code':d['platform_code'],
+                                     'display_name':d['mooring_display_name'],
+                                     'geo_location':[],
+                                     'reference_designator':d['mooring_code']
+                                     })
+
+                mooring_key.append(d['mooring_code'])
+
+        return jsonify(toc={"moorings":mooring_list,
+                            "platforms":platform_list,
+                            "instruments":instrument_list
+                            })
+    except Exception as e:
+        return internal_server_error('uframe connection cannot be made.' + str(e.message))
 
 @api.route('/get_toc')
 @cache.memoize(timeout=1600)
@@ -404,7 +468,7 @@ def get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_typ
                     t00 = time.time()
                     idx_c = dataBlock.rfind('}, {')
                     dataBlock = dataBlock[:idx_c]
-                    dataBlock+="}]" 
+                    dataBlock+="} ]" 
                     t11 = time.time()
                     totaln = t11-t00
 
@@ -420,7 +484,11 @@ def get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_typ
             #    dataBlock = dataBlock[:idx_c]
             #    dataBlock+="} ]"
             #    print 'uFrame appended Error Message to Stream',"\n",dataBlock[-3:-1]
-
+            idx_c = dataBlock.rfind('} ]')
+            print idx_c
+            if idx_c == -1:
+                dataBlock+="]"
+            
             return json.loads(dataBlock),200            
         
     except Exception,e: 

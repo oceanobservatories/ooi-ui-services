@@ -92,8 +92,9 @@ class OOIPlots(object):
                 h = ax.plot(x, y, '--', label=event['class'])
 
             legend = ax.legend()
-            for label in legend.get_texts():
-                label.set_fontsize(10)
+            if legend:
+                for label in legend.get_texts():
+                    label.set_fontsize(10)
 
         # plt.tick_params(axis='both', which='major', labelsize=10)
         if tick_font:
