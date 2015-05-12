@@ -366,7 +366,8 @@ def get_structured_toc():
 
         for d in data:
             if d['reference_designator'] not in instrument_key:
-                instrument_list.append({'display_name': d['instrument_display_name'],
+                instrument_list.append({'array_code':d['reference_designator'][0:2],
+                                        'display_name': d['instrument_display_name'],
                                         'mooring_code': d['mooring_code'],
                                         'platform_code': d['platform_code'],
                                         'instrument_code': d['platform_code'],
@@ -378,7 +379,8 @@ def get_structured_toc():
                 instrument_key.append(d['reference_designator'])
 
             if d['platform_code'] not in platform_key:
-                platform_list.append({'platform_code':d['platform_code'],
+                platform_list.append({'array_code':d['reference_designator'][0:2],
+                                      'platform_code':d['platform_code'],
                                       'mooring_code':d['mooring_code'],
                                       'reference_designator':d['reference_designator'],
                                       'display_name': d['platform_display_name']
@@ -389,6 +391,7 @@ def get_structured_toc():
             if d['mooring_code'] not in mooring_key:
                 mooring_list.append({'array_code':d['reference_designator'][0:2],
                                      'mooring_code':d['mooring_code'],
+                                     'platform_code':d['platform_code'],
                                      'display_name':d['mooring_display_name'],
                                      'geo_location':[],
                                      'reference_designator':d['mooring_code']
