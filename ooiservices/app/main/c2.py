@@ -16,11 +16,11 @@ from urllib import urlencode
 from ooiservices.app.main.errors import bad_request
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.decorators import scope_required
+import datetime as dt
 
 # - - - - - - - - - - - - - - - - - - - - - - - -
 # C2 array routes
 # - - - - - - - - - - - - - - - - - - - - - - - -
-#TODO enable auth and scope
 @api.route('/c2/arrays', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
@@ -34,7 +34,6 @@ def c2_get_arrays():
             list_of_arrays.append(item)
     return jsonify(arrays=list_of_arrays)
 
-#TODO enable auth and scope
 @api.route('/c2/array/<string:array_code>/abstract', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
@@ -65,7 +64,7 @@ def get_array_abstract(array_code):
     '''
     return response_dict
 
-#TODO enable auth and scope; get operational status from uframe
+#TODO get operational status from uframe
 @api.route('/c2/array/<string:array_code>/current_status_display', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
@@ -103,7 +102,6 @@ def c2_get_array_current_status_display(array_code):
             contents.append(array_info[r])
     return jsonify(current_status_display=contents)
 
-#TODO enable auth and scope
 @api.route('/c2/array/<string:array_code>/history', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
@@ -122,7 +120,6 @@ def c2_get_array_history(array_code):
 # - - - - - - - - - - - - - - - - - - - - - - - -
 # C2 platform
 # - - - - - - - - - - - - - - - - - - - - - - - -
-#TODO enable auth and scope
 @api.route('/c2/platform/<string:reference_designator>/abstract', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
@@ -140,7 +137,6 @@ def c2_get_platform_abstract(reference_designator):
         response_dict['operational_status'] = 'Online' #c2_get_platform_operational_status(reference_designator)
     return jsonify(abstract=response_dict)
 
-#TODO enable auth and scope
 @api.route('/c2/platform/<string:reference_designator>/current_status_display', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
@@ -175,7 +171,6 @@ def c2_get_platform_current_status_display(reference_designator):
                 contents.append(platform_info[instrument_reference_designator])
     return jsonify(current_status_display=contents)
 
-#TODO enable auth and scope
 @api.route('/c2/platform/<string:reference_designator>/history', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
@@ -192,7 +187,6 @@ def c2_get_platform_history(reference_designator):
         history = get_history(reference_designator)
     return jsonify(history=history)
 
-#TODO enable auth and scope
 @api.route('/c2/platform/<string:reference_designator>/ports_display', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
@@ -260,8 +254,7 @@ def c2_get_platform_ports_display(reference_designator):
                 contents.append(platform_info[instrument_reference_designator])
     return jsonify(ports_display=contents)
 
-#TODO enable auth and scope
-#TODO complete with commands from uframe platform/api
+#TODO complete with commands from uframe when platform/api available (post R5)
 @api.route('/c2/platform/<string:reference_designator>/commands', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
@@ -280,7 +273,6 @@ def c2_get_platform_commands(reference_designator):
 # - - - - - - - - - - - - - - - - - - - - - - - -
 # C2 instrument
 # - - - - - - - - - - - - - - - - - - - - - - - -
-#TODO enable auth and scope
 @api.route('/c2/instrument/<string:reference_designator>/abstract', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
@@ -288,7 +280,7 @@ def c2_get_instrument_abstract(reference_designator):
     '''
     C2 get instrument abstract
     Modified to support migration to uframe
-    Sample: http://localhost:4000/c2/instrument/CP02PMCI-WFP50-50-CTDPFK001/abstract
+    Sample: http://localhost:4000/c2/instrument/reference_designator/abstract
     '''
     try:
         response_dict = {}
@@ -310,7 +302,6 @@ def c2_get_instrument_abstract(reference_designator):
         return bad_request(err.message)
     return jsonify(abstract=response_dict)
 
-#TODO enable auth and scope
 @api.route('/c2/instrument/<string:reference_designator>/history', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
@@ -327,7 +318,6 @@ def c2_get_instrument_history(reference_designator):
         history = get_history(reference_designator)
     return jsonify(history=history)
 
-#TODO enable auth and scope
 @api.route('/c2/instrument/<string:reference_designator>/ports_display', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
@@ -460,9 +450,8 @@ def c2_get_platform_operational_status(reference_designator):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # TODO Read notes here on migration from file based interface to uframe supported interface
 # C2 helper for file data (./ooiuiservices/tests/c2data/*)
-# All file based methods are targeted for migration to uframe base interface.
+# All file based methods are targeted for migration to uframe interface.
 # Each is marked for targeted migration step (A, B, C, etc)
-# migration A - things that can be accomplished now with instrument/api (4.x)
 # migration B - things where we need platform/api or other (rollup from instruments?)
 # migration C - items where it is not clear how to best accomplish (maybe rollup platforms?)
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -522,8 +511,8 @@ def json_get_uframe_platform_operational_status(platform):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 @api.route('/c2/instruments/status', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'user_admin')
 def c2_get_instruments_status():
     '''
     # get status of all instrument agents, return json.
@@ -540,14 +529,14 @@ def c2_get_instruments_status():
 
 @api.route('/c2/instrument/<string:reference_designator>/commands', methods=['GET'])
 @api.route('/c2/instrument/<string:reference_designator>/status', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'user_admin')
 def c2_get_instrument_driver_status(reference_designator):
     '''
     Get the current overall state of the specified instrument (id is the reference designator of the instrument).
     If the query option "blocking" is specified as true, then this call will block until a state change,
     allowing for a push-like interface for web clients.
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/status
+    Sample: localhost:12572/instrument/api/reference_designator/status
     '''
     status = []
     try:
@@ -557,7 +546,6 @@ def c2_get_instrument_driver_status(reference_designator):
         return jsonify(status)
     except Exception as err:
         return bad_request(err.message)
-        #return jsonify(status)
 
 #@api.route('/c2/instrument/<string:reference_designator>/start', methods=['POST'])
 #@auth.login_required
@@ -574,7 +562,7 @@ def c2_instrument_driver_start(reference_designator):
         eventPort:  unique port for the zeromq event interface
     Pete anticipates that this data will be supplied by asset management and this call will
     no longer require parameters. The action itself will still require a POST call.
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/start
+    Sample: localhost:12572/instrument/api/reference_designator/start
     '''
     start = []
     try:
@@ -592,7 +580,7 @@ def c2_instrument_driver_start(reference_designator):
 def c2_instrument_driver_stop(reference_designator):
     '''
     Stop the specified driver and corresponding agent. Return json.
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/stop
+    Sample: localhost:12572/instrument/api/reference_designator/stop
     '''
     stop = []
     try:
@@ -611,7 +599,7 @@ def c2_get_instrument_driver_ping(reference_designator):
     Get instrument driver status ('ping'). Returns json.
     This initiates a simple callback into the instrument driver class from the zeromq wrapper,
     indicating the driver is still running. Does not verify connectivity with the instrument itself.
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/ping
+    Sample: localhost:12572/instrument/api/reference_designator/ping
     '''
     ping = []
     try:
@@ -629,7 +617,7 @@ def c2_instrument_driver_initialize(reference_designator):
     '''
     Initialize the instrument driver. Valid only from the disconnected state,
     returns the driver to the unconfigured state.
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/initialize
+    Sample: localhost:12572/instrument/api/reference_designator/initialize
     '''
     initialize = []
     try:
@@ -649,7 +637,7 @@ def c2_instrument_driver_configure(reference_designator):
     Accepts the following urlencoded parameters:
         config:     Port agent config, JSON encoded
         timeout:    timeout for command, in milliseconds, defaults to 2000
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/configure
+    Sample: localhost:12572/instrument/api/reference_designator/configure
     '''
     configure = []
     try:
@@ -670,7 +658,7 @@ def c2_instrument_driver_initparams(reference_designator):
     Accepts the following urlencoded parameters:
         config:     Startup config, JSON encoded
         timeout:    timeout for command, in milliseconds, defaults to 2000
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/initparams
+    Sample: localhost:12572/instrument/api/reference_designator/initparams
     '''
     initparams = []
     try:
@@ -691,7 +679,7 @@ def c2_instrument_driver_connect(reference_designator):
     Command the driver to connect to the instrument. Returns json.
     Accepts the following urlencoded parameters:
         timeout: timeout for command, in milliseconds, defaults to 60000
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/connect
+    Sample: localhost:12572/instrument/api/reference_designator/connect
     '''
     connect = [reference_designator]
     try:
@@ -711,7 +699,7 @@ def c2_instrument_driver_disconnect(reference_designator):
     Command the driver to disconnect to the instrument. Returns json.
     Accepts the following urlencoded parameters:
         timeout: timeout for command, in milliseconds, defaults to 60000
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/disconnect
+    Sample: localhost:12572/instrument/api/reference_designator/disconnect
     '''
     disconnect = []
     try:
@@ -731,7 +719,7 @@ def c2_instrument_driver_discover(reference_designator):
     Command the driver to discover the current instrument state. returns json
     Accepts the following urlencoded parameters:
         timeout:    timeout for command, in milliseconds, defaults to 60000
-    Sample: http://host:12572/instrument/api/TEST-TEST-TEST/discover
+    Sample: http://host:12572/instrument/api/reference_designator/discover
     '''
     discover = []
     try:
@@ -744,12 +732,12 @@ def c2_instrument_driver_discover(reference_designator):
         return bad_request(err.message)
 
 @api.route('/c2/instrument/<string:reference_designator>/metadata', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'user_admin')
 def c2_get_instrument_driver_metadata(reference_designator):
     '''
     Returns the instrument driver metadata. Returns json.
-    Sample: http://host:12572/instrument/api/TEST-TEST-TEST/metadata
+    Sample: http://host:12572/instrument/api/reference_designator/metadata
     '''
     metadata = []
     try:
@@ -761,12 +749,12 @@ def c2_get_instrument_driver_metadata(reference_designator):
         return bad_request(err.message)
 
 @api.route('/c2/instrument/<string:reference_designator>/capabilities', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'user_admin')
 def c2_get_instrument_driver_capabilities(reference_designator):
     '''
     Return the instrument driver capabilities available in the current state. Returns json.
-    Sample: http://host:12572/instrument/api/TEST-TEST-TEST/capabilities
+    Sample: http://host:12572/instrument/api/reference_designator/capabilities
     '''
     capabilities = []
     try:
@@ -778,12 +766,12 @@ def c2_get_instrument_driver_capabilities(reference_designator):
         return bad_request(err.message)
 
 @api.route('/c2/instrument/<string:reference_designator>/state', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'user_admin')
 def c2_get_instrument_driver_state(reference_designator):
     '''
     Return the instrument driver state. Returns json.
-    Sample: http://host:12572/instrument/api/TEST-TEST-TEST/state
+    Sample: http://host:12572/instrument/api/reference_designator/state
     '''
     state = []
     try:
@@ -794,14 +782,81 @@ def c2_get_instrument_driver_state(reference_designator):
     except Exception as err:
         return bad_request(err.message)
 
-#@api.route('/c2/instrument/<string:reference_designator>/resource', methods=['GET'])
 #@api.route('/c2/instrument/<string:reference_designator>/parameters', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
 def c2_get_instrument_driver_parameters(reference_designator):
     '''
-    Return the instrument driver parameters. returns json
-    sample: http://host:12572/instrument/api/TEST-TEST-TEST/resource
+    Return the instrument driver parameters and current values for all parameters.
+    sample: http://host:12572/instrument/api/reference_designator/resource
+
+    - call _c2_get_instrument_driver_status, get response_data['parameters'] and response_data['state']:
+            "parameters": {
+                      "ave": {
+                        "description": "Number of measurements for each reported value.",
+                        "direct_access": true,
+                        "display_name": "Measurements per Reported Value",
+                        "get_timeout": 10,
+                        "set_timeout": 10,
+                        "startup": true,
+                        "value": {
+                          "default": 1,
+                          "description": null,
+                          "type": "int"
+                        },
+                        "visibility": "READ_WRITE"
+                      },
+                      "clk": {
+                        "description": "Time in the Real Time Clock.",
+                        "direct_access": false,
+                        "display_name": "Time",
+                        "get_timeout": 10,
+                        "set_timeout": 10,
+                        "startup": false,
+                        "value": {
+                          "description": null,
+                          "type": "string",
+                          "units": "HH:MM:SS"
+                        },
+                        "visibility": "READ_ONLY"
+                      },. . .
+                  }
+            "state": "DRIVER_STATE_COMMAND"
+
+    - check state value, if ok, continue
+    - call _c2_get_instrument_driver_parameter_values to get value, where value is dict of parameter(s) values:
+            "value": {
+                        "ave": 15,
+                        "clk": "21:44:21",
+                        "clk_interval": "00:00:00",
+                        "dat": "05/08/15",
+                        "int": "00:30:00",
+                        "m1d": 55,
+                        "m1s": 2.1e-06,
+                        "m2d": 52,
+                        "m2s": 0.01213,
+                        "m3d": 49,
+                        "m3s": 0.0909,
+                        "man": 0,
+                        "mem": 4095,
+                        "mst": "16:33:02",
+                        "pkt": 0,
+                        "rat": 19200,
+                        "rec": 0,
+                        "seq": 0,
+                        "ser": "BBFL2W-1028",
+                        "set": 0,
+                        "status_interval": "00:00:00",
+                        "ver": "Triplet5.20",
+                        "wiper_interval": "00:00:00"
+                      }
+    - create response, example of response [basic] structure:
+    {
+        "response": { "status_code": 200, "message": "" },
+        "parameters": { ... }
+        "state": "DRIVER_STATE_COMMAND"
+        "value": { ... }
+    }
     '''
     parameters = []
     try:
@@ -812,17 +867,33 @@ def c2_get_instrument_driver_parameters(reference_designator):
     except Exception as err:
         return bad_request(err.message)
 
-# TODO - this fails to return a response from uframe
-#@api.route('/c2/instrument/<string:reference_designator>/parameters', methods=['POST'])
+#@api.route('/c2/instrument/<string:reference_designator>/parameter_values', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'user_admin')
+def c2_get_instrument_driver_parameter_values(reference_designator):
+    '''
+    Return the instrument driver parameter values.
+    sample: http://host:12572/instrument/api/reference_designator/resource
+    '''
+    parameters = []
+    try:
+        data = _c2_get_instrument_driver_parameter_values(reference_designator)
+        if data:
+            parameters = data
+        return jsonify(parameters)
+    except Exception as err:
+        return bad_request(err.message)
+
+@api.route('/c2/instrument/<string:reference_designator>/parameters', methods=['POST'])
+@auth.login_required
+@scope_required(u'user_admin')
 def c2_set_instrument_driver_parameters(reference_designator):
     '''
     Set one or more instrument driver parameters. Returns json.
     Accepts the following urlencoded parameters:
         resource:   JSON-encoded dictionary of parameter:value pairs
         timeout:    in milliseconds, default value is 60000
-    Sample: http://host:12572/instrument/api/TEST-TEST-TEST/resource
+    Sample: http://host:12572/instrument/api/reference_designator/resource
     '''
     parameters = []
     try:
@@ -832,11 +903,12 @@ def c2_set_instrument_driver_parameters(reference_designator):
             parameters = data
         return jsonify(parameters)
     except Exception as err:
-        return bad_request(err.message)
+        message = str(err.message)
+        return bad_request(message)
 
 @api.route('/c2/instrument/<string:reference_designator>/execute', methods=['POST'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'user_admin')
 def c2_instrument_driver_execute(reference_designator):
     '''
     Command the driver to execute a capability. Returns json.
@@ -888,7 +960,6 @@ def uframe_get_instruments_status():
     '''
     try:
         url, timeout, timeout_read = get_uframe_info()
-        current_app.logger.info("GET %s", url)
         response = requests.get(url, timeout=(timeout, timeout_read))
         return response
     except:
@@ -898,22 +969,43 @@ def uframe_get_instruments_status():
 def _c2_get_instrument_driver_status(reference_designator):
     '''
     Get the current overall state of the specified instrument (id is the reference designator of the instrument).
-    Returns response.content as json.
     If the query option "blocking" is specified as true, then this call will block until a state change,
     allowing for a push-like interface for web clients.
-    Sample: http://host:12572/instrument/api/TEST-TEST-TEST
+    Sample: http://host:12572/instrument/api/reference_designator
     '''
     try:
+        # Get status
         data = None
         response = uframe_get_instrument_driver_status(reference_designator)
         if response.status_code !=200:
-            raise Exception('error retrieving instrument overall state from uframe')
-            #data = {}
+            raise Exception('Error retrieving instrument overall state from uframe.')
         if response.content:
             try:
                 data = json.loads(response.content)
             except:
                 raise Exception('Malformed data; not in valid json format.')
+
+        # Get all parameter values for instruments
+        status = data
+        state = None
+        # verify parameters and state are in status
+        if 'state' in status['value']:
+            state = status['value']['state']
+
+        # Update status to reflect parameter values for all instruments
+        # Have instrument state, continue
+        if state is not None:
+            if state != "DRIVER_BUSY_EVENT":
+                try:
+                    result = _c2_get_instrument_driver_parameter_values(reference_designator)
+                except Exception as err:
+                    result = None
+                    message = str(err.message)
+                if result:
+                    if 'value' in result:
+                        if isinstance(result['value'], dict):
+                            status['value']['parameters'] = result['value']
+
         return data
     except:
         raise
@@ -922,16 +1014,16 @@ def _c2_get_instrument_driver_status(reference_designator):
 def uframe_get_instrument_driver_status(reference_designator):
     '''
     Returns the uframe response for status of single instrument agent
-    Sample: http://host:12572/instrument/api/TEST-TEST-TEST
+    Sample: http://host:12572/instrument/api/reference_designator
     '''
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, reference_designator])
-        current_app.logger.info("GET %s", url)
         response = requests.get(url, timeout=(timeout, timeout_read))
         return response
-    except:
-        return _response_internal_server_error()
+    except Exception as err:
+        message = str(err.message)
+        return _response_internal_server_error(message)
 
 def _c2_instrument_driver_start(reference_designator, data):
     '''
@@ -985,7 +1077,6 @@ def _c2_instrument_driver_start(reference_designator, data):
                 payload[k] = v
         response = uframe_start_instrument_agent_and_driver(reference_designator, payload)
         if response.status_code != 200:
-            #raise Exception(message)
             raise Exception('(%s) %s' % (str(response.status_code), response.content))
         response_data = None
         if response.content:
@@ -1013,12 +1104,11 @@ def uframe_start_instrument_agent_and_driver(reference_designator, payload):
         host:       hostname where the driver will be run (currently only localhost supported)
         commandPort:unique port for the zeromq command interface
         eventPort:  unique port for the zeromq event interface
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/start [POST]
+    Sample: localhost:12572/instrument/api/reference_designator/start [POST]
     '''
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, reference_designator])
-        #current_app.logger.info("POST %s", url)
         urlencode(payload)
         response = requests.post(url, timeout=(timeout, timeout_read), data=json.dumps(payload), headers=_post_headers())
         return response
@@ -1054,13 +1144,11 @@ def _c2_instrument_driver_stop(reference_designator):
 def uframe_instrument_driver_stop(reference_designator):
     '''
     Stop an instrument agent and the corresponding driver.
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/stop
+    Sample: localhost:12572/instrument/api/reference_designator/stop
     '''
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, reference_designator])
-        #current_app.logger.info("DELETE %s", url)
-        #print "DELETE %s" % url
         response = requests.delete(url, timeout=(timeout, timeout_read), headers=_headers())
         return response
     except:
@@ -1072,13 +1160,13 @@ def _c2_get_instrument_driver_ping(reference_designator):
     Get instrument driver status ('ping'). This initiates a simple callback into
     the instrument driver class from the zeromq wrapper, indicating the driver is still running.
     Does not verify connectivity with the instrument itself.
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/ping
+    Sample: localhost:12572/instrument/api/reference_designator/ping
     '''
     try:
         data = None
         response = uframe_get_instrument_driver_command(reference_designator, 'ping')
         if response.status_code !=200:
-            raise Exception('error retrieving instrument driver ping from uframe')
+            raise Exception('Error retrieving instrument driver ping from uframe.')
         if response.content:
             try:
                 data = json.loads(response.content)
@@ -1092,7 +1180,7 @@ def _c2_instrument_driver_initialize(reference_designator):
     '''
     Initialize the instrument driver. Valid only from the disconnected state,
     returns the driver to the unconfigured state. Returns response.content as json.
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/initialize [POST]
+    Sample: localhost:12572/instrument/api/reference_designator/initialize [POST]
     '''
     insufficient_data = 'Insufficient data, or bad data format.'
     message = 'uframe error reported in _c2_instrument_driver_initialize'
@@ -1119,12 +1207,11 @@ def uframe_instrument_driver_initialize(reference_designator):
     '''
     Initialize the instrument driver. Valid only from the disconnected state,
     returns the driver to the unconfigured state.
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/initialize [POST]
+    Sample: localhost:12572/instrument/api/reference_designator/initialize [POST]
     '''
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, reference_designator, 'initialize'])
-        current_app.logger.info("POST %s", url)
         response = requests.post(url, timeout=(timeout, timeout_read), headers=_post_headers())
         return response
     except:
@@ -1132,11 +1219,11 @@ def uframe_instrument_driver_initialize(reference_designator):
 
 def _c2_instrument_driver_configure(reference_designator, data):
     '''
-    Configure the instrument driver. Returns response.content as json
+    Configure the instrument driver.
     Accepts the following urlencoded parameters:
         config: Port agent config, JSON encoded
         timeout: timeout for command, in milliseconds, defaults to 2000
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/configure [POST]
+    Sample: localhost:12572/instrument/api/reference_designator/configure [POST]
     '''
     insufficient_data = 'Insufficient data, or bad data format.'
     message = 'uframe error reported in _c2_instrument_driver_configure'
@@ -1173,11 +1260,11 @@ def _c2_instrument_driver_configure(reference_designator, data):
 
 def _c2_instrument_driver_initparams(reference_designator, data):
     '''
-    Configure the instrument driver startup parameters. Returns response.content as json
+    Configure the instrument driver startup parameters.
     Accepts the following urlencoded parameters:
         config: Startup config, JSON encoded
         timeout: timeout for command, in milliseconds, defaults to 2000
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/initparams [POST]
+    Sample: localhost:12572/instrument/api/reference_designator/initparams [POST]
     config = {'parameters': None}
     '''
     insufficient_data = 'Insufficient data, or bad data format.'
@@ -1224,13 +1311,11 @@ def uframe_set_instrument_driver_initparams(reference_designator, command, paylo
     Accepts the following urlencoded parameters:
         config: Startup config, JSON encoded
         timeout: timeout for command, in milliseconds, defaults to 2000
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/initparams [POST]
+    Sample: localhost:12572/instrument/api/reference_designator/initparams [POST]
     '''
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, reference_designator, command])
-        #current_app.logger.info("POST %s", url)
-        #print '\n-> url: ', url
         urlencode(payload)
         response = requests.post(url, timeout=(timeout, timeout_read),data=payload, headers=_post_headers())
         return response
@@ -1239,10 +1324,10 @@ def uframe_set_instrument_driver_initparams(reference_designator, command, paylo
 
 def _c2_instrument_driver_connect(reference_designator, data):
     '''
-    Command the driver to connect to the instrument. Returns response.content as json
+    Command the driver to connect to the instrument.
     Accepts the following urlencoded parameters:
         timeout: timeout for command, in milliseconds, defaults to 60000
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/connect [POST]
+    Sample: localhost:12572/instrument/api/reference_designator/connect [POST]
     '''
     insufficient_data = 'Insufficient data, or bad data format.'
     message = 'uframe error reported in _c2_instrument_driver_connect'
@@ -1279,10 +1364,10 @@ def _c2_instrument_driver_connect(reference_designator, data):
 
 def _c2_instrument_driver_disconnect(reference_designator, data):
     '''
-    Command the driver to disconnect from the instrument. Returns response.content as json
+    Command the driver to disconnect from the instrument.
     Accepts the following urlencoded parameters:
        timeout: timeout for command, in milliseconds, defaults to 60000
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/disconnect todo [POST]
+    Sample: localhost:12572/instrument/api/reference_designator/disconnect [POST]
     '''
     insufficient_data = 'Insufficient data, or bad data format.'
     message = 'uframe error reported in _c2_instrument_driver_disconnect'
@@ -1319,10 +1404,10 @@ def _c2_instrument_driver_disconnect(reference_designator, data):
 
 def _c2_instrument_driver_discover(reference_designator, data):
     '''
-    Command the driver to discover the current instrument state. Returns response.content as json
+    Command the driver to discover the current instrument state.
     Accepts the following urlencoded parameters:
        timeout: timeout for command, in milliseconds, defaults to 60000
-    Sample:  localhost:12572/instrument/api/TEST-TEST-TEST/discover todo [POST]
+    Sample:  localhost:12572/instrument/api/reference_designator/discover [POST]
     '''
     insufficient_data = 'Insufficient data, or bad data format.'
     message = 'uframe error reported in c2_instrument_driver_discover'
@@ -1359,14 +1444,15 @@ def _c2_instrument_driver_discover(reference_designator, data):
 
 def _c2_get_instrument_driver_metadata(reference_designator):
     '''
-    Return the instrument driver metadata. Returns response.content as json
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/metadata [GET]
+    Return the instrument driver metadata.
+    Sample: localhost:12572/instrument/api/reference_designator/metadata [GET]
     '''
     try:
         data = None
         response = uframe_get_instrument_driver_command(reference_designator, 'metadata')
         if response.status_code !=200:
-            raise Exception('error retrieving instrument metadata from uframe')
+            if response.content:
+                raise Exception('Error retrieving instrument metadata from uframe.')
         if response.content:
             try:
                 data = json.loads(response.content)
@@ -1379,13 +1465,13 @@ def _c2_get_instrument_driver_metadata(reference_designator):
 def _c2_get_instrument_driver_capabilities(reference_designator):
     '''
     Return the instrument driver capabilities available in the current state.
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/capabilities [GET]
+    Sample: localhost:12572/instrument/api/reference_designator/capabilities [GET]
     '''
     try:
         data = None
         response = uframe_get_instrument_driver_command(reference_designator, 'capabilities')
         if response.status_code !=200:
-            raise Exception('error retrieving instrument capabilities from uframe')
+            raise Exception('Error retrieving instrument capabilities from uframe.')
         if response.content:
             try:
                 data = json.loads(response.content)
@@ -1397,8 +1483,8 @@ def _c2_get_instrument_driver_capabilities(reference_designator):
 
 def _c2_get_instrument_driver_state(reference_designator):
     '''
-    Return the instrument driver state. Returns response.content as json
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/state [GET]
+    Return the instrument driver state.
+    Sample: localhost:12572/instrument/api/reference_designator/state [GET]
     '''
     try:
         data = None
@@ -1414,34 +1500,250 @@ def _c2_get_instrument_driver_state(reference_designator):
     except:
         raise
 
-# TODO - no response from uframe (/id/resource)
 def _c2_get_instrument_driver_parameters(reference_designator):
     '''
-    Return the instrument driver parameters. Returns response.content as json
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/resource
+    Return the instrument driver response, state, parameters and parameter values.
+    Sample: localhost:12572/instrument/api/reference_designator/resource
+    - call _c2_get_instrument_driver_status, get response_data['parameters'] and response_data['state']:
+            "parameters": {
+                      "ave": {
+                        "description": "Number of measurements for each reported value.",
+                        "direct_access": true,
+                        "display_name": "Measurements per Reported Value",
+                        "get_timeout": 10,
+                        "set_timeout": 10,
+                        "startup": true,
+                        "value": {
+                          "default": 1,
+                          "description": null,
+                          "type": "int"
+                        },
+                        "visibility": "READ_WRITE"
+                      },
+                      "clk": {
+                        "description": "Time in the Real Time Clock.",
+                        "direct_access": false,
+                        "display_name": "Time",
+                        "get_timeout": 10,
+                        "set_timeout": 10,
+                        "startup": false,
+                        "value": {
+                          "description": null,
+                          "type": "string",
+                          "units": "HH:MM:SS"
+                        },
+                        "visibility": "READ_ONLY"
+                      },. . .
+                  }
+            "state": "DRIVER_STATE_COMMAND"
+
+    - check state value, if ok, continue
+    - call _c2_get_instrument_driver_parameter_values to get value, where value is dict of parameter(s) values:
+            "value": {
+                        "ave": 15,
+                        "clk": "21:44:21",
+                        "clk_interval": "00:00:00",
+                        "dat": "05/08/15",
+                        "int": "00:30:00",
+                        "m1d": 55,
+                        "m1s": 2.1e-06,
+                        "m2d": 52,
+                        "m2s": 0.01213,
+                        "m3d": 49,
+                        "m3s": 0.0909,
+                        "man": 0,
+                        "mem": 4095,
+                        "mst": "16:33:02",
+                        "pkt": 0,
+                        "rat": 19200,
+                        "rec": 0,
+                        "seq": 0,
+                        "ser": "BBFL2W-1028",
+                        "set": 0,
+                        "status_interval": "00:00:00",
+                        "ver": "Triplet5.20",
+                        "wiper_interval": "00:00:00"
+                      }
+    - create response, example of response [basic] structure:
+    {
+        "response": { "status_code": 200, "message": "" },
+        "parameters": { ... }
+        "state": "DRIVER_STATE_COMMAND"
+        "value": { ... }
+    }
+    '''
+    result = {}
+    response_status = {}
+    response_status['status_code'] = 200
+    response_status['message'] = ""
+    try:
+        data = {}
+        # Get instrument status, retrieve parameters and state
+        try:
+            status = _c2_get_instrument_driver_status(reference_designator)
+        except:
+            status = None
+
+        state = None
+        # Error: unable to obtain current instrument status; retry
+        if status is None:
+            response_status['status_code'] = 400
+            response_status['message'] = "unable to obtain instrument parameters and state; retry."
+            data['response'] = response_status
+            data['value'] = {}
+            data['parameters'] = {}
+            data['state'] = ""
+            return data
+
+        # Have instrument status, continue
+        else:
+            data = {}
+            # verify parameters and state are in status
+            status_value = status['value']
+            if 'parameters' in status['value']['metadata'] and 'state' in status['value']:
+                if 'parameters' in status['value']['metadata']:
+                    data['parameters'] = status['value']['metadata']['parameters']
+                if 'state' in status_value:
+                    data['state'] = status['value']['state']
+                    state = status['value']['state']
+            # missing parameters and state, set response_status accordingly (error)
+            else:
+                response_status['status_code'] = 400
+                response_status['message'] = "unable to obtain instrument parameters and state; retry."
+                data['response'] = response_status
+                data['value'] = {}
+                data['parameters'] = {}
+                data['state'] = ""
+                return data
+
+        # Error: instrument state not defined; retry
+        if state is None:
+            response_status['status_code'] = 400
+            response_status['message'] = "unable to determine instrument state; retry."
+            data['response'] = response_status
+            data['value'] = {}
+            return data
+        # Have instrument state, continue
+        else:
+            if state == "DRIVER_STATE_COMMAND":
+                try:
+                    result = _c2_get_instrument_driver_parameter_values(reference_designator)
+                    if result is None:
+                        raise Exception('unable to retrieve instrument driver parameter values')
+                except Exception as err:
+                    message = str(err.message)
+                if result:
+                    if 'value' in result:
+                        if isinstance(result['value'], dict):
+                            data['value'] = result['value']
+                        else:
+                            response_status['status_code'] = 400
+                            response_status['message'] = "unable to obtain instrument parameter values; retry."
+                            data['response'] = response_status
+                            data['value'] = {}
+                            return data
+            # Error: Not able to retrieve parameter values at this time due to instrument state
+            else:
+                response_status['status_code'] = 400
+                response_status['message'] = "instrument state (%s); unable to obtain parameter values; retry." % state
+                data['response'] = response_status
+                data['value'] = {}
+                return data
+
+        data['response'] = response_status
+        return data
+
+    except Exception as err:
+        raise
+
+def _c2_get_instrument_driver_parameter_values(reference_designator):
+    '''
+    Return the instrument driver parameter values.
+    Sample: localhost:12572/instrument/api/reference_designator/resource with data dictionary.
+        {
+        u'cmd': {   u'args': [u'DRIVER_PARAMETER_ALL'],
+                    u'cmd': u'get_resource',
+                    u'kwargs': {}},
+        u'time': 1431106176.695633,
+        u'transaction_id': 361,
+        u'type': u'DRIVER_AYSNC_EVENT_REPLY',
+        u'value':   {
+                    u'ave': 20,
+                    u'clk': u'17:24:57',
+                    u'clk_interval': u'00:00:00',
+                    u'dat': u'05/08/15',
+                    u'int': u'00:30:00',
+                    u'm1d': 55,
+                    u'm1s': 2.1e-06,
+                    u'm2d': 52,
+                    u'm2s': 0.01213,
+                    u'm3d': 49,
+                    u'm3s': 0.0909,
+                    u'man': 0,
+                    u'mem': 4095,
+                    u'mst': u'16:33:02',
+                    u'pkt': 0,
+                    u'rat': 19200,
+                    u'rec': 0,
+                    u'seq': 0,
+                    u'ser': u'BBFL2W-1028',
+                    u'set': 0,
+                    u'status_interval': u'00:00:00',
+                    u'ver': u'Triplet5.20',
+                    . . .
+                    }
+        }
+
     '''
     try:
         data = None
-        response = uframe_get_instrument_driver_command(reference_designator, 'resource')
+        response = uframe_get_instrument_driver_parameter_values(reference_designator, 'resource')
         if response.status_code !=200:
-            raise Exception('error retrieving instrument driver resource (parameters) from uframe')
+            message = 'error retrieving instrument driver resource (parameters) from uframe'
+            raise Exception(message)
         if response.content:
             try:
                 data = json.loads(response.content)
             except:
                 raise Exception('Malformed data; not in valid json format.')
         return data
-    except:
+    except Exception as err:
         raise
+
+def uframe_get_instrument_driver_parameter_values(reference_designator, command):
+    '''
+    Return the uframe response of instrument command resource with payload provided for GET
+    '''
+    try:
+        uframe_url, timeout, timeout_read = get_uframe_info()
+        url = "/".join([uframe_url, reference_designator, command])
+        response = requests.get(url, timeout=(timeout, timeout_read),
+                                data={'resource': json.dumps('DRIVER_PARAMETER_ALL')})
+        return response
+    except Exception as err:
+        message = str(err.message)
+        return _response_internal_server_error(message)
+
+def convert(data):
+    test = dict([(str(k), v) for k, v in data.items()])
+    for k,v in test.items():
+        if type(v) == type({'a':1}):
+            result = dict([(str(kk), vv) for kk, vv in v.items()])
+            test[k] = result
+    return test
 
 def _c2_set_instrument_driver_parameters(reference_designator, data):
     '''
-    Set one or more instrument driver parameters. Returns response.content as json
+    Set one or more instrument driver parameters.
     Accepts the following urlencoded parameters:
       resource: JSON-encoded dictionary of parameter:value pairs
       timeout:  in milliseconds, default value is 60000
-    Sample: localhost:12572/instrument/api/TEST-TEST-TEST/resource todo [POST]
+    Sample: localhost:12572/instrument/api/reference_designator/resource [POST]
     '''
+    result = {}
+    response_status = {}
+    response_status['status_code'] = 200
+    response_status['message'] = ""
     insufficient_data = 'Insufficient data, or bad data format.'
     message = 'uframe error reported in _c2_set_instrument_driver_parameters'
     valid_args = [ 'resource', 'timeout']
@@ -1450,36 +1752,68 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
             raise Exception(insufficient_data)
         if not data:
             raise Exception(insufficient_data)
+        try:
+            payload = convert(data)
+        except Exception as err:
+            raise Exception('dictionary conversion failed; %s' % str(err.message))
 
         # validate arguments required for uframe
         for arg in valid_args:
-            if arg not in data:
-                #print '-> arg %s is required, not in data' % arg
+            if arg not in payload:
                 raise Exception(insufficient_data)
-        # create post body using valid_args
-        payload = {}
-        for k,v in data.iteritems():
-            if k in valid_args:
-                payload[k] = v
-        response = uframe_post_instrument_driver_command(reference_designator, 'resource', payload)
+
+        response = _uframe_post_instrument_driver_set(reference_designator, 'resource', payload)
         if response.status_code !=200:
+            if response.content:
+                message = '(%s) %s' % (str(response.status_code), str(response.content))
             raise Exception(message)
-        response_data = None
         if response.content:
             try:
                 response_data = json.loads(response.content)
-            except:
+            except Exception as err:
                 raise Exception('Malformed data; not in valid json format.')
-            # Evaluate response content for error in 'value' list
+            # Evaluate response content for error (review 'value' list in response_data )
             if response_data:
-                _eval_POST_response_data(response_data, message)
-        return response_data
-    except:
+                status_code, status_type, status_message = _eval_POST_response_data(response_data, message)
+                response_status['status_code'] = status_code
+                response_status['message'] = status_message
+
+        # Add response attribute information to result
+        result['response'] = response_status
+        # Get current over_all state, return in status attribute of result
+        try:
+            status = _c2_get_instrument_driver_status(reference_designator)
+        except:
+            status = {}
+        result['status'] = status
+
+        return result
+    except Exception as err:
         raise
 
+def _uframe_post_instrument_driver_set(reference_designator, command, data):
+    '''
+    Return the uframe response of instrument driver command and suffix provided for POST.
+    example of suffix = '?command=%22DRIVER_EVENT_STOP_AUTOSAMPLE%22&timeout=60000'
+    '''
+    # info: resource=%7B%22ave%22%3A+20%7D&timeout=6000
+    #
+    try:
+        suffix = urlencode(data)
+        suffix = suffix.replace('%27', '%22')
+        uframe_url, timeout, timeout_read = get_uframe_info()
+        url = "/".join([uframe_url, reference_designator, command])
+        url = "?".join([url, suffix])
+        response = requests.post(url, timeout=(timeout, timeout_read), headers=_post_headers())
+        return response
+    except Exception as err:
+        message = str(err.message)
+        return _response_internal_server_error(message)
+
+#TODO enable kwargs parameter
 def _c2_instrument_driver_execute(reference_designator, data):
     '''
-    Command the driver to execute a capability. Returns response.content as json. [POST]
+    Command the driver to execute a capability. [POST]
     Accepts the following urlencoded parameters:
        command: capability to execute
        kwargs:  JSON-encoded dictionary specifying any necessary keyword arguments for the command
@@ -1487,7 +1821,8 @@ def _c2_instrument_driver_execute(reference_designator, data):
 
     json response is constructed from /status response (as attribute 'status') and a 'response' attribute, whose format is:
         "response" : {"status_code": int, "message": ""}
-    Example:
+
+    Example of response structure:
         {
             "response": { "status_code": 200, "message": "" },
             "status":
@@ -1499,6 +1834,33 @@ def _c2_instrument_driver_execute(reference_designator, data):
               },
               ...
             }
+        }
+
+    In the case of ACQUIRE commands (DRIVER_EVENT_ACQUIRE_STATUS, DRIVER_EVENT_ACQUIRE_SAMPLE),
+    the status block in the response contains execution results in ['status']['cmd']value[1].
+        {
+          "response": {
+            "message": "",
+            "status_code": 200
+          },
+          "status": {
+            "cmd": {
+              "args": [
+                "DRIVER_EVENT_ACQUIRE_STATUS"
+              ],
+              "cmd": "execute_resource",
+              "kwargs": {}
+            },
+            "time": 1431086557.084415,
+            "transaction_id": 196,
+            "type": "DRIVER_AYSNC_EVENT_REPLY",
+            "value": [
+              null,
+              "Ser BBFL2W-1028\r\nVer Triplet5.20\r\nAve 7\r\nPkt 0\r\nM1d 55\r\nM2d 52\r\nM3d 49\r\nM1s
+              2.100E-06\r\nM2s 1.213E-02\r\nM3s 9.090E-02\r\nSeq 0\r\nRat 19200\r\nSet 0\r\nRec 0\r\nMan 0\r\nInt
+              00:30:00\r\nDat 05/08/15\r\nClk 12:02:36\r\nMst 16:33:02\r\nMem 4095"
+            ]
+          }
         }
     '''
     result = {}
@@ -1515,59 +1877,250 @@ def _c2_instrument_driver_execute(reference_designator, data):
             raise Exception(insufficient_data)
         if not data:
             raise Exception(insufficient_data)
-        '''
-        # validate arguments required for uframe
-        for arg in valid_args:
-            if arg not in data:
-                raise Exception(insufficient_data)
-        '''
-        '''
-        # post body using valid_args
-        payload = {}
-        for k,v in data.iteritems():
-            if k in valid_args:
-                payload[k] = v
-        #print '-> payload: ', payload
-        '''
         # Prepare url suffix for post (todo revisit this)
         suffix = ''
+        command_name = None
+        executing_acquire_command = False
         for k,v in data.iteritems():
             if k in valid_args:
                 if k == 'command':
                     quote = quote_value
+                    command_name = v
                 else:
                     quote = ''
                 suffix += k + '=' + quote + str(v) + quote + '&'
         suffix = suffix.strip('&')
+        fetch_data = False
+        if 'ACQUIRE' in command_name:
+            executing_acquire_command = True
+            if 'SAMPLE' in command_name:
+                fetch_data = True
+            elif 'STATUS' in command_name:
+                fetch_data = False
+            else:
+                # probably should just fetch status and failover silently. discuss.
+                executing_acquire_command = False
+                message = 'unknown ACQUIRE command: %s; return None: ' % command_name
+
         response = uframe_post_instrument_driver_command(reference_designator, 'execute', suffix)
         if response.status_code !=200:
+            message = '(%s) execute %s failed.' % (str(response.status_code), command_name)
             if response.content:
                 message = '(%s) %s' % (str(response.status_code), str(response.content))
             raise Exception(message)
+        response_data = None
         if response.content:
             try:
                 response_data = json.loads(response.content)
-            except:
+            except Exception as err:
                 raise Exception('Malformed data; not in valid json format.')
             # Evaluate response content for error (review 'value' list in response_data )
             if response_data:
-                #print '-> calling _new_eval_POST_response_data'
-                status_code, status_type, status_message = _new_eval_POST_response_data(response_data, message)
+                status_code, status_type, status_message = _eval_POST_response_data(response_data, message)
                 response_status['status_code'] = status_code
                 response_status['message'] = status_message
 
         # Add response attribute information to result
         result['response'] = response_status
-        # Get current over_all state, return in status attribute of result
+
+        # If command executed successfully, and command is type ACQUIRE, fetch stream contents
+        if result['response']['status_code'] == 200:
+            # If ACQUIRE command, retrieve status or data contents based on ACQUIRE command type; return in acquire_result
+            # attribute of response.
+            acquire_result = None
+            if executing_acquire_command:
+                try:
+                    acquire_result = _get_data_from_stream(reference_designator, command_name)
+                    if acquire_result is None:
+                        response_status['status_code'] = 400
+                        response_status['message'] = '(%s) Failed to retrieve stream contents. ' % command_name
+                except Exception as err:
+                    message = str(err.message)
+                    response_status['status_code'] = 400
+                    response_status['message'] = message
+
+                # Populate return status due to failure to obtain stream contents; response_data already populated.
+                if acquire_result is None:
+                    #result['status'] = response_data
+                    result['response'] = response_status
+                    result['acquire_result'] = []
+                else:
+                    result['acquire_result'] = acquire_result
+
+        # Get over_all state, return in status attribute of result
         try:
             status = _c2_get_instrument_driver_status(reference_designator)
-        except:
+        except Exception as err:
             status = {}
         result['status'] = status
+
+        #print '\n*** result[response]: ', result['response']
 
         return result
     except:
         raise
+
+def _get_data_from_stream(reference_designator, command_name):
+
+    if not reference_designator:
+        raise exception('reference_designator empty')
+    if not command_name:
+        raise exception('command_name empty')
+
+    result = None
+    try:
+        # [default] command name: DRIVER_EVENT_ACQUIRE_SAMPLE, fetch contents from 'data' stream
+        stream_key = 'data'
+
+        # command name: DRIVER_EVENT_ACQUIRE_STATUS, fetch contents from 'status' stream
+        if 'STATUS' in command_name:
+            stream_key = 'status'
+
+        # Get request info: stream types
+        stream_types = None
+        mooring, platform, instrument = reference_designator.split('-', 2)
+        response = get_uframe_stream_types(mooring, platform, instrument)
+        if response.status_code != 200:
+            message = 'Failed to retrieve stream types.'
+            raise Exception(message)
+        try:
+            stream_types = response.json()
+        except:
+            message = 'Failed to process stream types to json.'
+            raise Exception(message)
+
+        # Process stream types list and identify target stream name;
+        stream_type = None
+        # If only one stream type, use it
+        if len(stream_types) > 0:
+            if len(stream_types) == 1:
+                stream_type = stream_types[0]
+            # multiple stream_types - walk until find first instance of stream name to satisfy request (revisit!)
+            else:
+                #print '\n -- multiple stream types - violation of agreed upon interface rules! discuss.'
+                stream_type = stream_types[0]
+        else:
+            # error, no stream_types to process
+            message = 'Failed to retrieve stream names.'
+            raise Exception(message)
+
+        # for stream_type, fetch stream names
+        response = get_uframe_streams(mooring, platform, instrument, stream_type)
+        if response.status_code != 200:
+            message = 'Failed to retrieve stream names.'
+            raise Exception(message)
+        try:
+            stream_names = response.json()
+        except:
+            message = 'Failed to process stream names to json.'
+            raise Exception(message)
+
+        # Process stream names list and identify target stream name based on ACQUIRE request type
+        stream_name = None
+        for stream in stream_names:
+            if stream_key in stream:
+                stream_name = stream
+                break
+
+        if stream_name is None:
+            message = 'Failed to identify stream name to process \'%s\' request.' % command_name
+            raise Exception(message)
+
+        # Prepare to retrieve stream contents for past 60 seconds
+        X = 60
+        end_time = dt.datetime.now()
+        start_time = end_time - dt.timedelta(seconds=X)
+        formatted_end_time = end_time.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        formatted_start_time = start_time.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        dpa_flag = '0'
+        response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream_name,
+                                   formatted_start_time, formatted_end_time, dpa_flag)
+
+        if response is None:
+            message = 'Get stream contents failed for stream (%s).' % stream_name
+            raise Exception(message)
+
+        if response.status_code != 200:
+            #if response.content:
+            #    print '\n*** error response.content: ', response.content
+            message = '(%s) Failed to retrieve stream (%s) contents.' % (str(response.status_code), stream_name)
+            raise Exception(message)
+
+        if response.content:
+            try:
+                error_check = json.dumps(response.content)
+                if 'Error' in error_check or 'HTTPConnectionPool' in error_check or 'Read timed out' in error_check:
+                    message = 'Failed to retrieve valid stream (%s) contents; uframe error: %s.' % (stream_name, error_check)
+                    raise Exception(message)
+                else:
+                    try:
+                        result = response.json()
+                    except:
+                        message = 'Failed to process stream (%s) contents to json.' % (stream_name)
+                        raise Exception(message)
+            except:
+                raise
+        else:
+            message = 'Failed to retrieve stream (%s) contents from uframe'
+            raise Exception(message)
+
+    except Exception as err:
+        message = str(err.message)
+        raise Exception(message)
+
+    return result
+
+def get_uframe_stream_types(mooring, platform, instrument):
+    '''
+    Lists all the stream types
+    '''
+    try:
+        uframe_url, timeout, timeout_read = get_uframe_data_info()
+        url = '/'.join([uframe_url, mooring, platform, instrument])
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        return response
+    except Exception as err:
+        message = str(err.message)
+        return _response_internal_server_error(message)
+
+def get_uframe_streams(mooring, platform, instrument, stream_type):
+    '''
+    Lists all the streams
+    '''
+    try:
+        uframe_url, timeout, timeout_read = get_uframe_data_info()
+        url = '/'.join([uframe_url, mooring, platform, instrument, stream_type])
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        return response
+    except Exception as err:
+        message = str(err.message)
+        return _response_internal_server_error(message)
+
+def get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag):
+    """
+    Gets the bounded stream contents, start_time and end_time need to be datetime objects; returns Respnse object.
+    """
+    try:
+        if dpa_flag == '0':
+            query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
+        else:
+            query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
+        uframe_url, timeout, timeout_read = get_uframe_data_info()
+        url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if not response:
+            message = 'No data available from uFrame for this request.'
+            #print '\n*** message: ', message
+            raise Exception(message)
+        if response.status_code != 200:
+            message = '(%s) failed to retrieve stream contents from uFrame.', response.status_code
+            #print '\n*** message: ', message
+            raise Exception(message)
+        return response
+    except Exception as err:
+        message = str(err.message)
+        #print '\n*** (exception) message: ', message
+        return _response_internal_server_error(message)
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1581,12 +2134,11 @@ def uframe_get_instrument_driver_command(reference_designator, command):
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, reference_designator, command])
-        #print '\n-> url: ', url
-        #current_app.logger.info("GET %s", url)
         response = requests.get(url, timeout=(timeout, timeout_read))
         return response
-    except:
-        return _response_internal_server_error()
+    except Exception as err:
+        message = str(err.message)
+        return _response_internal_server_error(message)
 
 def uframe_post_instrument_driver_command(reference_designator, command, suffix):
     '''
@@ -1594,22 +2146,18 @@ def uframe_post_instrument_driver_command(reference_designator, command, suffix)
     example of suffix = '?command=%22DRIVER_EVENT_STOP_AUTOSAMPLE%22&timeout=60000'
     '''
     try:
-        #print '-> suffix: ', suffix
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, reference_designator, command])
         url = "?".join([url, suffix])
-        #print '-> url: ', url
-        #current_app.logger.info("POST %s", url)
         response = requests.post(url, timeout=(timeout, timeout_read), headers=_post_headers())
         return response
     except Exception as err:
-        #print '\n--> [POST] exception: ', err.message
-        return _response_internal_server_error(str(err.message))
+        message = str(err.message)
+        return _response_internal_server_error(message)
 
 def get_uframe_info(type='instrument'):
     '''
-    returns uframe specific configuration information.
-    Namely, uframe_url for {instrument | platform} api, uframe timeout connect and timeout read.
+    returns uframe instrument/api specific configuration information. (port 12572)
     '''
     if type == 'instrument':
         uframe_url = "".join([current_app.config['UFRAME_INST_URL'], current_app.config['UFRAME_INST_BASE']])
@@ -1619,9 +2167,18 @@ def get_uframe_info(type='instrument'):
     timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
     return uframe_url, timeout, timeout_read
 
+def get_uframe_data_info():
+    '''
+    returns uframe data configuration information. (port 12576)
+    '''
+    uframe_url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+    timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
+    timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
+    return uframe_url, timeout, timeout_read
+
 def _response_internal_server_error(msg=None):
     # internal error returned as response object
-    message = json.dumps('"error" : "uframe connection cannot be made."')
+    message = json.dumps('"error" : "uframe request failed."')
     if msg:
         message = json.dumps(msg)
     response = make_response()
@@ -1634,23 +2191,20 @@ def _post_headers():
     '''
     urlencoded values for uframe POST.
     '''
-    #return {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
     return {"Content-Type": "application/x-www-form-urlencoded"}
 
 def _headers():
     '''
-    urlencoded values for uframe POST.
+    for uframe POST.
     '''
-    return {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-    }
+    return {"Content-Type": "application/json"}
 
+'''
 def _eval_POST_response_data(response_data, msg):
-    '''
-    Evaluate the value dictionary from uframe POST response data.
-    Return error code, type and message if applicable.
-    '''
+
+    #Evaluate the value dictionary from uframe POST response data.
+    #Return error code, type and message if applicable.
+
     try:
         value = None
         type = None
@@ -1664,10 +2218,10 @@ def _eval_POST_response_data(response_data, msg):
                 get_int = int(  str(value[0]).decode("utf-8")  )
             except:
                 return
-            # Process error message from uframe (stored in value dictionary
+            # Process error message from uframe (stored in value dictionary)
             if value[0] != 200:
-                if msg:
-                    current_app.logger.info("POST %s", msg)
+                #if msg:
+                #    current_app.logger.info("POST %s" % msg)
                 if type:
                     raise Exception('(%s, %s) %s' % (str(value[0]),type, value[1]))
                 else:
@@ -1675,8 +2229,8 @@ def _eval_POST_response_data(response_data, msg):
         return
     except:
         raise
-
-def _new_eval_POST_response_data(response_data, msg=None):
+'''
+def _eval_POST_response_data(response_data, msg=None):
     '''
     Evaluate the value dictionary from uframe POST response data.
     Return error code, type and message.
@@ -1701,21 +2255,19 @@ def _new_eval_POST_response_data(response_data, msg=None):
                     message = '(%s, %s) %s' % (str(value[0]), type, value[1])
                 else:
                     message = '(%s) %s' % (str(value[0]), value[1])
-                current_app.logger.info("POST %s", message)
                 return value[0], type, message
         else:
             if not msg:
                 msg = 'value attribute not available in response data from uframe.'
-            current_app.logger.info("POST %s", msg)
             return 500, None, msg
     except:
         raise
-
+'''
 def server_read_timeout_error(message):
     response = jsonify({'error': 'server read timeout error', 'message': message})
-    current_app.logger.info('error: 500 - %s' % message)
     response.status_code = 500
     return response
+'''
 
 @cache.memoize(timeout=3600)
 def _get_toc():
@@ -1771,8 +2323,6 @@ def _get_toc():
                 toc['instruments'] = instrument_list
         return toc
     except Exception as e:
-        #print '\n ***** Exception: ', e.message
-        #raise
         return None
 
 def _get_platforms(array):
@@ -1822,7 +2372,7 @@ def _get_instrument(reference_designator):
 
 def _get_instruments(platform):
     # Returns list of all instruments (dict) for specified platform (reference_designator).
-    instruments = []        # list of disctionaries
+    instruments = []        # list of dictionaries
     oinstruments = []       # list of reference_designators
     dataset = _get_toc()
     _instruments = dataset['instruments']
