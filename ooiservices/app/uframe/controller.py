@@ -270,8 +270,8 @@ def get_uframe_toc():
                 instrument_display_name = PlatformDeployment._get_display_name(row['reference_designator'])
                 split_name = instrument_display_name.split(' - ')
                 row['instrument_display_name'] = split_name[-1]
-                row['platform_display_name'] = split_name[0]           
-                row['mooring_display_name'] = split_name[1]
+                row['mooring_display_name'] = split_name[0]           
+                row['platform_display_name'] = split_name[1]
             except:
                 row['instrument_display_name'] = ""
                 row['platform_display_name'] = ""
