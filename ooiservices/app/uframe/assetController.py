@@ -13,7 +13,7 @@ from ooiservices.app import cache
 import json
 import requests
 import re
-
+import datetime
 
 #Default number of times to retry the connection:
 requests.adapters.DEFAULT_RETRIES = 2
@@ -202,6 +202,44 @@ def _associate_events(id):
 	d['startDate'] = row['startDate']
         result.append(d)
 
+    return result
+
+def _get_events_by_ref_des(ref_des):
+    #Create the container for the processed response
+    result = []
+    temp_dict = {}
+    #variables used in loop
+    platform = ""
+    mooring = ""
+    instrument = ""
+
+    #Get all the events to begin searching though...
+    uframe_obj = uFrameEventCollection()
+    data = uframe_obj.to_json()
+    for row in data:
+        try:
+            if  row['referenceDesignator']['subsite'] is not None:
+                platform = row['referenceDesignator']['subsite']
+            if row['referenceDesignator']['node'] is not None:
+                mooring = row['referenceDesignator']['node']
+            if row['referenceDesignator']['sensor'] is not None:  
+                instrument = row['referenceDesignator']['sensor']
+            concat_ref_des =  '-'.join([platform, mooring, instrument])
+            if concat_ref_des ==  request.args.get('ref_des'):
+                temp_dict['id'] = row['eventId']
+                temp_dict['ref_des'] = concat_ref_des
+                temp_dict['start_date'] = datetime.datetime.fromtimestamp(int(row['startDate']/1000)).strftime('%Y-%m-%d %H:%M:%S')
+                temp_dict['class'] = row['@class']
+                temp_dict['event_description'] = row['eventDescription']
+                temp_dict['event_type'] = row['eventType']
+                temp_dict['notes'] = row['notes']
+                temp_dict['url'] =  url_for('uframe.get_event', id=row['eventId'])
+                temp_dict['uframe_url'] = current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (uframe_obj.__endpoint__, row['eventId'])
+                result.append(temp_dict)
+                temp_dict = ""
+        except (KeyError, TypeError):
+            pass
+    result = jsonify({ 'events' : result })
     return result
 
 class uFrameAssetCollection(object):
@@ -662,32 +700,40 @@ def update_asset(id):
 @api.route('/events', methods=['GET'])
 def get_events():
     '''
-    Listing GET request of all events.  This method is cached for 1 hour.
+    -- M@C 05/12/2015
+    Added to support event query on stream data.
     '''
-    #Manually set up the cache
-    cached = cache.get('event_list')
-    if cached:
-        return cached
-    #set up all the contaners.
-    data = {}
-    #create uframe instance, and fetch the data.
-    uframe_obj = uFrameEventCollection()
-    data = uframe_obj.to_json()
-    try:
-        for row in data:
-            row['class'] = row.pop('@class')
-            row.update({'url': url_for('uframe.get_event', id=row['eventId']),
-                'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (uframe_obj.__endpoint__, row['eventId'])})
-            row.pop('asset')
-        #parse the result and assign ref_des as top element.
-    except (KeyError, TypeError, AttributeError):
-        pass
+    if 'ref_des' in request.args:
+        events = _get_events_by_ref_des(request.args.get('ref_des'))
+        return events
+    else:        
+        '''
+        Listing GET request of all events.  This method is cached for 1 hour.
+        '''
+        #Manually set up the cache
+        cached = cache.get('event_list')
+        if cached:
+            return cached
+        #set up all the contaners.
+        data = {}
+        #create uframe instance, and fetch the data.
+        uframe_obj = uFrameEventCollection()
+        data = uframe_obj.to_json()
+        try:
+            for row in data:
+                row['class'] = row.pop('@class')
+                row.update({'url': url_for('uframe.get_event', id=row['eventId']),
+                    'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (uframe_obj.__endpoint__, row['eventId'])})
+                row.pop('asset')
+            #parse the result and assign ref_des as top element.
+        except (KeyError, TypeError, AttributeError):
+            pass
 
-    result = jsonify({ 'events' : data })
-    if "error" not in data:
-        cache.set('event_list', result, timeout=CACHE_TIMEOUT)
+        result = jsonify({ 'events' : data })
+        if "error" not in data:
+            cache.set('event_list', result, timeout=CACHE_TIMEOUT)
 
-    return result
+        return result
 
 
 #Read (object)
@@ -707,55 +753,6 @@ def get_event(id):
     except (KeyError, TypeError):
         pass
     return jsonify(**data)
-
-#Read (object)
-@api.route('/events/<string:ref_des>', methods=['GET'])
-def get_events_by_ref_des(ref_des):
-    '''
-    Return all the events and their cooresponding asset ID when
-    provided a reference designator (Logical Instrument).
-    '''
-    #Setup the cache, just in case
-    cached = cache.get('events_by_ref_des')
-    if cached:
-        return cached
-
-    #Create the container for the processed response
-    result = []
-    temp_dict = {}
-    #variables used in loop
-    platform = ""
-    mooring = ""
-    instrument = ""
-
-    #Get all the events to begin searching though...
-    uframe_obj = uFrameEventCollection()
-    data = uframe_obj.to_json()
-    for row in data:
-        try:
-            if  row['referenceDesignator']['subsite'] is not None:
-                platform = row['referenceDesignator']['subsite']
-            if row['referenceDesignator']['node'] is not None:
-                mooring = row['referenceDesignator']['node']
-            if row['referenceDesignator']['sensor'] is not None:  
-                instrument = row['referenceDesignator']['sensor']
-            concat_ref_des =  '-'.join([platform, mooring, instrument])
-            if concat_ref_des == ref_des:
-                temp_dict['ref_des'] = concat_ref_des
-                temp_dict['start_date'] = row['startDate']
-                temp_dict['class'] = row['@class']
-                temp_dict['event_description'] = row['eventDescription']
-                temp_dict['event_type'] = row['eventType']
-                temp_dict['notes'] = row['notes']
-                temp_dict['url'] =  url_for('uframe.get_event', id=row['eventId'])
-                temp_dict['uframe_url'] = current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (uframe_obj.__endpoint__, row['eventId'])
-                result.append(temp_dict)
-                temp_dict = ""
-        except:
-            pass 
-    result = jsonify({ 'events' : result })
-    return result
-
 
 #Create
 @auth.login_required

@@ -19,7 +19,7 @@ from urllib import urlencode
 # data ones
 from ooiservices.app.uframe.data import get_data, COSMO_CONSTANT
 from ooiservices.app.uframe.plotting import generate_plot
-from ooiservices.app.uframe.assetController import get_events_by_ref_des
+from ooiservices.app.uframe.assetController import _get_events_by_ref_des
 from datetime import datetime
 from dateutil.parser import parse as parse_date
 import requests
@@ -635,7 +635,7 @@ def get_svg_plot(instrument, stream):
     events = {}
     if use_event:
         try:
-            response = get_events_by_ref_des(instrument[0])
+            response = _get_events_by_ref_des(instrument[0])
             events = json.loads(response.data)
         except Exception as err:
             current_app.logger.exception(str(err.message))
