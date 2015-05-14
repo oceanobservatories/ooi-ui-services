@@ -10,6 +10,7 @@ from ooiservices.app.uframe.windrose import WindroseAxes
 import matplotlib.dates as mdates
 from matplotlib.ticker import FuncFormatter
 import seawater as sw
+from matplotlib.dates import datestr2num
 
 axis_font_default = {'fontname': 'Calibri',
                      'size': '14',
@@ -87,7 +88,7 @@ class OOIPlots(object):
         if events:
             y = ax.get_ylim()
             for event in events['events']:
-                time = num2date(float(event['start_date'])/1000, units='seconds since 1970-01-01 00:00:00', calendar='gregorian')
+                time = datestr2num(event['start_date']) 
                 x = np.array([time, time])
                 h = ax.plot(x, y, '--', label=event['class'])
 

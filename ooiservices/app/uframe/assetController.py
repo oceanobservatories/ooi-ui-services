@@ -14,6 +14,7 @@ import json
 import requests
 import re
 import datetime
+from netCDF4 import num2date
 
 #Default number of times to retry the connection:
 requests.adapters.DEFAULT_RETRIES = 2
@@ -225,10 +226,10 @@ def _get_events_by_ref_des(ref_des):
             if row['referenceDesignator']['sensor'] is not None:  
                 instrument = row['referenceDesignator']['sensor']
             concat_ref_des =  '-'.join([platform, mooring, instrument])
-            if concat_ref_des ==  request.args.get('ref_des'):
+            if concat_ref_des ==  ref_des:
                 temp_dict['id'] = row['eventId']
                 temp_dict['ref_des'] = concat_ref_des
-                temp_dict['start_date'] = datetime.datetime.fromtimestamp(int(row['startDate']/1000)).strftime('%Y-%m-%d %H:%M:%S')
+                temp_dict['start_date'] = num2date(float(row['startDate'])/1000, units='seconds since 1970-01-01 00:00:00', calendar='gregorian') 
                 temp_dict['class'] = row['@class']
                 temp_dict['event_description'] = row['eventDescription']
                 temp_dict['event_type'] = row['eventType']
