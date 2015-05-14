@@ -213,22 +213,20 @@ def _get_events_by_ref_des(ref_des):
     platform = ""
     mooring = ""
     instrument = ""
+    ref_des_check = ""
 
     #Get all the events to begin searching though...
     uframe_obj = uFrameEventCollection()
     data = uframe_obj.to_json()
     for row in data:
         try:
-            if  row['referenceDesignator']['subsite'] is not None:
-                platform = row['referenceDesignator']['subsite']
-            if row['referenceDesignator']['node'] is not None:
-                mooring = row['referenceDesignator']['node']
-            if row['referenceDesignator']['sensor'] is not None:  
-                instrument = row['referenceDesignator']['sensor']
-            concat_ref_des =  '-'.join([platform, mooring, instrument])
-            if concat_ref_des ==  ref_des:
+            if row['asset']['metaData']:
+                for metaData in row['asset']['metaData']:
+                    if metaData['key'] == 'Ref Des':
+                        ref_des_check = metaData['value']
+            if ref_des_check == ref_des:
                 temp_dict['id'] = row['eventId']
-                temp_dict['ref_des'] = concat_ref_des
+                temp_dict['ref_des'] = ref_des_check
                 temp_dict['start_date'] = num2date(float(row['startDate'])/1000, units='seconds since 1970-01-01 00:00:00', calendar='gregorian') 
                 temp_dict['class'] = row['@class']
                 temp_dict['event_description'] = row['eventDescription']
@@ -237,7 +235,7 @@ def _get_events_by_ref_des(ref_des):
                 temp_dict['url'] =  url_for('uframe.get_event', id=row['eventId'])
                 temp_dict['uframe_url'] = current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (uframe_obj.__endpoint__, row['eventId'])
                 result.append(temp_dict)
-                temp_dict = ""
+                temp_dict = {}
         except (KeyError, TypeError):
             pass
     result = jsonify({ 'events' : result })
@@ -751,6 +749,8 @@ def get_event(id):
     data = uframe_obj.to_json(id)
     try:
         data['class'] = data.pop('@class')
+        data['startDate'] = num2date(float(data['startDate'])/1000, units='seconds since 1970-01-01 00:00:00', calendar='gregorian') 
+        data['endDate'] = num2date(float(data['endDate'])/1000, units='seconds since 1970-01-01 00:00:00', calendar='gregorian') 
     except (KeyError, TypeError):
         pass
     return jsonify(**data)
