@@ -13,20 +13,18 @@ from ooiservices.app.models import Annotation, User
 from ooiservices.app.decorators import scope_required
 from ooiservices.app.main.errors import forbidden, conflict
 from datetime import datetime
+from dateutil.parser import parse as date_parse
 
 import json
 
 #List all annotations.
 @api.route('/annotation')
 def get_annotations():
-    if 'stream_name' in request.args:
-        annotations = Annotation.query.filter_by(stream_name=request.args.get('stream_name'))
-    else:
-        annotations = Annotation.query.all()
-    return jsonify( {'annotations' : [annotation.to_json() for annotation in annotations] })
+    annotations = Annotation.query.all()
+    return jsonify( {'annotations' : [annotation.serialize() for annotation in annotations] })
 
 #List an annotation by id
-@api.route('/annotation/<string:id>')
+@api.route('/annotation/<int:id>')
 def get_annotation(id):
     annotation = Annotation.query.filter_by(user_name=id).first_or_404()
     return jsonify(annotation.to_json())
@@ -38,15 +36,25 @@ def get_annotation(id):
 def create_annotation():
     try:
         data = json.loads(request.data)        
-        annotation = Annotation.from_json(data)
-        annotation.created_time = datetime.now()
-        annotation.modified_time = datetime.now()
-        annotation.user_name = g.current_user.user_name
-        db.session.add(annotation)
+        # Let PSQL assign the timestamp
+        if 'created_time' in data:
+            del data['created_time']
+
+        # Convert the ISO-8601 to Python datetime
+        if 'start_time' in data:
+            data['start_time'] = date_parse(data['start_time'])
+
+        if 'end_time' in data:
+            data['end_time'] = date_parse(data['end_time'])
+
+        # Regardless of what was posted, the current user is assigned
+        data['user_id'] = g.current_user.id
+
+        annotation = Annotation.from_dict(data)
         db.session.commit()
-        return jsonify(annotation.to_json()), 201
-    except:
-        return conflict('Insufficient data, or bad data format.')
+        return jsonify(annotation.serialize()), 201
+    except Exception as e:
+        return jsonify(error=e.message), 400
 
 #Update an existing annotation.
 @api.route('/annotation/<int:id>', methods=['PUT'])
