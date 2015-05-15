@@ -145,10 +145,10 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
     data_dict['variables_shape'] = {}
     data_dict['display_name'] = get_display_name_by_rd(ref)
     data_dict['download'] = {
-                             "csv":"/".join([SERVICE_LOCATION, 'uframe/get_csv', stream_name, ref]),
-                             "json":"/".join([SERVICE_LOCATION, 'uframe/get_json', stream_name, ref]),
-                             "netcdf":"/".join([SERVICE_LOCATION, 'uframe/get_netcdf', stream_name, ref]),
-                             "profile":"/".join([SERVICE_LOCATION, 'uframe/get_profiles', stream_name, ref])
+                             "csv":"/".join(['api/uframe/get_csv', stream_name, ref]),
+                             "json":"/".join(['api/uframe/get_json', stream_name, ref]),
+                             "netcdf":"/".join(['api/uframe/get_netcdf', stream_name, ref]),
+                             "profile":"/".join(['api/uframe/get_profiles', stream_name, ref])
                             }
     data_dict['variables'] = variables
     data_dict['variable_type'] = variable_type
