@@ -69,3 +69,4 @@ initialize.sh
 whoosh_index
 
 .DS_Store
+docs/ # softlink to wiki
