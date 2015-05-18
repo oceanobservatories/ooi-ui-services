@@ -60,6 +60,7 @@ class Annotation(db.Model, DictSerializableMixin):
     created_time = db.Column(db.DateTime(True), nullable=False, server_default=db.text("now()"))
     start_time = db.Column(db.DateTime(True), nullable=False)
     end_time = db.Column(db.DateTime(True), nullable=False)
+    retired = db.Column(db.Boolean, server_default=expression.false())
     # Because we rely on uFrame, there won't be any sort of consistency checks.
     # We will be doing application level JOINs and if the stream_name doesn't
     # match a value from uFrame the record will be unaccounted for.
@@ -83,7 +84,7 @@ class Annotation(db.Model, DictSerializableMixin):
         if 'created_time' in data:
             rdict['created_time'] = data.get('created_time')
 
-        rdict['stream_name'] = data.get('stream_id')
+        rdict['stream_name'] = data.get('stream_name')
         instance = cls(**rdict)
         return instance
 

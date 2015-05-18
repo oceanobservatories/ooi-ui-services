@@ -14,20 +14,38 @@ from ooiservices.app.decorators import scope_required
 from ooiservices.app.main.errors import forbidden, conflict
 from datetime import datetime
 from dateutil.parser import parse as date_parse
+import sqlalchemy as sa
 
 import json
 
 #List all annotations.
 @api.route('/annotation')
 def get_annotations():
-    annotations = Annotation.query.all()
+    query = Annotation.query
+    query = query.filter(sa.not_(Annotation.retired))
+    if 'stream_name' in request.args:
+        query = query.filter(Annotation.stream_name == request.args.get('stream_name'))
+    if 'reference_designator' in request.args:
+        query = query.filter(Annotation.reference_designator == request.args.get('reference_designator'))
+    if 'start_time' in request.args:
+        start_time = request.args['start_time']
+        start_time = date_parse(start_time)
+        query = query.filter(Annotation.end_time >= start_time)
+    if 'end_time' in request.args:
+        end_time = request.args['end_time']
+        end_time = date_parse(end_time)
+        query = query.filter(Annotation.start_time <= end_time)
+    if 'stream_parameter_name' in request.args:
+        query = query.filter(Annotation.stream_parameter_name == request.args.get('stream_parameter_name'))
+
+    annotations = query.all()
     return jsonify( {'annotations' : [annotation.serialize() for annotation in annotations] })
 
 #List an annotation by id
 @api.route('/annotation/<int:id>')
 def get_annotation(id):
-    annotation = Annotation.query.filter_by(user_name=id).first_or_404()
-    return jsonify(annotation.to_json())
+    annotation = Annotation.query.filter_by(id=id).first_or_404()
+    return jsonify(annotation.serialize())
 
 #Create a new annotation
 @api.route('/annotation', methods=['POST'])
@@ -51,6 +69,7 @@ def create_annotation():
         data['user_id'] = g.current_user.id
 
         annotation = Annotation.from_dict(data)
+        db.session.add(annotation)
         db.session.commit()
         return jsonify(annotation.serialize()), 201
     except Exception as e:
@@ -64,16 +83,22 @@ def edit_annotation(id):
     try:
         data = json.loads(request.data)
         annotation = Annotation.query.get_or_404(id)
-        if g.current_user != annotation.user_name and \
-                not g.current_user.can('annotate'):
-            return forbidden('Scope required.')
+        user_scopes = [s.scope_name for s in g.current_user.scopes]
+        if g.current_user.id != annotation.user_id and 'user_admin' not in user_scopes and 'annotate' not in user_scopes:
+            return forbidden('Must be author of annotation or have administrator privileges')
     # 	add more modifications as needed
-        annotation.comment = data.get('comment', annotation.comment)
-        annotation.title = data.get('title', annotation.title)
-        annotation.modified_date = datetime.now()
+        if 'start_time' in data:
+            data['start_time'] = date_parse(data['start_time'])
+
+        if 'end_time' in data:
+            data['end_time'] = date_parse(data['end_time'])
+
+        for field in ['start_time', 'end_time', 'stream_parameter_name', 'description', 'reference_designator']:
+            val = data.get(field) or getattr(annotation, field)
+            setattr(annotation, field, val)
         db.session.add(annotation)
         db.session.commit()
-        return jsonify(annotation.to_json())
+        return jsonify(annotation.serialize())
     except:
         return conflict('Insufficient data, or bad data format.')
 
@@ -83,9 +108,10 @@ def edit_annotation(id):
 @scope_required('annotate')
 def delete_annotation(id):
     annotation = Annotation.query.get_or_404(id)
-    if g.current_user != annotation.user_name and \
-            not g.current_user.can('annotate'):
-        return forbidden('Scope required.')
-    db.session.delete(annotation)
+    user_scopes = [s.scope_name for s in g.current_user.scopes]
+    if g.current_user.id != annotation.user_id and 'user_admin' not in user_scopes and 'annotate' not in user_scopes:
+        return forbidden('Must be author of annotation or have administrator privileges')
+    annotation.retired = True
+    db.session.add(annotation)
     db.session.commit()
-    return jsonify({'message': 'Annotation deleted!', 'id': id})
+    return jsonify({}), 204
