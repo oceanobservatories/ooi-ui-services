@@ -50,7 +50,7 @@ insert into arrays (array_code, description, geo_location, array_name, display_n
 insert into arrays (array_code, description, geo_location, array_name, display_name) values ('GA', '', ST_MakeEnvelope(-42.5073, -42.8905, -42.5073, -42.8905, 4326), 'Argentine Basin', 'Global Argentine Basin');
 insert into arrays (array_code, description, geo_location, array_name, display_name) values ('GI', 'The Global Irminger sensor network, located in the Argentine Basin in the South Atlantic, supports sensors for measurement of air-sea fluxes of heat, moisture and momentum, and physical, biological and chemical properties throughout the water column.', ST_MakeEnvelope(60.4582, -38.4407, 60.4582, -38.4407, 4326), 'Irminger Sea', 'Global Irminger Sea');
 insert into arrays (array_code, description, geo_location, array_name, display_name) values ('GS', '', ST_MakeEnvelope(-54.0814, -89.6652, -54.0814, -89.6652, 4326), 'Southern Ocean', 'Global Southern Ocean');
-insert into arrays (array_code, description, geo_location, array_name, display_name) values ('RS', '', ST_MakeEnvelope(44.554, -125.352, 44.554, -125.352, 4326), 'Regional Scale', 'Global Regional Scale');
+insert into arrays (array_code, description, geo_location, array_name, display_name) values ('RS', '', ST_MakeEnvelope(44.554, -125.352, 44.554, -125.352, 4326), 'Cabled Array', 'Cabled Array');
 
 -- manufacturers
 
