@@ -572,8 +572,15 @@ def get_netcdf(stream, ref,start_time,end_time,dpa_flag):
     stream_type, stream = stream.split('_', 1)
     uframe_url, timeout, timeout_read = get_uframe_info()
     url = '/'.join([uframe_url, mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag])
-    NETCDF_LINK = url+'?format=application/netcdf'
-    response = requests.get(NETCDF_LINK, timeout=(timeout, timeout_read))
+    if dpa_flag == '0':
+        query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
+    else:
+        query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
+    query += '&format=application/netcdf'
+    uframe_url, timeout, timeout_read = get_uframe_info()
+    url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
+    current_app.logger.debug('***** url: ' + url)
+    response = requests.get(url, timeout=(timeout, timeout_read))
     if response.status_code != 200:
         return response.text, response.status_code
 
