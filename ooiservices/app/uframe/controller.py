@@ -158,6 +158,7 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
     return data_dict
 
 
+@cache.memoize(timeout=3600)
 @api.route('/stream')
 #@auth.login_required
 def streams_list():
@@ -171,11 +172,17 @@ def streams_list():
         except Exception as e:
             current_app.logger.exception('**** (1) exception: ' + e.message)
             return jsonify(error=e.message), 500
-    try:
-        streams = dfs_streams()
-    except Exception as e:
-        current_app.logger.exception('**** (2) exception: ' + e.message)
-        return jsonify(error=e.message), 500
+    
+    cached = cache.get('stream_list')
+    if cached:
+        streams = cached
+    else:
+        try:
+            streams = dfs_streams()
+            cache.set('stream_list', streams, timeout=3600)
+        except Exception as e:
+            current_app.logger.exception('**** (2) exception: ' + e.message)
+            return jsonify(error=e.message), 500
 
     retval = []
     for stream in streams:
@@ -195,10 +202,12 @@ def streams_list():
         count = int(request.args.get('count'))
         total = int(len(retval))
         retval_slice = retval[start_at:(start_at + count)]
-        return jsonify({"count": count,
-                        "total": total,
-                        "startAt": start_at,
-                        "streams": retval_slice})
+        result = jsonify({"count": count,
+                            "total": total,
+                            "startAt": start_at,
+                            "streams": retval_slice})
+        return result
+
     else:
         return jsonify(streams=retval)
 
