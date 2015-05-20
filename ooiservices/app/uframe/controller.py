@@ -158,7 +158,6 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
     return data_dict
 
 
-@cache.memoize(timeout=3600)
 @api.route('/stream')
 #@auth.login_required
 def streams_list():
