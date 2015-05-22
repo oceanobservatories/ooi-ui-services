@@ -174,27 +174,34 @@ def streams_list():
     
     cached = cache.get('stream_list')
     if cached:
-        streams = cached
+        retval = cached
     else:
         try:
             streams = dfs_streams()
-            cache.set('stream_list', streams, timeout=3600)
         except Exception as e:
             current_app.logger.exception('**** (2) exception: ' + e.message)
             return jsonify(error=e.message), 500
 
-    retval = []
-    for stream in streams:
-        try:
-            data_dict = dict_from_stream(*stream)
-        except Exception as e:
-            current_app.logger.exception('\n**** (3) exception: ' + e.message)
-            continue
-        if request.args.get('reference_designator'):
-            if request.args.get('reference_designator') != data_dict['reference_designator']:
+        retval = []
+        for stream in streams:
+            try:
+                data_dict = dict_from_stream(*stream)
+            except Exception as e:
+                current_app.logger.exception('\n**** (3) exception: ' + e.message)
                 continue
+            if request.args.get('reference_designator'):
+                if request.args.get('reference_designator') != data_dict['reference_designator']:
+                    continue
+            retval.append(data_dict)
+        cache.set('stream_list', retval, timeout=3600)
 
-        retval.append(data_dict)
+    if request.args.get('search'):
+        return_list = []
+        search_term = request.args.get('search')
+        for item in retval:
+            if search_term in (str(item['display_name'] or str(item['stream_name']))):
+                return_list.append(item)
+        retval = return_list           
 
     if request.args.get('startAt'):
         start_at = int(request.args.get('startAt'))
