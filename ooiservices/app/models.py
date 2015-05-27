@@ -50,74 +50,43 @@ class QueryMixin(BaseQuery, SearchQueryMixin):
 
 __schema__ = 'ooiui'
 
-class Annotation(db.Model):
+class Annotation(db.Model, DictSerializableMixin):
     __tablename__ = 'annotations'
     __table_args__ = {u'schema': __schema__}
 
     id = db.Column(db.Integer, primary_key=True)
-    user_name = db.Column(db.ForeignKey(u'' + __schema__ + '.users.user_name'), nullable=False)
-    created_time = db.Column(db.DateTime(True), nullable=False)
-    modified_time = db.Column(db.DateTime(True), nullable=True)
-    reference_name = db.Column(db.Text, nullable=True)
-    reference_type = db.Column(db.Text, nullable=True)
-    reference_pk_id = db.Column(db.Integer, nullable=True)
-    comment = db.Column(db.Text)
-    title = db.Column(db.Text)
-    stream_name = db.Column(db.Text)
-    instrument_name = db.Column(db.Text)
-    pos_x1 = db.Column(db.Text)
-    pos_y1 = db.Column(db.Integer)
-    field_x1 = db.Column(db.Text)
-    field_y1 = db.Column(db.Text)
-    pos_x2 = db.Column(db.Text)
-    pos_y2 = db.Column(db.Integer)
-    field_x2 = db.Column(db.Text)
-    field_y2 = db.Column(db.Text)
-
+    reference_designator = db.Column(db.Text)
+    user_id = db.Column(db.ForeignKey(u'' + __schema__ + '.users.id'), nullable=False)
+    created_time = db.Column(db.DateTime(True), nullable=False, server_default=db.text("now()"))
+    start_time = db.Column(db.DateTime(True), nullable=False)
+    end_time = db.Column(db.DateTime(True), nullable=False)
+    retired = db.Column(db.Boolean, server_default=expression.false())
+    # Because we rely on uFrame, there won't be any sort of consistency checks.
+    # We will be doing application level JOINs and if the stream_name doesn't
+    # match a value from uFrame the record will be unaccounted for.
+    stream_name = db.Column(db.Text())
+    description = db.Column(db.Text())
+    stream_parameter_name = db.Column(db.Text())
+    
     user = db.relationship(u'User')
 
-    @staticmethod
-    def from_json(json_annotation):
-        comment = json_annotation.get('comment')
-        title = json_annotation.get('title')
-        stream_name = json_annotation.get('stream_name')
-        instrument_name = json_annotation.get('instrument_name')
-        pos_x1 = json_annotation.get('pos_x1')
-        pos_y1 = json_annotation.get('pos_y1')
-        field_y1 = json_annotation.get('field_y1')
-        field_x1 = json_annotation.get('field_x1')
-        pos_x2= json_annotation.get('pos_x2')
-        pos_y2 = json_annotation.get('pos_y2')
-        field_y2 = json_annotation.get('field_y2')
-        field_x2 = json_annotation.get('field_x2')
+    @classmethod
+    def from_dict(cls,data):
+        rdict = {}
+        rdict['reference_designator'] = data.get('reference_designator')
+        rdict['user_id'] = data.get('user_id')
+        rdict['start_time'] = data.get('start_time')
+        rdict['end_time'] = data.get('end_time')
+        rdict['stream_parameter_name'] = data.get('stream_parameter_name')
+        rdict['description'] = data.get('description')
 
-        return Annotation(comment=comment,
-            title=title,
-            stream_name=stream_name, instrument_name=instrument_name, pos_x1=pos_x1, pos_y1=pos_y1,
-            field_x1=field_x1, field_y1=field_y1, pos_x2=pos_x2, pos_y2=pos_y2,
-            field_x2=field_x2, field_y2=field_y2)
+        # We would prefer the database generate this
+        if 'created_time' in data:
+            rdict['created_time'] = data.get('created_time')
 
-    def to_json(self):
-        json_array = {
-            'id': self.id,
-            'user_name': self.user_name,
-            'created_time': self.created_time,
-            'modified_time': self.modified_time,
-            'comment': self.comment,
-            'title': self.title,
-            'stream_name': self.stream_name,
-            'instrument_name': self.instrument_name,
-            'pos_x1': self.pos_x1,
-            'pos_y1': self.pos_y1,
-            'field_x1': self.field_x1,
-            'field_y1': self.field_y1,
-            'pos_x2': self.pos_x2,
-            'pos_y2': self.pos_y2,
-            'field_x2': self.field_x2,
-            'field_y2': self.field_y2
-        }
-        return json_array
-
+        rdict['stream_name'] = data.get('stream_name')
+        instance = cls(**rdict)
+        return instance
 
 class Array(db.Model):
     __tablename__ = 'arrays'

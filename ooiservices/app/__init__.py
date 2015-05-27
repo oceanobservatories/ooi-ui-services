@@ -5,7 +5,7 @@ ooiservices
 Initializes the application and necessary application logic
 '''
 import os
-from flask import Flask
+from flask import Flask, jsonify, url_for
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.login import LoginManager
 from flask_environments import Environments
@@ -85,4 +85,52 @@ def create_app(config_name):
     from ooiservices.app.redmine import redmine as redmine_blueprint
     app.register_blueprint(redmine_blueprint, url_prefix='/redmine')
 
+    # If debug is enabled add route for site-map
+    if app.config['DEBUG']:
+        app.add_url_rule('/site-map', 'site_map', site_map)
+
+
     return app
+
+def has_no_empty_params(rule):
+    '''
+    Something to do with empty params?
+    '''
+    defaults = rule.defaults if rule.defaults is not None else ()
+    arguments = rule.arguments if rule.arguments is not None else ()
+    return len(defaults) >= len(arguments)
+
+#route("/site-map")
+def site_map():
+    '''
+    Returns a json structure for the site routes and handlers
+    '''
+    from flask import current_app as app
+    get_links = []
+    post_links = []
+    put_links = []
+    delete_links = []
+    for rule in app.url_map.iter_rules():
+        # Filter out rules we can't navigate to in a browser
+        # and rules that require parameters
+        if "GET" in rule.methods and has_no_empty_params(rule):
+            url = url_for(rule.endpoint)
+            get_links.append((url, rule.endpoint))
+        if "PUT" in rule.methods and has_no_empty_params(rule):
+            url = url_for(rule.endpoint)
+            put_links.append((url, rule.endpoint))
+        if "POST" in rule.methods and has_no_empty_params(rule):
+            url = url_for(rule.endpoint)
+            post_links.append((url, rule.endpoint))
+        if "DELETE" in rule.methods and has_no_empty_params(rule):
+            url = url_for(rule.endpoint)
+            delete_links.append((url, rule.endpoint))
+    # links is now a list of url, endpoint tuples
+    doc = {
+        'get_links' : get_links,
+        'put_links' : put_links,
+        'post_links' : post_links,
+        'delete_links' : delete_links
+    }
+
+    return jsonify(**doc)
