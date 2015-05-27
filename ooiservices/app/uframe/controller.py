@@ -36,7 +36,7 @@ import pytz
 from ooiservices.app.main.routes import get_display_name_by_rd
 from ooiservices.app.main.arrays import get_arrays, get_array
 from contextlib import closing
-import time 
+import time
 from ooiservices.app.models import PlatformDeployment
 
 def dfs_streams():
@@ -51,7 +51,7 @@ def dfs_streams():
     toc = toc.json()
 
     for instrument in toc:
-        
+
         parameters_dict = parameters_in_instrument(instrument)
         streams = data_streams_in_instrument(instrument, parameters_dict, streams)
 
@@ -60,12 +60,12 @@ def dfs_streams():
 def parameters_in_instrument(instrument):
     parameters_dict = {}
     parameter_list = []
-   
+
     stream_parameters = []
     stream_variable_type = []
     stream_units = []
     stream_variables_shape = []
-   
+
     for parameter in instrument['instrument_parameters']:
         if parameter['shape'].lower() in ['scalar', 'function']:
             if parameter['stream'] not in parameters_dict.iterkeys():
@@ -129,11 +129,11 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
     HOST = str(current_app.config['HOST'])
     PORT = str(current_app.config['PORT'])
     SERVICE_LOCATION = 'http://'+HOST+":"+PORT
-    
+
     ref = mooring + "-" + platform + "-" + instrument
     stream_name = '_'.join([stream_type, stream])
     ref = '-'.join([mooring, platform, instrument])
-    
+
     data_dict = {}
     data_dict['start'] = beginTime
     data_dict['end'] = endTime
@@ -154,7 +154,7 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
     data_dict['variable_type'] = variable_type
     data_dict['units'] = units
     data_dict['variables_shape'] = variables_shape
-    
+
     return data_dict
 
 
@@ -164,32 +164,58 @@ def streams_list():
     '''
     Accepts stream_name or reference_designator as a URL argument
     '''
+
     if request.args.get('stream_name'):
         try:
             dict_from_stream(request.args.get('stream_name'))
         except Exception as e:
             current_app.logger.exception('**** (1) exception: ' + e.message)
             return jsonify(error=e.message), 500
-    try:
-        streams = dfs_streams()
-    except Exception as e:
-        current_app.logger.exception('**** (2) exception: ' + e.message)
-        return jsonify(error=e.message), 500
-
-    retval = []
-    for stream in streams:
+    
+    cached = cache.get('stream_list')
+    if cached:
+        retval = cached
+    else:
         try:
-            data_dict = dict_from_stream(*stream)
+            streams = dfs_streams()
         except Exception as e:
-            current_app.logger.exception('\n**** (3) exception: ' + e.message)
-            continue
-        if request.args.get('reference_designator'):
-            if request.args.get('reference_designator') != data_dict['reference_designator']:
+            current_app.logger.exception('**** (2) exception: ' + e.message)
+            return jsonify(error=e.message), 500
+
+        retval = []
+        for stream in streams:
+            try:
+                data_dict = dict_from_stream(*stream)
+            except Exception as e:
+                current_app.logger.exception('\n**** (3) exception: ' + e.message)
                 continue
+            if request.args.get('reference_designator'):
+                if request.args.get('reference_designator') != data_dict['reference_designator']:
+                    continue
+            retval.append(data_dict)
+        cache.set('stream_list', retval, timeout=3600)
 
-        retval.append(data_dict)
+    if request.args.get('search'):
+        return_list = []
+        search_term = request.args.get('search')
+        for item in retval:
+            if search_term in (str(item['display_name'] or str(item['stream_name']))):
+                return_list.append(item)
+        retval = return_list           
 
-    return jsonify(streams=retval)
+    if request.args.get('startAt'):
+        start_at = int(request.args.get('startAt'))
+        count = int(request.args.get('count'))
+        total = int(len(retval))
+        retval_slice = retval[start_at:(start_at + count)]
+        result = jsonify({"count": count,
+                            "total": total,
+                            "startAt": start_at,
+                            "streams": retval_slice})
+        return result
+
+    else:
+        return jsonify(streams=retval)
 
 
 #@cache.memoize(timeout=3600)
@@ -270,12 +296,12 @@ def get_uframe_toc():
                 instrument_display_name = PlatformDeployment._get_display_name(row['reference_designator'])
                 split_name = instrument_display_name.split(' - ')
                 row['instrument_display_name'] = split_name[-1]
-                row['mooring_display_name'] = split_name[0]           
+                row['mooring_display_name'] = split_name[0]
                 row['platform_display_name'] = split_name[1]
             except:
                 row['instrument_display_name'] = ""
                 row['platform_display_name'] = ""
-                row['mooring_display_name'] = ""            
+                row['mooring_display_name'] = ""
         return d
     else:
         return []
@@ -286,14 +312,14 @@ def get_structured_toc():
     try:
         mooring_list = []
         mooring_key = []
-        
+
         platform_list = []
         platform_key = []
-        
-        instrument_list = []                
+
+        instrument_list = []
         instrument_key = []
-        
-        data = get_uframe_toc()        
+
+        data = get_uframe_toc()
 
         for d in data:
             if d['reference_designator'] not in instrument_key:
@@ -351,7 +377,7 @@ def get_toc():
 def get_uframe_instrument_metadata(ref):
     '''
     Returns the uFrame metadata response for a given stream
-    '''    
+    '''
     try:
         mooring, platform, instrument = ref.split('-', 2)
         uframe_url, timeout, timeout_read = get_uframe_info()
@@ -414,7 +440,7 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
     """
     Gets the bounded stream contents, start_time and end_time need to be datetime objects; returns Respnse object.
     """
-    try:        
+    try:
         if dpa_flag == '0':
             query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
         else:
@@ -436,14 +462,14 @@ def get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_typ
     '''
     Gets the bounded stream contents, start_time and end_time need to be datetime objects
     '''
-    try:        
+    try:
         if dpa_flag == '0':
             query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
         else:
             query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])     
-        
+        url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])
+
         print "***:",url
 
         TOO_BIG = 1024 * 1024 * 15 # 15MB
@@ -451,7 +477,7 @@ def get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_typ
         TOTAL_SECONDS = 20
         dataBlock = ""
         idx = 0
-      
+
         #counter
         t0 = time.time()
 
@@ -468,17 +494,17 @@ def get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_typ
                     t00 = time.time()
                     idx_c = dataBlock.rfind('}, {')
                     dataBlock = dataBlock[:idx_c]
-                    dataBlock+="} ]" 
+                    dataBlock+="} ]"
                     t11 = time.time()
                     totaln = t11-t00
 
-                    print "size_limit or time reached",content_length/(1024 * 1024),total,totaln,idx                    
+                    print "size_limit or time reached",content_length/(1024 * 1024),total,totaln,idx
                     return json.loads(dataBlock),200
                 # all the data is in the resonse return it as normal
                 #previousBlock = dataBlock
                 dataBlock+=chunk
             #print "transfer complete",content_length/(1024 * 1024),total
-            
+
             #if str(dataBlock[-3:-1]) != '} ]':
             #    idx_c = dataBlock.rfind('}')
             #    dataBlock = dataBlock[:idx_c]
@@ -488,10 +514,10 @@ def get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_typ
             print idx_c
             if idx_c == -1:
                 dataBlock+="]"
-            
-            return json.loads(dataBlock),200            
-        
-    except Exception,e: 
+
+            return json.loads(dataBlock),200
+
+    except Exception,e:
         #return json.loads(dataBlock), 200
         return internal_server_error('uframe connection unstable.'),500
 
@@ -508,7 +534,7 @@ def get_uframe_info():
 def validate_date_time(start_time, end_time):
     uframe_data_request_limit = int(current_app.config['UFRAME_DATA_REQUEST_LIMIT'])/1440
     new_end_time_strp = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ") + datetime.timedelta(days=uframe_data_request_limit)
-    old_end_time_strp = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ") 
+    old_end_time_strp = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ")
     new_end_time = datetime.datetime.strftime(new_end_time_strp, "%Y-%m-%dT%H:%M:%S.%fZ")
     if old_end_time_strp > new_end_time_strp:
         end_time = new_end_time
@@ -520,7 +546,7 @@ def validate_date_time(start_time, end_time):
 def get_csv(stream, ref,start_time,end_time,dpa_flag):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
-    
+
     #figures out if its in a date time range
     end_time = validate_date_time(start_time, end_time)
     data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag)
@@ -785,7 +811,7 @@ def get_profile_data(instrument, stream):
         if status_code != 200:
             raise IOError("uFrame unable to get data for this request.")
 
-        current_app.logger.debug('\n --- retrieved data from uframe for profile processing...')       
+        current_app.logger.debug('\n --- retrieved data from uframe for profile processing...')
 
         # Note: assumes data has depth and time is ordinal
         # Need to add assertions and try and exceptions to check data
