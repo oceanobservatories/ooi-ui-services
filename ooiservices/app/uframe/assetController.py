@@ -227,7 +227,7 @@ def _get_events_by_ref_des(ref_des):
             if ref_des_check == ref_des:
                 temp_dict['id'] = row['eventId']
                 temp_dict['ref_des'] = ref_des_check
-                temp_dict['start_date'] = num2date(float(row['startDate'])/1000, units='seconds since 1970-01-01 00:00:00', calendar='gregorian') 
+                temp_dict['start_date'] = num2date(float(row['startDate'])/1000, units='seconds since 1970-01-01 00:00:00', calendar='gregorian')
                 temp_dict['class'] = row['@class']
                 temp_dict['event_description'] = row['eventDescription']
                 temp_dict['event_type'] = row['eventType']
@@ -368,7 +368,7 @@ class uFrameAssetCollection(object):
                 "attachments": attachments,
                 "purchaseAndDeliveryInfo": purchase_and_delivery_info,
                 "physicalInfo": physical_info,
-                "lastModifiedTimestamp": last_modified_imestamp,
+                "lastModifiedTimestamp": last_modified_imestamp
                 }
         return formatted_return
 
@@ -705,7 +705,7 @@ def get_events():
     if 'ref_des' in request.args:
         events = _get_events_by_ref_des(request.args.get('ref_des'))
         return events
-    else:        
+    else:
         '''
         Listing GET request of all events.  This method is cached for 1 hour.
         '''
@@ -749,8 +749,8 @@ def get_event(id):
     data = uframe_obj.to_json(id)
     try:
         data['class'] = data.pop('@class')
-        data['startDate'] = num2date(float(data['startDate'])/1000, units='seconds since 1970-01-01 00:00:00', calendar='gregorian') 
-        data['endDate'] = num2date(float(data['endDate'])/1000, units='seconds since 1970-01-01 00:00:00', calendar='gregorian') 
+        data['startDate'] = num2date(float(data['startDate'])/1000, units='seconds since 1970-01-01 00:00:00', calendar='gregorian')
+        data['endDate'] = num2date(float(data['endDate'])/1000, units='seconds since 1970-01-01 00:00:00', calendar='gregorian')
     except (KeyError, TypeError):
         pass
     return jsonify(**data)
