@@ -8,6 +8,7 @@ Support for generating sample data
 from flask import request, current_app
 import numpy as np
 from collections import OrderedDict
+import requests
 
 __author__ = 'Andy Bird'
 
@@ -15,9 +16,28 @@ __author__ = 'Andy Bird'
 FIELDS_IGNORE = ["stream_name", "quality_flag"]
 COSMO_CONSTANT = 2208988800
 
+def find_parameter_ids(mooring, platform, instrument, yfields,xfields):
+
+    UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+    url = "/".join([UFRAME_DATA,mooring, platform, instrument,"metadata/parameters"])
+    
+    parameter_list = requests.get(url).json()
+
+    parameter_dict = {}
+    
+    for each in parameter_list:
+        parameter_dict[each['particleKey']] = each['pdId']
+    
+    parameters = yfields
+    parameter_ids = [str(parameter_dict['time']).strip()]
+
+    for each in parameters:
+        parameter_ids.append(str(parameter_dict[each]).strip())
+    return parameter_ids
+
 
 def get_data(stream, instrument, yfields, xfields, include_time=True):
-    from ooiservices.app.uframe.controller import split_stream_name, get_uframe_stream_contents_chunked,validate_date_time
+    from ooiservices.app.uframe.controller import split_stream_name, get_uframe_plot_contents_chunked,validate_date_time, get_uframe_stream_contents_chunked
     '''get data from uframe
     # -------------------
     # m@c: 02/01/2015
@@ -28,6 +48,10 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
     # TODO: create better error handler if uframe is not online/responding
     '''
     mooring, platform, instrument, stream_type, stream = split_stream_name('_'.join([instrument, stream]))
+    
+    parameter_ids = find_parameter_ids(mooring, platform, instrument, yfields,xfields)
+    
+    
     try:
         if 'startdate' in request.args and 'enddate' in request.args:
             st_date = request.args['startdate']
