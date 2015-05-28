@@ -199,7 +199,7 @@ def streams_list():
         return_list = []
         search_term = request.args.get('search')
         for item in retval:
-            if search_term.lower() in (str(item['display_name']).lower() or str(item['stream_name']).lower()):
+            if search_term.lower() in (str(item['display_name'] or item['stream_name']).lower()):
                 return_list.append(item)
         retval = return_list           
 
