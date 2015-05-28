@@ -195,11 +195,11 @@ def streams_list():
             retval.append(data_dict)
         cache.set('stream_list', retval, timeout=3600)
 
-    if request.args.get('search'):
+    if request.args.get('search') != "":
         return_list = []
         search_term = request.args.get('search')
         for item in retval:
-            if search_term in (str(item['display_name'] or str(item['stream_name']))):
+            if search_term.lower() in (str(item['display_name']).lower() or str(item['stream_name']).lower()):
                 return_list.append(item)
         retval = return_list           
 
