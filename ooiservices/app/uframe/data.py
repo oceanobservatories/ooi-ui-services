@@ -49,7 +49,7 @@ def find_parameter_ids(mooring, platform, instrument, yfields, xfields):
 
 
 def get_data(stream, instrument, yfields, xfields, include_time=True):
-    from ooiservices.app.uframe.controller import split_stream_name, get_uframe_plot_contents_chunked, validate_date_time
+    from ooiservices.app.uframe.controller import split_stream_name, get_uframe_plot_contents_chunked, validate_date_time, to_bool_str
     '''get data from uframe
     # -------------------
     # m@c: 02/01/2015
@@ -70,7 +70,7 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
 
             ed_date = validate_date_time(st_date, ed_date)
             if 'dpa_flag' in request.args:
-                dpa_flag = request.args['dpa_flag']
+                dpa_flag = to_bool_str(request.args['dpa_flag'])
             else:
                 dpa_flag = "0"
 
