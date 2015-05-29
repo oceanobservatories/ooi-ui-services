@@ -63,7 +63,8 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
             else:    
                 dpa_flag = "0"   
 
-            data, status_code = get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
+            #data, status_code = get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
+            data, status_code = get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag, parameter_ids)
             if status_code !=200:
                 #return {'error': 'could not get data'}
                 #return {'error': '(%s) could not get_uframe_stream_contents' % str(response.status_code)}
