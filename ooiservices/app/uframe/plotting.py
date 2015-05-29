@@ -59,9 +59,9 @@ def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_prof
     fig, ax = ppl.subplots(1, 1, figsize=(width, height))
 
     # Calculate the hypotenuse to determine appropriate font sizes
-    hypot = np.sqrt(width**2 + height**2) - 2
+    hypot = np.sqrt(width**2 + height**2) - 6
     tick_font['labelsize'] = int(hypot)
-    axis_font['size'] = int(hypot) + 4
+    axis_font['size'] = int(hypot) + 2
 
     # Check the plot type and generate the plot!
     if plot_layout == "timeseries":
