@@ -19,6 +19,14 @@ COSMO_CONSTANT = 2208988800
 
 def find_parameter_ids(mooring, platform, instrument, yfields, xfields):
 
+    def shorten_time_units(unit):
+        if 'seconds since 1900-01-01' in unit:
+            return u'sec since 1900'
+        elif 'seconds since 1900-01-01' in unit:
+            return u'sec since 1970'
+        else:
+            return unit
+
     UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
     url = "/".join([UFRAME_DATA, mooring, platform, instrument, "metadata/parameters"])
 
@@ -39,11 +47,11 @@ def find_parameter_ids(mooring, platform, instrument, yfields, xfields):
 
     for each in x_parameters:
         parameter_ids.append(str(parameter_dict[each]).strip())
-        x_units.append(all_units[each])
+        x_units.append(shorten_time_units(all_units[each]))
 
     for each in y_parameters:
         parameter_ids.append(str(parameter_dict[each]).strip())
-        y_units.append(all_units[each])
+        y_units.append(shorten_time_units(all_units[each]))
 
     return parameter_ids, y_units, x_units
 

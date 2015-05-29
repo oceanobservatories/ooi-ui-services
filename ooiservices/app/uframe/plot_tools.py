@@ -129,6 +129,7 @@ class OOIPlots(object):
         ax.grid(True)
         if tick_font:
             ax.tick_params(**tick_font)
+        plt.tight_layout()
 
     def plot_profile(self, fig, ax, x, y, xlabel='', ylabel='',
                      axis_font={}, tick_font={}, scatter=False, **kwargs):
