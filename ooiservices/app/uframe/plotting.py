@@ -25,7 +25,6 @@ ooi_plots = OOIPlots()
 
 
 def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_profile_id=None, width_in= 8.3):
-
     # Define some fonts
     title_font = {'fontname': 'Calibri',
                   'size': '16',
@@ -33,11 +32,11 @@ def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_prof
                   'weight': 'bold'}
 
     axis_font = {'fontname': 'Calibri',
-                 'size': '14',
+                 'size': '12',
                  'weight': 'bold'}
 
     tick_font = {'axis': 'both',
-                 'labelsize': 10,
+                 'labelsize': 8,
                  'width': 1,
                  'color': 'k'}
 
@@ -55,14 +54,12 @@ def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_prof
         height = data[0]['height']
         for idx, dataset in enumerate(data):
             if "time" == dataset['x_field'][0]:
-              data[idx]['x']['time'] = num2date(data[idx]['x']['time'], units='seconds since 1900-01-01 00:00:00', calendar='gregorian')
+                data[idx]['x']['time'] = num2date(data[idx]['x']['time'], units='seconds since 1900-01-01 00:00:00', calendar='gregorian')
 
     fig, ax = ppl.subplots(1, 1, figsize=(width, height))
 
-    
-
     # Calculate the hypotenuse to determine appropriate font sizes
-    hypot = np.sqrt(width**2 + height**2)
+    hypot = np.sqrt(width**2 + height**2) - 2
     tick_font['labelsize'] = int(hypot)
     axis_font['size'] = int(hypot) + 4
 
@@ -96,7 +93,7 @@ def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_prof
             ooi_plots.plot_time_series(fig, is_timeseries, ax, xdata, ydata,
                                        title=data['title'],
                                        xlabel=xlabel,
-                                       ylabel=ylabel,
+                                       ylabel=ylabel + " (" + data['y_units'][0] + ")",
                                        title_font=title_font,
                                        axis_font=axis_font,
                                        tick_font=tick_font,
@@ -108,12 +105,14 @@ def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_prof
         else:
             xdata = data['x']['time']
             ydata = data['y']
+            units = data['y_units']
 
             ooi_plots.plot_multiple_yaxes(fig, ax,
                                           xdata,
                                           ydata,
                                           colors,
                                           title=data['title'],
+                                          units=units,
                                           axis_font=axis_font,
                                           title_font=title_font,
                                           tick_font=tick_font,
@@ -129,6 +128,8 @@ def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_prof
         current_app.logger.debug('Plotting Depth Profile')
         # Define some plot parameters
         kwargs = dict(linewidth=1.5, alpha=0.7)
+        xlabel = data['x_field'][0] + " (" + data['x_units'][0] + ")"
+        ylabel = data['y_field'][0] + " (" + data['y_units'][0] + ")"
 
         if plot_profile_id is None:
 
@@ -138,8 +139,8 @@ def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_prof
                                        ax,
                                        data['x'][profile_id],
                                        data['y'][profile_id],
-                                       xlabel=data['x_field'],
-                                       ylabel=data['y_field'],
+                                       xlabel=xlabel,
+                                       ylabel=ylabel,
                                        axis_font=axis_font,
                                        tick_font=tick_font,
                                        scatter=use_scatter,
@@ -151,8 +152,8 @@ def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_prof
                                        ax,
                                        data['x'][int(plot_profile_id)],
                                        data['y'][int(plot_profile_id)],
-                                       xlabel=data['x_field'],
-                                       ylabel=data['y_field'],
+                                       xlabel=xlabel,
+                                       ylabel=ylabel,
                                        axis_font=axis_font,
                                        tick_font=tick_font,
                                        scatter=use_scatter,
@@ -163,8 +164,8 @@ def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_prof
                                        ax,
                                        data['x'][0],
                                        data['y'][0],
-                                       xlabel=data['x_field'],
-                                       ylabel=data['y_field'],
+                                       xlabel=xlabel,
+                                       ylabel=ylabel,
                                        axis_font=axis_font,
                                        tick_font=tick_font,
                                        scatter=use_scatter,
@@ -184,8 +185,8 @@ def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_prof
         # This should be used with 'real' data only (NO COUNTS!!)
         x = data['y'][data['y_field'][0]]
         y = data['y'][data['y_field'][1]]
-        xlabel = data['y_field'][0]
-        ylabel = data['y_field'][1]
+        xlabel = data['y_field'][0] + " (" + data['y_units'][0] + ")"
+        ylabel = data['y_field'][1] + " (" + data['y_units'][1] + ")"
 
         ooi_plots.plot_ts_diagram(ax, x, y,
                                   title=data['title'],
@@ -214,10 +215,11 @@ def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_prof
         time = mdates.date2num(data['x']['time'])
         u = data['y'][data['y_field'][0]]
         v = data['y'][data['y_field'][1]]
+        ylabel = data['y_field'][0] + " (" + data['y_units'][0] + ")"
 
         ooi_plots.plot_1d_quiver(fig, ax, time, u, v,
                                  title=data['title']+'\n'+'Quiver Plot',
-                                 ylabel='Velocity (m/s)',
+                                 ylabel=ylabel,
                                  tick_font=tick_font,
                                  title_font=title_font,
                                  axis_font=axis_font)
@@ -239,9 +241,9 @@ def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_prof
 
         ooi_plots.plot_3d_scatter(fig, ax, x, y, z,
                                   title=data['title']+'\n'+'3D Scatter',
-                                  xlabel=xlabel,
-                                  ylabel=ylabel,
-                                  zlabel=zlabel,
+                                  xlabel=xlabel + " (" + data['y_units'][0] + ")",
+                                  ylabel=ylabel + " (" + data['y_units'][1] + ")",
+                                  zlabel=zlabel + " (" + data['y_units'][2] + ")",
                                   title_font=title_font,
                                   tick_font=tick_font,
                                   axis_font=axis_font)
@@ -257,6 +259,7 @@ def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_prof
         ylabel = data['y_field'][1]
         magnitude = data['y'][xlabel]
         direction = data['y'][ylabel]
+        legend_title = xlabel + " (" + data['y_units'][0] + ")"
         size = height if height <= width else width
         size = 6 if size < 6 else size
         hypot = np.sqrt(size**2 + size**2) + 1
@@ -265,11 +268,11 @@ def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_prof
                                   bins=5,
                                   title=data['title'],
                                   title_font=title_font,
+                                  legend_title=legend_title,
                                   fontsize=int(hypot)+2)
 
     buf = io.BytesIO()
 
-    
     # plt.tick_params(axis='both', which='major', labelsize=10)
 
     if plot_format not in ['svg', 'png']:

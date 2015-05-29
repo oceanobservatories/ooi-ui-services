@@ -708,7 +708,6 @@ def get_data_api(stream, instrument, yvar, xvar):
 @api.route('/plot/<string:instrument>/<string:stream>', methods=['GET'])
 def get_svg_plot(instrument, stream):
     # from ooiservices.app.uframe.controller import split_stream_name
-
     # Ok first make a list out of stream and instrument
     instrument = instrument.split(',')
     #instrument.append(instrument[0])
@@ -749,8 +748,6 @@ def get_svg_plot(instrument, stream):
             current_app.logger.exception(str(err.message))
             return jsonify(error=str(err.message)), 400
 
-    # get titles and labels
-    title = request.args.get('title', '%s Data' % stream[0])
     profileid = request.args.get('profileId', None)
 
     # need a yvar for sure
@@ -793,12 +790,16 @@ def get_svg_plot(instrument, stream):
     if str(type(data)) == str(type(some_tuple)) and plot_layout == "depthprofile":
         return jsonify(error='tuple data returned for %s' % plot_layout), 400
     if isinstance(data, dict):
+        # get title
+        instrument_display_name = PlatformDeployment._get_display_name(instrument[0])
+        title = instrument_display_name
         data['title'] = title
         data['height'] = height_in
         data['width'] = width_in
     else:
         for idx, streamx in enumerate(stream):
-            data[idx]['title'] = streamx
+            instrument_display_name = PlatformDeployment._get_display_name(instrument[idx])
+            data[idx]['title'] = instrument_display_name
             data[idx]['height'] = height_in
             data[idx]['width'] = width_in
 
