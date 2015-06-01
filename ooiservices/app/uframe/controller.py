@@ -74,12 +74,13 @@ def parameters_in_instrument(instrument):
                 parameters_dict[parameter['stream']+'_variable_type'] = []
                 parameters_dict[parameter['stream']+'_units'] = []
                 parameters_dict[parameter['stream']+'_variables_shape'] = []
-
+                parameters_dict[parameter['stream']+'_pdId'] = []
 
             parameters_dict[parameter['stream']].append(parameter['particleKey'])
             parameters_dict[parameter['stream']+'_variable_type'].append(parameter['type'].lower())
             parameters_dict[parameter['stream']+'_units'].append(parameter['units'])
             parameters_dict[parameter['stream']+'_variables_shape'].append(parameter['shape'].lower())
+            parameters_dict[parameter['stream']+'_pdId'].append(parameter['pdId'].lower())
 
     return parameters_dict
 
@@ -97,7 +98,8 @@ def data_streams_in_instrument(instrument, parameters_dict, streams):
            parameters_dict[data_stream['stream']],
            parameters_dict[data_stream['stream']+'_variable_type'],
            parameters_dict[data_stream['stream']+'_units'],
-           parameters_dict[data_stream['stream']+'_variables_shape']
+           parameters_dict[data_stream['stream']+'_variables_shape'],
+           parameters_dict[data_stream['stream']+'_pdId']
            )
        #current_app.logger.info("GET %s", each['reference_designator'])
        streams.append(stream)
@@ -125,7 +127,7 @@ def iso_to_timestamp(iso8601):
     t = (dt - datetime(1970, 1, 1, tzinfo=pytz.utc)).total_seconds()
     return t
 
-def dict_from_stream(mooring, platform, instrument, stream_type, stream, reference_designator, beginTime, endTime, variables, variable_type, units, variables_shape):
+def dict_from_stream(mooring, platform, instrument, stream_type, stream, reference_designator, beginTime, endTime, variables, variable_type, units, variables_shape, parameter_id):
     HOST = str(current_app.config['HOST'])
     PORT = str(current_app.config['PORT'])
     SERVICE_LOCATION = 'http://'+HOST+":"+PORT
@@ -154,6 +156,8 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
     data_dict['variable_type'] = variable_type
     data_dict['units'] = units
     data_dict['variables_shape'] = variables_shape
+    data_dict['parameter_id'] = parameter_id
+
 
     return data_dict
 
@@ -458,6 +462,77 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
     except Exception as e:
         return internal_server_error('uFrame connection cannot be made. ' + str(e.message))
 
+def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag, parameter_ids):
+    '''
+    Gets the bounded stream contents, start_time and end_time need to be datetime objects
+    '''
+    
+
+    try:
+        if dpa_flag == '0' and len(parameter_ids)<1:
+            query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
+        elif dpa_flag == '1' and len(parameter_ids)<1:
+            query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
+        elif dpa_flag == '0' and len(parameter_ids)>0:
+            query = '?beginDT=%s&endDT=%s&parameters=%s' % (start_time, end_time,','.join(parameter_ids))
+        elif dpa_flag == '1' and len(parameter_ids)>0:
+            query = '?beginDT=%s&endDT=%s&execDPA=true&parameters=%s' % (start_time, end_time,','.join(map(str, parameter_ids)))
+
+
+        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+        url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])
+
+        print "***:",url
+
+        TOO_BIG = 1024 * 1024 * 15 # 15MB
+        CHUNK_SIZE = 1024 * 32   #...KB
+        TOTAL_SECONDS = 20
+        dataBlock = ""
+        idx = 0
+
+        #counter
+        t0 = time.time()
+
+        with closing(requests.get(url,stream=True)) as response:
+            content_length = 0
+            for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
+                content_length = content_length + CHUNK_SIZE
+                t1 = time.time()
+                total = t1-t0
+                idx+=1
+                if content_length > TOO_BIG or total > TOTAL_SECONDS:
+                    #('uframe response to large.')
+                    # break it down to the last know good spot
+                    t00 = time.time()
+                    idx_c = dataBlock.rfind('}, {')
+                    dataBlock = dataBlock[:idx_c]
+                    dataBlock+="} ]"
+                    t11 = time.time()
+                    totaln = t11-t00
+
+                    print "size_limit or time reached", content_length/(1024),total,idx
+                    return json.loads(dataBlock),200
+                # all the data is in the resonse return it as normal
+                #previousBlock = dataBlock
+                dataBlock+=chunk
+            #print "transfer complete",content_length/(1024 * 1024),total
+
+            #if str(dataBlock[-3:-1]) != '} ]':
+            #    idx_c = dataBlock.rfind('}')
+            #    dataBlock = dataBlock[:idx_c]
+            #    dataBlock+="} ]"
+            #    print 'uFrame appended Error Message to Stream',"\n",dataBlock[-3:-1]
+            idx_c = dataBlock.rfind('} ]')
+            print idx_c
+            if idx_c == -1:
+                dataBlock+="]"
+
+            return json.loads(dataBlock),200
+
+    except Exception,e:
+        #return json.loads(dataBlock), 200
+        return internal_server_error('uframe connection unstable.'),500
+
 def get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag):
     '''
     Gets the bounded stream contents, start_time and end_time need to be datetime objects
@@ -633,7 +708,6 @@ def get_data_api(stream, instrument, yvar, xvar):
 @api.route('/plot/<string:instrument>/<string:stream>', methods=['GET'])
 def get_svg_plot(instrument, stream):
     # from ooiservices.app.uframe.controller import split_stream_name
-
     # Ok first make a list out of stream and instrument
     instrument = instrument.split(',')
     #instrument.append(instrument[0])
@@ -674,8 +748,6 @@ def get_svg_plot(instrument, stream):
             current_app.logger.exception(str(err.message))
             return jsonify(error=str(err.message)), 400
 
-    # get titles and labels
-    title = request.args.get('title', '%s Data' % stream[0])
     profileid = request.args.get('profileId', None)
 
     # need a yvar for sure
@@ -718,12 +790,16 @@ def get_svg_plot(instrument, stream):
     if str(type(data)) == str(type(some_tuple)) and plot_layout == "depthprofile":
         return jsonify(error='tuple data returned for %s' % plot_layout), 400
     if isinstance(data, dict):
+        # get title
+        instrument_display_name = PlatformDeployment._get_display_name(instrument[0])
+        title = instrument_display_name
         data['title'] = title
         data['height'] = height_in
         data['width'] = width_in
     else:
         for idx, streamx in enumerate(stream):
-            data[idx]['title'] = streamx
+            instrument_display_name = PlatformDeployment._get_display_name(instrument[idx])
+            data[idx]['title'] = instrument_display_name
             data[idx]['height'] = height_in
             data[idx]['width'] = width_in
 
@@ -953,4 +1029,16 @@ def to_bool(value):
         return True
     if str(value).lower() in ("no",  "n", "false", "f", "0", "0.0", "", "none", "[]", "{}"):
         return False
+    raise Exception('Invalid value for boolean conversion: ' + str(value))
+
+def to_bool_str(value):
+    """
+       Converts 'something' to boolean. Raises exception for invalid formats
+           Possible True  values: 1, True, "1", "TRue", "yes", "y", "t"
+           Possible False values: 0, False, None, [], {}, "", "0", "faLse", "no", "n", "f", 0.0, ...
+    """
+    if str(value).lower() in ("yes", "y", "true",  "t", "1"):
+        return "1"
+    if str(value).lower() in ("no",  "n", "false", "f", "0", "0.0", "", "none", "[]", "{}"):
+        return "0"
     raise Exception('Invalid value for boolean conversion: ' + str(value))

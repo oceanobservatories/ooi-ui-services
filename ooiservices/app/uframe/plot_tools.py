@@ -129,6 +129,7 @@ class OOIPlots(object):
         ax.grid(True)
         if tick_font:
             ax.tick_params(**tick_font)
+        plt.tight_layout()
 
     def plot_profile(self, fig, ax, x, y, xlabel='', ylabel='',
                      axis_font={}, tick_font={}, scatter=False, **kwargs):
@@ -335,7 +336,7 @@ class OOIPlots(object):
         ax.set_title(title.replace("_", " "), y=1.23, **title_font)
         plt.tight_layout()
 
-    def plot_multiple_yaxes(self, fig, ax, xdata, ydata, colors, title, scatter=False,
+    def plot_multiple_yaxes(self, fig, ax, xdata, ydata, colors, title, units=[], scatter=False,
                             axis_font={}, title_font={}, tick_font={}, width_in=8.3 , **kwargs):
         # Plot a timeseries with multiple y-axes
         #
@@ -411,7 +412,7 @@ class OOIPlots(object):
             # Been experimenting with other ways to handle tick labels with spines
             y_axis[ind].yaxis.get_major_formatter().set_useOffset(False)
 
-            y_axis[ind].set_ylabel(key.replace("_", " "), labelpad=10, **axis_font)
+            y_axis[ind].set_ylabel(key.replace("_", " ") + ' (' + units[ind] + ')', labelpad=10, **axis_font)
             y_axis[ind].yaxis.label.set_color(colors[ind])
             y_axis[ind].spines[spine_directions[ind]].set_color(colors[ind])
             if tick_font:
