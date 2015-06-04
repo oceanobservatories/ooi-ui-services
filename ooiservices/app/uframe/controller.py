@@ -38,6 +38,7 @@ from ooiservices.app.main.arrays import get_arrays, get_array
 from contextlib import closing
 import time
 from ooiservices.app.models import PlatformDeployment
+import urllib2
 
 def dfs_streams():
 
@@ -467,7 +468,6 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
     Gets the bounded stream contents, start_time and end_time need to be datetime objects
     '''
     
-
     try:
         if dpa_flag == '0' and len(parameter_ids)<1:
             query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
@@ -478,7 +478,8 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
         elif dpa_flag == '1' and len(parameter_ids)>0:
             query = '?beginDT=%s&endDT=%s&execDPA=true&parameters=%s' % (start_time, end_time,','.join(map(str, parameter_ids)))
 
-
+        GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=plot&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
+        
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
         url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])
 
@@ -526,7 +527,7 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
             print idx_c
             if idx_c == -1:
                 dataBlock+="]"
-
+            urllib2.urlopen(GA_URL)
             return json.loads(dataBlock),200
 
     except Exception,e:
@@ -586,7 +587,6 @@ def get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_typ
             #    dataBlock+="} ]"
             #    print 'uFrame appended Error Message to Stream',"\n",dataBlock[-3:-1]
             idx_c = dataBlock.rfind('} ]')
-            print idx_c
             if idx_c == -1:
                 dataBlock+="]"
 
@@ -625,6 +625,9 @@ def get_csv(stream, ref,start_time,end_time,dpa_flag):
     #figures out if its in a date time range
     end_time = validate_date_time(start_time, end_time)
     data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag)
+    
+    GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_csv&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
+    
     if data.status_code != 200:
         return data, data.status_code, dict(data.headers)
 
@@ -643,6 +646,7 @@ def get_csv(stream, ref,start_time,end_time,dpa_flag):
     returned_csv.headers["Content-Type"] = "text/csv"
 
     output.close()
+    urllib2.urlopen(GA_URL)
     return returned_csv
 
 
@@ -656,7 +660,9 @@ def get_json(stream,ref,start_time,end_time,dpa_flag):
     end_time = validate_date_time(start_time, end_time)
 
     data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag)
-
+ 
+    GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_json&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
+    
     if data.status_code != 200:
         return data, data.status_code, dict(data.headers)
     response = '{"data":%s}' % data.content
@@ -664,6 +670,7 @@ def get_json(stream,ref,start_time,end_time,dpa_flag):
     returned_json = make_response(response)
     returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json"%filename
     returned_json.headers["Content-Type"] = "application/json"
+    urllib2.urlopen(GA_URL)
     return returned_json
 
 @auth.login_required
@@ -671,6 +678,9 @@ def get_json(stream,ref,start_time,end_time,dpa_flag):
 def get_netcdf(stream, ref,start_time,end_time,dpa_flag):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
+    
+    GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_netcdf&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
+    
     uframe_url, timeout, timeout_read = get_uframe_info()
     url = '/'.join([uframe_url, mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag])
     if dpa_flag == '0':
@@ -691,6 +701,7 @@ def get_netcdf(stream, ref,start_time,end_time,dpa_flag):
     returned_netcdf.headers["Content-Disposition"] = "attachment; filename=%s.nc" % filename
     returned_netcdf.headers["Content-Type"] = "application/x-netcdf"
 
+    urllib2.urlopen(GA_URL)
     return returned_netcdf
 
 @auth.login_required
