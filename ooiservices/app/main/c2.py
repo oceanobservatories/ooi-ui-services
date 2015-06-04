@@ -6,7 +6,6 @@ API v1.0 Command and Control (C2) routes
 __author__ = 'Edna Donoughe'
 
 from flask import (jsonify, current_app, make_response, request)
-from ooiservices.app import cache
 from ooiservices.app.main import api
 from ooiservices.app.models import Array
 from ooiservices.app.main.routes import get_display_name_by_rd
@@ -159,7 +158,7 @@ def c2_get_platform_current_status_display(reference_designator):
                 row['display_name'] = instrument['display_name']
             row['reference_designator'] = instrument['reference_designator']
             try:
-                status = _c2_get_instrument_driver_status(instrument['reference_designator'])
+                status = 'Unknown' #_c2_get_instrument_driver_status(instrument['reference_designator'])
             except:
                 status = {}
             row['operational_status'] = status
@@ -983,7 +982,8 @@ def _c2_get_instrument_driver_status(reference_designator):
             try:
                 data = json.loads(response.content)
             except:
-                raise Exception('Malformed data; not in valid json format.')
+                return None
+                #raise Exception('Malformed data; not in valid json format.')
 
         # Get all parameter values for instruments
         status = data
@@ -996,15 +996,16 @@ def _c2_get_instrument_driver_status(reference_designator):
         # Have instrument state, continue
         if state is not None:
             if state != "DRIVER_BUSY_EVENT":
-                try:
-                    result = _c2_get_instrument_driver_parameter_values(reference_designator)
-                except Exception as err:
-                    result = None
-                    message = str(err.message)
-                if result:
-                    if 'value' in result:
-                        if isinstance(result['value'], dict):
-                            status['value']['parameters'] = result['value']
+                if state != 'Unknown' and state != 'UNKNOWN' and 'DISCONNECTED' not in state:
+                    try:
+                        result = _c2_get_instrument_driver_parameter_values(reference_designator)
+                    except Exception as err:
+                        result = None
+                        message = str(err.message)
+                    if result:
+                        if 'value' in result:
+                            if isinstance(result['value'], dict):
+                                status['value']['parameters'] = result['value']
 
         return data
     except:
@@ -2269,7 +2270,6 @@ def server_read_timeout_error(message):
     return response
 '''
 
-@cache.memoize(timeout=3600)
 def _get_toc():
     """
     Returns a dictionary of arrays, moorings, platforms and instruments from uframe.
