@@ -240,32 +240,32 @@ class UserTestCase(unittest.TestCase):
                         "user_scopes": [
                             {
                                 "id": 1,
-                                "scope_description": null,
+                                "scope_description": None,
                                 "scope_name": "user_admin"
                                 },
                             {
                                 "id": 2,
-                                "scope_description": null,
+                                "scope_description": None,
                                 "scope_name": "annotate"
                                 },
                             {
                                 "id": 3,
-                                "scope_description": null,
+                                "scope_description": None,
                                 "scope_name": "asset_manager"
                                 },
                             {
                                 "id": 4,
-                                "scope_description": null,
+                                "scope_description": None,
                                 "scope_name": "command_control"
                                 },
                             {
                                 "id": 5,
-                                "scope_description": null,
+                                "scope_description": None,
                                 "scope_name": "redmine"
                                 },
                             {
                                 "id": 6,
-                                "scope_description": null,
+                                "scope_description": None,
                                 "scope_name": "organization"
                                 }
                             ]
