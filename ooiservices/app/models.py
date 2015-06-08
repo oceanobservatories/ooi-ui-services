@@ -67,7 +67,7 @@ class Annotation(db.Model, DictSerializableMixin):
     stream_name = db.Column(db.Text())
     description = db.Column(db.Text())
     stream_parameter_name = db.Column(db.Text())
-    
+
     user = db.relationship(u'User')
 
     @classmethod
@@ -388,7 +388,7 @@ class LogEntry(db.Model):
     search_vector = db.Column(TSVectorType('entry_title', 'entry_description'))
     user_id = db.Column(db.ForeignKey(u'' + __schema__ + '.users.id'), nullable=False)
     organization_id = db.Column(db.ForeignKey(u'' + __schema__ + '.organizations.id'), nullable=False)
-    
+
     user = db.relationship(u'User')
     organization = db.relationship(u'Organization')
 
@@ -940,7 +940,9 @@ class UserScope(db.Model, DictSerializableMixin):
             'redmine',
             'asset_manager',
             'user_admin',
-            'annotate'
+            'annotate',
+            'command_control',
+            'organization'
             }
         for s in scopes:
             scope = UserScope.query.filter_by(scope_name=s).first()
