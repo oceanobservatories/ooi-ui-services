@@ -5,7 +5,7 @@ API v1.0 Command and Control (C2) routes
 '''
 __author__ = 'Edna Donoughe'
 
-from flask import (jsonify, current_app, make_response, request)
+from flask import jsonify, current_app, make_response, request, g
 from ooiservices.app.main import api
 from ooiservices.app.models import Array
 from ooiservices.app.main.routes import get_display_name_by_rd
@@ -13,7 +13,7 @@ import json, os
 import requests
 from urllib import urlencode
 from ooiservices.app.main.errors import bad_request
-from ooiservices.app.main.authentication import auth
+from ooiservices.app.main.authentication import auth, verify_auth
 from ooiservices.app.decorators import scope_required
 import datetime as dt
 
@@ -21,8 +21,8 @@ import datetime as dt
 # C2 array routes
 # - - - - - - - - - - - - - - - - - - - - - - - -
 @api.route('/c2/arrays', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'command_control')
 def c2_get_arrays():
     #Get C2 arrays, return list of array abstracts
     list_of_arrays = []
@@ -34,8 +34,8 @@ def c2_get_arrays():
     return jsonify(arrays=list_of_arrays)
 
 @api.route('/c2/array/<string:array_code>/abstract', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'command_control')
 def c2_get_array_abstract(array_code):
     '''
     Get C2 array abstract (display), return abstract
@@ -65,8 +65,8 @@ def get_array_abstract(array_code):
 
 #TODO get operational status from uframe
 @api.route('/c2/array/<string:array_code>/current_status_display', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'command_control')
 def c2_get_array_current_status_display(array_code):
     '''
     C2 get array Current Status tab contents, return current_status_display
@@ -102,8 +102,8 @@ def c2_get_array_current_status_display(array_code):
     return jsonify(current_status_display=contents)
 
 @api.route('/c2/array/<string:array_code>/history', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'command_control')
 def c2_get_array_history(array_code):
     '''
     C2 get array history, return history
@@ -120,8 +120,8 @@ def c2_get_array_history(array_code):
 # C2 platform
 # - - - - - - - - - - - - - - - - - - - - - - - -
 @api.route('/c2/platform/<string:reference_designator>/abstract', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'command_control')
 def c2_get_platform_abstract(reference_designator):
     #Get C2 platform abstract, return abstract
     response_dict = {}
@@ -137,8 +137,8 @@ def c2_get_platform_abstract(reference_designator):
     return jsonify(abstract=response_dict)
 
 @api.route('/c2/platform/<string:reference_designator>/current_status_display', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'command_control')
 def c2_get_platform_current_status_display(reference_designator):
     '''
     Get C2 platform Current Status tab contents, return current_status_display.
@@ -171,8 +171,8 @@ def c2_get_platform_current_status_display(reference_designator):
     return jsonify(current_status_display=contents)
 
 @api.route('/c2/platform/<string:reference_designator>/history', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'command_control')
 def c2_get_platform_history(reference_designator):
     '''
     C2 get platform history
@@ -187,8 +187,8 @@ def c2_get_platform_history(reference_designator):
     return jsonify(history=history)
 
 @api.route('/c2/platform/<string:reference_designator>/ports_display', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'command_control')
 def c2_get_platform_ports_display(reference_designator):
     '''
     Get C2 platform Ports tab contents, return ports_display ([{},{},...]
@@ -255,8 +255,8 @@ def c2_get_platform_ports_display(reference_designator):
 
 #TODO complete with commands from uframe when platform/api available (post R5)
 @api.route('/c2/platform/<string:reference_designator>/commands', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'command_control')
 def c2_get_platform_commands(reference_designator):
     #Get C2 platform commands return commands [{},{},...]
     commands = []
@@ -273,8 +273,8 @@ def c2_get_platform_commands(reference_designator):
 # C2 instrument
 # - - - - - - - - - - - - - - - - - - - - - - - -
 @api.route('/c2/instrument/<string:reference_designator>/abstract', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'command_control')
 def c2_get_instrument_abstract(reference_designator):
     '''
     C2 get instrument abstract
@@ -302,8 +302,8 @@ def c2_get_instrument_abstract(reference_designator):
     return jsonify(abstract=response_dict)
 
 @api.route('/c2/instrument/<string:reference_designator>/history', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'command_control')
 def c2_get_instrument_history(reference_designator):
     '''
     C2 get instrument history, return history
@@ -318,8 +318,8 @@ def c2_get_instrument_history(reference_designator):
     return jsonify(history=history)
 
 @api.route('/c2/instrument/<string:reference_designator>/ports_display', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'command_control')
 def c2_get_instrument_ports_display(reference_designator):
     '''
     Get C2 instrument Ports tab contents, return ports_display
