@@ -4,7 +4,7 @@ ooiservices/app/main/plotting.py
 
 Support for generating svg plots
 '''
-
+from flask import request
 from netCDF4 import num2date
 from ooiservices.app.uframe.plot_tools import OOIPlots
 import matplotlib.pyplot as plt
@@ -128,8 +128,8 @@ def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_prof
         current_app.logger.debug('Plotting Depth Profile')
         # Define some plot parameters
         kwargs = dict(linewidth=1.5, alpha=0.7)
-        xlabel = data['x_field'][0] + " (" + data['x_units'][0] + ")"
-        ylabel = data['y_field'][0] + " (" + data['y_units'][0] + ")"
+        xlabel = data['x_field'] + " (" + request.args.get('x_units') + ")"
+        ylabel = data['y_field'] + " (" + request.args.get('y_units') + ")"
 
         if plot_profile_id is None:
 

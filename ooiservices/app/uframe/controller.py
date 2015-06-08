@@ -763,8 +763,8 @@ def get_svg_plot(instrument, stream):
 
     # get the data from uFrame
     try:
-        if plot_layout == "depthprofile":
-            data = get_process_profile_data(stream, instrument, yvar[0], xvar[0])
+        if plot_layout == "depthprofile":            
+            data = get_process_profile_data(stream[0], instrument[0], yvar[0], xvar[0])
         else:
             if len(instrument) == 1:
                 data = get_data(stream[0], instrument[0], yvar, xvar)
@@ -819,10 +819,11 @@ def get_svg_plot(instrument, stream):
     return buf.read(), 200, {'Content-Type': content_header_map[plot_format]}
 
 
-def get_process_profile_data(stream, instrument, yvar, xvar):
-
-    # get profile data
-    try:
+def get_process_profile_data(stream, instrument, xvar, yvar):
+    '''
+    NOTE: i have to swap the inputs (xvar, yvar) around at this point to get the plot to work....
+    '''
+    try:        
         data = get_profile_data(instrument, stream)
         if not data or data == None:
             raise Exception('profiles not present in data')
@@ -866,8 +867,8 @@ def get_process_profile_data(stream, instrument, yvar, xvar):
 def get_profile_data(instrument, stream):
     '''
     process uframe data into profiles
-    '''
-    try:
+    '''    
+    try:    
         data = []
         mooring, platform, instrument, stream_type, stream = split_stream_name('_'.join([instrument, stream]))
         if 'startdate' in request.args and 'enddate' in request.args:
@@ -953,7 +954,6 @@ def get_profile_data(instrument, stream):
         # find where the slope changes
         dr = [start.append(i) for (i, val) in enumerate(dZero) if val != 0]
         if len(start) == 0:
-            #return {'error': 'Unable to determine where slope changes.'}
             raise Exception('Unable to determine where slope changes.')
 
         for i in range(len(start)-1):
@@ -1000,7 +1000,7 @@ def get_profile_data(instrument, stream):
         return profile_list
 
     except Exception as err:
-        current_app.logger.exception('\n***** (pass) exception: ' + str(err.message))
+        current_app.logger.exception('\n* (pass) exception: ' + str(err.message))
         pass
 
 # @auth.login_required
