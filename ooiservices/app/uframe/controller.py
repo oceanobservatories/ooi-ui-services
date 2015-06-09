@@ -17,7 +17,7 @@ from ooiservices.app.main.authentication import auth,verify_auth
 from ooiservices.app.main.errors import internal_server_error
 from urllib import urlencode
 # data ones
-from ooiservices.app.uframe.data import get_data, COSMO_CONSTANT
+from ooiservices.app.uframe.data import get_data, COSMO_CONSTANT,find_parameter_ids
 from ooiservices.app.uframe.plotting import generate_plot
 from ooiservices.app.uframe.assetController import _get_events_by_ref_des
 from datetime import datetime
@@ -112,6 +112,8 @@ def split_stream_name(ui_stream_name):
     Splits the hypenated reference designator and stream type into a tuple of
     (mooring, platform, instrument, stream_type, stream)
     '''
+
+    print ui_stream_name
     mooring, platform, instrument = ui_stream_name.split('-', 2)
     instrument, stream_type, stream = instrument.split('_', 2)
     return (mooring, platform, instrument, stream_type, stream)
@@ -441,6 +443,7 @@ def get_uframe_stream_metadata_times(ref):
         return internal_server_error('uframe connection cannot be made.' + str(e.message))
 
 #@cache.memoize(timeout=3600)
+#DEPRECATED
 def get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag):
     """
     Gets the bounded stream contents, start_time and end_time need to be datetime objects; returns Respnse object.
@@ -834,8 +837,14 @@ def get_process_profile_data(stream, instrument, xvar, yvar):
     '''
     NOTE: i have to swap the inputs (xvar, yvar) around at this point to get the plot to work....
     '''
-    try:        
-        data = get_profile_data(instrument, stream)
+    try:
+        join_name ='_'.join([str(instrument), str(stream)])   
+
+        mooring, platform, instrument, stream_type, stream = split_stream_name(join_name)
+        parameter_ids, y_units, x_units = find_parameter_ids(mooring, platform, instrument, [yvar], [xvar])
+
+        data = get_profile_data(mooring, platform, instrument, stream_type, stream, parameter_ids)
+        
         if not data or data == None:
             raise Exception('profiles not present in data')
     except Exception as e:
@@ -875,13 +884,12 @@ def get_process_profile_data(stream, instrument, xvar, yvar):
     return {'x': x_data, 'y': y_data, 'x_field': xvar, "y_field": yvar, 'time': time}
 
 
-def get_profile_data(instrument, stream):
+def get_profile_data(mooring, platform, instrument, stream_type, stream, parameter_ids):
     '''
     process uframe data into profiles
     '''    
     try:    
         data = []
-        mooring, platform, instrument, stream_type, stream = split_stream_name('_'.join([instrument, stream]))
         if 'startdate' in request.args and 'enddate' in request.args:
             st_date = request.args['startdate']
             ed_date = request.args['enddate']
@@ -890,7 +898,7 @@ def get_profile_data(instrument, stream):
             else:
                 dpa_flag = "0"
             ed_date = validate_date_time(st_date, ed_date)
-            data, status_code = get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
+            data, status_code = get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag, parameter_ids)
         else:
             message = 'Failed to make plot - start end dates not applied'
             current_app.logger.exception(message)
@@ -1019,7 +1027,7 @@ def get_profile_data(instrument, stream):
 def get_profiles(stream, instrument):
     filename = '-'.join([stream, instrument, "profiles"])
     content_headers = {'Content-Type': 'application/json', 'Content-Disposition': "attachment; filename=%s.json" % filename}
-    try:
+    try:        
         profiles = get_profile_data(instrument, stream)
     except Exception as e:
         return jsonify(error=e.message), 400, content_headers
