@@ -342,16 +342,7 @@ def get_structured_toc():
 
                 instrument_key.append(d['reference_designator'])
 
-            if d['platform_code'] not in platform_key:
-                platform_list.append({'array_code':d['reference_designator'][0:2],
-                                      'platform_code':d['platform_code'],
-                                      'mooring_code':d['mooring_code'],
-                                      'reference_designator':d['reference_designator'],
-                                      'display_name': d['platform_display_name']
-                                        })
-
-                platform_key.append(d['platform_code'])
-
+                        
             if d['mooring_code'] not in mooring_key:
                 mooring_list.append({'array_code':d['reference_designator'][0:2],
                                      'mooring_code':d['mooring_code'],
@@ -362,6 +353,16 @@ def get_structured_toc():
                                      })
 
                 mooring_key.append(d['mooring_code'])
+
+            if d['mooring_code']+d['platform_code'] not in platform_key:
+                platform_list.append({'array_code':d['reference_designator'][0:2],
+                                      'platform_code':d['platform_code'],
+                                      'mooring_code':d['mooring_code'],
+                                      'reference_designator':d['reference_designator'],
+                                      'display_name': d['platform_display_name']
+                                        })
+
+                platform_key.append(d['mooring_code']+d['platform_code'])
 
         return jsonify(toc={"moorings":mooring_list,
                             "platforms":platform_list,
