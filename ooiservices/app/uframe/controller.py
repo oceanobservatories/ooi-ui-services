@@ -202,7 +202,7 @@ def streams_list():
             retval.append(data_dict)
         cache.set('stream_list', retval, timeout=3600)
 
-    if request.args.get('search') != "":
+    if request.args.get('search') and request.args.get('search') != "":
         return_list = []
         search_term = request.args.get('search')
         for item in retval:
@@ -344,7 +344,7 @@ def get_structured_toc():
 
                 instrument_key.append(d['reference_designator'])
 
-                        
+
             if d['mooring_code'] not in mooring_key:
                 mooring_list.append({'array_code':d['reference_designator'][0:2],
                                      'mooring_code':d['mooring_code'],
@@ -780,7 +780,7 @@ def get_svg_plot(instrument, stream):
 
     # get the data from uFrame
     try:
-        if plot_layout == "depthprofile":            
+        if plot_layout == "depthprofile":
             data = get_process_profile_data(stream[0], instrument[0], yvar[0], xvar[0])
         else:
             if len(instrument) == 1:
@@ -841,13 +841,13 @@ def get_process_profile_data(stream, instrument, xvar, yvar):
     NOTE: i have to swap the inputs (xvar, yvar) around at this point to get the plot to work....
     '''
     try:
-        join_name ='_'.join([str(instrument), str(stream)])   
+        join_name ='_'.join([str(instrument), str(stream)])
 
         mooring, platform, instrument, stream_type, stream = split_stream_name(join_name)
         parameter_ids, y_units, x_units = find_parameter_ids(mooring, platform, instrument, [yvar], [xvar])
 
         data = get_profile_data(mooring, platform, instrument, stream_type, stream, parameter_ids)
-        
+
         if not data or data == None:
             raise Exception('profiles not present in data')
     except Exception as e:
@@ -890,8 +890,8 @@ def get_process_profile_data(stream, instrument, xvar, yvar):
 def get_profile_data(mooring, platform, instrument, stream_type, stream, parameter_ids):
     '''
     process uframe data into profiles
-    '''    
-    try:    
+    '''
+    try:
         data = []
         if 'startdate' in request.args and 'enddate' in request.args:
             st_date = request.args['startdate']
@@ -1030,7 +1030,7 @@ def get_profile_data(mooring, platform, instrument, stream_type, stream, paramet
 def get_profiles(stream, instrument):
     filename = '-'.join([stream, instrument, "profiles"])
     content_headers = {'Content-Type': 'application/json', 'Content-Disposition': "attachment; filename=%s.json" % filename}
-    try:        
+    try:
         profiles = get_profile_data(instrument, stream)
     except Exception as e:
         return jsonify(error=e.message), 400, content_headers
