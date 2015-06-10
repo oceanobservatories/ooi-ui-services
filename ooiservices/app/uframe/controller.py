@@ -176,7 +176,7 @@ def streams_list():
         except Exception as e:
             current_app.logger.exception('**** (1) exception: ' + e.message)
             return jsonify(error=e.message), 500
-    
+
     cached = cache.get('stream_list')
     if cached:
         retval = cached
@@ -204,9 +204,11 @@ def streams_list():
         return_list = []
         search_term = request.args.get('search')
         for item in retval:
-            if search_term.lower() in (str(item['display_name'] or item['stream_name']).lower()):
+            if search_term.lower() in str(item['stream_name']).lower():
                 return_list.append(item)
-        retval = return_list           
+            if search_term.lower() in str(item['display_name']).lower():
+                return_list.append(item)
+        retval = return_list
 
     if request.args.get('startAt'):
         start_at = int(request.args.get('startAt'))
@@ -467,7 +469,7 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
     '''
     Gets the bounded stream contents, start_time and end_time need to be datetime objects
     '''
-    
+
     try:
         if dpa_flag == '0' and len(parameter_ids)<1:
             query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
@@ -479,7 +481,7 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
             query = '?beginDT=%s&endDT=%s&execDPA=true&parameters=%s' % (start_time, end_time,','.join(map(str, parameter_ids)))
 
         GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=plot&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
-        
+
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
         url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])
 
@@ -625,9 +627,9 @@ def get_csv(stream, ref,start_time,end_time,dpa_flag):
     #figures out if its in a date time range
     end_time = validate_date_time(start_time, end_time)
     data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag)
-    
+
     GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_csv&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
-    
+
     if data.status_code != 200:
         return data, data.status_code, dict(data.headers)
 
@@ -660,9 +662,9 @@ def get_json(stream,ref,start_time,end_time,dpa_flag):
     end_time = validate_date_time(start_time, end_time)
 
     data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag)
- 
+
     GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_json&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
-    
+
     if data.status_code != 200:
         return data, data.status_code, dict(data.headers)
     response = '{"data":%s}' % data.content
@@ -678,9 +680,9 @@ def get_json(stream,ref,start_time,end_time,dpa_flag):
 def get_netcdf(stream, ref,start_time,end_time,dpa_flag):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
-    
+
     GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_netcdf&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
-    
+
     uframe_url, timeout, timeout_read = get_uframe_info()
     url = '/'.join([uframe_url, mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag])
     if dpa_flag == '0':
