@@ -178,7 +178,7 @@ def streams_list():
         except Exception as e:
             current_app.logger.exception('**** (1) exception: ' + e.message)
             return jsonify(error=e.message), 500
-    
+
     cached = cache.get('stream_list')
     if cached:
         retval = cached
@@ -202,13 +202,15 @@ def streams_list():
             retval.append(data_dict)
         cache.set('stream_list', retval, timeout=3600)
 
-    if request.args.get('search') != "":
+    if request.args.get('search') and request.args.get('search') != "":
         return_list = []
         search_term = request.args.get('search')
         for item in retval:
-            if search_term.lower() in (str(item['display_name'] or item['stream_name']).lower()):
+            if search_term.lower() in str(item['stream_name']).lower():
                 return_list.append(item)
-        retval = return_list           
+            if search_term.lower() in str(item['display_name']).lower():
+                return_list.append(item)
+        retval = return_list
 
     if request.args.get('startAt'):
         start_at = int(request.args.get('startAt'))
@@ -342,7 +344,7 @@ def get_structured_toc():
 
                 instrument_key.append(d['reference_designator'])
 
-                        
+
             if d['mooring_code'] not in mooring_key:
                 mooring_list.append({'array_code':d['reference_designator'][0:2],
                                      'mooring_code':d['mooring_code'],
@@ -471,7 +473,7 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
     '''
     Gets the bounded stream contents, start_time and end_time need to be datetime objects
     '''
-    
+
     try:
         if dpa_flag == '0' and len(parameter_ids)<1:
             query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
@@ -483,7 +485,7 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
             query = '?beginDT=%s&endDT=%s&execDPA=true&parameters=%s' % (start_time, end_time,','.join(map(str, parameter_ids)))
 
         GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=plot&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
-        
+
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
         url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])
 
@@ -629,9 +631,9 @@ def get_csv(stream, ref,start_time,end_time,dpa_flag):
     #figures out if its in a date time range
     end_time = validate_date_time(start_time, end_time)
     data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag)
-    
+
     GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_csv&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
-    
+
     if data.status_code != 200:
         return data, data.status_code, dict(data.headers)
 
@@ -664,9 +666,9 @@ def get_json(stream,ref,start_time,end_time,dpa_flag):
     end_time = validate_date_time(start_time, end_time)
 
     data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag)
- 
+
     GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_json&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
-    
+
     if data.status_code != 200:
         return data, data.status_code, dict(data.headers)
     response = '{"data":%s}' % data.content
@@ -682,9 +684,9 @@ def get_json(stream,ref,start_time,end_time,dpa_flag):
 def get_netcdf(stream, ref,start_time,end_time,dpa_flag):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
-    
+
     GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_netcdf&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
-    
+
     uframe_url, timeout, timeout_read = get_uframe_info()
     url = '/'.join([uframe_url, mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag])
     if dpa_flag == '0':
@@ -778,7 +780,7 @@ def get_svg_plot(instrument, stream):
 
     # get the data from uFrame
     try:
-        if plot_layout == "depthprofile":            
+        if plot_layout == "depthprofile":
             data = get_process_profile_data(stream[0], instrument[0], yvar[0], xvar[0])
         else:
             if len(instrument) == 1:
@@ -839,13 +841,13 @@ def get_process_profile_data(stream, instrument, xvar, yvar):
     NOTE: i have to swap the inputs (xvar, yvar) around at this point to get the plot to work....
     '''
     try:
-        join_name ='_'.join([str(instrument), str(stream)])   
+        join_name ='_'.join([str(instrument), str(stream)])
 
         mooring, platform, instrument, stream_type, stream = split_stream_name(join_name)
         parameter_ids, y_units, x_units = find_parameter_ids(mooring, platform, instrument, [yvar], [xvar])
 
         data = get_profile_data(mooring, platform, instrument, stream_type, stream, parameter_ids)
-        
+
         if not data or data == None:
             raise Exception('profiles not present in data')
     except Exception as e:
@@ -888,8 +890,8 @@ def get_process_profile_data(stream, instrument, xvar, yvar):
 def get_profile_data(mooring, platform, instrument, stream_type, stream, parameter_ids):
     '''
     process uframe data into profiles
-    '''    
-    try:    
+    '''
+    try:
         data = []
         if 'startdate' in request.args and 'enddate' in request.args:
             st_date = request.args['startdate']
@@ -1028,7 +1030,7 @@ def get_profile_data(mooring, platform, instrument, stream_type, stream, paramet
 def get_profiles(stream, instrument):
     filename = '-'.join([stream, instrument, "profiles"])
     content_headers = {'Content-Type': 'application/json', 'Content-Disposition': "attachment; filename=%s.json" % filename}
-    try:        
+    try:
         profiles = get_profile_data(instrument, stream)
     except Exception as e:
         return jsonify(error=e.message), 400, content_headers
