@@ -15,6 +15,7 @@ import requests
 import re
 import datetime
 from netCDF4 import num2date
+from operator import itemgetter
 
 #Default number of times to retry the connection:
 requests.adapters.DEFAULT_RETRIES = 2
@@ -270,7 +271,7 @@ class uFrameAssetCollection(object):
     purchase_and_delivery_info = None
     physical_info = None
     identifier = None
-    traceI_id = None
+    trace_id = None
     overwrite_allowed = False
 
     #Create a json object that contains all uframe assets.
@@ -306,6 +307,7 @@ class uFrameAssetCollection(object):
         trace_id = json.get('traceId')
         overwrite_allowed = json.get('overwriteAllowed')
         platform = json.get('platform')
+        deployment_number = json.get('deployment_number')
         last_modified_imestamp = json.get("lastModifiedTimestamp")
         #####
         #Build metadata dictionary
@@ -350,6 +352,12 @@ class uFrameAssetCollection(object):
               "value": platform
             }
             meta_data.append(dict_platform)
+        if deployment_number is not None:
+            dict_deployment_number = {
+                "key": "Deployment Number",
+                "value": deployment_number
+            }
+            meta_data.append(dict_deployment_number)
 
         #TODO:
         #temp_metaData needs to be checked against the existing metaData and
@@ -368,6 +376,7 @@ class uFrameAssetCollection(object):
                 "attachments": attachments,
                 "purchaseAndDeliveryInfo": purchase_and_delivery_info,
                 "physicalInfo": physical_info,
+                "deployment_number": deployment_number,
                 "lastModifiedTimestamp": last_modified_imestamp
                 }
         return formatted_return
@@ -469,58 +478,63 @@ def get_assets():
     #Manually set up the cache
     cached = cache.get('asset_list')
     if cached:
-        return cached
-
-    #set up all the contaners.
-    data = {}
-    #create uframe instance, and fetch the data.
-    uframe_obj = uFrameAssetCollection()
-    data = uframe_obj.to_json()
-    lat = ""
-    lon = ""
-    date_launch = ""
-    time_launch = ""
-    ref_des = ""
-    depth = ""
-    try:
-        for row in data:
-            if row['metaData'] is not None:
-                for meta_data in row['metaData']:
-                    if meta_data['key'] == 'Laditude ':
-                        meta_data['key'] = 'Latitude'
-                    if meta_data['key'] == 'Latitude':
-                        lat = meta_data['value']
-                        meta_data['value'] = _normalize(meta_data['value'])
-                    if meta_data['key'] == 'Longitude':
-                        lon = meta_data['value']
-                        meta_data['value'] = _normalize(meta_data['value'])
-                    if meta_data['key'] == "Anchor Launch Date":
-                        date_launch = meta_data['value']
-                    if meta_data['key'] == "Anchor Launch Time":
-                        time_launch = meta_data['value']
-                    if meta_data['key'] == 'Water Depth':
-                        depth = meta_data['value']
-                    if meta_data['key'] == 'Ref Des SN':
-                        meta_data['key'] = 'Ref Des'
-                    if meta_data['key'] == 'Ref Des':
-                        ref_des = (meta_data['value'])
-                if len(lat) > 0 and len(lon) > 0:
-                    row['coordinates'] = _convert_lat_lon(lat, lon)
-                    lat = ""
-                    lon = ""
-                if len(date_launch) > 0 and len(time_launch) > 0:
-                    row['launch_date_time'] = _convert_date_time(date_launch, time_launch)
-                    date_launch = ""
-                    time_launch = ""
-                elif len(date_launch) > 0:
-                    row['launch_date_time'] = _convert_date_time(date_launch)
-                    date_launch = ""
-                    time_launch = ""
-                if len(depth) > 0:
-                    row['water_depth'] = _convert_water_depth(depth)
-                    depth = ""
-                if len(ref_des) > 0:
-                    row['ref_des'] = ref_des
+        data = cached
+    else:
+        #set up all the contaners.
+        data = {}
+        #create uframe instance, and fetch the data.
+        uframe_obj = uFrameAssetCollection()
+        data = uframe_obj.to_json()
+        lat = ""
+        lon = ""
+        date_launch = ""
+        time_launch = ""
+        ref_des = ""
+        depth = ""
+        deployment_number = ""
+        try:
+            for row in data:
+                if row['metaData'] is not None:
+                    for meta_data in row['metaData']:
+                        if meta_data['key'] == 'Laditude ':
+                            meta_data['key'] = 'Latitude'
+                        if meta_data['key'] == 'Latitude':
+                            lat = meta_data['value']
+                            meta_data['value'] = _normalize(meta_data['value'])
+                        if meta_data['key'] == 'Longitude':
+                            lon = meta_data['value']
+                            meta_data['value'] = _normalize(meta_data['value'])
+                        if meta_data['key'] == "Anchor Launch Date":
+                            date_launch = meta_data['value']
+                        if meta_data['key'] == "Anchor Launch Time":
+                            time_launch = meta_data['value']
+                        if meta_data['key'] == 'Water Depth':
+                            depth = meta_data['value']
+                        if meta_data['key'] == 'Ref Des SN':
+                            meta_data['key'] = 'Ref Des'
+                        if meta_data['key'] == 'Ref Des':
+                            ref_des = (meta_data['value'])
+                        if meta_data['key'] == 'Deployment Number':
+                            deployment_number = meta_data['value']
+                    if len(lat) > 0 and len(lon) > 0:
+                        row['coordinates'] = _convert_lat_lon(lat, lon)
+                        lat = ""
+                        lon = ""
+                    if len(date_launch) > 0 and len(time_launch) > 0:
+                        row['launch_date_time'] = _convert_date_time(date_launch, time_launch)
+                        date_launch = ""
+                        time_launch = ""
+                    elif len(date_launch) > 0:
+                        row['launch_date_time'] = _convert_date_time(date_launch)
+                        date_launch = ""
+                        time_launch = ""
+                    if len(depth) > 0:
+                        row['water_depth'] = _convert_water_depth(depth)
+                        depth = ""
+                    if len(ref_des) > 0:
+                        row['ref_des'] = ref_des
+                    if len(deployment_number) > 0:
+                        row['deployment_number'] = deployment_number
                     display_name = get_display_name_by_rd(ref_des)
                     if display_name:
                         row['display_name'] = display_name
@@ -551,20 +565,48 @@ def get_assets():
                     except (requests.exceptions.ConnectTimeout, requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
                         row.update({'stream_url': "Request Time Out"})
 
-            row['class'] = row.pop('@class')
-            row.pop('metaData', None)
-            row.pop('physicalInfo', None)
-            row.pop('purchaseAndDeliveryInfo', None)
-            row.update({'url': url_for('uframe.get_asset', id=row['assetId']),
-                    'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + \
-                    '/%s/%s' % (uframe_obj.__endpoint__, row['assetId'])})
-    except (KeyError, TypeError, AttributeError) as e:
-        pass
+                row['events'] = _associate_events(row['assetId'])
+                row['asset_class'] = row.pop('@class')
+                row.update({'url': url_for('uframe.get_asset', id=row['assetId']),
+                        'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + \
+                        '/%s/%s' % (uframe_obj.__endpoint__, row['assetId'])})
+        except (KeyError, TypeError, AttributeError) as e:
+            pass
 
-    result = jsonify({ 'assets' : data })
     if "error" not in data:
-        cache.set('asset_list', result, timeout=CACHE_TIMEOUT)
-    return result
+        cache.set('asset_list', data, timeout=CACHE_TIMEOUT)
+
+    data = sorted(data, key=itemgetter('assetId'))
+
+    if request.args.get('search') and request.args.get('search') != "":
+        return_list = []
+        search_term = request.args.get('search')
+        for item in data:
+            if search_term.lower() in str(item['assetInfo']['name']).lower():
+                return_list.append(item)
+            if search_term.lower() in str(item['ref_des']).lower():
+                return_list.append(item)
+            if search_term.lower() in str(item['assetInfo']['type']).lower():
+                return_list.append(item)
+            if search_term.lower() in str(item['assetInfo']['owner']).lower():
+                return_list.append(item)
+            if search_term in str(item['assetId']):
+                return_list.append(item)
+        data = return_list
+
+    if request.args.get('startAt'):
+        start_at = int(request.args.get('startAt'))
+        count = int(request.args.get('count'))
+        total = int(len(data))
+        data_slice = data[start_at:(start_at + count)]
+        result = jsonify({"count": count,
+                            "total": total,
+                            "startAt": start_at,
+                            "assets": data_slice})
+        return result
+    else:
+        result = jsonify({ 'assets' : data })
+        return result
 
 #Read (object)
 @api.route('/assets/<int:id>', methods=['GET'])
@@ -580,6 +622,7 @@ def get_asset(id):
     time_launch = ""
     ref_des = ""
     depth = ""
+    deployment_number = ""
     try:
         for meta_data in data['metaData']:
             if meta_data['key'] == 'Laditude ':
@@ -599,7 +642,9 @@ def get_asset(id):
             if meta_data['key'] == 'Ref Des SN':
                 meta_data['key'] = 'Ref Des'
             if meta_data['key'] == 'Ref Des':
-                ref_des = (meta_data['value'])
+                ref_des = meta_data['value']
+            if meta_data['key'] == 'Deployment Number':
+                deployment_number = meta_data['value']
         if len(lat) > 0 and len(lon) > 0:
             data['coordinates'] = _convert_lat_lon(lat, lon)
             lat = ""
@@ -617,33 +662,35 @@ def get_asset(id):
             depth = ""
         if len(ref_des) > 0:
             data['ref_des'] = ref_des
+        if len(deployment_number) > 0:
+            data['deployment_number'] = deployment_number
             '''
             Determine the asset name from the DB if there is none.
             '''
-            try:
-                if data['assetInfo']['name'] == None:
-                    data['assetInfo']['name'] = get_display_name_by_rd(ref_des)
-            except:
-                pass
-            '''
-            Create a url to uframe which can be used to navigate
-            to the stream data.
-            '''
-            try:
-                ref_des_split = ref_des.split('-')
-                stream_url =  current_app.config['UFRAME_URL'] + \
-                '/sensor/inv/%s' % (ref_des_split[0])
-                res = requests.head(stream_url, timeout=(.5, 3))
-                content_length = int(res.headers['content-length'])
-                if content_length > 0:
-                    data.update({'stream_url': stream_url})
-                ref_des = ""
-                content_length = 0
-            except (requests.exceptions.ConnectTimeout, requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
-                data.update({'stream_url': "Request Time Out"})
+        try:
+            if data['assetInfo']['name'] == None:
+                data['assetInfo']['name'] = get_display_name_by_rd(ref_des)
+        except:
+            pass
+        '''
+        Create a url to uframe which can be used to navigate
+        to the stream data.
+        '''
+        try:
+            ref_des_split = ref_des.split('-')
+            stream_url =  current_app.config['UFRAME_URL'] + \
+            '/sensor/inv/%s' % (ref_des_split[0])
+            res = requests.head(stream_url, timeout=(.5, 3))
+            content_length = int(res.headers['content-length'])
+            if content_length > 0:
+                data.update({'stream_url': stream_url})
+            ref_des = ""
+            content_length = 0
+        except (requests.exceptions.ConnectTimeout, requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
+            data.update({'stream_url': "Request Time Out"})
 
-            data['events'] = _associate_events(id)
-            data['class'] = data.pop('@class')
+        data['events'] = _associate_events(id)
+        data['asset_class'] = data.pop('@class')
     except (KeyError, TypeError, AttributeError) as e:
         pass
 
