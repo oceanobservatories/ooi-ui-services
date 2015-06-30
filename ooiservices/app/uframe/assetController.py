@@ -206,6 +206,8 @@ def _associate_events(id):
 	d['startDate'] = row['startDate']
         result.append(d)
 
+    result = sorted(result, key=itemgetter('eventId'))
+
     return result
 
 def _get_events_by_ref_des(ref_des):
