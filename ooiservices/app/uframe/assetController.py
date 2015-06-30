@@ -426,6 +426,9 @@ def get_assets():
     Listing GET request of all assets.  This method is cached for 1 hour.
     '''
 
+    lat = ""
+    lon = ""
+
     #Manually set up the cache
     cached = cache.get('asset_list')
     if cached:
@@ -437,6 +440,23 @@ def get_assets():
             row['id'] = row.pop('assetId')
             row['asset_class'] = row.pop('@class')
             row['events'] = _associate_events(row['id'])
+            try:
+                if row['metaData'] is not None:
+                    for meta_data in row['metaData']:
+                        if meta_data['key'] == 'Laditude ':
+                            meta_data['key'] = 'Latitude'
+                        if meta_data['key'] == 'Latitude':
+                            lat = meta_data['value']
+                            meta_data['value'] = _normalize(meta_data['value'])
+                        if meta_data['key'] == 'Longitude':
+                            lon = meta_data['value']
+                            meta_data['value'] = _normalize(meta_data['value'])
+                    if len(lat) > 0 and len(lon) > 0:
+                        row['coordinates'] = _convert_lat_lon(lat, lon)
+                        lat = ""
+                        lon = ""
+            except (KeyError, TypeError, AttributeError) as e:
+                pass
 
         if "error" not in data:
             cache.set('asset_list', data, timeout=CACHE_TIMEOUT)
@@ -480,13 +500,30 @@ def get_asset(id):
     '''
     Object response for the GET(id) request.  This response is NOT cached.
     '''
+    lat = ""
+    lon = ""
     uframe_obj = uFrameAssetCollection()
     data = uframe_obj.to_json(id)
 
+    data['events'] = _associate_events(id)
+    data['asset_class'] = data.pop('@class')
+    data['id'] = data['assetId']
+
     try:
-        data['events'] = _associate_events(id)
-        data['asset_class'] = data.pop('@class')
-        data['id'] = data['assetId']
+        if data['metaData'] is not None:
+            for meta_data in data['metaData']:
+                if meta_data['key'] == 'Laditude ':
+                    meta_data['key'] = 'Latitude'
+                if meta_data['key'] == 'Latitude':
+                    lat = meta_data['value']
+                    meta_data['value'] = _normalize(meta_data['value'])
+                if meta_data['key'] == 'Longitude':
+                    lon = meta_data['value']
+                    meta_data['value'] = _normalize(meta_data['value'])
+            if len(lat) > 0 and len(lon) > 0:
+                data['coordinates'] = _convert_lat_lon(lat, lon)
+                lat = ""
+                lon = ""
     except (KeyError, TypeError, AttributeError) as e:
         pass
 
