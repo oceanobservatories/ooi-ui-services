@@ -585,7 +585,7 @@ def update_asset(id):
         cache.delete('asset_list')
         if asset_cache:
             for row in asset_cache:
-                if row['id'] == data['id']:
+                if row['id'] == id:
                     row.update(data)
 
         if "error" not in asset_cache:
@@ -593,7 +593,27 @@ def update_asset(id):
     return response.text
 
 #Delete
-#Not supported
+@auth.login_required
+@api.route('/assets/<int:id>', methods=['DELETE'])
+def delete_asset(id):
+    '''
+    Delete an asset by providing the id
+    '''
+    uframe_obj = uFrameAssetCollection()
+    uframe_assets_url = _uframe_url(uframe_obj.__endpoint__, id)
+    response = requests.delete(uframe_assets_url, headers=_uframe_headers())
+    if response.status_code == 200:
+        asset_cache = cache.get('asset_list')
+        cache.delete('asset_list')
+        if asset_cache:
+            for row in asset_cache:
+                if row['id'] == id:
+                   thisAsset = row
+            asset_cache.remove(thisAsset)
+
+        if "error" not in asset_cache:
+            cache.set('asset_list', asset_cache, timeout=CACHE_TIMEOUT)
+    return response.text
 
 ### ---------------------------------------------------------------------------
 ### END Assets CRUD methods.
