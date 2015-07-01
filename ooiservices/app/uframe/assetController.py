@@ -453,10 +453,25 @@ def get_assets():
                         if meta_data['key'] == 'Longitude':
                             lon = meta_data['value']
                             meta_data['value'] = _normalize(meta_data['value'])
+                        if meta_data['key'] == 'Ref Des SN':
+                            meta_data['key'] = 'Ref Des'
+                        if meta_data['key'] == 'Ref Des':
+                            ref_des = (meta_data['value'])
                     if len(lat) > 0 and len(lon) > 0:
                         row['coordinates'] = _convert_lat_lon(lat, lon)
                         lat = ""
                         lon = ""
+                    if len(ref_des) > 0:
+                        '''
+                        Determine the asset name from the DB if there is none.
+                        '''
+
+                        try:
+                            if row['assetInfo']['name'] == None:
+                                row['assetInfo']['name'] = get_display_name_by_rd(ref_des)
+                        except:
+                            pass
+
             except (KeyError, TypeError, AttributeError) as e:
                 pass
 
@@ -522,10 +537,24 @@ def get_asset(id):
                 if meta_data['key'] == 'Longitude':
                     lon = meta_data['value']
                     meta_data['value'] = _normalize(meta_data['value'])
+                if meta_data['key'] == 'Ref Des SN':
+                    meta_data['key'] = 'Ref Des'
+                if meta_data['key'] == 'Ref Des':
+                    ref_des = (meta_data['value'])
             if len(lat) > 0 and len(lon) > 0:
                 data['coordinates'] = _convert_lat_lon(lat, lon)
                 lat = ""
                 lon = ""
+            if len(ref_des) > 0:
+                '''
+                Determine the asset name from the DB if there is none.
+                '''
+
+                try:
+                    if data['assetInfo']['name'] == None:
+                        data['assetInfo']['name'] = get_display_name_by_rd(ref_des)
+                except:
+                    pass
     except (KeyError, TypeError, AttributeError) as e:
         pass
 
