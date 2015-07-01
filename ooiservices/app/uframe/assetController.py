@@ -467,7 +467,7 @@ def get_assets():
                         '''
 
                         try:
-                            if row['assetInfo']['name'] == None:
+                            if (row['assetInfo']['name'] == None) or (row['assetInfo']['name'] == ""):
                                 row['assetInfo']['name'] = get_display_name_by_rd(ref_des)
                         except:
                             pass
