@@ -198,12 +198,16 @@ def _associate_events(id):
     data = requests.get(uframe_url)
     json_data = data.json()
     for row in json_data:
-        d = {'url': url_for('uframe.get_event', id=row['eventId']),
-                'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/events/%s' % row['eventId']}
-        d['eventId'] = row['eventId']
-        d['class'] = row['@class']
-        d['notes'] = len(row['notes'])
-	d['startDate'] = row['startDate']
+        try:
+            d = {'url': url_for('uframe.get_event', id=row['eventId']),
+                    'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/events/%s' % row['eventId']}
+            d['eventId'] = row['eventId']
+            d['class'] = row['@class']
+            d['notes'] = len(row['notes'])
+            d['startDate'] = row['startDate']
+            d['calibrationCoefficient'] = row['calibrationCoefficient']
+        except KeyError:
+            pass
         result.append(d)
 
     result = sorted(result, key=itemgetter('eventId'))
