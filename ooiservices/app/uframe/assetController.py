@@ -588,8 +588,8 @@ def create_asset():
     uframe_assets_url = _uframe_url(uframe_obj.__endpoint__)
     #return uframe_assets_url
     response = requests.post(uframe_assets_url, data=json.dumps(post_body), headers=_uframe_headers())
-    json_response = json.loads(response.text)
     if response.status_code == 201:
+        json_response = json.loads(response.text)
         data['id'] = json_response['id']
         asset_cache = cache.get('asset_list')
         cache.delete('asset_list')
@@ -597,7 +597,7 @@ def create_asset():
             asset_cache.append(data)
             cache.set('asset_list', asset_cache, timeout=CACHE_TIMEOUT)
 
-    return response.text
+    return response.text, response.status_code
 
 #Update
 @auth.login_required
@@ -623,7 +623,7 @@ def update_asset(id):
 
         if "error" not in asset_cache:
             cache.set('asset_list', asset_cache, timeout=CACHE_TIMEOUT)
-    return response.text
+    return response.text, response.status_code
 
 #Delete
 @auth.login_required
@@ -646,7 +646,7 @@ def delete_asset(id):
 
         if "error" not in asset_cache:
             cache.set('asset_list', asset_cache, timeout=CACHE_TIMEOUT)
-    return response.text
+    return response.text, response.status_code
 
 ### ---------------------------------------------------------------------------
 ### END Assets CRUD methods.
