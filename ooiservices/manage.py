@@ -73,6 +73,7 @@ def make_shell_context():
     from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameter, Watch
     from ooiservices.app.models import OperatorEvent
     from ooiservices.app.models import Platformname, Instrumentname, Annotation, Organization
+    from ooiservices.app.models import SystemEvent, SystemEventDefinition, UserEventNotification
 
     ctx = {"app": app,
            "db": db,
@@ -89,7 +90,10 @@ def make_shell_context():
            "Platformname": Platformname,
            "Instrumentname": Instrumentname,
            "Annotation": Annotation,
-           "Organization": Organization}
+           "Organization": Organization,
+           "SystemEvent": SystemEvent,
+           "SystemEventDefinition": SystemEventDefinition,
+           "UserEventNotification": UserEventNotification}
     return ctx
 
 @manager.command
