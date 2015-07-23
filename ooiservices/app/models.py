@@ -756,9 +756,7 @@ class Stream(db.Model):
 class SystemEventDefinition(db.Model):
     """
     Stores the definition for a single Alert/Alarm.
-    Operators:
-        uframe: 'GREATER', 'LESS', 'BETWEEN_EXCLUSIVE', 'OUTSIDE_EXCLUSIVE'
-        other:  > >= < <= = outside between inside
+    uframe operators: 'GREATER', 'LESS', 'BETWEEN_EXCLUSIVE', 'OUTSIDE_EXCLUSIVE'
     """
     __tablename__ = 'system_event_definitions'
     __table_args__ = {u'schema': __schema__}
@@ -780,11 +778,13 @@ class SystemEventDefinition(db.Model):
     low_value = db.Column(db.Text, nullable=True)
     severity = db.Column(db.Integer, nullable=False)
     stream = db.Column(db.Text, nullable=False)
+    retire = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))
+    ts_retire = db.Column(db.DateTime(True), nullable=True)
 
     @staticmethod
     def insert_system_event_definition(uframe_filter_id, reference_designator, array_name, platform_name,
                                        instrument_name, instrument_parameter, instrument_parameter_pdid, operator,
-                                       created_time, event_type, active, description,
+                                       values, created_time, event_type, active, description,
                                        high_value, low_value, severity, stream):
         new_definition = SystemEventDefinition()
         new_definition.uframe_filter_id = uframe_filter_id
@@ -825,10 +825,19 @@ class SystemEventDefinition(db.Model):
             'high_value' : self.high_value,
             'low_value' : self.low_value,
             'severity' : self.severity,
-            'stream' : self.stream
+            'stream' : self.stream,
+            'retire' : self.retire
         }
+        if self.created_time is not None:
+            json_system_event_definition['created_time'] = self._pytype(self.created_time)
+        if self.ts_retire is not None:
+            json_system_event_definition['ts_retire'] = self._pytype(self.ts_retire)
         return json_system_event_definition
 
+    def _pytype(self,v):
+        if isinstance(v, datetime):
+            return v.isoformat()
+        return str(v)
 
 class SystemEvent(db.Model):
     """
@@ -847,11 +856,16 @@ class SystemEvent(db.Model):
     method = db.Column(db.Text, nullable=False)
     deployment = db.Column(db.Integer, nullable=False)
 
+    acknowledged = db.Column(db.Boolean, nullable=False)        #, server_default=db.text("false"))
+    ack_by = db.Column(db.Text, nullable=True)
+    ack_for = db.Column(db.Text, nullable=True)
+    ts_acknowledged = db.Column(db.DateTime(True), nullable=True)
+
     event = db.relationship(u'SystemEventDefinition')
 
     @staticmethod
     def insert_event(uframe_event_id, uframe_filter_id, system_event_definition_id, event_time, event_type,
-                     event_response, method, deployment):
+                     event_response, method, deployment, ts_acknowledged):
         new_event = SystemEvent()
         new_event.uframe_event_id = uframe_event_id
         new_event.uframe_filter_id = uframe_filter_id
@@ -861,6 +875,10 @@ class SystemEvent(db.Model):
         new_event.event_response = event_response
         new_event.method = method
         new_event.deployment = deployment
+        new_event.acknowledged = False
+        new_event.ack_by = ''
+        new_event.ack_for = ''
+        new_event.ts_acknowledged = ts_acknowledged
         db.session.add(new_event)
         db.session.commit()
         return
@@ -875,9 +893,21 @@ class SystemEvent(db.Model):
             'event_type' : self.event_type,
             'event_response' : self.event_response,
             'method' : self.method,
-            'deployment' : self.deployment
+            'deployment' : self.deployment,
+            'acknowledged' : self.acknowledged,
+            'ack_by' : self.ack_by,
+            'ack_for' : self.ack_for
         }
+        if self.event_time is not None:
+            json_system_event['event_time'] = self._pytype(self.event_time)
+        if self.ts_acknowledged is not None:
+            json_system_event['ts_acknowledged'] = self._pytype(self.ts_acknowledged)
         return json_system_event
+
+    def _pytype(self,v):
+        if isinstance(v, datetime):
+            return v.isoformat()
+        return str(v)
 
 
 class UserEventNotification(db.Model):

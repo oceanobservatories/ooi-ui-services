@@ -64,7 +64,7 @@ class AlertAlarmTestCase(unittest.TestCase):
             'Content-Type': 'application/json'
         }
 
-    def test_alert_alarm_array_routes(self):
+    def test_alert_alarm_routes(self):
 
         verbose = self.verbose
         root = self.root
@@ -118,23 +118,20 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.exercise_alert_alarm_definition_no_data(arrays, platforms, instruments)
 
         # Create some alert definitions
-        event_type = 'alert'
-        #uframe_id = 10100
         uframe_id = 2
-        alert1 = self.create_alert_alarm_definition(DOFSTK000_rd, event_type, uframe_id, 1)
-        alert2 = self.create_alert_alarm_definition(CTDPFK000_rd, event_type, uframe_id, 2)
-        alert3 = self.create_alert_alarm_definition(PARADK000_rd, event_type, uframe_id, 3)
         event_type = 'alarm'
         alarm1 = self.create_alert_alarm_definition(DOFSTK000_rd, event_type, uframe_id, 1)
         alarm2 = self.create_alert_alarm_definition(CTDPFK000_rd, event_type, uframe_id, 2)
         alarm3 = self.create_alert_alarm_definition(PARADK000_rd, event_type, uframe_id, 3)
-
+        event_type = 'alert'
+        alert1 = self.create_alert_alarm_definition(DOFSTK000_rd, event_type, uframe_id, 1)
+        alert2 = self.create_alert_alarm_definition(CTDPFK000_rd, event_type, uframe_id, 2)
+        alert3 = self.create_alert_alarm_definition(PARADK000_rd, event_type, uframe_id, 3)
         for array in arrays:
             array_code = array.array_code
             if verbose: print '\nArray: ', array_code
             url = url_for('main.get_alerts_alarms_def')
             url += '?array_name=%s' % array_code
-            if verbose: print root+url
             response = self.client.get(url, content_type=content_type, headers=headers)
             self.assertTrue(response.status_code == 200)
             data = json.loads(response.data)
@@ -149,7 +146,6 @@ class AlertAlarmTestCase(unittest.TestCase):
             if verbose: print '\nPlatform: ', platform
             url = url_for('main.get_alerts_alarms_def')
             url += '?platform_name=%s' % platform
-            if verbose: print root+url
             response = self.client.get(url, content_type=content_type, headers=headers)
             self.assertTrue(response.status_code == 200)
             data = json.loads(response.data)
@@ -165,7 +161,6 @@ class AlertAlarmTestCase(unittest.TestCase):
             if verbose: print '\nInstrument: ', instrument
             url = url_for('main.get_alerts_alarms_def')
             url += '?instrument_name=%s' % instrument
-            if verbose: print root+url
             response = self.client.get(url, content_type=content_type, headers=headers)
             self.assertTrue(response.status_code == 200)
             data = json.loads(response.data)
@@ -177,8 +172,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         list_alertfilter_ids = []
 
         # GET an alert_alarm_def, create new definition and POST
-        url = url_for('main.get_alert_alarm_def', id=1)
-        #url += '?array_name=%s' % array_code
+        url = url_for('main.get_alert_alarm_def', id=1)     #url += '?array_name=%s' % array_code
         if verbose: print root+url
         response = self.client.get(url, content_type=content_type, headers=headers)
         self.assertTrue(response.status_code == 200)
@@ -186,7 +180,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue('reference_designator' in data)
         save_instrument_reference_designator = data['reference_designator']
 
-        # Leveraging data from GET above, change a few things and issue POST to create new def and
+        # Leveraging data from GET above, change a few things and issue POST to create new def
         content_type = 'application/json'
         headers = self.get_api_headers('admin', 'test')
         foo = {}
@@ -198,7 +192,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         foo['active'] = True
         foo['description'] = 'some new and fancy description'
         goo = json.dumps(foo)
-        response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers,data=goo)
+        response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=goo)
         response_data = json.loads(response.data)
         self.assertEquals(response.status_code, 201)
         self.assertTrue(response_data is not None)
@@ -209,7 +203,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         # get alert and all alert alarm defs, count should be three for this instrument, 7 for platform and array
         url = url_for('main.get_alerts_alarms_def')
         url += '?instrument_name=%s' % data['reference_designator']
-        if verbose: print root+url
         response = self.client.get(url, content_type=content_type, headers=headers)
         self.assertTrue(response.status_code == 200)
         data = json.loads(response.data)
@@ -222,7 +215,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         if verbose: print '\nPlatform: ', platform
         url = url_for('main.get_alerts_alarms_def')
         url += '?platform_name=%s' % platform
-        if verbose: print root+url
         response = self.client.get(url, content_type=content_type, headers=headers)
         self.assertTrue(response.status_code == 200)
         data = json.loads(response.data)
@@ -232,7 +224,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         if verbose: print '\nArray: ', array_code
         url = url_for('main.get_alerts_alarms_def')
         url += '?array_name=%s' % array_code
-        if verbose: print root+url
         response = self.client.get(url, content_type=content_type, headers=headers)
         self.assertTrue(response.status_code == 200)
         data = json.loads(response.data)
@@ -241,7 +232,6 @@ class AlertAlarmTestCase(unittest.TestCase):
 
         # Check if SystemEvent(s) have been created...
         url = url_for('main.get_alerts_alarms')
-        if verbose: print root+url
         response = self.client.get(url, content_type=content_type, headers=headers)
         self.assertTrue(response.status_code == 200)
         data = json.loads(response.data)
@@ -254,12 +244,11 @@ class AlertAlarmTestCase(unittest.TestCase):
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         url = url_for('main.get_alerts_alarms_def')
         url += '?instrument_name=%s' % save_instrument_reference_designator #data['reference_designator']
-        if verbose: print root+url
         response = self.client.get(url, content_type=content_type, headers=headers)
         self.assertTrue(response.status_code == 200)
         data = json.loads(response.data)
         self.assertTrue('alert_alarm_definition' in data)
-        self.assertEquals(len(data['alert_alarm_definition']),3)
+        self.assertEquals(len(data['alert_alarm_definition']), 3)
         self.assertTrue('alert_alarm_definition' in data)
         definitions = data['alert_alarm_definition']
         self.assertEquals(len(definitions),3)
@@ -295,7 +284,6 @@ class AlertAlarmTestCase(unittest.TestCase):
             event_data['event_response'] = event_response_message
             event_data['method'] = 'telemetered'
             event_data['deployment'] = 1
-
             new_event = json.dumps(event_data)
             response = self.client.post(url_for('main.create_alert_alarm'), headers=headers,data=new_event)
             self.assertEquals(response.status_code, 201)
@@ -312,8 +300,8 @@ class AlertAlarmTestCase(unittest.TestCase):
 
         # Check that some SystemEvent (s) have been created...
         url = url_for('main.get_alerts_alarms')
-        if verbose: print root+url
         response = self.client.get(url, content_type=content_type, headers=headers)
+        response_data = json.loads(response.data)
         self.assertTrue(response.status_code == 200)
         data = json.loads(response.data)
         self.assertTrue('alert_alarm' in data)
@@ -324,7 +312,6 @@ class AlertAlarmTestCase(unittest.TestCase):
                 print '\n\nevent: ', event
 
         url = url_for('main.get_alert_alarm', id=1)
-        if verbose: print root+url
         response = self.client.get(url, content_type=content_type, headers=headers)
         self.assertEquals(response.status_code, 200)
 
@@ -335,13 +322,11 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertEquals(response.status_code, 409)
 
         url = url_for('main.get_alerts_alarms')
-        url += '?type=Alert'
-        if verbose: print root+url
+        url += '?type=alert'
         response = self.client.get(url, content_type=content_type, headers=headers)
         self.assertEquals(response.status_code, 200)
 
         url = url_for('main.get_alerts_alarms_def')
-        if verbose: print root+url
         response = self.client.get(url, content_type=content_type, headers=headers)
         self.assertEquals(response.status_code, 200)
         data = json.loads(response.data)
@@ -389,7 +374,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         # Get this back in: This test verifies after the previous error (400), a rollback is issued in except block;
         # if it hasn't been then this GET would fail.
         url = url_for('main.get_alerts_alarms_def')
-        if verbose: print root+url
         response = self.client.get(url, content_type=content_type, headers=headers)
         self.assertEquals(response.status_code, 200)
         data = json.loads(response.data)
@@ -448,7 +432,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         # alertfilter have been removed in uframe.
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         url = url_for('main.get_alerts_alarms_def')
-        if verbose: print root+url
         response = self.client.get(url, content_type=content_type, headers=headers)
         self.assertTrue(response.status_code == 200)
         data = json.loads(response.data)
@@ -456,44 +439,49 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertEquals(len(data['alert_alarm_definition']),8)
         self.assertTrue('alert_alarm_definition' in data)
         definitions = data['alert_alarm_definition']
-
         #print '\n Number of alert_alarm_definitions: ', len(definitions)
+
         for definition in definitions:
-            #print '\n id: %d definition[uframe_filter_id]: %d' % (definition['id'], definition['uframe_filter_id'])
-            if definition['uframe_filter_id'] > 2:
-                #print '\n delete this one - definition[uframe_filter_id]: ', definition['uframe_filter_id']
+            if definition['uframe_filter_id'] > 2:      # not retiring filterId 1 or 2 right now
                 url = url_for('main.delete_alert_alarm_definition', id=definition['id'])
                 response = self.client.delete(url, headers=headers)
+                #response = self.client.get(url, headers=headers)
                 self.assertEquals(response.status_code, 200)
 
 
-        # NEVER USE THIS CODE SNIPPET EXCEPT FOR TEST DEVELOPMENT - WILL SCRUB UFRAME ALERTFILTER(s) FROM UFRAME!!!
-        # Get all alertfilter ids (id > 3)
-        list_alertfilter_ids = self.get_alertfilters()
-        list_alertfilter_ids.sort()
-        print '\n list_alertfilter_ids(%d): %s' % (len(list_alertfilter_ids), list_alertfilter_ids)
-
-        # Delete all alertfilter ids (id > 3)
-        print '\n list_alertfilter_ids(%d): %s' % (len(list_alertfilter_ids), list_alertfilter_ids)
+        # Delete all alertfilter ids (where id > 3)
+        if verbose: print '\n list_alertfilter_ids(%d): %s' % (len(list_alertfilter_ids), list_alertfilter_ids)
         self.delete_alertfilters(list_alertfilter_ids)
 
+        # ======== NEVER USE THIS CODE EXCEPT FOR TEST DEVELOPMENT ===========
+        #self.scrub_alertfilters()
 
-        # List all alertfilters (id > 3)
+        '''
+        # List all filter ids (id > 3)
         list_alertfilter_ids = self.get_alertfilters()
-        #print '\n list_alertfilter_ids: ', list_alertfilter_ids
+        #print '\n filter_ids: ', list_alertfilter_ids
         self.assertEquals(len(list_alertfilter_ids), 0)
-        #print '\n list_alertfilter_ids after delete: ', list_alertfilter_ids
+        #print '\n filter_ids after delete: ', list_alertfilter_ids
+        '''
 
-    def test_uframe_integration_with_SystemEventDefinitions(self):
-
+    def scrub_alertfilters(self):
         debug = False
-        verbose = self.verbose
-        root = self.root
-        if verbose: print '\n'
+        # ======== NEVER USE THIS CODE EXCEPT FOR TEST DEVELOPMENT ===========
+        # Get all alertfilter ids (where id > 3)
+        list_alertfilter_ids = self.get_alertfilters()
+        list_alertfilter_ids.sort()
+        if debug: print '\n list_alertfilter_ids(%d): %s' % (len(list_alertfilter_ids), list_alertfilter_ids)
+
+        # Delete all alertfilter ids (where id > 3)
+        if debug: print '\n list_alertfilter_ids(%d): %s' % (len(list_alertfilter_ids), list_alertfilter_ids)
+        self.delete_alertfilters(list_alertfilter_ids)
+        return
+
+    def test_SystemEventDefinitions_uframe_integration(self):
 
         content_type =  'application/json'
         headers = self.get_api_headers('admin', 'test')
-
+        list_alertfilter_ids = []
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Create some alert definitions (no 'id' or 'uframe_filter_id' on create)
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -517,6 +505,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue('description' in alert_definition)
         alert_alarm_def_id = alert_definition['id']
         alert_alarm_def_uframe_id = alert_definition['uframe_filter_id']
+        list_alertfilter_ids.append(alert_alarm_def_uframe_id)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # GET alert/alarm definition by SystemEventDefinition id
@@ -525,7 +514,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertEquals(response.status_code, 200)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # uPOST Update to description field; this also performs uframe alertfilter update
+        # POST Update to description field; this also performs uframe alertfilter update
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         updated_description = 'alertfilter updated!'
         data['description'] = updated_description
@@ -535,7 +524,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         response = self.client.put(url_for('main.update_alert_alarm_def', id=alert_alarm_def_id),
                                    headers=headers, data=good_stuff)
         self.assertEquals(response.status_code, 201)
-        if debug: print '\n result from update_alert_alarm_def: ', json.loads(response.data)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # GET updated alert/alarm definition by SystemEventDefinition id
@@ -551,7 +539,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         uframe_url, timeout, timeout_read = self.get_uframe_info()
         url = "/".join([uframe_url, 'alertfilters', str(alert_alarm_def_uframe_id)])
-        if debug: print '\n uframe alertfilter: url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read))
         self.assertEquals(response.status_code, 200)
         get_uframe_data = json.loads(response.content)
@@ -563,22 +550,379 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertEquals(uframe_description, updated_description)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Clean up by deleting alert_alarm_def (should delete alertfilter(s) created in uframe during test case).
+        # Clean up by deleting ('retire') alert_alarm_def
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         url = url_for('main.delete_alert_alarm_definition', id=alert_alarm_def_id)
-        if debug: print '\n url: ', root + url
         response = self.client.delete(url, headers=headers)
+        #response = self.client.get(url, headers=headers)
         self.assertEquals(response.status_code, 200)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Query uframe to verify alertfilter was deleted when  delete_alert_alarm_definition executed.
+        # Delete all uframe alertfilter ids created during test case (id > 3)
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        url = "/".join([uframe_url, 'alertfilters', str(alert_alarm_def_uframe_id)])
-        if debug: print '\n uframe alertfilter: url: ', url
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        self.assertTrue(response.status_code != 200)
+        #print '\n list_alertfilter_ids(%d): %s' % (len(list_alertfilter_ids), list_alertfilter_ids)
+        self.delete_alertfilters(list_alertfilter_ids)
 
-        if verbose: print '\n'
+    def test_SystemEvents_uframe_integration(self):
+
+        content_type =  'application/json'
+        headers = self.get_api_headers('admin', 'test')
+        list_alertfilter_ids = []
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Create some alert definitions (no 'id' or 'uframe_filter_id' on create)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        data = {'platform_name': u'CE01ISSP-XX099', 'high_value': u'31.0', 'event_type': u'alarm',
+                'stream': u'ctdpf_j_cspp_instrument', 'severity': 2, 'low_value': u'10.0', 'active': True,
+                'array_name': u'CE', 'reference_designator': u'CE01ISSP-XX099-01-CTDPFJ999',
+                'operator': u'GREATER', 'instrument_name': u'CE01ISSP-XX099-01-CTDPFJ999',
+                'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
+                'description': 'initial'}
+
+        request_data = json.dumps(data)
+        response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
+        self.assertEquals(response.status_code, 201)
+        self.assertTrue(response is not None)
+        self.assertTrue(response.data is not None)
+        alert_definition = json.loads(response.data)
+        self.assertTrue(alert_definition is not None)
+        self.assertTrue('id' in alert_definition)
+        self.assertTrue('uframe_filter_id' in alert_definition)
+        self.assertTrue('description' in alert_definition)
+        alert_alarm_def_id = alert_definition['id']
+        alert_alarm_def_uframe_id = alert_definition['uframe_filter_id']
+        list_alertfilter_ids.append(alert_alarm_def_uframe_id)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # GET alert/alarm definition by SystemEventDefinition id
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        response = self.client.get(url_for('main.get_alert_alarm_def', id=alert_alarm_def_id), content_type=content_type)
+        self.assertEquals(response.status_code, 200)
+        definition = json.loads(response.data)
+        self.assertTrue(definition is not None)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # POST alarm which uses the SystemEventDefinition id
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        event_type = 'alarm'
+        system_event_definition_id = definition['id']
+        uframe_event_id = 100
+        uframe_filter_id = definition['uframe_filter_id']
+        instrument_name = definition['reference_designator']
+        instrument_parameter = definition['instrument_parameter']
+        operator = definition['operator']
+        high_value = definition['high_value']
+        low_value = definition['low_value']
+        event_response_message = "Instrument: {0} condition exceeded where parameter {1} {2} {3} {4}".format(
+                                        instrument_name, instrument_parameter, operator, high_value, low_value)
+        event_time = dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%dT%H:%M:%S")
+        event_data = {}
+        event_data['uframe_event_id'] = uframe_event_id
+        event_data['uframe_filter_id'] = uframe_filter_id
+        event_data['system_event_definition_id'] = system_event_definition_id
+        event_data['event_time'] = event_time
+        event_data['event_type'] = event_type
+        event_data['event_response'] = event_response_message
+        event_data['method'] = 'telemetered'
+        event_data['deployment'] = 1
+        new_event = json.dumps(event_data)
+        response = self.client.post(url_for('main.create_alert_alarm'), headers=headers, data=new_event)
+        self.assertEquals(response.status_code, 201)
+        self.assertTrue(response.data is not None)
+        response_data = json.loads(response.data)
+        self.assertTrue('id' in response_data)
+        self.assertTrue(response_data['id'] is not None)
+        alert_alarm_id = response_data['id']
+        alert_alarm_uframe_event_id = response_data['uframe_event_id']
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Negative) Try to delete alert_alarm_def when alert_alarm instance not yet acknowledged.
+        # response_data:
+        #   {u'error': u'There are existing alert_alarm instances using this id which have not yet been acknowledged.'}
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        url = url_for('main.delete_alert_alarm_definition', id=alert_alarm_def_id)
+        response = self.client.delete(url, headers=headers)
+        #response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 400)
+        response_data = json.loads(response.data)
+        self.assertTrue(response_data is not None)
+        self.assertTrue('error' in response_data)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Acknowledge alert_alarm
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        ack_data = {}
+        ack_data['id'] = alert_alarm_id
+        ack_data['uframe_event_id'] = alert_alarm_uframe_event_id
+        ack_data['uframe_filter_id'] = uframe_filter_id
+        ack_data['system_event_definition_id'] = system_event_definition_id
+        ack_data['event_type'] = event_type
+        ack_data['acknowledged'] = True
+        ack_data['ack_by'] = 'admin'
+        ack_data['ack_for'] = None
+        ack_data['ts_acknowledged'] = dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%dT%H:%M:%S")
+
+        # sample ack_data:  {'uframe_filter_id': 892, 'ack_for': None, 'event_type': 'alarm',
+        # 'system_event_definition_id': 1, 'ts_acknowledged': '2015-07-21T07:51:14', 'acknowledged': True,
+        # 'uframe_event_id': 100, 'ack_by': 'admin', 'id': 1}
+
+        acknowledged_event = json.dumps(ack_data)
+        response = self.client.post(url_for('main.acknowledge_alert_alarm'), headers=headers, data=acknowledged_event)
+        self.assertEquals(response.status_code, 201)
+        response_data = json.loads(response.data)
+        self.assertTrue('acknowledged' in response_data)
+        self.assertTrue('ack_by' in response_data)
+        self.assertTrue('ack_for' in response_data)
+        self.assertTrue('ts_acknowledged' in response_data)
+        self.assertEquals(response_data['acknowledged'], True)
+        self.assertEquals(response_data['ack_by'], 'admin')
+        self.assertTrue(response_data['ts_acknowledged'] is not None)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Clean up by retiring alert_alarm_def
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        url = url_for('main.delete_alert_alarm_definition', id=alert_alarm_def_id)
+        response = self.client.delete(url, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        response_data = json.loads(response.data)
+        self.assertTrue(response_data is not None)
+        self.assertEquals(len(response_data), 0)
+
+        # - - GET alert_alarm_definition by id
+        response = self.client.get(url_for('main.get_alert_alarm_def', id=alert_alarm_def_id), content_type=content_type)
+        self.assertEquals(response.status_code, 200)
+        definition = json.loads(response.data)
+        self.assertTrue('retire' in definition)
+        self.assertTrue('ts_retire' in definition)
+        self.assertEquals(definition['retire'], True)
+        self.assertTrue(definition['retire'] is not None)
+        save_ts_retire = definition['ts_retire']
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Delete alert_alarm_def (which is already retired)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        url = url_for('main.delete_alert_alarm_definition', id=alert_alarm_def_id)
+        response = self.client.delete(url, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        definition = json.loads(response.data)
+        self.assertTrue(definition is not None)
+        self.assertEquals(len(response_data), 0)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Negative) GET alert/alarm definition by SystemEventDefinition id
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        response = self.client.get(url_for('main.get_alert_alarm_def', id=alert_alarm_def_id), content_type=content_type)
+        self.assertEquals(response.status_code, 200)
+        definition = json.loads(response.data)
+        self.assertTrue('retire' in definition)
+        self.assertTrue('ts_retire' in definition)
+        self.assertEquals(definition['retire'], True)
+        self.assertTrue(definition['retire'] is not None)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Delete non existing alert_alarm_definition ( {error': 'alert_alarm_definition not found'
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        url = url_for('main.delete_alert_alarm_definition', id=909090)
+        response = self.client.delete(url, headers=headers)
+        self.assertEquals(response.status_code, 404)
+        response_data = json.loads(response.data)
+        self.assertTrue(response_data is not None)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Delete all uframe alertfilter ids created during test case (id > 3)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        #print '\n list_alertfilter_ids(%d): %s' % (len(list_alertfilter_ids), list_alertfilter_ids)
+        self.delete_alertfilters(list_alertfilter_ids)
+
+    def test_SystemEventDefinition_invalid_operators(self):
+
+        content_type =  'application/json'
+        headers = self.get_api_headers('admin', 'test')
+        filter_ids = []
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Positive) Alarm - Valid alert_alarm_definition data
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        data = {
+              "active": True,
+              "array_name": "CE",
+              "description": "Rule 42",
+              "event_type": "alarm",
+              "high_value": "31.0",
+              "instrument_name": "CE01ISSP-XX099-01-CTDPFJ999",
+              "instrument_parameter": "temperature",
+              "instrument_parameter_pdid": "PD440",
+              "low_value": "10.0",
+              "operator": "GREATER",
+              "platform_name": "CE01ISSP-XX099",
+              "reference_designator": "CE01ISSP-XX099-01-CTDPFJ999",
+              "severity": 2,
+              "stream": "ctdpf_j_cspp_instrument"
+        }
+        # - - Create alert_alarm_definition (Alarm)
+        response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=json.dumps(data))
+        self.assertEquals(response.status_code, 201)
+        self.assertTrue(response is not None)
+        self.assertTrue(response.data is not None)
+        definition = json.loads(response.data)
+        self.assertTrue(definition is not None)
+        self.assertTrue('uframe_filter_id' in definition)
+        filter_ids.append(definition['uframe_filter_id'])
+
+        # - - Clean up by retiring alert_alarm_def
+        url = url_for('main.delete_alert_alarm_definition', id=definition['id'])
+        response = self.client.delete(url, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        response_data = json.loads(response.data)
+        self.assertTrue(response_data is not None)
+        self.assertEquals(len(response_data), 0)
+
+        # - - Get alert_alarm_def
+        url = url_for('main.get_alerts_alarms_def')
+        response = self.client.get(url, headers=headers, content_type=content_type)
+        self.assertEquals(response.status_code, 200)
+        definition = json.loads(response.data)
+        self.assertTrue(definition is not None)
+        self.assertTrue('alert_alarm_definition' in definition)
+        self.assertEquals(len(definition['alert_alarm_definition']), 0)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Negative) Alarm - Invalid alert_alarm_definition data, invalid operator
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        data = {
+              "active": True,
+              "array_name": "CE",
+              "description": "Rule 42",
+              "event_type": "alarm",
+              "high_value": "31.0",
+              "instrument_name": "CE01ISSP-XX099-01-CTDPFJ999",
+              "instrument_parameter": "temperature",
+              "instrument_parameter_pdid": "PD440",
+              "low_value": "10.0",
+              "operator": "NO_SUCH_OPERATOR",
+              "platform_name": "CE01ISSP-XX099",
+              "reference_designator": "CE01ISSP-XX099-01-CTDPFJ999",
+              "severity": 2,
+              "stream": "ctdpf_j_cspp_instrument"
+        }
+        # - - POST create_alert_alarm_definition, receive error 'Insufficient data, or bad data format.'
+        response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=json.dumps(data))
+        self.assertEquals(response.status_code, 409)
+        self.assertTrue(response is not None)
+        self.assertTrue(response.data is not None)
+        response_data = json.loads(response.data)
+        self.assertTrue(response_data is not None)
+        self.assertTrue('message' in response_data)
+        self.assertTrue(response_data['message'] is not None)
+
+        # - - Get alert_alarm_def
+        url = url_for('main.get_alerts_alarms_def')
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        definition = json.loads(response.data)
+        self.assertTrue(definition is not None)
+        self.assertTrue('alert_alarm_definition' in definition)
+        self.assertEquals(len(definition['alert_alarm_definition']), 0)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Positive) Alert - Valid alert_alarm_definition data
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        data = {
+              "active": True,
+              "array_name": "CE",
+              "description": "Rule 42",
+              "event_type": "alert",
+              "high_value": "31.0",
+              "instrument_name": "CE01ISSP-XX099-01-CTDPFJ999",
+              "instrument_parameter": "temperature",
+              "instrument_parameter_pdid": "PD440",
+              "low_value": "10.0",
+              "operator": "GREATER",
+              "platform_name": "CE01ISSP-XX099",
+              "reference_designator": "CE01ISSP-XX099-01-CTDPFJ999",
+              "severity": 2,
+              "stream": "ctdpf_j_cspp_instrument"
+        }
+        # - - Create alert_alarm_definition (Alert)
+        response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=json.dumps(data))
+        self.assertEquals(response.status_code, 201)
+        self.assertTrue(response is not None)
+        self.assertTrue(response.data is not None)
+        definition = json.loads(response.data)
+        self.assertTrue(definition is not None)
+        self.assertTrue('uframe_filter_id' in definition)
+        filter_ids.append(definition['uframe_filter_id'])
+
+        # - - Get alert_alarm_def
+        url = url_for('main.get_alerts_alarms_def')
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        definition = json.loads(response.data)
+        self.assertTrue(definition is not None)
+        self.assertTrue('alert_alarm_definition' in definition)
+        self.assertEquals(len(definition['alert_alarm_definition']), 1)
+
+        definition_id = definition['alert_alarm_definition'][0]['id']
+        # - - Clean up by retiring alert_alarm_def
+        url = url_for('main.delete_alert_alarm_definition', id=definition_id)
+        response = self.client.delete(url, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        response_data = json.loads(response.data)
+        self.assertTrue(response_data is not None)
+        self.assertEquals(len(response_data), 0)
+
+        # - - Get alert_alarm_def
+        url = url_for('main.get_alerts_alarms_def')
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        definition = json.loads(response.data)
+        self.assertTrue(definition is not None)
+        self.assertTrue('alert_alarm_definition' in definition)
+        self.assertEquals(len(definition['alert_alarm_definition']), 0)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Negative) Alert - Invalid alert_alarm_definition data, invalid operator
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        data = {
+              "active": True,
+              "array_name": "CE",
+              "description": "Rule 42",
+              "event_type": "alert",
+              "high_value": "31.0",
+              "instrument_name": "CE01ISSP-XX099-01-CTDPFJ999",
+              "instrument_parameter": "temperature",
+              "instrument_parameter_pdid": "PD440",
+              "low_value": "10.0",
+              "operator": "NO_SUCH_OPERATOR",
+              "platform_name": "CE01ISSP-XX099",
+              "reference_designator": "CE01ISSP-XX099-01-CTDPFJ999",
+              "severity": 2,
+              "stream": "ctdpf_j_cspp_instrument"
+        }
+        # - - POST create_alert_alarm_definition, receive error 'Insufficient data, or bad data format.'
+        response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=json.dumps(data))
+        self.assertEquals(response.status_code, 409)
+        self.assertTrue(response is not None)
+        self.assertTrue(response.data is not None)
+        response_data = json.loads(response.data)
+        self.assertTrue(response_data is not None)
+        self.assertTrue('message' in response_data)
+        self.assertTrue(response_data['message'] is not None)
+
+        # - - Get alert_alarm_def
+        url = url_for('main.get_alerts_alarms_def')
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        definition = json.loads(response.data)
+        self.assertTrue(definition is not None)
+        self.assertTrue('alert_alarm_definition' in definition)
+        self.assertEquals(len(definition['alert_alarm_definition']), 0)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Delete all uframe alertfilters created during test case (id > 3)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        #print '\n filter_ids(%d): %s' % (len(filter_ids), filter_ids)
+        self.delete_alertfilters(filter_ids)
 
     def exercise_alert_alarm_definition_no_data(self, arrays, platforms, instruments):
         verbose = self.verbose
@@ -817,6 +1161,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         create_time = dt.datetime.now()
         if instrument_reference_designator == 'CP02PMCO-WFP01-02-DOFSTK000':
             alert_alarm_definition = SystemEventDefinition(reference_designator=instrument_reference_designator)
+            alert_alarm_definition.active = True
             alert_alarm_definition.event_type = event_type
             alert_alarm_definition.array_name = array_name
             alert_alarm_definition.platform_name = platform_name
@@ -836,6 +1181,7 @@ class AlertAlarmTestCase(unittest.TestCase):
             db.session.commit()
         elif alert_alarm_definition == 'CP02PMCO-WFP01-03-CTDPFK000':
             alert_alarm_definition = SystemEventDefinition(reference_designator=instrument_reference_designator)
+            alert_alarm_definition.active = True
             alert_alarm_definition.event_type = event_type
             alert_alarm_definition.array_name = array_name
             alert_alarm_definition.platform_name = platform_name
@@ -855,6 +1201,7 @@ class AlertAlarmTestCase(unittest.TestCase):
             db.session.commit()
         elif alert_alarm_definition == 'CP02PMCO-WFP01-05-PARADK000':
             alert_alarm_definition = SystemEventDefinition(reference_designator=instrument_reference_designator)
+            alert_alarm_definition.active = True
             alert_alarm_definition.event_type = event_type
             alert_alarm_definition.array_name = array_name
             alert_alarm_definition.platform_name = platform_name
@@ -874,6 +1221,7 @@ class AlertAlarmTestCase(unittest.TestCase):
             db.session.commit()
         else:
             alert_alarm_definition = SystemEventDefinition(reference_designator=instrument_reference_designator)
+            alert_alarm_definition.active = True
             alert_alarm_definition.event_type = event_type
             alert_alarm_definition.array_name = array_name
             alert_alarm_definition.platform_name = platform_name
@@ -931,14 +1279,14 @@ class AlertAlarmTestCase(unittest.TestCase):
         """
         Delete alertfilters in uframe; development helper only to be used during controlled testing.
         """
-        print '\n Deleting alertfilter ids: ', list_of_ids
+        debug = False
+        if debug: print '\n Deleting alertfilter ids: ', list_of_ids
         headers = self.get_api_headers('admin', 'test')
         uframe_url, timeout, timeout_read = self.get_uframe_info()
         for id in list_of_ids:
             if id > 3:
                 url = "/".join([uframe_url, 'alertfilters', str(id)])
-                #print '\n uframe alertfilter_id: ', id
-                print '\n delete url: ', url
+                if debug: print '\n delete url: ', url
 
                 response = requests.delete(url, timeout=(timeout, timeout_read), headers=headers)
                 self.assertEquals(response.status_code, 200)
