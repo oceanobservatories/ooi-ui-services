@@ -513,7 +513,7 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
                     t00 = time.time()
                     idx_c = dataBlock.rfind('}, {')
                     dataBlock = dataBlock[:idx_c]
-                    dataBlock+="} ]"
+                    dataBlock+="}]"
                     t11 = time.time()
                     totaln = t11-t00
 
