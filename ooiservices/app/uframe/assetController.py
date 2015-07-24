@@ -467,6 +467,8 @@ def get_assets():
                             ref_des = (meta_data['value'])
                     if ref_des is not None:
                         row['ref_des'] = ref_des
+                    else:
+                        row['ref_des'] = None
                     if len(lat) > 0 and len(lon) > 0:
                         row['coordinates'] = _convert_lat_lon(lat, lon)
                         lat = ""
