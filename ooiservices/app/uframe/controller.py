@@ -529,7 +529,7 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
             #    dataBlock = dataBlock[:idx_c]
             #    dataBlock+="} ]"
             #    print 'uFrame appended Error Message to Stream',"\n",dataBlock[-3:-1]
-            idx_c = dataBlock.rfind('} ]')
+            idx_c = dataBlock.rfind('}]')
             print idx_c
             if idx_c == -1:
                 dataBlock+="]"
