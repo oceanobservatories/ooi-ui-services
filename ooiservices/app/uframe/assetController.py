@@ -21,7 +21,7 @@ from threading import Thread
 
 #Default number of times to retry the connection:
 requests.adapters.DEFAULT_RETRIES = 2
-CACHE_TIMEOUT = 36000
+CACHE_TIMEOUT = 86400
 
 def _normalize_whitespace(string):
     '''
@@ -207,6 +207,7 @@ def _associate_events(id):
             d['class'] = row['@class']
             d['notes'] = len(row['notes'])
             d['startDate'] = row['startDate']
+            d['endDate'] = row['endDate']
             if d['class'] == '.CalibrationEvent':
                 d['calibrationCoefficient'] = row['calibrationCoefficient']
                 lon = 0.0
