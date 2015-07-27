@@ -21,7 +21,7 @@ from threading import Thread
 
 #Default number of times to retry the connection:
 requests.adapters.DEFAULT_RETRIES = 2
-CACHE_TIMEOUT = 36000
+CACHE_TIMEOUT = 86400
 
 def _normalize_whitespace(string):
     '''
@@ -122,8 +122,8 @@ def _convert_lat_lon(lat, lon):
         coords = (_lat, _lon)
         return coords
     except Exception as e:
-            coords = (0.0, 0.0)
-            return coords
+        coords = (0.0, 0.0)
+        return coords
 
 def _get_latlon(item):
     '''
@@ -201,15 +201,28 @@ def _associate_events(id):
         try:
             d = {'url': url_for('uframe.get_event', id=row['eventId']),
                     'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/events/%s' % row['eventId']}
+            # set up some static keys
+            d['locationLonLat'] = []
             d['eventId'] = row['eventId']
             d['class'] = row['@class']
             d['notes'] = len(row['notes'])
             d['startDate'] = row['startDate']
+            d['endDate'] = row['endDate']
             if d['class'] == '.CalibrationEvent':
                 d['calibrationCoefficient'] = row['calibrationCoefficient']
+                lon = 0.0
+                lat = 0.0
+                for cal_coef in d['calibrationCoefficient']:
+                    if cal_coef['name'] == 'CC_lon':
+                        lon = cal_coef['values']
+                    if cal_coef['name'] == 'CC_lat':
+                        lat = cal_coef['values']
+                if lon is not None and lat is not None:
+                    d['locationLonLat'] = _convert_lat_lon(lat, lon)
             if d['class'] == '.DeploymentEvent':
                 d['deploymentDepth'] = row['deploymentDepth']
                 d['locationLonLat'] = row['locationLonLat']
+                d['deploymentNumber'] = row['deploymentNumber']
         except KeyError:
             pass
         result.append(d)
@@ -471,8 +484,13 @@ def get_assets():
                         row['ref_des'] = None
                     if len(lat) > 0 and len(lon) > 0:
                         row['coordinates'] = _convert_lat_lon(lat, lon)
-                        lat = ""
-                        lon = ""
+                    else:
+                        for events in row['events']:
+                            if events['locationLonLat'] is not None:
+                                lat = events['locationLonLat'][1]
+                                lon = events['locationLonLat'][0]
+                        row['coordinates'] = _convert_lat_lon(lat,lon)
+                        lat, lon = 0.0
                     if len(ref_des) > 0:
                         '''
                         Determine the asset name from the DB if there is none.
