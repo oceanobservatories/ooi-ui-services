@@ -24,7 +24,7 @@ colors = plt.rcParams['axes.color_cycle']
 ooi_plots = OOIPlots()
 
 
-def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_profile_id=None, width_in= 8.3):
+def generate_plot(data, plot_options):
     # Define some fonts
     title_font = {'fontname': 'Calibri',
                   'size': '16',
@@ -39,6 +39,15 @@ def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_prof
                  'labelsize': 8,
                  'width': 1,
                  'color': 'k'}
+
+    # Get all the plot options
+    plot_format = plot_options['plot_format']
+    plot_layout = plot_options['plot_layout']
+    plot_profile_id = plot_options['profileid']
+    events = plot_options['events']
+    width_in = plot_options['width_in']
+    use_scatter = plot_options['use_scatter']
+    plot_qaqc = plot_options['use_qaqc']
 
     # Generate the plot figure and axes
     if isinstance(data, dict):
@@ -72,7 +81,12 @@ def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_prof
         current_app.logger.debug('Plotting Time Series')
 
         # Define some plot parameters
-        kwargs = dict(linewidth=1.5, alpha=0.7)
+        kwargs = dict(linewidth=1.5,
+                      alpha=0.7,
+                      linestyle='None',
+                      marker=".",
+                      markersize=10,
+                      markeredgecolor='k')
 
         # First check if we have a multiple stream data
         if isinstance(data, list):
@@ -82,15 +96,30 @@ def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_prof
                                             axis_font=axis_font,
                                             tick_font=tick_font,
                                             width_in = width_in,
+                                            plot_qaqc=plot_qaqc,
                                             **kwargs)
+
         # Check for a single time series plot
         elif len(data['x_field']) == 1 and len(data['y_field']) == 1:
             xlabel = data['x_field'][0]
             ylabel = data['y_field'][0]
-            xdata = data['x'][xlabel]
-            ydata = data['y'][ylabel]
+            x = data['x'][xlabel]
+            y = data['y'][ylabel]
 
-            ooi_plots.plot_time_series(fig, is_timeseries, ax, xdata, ydata,
+            # QAQC logic
+            if plot_qaqc >= 10:
+                # Plot all of the qaqc flags results
+                qaqc_data = data['qaqc'][ylabel]
+
+            elif plot_qaqc >= 1:
+                # This is a case where the user wants to plot just one of the 9 QAQC tests
+                ind = np.where(data['qaqc'][ylabel] != plot_qaqc)
+                data['qaqc'][ylabel][ind] = 0
+                qaqc_data = data['qaqc'][ylabel]
+            else:
+                qaqc_data = []
+
+            ooi_plots.plot_time_series(fig, is_timeseries, ax, x, y,
                                        title=data['title'],
                                        xlabel=xlabel,
                                        ylabel=ylabel + " (" + data['y_units'][0] + ")",
@@ -99,13 +128,27 @@ def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_prof
                                        tick_font=tick_font,
                                        scatter=use_scatter,
                                        events=events,
+                                       qaqc=qaqc_data,
                                        **kwargs)
 
         # Must be a multiple yaxes plot, single stream
         else:
-            xdata = data['x']['time']
+            xdata = {}
+            xdata['time'] = data['x']['time']
             ydata = data['y']
             units = data['y_units']
+            for ind, key in enumerate(ydata):
+                xdata[key] = data['x']['time']
+                # QAQC logic
+                if plot_qaqc >= 10:
+                    # Plot all of the qaqc flags results
+                    pass
+                elif plot_qaqc >= 1:
+                    # This is a case where the user wants to plot just one of the 9 QAQC tests
+                    ind = np.where(data['qaqc'][key] != plot_qaqc)
+                    data['qaqc'][key][ind] = 0
+                else:
+                    data['qaqc'][key] = []
 
             ooi_plots.plot_multiple_yaxes(fig, ax,
                                           xdata,
@@ -118,6 +161,7 @@ def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_prof
                                           tick_font=tick_font,
                                           scatter = use_scatter,
                                           width_in = width_in,
+                                          qaqc=data['qaqc'],
                                           **kwargs)
 
     elif plot_layout == "depthprofile":
@@ -134,7 +178,9 @@ def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_prof
         if plot_profile_id is None:
 
             for profile_id in range(0, np.shape(data['x'])[0]):
-                # print data['time'][profile_id]
+                # Remove the bad data
+                qaqc_data = data['qaqc'][data['x_field']]
+
                 ooi_plots.plot_profile(fig,
                                        ax,
                                        data['x'][profile_id],
@@ -188,6 +234,17 @@ def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_prof
         xlabel = data['y_field'][0] + " (" + data['y_units'][0] + ")"
         ylabel = data['y_field'][1] + " (" + data['y_units'][1] + ")"
 
+        # # Mask the bad data
+        # qaqc_x = data['qaqc'][data['y_field'][0]] < 1
+        # qaqc_y = data['qaqc'][data['y_field'][1]] < 1
+        # mask = qaqc_x & qaqc_y
+
+        # x = x[mask]
+        # y = x[mask]
+
+        # if len(x) <= 0:
+        #     raise(Exception('No good data avaliable!'))
+
         ooi_plots.plot_ts_diagram(ax, x, y,
                                   title=data['title'],
                                   xlabel=xlabel,
@@ -208,21 +265,34 @@ def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_prof
         kwargs = dict(units='y',
                       scale_units='y',
                       scale=1,
-                      headlength=10,
+                      headlength=5,
                       headaxislength=5,
-                      width=0.1,
+                      width=0.025,
                       alpha=0.5)
         time = mdates.date2num(data['x']['time'])
         u = data['y'][data['y_field'][0]]
         v = data['y'][data['y_field'][1]]
         ylabel = data['y_field'][0] + " (" + data['y_units'][0] + ")"
 
+        # # Mask the bad data
+        # qaqc_u = data['qaqc'][data['y_field'][0]] < 1
+        # qaqc_v = data['qaqc'][data['y_field'][1]] < 1
+        # mask = qaqc_u & qaqc_v
+
+        # u = u[mask]
+        # v = v[mask]
+        # time = time[mask]
+
+        # if len(u) <= 0:
+        #     raise(Exception('No good data avaliable!'))
+
         ooi_plots.plot_1d_quiver(fig, ax, time, u, v,
                                  title=data['title']+'\n'+'Quiver Plot',
                                  ylabel=ylabel,
                                  tick_font=tick_font,
                                  title_font=title_font,
-                                 axis_font=axis_font)
+                                 axis_font=axis_font,
+                                 **kwargs)
 
     elif plot_layout == '3d_scatter':
         '''
@@ -238,6 +308,18 @@ def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_prof
         x = data['y'][xlabel]
         y = data['y'][ylabel]
         z = data['y'][zlabel]
+
+        # # Mask the bad data
+        # qaqc_x = data['qaqc'][xlabel] < 1
+        # qaqc_y = data['qaqc'][ylabel] < 1
+        # qaqc_z = data['qaqc'][zlabel] < 1
+        # mask = qaqc_x & qaqc_y & qaqc_z
+
+        # x = x[mask]
+        # y = x[mask]
+
+        # if len(x) <= 0:
+        #     raise(Exception('No good data avaliable!'))
 
         ooi_plots.plot_3d_scatter(fig, ax, x, y, z,
                                   title=data['title']+'\n'+'3D Scatter',
@@ -259,6 +341,18 @@ def generate_plot(data, plot_format, plot_layout, use_scatter, events, plot_prof
         ylabel = data['y_field'][1]
         magnitude = data['y'][xlabel]
         direction = data['y'][ylabel]
+
+        # # Mask the bad data
+        # qaqc_mag = data['qaqc'][xlabel] < 1
+        # qaqc_dir = data['qaqc'][ylabel] < 1
+        # mask = qaqc_mag & qaqc_dir
+
+        # magnitude = magnitude[mask]
+        # direction = direction[mask]
+
+        # if len(magnitude) <= 0:
+        #     raise(Exception('No good data avaliable!'))
+
         legend_title = xlabel + " (" + data['y_units'][0] + ")"
         size = height if height <= width else width
         size = 6 if size < 6 else size

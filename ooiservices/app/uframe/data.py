@@ -70,7 +70,6 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
     mooring, platform, instrument, stream_type, stream = split_stream_name('_'.join([instrument, stream]))
 
     parameter_ids, y_units, x_units = find_parameter_ids(mooring, platform, instrument, yfields, xfields)
-
     try:
         if 'startdate' in request.args and 'enddate' in request.args:
             st_date = request.args['startdate']
@@ -130,12 +129,18 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
                 current_app.logger.exception(message)
                 raise Exception(message)
 
-    # override the timestamp to the prefered
-    # xdata = OrderedDict()
-    # ydata = OrderedDict()
-
+    # Initialize the data dicts
     x = OrderedDict({k: np.empty(len(data)) for k in xfields})
     y = OrderedDict({k: np.empty(len(data)) for k in yfields})
+
+    if len(yfields) >= len(xfields):
+        qaqc_fields = yfields
+    else:
+        qaqc_fields = xfields
+
+    qaqc = OrderedDict({k: np.zeros(len(data)) for k in qaqc_fields})
+
+    # Loop through rows of data and fill the response data
     for ind, row in enumerate(data):
         # used to handle multiple streams
         if row['pk']['stream'] == stream:
@@ -145,12 +150,23 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
                     x[xfield][ind] = float(row['pk']['time'])
                 else:
                     x[xfield][ind] = row[xfield]
+                    key = xfield + '_qc_results'
+                    if key in row:
+                        qaqc[yfield][ind] = int(row[key])
+                    # else:
+                    #     current_app.logger.exception('QAQC not found for {0}'.format(xfield))
             # y
             for yfield in yfields:
                 if yfield == 'time':
                     y[yfield][ind] = float(row['pk']['time'])
                 else:
                     y[yfield][ind] = row[yfield]
+                    key = yfield + '_qc_results'
+                    if key in row:
+                        qaqc[yfield][ind] = int(row[key])
+                    # else:
+                    #     current_app.logger.exception('QAQC not found for {0}'.format(yfield))
+
     # generate dict for the data thing
     resp_data = {'x': x,
                  'y': y,
@@ -159,6 +175,7 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
                  'x_units': x_units,
                  'y_field': yfields,
                  'y_units': y_units,
-                 'dt_units': 'seconds since 1900-01-01 00:00:00'
+                 'dt_units': 'seconds since 1900-01-01 00:00:00',
+                 'qaqc': qaqc
                  }
     return resp_data

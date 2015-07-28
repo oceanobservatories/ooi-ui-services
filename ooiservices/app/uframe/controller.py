@@ -476,13 +476,13 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
 
     try:
         if dpa_flag == '0' and len(parameter_ids)<1:
-            query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
+            query = '?beginDT=%s&endDT=%s&limit=5000' % (start_time, end_time)
         elif dpa_flag == '1' and len(parameter_ids)<1:
-            query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
+            query = '?beginDT=%s&endDT=%s&limit=5000&execDPA=true' % (start_time, end_time)
         elif dpa_flag == '0' and len(parameter_ids)>0:
-            query = '?beginDT=%s&endDT=%s&parameters=%s' % (start_time, end_time,','.join(parameter_ids))
+            query = '?beginDT=%s&endDT=%s&limit=5000&parameters=%s' % (start_time, end_time,','.join(parameter_ids))
         elif dpa_flag == '1' and len(parameter_ids)>0:
-            query = '?beginDT=%s&endDT=%s&execDPA=true&parameters=%s' % (start_time, end_time,','.join(map(str, parameter_ids)))
+            query = '?beginDT=%s&endDT=%s&limit=5000&execDPA=true&parameters=%s' % (start_time, end_time,','.join(map(str, parameter_ids)))
 
         GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=plot&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
 
@@ -513,7 +513,7 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
                     t00 = time.time()
                     idx_c = dataBlock.rfind('}, {')
                     dataBlock = dataBlock[:idx_c]
-                    dataBlock+="}]"
+                    dataBlock+="} ]"
                     t11 = time.time()
                     totaln = t11-t00
 
@@ -529,7 +529,7 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
             #    dataBlock = dataBlock[:idx_c]
             #    dataBlock+="} ]"
             #    print 'uFrame appended Error Message to Stream',"\n",dataBlock[-3:-1]
-            idx_c = dataBlock.rfind('}]')
+            idx_c = dataBlock.rfind('} ]')
             print idx_c
             if idx_c == -1:
                 dataBlock+="]"
@@ -538,7 +538,8 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
 
     except Exception,e:
         #return json.loads(dataBlock), 200
-        return internal_server_error('uframe connection unstable.'),500
+        print str(e)
+        return internal_server_error('uframe connection unstable. '+str(e)),500
 
 def get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag):
     '''
@@ -754,6 +755,7 @@ def get_svg_plot(instrument, stream):
     # use_line = to_bool(request.args.get('line', True))
     use_scatter = to_bool(request.args.get('scatter', True))
     use_event = to_bool(request.args.get('event', True))
+    qaqc = int(request.args.get('qaqc', 0))
 
     # Get Events!
     events = {}
@@ -820,13 +822,15 @@ def get_svg_plot(instrument, stream):
             data[idx]['height'] = height_in
             data[idx]['width'] = width_in
 
-    buf = generate_plot(data,
-                        plot_format,
-                        plot_layout,
-                        use_scatter,
-                        events,
-                        profileid,
-                        width_in=width_in)
+    plot_options = {'plot_format': plot_format,
+                    'plot_layout': plot_layout,
+                    'use_scatter': use_scatter,
+                    'events': events,
+                    'profileid': profileid,
+                    'width_in': width_in,
+                    'use_qaqc': qaqc}
+
+    buf = generate_plot(data, plot_options)
 
     content_header_map = {
         'svg' : 'image/svg+xml',
@@ -1023,7 +1027,6 @@ def get_profile_data(mooring, platform, instrument, stream_type, stream, paramet
 
     except Exception as err:
         current_app.logger.exception('\n* (pass) exception: ' + str(err.message))
-        pass
 
 # @auth.login_required
 @api.route('/get_profiles/<string:stream>/<string:instrument>', methods=['GET'])
