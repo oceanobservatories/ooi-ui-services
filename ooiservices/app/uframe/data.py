@@ -70,6 +70,7 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
     mooring, platform, instrument, stream_type, stream = split_stream_name('_'.join([instrument, stream]))
 
     parameter_ids, y_units, x_units = find_parameter_ids(mooring, platform, instrument, yfields, xfields)
+
     try:
         if 'startdate' in request.args and 'enddate' in request.args:
             st_date = request.args['startdate']
@@ -130,15 +131,18 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
                 raise Exception(message)
 
     # Initialize the data dicts
-    x = OrderedDict({k: np.empty(len(data)) for k in xfields})
-    y = OrderedDict({k: np.empty(len(data)) for k in yfields})
+    vals = [np.empty(len(data)) for field in xfields]
+    x = OrderedDict(zip(xfields, vals))
+    vals = [np.empty(len(data)) for field in yfields]
+    y = OrderedDict(zip(yfields, vals))
 
     if len(yfields) >= len(xfields):
         qaqc_fields = yfields
     else:
         qaqc_fields = xfields
 
-    qaqc = OrderedDict({k: np.zeros(len(data)) for k in qaqc_fields})
+    vals = [np.zeros(len(data)) for field in qaqc_fields]
+    qaqc = OrderedDict(zip(qaqc_fields, vals))
 
     # Loop through rows of data and fill the response data
     for ind, row in enumerate(data):
@@ -178,4 +182,5 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
                  'dt_units': 'seconds since 1900-01-01 00:00:00',
                  'qaqc': qaqc
                  }
+
     return resp_data
