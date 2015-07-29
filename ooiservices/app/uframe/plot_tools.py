@@ -54,7 +54,7 @@ class OOIPlots(object):
             ax.xaxis.set_major_formatter(formt)
 
     def plot_time_series(self, fig, is_timeseries, ax, x, y, fill=False, title='', xlabel='', ylabel='',
-                         title_font={}, axis_font={}, tick_font={}, scatter=False, events={}, **kwargs):
+                         title_font={}, axis_font={}, tick_font={}, scatter=False, qaqc=[], events={}, **kwargs):
 
         if not title_font:
             title_font = title_font_default
@@ -86,16 +86,26 @@ class OOIPlots(object):
                 ax.fill_between(x, y, miny+1e-7, facecolor = axis_font_default['color'], alpha=0.15)
 
         if events:
-            y = ax.get_ylim()
+            ylim = ax.get_ylim()
             for event in events['events']:
-                time = datestr2num(event['start_date']) 
+                time = datestr2num(event['start_date'])
                 x = np.array([time, time])
-                h = ax.plot(x, y, '--', label=event['class'])
+                h = ax.plot(x, ylim, '--', label=event['class'])
 
             legend = ax.legend()
             if legend:
                 for label in legend.get_texts():
                     label.set_fontsize(10)
+
+        if len(qaqc) > 0:
+            bad_data = np.where(qaqc > 0)
+            h = ppl.plot(ax, x[bad_data], y[bad_data],
+                         marker='o',
+                         mfc='none',
+                         linestyle='None',
+                         markersize=6,
+                         markeredgewidth=2,
+                         mec='r')
 
         # plt.tick_params(axis='both', which='major', labelsize=10)
         if tick_font:
@@ -223,12 +233,12 @@ class OOIPlots(object):
         ax.set_ylim(-maxmag, maxmag)
         dx = time[-1] - time[0]
         ax.set_xlim(time[0] - 0.05 * dx, time[-1] + 0.05 * dx)
-        ax.fill_between(time, magnitude, 0, color='k', alpha=0.1)
+        # ax.fill_between(time, magnitude, 0, color='k', alpha=0.1)
 
-        # Fake 'box' to be able to insert a legend for 'Magnitude'
-        p = ax.add_patch(plt.Rectangle((1, 1), 1, 1, fc='k', alpha=0.1))
-        leg1 = ax.legend([p], [legend_title], loc='lower right')
-        leg1._drawFrame = False
+        # # Fake 'box' to be able to insert a legend for 'Magnitude'
+        # p = ax.add_patch(plt.Rectangle((1, 1), 1, 1, fc='k', alpha=0.1))
+        # leg1 = ax.legend([p], [legend_title], loc='lower right')
+        # leg1._drawFrame = False
 
         # # 1D Quiver plot
         q = ax.quiver(time, 0, u, v, **kwargs)
@@ -337,7 +347,7 @@ class OOIPlots(object):
         plt.tight_layout()
 
     def plot_multiple_yaxes(self, fig, ax, xdata, ydata, colors, title, units=[], scatter=False,
-                            axis_font={}, title_font={}, tick_font={}, width_in=8.3 , **kwargs):
+                            axis_font={}, title_font={}, tick_font={}, width_in=8.3, qaqc={}, **kwargs):
         # Plot a timeseries with multiple y-axes
         #
         # ydata is a python dictionary of all the data to plot. Key values are used as plot labels
@@ -405,8 +415,17 @@ class OOIPlots(object):
         # Plot the data
         for ind, key in enumerate(ydata):
 
-            y_axis[ind].plot(xdata, ydata[key], colors[ind], **kwargs)
+            y_axis[ind].plot(xdata[key], ydata[key], colors[ind], **kwargs)
 
+            if len(qaqc[key]) > 0:
+                bad_data = np.where(qaqc[key] > 0)
+                y_axis[ind].plot(xdata[key][bad_data], ydata[key][bad_data], 
+                                 marker='o',
+                                 mfc='none',
+                                 linestyle='None',
+                                 markersize=6,
+                                 markeredgewidth=2,
+                                 mec='r')
             # Label the y-axis and set text color:
 
             # Been experimenting with other ways to handle tick labels with spines
@@ -419,7 +438,7 @@ class OOIPlots(object):
                 labelsize = tick_font['labelsize']
             y_axis[ind].tick_params(axis='y', labelsize=labelsize, colors=colors[ind])
 
-        self.get_time_label(ax, xdata)
+        self.get_time_label(ax, xdata['time'])
         fig.autofmt_xdate()
 
         # ax.tick_params(axis='x', labelsize=10)
@@ -428,7 +447,7 @@ class OOIPlots(object):
         plt.tight_layout()
 
     def plot_multiple_streams(self, fig, ax, datasets, colors, axis_font={}, title_font={},
-                              tick_font={}, width_in=8.3 , scatter=False, **kwargs):
+                              tick_font={}, width_in=8.3 , plot_qaqc=0, scatter=False, **kwargs):
         # Plot a timeseries with multiple y-axes using multiple streams from uFrame
         #
         # Acknowledgment: This function is based on code written by Jae-Joon Lee,
@@ -494,13 +513,37 @@ class OOIPlots(object):
         # Plot the data
         legend_handles = []
         legend_labels = []
+
         for ind, data in enumerate(datasets):
             xlabel = data['x_field'][0]
             ylabel = data['y_field'][0]
             xdata = data['x'][xlabel]
             ydata = data['y'][ylabel]
 
+            # Handle the QAQC data
+            qaqc = data['qaqc'][ylabel]
+            if plot_qaqc >= 10:
+                # Plot all of the qaqc flags results
+                # qaqc_data = data['qaqc'][ylabel]
+                pass
+            elif plot_qaqc >= 1:
+                # This is a case where the user wants to plot just one of the 9 QAQC tests
+                ind = np.where(qaqc != plot_qaqc)
+                qaqc[ind] = 0
+
+            else:
+                qaqc = []
+
             h, = y_axis[ind].plot(xdata, ydata, colors[ind], label=data['title'], **kwargs)
+            if len(qaqc) > 0:
+                bad_data = np.where(qaqc > 0)
+                y_axis[ind].plot(xdata[bad_data], ydata[bad_data],
+                                 marker='o',
+                                 mfc='none',
+                                 linestyle='None',
+                                 markersize=6,
+                                 markeredgewidth=2,
+                                 mec='r')
 
             # Label the y-axis and set text color:
 
@@ -519,7 +562,7 @@ class OOIPlots(object):
         self.get_time_label(ax, xdata)
         fig.autofmt_xdate()
 
-        legend = ax.legend(legend_handles, legend_labels)
+        ax.legend(legend_handles, legend_labels)
 
         # ax.tick_params(axis='x', labelsize=10)
         # ax.set_title(title.replace("_", " "), y=1.05, **title_font)
