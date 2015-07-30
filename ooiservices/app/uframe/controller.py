@@ -453,6 +453,28 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
     """
     try:
         if dpa_flag == '0':
+            query = '?beginDT=%s&endDT=%s&include_provenance=true' % (start_time, end_time)
+        else:
+            query = '?beginDT=%s&endDT=%s&execDPA=true&include_provenance=true' % (start_time, end_time)
+        uframe_url, timeout, timeout_read = get_uframe_info()
+        url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
+        current_app.logger.debug('***** url: ' + url)
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if not response:
+            raise Exception('No data available from uFrame for this request.')
+        if response.status_code != 200:
+            raise Exception('(%s) failed to retrieve stream contents from uFrame', response.status_code)
+            #pass
+        return response
+    except Exception as e:
+        return internal_server_error('uFrame connection cannot be made. ' + str(e.message))
+
+def get_uframe_stream_contents_csv(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag):
+    """
+    Gets the bounded stream contents, start_time and end_time need to be datetime objects; returns Respnse object.
+    """
+    try:
+        if dpa_flag == '0':
             query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
         else:
             query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
@@ -513,7 +535,7 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
                     t00 = time.time()
                     idx_c = dataBlock.rfind('}, {')
                     dataBlock = dataBlock[:idx_c]
-                    dataBlock+="}]"
+                    dataBlock+="}\n]"
                     t11 = time.time()
                     totaln = t11-t00
 
@@ -529,7 +551,7 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
             #    dataBlock = dataBlock[:idx_c]
             #    dataBlock+="} ]"
             #    print 'uFrame appended Error Message to Stream',"\n",dataBlock[-3:-1]
-            idx_c = dataBlock.rfind('}]')
+            idx_c = dataBlock.rfind('}\n]')
             print idx_c
             if idx_c == -1:
                 dataBlock+="]"
@@ -631,7 +653,7 @@ def get_csv(stream, ref,start_time,end_time,dpa_flag):
 
     #figures out if its in a date time range
     end_time = validate_date_time(start_time, end_time)
-    data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag)
+    data = get_uframe_stream_contents_csv(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag)
 
     GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_csv&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
 
@@ -672,7 +694,7 @@ def get_json(stream,ref,start_time,end_time,dpa_flag):
 
     if data.status_code != 200:
         return data, data.status_code, dict(data.headers)
-    response = '{"data":%s}' % data.content
+    response = data.content
     filename = '-'.join([stream,ref])
     returned_json = make_response(response)
     returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json"%filename
@@ -691,9 +713,9 @@ def get_netcdf(stream, ref,start_time,end_time,dpa_flag):
     uframe_url, timeout, timeout_read = get_uframe_info()
     url = '/'.join([uframe_url, mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag])
     if dpa_flag == '0':
-        query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
+        query = '?beginDT=%s&endDT=%s&include_provenance=true' % (start_time, end_time)
     else:
-        query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
+        query = '?beginDT=%s&endDT=%s&execDPA=true&include_provenance=true' % (start_time, end_time)
     query += '&format=application/netcdf'
     uframe_url, timeout, timeout_read = get_uframe_info()
     url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
