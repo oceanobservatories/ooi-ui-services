@@ -46,6 +46,7 @@ def create_redmine_ticket():
 
     # Define required and recommended ticket fields
     required_fields = ['project_id', 'subject']
+    dataDict['project_id'] = 'ocean-observatory'
     recommended_fields = ['due_date', 'description', 'priority_id', 'assigned_to_id',
                           'start_date', 'estimated_hours', 'status_id', 'notes',
                           'tracker_id', 'parent_issue_id', 'done_ratio']
