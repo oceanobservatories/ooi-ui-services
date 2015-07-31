@@ -453,6 +453,7 @@ def get_assets():
     lat = ""
     lon = ""
     ref_des = ""
+    deployment_number = ""
 
     #Manually set up the cache
     cached = cache.get('asset_list')
@@ -480,7 +481,12 @@ def get_assets():
                             meta_data['key'] = 'Ref Des'
                         if meta_data['key'] == 'Ref Des':
                             ref_des = meta_data['value']
+                        if meta_data['key'] == 'Deployment Number':
+                            deployment_number = meta_data['value']
                     row['ref_des'] = ref_des
+
+                    if deployment_number is not None:
+                        row['deployment_number'] = deployment_number
                     if lat > 0 and lon > 0:
                         row['coordinates'] = _convert_lat_lon(lat, lon)
                     else:
@@ -572,7 +578,11 @@ def get_asset(id):
                     meta_data['key'] = 'Ref Des'
                 if meta_data['key'] == 'Ref Des':
                     ref_des = meta_data['value']
+                if meta_data['key'] == 'Deployment Number':
+                    deployment_number = meta_data['value']
             data['ref_des'] = ref_des
+            if deployment_number is not None:
+                data['deployment_number'] = deployment_number
             if lat > 0 and lon > 0:
                 data['coordinates'] = _convert_lat_lon(lat, lon)
                 lat = ""
