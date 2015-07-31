@@ -203,6 +203,7 @@ def _associate_events(id):
                     'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/events/%s' % row['eventId']}
             # set up some static keys
             d['locationLonLat'] = []
+
             d['eventId'] = row['eventId']
             d['class'] = row['@class']
             d['notes'] = len(row['notes'])
@@ -451,6 +452,8 @@ def get_assets():
 
     lat = ""
     lon = ""
+    ref_des = ""
+    deployment_number = ""
 
     #Manually set up the cache
     cached = cache.get('asset_list')
@@ -477,12 +480,14 @@ def get_assets():
                         if meta_data['key'] == 'Ref Des SN':
                             meta_data['key'] = 'Ref Des'
                         if meta_data['key'] == 'Ref Des':
-                            ref_des = (meta_data['value'])
-                    if ref_des is not None:
-                        row['ref_des'] = ref_des
-                    else:
-                        row['ref_des'] = None
-                    if len(lat) > 0 and len(lon) > 0:
+                            ref_des = meta_data['value']
+                        if meta_data['key'] == 'Deployment Number':
+                            deployment_number = meta_data['value']
+                    row['ref_des'] = ref_des
+
+                    if deployment_number is not None:
+                        row['deployment_number'] = deployment_number
+                    if lat > 0 and lon > 0:
                         row['coordinates'] = _convert_lat_lon(lat, lon)
                     else:
                         for events in row['events']:
@@ -490,11 +495,10 @@ def get_assets():
                                 lat = events['locationLonLat'][1]
                                 lon = events['locationLonLat'][0]
                         row['coordinates'] = _convert_lat_lon(lat,lon)
-                        lat, lon = 0.0
+                        lat = 0.0
+                        lon = 0.0
                     if len(ref_des) > 0:
-                        '''
-                        Determine the asset name from the DB if there is none.
-                        '''
+                        # determine the asset name from the DB if there is none.
 
                         try:
                             if (row['assetInfo']['name'] == None) or (row['assetInfo']['name'] == ""):
@@ -502,8 +506,8 @@ def get_assets():
                         except:
                             pass
 
-            except (KeyError, TypeError, AttributeError) as e:
-                pass
+            except:
+                raise
 
         if "error" not in data:
             cache.set('asset_list', data, timeout=CACHE_TIMEOUT)
@@ -551,6 +555,7 @@ def get_asset(id):
     '''
     lat = ""
     lon = ""
+    ref_des = ""
     uframe_obj = uFrameAssetCollection()
     data = uframe_obj.to_json(id)
 
@@ -572,11 +577,24 @@ def get_asset(id):
                 if meta_data['key'] == 'Ref Des SN':
                     meta_data['key'] = 'Ref Des'
                 if meta_data['key'] == 'Ref Des':
-                    ref_des = (meta_data['value'])
-            if len(lat) > 0 and len(lon) > 0:
+                    ref_des = meta_data['value']
+                if meta_data['key'] == 'Deployment Number':
+                    deployment_number = meta_data['value']
+            data['ref_des'] = ref_des
+            if deployment_number is not None:
+                data['deployment_number'] = deployment_number
+            if lat > 0 and lon > 0:
                 data['coordinates'] = _convert_lat_lon(lat, lon)
                 lat = ""
                 lon = ""
+            else:
+                for events in data['events']:
+                    if events['locationLonLat'] is not None:
+                        lat = events['locationLonLat'][1]
+                        lon = events['locationLonLat'][0]
+                data['coordinates'] = _convert_lat_lon(lat,lon)
+                lat = 0.0
+                lon = 0.0
             if len(ref_des) > 0:
                 '''
                 Determine the asset name from the DB if there is none.
@@ -588,7 +606,7 @@ def get_asset(id):
                 except:
                     pass
     except (KeyError, TypeError, AttributeError) as e:
-        pass
+        raise
 
     return jsonify(**data)
 
