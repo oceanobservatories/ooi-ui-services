@@ -225,6 +225,8 @@ def streams_list():
                 return_list.append(item)
             if search_term.lower() in str(item['display_name']).lower():
                 return_list.append(item)
+            if search_term.lower() in str(item['reference_designator']).lower():
+                return_list.append(item)
         retval = return_list
 
     if request.args.get('startAt'):
