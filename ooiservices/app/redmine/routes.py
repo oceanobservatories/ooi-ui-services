@@ -46,6 +46,7 @@ def create_redmine_ticket():
 
     # Define required and recommended ticket fields
     required_fields = ['project_id', 'subject']
+    dataDict['project_id'] = 'ocean-observatory'
     recommended_fields = ['due_date', 'description', 'priority_id', 'assigned_to_id',
                           'start_date', 'estimated_hours', 'status_id', 'notes',
                           'tracker_id', 'parent_issue_id', 'done_ratio']
@@ -72,7 +73,6 @@ def create_redmine_ticket():
     issue.save()
 
     return data, 201
-
 
 @api.route('/ticket/', methods=['GET'])
 @auth.login_required
@@ -167,7 +167,6 @@ def get_redmine_ticket():
     for field in issue_fields:
         if hasattr(issue, field):
             details[field] = str(getattr(issue, field))
-
     return jsonify(details)
 
 
@@ -176,23 +175,74 @@ def get_redmine_ticket():
 #@scope_required('redmine') #We don't care if they are 'redmine' scoped to populate the page!
 def get_redmine_users():
     '''
-    Get all the users in a project
+    Get all the users in a project.
+    Sample: http://localhost:4000/redmine/users?project='projectname'
     '''
     redmine = redmine_login()
+
     if 'project' not in request.args:
         return Response(response="{error: project not defined}",
                         status=400,
                         mimetype="application/json")
-
     all_users = redmine.user.all(offset=1, limit=100)
-    users = dict(users=[],user_id=[])
-    
+    users = dict(users=[]) #,user_id=[])
     for n in xrange(len(all_users)):
       user = str(all_users[n])
       user_id = int(all_users[n]['id'])
-
       users['users'].append([user,user_id])
 
-       
-
     return jsonify(users)
+
+def create_redmine_ticket_for_notification(project_id, subject, description, priority, assigned_id):
+
+    #print '\n entered _create_redmine_ticket...'
+    ticket_id = None
+    # Define required and recommended ticket fields
+    required_fields = ['project_id', 'subject']
+    recommended_fields = ['due_date', 'description', 'priority_id', 'assigned_to_id',
+                          'start_date', 'estimated_hours', 'status_id', 'notes',
+                          'tracker_id', 'parent_issue_id', 'done_ratio']
+    try:
+        #project_id = 'ocean-observatory'
+        data = {
+                'project_id': project_id,
+                'subject':  subject,
+                'description': description,
+                'priority_id': priority,
+                'assigned_to_id': assigned_id,
+                'category_id':  1
+            }
+        fields = dict()
+        for field in required_fields + recommended_fields:
+            if field in data:
+                fields[field] = data[field]
+
+        # Log into Redmine
+        redmine = redmine_login()
+        issue = redmine.issue.new()
+        issue.tracker_id = 3 # support
+        for key, value in fields.iteritems():
+            #print '\n key: %r, value: %r' % (key, value)
+            setattr(issue, key, value)
+
+        if issue.save():
+            #print '\n issue.id: ', issue.id
+            ticket_id = issue.id
+
+    except Exception as err:
+        print '\n create_redmine_ticket_for_notification: ', err.message
+
+    finally:
+        return ticket_id
+
+def get_redmine_users_by_project(project_id):
+    redmine = redmine_login()
+    all_users = redmine.user.all(offset=1, limit=100, project_id=project_id)
+    if all_users is None:
+        return []
+    users = dict(users=[])
+    for n in xrange(len(all_users)):
+      user = str(all_users[n])
+      user_id = int(all_users[n]['id'])
+      users['users'].append([user,user_id])
+    return users

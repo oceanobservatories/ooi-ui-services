@@ -7,7 +7,7 @@ __author__ = 'Edna Donoughe'
 import unittest
 import json
 from base64 import b64encode
-from flask import url_for
+from flask import (url_for, current_app)
 from ooiservices.app import create_app, db
 from ooiservices.app.models import User, UserScope, Organization
 from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment
@@ -31,6 +31,8 @@ class AlertAlarmTestCase(unittest.TestCase):
     # urls used throughout test cases. Always set to False before check in.
     verbose = False
     root = 'http://localhost:4000'
+    REDMINE_PROJECT_ID = None
+    SAVE_REDMINE_PROJECT_ID = None
 
     def setUp(self):
         self.app = create_app('TESTING_CONFIG')
@@ -53,7 +55,11 @@ class AlertAlarmTestCase(unittest.TestCase):
         db.session.add(admin)
         db.session.commit()
 
+        self.SAVE_REDMINE_PROJECT_ID = current_app.config['REDMINE_PROJECT_ID']
+        current_app.config['REDMINE_PROJECT_ID'] = 'ocean-observatory'
+
     def tearDown(self):
+        current_app.config['REDMINE_PROJECT_ID'] = self.SAVE_REDMINE_PROJECT_ID
         db.session.remove()
         db.drop_all()
         self.app_context.pop()
@@ -313,11 +319,12 @@ class AlertAlarmTestCase(unittest.TestCase):
         #print '\n data: ', data
         self.assertTrue('alert_alarm' in data)
         self.assertTrue(len(data['alert_alarm']) > 0)
+        """
         if verbose:
             aa_events = data['alert_alarm']
             for event in aa_events:
                 print '\n\nevent: ', event
-
+        """
         url = url_for('main.get_alert_alarm', id=1)
         response = self.client.get(url, content_type=content_type, headers=headers)
         self.assertEquals(response.status_code, 200)
@@ -338,11 +345,12 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertEquals(response.status_code, 200)
         data = json.loads(response.data)
         self.assertTrue('alert_alarm_definition' in data)
+        """
         if verbose:
             for d in data['alert_alarm_definition']:
                 if d['id'] == 2:
                     print 'uframe_filter_id: ', d['uframe_filter_id']
-
+        """
         # todo Revisit this section to rework exception handling tests for create and update.
         # Here just generating rotten test data to force errors and exercise branches in code.
         #  Force an error (400) on create definition; utilize session.rollback() in except block
@@ -483,7 +491,7 @@ class AlertAlarmTestCase(unittest.TestCase):
                 self.assertEquals(response.status_code, 200)
 
         # Delete all alertfilter ids (where id > 3)
-        if verbose: print '\n list_alertfilter_ids(%d): %s' % (len(list_alertfilter_ids), list_alertfilter_ids)
+        #if verbose: print '\n list_alertfilter_ids(%d): %s' % (len(list_alertfilter_ids), list_alertfilter_ids)
         self.delete_alertfilters(list_alertfilter_ids)
 
         # ======== NEVER USE THIS CODE EXCEPT FOR TEST DEVELOPMENT ===========
@@ -640,6 +648,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue(events is not None)
         self.assertTrue('alert_alarm' in events)
         self.assertTrue(events['alert_alarm'] is not None)
+        self.assertEquals(len(events['alert_alarm']), 0)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # GET /alert_alarm by id when there aren't any alerts or alarms ( {"error": "alert_alarm not found"} )
@@ -661,8 +670,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'operator': u'GREATER', 'instrument_name': u'CE01ISSP-XX099-01-CTDPFJ999',
                 'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial', "escalate_on": 5, "escalate_boundary": 10,
-                "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
-                "use_log": False, "use_sms": True}
+                'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
+                'use_log': False, 'use_sms': True}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
@@ -1092,7 +1101,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         #print '\n filter_ids(%d): %s' % (len(filter_ids), filter_ids)
         self.delete_alertfilters(filter_ids)
 
-    def _test_SystemEventDefinition_update_user_notification(self):
+    def test_SystemEventDefinition_update_user_notification(self):
         """
         Execute update_alert_alarm_definition with the 'update_user_event_notification' parameter set to True.
         This should update the user_event_definition when update_alert_alarm_definition is invoked.
@@ -1952,6 +1961,20 @@ class AlertAlarmTestCase(unittest.TestCase):
                 db.session.commit()
             except Exception as err:
                 print '\n ***  CP02PMCO-WFP01-02-DOFSTK000 **** message: ', err.message
+
+            try:
+                # Create corresponding UserEventNotification when alert or alarm definition is created
+                new_id = UserEventNotification.insert_user_event_notification(
+                                                     system_event_definition_id=alert_alarm_definition.id,
+                                                     user_id=user_id,
+                                                     use_email=use_email,
+                                                     use_redmine=use_redmine,
+                                                     use_phone=use_phone,
+                                                     use_log=use_log,
+                                                     use_sms=use_sms)
+            except Exception as err:
+                print '\n ******* Create CP02PMCO-WFP01-02-DOFSTK000 UserEventNotification message: \n', err.message
+
         elif alert_alarm_definition == 'CP02PMCO-WFP01-03-CTDPFK000':
             alert_alarm_definition = SystemEventDefinition(reference_designator=instrument_reference_designator)
             alert_alarm_definition.active = True
@@ -1976,7 +1999,22 @@ class AlertAlarmTestCase(unittest.TestCase):
                 db.session.add(alert_alarm_definition)
                 db.session.commit()
             except Exception as err:
-                print '\n ******* message: ', err.message
+                print '\n ******* Create CP02PMCO-WFP01-03-CTDPFK000 alert_alarm_definition message: \n', err.message
+
+            try:
+                # Create corresponding UserEventNotification when alert or alarm definition is created
+                new_id = UserEventNotification.insert_user_event_notification(
+                                                     system_event_definition_id=alert_alarm_definition.id,
+                                                     user_id=user_id,
+                                                     use_email=use_email,
+                                                     use_redmine=use_redmine,
+                                                     use_phone=use_phone,
+                                                     use_log=use_log,
+                                                     use_sms=use_sms)
+            except Exception as err:
+                print '\n ******* Create CP02PMCO-WFP01-03-CTDPFK000 UserEventNotification message: \n', err.message
+
+
         elif alert_alarm_definition == 'CP02PMCO-WFP01-05-PARADK000':
             alert_alarm_definition = SystemEventDefinition(reference_designator=instrument_reference_designator)
             alert_alarm_definition.active = True
@@ -2002,6 +2040,19 @@ class AlertAlarmTestCase(unittest.TestCase):
                 db.session.commit()
             except Exception as err:
                 print '\n *** CP02PMCO-WFP01-05-PARADK000 **** message: ', err.message
+
+            try:
+                # Create corresponding UserEventNotification when alert or alarm definition is created
+                new_id = UserEventNotification.insert_user_event_notification(
+                                                     system_event_definition_id=alert_alarm_definition.id,
+                                                     user_id=user_id,
+                                                     use_email=use_email,
+                                                     use_redmine=use_redmine,
+                                                     use_phone=use_phone,
+                                                     use_log=use_log,
+                                                     use_sms=use_sms)
+            except Exception as err:
+                print '\n ******* Create CP02PMCO-WFP01-05-PARADK000 UserEventNotification message: \n', err.message
         else:
             alert_alarm_definition = SystemEventDefinition(reference_designator=instrument_reference_designator)
             alert_alarm_definition.active = True
@@ -2027,6 +2078,18 @@ class AlertAlarmTestCase(unittest.TestCase):
                 db.session.commit()
             except Exception as err:
                 print '\n *** %s **** message: %s' % (instrument_reference_designator,err.message)
+            try:
+                # Create corresponding UserEventNotification when alert or alarm definition is created
+                new_id = UserEventNotification.insert_user_event_notification(
+                                                     system_event_definition_id=alert_alarm_definition.id,
+                                                     user_id=user_id,
+                                                     use_email=use_email,
+                                                     use_redmine=use_redmine,
+                                                     use_phone=use_phone,
+                                                     use_log=use_log,
+                                                     use_sms=use_sms)
+            except Exception as err:
+                print '\n ******* Create UserEventNotification message: \n', err.message
         return alert_alarm_definition
 
     def setup_array_data(self):
@@ -2118,6 +2181,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         if debug: print '\n list_alertfilter_ids(%d): %s' % (len(list_alertfilter_ids), list_alertfilter_ids)
         self.delete_alertfilters(list_alertfilter_ids)
         return
+
     '''
     reference_designator = 'CE01ISSP-XX099-01-CTDPFJ999'
     def make_fake_uframe_alertfilter_data(self):

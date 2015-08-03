@@ -12,6 +12,7 @@ from unittest import skipIf
 import os
 import json
 from base64 import b64encode
+import datetime as dt
 
 '''
 These tests verify the functionality of the Redmine api list.
@@ -57,7 +58,7 @@ class RedmineTestCase(unittest.TestCase):
 
     def test_read_redmine_issue(self):
         headers = self.get_api_headers('admin', 'test')
-        rv = self.client.get('redmine/ticket/id/?id=2290', headers=headers)
+        rv = self.client.get('redmine/ticket/id/?id=2', headers=headers)
         self.assertEquals(rv.status_code, 200)
 
     def test_read_redmine_issues(self):
@@ -72,11 +73,13 @@ class RedmineTestCase(unittest.TestCase):
 
     def test_create_redmine_ticket(self):
         headers = self.get_api_headers('admin', 'test')
+        tmp = dt.datetime.now() + dt.timedelta(days=2)
+        due_date = dt.datetime.strftime(tmp, "%Y-%m-%d")
         rv = self.client.post('redmine/ticket',
                               headers=headers,
                               data=json.dumps({'project_id': PROJECT,
                                                'subject': 'Test Issue 2',
-                                               'due_date': '2015-04-15',
+                                               'due_date': due_date,
                                                'description': 'Get this work done ASAP',
                                                'priority_id': 1}))
                                                # 'assigned_to_id': 1}))
@@ -88,7 +91,7 @@ class RedmineTestCase(unittest.TestCase):
         project = redmine.project.get(PROJECT).refresh()
         rv = self.client.post('redmine/ticket/id',
                               headers=headers,
-                              data=json.dumps({'resource_id': 2290,
+                              data=json.dumps({'resource_id': 2,
                                                'project_id': project.id,
                                                'subject': 'Testing Update',
                                                'notes': 'This is simply a test'}))
@@ -106,11 +109,14 @@ class RedmineTestCase(unittest.TestCase):
 
     def test_create_redmine_ticket_missing_required_field(self):
         headers = self.get_api_headers('admin', 'test')
+        tmp = dt.datetime.now() + dt.timedelta(days=2)
+        due_date = dt.datetime.strftime(tmp, "%Y-%m-%d")
+        # 'subject': 'Test Issue 2',
         rv = self.client.post('redmine/ticket',
                               headers=headers,
                               data=json.dumps({
-                                               'subject': 'Test Issue 2',
-                                               'due_date': '2015-04-15',
+
+                                               'due_date': due_date,
                                                'description': 'Get this work done ASAP',
                                                'priority_id': 1}))
         self.assertEquals(rv.status_code, 400)

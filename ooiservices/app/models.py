@@ -813,6 +813,31 @@ class SystemEventDefinition(db.Model):
         db.session.commit()
         return
     '''
+    @staticmethod
+    def delete_system_event_definition(system_event_definition_id):
+        status = None
+        try:
+            if system_event_definition_id is None:
+                message = 'system_event_definition id provided is None.'
+                print '\n message: ', message
+                raise Exception(message)
+            definition = db.session.query.get(system_event_definition_id)
+            if definition is None:
+                message = 'Failed to delete system_event_definition for id provided (id: None)'
+                print '\n message: ', message
+                raise Exception(message)
+
+            notification = UserEventNotification.query.filter_by(system_event_definition_id=definition.id).first()
+            if notification is not None:
+                #UserEventNotification.delete_user_event_notification(notification.id)
+                db.session.delete(notification)
+                db.session.commit()
+            db.session.delete(definition)
+            db.session.commit()
+            return status
+        except:
+            print '\n (delete_system_event_definition) %s', err.message
+            raise
 
     def to_json(self):
         json_system_event_definition = {
@@ -944,7 +969,6 @@ class SystemEvent(db.Model):
             return v.isoformat()
         return str(v)
 
-
 class TicketSystemEventLink(db.Model):
     __tablename__ = 'ticket_system_event_link'
     __table_args__ = {u'schema': __schema__}
@@ -1011,19 +1035,22 @@ class UserEventNotification(db.Model):
     def to_json(self):
         json_user_notification = {
             'id': self.id,
-            'system_event_definition_id': self.system_event_definition_id,
-            'user_id': self.user_id,
             'use_email': self.use_email,
             'use_redmine': self.use_redmine,
             'use_phone': self.use_phone,
             'use_log': self.use_log,
             'use_sms': self.use_sms
         }
+        if self.user:
+            json_user_notification['user_id'] = self.user.id
+        if self.system_event_definition:
+            json_user_notification['system_event_definition_id'] = self.system_event_definition.id
         return json_user_notification
 
     @staticmethod
     def insert_user_event_notification(system_event_definition_id, user_id, use_email, use_redmine, use_phone,
                                         use_log, use_sms):
+        user_event_id = None
         try:
             new_user_event_notification = UserEventNotification()
             new_user_event_notification.system_event_definition_id = system_event_definition_id
@@ -1035,11 +1062,12 @@ class UserEventNotification(db.Model):
             new_user_event_notification.use_sms = use_sms
             db.session.add(new_user_event_notification)
             db.session.commit()
-            return
+            user_event_id = new_user_event_notification.id
+            return user_event_id
         except Exception as err:
             db.session.rollback()
-            #print '\n message: ', message
-            raise Exception(message)
+            print '\n (models:insert_user_event_notification) message: ', err.message
+            raise Exception(err.message)
 
     @staticmethod
     def update_user_event_notification(id, system_event_definition_id, user_id,
@@ -1063,6 +1091,24 @@ class UserEventNotification(db.Model):
             message = 'debug -- Models (update_user_event_notification) %s', err.message
             #print '\n message: ', message
             raise Exception(err.message)
+
+    '''
+    @staticmethod
+    def delete_user_event_notification(user_event_notification_id):
+        status = None
+        try:
+            if user_event_notification_id is None:
+                message = 'user_event_notification_id id provided is None.'
+                print '\n message: ', message
+                raise Exception(message)
+            notification = UserEventNotification.query.get(user_event_notification_id)
+            if notification is not None:
+                db.session.delete(notification)
+                db.session.commit()
+        except:
+            print '\n (delete_user_event_notification) %s', err.message
+            raise
+    '''
 
 class UserScopeLink(db.Model):
     __tablename__ = 'user_scope_link'

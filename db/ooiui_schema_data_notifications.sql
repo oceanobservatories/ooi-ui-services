@@ -20,7 +20,7 @@ insert into system_event_definitions(id, uframe_filter_id, reference_designator,
 insert into system_event_definitions(id, uframe_filter_id, reference_designator, array_name, platform_name, instrument_name, instrument_parameter, instrument_parameter_pdid, operator, created_time, event_type, severity, active, description, high_value, low_value, stream, escalate_on, escalate_boundary) values (2,2,'CE01ISSP-XX099-01-CTDPFJ999','CE', 'CE01ISSP-XX099', 'CE01ISSP-XX099-01-CTDPFJ999','temperature', 'PD440', 'GREATER', '2015-03-31 23:23:31', 'alarm', 2, True, 'Monitor water temp does not exceed upper limit', '31.0', '10.0', 'ctdpf_j_cspp_instrument', 5, 10);
 
 insert into user_event_notifications(id, system_event_definition_id, user_id, use_email, use_redmine, use_phone, use_log, use_sms) values (1, 1, 1, False, True, False, False, False);
-insert into user_event_notifications(id, system_event_definition_id, user_id, use_email, use_redmine, use_phone, use_log, use_sms) values (2, 1, 1, True, True, True, True, True);
+insert into user_event_notifications(id, system_event_definition_id, user_id, use_email, use_redmine, use_phone, use_log, use_sms) values (2, 2, 1, True, True, True, True, True);
 
 -- SystemEvents (5 alarms and three alerts)
 -- Create five alarms

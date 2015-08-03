@@ -177,6 +177,7 @@ def deploy(password, bulkload):
         User.insert_user(password=password)
         admin = User.query.first()
         admin.scopes.append(UserScope.query.filter_by(scope_name='user_admin').first())
+        admin.scopes.append(UserScope.query.filter_by(scope_name='redmine').first())
         db.session.add(admin)
         db.session.commit()
 
