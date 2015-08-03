@@ -572,6 +572,7 @@ def get_asset(id):
     ref_des = ""
     uframe_obj = uFrameAssetCollection()
     data = uframe_obj.to_json(id)
+    deployment_number = None
 
     data['events'] = _associate_events(id)
     data['asset_class'] = data.pop('@class')
