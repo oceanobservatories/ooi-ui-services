@@ -507,13 +507,26 @@ def get_assets():
                             pass
 
             except:
-                raise
+                pass
 
         if "error" not in data:
             cache.set('asset_list', data, timeout=CACHE_TIMEOUT)
 
     data = sorted(data, key=itemgetter('id'))
 
+    if request.args.get('min') == 'True':
+        for obj in data:
+            try:
+                del obj['metaData']
+                del obj['events']
+                del obj['manufactureInfo']
+                del obj['notes']
+                del obj['physicalInfo']
+                del obj['attachments']
+                del obj['purchaseAndDeliveryInfo']
+                del obj['lastModifiedTimestamp']
+            except KeyError:
+                raise
 
     if request.args.get('search') and request.args.get('search') != "":
         return_list = []
@@ -526,6 +539,7 @@ def get_assets():
             if search_term.lower() in str(item['ref_des']).lower():
                 return_list.append(item)
             if search_term.lower() in str(item['assetInfo']['type']).lower():
+
                 return_list.append(item)
             if search_term.lower() in str(item['events']).lower():
                 return_list.append(item)
@@ -606,7 +620,7 @@ def get_asset(id):
                 except:
                     pass
     except (KeyError, TypeError, AttributeError) as e:
-        raise
+        pass
 
     return jsonify(**data)
 

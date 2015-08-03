@@ -40,6 +40,9 @@ import time
 from ooiservices.app.models import PlatformDeployment
 import urllib2
 
+requests.adapters.DEFAULT_RETRIES = 2
+CACHE_TIMEOUT = 86400
+
 def dfs_streams():
 
     uframe_url, timeout, timeout_read = get_uframe_info()
@@ -200,7 +203,19 @@ def streams_list():
                 if request.args.get('reference_designator') != data_dict['reference_designator']:
                     continue
             retval.append(data_dict)
-        cache.set('stream_list', retval, timeout=3600)
+        cache.set('stream_list', retval, timeout=CACHE_TIMEOUT)
+
+    if request.args.get('min') == 'True':
+        for obj in retval:
+            try:
+                del obj['parameter_id']
+                del obj['units']
+                del obj['variable_type']
+                del obj['variable_types']
+                del obj['variables']
+                del obj['variables_shape']
+            except KeyError:
+                raise
 
     if request.args.get('search') and request.args.get('search') != "":
         return_list = []
