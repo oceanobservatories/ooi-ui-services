@@ -725,17 +725,17 @@ def get_netcdf(stream, ref,start_time,end_time,dpa_flag):
     urllib2.urlopen(GA_URL)
     return returned_netcdf
 
-@auth.login_required
+#@auth.login_required
 @api.route('/get_data/<string:instrument>/<string:stream>/<string:yvar>/<string:xvar>', methods=['GET'])
 def get_data_api(stream, instrument, yvar, xvar):
     # return if error
     try:        
         xvar = xvar.split(',')
         yvar = yvar.split(',')
-        resp_data = get_simple_data(stream, instrument, yvar, xvar)
+        resp_data,units = get_simple_data(stream, instrument, yvar, xvar)
     except Exception as err:
         return jsonify(error='%s' % str(err.message)), 400       
-    return jsonify(data=resp_data)
+    return jsonify(data=resp_data,units=units)
 
 @auth.login_required
 @api.route('/plot/<string:instrument>/<string:stream>', methods=['GET'])

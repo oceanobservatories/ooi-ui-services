@@ -37,19 +37,22 @@ def find_parameter_ids(mooring, platform, instrument, y_parameters, x_parameters
     y_units = []
     x_units = []
 
+    units_mapping = {}
     for each in parameter_list:
         parameter_dict[each['particleKey']] = each['pdId']
         all_units[each['particleKey']] = each['units']   
 
-    for each in x_parameters:
+    for each in x_parameters:        
         parameter_ids.append(str(parameter_dict[each]).strip())
         x_units.append(shorten_time_units(all_units[each]))
+        units_mapping[each] = shorten_time_units(all_units[each])
 
     for each in y_parameters:
         parameter_ids.append(str(parameter_dict[each]).strip())
         y_units.append(shorten_time_units(all_units[each]))
+        units_mapping[each] = shorten_time_units(all_units[each])
 
-    return parameter_ids, y_units, x_units
+    return parameter_ids, y_units, x_units,units_mapping
 
 def get_simple_data(stream, instrument, yfields, xfields, include_time=True):
     from ooiservices.app.uframe.controller import split_stream_name, get_uframe_plot_contents_chunked, validate_date_time, to_bool_str
@@ -57,7 +60,7 @@ def get_simple_data(stream, instrument, yfields, xfields, include_time=True):
     get data from uframe    
     '''    
     mooring, platform, instrument, stream_type, stream = split_stream_name('_'.join([instrument, stream]))
-    parameter_ids, y_units, x_units = find_parameter_ids(mooring, platform, instrument, yfields, xfields)
+    parameter_ids, y_units, x_units,units_mapping = find_parameter_ids(mooring, platform, instrument, yfields, xfields)
 
     try:
         if 'startdate' in request.args and 'enddate' in request.args:
@@ -72,10 +75,11 @@ def get_simple_data(stream, instrument, yfields, xfields, include_time=True):
 
             # data, status_code = get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
             data, status_code = get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag, parameter_ids)
+
             if status_code != 200:                
                 raise Exception('(%s) could not get_uframe_stream_contents' % str(status_code))
             else:
-                return data;
+                return data,units_mapping;
 
     except Exception as e:
         message = 'Failed to make plot - received error on uframe request. error: ' + str(e.message)
