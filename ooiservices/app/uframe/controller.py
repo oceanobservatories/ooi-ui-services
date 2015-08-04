@@ -17,7 +17,7 @@ from ooiservices.app.main.authentication import auth,verify_auth
 from ooiservices.app.main.errors import internal_server_error
 from urllib import urlencode
 # data ones
-from ooiservices.app.uframe.data import get_data, COSMO_CONSTANT,find_parameter_ids
+from ooiservices.app.uframe.data import get_data, get_simple_data,COSMO_CONSTANT,find_parameter_ids
 from ooiservices.app.uframe.plotting import generate_plot
 from ooiservices.app.uframe.assetController import _get_events_by_ref_des
 from datetime import datetime
@@ -488,7 +488,6 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
     '''
     Gets the bounded stream contents, start_time and end_time need to be datetime objects
     '''
-
     try:
         if dpa_flag == '0' and len(parameter_ids)<1:
             query = '?beginDT=%s&endDT=%s&limit=5000' % (start_time, end_time)
@@ -730,12 +729,13 @@ def get_netcdf(stream, ref,start_time,end_time,dpa_flag):
 @api.route('/get_data/<string:instrument>/<string:stream>/<string:yvar>/<string:xvar>', methods=['GET'])
 def get_data_api(stream, instrument, yvar, xvar):
     # return if error
-    try:
-        resp_data = get_data(stream, instrument, yvar, xvar)
+    try:        
+        xvar = xvar.split(',')
+        yvar = yvar.split(',')
+        resp_data = get_simple_data(stream, instrument, yvar, xvar)
     except Exception as err:
-        return jsonify(error='%s' % str(err.message)), 400
-
-    return jsonify(resp_data)
+        return jsonify(error='%s' % str(err.message)), 400       
+    return jsonify(data=resp_data)
 
 @auth.login_required
 @api.route('/plot/<string:instrument>/<string:stream>', methods=['GET'])
