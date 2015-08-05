@@ -93,6 +93,19 @@ CREATE ROLE postgres LOGIN SUPERUSER;
 
 ### Running the services instance
     python ooiservices/manage.py runserver
+
+### To run the project using uWSGI (Production)
+Remember to modify WSGI.py and app.ini to your specific installation environment
+```
+sudo mkdir /tmp/ooi-ui-services
+sudo chown ooiui:nginx /tmp/ooi-ui-services
+sudo chmod 755 /tmp/ooi-ui-services
+```
+
+Launch as a background process
+```
+uwsgi --ini app.ini &
+```
     
 ### Service Tests
 Test your initial setup by running from ooi-ui-services directory:
