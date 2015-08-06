@@ -46,12 +46,12 @@
     "type" : "java.lang.String",
     "metaId" : 3093
   },{
-    "value" : 40.0960533,
+    "value" : 40.0961,
     "key" : "Latitude ",
     "type" : "java.lang.String",
     "metaId" : 3095
   }, {
-    "value" : -70.8797183,
+    "value" : -70.8797,
     "key" : "Longitude",
     "type" : "java.lang.String",
     "metaId" : 3094

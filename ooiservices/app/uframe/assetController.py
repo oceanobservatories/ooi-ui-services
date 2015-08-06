@@ -119,7 +119,7 @@ def _convert_lat_lon(lat, lon):
                 _lat = _lat*-1.0
             if "W" in lon:
                 _lon = _lon*-1.0
-        coords = (_lat, _lon)
+        coords = (round(_lat, 4), round(_lon,4))
         return coords
     except Exception as e:
         coords = (0.0, 0.0)
@@ -131,7 +131,7 @@ def _get_latlon(item):
     finally truncate to _decimal_places; default is 7 decimal places.
     returns: lat or lon as decimal degrees (float) or None
     '''
-    _decimal_places = 7
+    _decimal_places = 4
     result = None
     degrees = 0.0
     minutes = 0.0
@@ -154,6 +154,8 @@ def _get_latlon(item):
         result = float(tmp)
         return result
     else:
+        if item == "":
+            return 0.0
         return float(item)
 
 def _convert_date_time(date, time=None):
@@ -222,7 +224,8 @@ def _associate_events(id):
                     d['locationLonLat'] = _convert_lat_lon(lat, lon)
             if d['class'] == '.DeploymentEvent':
                 d['deploymentDepth'] = row['deploymentDepth']
-                d['locationLonLat'] = row['locationLonLat']
+                if row['locationLonLat']:
+                    d['locationLonLat'] = _convert_lat_lon(row['locationLonLat'][1], row['locationLonLat'][0])
                 d['deploymentNumber'] = row['deploymentNumber']
         except KeyError:
             pass
@@ -473,10 +476,12 @@ def get_assets():
                             meta_data['key'] = 'Latitude'
                         if meta_data['key'] == 'Latitude':
                             lat = meta_data['value']
-                            meta_data['value'] = _normalize(meta_data['value'])
+                            coord = _convert_lat_lon(lat,"")
+                            meta_data['value'] = coord[0]
                         if meta_data['key'] == 'Longitude':
                             lon = meta_data['value']
-                            meta_data['value'] = _normalize(meta_data['value'])
+                            coord = _convert_lat_lon("",lon)
+                            meta_data['value'] = coord[1]
                         if meta_data['key'] == 'Ref Des SN':
                             meta_data['key'] = 'Ref Des'
                         if meta_data['key'] == 'Ref Des':
@@ -585,10 +590,12 @@ def get_asset(id):
                     meta_data['key'] = 'Latitude'
                 if meta_data['key'] == 'Latitude':
                     lat = meta_data['value']
-                    meta_data['value'] = _normalize(meta_data['value'])
+                    coord = _convert_lat_lon(lat,"")
+                    meta_data['value'] = coord[0]
                 if meta_data['key'] == 'Longitude':
                     lon = meta_data['value']
-                    meta_data['value'] = _normalize(meta_data['value'])
+                    coord = _convert_lat_lon("",lon)
+                    meta_data['value'] = coord[1]
                 if meta_data['key'] == 'Ref Des SN':
                     meta_data['key'] = 'Ref Des'
                 if meta_data['key'] == 'Ref Des':
@@ -621,7 +628,7 @@ def get_asset(id):
                 except:
                     pass
     except (KeyError, TypeError, AttributeError) as e:
-        pass
+        raise
 
     return jsonify(**data)
 
