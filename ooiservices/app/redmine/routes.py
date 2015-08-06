@@ -33,7 +33,6 @@ def create_redmine_ticket():
     '''
     Create new ticket
     '''
-
     # Get request data
     data = request.data
     # Check that there is actually data
@@ -43,10 +42,9 @@ def create_redmine_ticket():
                         mimetype="application/json")
 
     dataDict = json.loads(data)
-
+    #dataDict['project_id'] = 'ocean-observatory'
     # Define required and recommended ticket fields
     required_fields = ['project_id', 'subject']
-    dataDict['project_id'] = 'ocean-observatory'
     recommended_fields = ['due_date', 'description', 'priority_id', 'assigned_to_id',
                           'start_date', 'estimated_hours', 'status_id', 'notes',
                           'tracker_id', 'parent_issue_id', 'done_ratio']
@@ -176,7 +174,6 @@ def get_redmine_ticket():
 def get_redmine_users():
     '''
     Get all the users in a project.
-    Sample: http://localhost:4000/redmine/users?project='projectname'
     '''
     redmine = redmine_login()
 
@@ -193,9 +190,12 @@ def get_redmine_users():
 
     return jsonify(users)
 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# redmine methods for alert and alarm notifications
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def create_redmine_ticket_for_notification(project_id, subject, description, priority, assigned_id):
-
-    #print '\n entered _create_redmine_ticket...'
+    """ Create a redmine ticket for an alert notification.
+    """
     ticket_id = None
     # Define required and recommended ticket fields
     required_fields = ['project_id', 'subject']
@@ -203,7 +203,6 @@ def create_redmine_ticket_for_notification(project_id, subject, description, pri
                           'start_date', 'estimated_hours', 'status_id', 'notes',
                           'tracker_id', 'parent_issue_id', 'done_ratio']
     try:
-        #project_id = 'ocean-observatory'
         data = {
                 'project_id': project_id,
                 'subject':  subject,
@@ -211,7 +210,7 @@ def create_redmine_ticket_for_notification(project_id, subject, description, pri
                 'priority_id': priority,
                 'assigned_to_id': assigned_id,
                 'category_id':  1
-            }
+                }
         fields = dict()
         for field in required_fields + recommended_fields:
             if field in data:
@@ -230,7 +229,8 @@ def create_redmine_ticket_for_notification(project_id, subject, description, pri
             ticket_id = issue.id
 
     except Exception as err:
-        print '\n create_redmine_ticket_for_notification: ', err.message
+        #print '\n [create_redmine_ticket_for_notification] exception: ', err.message
+        current_app.logger.exception('[create_redmine_ticket_for_notification] %s ' % err.message)
 
     finally:
         return ticket_id
@@ -246,3 +246,64 @@ def get_redmine_users_by_project(project_id):
       user_id = int(all_users[n]['id'])
       users['users'].append([user,user_id])
     return users
+
+# todo test case
+def get_redmine_ticket_for_notification(id):
+    ''' Get a specific ticket by id for alert notification. Success return ticket_id; if error, return None.
+    '''
+    details = None
+    try:
+        redmine = redmine_login()
+        issue = redmine.issue.get(id, include='children,journals,watchers')
+        details = {} #OrderedDict()
+        for field in issue_fields:
+            if hasattr(issue, field):
+                details[field] = str(getattr(issue, field))
+    except Exception as err:
+        #print '\n [get_redmine_ticket_for_notification] exception: ', err.message
+        current_app.logger.exception('[get_redmine_ticket_for_notification] %s ' % err.message)
+    finally:
+        return details
+
+# todo test case
+def update_redmine_ticket_for_notification(resource_id, project_id, subject, description, priority, assigned_id):
+    ''' Update a specific ticket for alert notification. Success return ticket_id, if error return None.
+    '''
+    ticket_id = None
+    try:
+        data = {'resource_id': resource_id,
+                'project_id': project_id,
+                'subject':  subject,
+                'description': description,
+                'priority': priority,
+                'assigned_to': assigned_id,
+                'category_id':  1
+                }
+
+        update_fields = ['project', 'subject', 'due_date', 'description', 'priority',
+                         'assigned_to', 'start_date', 'estimated_hours', 'status_id', 'notes',
+                         'tracker_id', 'parent_issue_id', 'done_ratio']
+        # Get all the update fields from the request
+        fields = dict()
+        for field in update_fields:
+            if field in data:
+                fields[field] = data[field]
+
+        # Log into Redmine
+        redmine = redmine_login()
+
+        # Get the issue
+        issue = redmine.issue.get(data['resource_id'])
+        for key, value in fields.iteritems():
+            # Update all fields except the issue resource id
+            if 'resource_id' != key:
+                setattr(issue, key, value)
+        if issue.save():
+            #print '\n issue.id: ', issue.id
+            ticket_id = issue.id
+
+    except Exception as err:
+        #print '\n [update_redmine_ticket_for_notification] exception: ', err.message
+        current_app.logger.exception('[update_redmine_ticket_for_notification] %s ' % err.message)
+    finally:
+        return ticket_id

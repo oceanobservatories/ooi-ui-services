@@ -19,13 +19,13 @@ __author__ = 'James Case'
 
 from flask import (jsonify, request, current_app)
 from ooiservices.app import db
-from ooiservices.app.models import (SystemEventDefinition, SystemEvent, UserEventNotification)
 from ooiservices.app.main import api
-from ooiservices.app.main.notifications import (alert_escalation_state, begin_notification_process,
-                                                update_notification_ticket)# reissue_notification_ticket)
 from ooiservices.app.decorators import scope_required                       # todo
 from ooiservices.app.main.authentication import auth                        # todo
 from ooiservices.app.main.errors import (conflict, bad_request)
+from ooiservices.app.models import (SystemEventDefinition, SystemEvent, UserEventNotification, User)
+from ooiservices.app.main.notifications import (alert_escalation_state, begin_notification_process,
+                                                update_notification_ticket, reissue_notification_ticket)
 import datetime as dt
 import requests
 import json
@@ -77,6 +77,10 @@ def get_alert_alarm(id):
 def create_alert_alarm():
     """ Create an alert or an alarm; invoked when processing alerts and alarms from uframe.
     Note: offset from start of unix epoch (jan 1, 1900 at midnight 00:00) to 00:00 1 Jan 1970 GMT, in secs = 2208988800
+    # todo discuss:
+    # todo 'escalate_on' - amount of time, after the first alert occurred, to create a redmine ticket;
+    # todo           escalate_on units? seconds?
+    # todo 'escalate_boundary' - amount of time after ts_escalated to create yet another red mine ticket)
     """
     debug = False
     log = False
@@ -115,6 +119,9 @@ def create_alert_alarm():
                 message = 'Failed to create alert_alarm - system_event_definition is retired. (%d)' % system_event_definition.id
                 current_app.logger.exception(message)
                 raise Exception(message)
+
+        # Determine if uframe_filter_id provided matches system_event_definition.uframe_filter_id, if not error (409)
+
         # Create SystemEvent
         alert_alarm = SystemEvent()
         alert_alarm.uframe_event_id = uframe_event_id
@@ -130,8 +137,8 @@ def create_alert_alarm():
         alert_alarm.deployment = data['deployment']
         alert_alarm.acknowledged = False
         alert_alarm.ack_by = None
-        alert_alarm.ack_for = None
         alert_alarm.ts_acknowledged = None
+        alert_alarm.timestamp = dt.datetime.now()       # when this alert or alarm is received and persisted
         try:
             db.session.add(alert_alarm)
             db.session.commit()
@@ -147,21 +154,29 @@ def create_alert_alarm():
         # If 'alert' received, start the alert escalation process, otherwise begin
         # the notification process for an alarm
         valid_actions = ['begin_notification_process', 'update_notification_ticket', 'reissue_notification_ticket']
-        if debug: print '\n processing an ', alert_alarm.event_type
+        if debug: print '\n processing an %s with id: %d' % (alert_alarm.event_type, alert_alarm.id)
         if alert_alarm.event_type == 'alert':
             action = alert_escalation_state(alert_alarm.id)
+            if debug: print '\n alert_escalation_state -- action: ', action
             if action is not None:
                 if action in valid_actions:
                     if action == 'begin_notification_process':
-                        if debug: print '\n action: begin_notification_process \n'
-                        begin_notification_process(alert_alarm.id)
+                        if debug: print '\n action: begin_notification_process *****\n'
+                        ticket_id = begin_notification_process(alert_alarm.id)
+                        if ticket_id is None:
+                            if debug: print '\nFailed to create redmine ticket for alert id: %d *****\n' % alert_alarm.id
+                        if debug: print '\n ticket_id; ', ticket_id
                     elif action == 'update_notification_ticket':
-                        if debug: print '\n action: update_notification_ticket\n'
-                        update_notification_ticket(alert_alarm.id)
+                        if debug: print '\n action: update_notification_ticket *****\n'
+                        ticket_id = update_notification_ticket(alert_alarm.id)
+                        if ticket_id is None:
+                            if debug: print '\nFailed to update redmine ticket for alert id: %d ***** \n' % alert_alarm.id
                     elif action == 'reissue_notification_ticket':
-                        if debug: print '\n action: reissue_notification_ticket\n'
-                        #reissue_notification_ticket(alert_alarm.id)
-                        begin_notification_process(alert_alarm.id)
+                        if debug: print '\n action: reissue_notification_ticket *****\n'
+                        ticket_id = reissue_notification_ticket(alert_alarm.id)
+                        if ticket_id is None:
+                            if debug: print '\nFailed to reissue redmine ticket for alert id: %d *****\n' % alert_alarm.id
+
         elif alert_alarm.event_type == 'alarm':
             begin_notification_process(alert_alarm.id)
 
@@ -172,28 +187,69 @@ def create_alert_alarm():
         current_app.logger.exception(message)
         return conflict(message)
 
-#Create a new alert/alarm
+# Acknowledge alert/alarm
 @api.route('/ack_alert_alarm', methods=['POST'])
-# @auth.login_required
-# @scope_required(u'user_admin')
+#@auth.login_required
+#@scope_required(u'user_admin')
+#@scope_required(u'redmine')
 def acknowledge_alert_alarm():
     """ Acknowledge an alert or an alarm.
+    Acknowledge alert/alarm in uframe, required eventId (id) and acknowledged by value (ack_value).
+    If the user acknowledging the alert/alarm is ack_by.
     """
-    # todo integration with uframe REST api for acknowledgment
+    log = False
+    debug = False
     try:
         # Process request.data; verify required fields are present
         data = json.loads(request.data)
         acknowledge_has_required_fields(data)
+
         # Determine if alert_alarm to be acknowledged is same as reflected in request data
         alert_alarm = is_valid_alert_alarm_for_ack(data)
         if alert_alarm is None:
             message = 'Failed to retrieve alert_alarm.'
+            if log: print '\n (log) ', message
             raise Exception(message)
-        # Update alert_alarm acknowledged, ack_by, ack_for and ts_acknowledged
-        alert_alarm.acknowledged = data['acknowledged']
-        alert_alarm.ack_by = data['ack_by']
-        alert_alarm.ack_for = data['ack_for']
-        alert_alarm.ts_acknowledged = data['ts_acknowledged']
+
+        # Get alert_alarm_definition, then user_event_notification. Retrieve user email address.
+        alert_alarm_definition = SystemEventDefinition.query.get(alert_alarm.system_event_definition_id)
+        if alert_alarm_definition is None:
+            message = 'Failed to identify system_event_definition with id: %d' % alert_alarm.system_event_definition_id
+            if log: print '\n (log) [acknowledge_alert_alarm] message: ', message
+            current_app.logger.exception('[acknowledge_alert_alarm] %s ' % message)
+            raise Exception(message)
+
+        # Get user_event_notification by filter on alert alarm definition value
+        user_event_notification = UserEventNotification.query.filter_by(system_event_definition_id=alert_alarm_definition.id).first()
+        if user_event_notification is None:
+            message = 'Failed to identify user_event_notification with id: %d' % alert_alarm_definition.id
+            if log: print '\n (log) [acknowledge_alert_alarm] -- message: ', message
+            current_app.logger.exception('[acknowledge_alert_alarm] %s ' % message)
+            raise Exception(message)
+
+        # Acknowledge alert/alarm in uframe. acknowledgedBy is str(user_id)
+        ack_value = None
+        ack_by = data['ack_by']
+        ack_id = alert_alarm.uframe_event_id
+        if ack_by is not None or not ack_by:
+            ack_value = ack_by
+
+        if ack_value is None:
+            message = 'Required value ack_by is empty or None.'
+            if debug: print '\n message: ', message
+            return bad_request(message)
+
+        if alert_alarm.event_type == 'alarm':
+            if not (uframe_acknowledge_alert_alarm(ack_id, ack_value)):
+                message = 'Failed to acknowledge alert_alarm (id: %d), in uframe.' % alert_alarm.id
+                if log: print '\n (log) [acknowledge_alert_alarm] -- message: ', message
+                current_app.logger.exception('[acknowledge_alert_alarm] %s ' % message)
+                return bad_request(message)
+
+        # Update alert_alarm acknowledged, ack_by and ts_acknowledged - todo revisit
+        alert_alarm.acknowledged = True
+        alert_alarm.ack_by = ack_by
+        alert_alarm.ts_acknowledged = dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%dT%H:%M:%S")
         try:
             db.session.add(alert_alarm)
             db.session.commit()
@@ -202,13 +258,15 @@ def acknowledge_alert_alarm():
             db.session.rollback()
             return bad_request('IntegrityError acknowledging alert_alarm')
         return jsonify(alert_alarm.to_json()), 201
-    except:
-        message = 'Insufficient data, or bad data format.'
+    except Exception as err:
+        message = 'Insufficient data, or bad data format; %s' % err.message
+        if log: print '\n (acknowledge_alert_alarm) message: ', message
         return conflict(message)
 
 def get_alert_alarm_definition_id(uframe_filter_id):
     """ Get alert_alarm_definition id using alert_alarm.uframe_filter_id.
     """
+    log = False
     try:
         # Get system_event_definition_id using uframe_filter_id provided in request.data
         try:
@@ -237,12 +295,15 @@ def get_alert_alarm_definition_id(uframe_filter_id):
 def is_valid_alert_alarm_for_ack(data):
     """ Validate this is the alert alarm to be acknowledged.
     """
+    log = False
     try:
         definition_id = data['system_event_definition_id']
         definition = SystemEventDefinition.query.get(definition_id)
         if definition is None:
             message = 'Acknowledge failed to retrieve SystemEventDefinition (id: %d)' % definition_id
+            if log: print '\n (is_valid_alert_alarm_for_ack) message: ', message
             raise Exception(message)
+
         # Variables for sanity tests
         uframe_filter_id = data['uframe_filter_id']
         uframe_event_id = data['uframe_event_id']
@@ -250,26 +311,34 @@ def is_valid_alert_alarm_for_ack(data):
         # Sanity test variables alert_alarm data against definition
         if definition.uframe_filter_id != uframe_filter_id:
             message = 'Acknowledge failed to match alert_alarm uframe_filter_id with SystemEventDefinition (id: %d)' % definition_id
+            if log: print '\n (is_valid_alert_alarm_for_ack) message: ', message
             raise Exception(message)
         if definition.event_type != event_type:
             message = 'Acknowledge failed to match alert_alarm event_type with SystemEventDefinition (id: %d)' % definition_id
+            if log: print '\n (is_valid_alert_alarm_for_ack) message: ', message
             raise Exception(message)
+
         # Sanity test existing alert_alarm; first get alert_alarm to be acknowledged, verify variables for consistency
         id = data['id']
         alert_alarm = SystemEvent.query.get(id)
         if alert_alarm is None:
             return alert_alarm
+
         if alert_alarm.uframe_filter_id != uframe_filter_id:
-            message = 'Acknowledge failed to match alert_alarm uframe_filter_id (id: %d)' % definition_id
+            message = 'Acknowledge failed to match alert_alarm uframe_filter_id (id: %d)' % id
+            if log: print '\n (is_valid_alert_alarm_for_ack) message: ', message
             raise Exception(message)
         if alert_alarm.uframe_event_id != uframe_event_id:
-            message = 'Acknowledge failed to match alert_alarm uframe_event_id  (id: %d)' % definition_id
+            message = 'Acknowledge failed to match alert_alarm uframe_event_id  (id: %d)' % id
+            if log: print '\n (is_valid_alert_alarm_for_ack) message: ', message
             raise Exception(message)
         if alert_alarm.event_type != event_type:
-            message = 'Acknowledge failed to match alert_alarm event_type (id: %d)' % definition_id
+            message = 'Acknowledge failed to match alert_alarm event_type (id: %d)' % id
+            if log: print '\n (is_valid_alert_alarm_for_ack) message: ', message
             raise Exception(message)
         return alert_alarm
-    except:
+    except Exception as err:
+        if log: print '\n (is_valid_alert_alarm_for_ack) message: ', err.message
         raise
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -513,7 +582,7 @@ def update_alert_alarm_def(id):
             except Exception as err:
                 # Error updating user_event_notification, rollback: updates to system_event_definition and uframe alertfilter
                 message = 'IntegrityError update_alert_alarm_def; Failed to update_user_event_notification (%s)' % str(err.message)
-                print '\n (update_alert_alarm_def) exception: %s', message
+                print '\n (update_alert_alarm_def) exception: %s' % message
                 result = update_uframe_alertfilter(uframe_filter_id, original_uframe_definition)
                 if result is None:
                     message += '; failed to rollback updates to uframe alertfilter (id: %d) ' %  uframe_filter_id
@@ -654,15 +723,17 @@ def acknowledge_has_required_fields(data):
     """
     try:
         required_fields = ['id', 'uframe_event_id', 'uframe_filter_id', 'system_event_definition_id',
-                           'event_type', 'acknowledged', 'ack_by', 'ack_for', 'ts_acknowledged']
+                           'event_type', 'ack_by']
+                           # 'acknowledged',, 'ts_acknowledged']
                            #'event_response', 'method', 'deployment']
         for field in required_fields:
             if field not in data:
                 message = 'Missing required field (%s) in request.data' % field
+                #print '\n (acknowledge_has_required_fields) message: ', message
                 raise Exception(message)
         return
-    except:
-        #print '\n (system_event) message: ', err.message
+    except Exception as err:
+        #print '\n (acknowledge_has_required_fields) message: ', err.message
         raise
 
 def get_query_filters(request_args):
@@ -1099,3 +1170,51 @@ def uframe_update_alertfilter(uframe_data, alertfilter_id):
         return response
     except:
         raise
+
+def uframe_acknowledge_alert_alarm(uframe_event_id, value):
+    """ Update alertfilter in uframe using eventId and user email for acknowledgeBy. Return response object.
+        Sample data for PUT:
+        {
+          "eventId":"2",
+          "acknowledgedBy":"jimkorman@raytheon"
+        }
+    """
+    log = True
+    debug = True
+    uframe_success = 'OK'
+    result = False
+    try:
+        uframe_url, timeout, timeout_read = get_uframe_info()
+        url = "/".join([uframe_url, 'alertalarms', 'ack'])
+        uframe_data = {}
+        uframe_data['eventId'] = str(uframe_event_id)
+        uframe_data['acknowledgedBy'] = str(value)
+
+        if debug: print '\n url: ', url
+        data = json.dumps(uframe_data)
+        response = requests.put(url, timeout=(timeout, timeout_read), headers=headers(), data=data)
+        if response.status_code != 200:
+            message = 'Failure to issue uframe acknowledge for alert_alarm (event id: %d) in uframe. ' % uframe_event_id
+            if log: print '\n (uframe_acknowledge_alert_alarm) message: ', message
+            raise Exception(message)
+
+        if response.content:
+            """
+            Sample uframe response content:
+            {"message" : "Acknowledged record [2] by [jimkorman@raytheon]", "id" : 2, "statusCode" : "OK"}
+            """
+            acknowledgement = json.loads(response.content)
+            if 'statusCode' in acknowledgement:
+                status_code =  acknowledgement['statusCode']
+                if status_code == uframe_success:
+                    result = True
+                else:
+                    message = 'Failure to acknowledge alert_alarm (event id: %d) in uframe. ' % uframe_event_id
+                    if log: print '\n (uframe_acknowledge_alert_alarm) message: ', message
+                    raise Exception(message)
+    except Exception as err:
+        if log: print '\n (log) [acknowledge_alert_alarm] message: ', err.message
+        current_app.logger.exception('[acknowledge_alert_alarm] %s ' % err.message)
+        #pass
+    finally:
+        return result

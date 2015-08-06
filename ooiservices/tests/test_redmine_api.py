@@ -75,9 +75,10 @@ class RedmineTestCase(unittest.TestCase):
         headers = self.get_api_headers('admin', 'test')
         tmp = dt.datetime.now() + dt.timedelta(days=2)
         due_date = dt.datetime.strftime(tmp, "%Y-%m-%d")
+        project = 'ocean-observatory'
         rv = self.client.post('redmine/ticket',
                               headers=headers,
-                              data=json.dumps({'project_id': PROJECT,
+                              data=json.dumps({'project_id': project,
                                                'subject': 'Test Issue 2',
                                                'due_date': due_date,
                                                'description': 'Get this work done ASAP',
@@ -111,12 +112,10 @@ class RedmineTestCase(unittest.TestCase):
         headers = self.get_api_headers('admin', 'test')
         tmp = dt.datetime.now() + dt.timedelta(days=2)
         due_date = dt.datetime.strftime(tmp, "%Y-%m-%d")
-        # 'subject': 'Test Issue 2',
+        # Missing subject field - 'subject': 'Test Issue 2',
         rv = self.client.post('redmine/ticket',
                               headers=headers,
-                              data=json.dumps({
-
-                                               'due_date': due_date,
+                              data=json.dumps({'due_date': due_date,
                                                'description': 'Get this work done ASAP',
                                                'priority_id': 1}))
         self.assertEquals(rv.status_code, 400)

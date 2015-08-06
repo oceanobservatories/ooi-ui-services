@@ -890,12 +890,13 @@ class SystemEvent(db.Model):
     method = db.Column(db.Text, nullable=False)
     deployment = db.Column(db.Integer, nullable=False)
     acknowledged = db.Column(db.Boolean, nullable=False)
-    ack_by = db.Column(db.Text, nullable=True)
-    ack_for = db.Column(db.Text, nullable=True)
-    ts_acknowledged = db.Column(db.DateTime(True), nullable=True)   # todo - should this be DateTime(False)?
+    ack_by = db.Column(db.Integer, nullable=True)
+    ts_acknowledged = db.Column(db.DateTime(True), nullable=True)
     ticket_id = db.Column(db.Integer, nullable=False, server_default=db.text("0"))	# default = 0; key for redmine ticket; unique identifier to CRUD red mine item.
     escalated = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))   # true when escalate_on time has been reached; once true always true)
     ts_escalated = db.Column(db.DateTime(False), nullable=True) # datetime (date time when first red mine ticket is created)
+    timestamp = db.Column(db.DateTime(True), nullable=False)
+    ts_start = db.Column(db.DateTime(True), nullable=True)
 
     event = db.relationship(u'SystemEventDefinition')
 
@@ -913,8 +914,7 @@ class SystemEvent(db.Model):
         new_event.method = method
         new_event.deployment = deployment
         new_event.acknowledged = False
-        new_event.ack_by = ''
-        new_event.ack_for = ''
+        new_event.ack_by = None
         new_event.ts_acknowledged = ts_acknowledged
         #new_event.ticket_id = ticket_id
         #new_event.escalated = escalated
@@ -934,9 +934,10 @@ class SystemEvent(db.Model):
             event.ts_escalated = ts_escalated
             db.session.add(event)
             db.session.commit()
+            db.session.flush()
             return
         except Exception as err:
-            print '\n debug -- message: ', err.message
+            #print '\n debug -- message: ', err.message
             raise
 
     def to_json(self):
@@ -952,9 +953,8 @@ class SystemEvent(db.Model):
             'deployment': self.deployment,
             'acknowledged': self.acknowledged,
             'ack_by': self.ack_by,
-            'ack_for': self.ack_for,
-            'ticket_id' : self.ticket_id,
-            'escalated' : self.escalated,
+            'ticket_id': self.ticket_id,
+            'escalated': self.escalated,
         }
         if self.event_time is not None:
             json_system_event['event_time'] = self._pytype(self.event_time)
@@ -962,6 +962,12 @@ class SystemEvent(db.Model):
             json_system_event['ts_acknowledged'] = self._pytype(self.ts_acknowledged)
         if self.ts_escalated is not None:
             json_system_event['ts_escalated'] = self._pytype(self.ts_escalated)
+        if self.timestamp is not None:
+            json_system_event['timestamp'] = self._pytype(self.timestamp)
+        if self.ts_start is not None:
+            json_system_event['ts_start'] = self._pytype(self.ts_start)
+        else:
+            json_system_event['ts_start'] = None
         return json_system_event
 
     def _pytype(self,v):
@@ -1000,7 +1006,7 @@ class TicketSystemEventLink(db.Model):
             return new_ticket_system_event.id
         except Exception as err:
             db.session.rollback()
-            print '\n message: ', err.message
+            #print '\n message: ', err.message
             raise Exception(err.message)
 
 
@@ -1066,7 +1072,7 @@ class UserEventNotification(db.Model):
             return user_event_id
         except Exception as err:
             db.session.rollback()
-            print '\n (models:insert_user_event_notification) message: ', err.message
+            #print '\n (models:insert_user_event_notification) message: ', err.message
             raise Exception(err.message)
 
     @staticmethod
