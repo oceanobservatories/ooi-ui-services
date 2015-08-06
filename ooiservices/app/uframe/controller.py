@@ -225,6 +225,8 @@ def streams_list():
                 return_list.append(item)
             if search_term.lower() in str(item['display_name']).lower():
                 return_list.append(item)
+            if search_term.lower() in str(item['reference_designator']).lower():
+                return_list.append(item)
         retval = return_list
 
     if request.args.get('startAt'):
@@ -468,28 +470,6 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
     """
     try:
         if dpa_flag == '0':
-            query = '?beginDT=%s&endDT=%s&include_provenance=true' % (start_time, end_time)
-        else:
-            query = '?beginDT=%s&endDT=%s&execDPA=true&include_provenance=true' % (start_time, end_time)
-        uframe_url, timeout, timeout_read = get_uframe_info()
-        url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
-        current_app.logger.debug('***** url: ' + url)
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        if not response:
-            raise Exception('No data available from uFrame for this request.')
-        if response.status_code != 200:
-            raise Exception('(%s) failed to retrieve stream contents from uFrame', response.status_code)
-            #pass
-        return response
-    except Exception as e:
-        return internal_server_error('uFrame connection cannot be made. ' + str(e.message))
-
-def get_uframe_stream_contents_csv(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag):
-    """
-    Gets the bounded stream contents, start_time and end_time need to be datetime objects; returns Respnse object.
-    """
-    try:
-        if dpa_flag == '0':
             query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
         else:
             query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
@@ -668,9 +648,12 @@ def get_csv(stream, ref,start_time,end_time,dpa_flag):
 
     #figures out if its in a date time range
     end_time = validate_date_time(start_time, end_time)
-    data = get_uframe_stream_contents_csv(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag)
-
-    GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_csv&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
+    data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag)
+    try:
+        GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_csv&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
+        urllib2.urlopen(GA_URL)
+    except KeyError:
+        pass
 
     if data.status_code != 200:
         return data, data.status_code, dict(data.headers)
@@ -690,7 +673,7 @@ def get_csv(stream, ref,start_time,end_time,dpa_flag):
     returned_csv.headers["Content-Type"] = "text/csv"
 
     output.close()
-    urllib2.urlopen(GA_URL)
+
     return returned_csv
 
 
@@ -704,17 +687,20 @@ def get_json(stream,ref,start_time,end_time,dpa_flag):
     end_time = validate_date_time(start_time, end_time)
 
     data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag)
-
-    GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_json&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
+    try:
+        GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_json&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
+        urllib2.urlopen(GA_URL)
+    except KeyError:
+        pass
 
     if data.status_code != 200:
         return data, data.status_code, dict(data.headers)
-    response = data.content
+    response = '{"data":%s}' % data.content
     filename = '-'.join([stream,ref])
     returned_json = make_response(response)
     returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json"%filename
     returned_json.headers["Content-Type"] = "application/json"
-    urllib2.urlopen(GA_URL)
+
     return returned_json
 
 @auth.login_required
@@ -723,14 +709,18 @@ def get_netcdf(stream, ref,start_time,end_time,dpa_flag):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
 
-    GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_netcdf&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
+    try:
+        GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_netcdf&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
+        urllib2.urlopen(GA_URL)
+    except KeyError:
+        pass
 
     uframe_url, timeout, timeout_read = get_uframe_info()
     url = '/'.join([uframe_url, mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag])
     if dpa_flag == '0':
-        query = '?beginDT=%s&endDT=%s&include_provenance=true' % (start_time, end_time)
+        query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
     else:
-        query = '?beginDT=%s&endDT=%s&execDPA=true&include_provenance=true' % (start_time, end_time)
+        query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
     query += '&format=application/netcdf'
     uframe_url, timeout, timeout_read = get_uframe_info()
     url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
@@ -745,7 +735,6 @@ def get_netcdf(stream, ref,start_time,end_time,dpa_flag):
     returned_netcdf.headers["Content-Disposition"] = "attachment; filename=%s.nc" % filename
     returned_netcdf.headers["Content-Type"] = "application/x-netcdf"
 
-    urllib2.urlopen(GA_URL)
     return returned_netcdf
 
 @auth.login_required
