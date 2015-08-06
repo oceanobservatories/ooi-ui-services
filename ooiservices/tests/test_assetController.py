@@ -110,15 +110,15 @@ class PrivateMethodsTest(unittest.TestCase):
         #Test a North West input
         normalized_lon = _normalize(self.asset_json['metaData'][1]['value'])
         coords = _convert_lat_lon(normalized_lat, normalized_lon)
-        self.assertTrue(coords == (40.0960533, -70.8797183))
+        self.assertTrue(coords == (40.0961, -70.8797))
         #Test a South input:
         south_lat = _normalize(self.asset_json['metaData'][11]['value'])
         south_coords = _convert_lat_lon(south_lat, normalized_lon)
-        self.assertTrue(south_coords == (-40.0960533, -70.8797183))
+        self.assertTrue(south_coords == (-40.0961, -70.8797))
         #Test a East input:
         east_lon = _normalize(self.asset_json['metaData'][12]['value'])
         east_coords = _convert_lat_lon(normalized_lat, east_lon)
-        self.assertTrue(east_coords == (40.0960533, 70.8797183))
+        self.assertTrue(east_coords == (40.0961, 70.8797))
         #Test bad input:
         bad_coords = _convert_lat_lon("ABC", "DEF")
         self.assertTrue(bad_coords == (0.0, 0.0))
