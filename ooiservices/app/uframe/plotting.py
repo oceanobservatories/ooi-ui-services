@@ -27,7 +27,7 @@ ooi_plots = OOIPlots()
 def generate_plot(data, plot_options):
     # Define some fonts
     title_font = {'fontname': 'Calibri',
-                  'size': '16',
+                  'size': '14',
                   'color': 'black',
                   'weight': 'bold'}
 
@@ -68,9 +68,10 @@ def generate_plot(data, plot_options):
     fig, ax = ppl.subplots(1, 1, figsize=(width, height))
 
     # Calculate the hypotenuse to determine appropriate font sizes
-    hypot = np.sqrt(width**2 + height**2) - 6
+    hypot = np.sqrt(width**2 + height**2) - 4
     tick_font['labelsize'] = int(hypot)
-    axis_font['size'] = int(hypot) + 2
+    axis_font['size'] = int(hypot) + 3
+    title_font['size'] = int(hypot) + 5
 
     # Check the plot type and generate the plot!
     if plot_layout == "timeseries":
