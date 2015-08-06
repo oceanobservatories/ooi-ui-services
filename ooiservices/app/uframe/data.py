@@ -100,7 +100,7 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
     # TODO: create better error handler if uframe is not online/responding
     '''    
     mooring, platform, instrument, stream_type, stream = split_stream_name('_'.join([instrument, stream]))
-    parameter_ids, y_units, x_units = find_parameter_ids(mooring, platform, instrument, yfields, xfields)
+    parameter_ids, y_units, x_units,units_mapping = find_parameter_ids(mooring, platform, instrument, yfields, xfields)
 
     try:
         if 'startdate' in request.args and 'enddate' in request.args:
