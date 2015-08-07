@@ -733,8 +733,8 @@ def get_netcdf(stream, ref,start_time,end_time,dpa_flag):
     filename = '-'.join([stream, ref])
     buf = response.content
     returned_netcdf = make_response(buf)
-    returned_netcdf.headers["Content-Disposition"] = "attachment; filename=%s.nc" % filename
-    returned_netcdf.headers["Content-Type"] = "application/x-netcdf"
+    returned_netcdf.headers["Content-Disposition"] = "attachment; filename=%s.zip" % filename
+    returned_netcdf.headers["Content-Type"] = "application/zip"
 
     return returned_netcdf
 
