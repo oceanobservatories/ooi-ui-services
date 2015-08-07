@@ -492,13 +492,13 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
     '''
     try:
         if dpa_flag == '0' and len(parameter_ids)<1:
-            query = '?beginDT=%s&endDT=%s&limit=5000' % (start_time, end_time)
+            query = '?beginDT=%s&endDT=%s&limit=%s' % (start_time, end_time, current_app.config['DATA_POINTS'])
         elif dpa_flag == '1' and len(parameter_ids)<1:
-            query = '?beginDT=%s&endDT=%s&limit=5000&execDPA=true' % (start_time, end_time)
+            query = '?beginDT=%s&endDT=%s&limit=%s&execDPA=true' % (start_time, end_time, current_app.config['DATA_POINTS'])
         elif dpa_flag == '0' and len(parameter_ids)>0:
-            query = '?beginDT=%s&endDT=%s&limit=5000&parameters=%s' % (start_time, end_time,','.join(parameter_ids))
+            query = '?beginDT=%s&endDT=%s&limit=%s&parameters=%s' % (start_time, end_time, current_app.config['DATA_POINTS'], ','.join(parameter_ids))
         elif dpa_flag == '1' and len(parameter_ids)>0:
-            query = '?beginDT=%s&endDT=%s&limit=5000&execDPA=true&parameters=%s' % (start_time, end_time,','.join(map(str, parameter_ids)))
+            query = '?beginDT=%s&endDT=%s&limit=%s&execDPA=true&parameters=%s' % (start_time, end_time, current_app.config['DATA_POINTS'], ','.join(map(str, parameter_ids)))
 
         GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=plot&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
 
