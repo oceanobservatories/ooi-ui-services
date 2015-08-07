@@ -31,6 +31,7 @@ COMMON: &common
     UFRAME_DATA_REQUEST_LIMIT: 2880
     USE_MOCK_DATA: False
     GOOGLE_ANALYTICS_URL: 'https://www.google-analytics.com/collect?v=1&tid=UA-50606390-3&cid=1&t=event'
+    DATA_POINTS: 1000
 
 DEVELOPMENT: &development
     <<: *common
