@@ -14,7 +14,7 @@ from ooiservices.app.models import Stream, StreamParameter, Organization, Instru
 import json
 import yaml
 from wtforms import ValidationError
-from netCDF4 import num2date, date2index
+# from netCDF4 import num2date, date2index
 
 @api.route('/platform_deployments')
 def get_platform_deployments():

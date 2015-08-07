@@ -21,15 +21,15 @@ COMMON: &common
     UFRAME_PLAT_BASE: '/platform/api'
     UFRAME_TIMEOUT_CONNECT: 5
     UFRAME_TIMEOUT_READ: 30
+    UFRAME_ALERTS_URL: 'http://localhost:12577'
     REDMINE_KEY: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     UI_API_KEY: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     REDMINE_URL: 'https://uframe-cm.ooi.rutgers.edu'
-    REDMINE_PROJECT_ID: 'ooi-ui-api-testing'
+    REDMINE_PROJECT_ID: 'ocean-observatory' #'ooi-ui-api-testing'
     WHOOSH_BASE: 'ooiservices/whoosh_index'
     REDIS_URL: 'redis://:password@localhost:6379'
     DEPLOYMENT_SCENARIO: LOCAL_DEVELOPMENT
     UFRAME_DATA_REQUEST_LIMIT: 2880
-    USE_MOCK_DATA: False
     GOOGLE_ANALYTICS_URL: 'https://www.google-analytics.com/collect?v=1&tid=UA-50606390-3&cid=1&t=event'
 
 DEVELOPMENT: &development

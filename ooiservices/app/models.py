@@ -755,105 +755,273 @@ class Stream(db.Model):
 
 class SystemEventDefinition(db.Model):
     """
-    Stores the definition for a single Alert/Alarm
+    Stores the definition for a single Alert/Alarm.
+    Valid uframe operator values: 'GREATER', 'LESS', 'BETWEEN_EXCLUSIVE', 'OUTSIDE_EXCLUSIVE'
     """
     __tablename__ = 'system_event_definitions'
     __table_args__ = {u'schema': __schema__}
 
     id = db.Column(db.Integer, primary_key=True)
-    uframe_definition_id = db.Column(db.Integer, nullable=False) # This id comes from uFrame after a successful POST
-    reference_designator = db.Column(db.Text, nullable=False) # This is the refdef for the instrument
+    uframe_filter_id = db.Column(db.Integer, nullable=False)
+    reference_designator = db.Column(db.Text, nullable=False)
     array_name = db.Column(db.Text, nullable=False)
     platform_name = db.Column(db.Text, nullable=False)
     instrument_name = db.Column(db.Text, nullable=False)
     instrument_parameter = db.Column(db.Text, nullable=False)
-    operator = db.Column(db.Text, nullable=False) # > >= < <= = outside between inside
-    values = db.Column(db.Text, nullable=False) # Typically single value but could be list for a <> operator or geoJSON
+    instrument_parameter_pdid = db.Column(db.Text, nullable=False)
+    operator = db.Column(db.Text, nullable=False)
     created_time = db.Column(db.DateTime(True), nullable=False)
-    priority = db.Column(db.Text, nullable=False)  # Alert or Alarm
+    event_type = db.Column(db.Text, nullable=False)
     active = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))
     description = db.Column(db.Text, nullable=True)
+    high_value = db.Column(db.Text, nullable=True)
+    low_value = db.Column(db.Text, nullable=True)
+    severity = db.Column(db.Integer, nullable=False)
+    stream = db.Column(db.Text, nullable=False)
+    retired = db.Column(db.Boolean, nullable=False, server_default=db.text("false")) # server_default=expression.false()
+    ts_retired = db.Column(db.DateTime(True), nullable=True) # todo - should this be DateTime(False)?
+    escalate_on = db.Column(db.Float, nullable=False)		 # amount of time, after the first alert occurred, to create a redmine ticket; seconds? units?)
+    escalate_boundary = db.Column(db.Float, nullable=False)  # amount of time after ts_escalated to create yet another red mine ticket)
 
+    '''
     @staticmethod
-    def insert_system_event_definition(uframe_definition_id, reference_designator, array_name, platform_name,
-                                       instrument_name, instrument_parameter, operator, values,
-                                       created_time, priority, active, description):
+    def insert_system_event_definition(uframe_filter_id, reference_designator, array_name, platform_name,
+                                       instrument_name, instrument_parameter, instrument_parameter_pdid, operator,
+                                       created_time, event_type, active, description,
+                                       high_value, low_value, severity, stream): #, escalate_on, escalate_boundary):
         new_definition = SystemEventDefinition()
-        new_definition.uframe_definition_id = uframe_definition_id
+        new_definition.uframe_filter_id = uframe_filter_id
         new_definition.reference_designator = reference_designator
         new_definition.array_name = array_name
         new_definition.platform_name = platform_name
         new_definition.instrument_name = instrument_name
         new_definition.instrument_parameter = instrument_parameter
+        new_definition.instrument_parameter_pdid = instrument_parameter_pdid
         new_definition.operator = operator
-        new_definition.values = values
         new_definition.created_time = created_time
-        new_definition.priority = priority
+        new_definition.event_type = event_type
         new_definition.active = active
         new_definition.description = description
+        new_definition.high_value = high_value
+        new_definition.low_value = low_value
+        new_definition.severity = severity
+        new_definition.stream = stream
+        #,
+        #new_definition.escalate_on = escalate_on,
+        #new_definition.escalate_boundary = escalate_boundary
+        db.session.add(new_definition)
+        db.session.commit()
+        return
+    '''
+    @staticmethod
+    def delete_system_event_definition(system_event_definition_id):
+        status = None
+        try:
+            if system_event_definition_id is None:
+                message = 'system_event_definition id provided is None.'
+                print '\n message: ', message
+                raise Exception(message)
+            definition = db.session.query.get(system_event_definition_id)
+            if definition is None:
+                message = 'Failed to delete system_event_definition for id provided (id: None)'
+                print '\n message: ', message
+                raise Exception(message)
 
+            notification = UserEventNotification.query.filter_by(system_event_definition_id=definition.id).first()
+            if notification is not None:
+                #UserEventNotification.delete_user_event_notification(notification.id)
+                db.session.delete(notification)
+                db.session.commit()
+            db.session.delete(definition)
+            db.session.commit()
+            return status
+        except:
+            print '\n (delete_system_event_definition) %s', err.message
+            raise
 
     def to_json(self):
         json_system_event_definition = {
             'id' : self.id,
-            'uframe_definition_id' : self.uframe_definition_id,
-            'reference_designator' : self.reference_designator,
-            'array_name' : self.array_name,
-            'platform_name' : self.platform_name,
-            'instrument_name' : self.instrument_name,
-            'instrument_parameter' : self.instrument_parameter,
-            'operator' : self.operator,
-            'values' : self.values,
-            'created_time' : self.created_time,
-            'priority' : self.priority,
-            'active' : self.active,
-            'description' : self.description
+            'uframe_filter_id': self.uframe_filter_id,
+            'reference_designator': self.reference_designator,
+            'array_name': self.array_name,
+            'platform_name': self.platform_name,
+            'instrument_name': self.instrument_name,
+            'instrument_parameter': self.instrument_parameter,
+            'instrument_parameter_pdid': self.instrument_parameter_pdid,
+            'operator': self.operator,
+            'created_time': self.created_time,
+            'event_type': self.event_type,
+            'active': self.active,
+            'description': self.description,
+            'high_value': self.high_value,
+            'low_value': self.low_value,
+            'severity': self.severity,
+            'stream': self.stream,
+            'retired': self.retired,
+            'escalate_on': self.escalate_on,
+            'escalate_boundary': self.escalate_boundary
         }
+        if self.created_time is not None:
+            json_system_event_definition['created_time'] = self._pytype(self.created_time)
+        if self.ts_retired is not None:
+            json_system_event_definition['ts_retired'] = self._pytype(self.ts_retired)
         return json_system_event_definition
 
+    def _pytype(self,v):
+        if isinstance(v, datetime):
+            return v.isoformat()
+        return str(v)
 
 class SystemEvent(db.Model):
     """
-    Stores the Alerts/Alarms ingested from uFrame
+    Stores the Alert/Alarm instances from uFrame.
     """
     __tablename__ = 'system_events'
     __table_args__ = {u'schema': __schema__}
 
     id = db.Column(db.Integer, primary_key=True)
-    uframe_event_id = db.Column(db.Integer, nullable=False) # This id comes from uFrame
     system_event_definition_id = db.Column(db.ForeignKey(u'' + __schema__ + '.system_event_definitions.id'), nullable=False)
-    event_time = db.Column(db.DateTime(True), nullable=False)
-    event_type = db.Column(db.Text, nullable=False)  # Alert or Alarm
+    uframe_event_id = db.Column(db.Integer, nullable=False)     # uframe instance id
+    uframe_filter_id = db.Column(db.Integer, nullable=False)    # uframe alertfilter id
+    event_time = db.Column(db.DateTime(True), nullable=False)   # uframe create time todo - should this be DateTime(False)?
+    event_type = db.Column(db.Text, nullable=False)
     event_response = db.Column(db.Text, nullable=False)
+    method = db.Column(db.Text, nullable=False)
+    deployment = db.Column(db.Integer, nullable=False)
+    acknowledged = db.Column(db.Boolean, nullable=False)
+    ack_by = db.Column(db.Integer, nullable=True)
+    ts_acknowledged = db.Column(db.DateTime(True), nullable=True)
+    ticket_id = db.Column(db.Integer, nullable=False, server_default=db.text("0"))	# default = 0; key for redmine ticket; unique identifier to CRUD red mine item.
+    escalated = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))   # true when escalate_on time has been reached; once true always true)
+    ts_escalated = db.Column(db.DateTime(False), nullable=True) # datetime (date time when first red mine ticket is created)
+    timestamp = db.Column(db.DateTime(True), nullable=False)
+    ts_start = db.Column(db.DateTime(True), nullable=True)
 
     event = db.relationship(u'SystemEventDefinition')
 
+    '''
     @staticmethod
-    def insert_event(uframe_event_id, system_event_definition_id, event_time, event_type, event_response):
+    def insert_event(uframe_event_id, uframe_filter_id, system_event_definition_id, event_time, event_type,
+                     event_response, method, deployment, ts_acknowledged): #, ticket_id, escalated, ts_escalated):
         new_event = SystemEvent()
         new_event.uframe_event_id = uframe_event_id
+        new_event.uframe_filter_id = uframe_filter_id
         new_event.system_event_definition_id = system_event_definition_id
         new_event.event_time = event_time
         new_event.event_type = event_type
         new_event.event_response = event_response
+        new_event.method = method
+        new_event.deployment = deployment
+        new_event.acknowledged = False
+        new_event.ack_by = None
+        new_event.ts_acknowledged = ts_acknowledged
+        #new_event.ticket_id = ticket_id
+        #new_event.escalated = escalated
+        #new_event.ts_escalated = ts_escalated
         db.session.add(new_event)
         db.session.commit()
+        return
+    '''
+    @staticmethod
+    def update_alert_alarm_escalation(id, ticket_id, escalated, ts_escalated):
+        try:
+            event = SystemEvent.query.get(id)
+            if event is None:
+                raise Exception('Invalid alert_alarm id, no record found.')
+            event.ticket_id = ticket_id
+            event.escalated = escalated
+            event.ts_escalated = ts_escalated
+            db.session.add(event)
+            db.session.commit()
+            db.session.flush()
+            return
+        except Exception as err:
+            #print '\n debug -- message: ', err.message
+            raise
 
     def to_json(self):
         json_system_event = {
             'id' : self.id,
-            'uframe_event_id' : self.uframe_event_id,
-            'system_event_definition_id' : self.system_event_definition_id,
-            'event_time' : self.event_time,
-            'event_type' : self.event_type,
-            'event_response' : self.event_response
+            'uframe_event_id': self.uframe_event_id,
+            'uframe_filter_id': self.uframe_filter_id,
+            'system_event_definition_id': self.system_event_definition_id,
+            'event_time': self.event_time,
+            'event_type': self.event_type,
+            'event_response': self.event_response,
+            'method': self.method,
+            'deployment': self.deployment,
+            'acknowledged': self.acknowledged,
+            'ack_by': self.ack_by,
+            'ticket_id': self.ticket_id,
+            'escalated': self.escalated,
         }
+        if self.event_time is not None:
+            json_system_event['event_time'] = self._pytype(self.event_time)
+        if self.ts_acknowledged is not None:
+            json_system_event['ts_acknowledged'] = self._pytype(self.ts_acknowledged)
+        if self.ts_escalated is not None:
+            json_system_event['ts_escalated'] = self._pytype(self.ts_escalated)
+        if self.timestamp is not None:
+            json_system_event['timestamp'] = self._pytype(self.timestamp)
+        if self.ts_start is not None:
+            json_system_event['ts_start'] = self._pytype(self.ts_start)
+        else:
+            json_system_event['ts_start'] = None
         return json_system_event
+
+    def _pytype(self,v):
+        if isinstance(v, datetime):
+            return v.isoformat()
+        return str(v)
+
+class TicketSystemEventLink(db.Model):
+    __tablename__ = 'ticket_system_event_link'
+    __table_args__ = {u'schema': __schema__}
+
+    id = db.Column(db.Integer, primary_key=True)
+    system_event_id = db.Column(db.ForeignKey(u'' + __schema__ + '.system_events.id'), nullable=False)
+    ticket_id = db.Column(db.Text, nullable=False)
+
+    system_event = db.relationship(u'SystemEvent')
+
+    """
+    # todo - Review whether we need this...
+    @staticmethod
+    def insert_ticket_link():
+        usl = TicketSystemEventLink(user_id='1')
+        usl.scope_id='1'
+        db.session.add(usl)
+        db.session.commit()
+    """
+    @staticmethod
+    def insert_ticket_link(system_event_id, ticket_id):
+        try:
+            new_ticket_system_event = TicketSystemEventLink()
+            new_ticket_system_event.system_event_id = system_event_id
+            new_ticket_system_event.ticket_id = ticket_id
+            db.session.add(new_ticket_system_event)
+            db.session.commit()
+            db.session.flush()
+            return new_ticket_system_event.id
+        except Exception as err:
+            db.session.rollback()
+            #print '\n message: ', err.message
+            raise Exception(err.message)
+
+
+    def to_json(self):
+        json_ticket_system_event = {
+            'id': self.id,
+            'system_event_id': self.system_event_id,
+            'ticket_id': self.ticket_id,
+        }
+        return json_ticket_system_event
 
 
 class UserEventNotification(db.Model):
     """
-    Stores the Alerts/Alarms ingested from uFrame
+    User notification of Alerts/Alarms from uFrame
     """
     __tablename__ = 'user_event_notifications'
     __table_args__ = {u'schema': __schema__}
@@ -861,39 +1029,92 @@ class UserEventNotification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     system_event_definition_id = db.Column(db.ForeignKey(u'' + __schema__ + '.system_event_definitions.id'), nullable=False)
     user_id = db.Column(db.ForeignKey(u'' + __schema__ + '.users.id'), nullable=False)
-    use_email = db.Column(db.Boolean, nullable=True)
-    use_redmine = db.Column(db.Boolean, nullable=True)
-    use_phone = db.Column(db.Boolean, nullable=True)
-    use_log = db.Column(db.Boolean, nullable=True)
-    use_sms = db.Column(db.Boolean, nullable=True)
+    use_email = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))
+    use_redmine = db.Column(db.Boolean, nullable=False, server_default=db.text("true"))
+    use_phone = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))
+    use_log = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))
+    use_sms = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))
 
-    event = db.relationship(u'SystemEventDefinition')
+    system_event_definition = db.relationship(u'SystemEventDefinition')
     user = db.relationship(u'User')
 
     def to_json(self):
         json_user_notification = {
             'id': self.id,
-            'system_event_definition_id': self.system_event_definition_id,
-            'user_id': self.user_id,
             'use_email': self.use_email,
             'use_redmine': self.use_redmine,
             'use_phone': self.use_phone,
             'use_log': self.use_log,
             'use_sms': self.use_sms
         }
+        if self.user:
+            json_user_notification['user_id'] = self.user.id
+        if self.system_event_definition:
+            json_user_notification['system_event_definition_id'] = self.system_event_definition.id
+        return json_user_notification
 
     @staticmethod
-    def insert_user_event_notification(system_event_definition_id, user_id, use_email, use_redmine, use_phone, use_log, use_sms):
-        new_user_event_notification = UserEventNotification()
-        new_user_event_notification.system_event_definition_id = system_event_definition_id
-        new_user_event_notification.user_id = user_id
-        new_user_event_notification.use_email = use_email
-        new_user_event_notification.use_redmine = use_redmine
-        new_user_event_notification.use_phone = use_phone
-        new_user_event_notification.use_log = use_log
-        new_user_event_notification.use_sms = use_sms
-        db.session.add(new_user_event_notification)
-        db.session.commit()
+    def insert_user_event_notification(system_event_definition_id, user_id, use_email, use_redmine, use_phone,
+                                        use_log, use_sms):
+        user_event_id = None
+        try:
+            new_user_event_notification = UserEventNotification()
+            new_user_event_notification.system_event_definition_id = system_event_definition_id
+            new_user_event_notification.user_id = user_id
+            new_user_event_notification.use_email = use_email
+            new_user_event_notification.use_redmine = use_redmine
+            new_user_event_notification.use_phone = use_phone
+            new_user_event_notification.use_log = use_log
+            new_user_event_notification.use_sms = use_sms
+            db.session.add(new_user_event_notification)
+            db.session.commit()
+            user_event_id = new_user_event_notification.id
+            return user_event_id
+        except Exception as err:
+            db.session.rollback()
+            #print '\n (models:insert_user_event_notification) message: ', err.message
+            raise Exception(err.message)
+
+    @staticmethod
+    def update_user_event_notification(id, system_event_definition_id, user_id,
+                                       use_email, use_redmine, use_phone, use_log, use_sms):
+        try:
+            user_event_notification = UserEventNotification.query.get(id)
+            if user_event_notification is None:
+                raise Exception('Invalid ID, user_event_notification record not found')
+            user_event_notification.system_event_definition_id = system_event_definition_id
+            user_event_notification.user_id = user_id
+            user_event_notification.use_email = use_email
+            user_event_notification.use_redmine = use_redmine
+            user_event_notification.use_phone = use_phone
+            user_event_notification.use_log = use_log
+            user_event_notification.use_sms = use_sms
+            db.session.add(user_event_notification)
+            db.session.commit()
+            return
+        except Exception as err:
+            db.session.rollback()
+            message = 'debug -- Models (update_user_event_notification) %s', err.message
+            #print '\n message: ', message
+            raise Exception(err.message)
+
+    '''
+    @staticmethod
+    def delete_user_event_notification(user_event_notification_id):
+        status = None
+        try:
+            if user_event_notification_id is None:
+                message = 'user_event_notification_id id provided is None.'
+                print '\n message: ', message
+                raise Exception(message)
+            notification = UserEventNotification.query.get(user_event_notification_id)
+            if notification is not None:
+                db.session.delete(notification)
+                db.session.commit()
+        except:
+            print '\n (delete_user_event_notification) %s', err.message
+            raise
+    '''
 
 class UserScopeLink(db.Model):
     __tablename__ = 'user_scope_link'

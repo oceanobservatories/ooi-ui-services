@@ -73,6 +73,7 @@ def make_shell_context():
     from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameter, Watch
     from ooiservices.app.models import OperatorEvent
     from ooiservices.app.models import Platformname, Instrumentname, Annotation, Organization
+    from ooiservices.app.models import SystemEvent, SystemEventDefinition, UserEventNotification
 
     ctx = {"app": app,
            "db": db,
@@ -89,7 +90,10 @@ def make_shell_context():
            "Platformname": Platformname,
            "Instrumentname": Instrumentname,
            "Annotation": Annotation,
-           "Organization": Organization}
+           "Organization": Organization,
+           "SystemEvent": SystemEvent,
+           "SystemEventDefinition": SystemEventDefinition,
+           "UserEventNotification": UserEventNotification}
     return ctx
 
 @manager.command
@@ -173,6 +177,7 @@ def deploy(password, bulkload):
         User.insert_user(password=password)
         admin = User.query.first()
         admin.scopes.append(UserScope.query.filter_by(scope_name='user_admin').first())
+        admin.scopes.append(UserScope.query.filter_by(scope_name='redmine').first())
         db.session.add(admin)
         db.session.commit()
 
@@ -212,7 +217,7 @@ def rebuild_schema(schema, schema_owner, save_users, admin_username, admin_passw
     UserScope.insert_scopes()
 
     app.logger.info('Loading default data into database')
-    load_data()
+    load_data('ooiui_schema_data.sql')
     db.session.commit()
 
     if save_users == 'True':
@@ -275,6 +280,7 @@ def rebuild_schema(schema, schema_owner, save_users, admin_username, admin_passw
             app.logger.info('Admin org_name set to: Rutgers')
             org_name = 'Rutgers'
         add_admin_user(username=admin_username, password=admin_password, first_name=first_name, last_name=last_name, email=email, org_name=org_name)
+    load_data(sql_file='ooiui_schema_data_notifications.sql')
     app.logger.info('Database reloaded successfully')
 
 @manager.option('-u', '--username', required=True)
@@ -294,18 +300,19 @@ def add_admin_user(username, password, first_name, last_name, email, org_name):
     User.insert_user(username=username, password=password, first_name=first_name, last_name=last_name, email=email, org_name=org_name)
     admin = User.query.filter_by(user_name=username).first()
     admin.scopes.append(UserScope.query.filter_by(scope_name='user_admin').first())
+    admin.scopes.append(UserScope.query.filter_by(scope_name='redmine').first())
     db.session.add(admin)
     db.session.commit()
 
 @manager.command
-def load_data():
+def load_data(sql_file):
     '''
     Bulk loads the OOI UI data
     :return:
     '''
     APP_ROOT = os.path.dirname(os.path.abspath(__file__))   # refers to application_top
     APP_DB = os.path.join(APP_ROOT, '..', 'db')
-    with open(os.path.join(APP_DB, 'ooiui_schema_data.sql')) as f:
+    with open(os.path.join(APP_DB, sql_file)) as f:
         try:
             from ooiservices.app.models import __schema__
             db.session.execute("SET search_path = {0}, public, pg_catalog;".format(__schema__))
