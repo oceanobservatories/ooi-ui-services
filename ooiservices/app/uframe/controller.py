@@ -490,73 +490,72 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
     '''
     Gets the bounded stream contents, start_time and end_time need to be datetime objects
     '''
-    # try:
-    print current_app.config['DATA_POINTS']
-    if dpa_flag == '0' and len(parameter_ids)<1:
-        query = '?beginDT=%s&endDT=%s&limit=%s' % (start_time, end_time, current_app.config['DATA_POINTS'])
-    elif dpa_flag == '1' and len(parameter_ids)<1:
-        query = '?beginDT=%s&endDT=%s&limit=%s&execDPA=true' % (start_time, end_time, current_app.config['DATA_POINTS'])
-    elif dpa_flag == '0' and len(parameter_ids)>0:
-        query = '?beginDT=%s&endDT=%s&limit=%s&parameters=%s' % (start_time, end_time, current_app.config['DATA_POINTS'], ','.join(parameter_ids))
-    elif dpa_flag == '1' and len(parameter_ids)>0:
-        query = '?beginDT=%s&endDT=%s&limit=%s&execDPA=true&parameters=%s' % (start_time, end_time, current_app.config['DATA_POINTS'], ','.join(map(str, parameter_ids)))
+    try:
+        if dpa_flag == '0' and len(parameter_ids)<1:
+            query = '?beginDT=%s&endDT=%s&limit=%s' % (start_time, end_time, current_app.config['DATA_POINTS'])
+        elif dpa_flag == '1' and len(parameter_ids)<1:
+            query = '?beginDT=%s&endDT=%s&limit=%s&execDPA=true' % (start_time, end_time, current_app.config['DATA_POINTS'])
+        elif dpa_flag == '0' and len(parameter_ids)>0:
+            query = '?beginDT=%s&endDT=%s&limit=%s&parameters=%s' % (start_time, end_time, current_app.config['DATA_POINTS'], ','.join(parameter_ids))
+        elif dpa_flag == '1' and len(parameter_ids)>0:
+            query = '?beginDT=%s&endDT=%s&limit=%s&execDPA=true&parameters=%s' % (start_time, end_time, current_app.config['DATA_POINTS'], ','.join(map(str, parameter_ids)))
 
-    GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=plot&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
+        GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=plot&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
 
-    UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-    url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])
+        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+        url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])
 
-    print "***:",url
+        print "***:",url
 
-    TOO_BIG = 1024 * 1024 * 15 # 15MB
-    CHUNK_SIZE = 1024 * 32   #...KB
-    TOTAL_SECONDS = 20
-    dataBlock = ""
-    idx = 0
+        TOO_BIG = 1024 * 1024 * 15 # 15MB
+        CHUNK_SIZE = 1024 * 32   #...KB
+        TOTAL_SECONDS = 20
+        dataBlock = ""
+        idx = 0
 
-    #counter
-    t0 = time.time()
+        #counter
+        t0 = time.time()
 
-    with closing(requests.get(url,stream=True)) as response:
-        content_length = 0
-        for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
-            content_length = content_length + CHUNK_SIZE
-            t1 = time.time()
-            total = t1-t0
-            idx+=1
-            if content_length > TOO_BIG or total > TOTAL_SECONDS:
-                #('uframe response to large.')
-                # break it down to the last know good spot
-                t00 = time.time()
-                idx_c = dataBlock.rfind('}, {')
-                dataBlock = dataBlock[:idx_c]
-                dataBlock+="}\n]"
-                t11 = time.time()
-                totaln = t11-t00
+        with closing(requests.get(url,stream=True)) as response:
+            content_length = 0
+            for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
+                content_length = content_length + CHUNK_SIZE
+                t1 = time.time()
+                total = t1-t0
+                idx+=1
+                if content_length > TOO_BIG or total > TOTAL_SECONDS:
+                    #('uframe response to large.')
+                    # break it down to the last know good spot
+                    t00 = time.time()
+                    idx_c = dataBlock.rfind('}, {')
+                    dataBlock = dataBlock[:idx_c]
+                    dataBlock+="}\n]"
+                    t11 = time.time()
+                    totaln = t11-t00
 
-                print "size_limit or time reached", content_length/(1024),total,idx
-                return json.loads(dataBlock),200
-            # all the data is in the resonse return it as normal
-            #previousBlock = dataBlock
-            dataBlock+=chunk
-        #print "transfer complete",content_length/(1024 * 1024),total
+                    print "size_limit or time reached", content_length/(1024),total,idx
+                    return json.loads(dataBlock),200
+                # all the data is in the resonse return it as normal
+                #previousBlock = dataBlock
+                dataBlock+=chunk
+            #print "transfer complete",content_length/(1024 * 1024),total
 
-        #if str(dataBlock[-3:-1]) != '} ]':
-        #    idx_c = dataBlock.rfind('}')
-        #    dataBlock = dataBlock[:idx_c]
-        #    dataBlock+="} ]"
-        #    print 'uFrame appended Error Message to Stream',"\n",dataBlock[-3:-1]
-        idx_c = dataBlock.rfind('}\n]')
-        print idx_c
-        if idx_c == -1:
-            dataBlock+="]"
-        urllib2.urlopen(GA_URL)
-        return json.loads(dataBlock),200
+            #if str(dataBlock[-3:-1]) != '} ]':
+            #    idx_c = dataBlock.rfind('}')
+            #    dataBlock = dataBlock[:idx_c]
+            #    dataBlock+="} ]"
+            #    print 'uFrame appended Error Message to Stream',"\n",dataBlock[-3:-1]
+            idx_c = dataBlock.rfind('}\n]')
+            print idx_c
+            if idx_c == -1:
+                dataBlock+="]"
+            urllib2.urlopen(GA_URL)
+            return json.loads(dataBlock),200
 
-    # except Exception,e:
-    #     #return json.loads(dataBlock), 200
-    #     print str(e)
-    #     return internal_server_error('uframe connection unstable. '+str(e)),500
+    except Exception,e:
+        #return json.loads(dataBlock), 200
+        print str(e)
+        return internal_server_error('uframe connection unstable. '+str(e)),500
 
 def get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag):
     '''
