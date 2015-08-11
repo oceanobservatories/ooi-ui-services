@@ -14,6 +14,8 @@ COMMON: &common
     JSONIFY_PRETTYPRINT_REGULAR: true
     UFRAME_URL: 'http://localhost:12575'
     UFRAME_ASSETS_URL: 'http://localhost:12573'
+    UFRAME_ANNOTATION_URL : 'http://localhost:12580'
+    UFRAME_ANNOTATION_BASE: '/annotations'
     UFRAME_URL_BASE: '/sensor/inv'
     UFRAME_TOC: '/sensor/inv/toc'
     UFRAME_INST_URL: 'http://localhost:12572'

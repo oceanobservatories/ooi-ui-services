@@ -37,14 +37,11 @@ def get_annotations(instrument,stream):
             r = requests.get(url)
             data = r.json()        
 
-            print "ANNOTATION ***:",url
-
-            return jsonify( {'annotations' : data['annotations'] })
-
+            return jsonify( {'annotations' : data['annotations'] }), 201
         else:
-            return jsonify( {'error' : "no dates specified" })        
+            return jsonify( {'error' : "no dates specified" }), 500   
     except Exception, e:
-        return jsonify( {'error' : "could not obtain annotation(s)"+str(e) })
+        return jsonify( {'error' : "could not obtain annotation(s): "+str(e) }), 500
 
 
 #DEPRECATED
@@ -83,34 +80,59 @@ def create_annotation():
     except Exception as e:
         return jsonify(error=e.message), 400
 
+def process_annotation(begin_dt,end_dt,annotation_text,ref_def,annotation_id=None):
+    '''
+    PROCESS ANNOTATION :  either update or create depending on if id is passed in
+    '''
 
-#DEPRECATED
+    post_req = {'beginDT': begin_dt,
+                'endDT': end_dt,
+                'referenceDesignator' : ref_def,
+                'annotation': annotation_text,
+                'id':annotation_id   
+                }
+   
+    if annotation_id == None:
+        pass
+    else:
+        uframe_link = current_app.config['UFRAME_ANNOTATION_URL'] + current_app.config['UFRAME_ANNOTATION_BASE']
+        annotation_url = "/".join([uframe_link,'add',ref_def])
+
+        r = requests.post(annotation_url , data=json.dumps(post_req) , timeout=10)
+
+        if r.status_code == 200:            
+            return jsonify( {} ), 201
+        else:
+            return jsonify( {'error' : r.reason }), r.status_code
+
+def generate_annotation_data():
+    pass
+
+
 #Update an existing annotation.
-#@api.route('/annotation/<int:id>', methods=['PUT'])
-@auth.login_required
-@scope_required('annotate')
-def edit_annotation(id):
-    try:
-        data = json.loads(request.data)
-        annotation = Annotation.query.get_or_404(id)
-        user_scopes = [s.scope_name for s in g.current_user.scopes]
-        if g.current_user.id != annotation.user_id and 'user_admin' not in user_scopes and 'annotate' not in user_scopes:
-            return forbidden('Must be author of annotation or have administrator privileges')
-    # 	add more modifications as needed
-        if 'start_time' in data:
-            data['start_time'] = date_parse(data['start_time'])
+@api.route('/annotation/<string:annotation_id>', methods=['PUT'])
+#@auth.login_required
+#@scope_required('annotate')
+def edit_annotation(annotation_id):
+    try:        
+        data = json.loads(request.data)           
+        if ('referenceDesignator'in data and 
+            'annotation' in data and 
+            'beginDT' in data and 
+            'endDT' in data):            
 
-        if 'end_time' in data:
-            data['end_time'] = date_parse(data['end_time'])
+            new_st_date = data['beginDT']
+            new_ed_date = data['endDT']
+            new_annotation = data['annotation']           
+            ref_des = data['referenceDesignator']    
 
-        for field in ['start_time', 'end_time', 'stream_parameter_name', 'description', 'reference_designator']:
-            val = data.get(field) or getattr(annotation, field)
-            setattr(annotation, field, val)
-        db.session.add(annotation)
-        db.session.commit()
-        return jsonify(annotation.serialize())
-    except:
-        return conflict('Insufficient data, or bad data format.')
+            return process_annotation(new_st_date,new_ed_date,new_annotation,ref_des,annotation_id)
+
+        else:
+            return jsonify( {'error' : "required information not specified" }), 500        
+    except Exception, e:
+        return jsonify( {'error' : "could not obtain annotation(s): "+str(e) }), 500
+
 
 #DEPRECATED
 #Delete an existing annotation
