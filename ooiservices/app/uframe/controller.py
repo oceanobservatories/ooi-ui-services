@@ -464,15 +464,15 @@ def get_uframe_stream_metadata_times(ref):
 
 #@cache.memoize(timeout=3600)
 #DEPRECATED
-def get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag):
+def get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag, provenance, annotations):
     """
     Gets the bounded stream contents, start_time and end_time need to be datetime objects; returns Respnse object.
     """
     try:
         if dpa_flag == '0':
-            query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
+            query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s' % (start_time, end_time, provenance, annotations)
         else:
-            query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
+            query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s&execDPA=true' % (start_time, end_time, provenance, annotations)
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
         current_app.logger.debug('***** url: ' + url)
@@ -679,15 +679,15 @@ def get_csv(stream, ref,start_time,end_time,dpa_flag):
 
 
 @auth.login_required
-@api.route('/get_json/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>',methods=['GET'])
-def get_json(stream,ref,start_time,end_time,dpa_flag):
+@api.route('/get_json/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>/<string:provenance>/<string:annotations>',methods=['GET'])
+def get_json(stream, ref, start_time, end_time, dpa_flag, provenance, annotations):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
 
     #figures out if its in a date time range
     end_time = validate_date_time(start_time, end_time)
 
-    data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag)
+    data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag, provenance, annotations)
     try:
         GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_json&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
         urllib2.urlopen(GA_URL)
@@ -705,8 +705,8 @@ def get_json(stream,ref,start_time,end_time,dpa_flag):
     return returned_json
 
 @auth.login_required
-@api.route('/get_netcdf/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>', methods=['GET'])
-def get_netcdf(stream, ref,start_time,end_time,dpa_flag):
+@api.route('/get_netcdf/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>/<string:provenance>/<string:annotations>', methods=['GET'])
+def get_netcdf(stream, ref, start_time, end_time, dpa_flag, provenance, annotations):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
 
@@ -717,11 +717,11 @@ def get_netcdf(stream, ref,start_time,end_time,dpa_flag):
         pass
 
     uframe_url, timeout, timeout_read = get_uframe_info()
-    url = '/'.join([uframe_url, mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag])
+    # url = '/'.join([uframe_url, mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag])
     if dpa_flag == '0':
-        query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
+        query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s' % (start_time, end_time, provenance, annotations)
     else:
-        query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
+        query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s&execDPA=true' % (start_time, end_time, provenance, annotations)
     query += '&format=application/netcdf'
     uframe_url, timeout, timeout_read = get_uframe_info()
     url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
