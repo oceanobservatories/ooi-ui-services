@@ -464,7 +464,7 @@ def get_uframe_stream_metadata_times(ref):
 
 #@cache.memoize(timeout=3600)
 #DEPRECATED
-def get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag, provenance, annotations):
+def get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag, provenance='false', annotations='false'):
     """
     Gets the bounded stream contents, start_time and end_time need to be datetime objects; returns Respnse object.
     """
