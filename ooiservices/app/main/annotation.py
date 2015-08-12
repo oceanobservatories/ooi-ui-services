@@ -43,43 +43,6 @@ def get_annotations(instrument,stream):
     except Exception, e:
         return jsonify( {'error' : "could not obtain annotation(s): "+str(e) }), 500
 
-
-#DEPRECATED
-#List an annotation by id
-#@api.route('/annotation/<int:id>')
-def get_annotation(id):
-    annotation = Annotation.query.filter_by(id=id).first_or_404()
-    return jsonify(annotation.serialize())
-
-#DEPRECATED
-#Create a new annotation
-#@api.route('/annotation', methods=['POST'])
-#@auth.login_required
-@scope_required('annotate')
-def create_annotation():
-    try:
-        data = json.loads(request.data)        
-        # Let PSQL assign the timestamp
-        if 'created_time' in data:
-            del data['created_time']
-
-        # Convert the ISO-8601 to Python datetime
-        if 'start_time' in data:
-            data['start_time'] = date_parse(data['start_time'])
-
-        if 'end_time' in data:
-            data['end_time'] = date_parse(data['end_time'])
-
-        # Regardless of what was posted, the current user is assigned
-        data['user_id'] = g.current_user.id
-
-        annotation = Annotation.from_dict(data)
-        db.session.add(annotation)
-        db.session.commit()
-        return jsonify(annotation.serialize()), 201
-    except Exception as e:
-        return jsonify(error=e.message), 400
-
 def process_annotation(begin_dt,end_dt,annotation_text,ref_def,annotation_id=None):
     '''
     PROCESS ANNOTATION :  either update or create depending on if id is passed in
@@ -93,21 +56,42 @@ def process_annotation(begin_dt,end_dt,annotation_text,ref_def,annotation_id=Non
                 }
    
     if annotation_id == None:
-        pass
+        if 'id' in post_req: del post_req['id']
+            
+    uframe_link = current_app.config['UFRAME_ANNOTATION_URL'] + current_app.config['UFRAME_ANNOTATION_BASE']
+    annotation_url = "/".join([uframe_link,'add',ref_def])
+
+    r = requests.post(annotation_url , data=json.dumps(post_req) , timeout=10)
+
+    if r.status_code == 200:            
+        return jsonify( {} ), 201
     else:
-        uframe_link = current_app.config['UFRAME_ANNOTATION_URL'] + current_app.config['UFRAME_ANNOTATION_BASE']
-        annotation_url = "/".join([uframe_link,'add',ref_def])
+        return jsonify( {'error' : r.reason }), r.status_code
 
-        r = requests.post(annotation_url , data=json.dumps(post_req) , timeout=10)
+#Update an existing annotation.
+@api.route('/annotation', methods=['POST'])
+#@auth.login_required
+#@scope_required('annotate')
+def create_annotation():
+    try:        
+        data = json.loads(request.data)           
 
-        if r.status_code == 200:            
-            return jsonify( {} ), 201
+        if ('referenceDesignator'in data and 
+            'annotation' in data and 
+            'beginDT' in data and 
+            'endDT' in data):            
+
+            new_st_date = data['beginDT']
+            new_ed_date = data['endDT']
+            new_annotation = data['annotation']           
+            ref_des = data['referenceDesignator']                
+
+            return process_annotation(new_st_date,new_ed_date,new_annotation,ref_des,None)
+
         else:
-            return jsonify( {'error' : r.reason }), r.status_code
-
-def generate_annotation_data():
-    pass
-
+            return jsonify( {'error' : "required information not specified" }), 500        
+    except Exception, e:
+        return jsonify( {'error' : "could not obtain annotation(s): "+str(e) }), 500
 
 #Update an existing annotation.
 @api.route('/annotation/<string:annotation_id>', methods=['PUT'])
@@ -132,19 +116,3 @@ def edit_annotation(annotation_id):
             return jsonify( {'error' : "required information not specified" }), 500        
     except Exception, e:
         return jsonify( {'error' : "could not obtain annotation(s): "+str(e) }), 500
-
-
-#DEPRECATED
-#Delete an existing annotation
-#@api.route('/annotation/<int:id>', methods=['DELETE'])
-@auth.login_required
-@scope_required('annotate')
-def delete_annotation(id):
-    annotation = Annotation.query.get_or_404(id)
-    user_scopes = [s.scope_name for s in g.current_user.scopes]
-    if g.current_user.id != annotation.user_id and 'user_admin' not in user_scopes and 'annotate' not in user_scopes:
-        return forbidden('Must be author of annotation or have administrator privileges')
-    annotation.retired = True
-    db.session.add(annotation)
-    db.session.commit()
-    return jsonify({}), 204
