@@ -15,6 +15,7 @@ from ooiservices.app.models import Annotation, User, UserScope, UserScopeLink, O
 from datetime import datetime
 from dateutil.parser import parse as dateparse
 from unittest import skipIf
+import os
 '''
 These tests verify the functioning of the api list.
 Sample data is inserted, checked, and then removed.
