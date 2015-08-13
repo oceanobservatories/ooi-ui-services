@@ -86,10 +86,6 @@ def get_display_name_by_rd(reference_designator):
             return None
         display_name = platform_deployment_filtered.proper_display_name
     elif len(reference_designator) == 27:
-        platform_deployment = PlatformDeployment.query.filter_by(reference_designator=reference_designator[:14]).first()
-        if platform_deployment is None:
-            return None
-        platform_display_name = platform_deployment.proper_display_name
         instrument_class = reference_designator[18:18+5]
         instrument_name = Instrumentname.query.filter_by(instrument_class=instrument_class).first()
         if 'ENG' in instrument_class or instrument_class == '00000':
@@ -99,7 +95,7 @@ def get_display_name_by_rd(reference_designator):
         else:
             instrument_name = instrument_name.display_name
 
-        display_name = ' - '.join([platform_display_name, instrument_name])
+        display_name = instrument_name
     else:
         return None
     return display_name
