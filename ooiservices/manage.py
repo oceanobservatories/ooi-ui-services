@@ -180,6 +180,10 @@ def deploy(password, bulkload):
         admin.scopes.append(UserScope.query.filter_by(scope_name='redmine').first())
         db.session.add(admin)
         db.session.commit()
+        if bulkload:
+            with open('db/ooiui_schema_data_notifications.sql') as f:
+                psql('ooiuidev', _in=f)
+            app.logger.info('Bulk test data loaded for notifications.')
 
 @manager.option('-s', '--schema', required=True)
 @manager.option('-o', '--schema_owner', required=True)

@@ -819,12 +819,12 @@ class SystemEventDefinition(db.Model):
         try:
             if system_event_definition_id is None:
                 message = 'system_event_definition id provided is None.'
-                print '\n message: ', message
+                #print '\n message: ', message
                 raise Exception(message)
             definition = db.session.query.get(system_event_definition_id)
             if definition is None:
                 message = 'Failed to delete system_event_definition for id provided (id: None)'
-                print '\n message: ', message
+                #print '\n message: ', message
                 raise Exception(message)
 
             notification = UserEventNotification.query.filter_by(system_event_definition_id=definition.id).first()
@@ -1009,7 +1009,6 @@ class TicketSystemEventLink(db.Model):
             #print '\n message: ', err.message
             raise Exception(err.message)
 
-
     def to_json(self):
         json_ticket_system_event = {
             'id': self.id,
@@ -1072,7 +1071,7 @@ class UserEventNotification(db.Model):
             return user_event_id
         except Exception as err:
             db.session.rollback()
-            #print '\n (models:insert_user_event_notification) message: ', err.message
+            print '\n (models:insert_user_event_notification) message: ', err.message
             raise Exception(err.message)
 
     @staticmethod
@@ -1094,7 +1093,7 @@ class UserEventNotification(db.Model):
             return
         except Exception as err:
             db.session.rollback()
-            message = 'debug -- Models (update_user_event_notification) %s', err.message
+            #message = 'debug -- Models (update_user_event_notification) %s', err.message
             #print '\n message: ', message
             raise Exception(err.message)
 
@@ -1115,6 +1114,7 @@ class UserEventNotification(db.Model):
             print '\n (delete_user_event_notification) %s', err.message
             raise
     '''
+
 
 class UserScopeLink(db.Model):
     __tablename__ = 'user_scope_link'

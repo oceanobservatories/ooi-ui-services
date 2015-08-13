@@ -20,22 +20,22 @@ __author__ = 'James Case'
 from flask import (jsonify, request, current_app)
 from ooiservices.app import db
 from ooiservices.app.main import api
-from ooiservices.app.decorators import scope_required                       # todo
-from ooiservices.app.main.authentication import auth                        # todo
-from ooiservices.app.main.errors import (conflict, bad_request)
+from ooiservices.app.decorators import scope_required
+from ooiservices.app.main.authentication import auth
+from ooiservices.app.main.errors import (conflict, bad_request, internal_server_error)
 from ooiservices.app.models import (SystemEventDefinition, SystemEvent, UserEventNotification, User)
 from ooiservices.app.main.notifications import (alert_escalation_state, begin_notification_process,
                                                 update_notification_ticket, reissue_notification_ticket)
-import datetime as dt
 import requests
 import json
+import datetime as dt
 import calendar
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Alerts & Alarms
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #List all alerts and alarms
-@api.route('/alert_alarm')
+@api.route('/alert_alarm', methods=['GET'])
 def get_alerts_alarms():
     """ Get all alert(s) and alarm(s) which match filter rules provided in request.args.
     Dynamically construct filters to query SystemEvent and SystemEventDefinitions.
@@ -45,7 +45,6 @@ def get_alerts_alarms():
     try:
         # Get query filters, query SystemEvents using event_filters
         event_filters, definition_filters = get_query_filters(request.args)
-        alerts_alarms = None
         if event_filters is None:   # alerts_alarms
             alerts_alarms = db.session.query(SystemEvent).all()
         else:
@@ -58,13 +57,14 @@ def get_alerts_alarms():
             else:
                 result = result_json
         return jsonify( {'alert_alarm': result})
-    except Exception as err:
-        return conflict('Insufficient data, or bad data format. (%s)' % str(err.message))
+    except Exception as err:                                                        # todo test case
+        message = 'Insufficient data, or bad data format. (%s)' % str(err.message)  # todo test case
+        return conflict(message)                                                    # todo test case
 
 #List an alerts and alarms by id
 @api.route('/alert_alarm/<int:id>')
 def get_alert_alarm(id):
-    alert_alarm = SystemEvent.query.filter_by(id=id).first() #_or_404()
+    alert_alarm = SystemEvent.query.filter_by(id=id).first()
     if alert_alarm is None:
         return jsonify(error="alert_alarm not found"), 404
     return jsonify(alert_alarm.to_json())
@@ -83,7 +83,6 @@ def create_alert_alarm():
     # todo 'escalate_boundary' - amount of time after ts_escalated to create yet another red mine ticket)
     """
     debug = False
-    log = False
     try:
         # Process request.data; verify required fields are present
         data = json.loads(request.data)
@@ -98,19 +97,16 @@ def create_alert_alarm():
                 message = 'Failed to retrieve SystemEventDefinition for uframe_filter_id: %d' % uframe_filter_id
                 raise Exception(message)
             system_event_definition_id = system_event_definition.id
+
         except Exception as err:
             # This is a severe error, definitely should be logged (failure to record instance of alert or alarm from uframe)
             message = 'Unable to retrieve system_event_definition using uframe_filter_id; %s ' % str(err.message)
             current_app.logger.exception(message)
             raise  Exception(err.message)
-        if system_event_definition_id is None:
-            message = 'Unable to identify system_event_definition_id using uframe_filter_id (%d)' % uframe_filter_id
-            current_app.logger.exception(message)
-            raise Exception(message)
 
         # If the system_event_definition is not active, do not create alert_alarm instance todo - do silently? test case
         if not system_event_definition.active:
-            message = 'Failed to create alert_alarm - system_event_definition is not active. (%d)' % system_event_definition.id
+            message = 'Failed to create alert_alarm; system_event_definition (id:%d) is not active.' % system_event_definition.id
             current_app.logger.exception(message)
             raise Exception(message)
         # If the system_event_definition is retired, do not create alert_alarm instance todo - do silently? test case
@@ -143,62 +139,81 @@ def create_alert_alarm():
             db.session.add(alert_alarm)
             db.session.commit()
             db.session.flush()
-        except Exception as err:
-            # todo - test case
-            message = 'IntegrityError creating alert_alarm; %s' % str(err.message)
-            if log: print '\n message: ', message
-            current_app.logger.exception(message)
-            db.session.rollback()
-            return bad_request('IntegrityError creating alert_alarm.')
+        except Exception as err:                                                    # todo test case
+            message = 'IntegrityError creating alert_alarm; %s' % str(err.message)  # todo test case
+            print'\n message: ', message
+            current_app.logger.exception(message)                                   # todo test case
+            db.session.rollback()                                                   # todo test case
+            return bad_request('IntegrityError creating alert_alarm.')              # todo test case
 
-        # If 'alert' received, start the alert escalation process, otherwise begin
-        # the notification process for an alarm
+        # If 'alert' received, start the alert escalation process, otherwise begin the
+        # notification process for an alarm.
         valid_actions = ['begin_notification_process', 'update_notification_ticket', 'reissue_notification_ticket']
-        if debug: print '\n processing an %s with id: %d' % (alert_alarm.event_type, alert_alarm.id)
         if alert_alarm.event_type == 'alert':
             action = alert_escalation_state(alert_alarm.id)
-            if debug: print '\n alert_escalation_state -- action: ', action
             if action is not None:
+                ticket_id = None
+                is_dirty = False
                 if action in valid_actions:
                     if action == 'begin_notification_process':
-                        if debug: print '\n action: begin_notification_process *****\n'
                         ticket_id = begin_notification_process(alert_alarm.id)
                         if ticket_id is None:
-                            if debug: print '\nFailed to create redmine ticket for alert id: %d *****\n' % alert_alarm.id
-                        if debug: print '\n ticket_id; ', ticket_id
+                            message = 'Failed to create redmine ticket for alert (id:%d).' % alert_alarm.id
+                            if debug: print'\n message: ', message
+                            current_app.logger.exception(message)
+                        else:
+                            if debug: print'\n + begin_notification_process -- ticket_id: ', ticket_id
+                            alert_alarm.ticket_id = ticket_id
+                            is_dirty = True
                     elif action == 'update_notification_ticket':
-                        if debug: print '\n action: update_notification_ticket *****\n'
                         ticket_id = update_notification_ticket(alert_alarm.id)
+                        if debug: print'\n + update_notification_ticket -- ticket_id: ', ticket_id
                         if ticket_id is None:
-                            if debug: print '\nFailed to update redmine ticket for alert id: %d ***** \n' % alert_alarm.id
+                            message ='Failed to update redmine ticket for alert (id:%d)' % alert_alarm.id
+                            if debug: print'\n message: ', message
+                            current_app.logger.exception(message)
                     elif action == 'reissue_notification_ticket':
-                        if debug: print '\n action: reissue_notification_ticket *****\n'
                         ticket_id = reissue_notification_ticket(alert_alarm.id)
                         if ticket_id is None:
-                            if debug: print '\nFailed to reissue redmine ticket for alert id: %d *****\n' % alert_alarm.id
+                            message ='Failed to reissue redmine ticket for alert (id:%d)' % alert_alarm.id
+                            if debug: print'\n message: ', message
+                            current_app.logger.exception(message)
+                        else:
+                            if debug: print'\n + reissue_notification_ticket -- ticket_id: ', ticket_id
+                            alert_alarm.ticket_id = ticket_id
+                            is_dirty = True
+                    if is_dirty:
+                        try:
+                            db.session.add(alert_alarm)
+                            db.session.commit()
+                        except Exception as err:
+                            message = 'Error updating alert_alarm with ticket_id; %s' % str(err.message)
+                            if debug: print'\n message: ', message
+                            current_app.logger.exception(message)
+                            return bad_request(message)
 
         elif alert_alarm.event_type == 'alarm':
-            begin_notification_process(alert_alarm.id)
+            ticket_id = begin_notification_process(alert_alarm.id)
+            if ticket_id is None:
+                message = 'Failed to create redmine ticket for alarm (id:%d)' % alert_alarm.id      # todo test case
+                current_app.logger.exception(message)                                               # todo test case
+                return bad_request(message)                                                         # todo test case
 
         return jsonify(alert_alarm.to_json()), 201
     except Exception as err:
-        message = 'Insufficient data, or bad data format; %s' % err.message
-        if log: print '\n message: ', message
+        message = 'Insufficient data, or bad data format. %s' % err.message
         current_app.logger.exception(message)
         return conflict(message)
 
 # Acknowledge alert/alarm
 @api.route('/ack_alert_alarm', methods=['POST'])
-#@auth.login_required
-#@scope_required(u'user_admin')
-#@scope_required(u'redmine')
+@auth.login_required
+@scope_required(u'user_admin')
+@scope_required(u'redmine')
 def acknowledge_alert_alarm():
     """ Acknowledge an alert or an alarm.
     Acknowledge alert/alarm in uframe, required eventId (id) and acknowledged by value (ack_value).
-    If the user acknowledging the alert/alarm is ack_by.
     """
-    log = False
-    debug = False
     try:
         # Process request.data; verify required fields are present
         data = json.loads(request.data)
@@ -206,26 +221,9 @@ def acknowledge_alert_alarm():
 
         # Determine if alert_alarm to be acknowledged is same as reflected in request data
         alert_alarm = is_valid_alert_alarm_for_ack(data)
-        if alert_alarm is None:
-            message = 'Failed to retrieve alert_alarm.'
-            if log: print '\n (log) ', message
-            raise Exception(message)
 
-        # Get alert_alarm_definition, then user_event_notification. Retrieve user email address.
+        # Get alert_alarm_definition.
         alert_alarm_definition = SystemEventDefinition.query.get(alert_alarm.system_event_definition_id)
-        if alert_alarm_definition is None:
-            message = 'Failed to identify system_event_definition with id: %d' % alert_alarm.system_event_definition_id
-            if log: print '\n (log) [acknowledge_alert_alarm] message: ', message
-            current_app.logger.exception('[acknowledge_alert_alarm] %s ' % message)
-            raise Exception(message)
-
-        # Get user_event_notification by filter on alert alarm definition value
-        user_event_notification = UserEventNotification.query.filter_by(system_event_definition_id=alert_alarm_definition.id).first()
-        if user_event_notification is None:
-            message = 'Failed to identify user_event_notification with id: %d' % alert_alarm_definition.id
-            if log: print '\n (log) [acknowledge_alert_alarm] -- message: ', message
-            current_app.logger.exception('[acknowledge_alert_alarm] %s ' % message)
-            raise Exception(message)
 
         # Acknowledge alert/alarm in uframe. acknowledgedBy is str(user_id)
         ack_value = None
@@ -236,15 +234,13 @@ def acknowledge_alert_alarm():
 
         if ack_value is None:
             message = 'Required value ack_by is empty or None.'
-            if debug: print '\n message: ', message
             return bad_request(message)
 
         if alert_alarm.event_type == 'alarm':
             if not (uframe_acknowledge_alert_alarm(ack_id, ack_value)):
-                message = 'Failed to acknowledge alert_alarm (id: %d), in uframe.' % alert_alarm.id
-                if log: print '\n (log) [acknowledge_alert_alarm] -- message: ', message
-                current_app.logger.exception('[acknowledge_alert_alarm] %s ' % message)
-                return bad_request(message)
+                message = 'Failed to acknowledge alert_alarm (id:%d), in uframe.' % alert_alarm.id  # todo test case
+                current_app.logger.exception('[acknowledge_alert_alarm] %s ' % message)             # todo test case
+                return bad_request(message)                                                         # todo test case
 
         # Update alert_alarm acknowledged, ack_by and ts_acknowledged - todo revisit
         alert_alarm.acknowledged = True
@@ -253,99 +249,63 @@ def acknowledge_alert_alarm():
         try:
             db.session.add(alert_alarm)
             db.session.commit()
-        except:
-            # todo - test case
-            db.session.rollback()
-            return bad_request('IntegrityError acknowledging alert_alarm')
-        return jsonify(alert_alarm.to_json()), 201
+        except:                                                                     # todo test case
+            db.session.rollback()                                                   # todo test case
+            return bad_request('IntegrityError acknowledging alert_alarm')          # todo test case
+        return jsonify(alert_alarm.to_json()), 201                                  # todo test case
     except Exception as err:
         message = 'Insufficient data, or bad data format; %s' % err.message
-        if log: print '\n (acknowledge_alert_alarm) message: ', message
         return conflict(message)
-
-def get_alert_alarm_definition_id(uframe_filter_id):
-    """ Get alert_alarm_definition id using alert_alarm.uframe_filter_id.
-    """
-    log = False
-    try:
-        # Get system_event_definition_id using uframe_filter_id provided in request.data
-        try:
-            system_event_definition = SystemEventDefinition.query.filter_by(uframe_filter_id=uframe_filter_id).first()
-            if system_event_definition is None:
-                message = 'Failed to retrieve SystemEventDefinition for uframe_filter_id: %d' % uframe_filter_id
-                if log: print '\n message: ', message
-                current_app.logger.exception(message)
-                raise Exception(message)
-            system_event_definition_id = system_event_definition.id
-        except Exception as err:
-            # This is a severe error, failure to record instance of alert or alarm from uframe.
-            message = 'Failure to record instance of alert or alarm from uframe. Error: %s' % err.message
-            if log: print '\n message: ', message
-            current_app.logger.exception(message)
-            raise  Exception(err.message)
-        if system_event_definition_id is None:
-            message = 'Unable to identify system_event_definition_id using uframe_filter_id (%d)' % uframe_filter_id
-            if log: print '\n message: ', message
-            current_app.logger.exception(message)
-            raise Exception(message)
-        return system_event_definition_id
-    except:
-        raise
 
 def is_valid_alert_alarm_for_ack(data):
     """ Validate this is the alert alarm to be acknowledged.
     """
-    log = False
     try:
         definition_id = data['system_event_definition_id']
         definition = SystemEventDefinition.query.get(definition_id)
         if definition is None:
             message = 'Acknowledge failed to retrieve SystemEventDefinition (id: %d)' % definition_id
-            if log: print '\n (is_valid_alert_alarm_for_ack) message: ', message
+            raise Exception(message)
+
+        user_event_notification = UserEventNotification.query.filter_by(system_event_definition_id=definition_id).first()
+        if user_event_notification is None:
+            message = 'Acknowledge failed to retrieve UserEventNotification for definition (id: %d)' % definition_id
             raise Exception(message)
 
         # Variables for sanity tests
         uframe_filter_id = data['uframe_filter_id']
         uframe_event_id = data['uframe_event_id']
         event_type = data['event_type']
+
         # Sanity test variables alert_alarm data against definition
         if definition.uframe_filter_id != uframe_filter_id:
             message = 'Acknowledge failed to match alert_alarm uframe_filter_id with SystemEventDefinition (id: %d)' % definition_id
-            if log: print '\n (is_valid_alert_alarm_for_ack) message: ', message
             raise Exception(message)
         if definition.event_type != event_type:
             message = 'Acknowledge failed to match alert_alarm event_type with SystemEventDefinition (id: %d)' % definition_id
-            if log: print '\n (is_valid_alert_alarm_for_ack) message: ', message
             raise Exception(message)
 
         # Sanity test existing alert_alarm; first get alert_alarm to be acknowledged, verify variables for consistency
         id = data['id']
         alert_alarm = SystemEvent.query.get(id)
         if alert_alarm is None:
-            return alert_alarm
-
-        if alert_alarm.uframe_filter_id != uframe_filter_id:
-            message = 'Acknowledge failed to match alert_alarm uframe_filter_id (id: %d)' % id
-            if log: print '\n (is_valid_alert_alarm_for_ack) message: ', message
+            message = 'Acknowledge failed to retrieve SystemEvent (id: %d)' % id
             raise Exception(message)
         if alert_alarm.uframe_event_id != uframe_event_id:
-            message = 'Acknowledge failed to match alert_alarm uframe_event_id  (id: %d)' % id
-            if log: print '\n (is_valid_alert_alarm_for_ack) message: ', message
-            raise Exception(message)
+            message = 'Acknowledge failed to match alert_alarm uframe_event_id  (id: %d)' % id  # todo test case
+            raise Exception(message)                                                            # todo test case
         if alert_alarm.event_type != event_type:
-            message = 'Acknowledge failed to match alert_alarm event_type (id: %d)' % id
-            if log: print '\n (is_valid_alert_alarm_for_ack) message: ', message
-            raise Exception(message)
+            message = 'Acknowledge failed to match alert_alarm event_type (id: %d)' % id        # todo test case
+            raise Exception(message)                                                            # todo test case
         return alert_alarm
-    except Exception as err:
-        if log: print '\n (is_valid_alert_alarm_for_ack) message: ', err.message
+    except:
         raise
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Alerts & Alarms Definitions
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #List all alert and alarm definitions
-@api.route('/alert_alarm_definition')
+@api.route('/alert_alarm_definition', methods=['GET'])
 def get_alerts_alarms_def():
     """ Get a list of alert or alarm definition(s).
     """
@@ -385,12 +345,13 @@ def create_alert_alarm_def():
         data = json.loads(request.data)
         create_definition_has_required_fields(data)
         user_event_notification_has_required_fields(data)
+
         # Persist alert_alarm_def in uframe using POST
         uframe_filter_id = create_uframe_alertfilter(data)
         if uframe_filter_id is None:
-            message = 'Failed to create alertfilter in uframe.'
-            if debug: print '\n (create_alert_alarm_def) message: ', message
-            raise Exception(message)
+            message = 'Failed to create alertfilter in uframe.'                 # todo test case
+            raise Exception(message)                                            # todo test case
+
         # Persist alert_alarm_def in ooi-ui-services db
         alert_alarm_def = SystemEventDefinition()
         alert_alarm_def.active = data['active']
@@ -415,16 +376,14 @@ def create_alert_alarm_def():
         try:
             db.session.add(alert_alarm_def)
             db.session.commit()
-        except:
-            # todo - test case
+        except:                                                                 # todo test case
             # Rollback alert_alarm_def and delete alertfilter from uframe.
-            message = 'IntegrityError creating alert_alarm_definition'
-            db.session.rollback()
-            result = delete_alertfilter(uframe_filter_id)
-            if result is None:
+            message = 'IntegrityError creating alert_alarm_definition'          # todo test case
+            db.session.rollback()                                               # todo test case
+            result = delete_alertfilter(uframe_filter_id)                       # todo test case
+            if result is None:                                                  # todo test case
                 message += '; failed to rollback create uframe alertfilter (id: %d) ' %  uframe_filter_id
-            if debug: print '\, (create_alert_alarm_def) message: ', message
-            return bad_request(message)
+            return bad_request(message)                                         # todo test case
 
         # todo put this into it's own method...
         try:
@@ -445,36 +404,24 @@ def create_alert_alarm_def():
                                                      use_log=use_log,
                                                      use_sms=use_sms)
             if new_id is None:
-                message = 'Unable to create user_event_notification record.'
-                if debug: print '\n (create_alert_alarm_def) message: ', message
-                raise Exception(message)
+                message = 'Unable to create user_event_notification record.'                # todo test case
+                raise Exception(message)                                                    # todo test case
 
-        except Exception as err:
-            # todo - test case(s)
+        except Exception as err:                                                            # todo test case
             # Error creating user_event_notification, rollback: delete system_event_definition and uframe alertfilter
-            message += 'IntegrityError creating alert_alarm_definition. Failed to insert_user_event_notification (%s)' % str(err.message)
-            try:
-                SystemEventDefinition.delete_system_event_definition(alert_alarm_def)
-            except Exception as err:
-                message += '; %s' % err.message
-            '''
-            # Remove alert_alarm_def
-            definition = SystemEventDefinition.query.get(alert_alarm_def.id)
-            if definition is None:
-                message += " system_event_definition (id: %d) Not Found" % alert_alarm_def.id
-            db.session.delete(definition)
-            db.session.commit()
-            '''
-            result = delete_alertfilter(uframe_filter_id)
-            if result is None:
-                message += '; failed to rollback uframe alertfilter (id: %d) ' %  uframe_filter_id
-            if debug: print '\n (create_alert_alarm_def) message: ', message
-            return conflict(message)
-
+            message += 'IntegrityError creating alert_alarm_definition. '                   # todo test case
+            message += 'Failed to insert_user_event_notification (%s)' % str(err.message)   # todo test case
+            try:                                                                            # todo test case
+                SystemEventDefinition.delete_system_event_definition(alert_alarm_def)       # todo test case
+            except Exception as err:                                                        # todo test case
+                message += '; %s' % err.message                                             # todo test case
+            result = delete_alertfilter(uframe_filter_id)                                   # todo test case
+            if result is None:                                                              # todo test case
+                message += '; failed to rollback uframe alertfilter (id: %d) ' %  uframe_filter_id # todo test case
+            return conflict(message)                                                        # todo test case
         return jsonify(alert_alarm_def.to_json()), 201
     except Exception as err:
         message = 'Insufficient data, or bad data format. (%s)' % str(err.message)
-        if debug: print '\n (create_alert_alarm_def) message: ', message
         return conflict(message)
 
 @api.route('/alert_alarm_definition/<int:id>', methods=['PUT'])
@@ -488,25 +435,19 @@ def update_alert_alarm_def(id):
     the user_event_notification will be updated within this method; in this case, all user_event_notification
     fields must also be provided in the request.data.
     """
-    # todo discuss:
-    # todo 'escalate_on' - amount of time, after the first alert occurred, to create a redmine ticket;
-    # todo           escalate_on units? seconds?
-    # todo 'escalate_boundary' - amount of time after ts_escalated to create yet another red mine ticket)
     try:
         # Verify SystemEventDefinition with this id exists
         alert_alarm_def = SystemEventDefinition.query.get(id)
         if alert_alarm_def is None:
             message = "Invalid ID, alert_alarm_definition record not found"
-            #print '\n message: ', message
             return jsonify(error=message), 404
         original_alert_alarm_def = alert_alarm_def
         # Process request.data; verify required fields provided for update.
         data = json.loads(request.data)
         create_definition_has_required_fields(data)
         if 'uframe_filter_id' not in data:
-            message = 'uframe_filter_id not in alertfilter update request.data'
-            #print '\n message: ', message
-            raise Exception(message)
+            message = 'uframe_filter_id not in alertfilter update request.data'                 # todo test case
+            raise Exception(message)                                                            # todo test case
         user_event_notification = None
         user_event_notification_id = None
         update_user_event_notification = False
@@ -516,9 +457,8 @@ def update_alert_alarm_def(id):
                 user_event_notification_has_required_fields(data)
                 user_event_notification = UserEventNotification.query.filter_by(system_event_definition_id=id).first()
                 if user_event_notification is None:
-                    message = 'Invalid ID, user_event_notification record not found for requested update.'
-                    #print '\n message: ', message
-                    return jsonify(error="Invalid ID, user_event_notification record not found for requested update."), 404
+                    message = 'Invalid ID, user_event_notification record not found for requested update.'  # todo test case
+                    return jsonify(error=message), 404                                                      # todo test case
                 user_event_notification_id = user_event_notification.id
 
         # Persist alert_alarm_def in uframe using POST; retain original definition for rollback
@@ -548,20 +488,17 @@ def update_alert_alarm_def(id):
         try:
             db.session.add(alert_alarm_def)
             db.session.commit()
-            #db.session.flush()
-        except:
-            # Restore original alertfilter in uframe. Restore original original_alert_alarm_def_ todo - test case
-            #db.session.rollback()
-            db.session.add(original_alert_alarm_def)
-            db.session.commit()
+        except:                                                                     # todo test case
+            # Restore original alertfilter in uframe and original_alert_alarm_def_  # todo test case
+            db.session.add(original_alert_alarm_def)                                # todo test case
+            db.session.commit()                                                     # todo test case
             result = update_uframe_alertfilter(uframe_filter_id, original_uframe_definition)
-            message = 'IntegrityError update_alert_alarm_def'
-            if result is None:
+            message = 'IntegrityError update_alert_alarm_def'                       # todo test case
+            if result is None:                                                      # todo test case
                 message += '; failed to rollback updates to uframe alertfilter (id: %d) ' %  uframe_filter_id
-            return bad_request(message)
+            return bad_request(message)                                             # todo test case
         # If user has indicated an updatefor the user_event_notification, perform update.
         if update_user_event_notification:
-            #print '\n debug -- Performing UserEventNotification.update_user_event_notification....'
             try:
                 # Update corresponding UserEventNotification for when alert or alarm instance
                 system_event_definition_id = alert_alarm_def.id
@@ -579,21 +516,18 @@ def update_alert_alarm_def(id):
                                                                      use_phone=use_phone,
                                                                      use_log=use_log,
                                                                      use_sms=use_sms)
-            except Exception as err:
+            except Exception as err:                                                            # todo test case
                 # Error updating user_event_notification, rollback: updates to system_event_definition and uframe alertfilter
-                message = 'IntegrityError update_alert_alarm_def; Failed to update_user_event_notification (%s)' % str(err.message)
-                print '\n (update_alert_alarm_def) exception: %s' % message
-                result = update_uframe_alertfilter(uframe_filter_id, original_uframe_definition)
-                if result is None:
+                message = 'IntegrityError update_alert_alarm_def; '                             # todo test case
+                message += 'Failed to update_user_event_notification (%s)' % str(err.message)   # todo test case
+                result = update_uframe_alertfilter(uframe_filter_id, original_uframe_definition)# todo test case
+                if result is None:                                                              # todo test case
                     message += '; failed to rollback updates to uframe alertfilter (id: %d) ' %  uframe_filter_id
-                #print '\n (update_alert_alarm_def) message: ', message
                 return conflict(message)
 
         return jsonify(alert_alarm_def.to_json()), 201
     except Exception as err:
-        #message = 'Insufficient data, or bad data format. (%s)' % str(err.message)
         message = str(err.message)
-        #print '\n (update_alert_alarm_def) message: ', message
         return conflict(message)
 
 @api.route('/delete_alert_alarm_definition/<int:id>', methods=['DELETE'])
@@ -606,26 +540,28 @@ def delete_alert_alarm_definition(id):
     alert_alarm_def = SystemEventDefinition.query.get(id)
     if alert_alarm_def is None:
         return jsonify(error="alert_alarm_definition not found"), 404
+
     # If alert_alarm_definition already retired, just return
     if alert_alarm_def.retired is not None:
         if alert_alarm_def.retired == True:
             return jsonify(), 200
+
     # Determine if definition id is used by any alert or alarm instances where acknowledged is False)
     active_alerts_alarms = SystemEvent.query.filter_by(system_event_definition_id=id, acknowledged=False).first()
     if active_alerts_alarms is not None:
         # There are existing alert_alarm instances using this id which have not been acknowledged
-        message = 'There are existing alert_alarm instances using this id which have not yet been acknowledged.'
+        message = 'There are existing %s instance(s) using this definition id (%d) which have not yet been acknowledged.' \
+                  % (alert_alarm_def.event_type, id)
         return bad_request(message)
     alert_alarm_def.retired = True
     alert_alarm_def.ts_retired = dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%dT%H:%M:%S")
     try:
         db.session.add(alert_alarm_def)
         db.session.commit()
-        #db.session.flush()
-    except:
-        db.session.rollback()
-        message = 'IntegrityError deleting alert_alarm_definition'
-        return bad_request(message)
+    except:                                                             # todo test case
+        db.session.rollback()                                           # todo test case
+        message = 'IntegrityError deleting alert_alarm_definition'      # todo test case
+        return bad_request(message)                                     # todo test case
     return jsonify(), 200
 
 @api.route('/ok_to_delete_alert_alarm_definition/<int:id>', methods=['GET'])
@@ -654,55 +590,43 @@ def create_definition_has_required_fields(data):
                            'instrument_name', 'instrument_parameter', 'instrument_parameter_pdid', 'low_value',
                            'operator',  'platform_name', 'reference_designator', 'severity',  'stream',
                            'escalate_on', 'escalate_boundary']
-                           # not created_time, id, 'uframe_filter_id'
         valid_operators = ['GREATER', 'LESS', 'BETWEEN_EXCLUSIVE', 'OUTSIDE_EXCLUSIVE']
         valid_event_types = ['alert', 'alarm']
         for field in required_fields:
             if field not in data:
                 message = 'Missing required field (%s) in request.data' % field
-                #print '\n debug -- (create_definition_has_required_fields) %s' % message
                 raise Exception(message)
         if data['event_type'] is None:
             message = 'Failed to provide event_type value provided. (None).'
-            #print '\n debug -- (create_definition_has_required_fields) %s' % message
             raise Exception(message)
         if data['event_type'] not in valid_event_types:
             message = 'Invalid event_type value provided (%s).' % data['event_type']
-            #print '\n debug -- (create_definition_has_required_fields) %s' % message
             raise Exception(message)
         if data['operator'] is None:
             message = 'Failed to provide operator value provided. (None).'
-            #print '\n debug -- (create_definition_has_required_fields) %s' % message
             raise Exception(message)
         if data['operator'] not in valid_operators:
             message = 'Invalid operator value provided (%s).' % data['operator']
-            #print '\n debug -- (create_definition_has_required_fields) %s' % message
             raise Exception(message)
         return
-    except Exception as err:
-        #print '\n (create_definition_has_required_fields) message: ', err.message
+    except:
         raise
 
 def user_event_notification_has_required_fields(data):
     """ Verify insert_user_event_notification data has required fields. Error otherwise.
     """
-    field = None
     try:
         required_fields = ['user_id', 'use_email', 'use_redmine', 'use_phone', 'use_log', 'use_sms']
         for field in required_fields:
             if field not in data:
-                message = 'Missing required field (%s) in request.data' % field
-                #print '\n message: ', message
-                raise Exception(message)
+                message = 'Missing required field (%s) in request.data' % field         # todo test case
+                raise Exception(message)                                                # todo test case
             if data[field] is None:
-                message = 'Required field (%s) value provided is None for user_event_notification.' % field
-                #print '\n message: ', message
-                raise Exception(message)
+                message = 'Required field (%s) value provided is None for user_event_notification.' % field # todo test case
+                raise Exception(message)                                                # todo test case
         return
-    except Exception as err:
-        message = '(user_event_notification_has_required_fields) %s ' % err.message
-        #print '\n message: ', message
-        raise
+    except:             # todo test case
+        raise           # todo test case
 
 def create_has_required_fields(data):
     """ Verify SystemEvent creation has required fields in request.data. Error otherwise.
@@ -712,11 +636,11 @@ def create_has_required_fields(data):
                            'event_time', 'event_type', 'event_response', 'method', 'deployment']
         for field in required_fields:
             if field not in data:
-                message = 'Missing required field (%s) in request.data' % field
-                raise Exception(message)
+                message = 'Missing required field (%s) in request.data' % field         # todo test case
+                raise Exception(message)                                                # todo test case
         return
-    except Exception as err:
-        raise
+    except:             # todo test case
+        raise           # todo test case
 
 def acknowledge_has_required_fields(data):
     """ Verify SystemEvent acknowledge has required fields in request.data. Error otherwise.
@@ -724,17 +648,13 @@ def acknowledge_has_required_fields(data):
     try:
         required_fields = ['id', 'uframe_event_id', 'uframe_filter_id', 'system_event_definition_id',
                            'event_type', 'ack_by']
-                           # 'acknowledged',, 'ts_acknowledged']
-                           #'event_response', 'method', 'deployment']
         for field in required_fields:
             if field not in data:
-                message = 'Missing required field (%s) in request.data' % field
-                #print '\n (acknowledge_has_required_fields) message: ', message
-                raise Exception(message)
+                message = 'Missing required field (%s) in request.data' % field         # todo test case
+                raise Exception(message)                                                # todo test case
         return
-    except Exception as err:
-        #print '\n (acknowledge_has_required_fields) message: ', err.message
-        raise
+    except:             # todo test case
+        raise           # todo test case
 
 def get_query_filters(request_args):
     """ Create filter dictionaries for SystemEvent and SystemEventDefinition; used in route /alert_alarm.
@@ -821,6 +741,7 @@ def get_query_filters(request_args):
             event_filters[k] = v
     if len(event_filters) == 0:
         event_filters = None
+
     # SystemEventDefinition query filter (NOTE: keys must be class properties)
     def_keys = ['array_name', 'platform_name', 'instrument_name', 'reference_designator','active','retired']
     def_values = [array_name, platform_name, instrument_name, reference_designator, active, retired]
@@ -861,8 +782,9 @@ def get_alert_alarm_json(alerts_alarms, definition_filters):
                 event_type = alert_alarm.event_type
                 definition = SystemEventDefinition.query.filter_by(id=definition_id, event_type=event_type).first()
                 if definition is None:
-                    message = 'No alert_alarm_definition (id:%d) for alert_alarm (id: %d).' % (definition_id, alert_alarm.id)
-                    raise Exception(message)
+                    message = 'No alert_alarm_definition (id:%d) for alert_alarm (id: %d, %s).' % \
+                              (definition_id, alert_alarm.id, alert_alarm.event_type)               # todo test case
+                    raise Exception(message)                                                        # todo test case
 
                 # Determine if this alert_alarm_definition data matches definition_filters
                 tmp_json_dict['alert_alarm_definition'] = {}
@@ -885,8 +807,8 @@ def get_alert_alarm_json(alerts_alarms, definition_filters):
                         result_json.append(tmp_json_dict)
             result = result_json
         return result
-    except:
-        raise
+    except:                     # todo test case
+        raise                   # todo test case
 
 def get_definitions_query_filter(request_args):
     """ Get query_filter for alert_alarm_definition list route.
@@ -923,18 +845,18 @@ def safe_to_delete_alert_alarm_definition(id):
         # Get alert_alarm_definition
         alert_alarm_def = SystemEventDefinition.query.get(id)
         if alert_alarm_def is None:
-            return result
+            return result                                           # todo test case
         # If alert_alarm_definition already retired, just return
         if alert_alarm_def.retired is not None:
             if alert_alarm_def.retired:
-                return result
+                return result                                       # todo test case
         # Determine if definition id is used by any alert or alarm instances where acknowledged is False
         active_alerts_alarms = SystemEvent.query.filter_by(system_event_definition_id=id, acknowledged=False).first()
         if active_alerts_alarms is not None:
             return result
         result = True
-    except:
-        pass
+    except:             # todo test case
+        pass            # todo test case
     finally:
         return result
 
@@ -954,29 +876,35 @@ def create_uframe_alertfilter(request_data):
         # Create uframe data dictionary from request.data
         uframe_data = create_uframe_alertfilter_data(request_data)
         if uframe_data is None:
-            raise Exception('Failed to create alertfilter dictionary for uframe.')
+            message = 'Failed to create alertfilter dictionary for uframe.'                     # todo test case
+            raise Exception(message)                                                            # todo test case
 
         # Create alertfilter in uframe
         response = uframe_create_alertfilter(uframe_data)
         if response.status_code !=201:
-            message = '(%s) Failed to execute create_uframe_alertfilter.' % str(response.status_code)
-            if response.content:
-                message = '(%s) %s' % (str(response.status_code), str(response.content))
-            raise Exception(message)
+            message = '(%s) Failed to execute create_uframe_alertfilter.' % str(response.status_code) # todo test case
+            if response.content:                                                                # todo test case
+                message = '(%s) %s' % (str(response.status_code), str(response.content))        # todo test case
+            raise Exception(message)                                                            # todo test case
 
         # Evaluate response content for error or alertfilter id
         # Sample: {"message" : "Record created successfully", "id" : 2, "statusCode" : "CREATED" }
         if response.content:
             try:
                 response_data = json.loads(response.content)
-            except:
-                raise Exception('Malformed data; not in valid json format.')
+            except:                                                                             # todo test case
+                message = 'Malformed data; not in valid json format.'                           # todo test case
+                raise Exception(message)
             if response_data:
                 if 'statusCode' in response_data:
                     if response_data['statusCode'] == successful_response:
                         result = response_data['id']
+                    else:
+                        message = 'uframe statusCode indicates failure to create alertfilter; (%s) %s' % \
+                                  (str(response.status_code), str(response.content))            # todo test case
+                        raise Exception(message)                                                # todo test case
         return result
-    except:
+    except:                 # todo test case
         raise
 
 def update_uframe_alertfilter(request_data, id):
@@ -991,26 +919,28 @@ def update_uframe_alertfilter(request_data, id):
         # Create uframe data dictionary from request.data
         uframe_data = create_uframe_alertfilter_data(request_data)
         if uframe_data is None:
-            raise Exception('Unable to update alertfilter data for uframe.')
+            raise Exception('Unable to update alertfilter data for uframe.')                    # todo test case
+
         # Update alertfilter in uframe
         response = uframe_update_alertfilter(uframe_data, id)
         if response.status_code !=200:
             message = '(%s) Failed to execute update_uframe_alertfilter (id: %d).' % (str(response.status_code), id)
             if response.content:
-                message = '(%s) %s' % (str(response.status_code), str(response.content))
+                message = '(%s) %s' % (str(response.status_code), str(response.content))        # todo test case
             raise Exception(message)
+
         # Evaluate response content for error or alertfilter id
         if response.content:
             try:
                 response_data = json.loads(response.content)
             except:
-                raise Exception('Malformed data; not in valid json format.')
+                raise Exception('Malformed data; not in valid json format.')                    # todo test case
             if response_data:
                 if 'statusCode' in response_data:
                     if response_data['statusCode'] != successful_response:
-                        raise Exception('Failed to update uframe alertfilter (id: %d).' % id)
+                        raise Exception('Failed to update uframe alertfilter (id: %d).' % id)   # todo test case
         else:
-            raise Exception('uframe failed on update of alertfilter (id: %d).' % id)
+            raise Exception('uframe failed on update of alertfilter (id: %d).' % id)            # todo test case
         return
     except:
         raise
@@ -1029,7 +959,7 @@ def delete_alertfilter(id):
     result = None
     try:
         #headers = get_api_headers('admin', 'test')                         # todo will we need some kind of auth?
-        uframe_url, timeout, timeout_read = get_uframe_info()
+        uframe_url, timeout, timeout_read = get_uframe_alerts_info()
         url = "/".join([uframe_url, 'alertfilters', str(id)])
         response = requests.delete(url, timeout=(timeout, timeout_read))    # , headers=headers) todo see above
         if response.status_code != 200:
@@ -1055,7 +985,7 @@ def get_alertfilter(id):
     """
     result = None
     try:
-        uframe_url, timeout, timeout_read = get_uframe_info()
+        uframe_url, timeout, timeout_read = get_uframe_alerts_info()
         url = "/".join([uframe_url, 'alertfilters', str(id)])
         response = requests.get(url, timeout=(timeout, timeout_read))
         alertfilter = json.loads(response.content)
@@ -1063,7 +993,7 @@ def get_alertfilter(id):
             raise Exception('Failed to get alertfilter (id: %d)' % id)
         result = alertfilter
         return result
-    except:
+    except:             #todo test case
         return result
 
 def create_uframe_alertfilter_data(data):
@@ -1095,12 +1025,12 @@ def create_uframe_alertfilter_data(data):
         description = data['description']
         high_value = data['high_value']
         low_value = data['low_value']
-        if reference_designator is None or len(reference_designator) != 27:
-            raise Exception('reference_designator is None or malformed. ')
         if high_value is None and low_value is None:
             raise Exception('Parameters high_value and low_value are both None.')
         if reference_designator is None:
             raise Exception('Required parameter (reference_designator) is None.')
+        if len(reference_designator) != 27:
+            raise Exception('reference_designator is malformed. ')
         else:
             subsite = reference_designator[0:8]
             node = reference_designator[9:14]
@@ -1128,7 +1058,7 @@ def create_uframe_alertfilter_data(data):
         uframe_data['alertRule']['highVal'] = float(high_value)
         uframe_data['alertRule']['lowVal'] = float(low_value)
         uframe_data['alertRule']['errMessage'] = None
-    except:
+    except:                 # todo test case
         raise
     return uframe_data
 
@@ -1138,7 +1068,7 @@ def create_uframe_alertfilter_data(data):
 def convert_from_utc(u): return dt.datetime.utcfromtimestamp(u)
 def ut(d): return calendar.timegm(d.timetuple())
 
-def get_uframe_info():
+def get_uframe_alerts_info():
     """ Get uframe alertalarm configuration information. (port 12577) """
     uframe_url = current_app.config['UFRAME_ALERTS_URL']
     timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
@@ -1152,23 +1082,23 @@ def headers():
 def uframe_create_alertfilter(uframe_data):
     """ Create alertfilter in uframe. """
     try:
-        uframe_url, timeout, timeout_read = get_uframe_info()
+        uframe_url, timeout, timeout_read = get_uframe_alerts_info()
         url = "/".join([uframe_url, 'alertfilters'])
         data = json.dumps(uframe_data)
         response = requests.post(url, timeout=(timeout, timeout_read), headers=headers(), data=data)
         return response
-    except:
+    except:                 # todo test case
         raise
 
 def uframe_update_alertfilter(uframe_data, alertfilter_id):
     """ Update alertfilter in uframe. """
     try:
-        uframe_url, timeout, timeout_read = get_uframe_info()
+        uframe_url, timeout, timeout_read = get_uframe_alerts_info()
         url = "/".join([uframe_url, 'alertfilters', str(alertfilter_id)])
         data = json.dumps(uframe_data)
         response = requests.put(url, timeout=(timeout, timeout_read), headers=headers(), data=data)
         return response
-    except:
+    except:                 # todo test case
         raise
 
 def uframe_acknowledge_alert_alarm(uframe_event_id, value):
@@ -1179,23 +1109,18 @@ def uframe_acknowledge_alert_alarm(uframe_event_id, value):
           "acknowledgedBy":"jimkorman@raytheon"
         }
     """
-    log = True
-    debug = True
     uframe_success = 'OK'
     result = False
     try:
-        uframe_url, timeout, timeout_read = get_uframe_info()
+        uframe_url, timeout, timeout_read = get_uframe_alerts_info()
         url = "/".join([uframe_url, 'alertalarms', 'ack'])
         uframe_data = {}
         uframe_data['eventId'] = str(uframe_event_id)
         uframe_data['acknowledgedBy'] = str(value)
-
-        if debug: print '\n url: ', url
         data = json.dumps(uframe_data)
         response = requests.put(url, timeout=(timeout, timeout_read), headers=headers(), data=data)
         if response.status_code != 200:
             message = 'Failure to issue uframe acknowledge for alert_alarm (event id: %d) in uframe. ' % uframe_event_id
-            if log: print '\n (uframe_acknowledge_alert_alarm) message: ', message
             raise Exception(message)
 
         if response.content:
@@ -1209,12 +1134,130 @@ def uframe_acknowledge_alert_alarm(uframe_event_id, value):
                 if status_code == uframe_success:
                     result = True
                 else:
+                    # todo - test case
                     message = 'Failure to acknowledge alert_alarm (event id: %d) in uframe. ' % uframe_event_id
-                    if log: print '\n (uframe_acknowledge_alert_alarm) message: ', message
                     raise Exception(message)
-    except Exception as err:
-        if log: print '\n (log) [acknowledge_alert_alarm] message: ', err.message
-        current_app.logger.exception('[acknowledge_alert_alarm] %s ' % err.message)
-        #pass
-    finally:
         return result
+    except Exception as err:
+        current_app.logger.exception('[acknowledge_alert_alarm] %s ' % err.message)
+        raise
+
+@api.route('/alert_alarm_get_instrument_metadata/<string:ref>', methods=['GET'])
+def uframe_get_instrument_metadata(ref):
+    '''
+    Returns the uFrame metadata response for an instrument, for all methods - concatenate method and stream_name.
+    Example: method + '_' + stream_name
+
+    Sample request:
+        http://localhost:4000/alert_alarm_get_instrument_metadata/CE01ISSM-SBD17-04-VELPTA000
+
+    Reference regarding urls utilized to process the sample request above:
+        http://uframe-test.ooi.rutgers.edu:12576/sensor/inv/CE01ISSM/SBD17/04-VELPTA000
+        http://uframe-test.ooi.rutgers.edu:12576/sensor/inv/CE01ISSM/SBD17/04-VELPTA000/telemetered
+        http://uframe-test.ooi.rutgers.edu:12576/sensor/inv/CE01ISSM/SBD17/04-VELPTA000/recoveredi
+        http://uframe-test.ooi.rutgers.edu:12576/sensor/inv/CE01ISSM/SBD17/04-VELPTA000/metadata
+    '''
+    methods = None
+    parameters = None
+    streams = {}
+    results = None
+    try:
+        mooring, platform, instrument = ref.split('-', 2)
+        uframe_url, timeout, timeout_read = get_uframe_info()
+
+        # Get instrument metadata
+        url = "/".join([uframe_url, mooring, platform, instrument, 'metadata'])
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code == 200:
+            metadata = response.json()
+            if 'parameters' in metadata:
+                parameters = metadata['parameters']
+        if parameters is None:
+            return bad_request('Failure to compile response, metadata parameters is None.')
+        #print '\n parameters: ', parameters
+
+        # Get instrument methods
+        url = "/".join([uframe_url, mooring, platform, instrument])
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code == 200:
+            methods = response.json()
+        if methods is None:
+            return bad_request('Failure to compile response, instrument %s has no methods.' % ref)
+        #print '\n methods: ', methods
+
+        # Get streams for each method (expects unique list of methods from uframe; no dups)
+        for method in methods:
+            url = "/".join([uframe_url, mooring, platform, instrument, method])
+            response = requests.get(url, timeout=(timeout, timeout_read))
+            if response.status_code == 200:
+                streams_data = response.json()
+                if streams_data is not None:
+                    streams[str(method)] = streams_data
+        if len(streams) == 0:
+            return bad_request('Failure to compile response, instrument %s has methods with no streams.' % ref)
+        #print '\n streams: ', streams
+
+        # Compile result from methods, streams and parameters
+        tmp = {}
+        for method in methods:
+            streams_for_method = streams[str(method)]
+            tmp[method] = {}
+            #print '\n (method: %s) streams: %s' % (method, streams_for_method)
+            for stream in streams_for_method:
+                tmp[method] = {}
+                key = "_".join([str(method), str(stream)])
+                #print '\n key: ', key
+                list_of_parameters = []
+                #print '\n key: %s -- processing stream: %s' % (key, str(stream))
+                for param in parameters:
+                    if str(param['stream']) == str(stream):
+                        list_of_parameters.append(param)
+                if len(list_of_parameters) > 0:
+                    tmp[method][key] = list_of_parameters
+
+        if len(tmp) > 0:
+            results = tmp
+
+        return jsonify(stream_metadata=results)
+    except Exception as err:
+        return internal_server_error('Failed to compile instrument metadata by stream. ' + str(err.message))
+
+def get_uframe_info():
+    '''
+    returns uframe configuration information. (uframe_url, uframe timeout_connect and timeout_read.)
+    '''
+    uframe_url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+    timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
+    timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
+    return uframe_url, timeout, timeout_read
+
+    '''
+    def get_alert_alarm_definition_id(uframe_filter_id):
+        """ Get alert_alarm_definition id using alert_alarm.uframe_filter_id.
+        """
+        log = False
+        try:
+            # Get system_event_definition_id using uframe_filter_id provided in request.data
+            try:
+                system_event_definition = SystemEventDefinition.query.filter_by(uframe_filter_id=uframe_filter_id).first()
+                if system_event_definition is None:
+                    message = 'Failed to retrieve SystemEventDefinition for uframe_filter_id: %d' % uframe_filter_id
+                    #if log: print '\n message: ', message
+                    current_app.logger.exception(message)
+                    raise Exception(message)
+                system_event_definition_id = system_event_definition.id
+            except Exception as err:
+                # This is a severe error, failure to record instance of alert or alarm from uframe.
+                message = 'Failure to record instance of alert or alarm from uframe. Error: %s' % err.message
+                #if log: print '\n message: ', message
+                current_app.logger.exception(message)
+                raise  Exception(err.message)
+            if system_event_definition_id is None:
+                message = 'Unable to identify system_event_definition_id using uframe_filter_id (%d)' % uframe_filter_id
+                #if log: print '\n message: ', message
+                current_app.logger.exception(message)
+                raise Exception(message)
+            return system_event_definition_id
+        except:
+            raise
+    '''

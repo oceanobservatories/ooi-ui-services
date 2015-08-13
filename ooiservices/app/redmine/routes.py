@@ -4,7 +4,7 @@ Redmine endpoints
 
 '''
 
-from flask import jsonify, request, Response, current_app
+from flask import (jsonify, request, Response, current_app)
 from ooiservices.app.redmine import redmine as api
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.decorators import scope_required
@@ -31,18 +31,16 @@ def redmine_login():
 @scope_required('redmine')
 def create_redmine_ticket():
     '''
-    Create new ticket
+    Create new redmine ticket.
     '''
     # Get request data
     data = request.data
     # Check that there is actually data
     if not data:
-        return Response(response='{"error":"Invalid request"}',
-                        status=400,
-                        mimetype="application/json")
+        return Response(response='{"error":"Invalid request"}', status=400, mimetype="application/json")
 
     dataDict = json.loads(data)
-    #dataDict['project_id'] = 'ocean-observatory'
+
     # Define required and recommended ticket fields
     required_fields = ['project_id', 'subject']
     recommended_fields = ['due_date', 'description', 'priority_id', 'assigned_to_id',
@@ -53,8 +51,7 @@ def create_redmine_ticket():
     for field in required_fields:
         if field not in dataDict:
             return Response(response='{"error":"Invalid request: ' + field + ' not defined"}',
-                            status=400,
-                            mimetype="application/json")
+                            status=400, mimetype="application/json")
     fields = dict()
     for field in required_fields + recommended_fields:
         if field in dataDict:
@@ -77,25 +74,36 @@ def create_redmine_ticket():
 @scope_required('redmine')
 def get_all_redmine_tickets():
     '''
-    List all redmine tickets
-    ''' 
-    redmine = redmine_login()
+    List all redmine tickets.
+    '''
+    use_limit = False
+    limit = None
+    if 'limit' in request.args:
+        limit = int(request.args['limit'])
+    if limit is not None:
+        use_limit = True
+
     if 'project' not in request.args:
         return Response(response="{error: Invalid request: project_id not defined}",
-                        status=400,
-                        mimetype="application/json")
+                        status=400, mimetype="application/json")
 
     proj = request.args['project']
-
+    redmine = redmine_login()
     project = redmine.project.get(proj).refresh()
-
     issues = dict(issues=[])
+    inx = 0
     for issue in project.issues:
         details = OrderedDict()
         for field in issue_fields:
             if hasattr(issue, field):
-                details[field] = str(getattr(issue, field))
+                # Note following line will produce UnicodeEncodeError:
+                # 'ascii' codec can't encode characters in position 251-252: ordinal not in range(128)
+                details[field] = str(getattr(issue, field)) #
         issues['issues'].append(details)
+        inx += 1
+        if use_limit:
+            if inx > limit:
+                break
     return jsonify(issues)
 
 
@@ -104,14 +112,11 @@ def get_all_redmine_tickets():
 @scope_required('redmine')
 def update_redmine_ticket():
     '''
-    Update a specific ticket
+    Update a specific redmine ticket.
     '''
     data = request.data
-
     if not data:
-        return Response(response='{"error":"Invalid request"}',
-                        status=400,
-                        mimetype="application/json")
+        return Response(response='{"error":"Invalid request"}', status=400, mimetype="application/json")
 
     # Save the request as a dictionary
     dataDict = json.loads(data)
@@ -119,8 +124,7 @@ def update_redmine_ticket():
     # Check the required field (resource_id)
     if 'resource_id' not in dataDict:
         return Response(response='{"error":"Invalid request: resource_id not defined"}',
-                        status=400,
-                        mimetype="application/json")
+                        status=400, mimetype="application/json")
 
     update_fields = ['project_id', 'subject', 'due_date', 'description', 'priority_id',
                      'assigned_to_id', 'start_date', 'estimated_hours', 'status_id', 'notes',
@@ -134,10 +138,9 @@ def update_redmine_ticket():
     # Log into Redmine
     redmine = redmine_login()
 
-    # Get the issue
+    # Get the issue, update all fields except the issue resource id
     issue = redmine.issue.get(dataDict['resource_id'])
     for key, value in fields.iteritems():
-        # Update all fields except the issue resource id
         if 'resource_id' != key:
             setattr(issue, key, value)
     issue.save()
@@ -154,9 +157,7 @@ def get_redmine_ticket():
     '''
     redmine = redmine_login()
     if 'id' not in request.args:
-        return Response(response="{error: id not defined}",
-                        status=400,
-                        mimetype="application/json")
+        return Response(response="{error: id not defined}", status=400, mimetype="application/json")
 
     issue_id = request.args['id']
     issue = redmine.issue.get(issue_id, include='children,journals,watchers')
@@ -170,7 +171,6 @@ def get_redmine_ticket():
 
 @api.route('/users', methods=['GET'])
 @auth.login_required
-#@scope_required('redmine') #We don't care if they are 'redmine' scoped to populate the page!
 def get_redmine_users():
     '''
     Get all the users in a project.
@@ -178,11 +178,9 @@ def get_redmine_users():
     redmine = redmine_login()
 
     if 'project' not in request.args:
-        return Response(response="{error: project not defined}",
-                        status=400,
-                        mimetype="application/json")
+        return Response(response="{error: project not defined}", status=400, mimetype="application/json")
     all_users = redmine.user.all(offset=1, limit=100)
-    users = dict(users=[]) #,user_id=[])
+    users = dict(users=[])
     for n in xrange(len(all_users)):
       user = str(all_users[n])
       user_id = int(all_users[n]['id'])
@@ -197,6 +195,7 @@ def create_redmine_ticket_for_notification(project_id, subject, description, pri
     """ Create a redmine ticket for an alert notification.
     """
     ticket_id = None
+
     # Define required and recommended ticket fields
     required_fields = ['project_id', 'subject']
     recommended_fields = ['due_date', 'description', 'priority_id', 'assigned_to_id',
@@ -221,25 +220,32 @@ def create_redmine_ticket_for_notification(project_id, subject, description, pri
         issue = redmine.issue.new()
         issue.tracker_id = 3 # support
         for key, value in fields.iteritems():
-            #print '\n key: %r, value: %r' % (key, value)
             setattr(issue, key, value)
 
         if issue.save():
-            #print '\n issue.id: ', issue.id
             ticket_id = issue.id
 
     except Exception as err:
-        #print '\n [create_redmine_ticket_for_notification] exception: ', err.message
         current_app.logger.exception('[create_redmine_ticket_for_notification] %s ' % err.message)
 
     finally:
         return ticket_id
 
 def get_redmine_users_by_project(project_id):
+    '''
+    if project_id is None:
+        return []
+    all_projects = redmine.project.all()
+    projects = []
+    for n in xrange(len(all_projects)):
+        project = str(all_projects[n])
+        projects.append(project)
+
+    if project_id not in projects:
+        return []
+    '''
     redmine = redmine_login()
     all_users = redmine.user.all(offset=1, limit=100, project_id=project_id)
-    if all_users is None:
-        return []
     users = dict(users=[])
     for n in xrange(len(all_users)):
       user = str(all_users[n])
@@ -247,7 +253,6 @@ def get_redmine_users_by_project(project_id):
       users['users'].append([user,user_id])
     return users
 
-# todo test case
 def get_redmine_ticket_for_notification(id):
     ''' Get a specific ticket by id for alert notification. Success return ticket_id; if error, return None.
     '''
@@ -255,12 +260,11 @@ def get_redmine_ticket_for_notification(id):
     try:
         redmine = redmine_login()
         issue = redmine.issue.get(id, include='children,journals,watchers')
-        details = {} #OrderedDict()
+        details = {}
         for field in issue_fields:
             if hasattr(issue, field):
                 details[field] = str(getattr(issue, field))
     except Exception as err:
-        #print '\n [get_redmine_ticket_for_notification] exception: ', err.message
         current_app.logger.exception('[get_redmine_ticket_for_notification] %s ' % err.message)
     finally:
         return details
@@ -283,7 +287,8 @@ def update_redmine_ticket_for_notification(resource_id, project_id, subject, des
         update_fields = ['project', 'subject', 'due_date', 'description', 'priority',
                          'assigned_to', 'start_date', 'estimated_hours', 'status_id', 'notes',
                          'tracker_id', 'parent_issue_id', 'done_ratio']
-        # Get all the update fields from the request
+
+        # Get all the valid update fields from the request
         fields = dict()
         for field in update_fields:
             if field in data:
@@ -292,18 +297,15 @@ def update_redmine_ticket_for_notification(resource_id, project_id, subject, des
         # Log into Redmine
         redmine = redmine_login()
 
-        # Get the issue
+        # Get the issue; update all fields except the issue resource id
         issue = redmine.issue.get(data['resource_id'])
         for key, value in fields.iteritems():
-            # Update all fields except the issue resource id
             if 'resource_id' != key:
                 setattr(issue, key, value)
         if issue.save():
-            #print '\n issue.id: ', issue.id
             ticket_id = issue.id
 
     except Exception as err:
-        #print '\n [update_redmine_ticket_for_notification] exception: ', err.message
         current_app.logger.exception('[update_redmine_ticket_for_notification] %s ' % err.message)
     finally:
         return ticket_id
