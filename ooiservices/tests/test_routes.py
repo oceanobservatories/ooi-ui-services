@@ -248,7 +248,7 @@ class UserTestCase(unittest.TestCase):
 
         response = self.client.get(url_for('main.get_display_name', reference_designator='GS03FLMA-RIXXX-99-ABCDEF000'),
                                    content_type=content_type)
-        self.assertEquals(response.status_code, 204)
+        self.assertEquals(response.status_code, 200)
 
         response = self.client.get(url_for('main.get_display_name', reference_designator='GS03FLMA-RIXXX-BAD'), content_type=content_type)
         self.assertEquals(response.status_code, 204)
