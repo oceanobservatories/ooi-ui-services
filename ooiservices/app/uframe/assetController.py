@@ -238,17 +238,16 @@ def _associate_events(id):
 def _get_events_by_ref_des(ref_des):
     #Create the container for the processed response
     result = []
-    temp_dict = {}
-    #variables used in loop
-    platform = ""
-    mooring = ""
-    instrument = ""
-    ref_des_check = ""
-
     #Get all the events to begin searching though...
     uframe_obj = uFrameEventCollection()
     data = uframe_obj.to_json()
     for row in data:
+        #variables used in loop
+        temp_dict = {}
+        platform = ""
+        mooring = ""
+        instrument = ""
+        ref_des_check = ""
         try:
             if row['asset']['metaData']:
                 for metaData in row['asset']['metaData']:
@@ -453,11 +452,6 @@ def get_assets():
     Listing GET request of all assets.  This method is cached for 1 hour.
     '''
 
-    lat = ""
-    lon = ""
-    ref_des = ""
-    deployment_number = ""
-
     #Manually set up the cache
     cached = cache.get('asset_list')
     if cached:
@@ -466,6 +460,10 @@ def get_assets():
         uframe_obj = uFrameAssetCollection()
         data = uframe_obj.to_json()
         for row in data:
+            lat = ""
+            lon = ""
+            ref_des = ""
+            deployment_number = ""
             row['id'] = row.pop('assetId')
             row['asset_class'] = row.pop('@class')
             row['events'] = _associate_events(row['id'])
