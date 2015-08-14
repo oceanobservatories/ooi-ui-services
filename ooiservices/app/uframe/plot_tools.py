@@ -221,7 +221,7 @@ class OOIPlots(object):
 
     def plot_1d_quiver(self, fig, ax, time, u, v, title='', ylabel='',
                        title_font={}, axis_font={}, tick_font={},
-                       legend_title="Magnitude", **kwargs):
+                       legend_title="Magnitude", start=None, end=None, **kwargs):
 
         if not title_font:
             title_font = title_font_default
@@ -232,7 +232,11 @@ class OOIPlots(object):
         maxmag = max(magnitude)
         ax.set_ylim(-maxmag, maxmag)
         dx = time[-1] - time[0]
-        ax.set_xlim(time[0] - 0.05 * dx, time[-1] + 0.05 * dx)
+
+        if start and end:
+            ax.set_xlim(start - 0.05 * dx, end + 0.05 * dx)
+        else:
+            ax.set_xlim(time[0] - 0.05 * dx, time[-1] + 0.05 * dx)
         # ax.fill_between(time, magnitude, 0, color='k', alpha=0.1)
 
         # # Fake 'box' to be able to insert a legend for 'Magnitude'

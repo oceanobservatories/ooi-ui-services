@@ -838,15 +838,19 @@ def get_svg_plot(instrument, stream):
         return jsonify(error='tuple data returned for %s' % plot_layout), 400
     if isinstance(data, dict):
         # get title
-        instrument_display_name = PlatformDeployment._get_display_name(instrument[0])
-        title = instrument_display_name
+        title = PlatformDeployment._get_display_name(instrument[0])
+        if len(title) > 50:
+            title = ''.join(title.split('-')[0:-1]) + '\n' + title.split('-')[-1]
+
         data['title'] = title
         data['height'] = height_in
         data['width'] = width_in
     else:
         for idx, streamx in enumerate(stream):
-            instrument_display_name = PlatformDeployment._get_display_name(instrument[idx])
-            data[idx]['title'] = instrument_display_name
+            title = PlatformDeployment._get_display_name(instrument[idx])
+            if len(title) > 50:
+                title = ''.join(title.split('-')[0:-1]) + '\n' + title.split('-')[-1]
+            data[idx]['title'] = title
             data[idx]['height'] = height_in
             data[idx]['width'] = width_in
 
@@ -856,16 +860,21 @@ def get_svg_plot(instrument, stream):
                     'events': events,
                     'profileid': profileid,
                     'width_in': width_in,
-                    'use_qaqc': qaqc}
+                    'use_qaqc': qaqc,
+                    'st_date': request.args['startdate'],
+                    'ed_date': request.args['enddate']}
+    try:
+        buf = generate_plot(data, plot_options)
 
-    buf = generate_plot(data, plot_options)
+        content_header_map = {
+            'svg' : 'image/svg+xml',
+            'png' : 'image/png'
+        }
 
-    content_header_map = {
-        'svg' : 'image/svg+xml',
-        'png' : 'image/png'
-    }
-
-    return buf.read(), 200, {'Content-Type': content_header_map[plot_format]}
+        return buf.read(), 200, {'Content-Type': content_header_map[plot_format]}
+    except Exception as err:
+        current_app.logger.exception(str(err.message))
+        return jsonify(error='Error generating {0} plot: {1}'.format(plot_options['plot_layout'], str(err.message))), 400
 
 
 def get_process_profile_data(stream, instrument, xvar, yvar):

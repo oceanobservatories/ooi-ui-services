@@ -13,6 +13,7 @@ import io
 import numpy as np
 import prettyplotlib as ppl
 from flask import current_app
+from datetime import datetime
 
 __author__ = 'Andy Bird'
 
@@ -270,7 +271,14 @@ def generate_plot(data, plot_options):
                       headaxislength=5,
                       width=0.025,
                       alpha=0.5)
+
         time = mdates.date2num(data['x']['time'])
+        start = plot_options['st_date']
+        end = plot_options['ed_date']
+
+        start_dt = mdates.date2num(datetime.strptime(start.split('.')[0], '%Y-%m-%dT%H:%M:%S'))
+        end_dt = mdates.date2num(datetime.strptime(end.split('.')[0], '%Y-%m-%dT%H:%M:%S'))
+
         u = data['y'][data['y_field'][0]]
         v = data['y'][data['y_field'][1]]
         ylabel = data['y_field'][0] + " (" + data['y_units'][0] + ")"
@@ -293,6 +301,8 @@ def generate_plot(data, plot_options):
                                  tick_font=tick_font,
                                  title_font=title_font,
                                  axis_font=axis_font,
+                                 start=start_dt,
+                                 end=end_dt,
                                  **kwargs)
 
     elif plot_layout == '3d_scatter':
