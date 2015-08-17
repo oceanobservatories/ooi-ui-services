@@ -87,8 +87,7 @@ def get_display_name_by_rd(reference_designator):
     if "MOAS-GL" in reference_designator:        
         splits = reference_designator.split("MOAS-GL")
         number = splits[-1]
-        reference_designator = splits[0]+"MOAS-GL"+"001"
-        print reference_designator
+        reference_designator = splits[0]+"MOAS-GL"+"001"        
         glider_hack= True
 
     if len(reference_designator) <= 14:
