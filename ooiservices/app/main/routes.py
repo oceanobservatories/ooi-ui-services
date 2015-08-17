@@ -80,6 +80,16 @@ def get_platform_deployment_geojson_single():
     return jsonify({ 'geo_locations' : [{'id' : geo_location.id, 'reference_designator' : geo_location.reference_designator, 'geojson' : geo_location.geojson} for geo_location in geo_locations] })
 
 def get_display_name_by_rd(reference_designator):
+
+    #this is a dirty hack....
+    glider_hack = False
+    number = ""
+    if "MOAS-GL" in reference_designator:        
+        splits = reference_designator.split("MOAS-GL")
+        number = splits[-1]
+        reference_designator = splits[0]+"MOAS-GL"+"001"        
+        glider_hack= True
+
     if len(reference_designator) <= 14:
         platform_deployment_filtered = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first()
         if platform_deployment_filtered is None:
@@ -98,6 +108,10 @@ def get_display_name_by_rd(reference_designator):
         display_name = instrument_name
     else:
         return None
+
+    if glider_hack:        
+        display_name = display_name.replace('001',number)
+
     return display_name
 
 @api.route('/display_name', methods=['GET'])
