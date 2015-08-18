@@ -774,8 +774,8 @@ class SystemEventDefinition(db.Model):
     event_type = db.Column(db.Text, nullable=False)
     active = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))
     description = db.Column(db.Text, nullable=True)
-    high_value = db.Column(db.Text, nullable=True)
-    low_value = db.Column(db.Text, nullable=True)
+    high_value = db.Column(db.Text, nullable=False)
+    low_value = db.Column(db.Text, nullable=False)
     severity = db.Column(db.Integer, nullable=False)
     stream = db.Column(db.Text, nullable=False)
     retired = db.Column(db.Boolean, nullable=False, server_default=db.text("false")) # server_default=expression.false()
@@ -819,24 +819,20 @@ class SystemEventDefinition(db.Model):
         try:
             if system_event_definition_id is None:
                 message = 'system_event_definition id provided is None.'
-                #print '\n message: ', message
                 raise Exception(message)
             definition = db.session.query.get(system_event_definition_id)
             if definition is None:
                 message = 'Failed to delete system_event_definition for id provided (id: None)'
-                #print '\n message: ', message
                 raise Exception(message)
 
             notification = UserEventNotification.query.filter_by(system_event_definition_id=definition.id).first()
             if notification is not None:
-                #UserEventNotification.delete_user_event_notification(notification.id)
                 db.session.delete(notification)
                 db.session.commit()
             db.session.delete(definition)
             db.session.commit()
             return status
         except:
-            print '\n (delete_system_event_definition) %s', err.message
             raise
 
     def to_json(self):
@@ -937,7 +933,6 @@ class SystemEvent(db.Model):
             db.session.flush()
             return
         except Exception as err:
-            #print '\n debug -- message: ', err.message
             raise
 
     def to_json(self):
@@ -1006,7 +1001,6 @@ class TicketSystemEventLink(db.Model):
             return new_ticket_system_event.id
         except Exception as err:
             db.session.rollback()
-            #print '\n message: ', err.message
             raise Exception(err.message)
 
     def to_json(self):
@@ -1069,10 +1063,10 @@ class UserEventNotification(db.Model):
             db.session.commit()
             user_event_id = new_user_event_notification.id
             return user_event_id
-        except Exception as err:
+        except:
             db.session.rollback()
-            print '\n (models:insert_user_event_notification) message: ', err.message
-            raise Exception(err.message)
+            message = 'Failed to insert_user_event_notification.'
+            raise Exception(message)
 
     @staticmethod
     def update_user_event_notification(id, system_event_definition_id, user_id,
@@ -1080,7 +1074,8 @@ class UserEventNotification(db.Model):
         try:
             user_event_notification = UserEventNotification.query.get(id)
             if user_event_notification is None:
-                raise Exception('Invalid ID, user_event_notification record not found')
+                message = 'Invalid ID, user_event_notification record not found'
+                raise Exception(message)
             user_event_notification.system_event_definition_id = system_event_definition_id
             user_event_notification.user_id = user_id
             user_event_notification.use_email = use_email
@@ -1093,8 +1088,6 @@ class UserEventNotification(db.Model):
             return
         except Exception as err:
             db.session.rollback()
-            #message = 'debug -- Models (update_user_event_notification) %s', err.message
-            #print '\n message: ', message
             raise Exception(err.message)
 
     '''
@@ -1104,14 +1097,12 @@ class UserEventNotification(db.Model):
         try:
             if user_event_notification_id is None:
                 message = 'user_event_notification_id id provided is None.'
-                print '\n message: ', message
                 raise Exception(message)
             notification = UserEventNotification.query.get(user_event_notification_id)
             if notification is not None:
                 db.session.delete(notification)
                 db.session.commit()
         except:
-            print '\n (delete_user_event_notification) %s', err.message
             raise
     '''
 

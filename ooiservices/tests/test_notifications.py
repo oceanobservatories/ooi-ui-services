@@ -150,7 +150,7 @@ class NotificationsTestCase(unittest.TestCase):
         ts_tmp = alert_time_start
         ticket_id_escalate_on = None
         ticket_id_escalate_boundary = None
-        while ts_tmp <= alert_escalate_boundary + 11.0:
+        while ts_tmp <= alert_escalate_boundary + 6.0:
 
             ts_tmp = alert_time_start + inx
             #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -480,8 +480,8 @@ class NotificationsTestCase(unittest.TestCase):
         z['low_value'] = '10'
         z['severity'] = 2
         z['stream'] = 'ctdpf_j_cspp_instrument'
-        z['escalate_on'] = 5
-        z['escalate_boundary'] = 10
+        z['escalate_on'] = 5.0
+        z['escalate_boundary'] = 10.0
         z['user_id'] = 1
         z['use_email'] = False
         z['use_redmine'] = False
@@ -552,20 +552,20 @@ class NotificationsTestCase(unittest.TestCase):
         response = self.client.put(url_for('main.update_alert_alarm_def', id=new_definition_id), headers=headers, data=stuff)
         self.assertEquals(response.status_code, 409)
 
-        # PUT invalid (nonexistent) uframe_filter_id == 37, generate 404
+        # PUT invalid (nonexistent) uframe_filter_id == 37, generate 400
         alert_definition['uframe_filter_id'] = 37
         alert_definition['event_type'] = 'alarm'
         stuff = json.dumps(alert_definition)
         response = self.client.put(url_for('main.update_alert_alarm_def', id=new_definition_id), headers=headers, data=stuff)
-        self.assertEquals(response.status_code, 409)
+        self.assertEquals(response.status_code, 400)
 
         # PUT data=None, generate 409
         response = self.client.put(url_for('main.update_alert_alarm_def', id=33371), headers=headers, data=None)
-        self.assertEquals(response.status_code, 404)
+        self.assertEquals(response.status_code, 400)
 
         # GET invalid id=9876
         response = self.client.get(url_for('main.get_alert_alarm_def', id=9876), content_type=content_type, headers=headers)
-        self.assertEquals(response.status_code, 404)
+        self.assertEquals(response.status_code, 400)
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Get alert and alarm definitions; loop through and delete definitions which have
@@ -803,7 +803,7 @@ class NotificationsTestCase(unittest.TestCase):
         event_data['ticket_id'] = 0     # default, i.e. no ticket
         new_event = json.dumps(event_data)
         response = self.client.post(url_for('main.create_alert_alarm'), headers=headers,data=new_event)
-        self.assertEquals(response.status_code, 400)    # error: 'Failed to create redmine ticket for alarm (id:1)'
+        self.assertEquals(response.status_code, 400)
         response_data = json.loads(response.data)
         self.assertTrue('message' in response_data)
         self.assertTrue(len(response_data['message']) > 0)
@@ -950,7 +950,7 @@ class NotificationsTestCase(unittest.TestCase):
         # GET /alert_alarm_definition by id when there aren't any  ( {"error": "alert_alarm_definition not found"} )
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         response = self.client.get(url_for('main.get_alert_alarm_def', id=8989), content_type=content_type)
-        self.assertEquals(response.status_code, 404)
+        self.assertEquals(response.status_code, 400)
         definition = json.loads(response.data)
         self.assertTrue(definition is not None)
         self.assertTrue('alert_alarm_definition' not in definition)
@@ -965,7 +965,7 @@ class NotificationsTestCase(unittest.TestCase):
                 'array_name': u'CE', 'reference_designator': u'CE01ISSP-XX099-01-CTDPFJ999',
                 'operator': u'GREATER', 'instrument_name': u'CE01ISSP-XX099-01-CTDPFJ999',
                 'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
-                'description': 'initial', "escalate_on": 5, "escalate_boundary": 10,
+                'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10.0,
                 "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
                 "use_log": False, "use_sms": True}
         request_data = json.dumps(data)
@@ -1067,7 +1067,7 @@ class NotificationsTestCase(unittest.TestCase):
                 'array_name': u'CE', 'reference_designator': u'CE01ISSP-XX099-01-CTDPFJ999',
                 'operator': u'GREATER', 'instrument_name': u'CE01ISSP-XX099-01-CTDPFJ999',
                 'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
-                'description': 'initial', "escalate_on": 5, "escalate_boundary": 10,
+                'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10.0,
                 "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
                 "use_log": False, "use_sms": True}
 
@@ -1101,7 +1101,7 @@ class NotificationsTestCase(unittest.TestCase):
                 'array_name': u'CE', 'reference_designator': u'CE01ISSP-XX099-01-CTDPFJ999',
                 'operator': u'GREATER', 'instrument_name': u'CE01ISSP-XX099-01-CTDPFJ999',
                 'instrument_parameter': u'salinity', 'instrument_parameter_pdid': u'PD440',
-                'description': 'initial', "escalate_on": 5, "escalate_boundary": 10,
+                'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10.0,
                 "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
                 "use_log": False, "use_sms": True}
 
@@ -1215,7 +1215,7 @@ class NotificationsTestCase(unittest.TestCase):
         # GET /alert_alarm by id when there aren't any alerts or alarms ( {"error": "alert_alarm not found"} )
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         response = self.client.get(url_for('main.get_alert_alarm', id=8989), content_type=content_type)
-        self.assertEquals(response.status_code, 404)
+        self.assertEquals(response.status_code, 400)
         events = json.loads(response.data)
         self.assertTrue(events is not None)
         self.assertTrue('alert_alarm' not in events)
@@ -1230,7 +1230,7 @@ class NotificationsTestCase(unittest.TestCase):
                 'array_name': u'CE', 'reference_designator': u'CE01ISSP-XX099-01-CTDPFJ999',
                 'operator': u'GREATER', 'instrument_name': u'CE01ISSP-XX099-01-CTDPFJ999',
                 'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
-                'description': 'initial', "escalate_on": 5, "escalate_boundary": 10,
+                'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10.0,
                 "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
                 "use_log": False, "use_sms": True}
 
@@ -1455,7 +1455,7 @@ class NotificationsTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         url = url_for('main.delete_alert_alarm_definition', id=909090)
         response = self.client.delete(url, headers=headers)
-        self.assertEquals(response.status_code, 404)
+        self.assertEquals(response.status_code, 400)
         response_data = json.loads(response.data)
         self.assertTrue(response_data is not None)
 
@@ -1519,6 +1519,7 @@ class NotificationsTestCase(unittest.TestCase):
         use_log = False
         use_sms = True
         create_time = dt.datetime.now()
+        '''
         if ref_def == 'CP02PMCO-WFP01-02-DOFSTK000':
             alert_alarm_definition = SystemEventDefinition(reference_designator=ref_def)
             alert_alarm_definition.active = True
@@ -1627,6 +1628,8 @@ class NotificationsTestCase(unittest.TestCase):
             except Exception as err:
                 print '\n ******* Create CP02PMCO-WFP01-05-PARADK000 UserEventNotification message: \n', err.message
         else:
+        '''
+        if ref_def is not None:
             alert_alarm_definition = SystemEventDefinition(reference_designator=ref_def)
             alert_alarm_definition.active = True
             alert_alarm_definition.event_type = event_type
@@ -1681,80 +1684,7 @@ class NotificationsTestCase(unittest.TestCase):
         escalate_on = 5
         escalate_boundary = 10
         create_time = dt.datetime.now()
-        if ref_def == 'CP02PMCO-WFP01-02-DOFSTK000':
-            alert_alarm_definition = SystemEventDefinition(reference_designator=ref_def)
-            alert_alarm_definition.active = True
-            alert_alarm_definition.event_type = event_type
-            alert_alarm_definition.array_name = array_name
-            alert_alarm_definition.platform_name = platform_name
-            alert_alarm_definition.instrument_name = ref_def
-            alert_alarm_definition.instrument_parameter = instrument_parameter
-            alert_alarm_definition.instrument_parameter_pdid = instrument_parameter_pdid
-            alert_alarm_definition.operator = operator
-            alert_alarm_definition.created_time = create_time
-            alert_alarm_definition.uframe_filter_id = uframe_filter_id
-            alert_alarm_definition.high_value = high_value
-            alert_alarm_definition.low_value = low_value
-            alert_alarm_definition.severity = severity
-            alert_alarm_definition.stream = stream
-            alert_alarm_definition.escalate_on = escalate_on
-            alert_alarm_definition.escalate_boundary = escalate_boundary
-            try:
-                db.session.add(alert_alarm_definition)
-                db.session.commit()
-            except Exception as err:
-                print '\n ***  CP02PMCO-WFP01-02-DOFSTK000 **** message: ', err.message
-
-        elif alert_alarm_definition == 'CP02PMCO-WFP01-03-CTDPFK000':
-            alert_alarm_definition = SystemEventDefinition(reference_designator=ref_def)
-            alert_alarm_definition.active = True
-            alert_alarm_definition.event_type = event_type
-            alert_alarm_definition.array_name = array_name
-            alert_alarm_definition.platform_name = platform_name
-            alert_alarm_definition.instrument_name = ref_def
-            alert_alarm_definition.instrument_parameter = instrument_parameter
-            alert_alarm_definition.instrument_parameter_pdid = instrument_parameter_pdid
-            alert_alarm_definition.operator = operator
-            alert_alarm_definition.created_time = create_time
-            alert_alarm_definition.uframe_filter_id = uframe_filter_id
-            alert_alarm_definition.high_value = high_value
-            alert_alarm_definition.low_value = low_value
-            alert_alarm_definition.severity = severity
-            alert_alarm_definition.stream = stream
-            alert_alarm_definition.escalate_on = escalate_on
-            alert_alarm_definition.escalate_boundary = escalate_boundary
-            try:
-                db.session.add(alert_alarm_definition)
-                db.session.commit()
-            except Exception as err:
-                print '\n ******* CP02PMCO-WFP01-03-CTDPFK000 message: ', err.message
-
-
-        elif alert_alarm_definition == 'CP02PMCO-WFP01-05-PARADK000':
-            alert_alarm_definition = SystemEventDefinition(reference_designator=ref_def)
-            alert_alarm_definition.active = True
-            alert_alarm_definition.event_type = event_type
-            alert_alarm_definition.array_name = array_name
-            alert_alarm_definition.platform_name = platform_name
-            alert_alarm_definition.instrument_name = ref_def
-            alert_alarm_definition.instrument_parameter = instrument_parameter
-            alert_alarm_definition.instrument_parameter_pdid = instrument_parameter_pdid
-            alert_alarm_definition.operator = operator
-            alert_alarm_definition.created_time = create_time
-            alert_alarm_definition.uframe_filter_id = uframe_filter_id
-            alert_alarm_definition.high_value = high_value
-            alert_alarm_definition.low_value = low_value
-            alert_alarm_definition.severity = severity
-            alert_alarm_definition.stream = stream
-            alert_alarm_definition.escalate_on = escalate_on
-            alert_alarm_definition.escalate_boundary = escalate_boundary
-            try:
-                db.session.add(alert_alarm_definition)
-                db.session.commit()
-            except Exception as err:
-                print '\n *** CP02PMCO-WFP01-05-PARADK000 **** message: ', err.message
-
-        else:
+        if ref_def is not None:
             alert_alarm_definition = SystemEventDefinition(reference_designator=ref_def)
             alert_alarm_definition.active = True
             alert_alarm_definition.event_type = event_type

@@ -533,7 +533,6 @@ class UserEventNotificationsTestCase(unittest.TestCase):
     def test_user_event_notification_has_required_fields(self):
 
         verbose = self.verbose
-        root = self.root
         if verbose: print '\n'
 
         headers = self.get_api_headers('admin', 'test')
@@ -591,6 +590,26 @@ class UserEventNotificationsTestCase(unittest.TestCase):
         self.assertTrue(len(notify_data) > 0)
         self.assertTrue('message' in notify_data)
 
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Positive) Create user_event_notification
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        data = {'user_id': 1,
+                'system_event_definition_id': 1,
+                'use_email': True,
+                'use_log': True,
+                'use_phone': True,
+                'use_redmine': True,
+                'use_sms': True,
+                }
+        good_stuff = json.dumps(data)
+
+        # Create event_event_notification
+        response = self.client.post(url_for('main.create_user_event_notification'), headers=headers, data=good_stuff)
+        self.assertEquals(response.status_code, 201)
+        notify_data = json.loads(response.data)
+        self.assertTrue(notify_data is not None)
+        self.assertTrue(len(notify_data) > 0)
+
         if verbose: print '\n'
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -620,6 +639,7 @@ class UserEventNotificationsTestCase(unittest.TestCase):
         use_log = False
         use_sms = True
         create_time = dt.datetime.now()
+        '''
         if ref_def == 'CP02PMCO-WFP01-02-DOFSTK000':
             alert_alarm_definition = SystemEventDefinition(reference_designator=ref_def)
             alert_alarm_definition.active = True
@@ -738,6 +758,8 @@ class UserEventNotificationsTestCase(unittest.TestCase):
             except Exception as err:
                 print '\n ******* Create CP02PMCO-WFP01-05-PARADK000 UserEventNotification message: \n', err.message
         else:
+        '''
+        if ref_def:
             alert_alarm_definition = SystemEventDefinition(reference_designator=ref_def)
             alert_alarm_definition.active = True
             alert_alarm_definition.event_type = event_type
