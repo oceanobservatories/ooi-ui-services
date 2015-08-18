@@ -537,16 +537,16 @@ def get_assets():
         for item in data:
             if search_term.lower() in str(item['assetInfo']['name']).lower():
                 return_list.append(item)
-            if search_term.lower() in str(item['id']):
+            elif search_term.lower() in str(item['id']):
                 return_list.append(item)
-            if search_term.lower() in str(item['ref_des']).lower():
+            elif search_term.lower() in str(item['ref_des']).lower():
                 return_list.append(item)
-            if search_term.lower() in str(item['assetInfo']['type']).lower():
+            elif search_term.lower() in str(item['assetInfo']['type']).lower():
 
                 return_list.append(item)
-            if search_term.lower() in str(item['events']).lower():
+            elif search_term.lower() in str(item['events']).lower():
                 return_list.append(item)
-            if search_term.lower() in str(item['metaData']).lower():
+            elif search_term.lower() in str(item['metaData']).lower():
                 return_list.append(item)
         data = return_list
 
