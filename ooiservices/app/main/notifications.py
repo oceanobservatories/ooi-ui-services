@@ -35,8 +35,6 @@ def begin_notification_process(id):
         alert_alarm.ticket_id = ticket_id
         persist escalation field changes with update_alert_alarm
     """
-    debug = False
-    #log = False
     result = None
     try:
         # Get alert_alarm, alert_alarm_definition and user_event_notification to update redmine ticket
@@ -49,7 +47,6 @@ def begin_notification_process(id):
         # Populate required fields to create a redmine ticket
         project = current_app.config['REDMINE_PROJECT_ID']
 
-        if debug: print '\n \t(debug) ---- Get targeted user for redmine assignment using user_event_notification...'
         # Use user_event_notification for determining assigned user's redmine id
         redmine_id = 1  # this assumes Redmine ADmin is assigned to redmine user id 1; should lookup 'Redmine Admin' todo
         name = None
@@ -60,9 +57,6 @@ def begin_notification_process(id):
             if tmp_id is not None:
                 redmine_id = tmp_id
 
-        if debug: print '\n \t(debug) -- Creating redmine ticket for \'%s\' (project: %s), get ticket_id...' % \
-                        (name, project)
-
         # Create redmine ticket
         prefix = (alert_alarm.event_type).upper() + ': '
         subject = prefix + alert_alarm.event_response
@@ -71,7 +65,6 @@ def begin_notification_process(id):
         ticket_id = create_redmine_ticket_for_notification(project, subject, description, priority, redmine_id)
         if ticket_id is None:
             message = 'Failed to create_redmine_ticket.'
-            print'\n \t-- message: ', message
             current_app.logger.exception('[begin_notification_process] %s ' % message)
             return result
 
@@ -81,10 +74,7 @@ def begin_notification_process(id):
         SystemEvent.update_alert_alarm_escalation(id=alert_alarm.id, ticket_id=ticket_id,
                                                   escalated=escalated, ts_escalated=ts_escalated)
 
-        if debug: print '\n \t(debug) -- updated alert_alarm: ', alert_alarm.to_json()
         ticket_link_id = TicketSystemEventLink.insert_ticket_link(system_event_id=alert_alarm.id, ticket_id=ticket_id)
-        if debug: print '\n \t(debug) -- [begin_notification_process] \'%s\' has been escalated!' % alert_alarm.event_type
-        if debug: print '\n \tbegin_notification_process - ticket_id: ', ticket_id
         result = ticket_id
 
     except Exception as err:
@@ -99,8 +89,6 @@ def get_redmine_info_from_alert(id):
     alert_alarm = None
     alert_alarm_definition = None
     user_event_notification = None
-    #debug = False
-    #log = False
     try:
         if id is None:
             raise Exception('No alert id provided (None).')
@@ -109,11 +97,8 @@ def get_redmine_info_from_alert(id):
         alert_alarm = SystemEvent.query.get(id)
         if alert_alarm is None:
             message = 'Failed to identify system_event with id: %d' % id
-            #if log: print '\n (debug) -- get_redmine_info_from_alert - message: ', message
             current_app.logger.exception('[get_redmine_info_from_alert] %s ' % message)
             raise Exception(message)
-
-        #if debug: print '\n (debug) -- get_redmine_info_from_alert - processing event_type: ', alert_alarm.event_type
 
         # Get alert_alarm_definition
         alert_alarm_definition = SystemEventDefinition.query.get(alert_alarm.system_event_definition_id)
@@ -170,9 +155,6 @@ def determine_action(id):
         debug is used for development debugging.
         verbose is used specifically in this method for display the list of alerts being reviewed/processed for definition.
     """
-    #log = False
-    debug = False
-    #verbose = False
     action = None
     previous_alert = None
     previously_escalated = False
@@ -204,15 +186,12 @@ def determine_action(id):
 
         # If this is the FIRST alert for this definition, set ts_start to current datetime, return None
         if not found_alerts:
-            #if debug: print '\n (debug) -- (determine_action) alerts is None, set ts_start!!! \n'
             alert.ts_start = alert.event_time
             try:
                 db.session.add(alert)
                 db.session.commit()
             except Exception as err:
-                # todo review exception handling
                 current_app.logger.exception('[determine_action] %s ' % err.message)
-            #if debug: print '\n (debug) -- ***** set alert.ts_start: ', alert.to_json()
             return action
 
         # Not the first alert received for this definition, evaluate this alert to determine whether to escalate.
@@ -226,43 +205,27 @@ def determine_action(id):
                     if item.escalated == True:
                         previously_escalated = True
                         previous_alert = item
-                        #if debug: print '\n (debug) -- ***** alert -- previously_escalated !'
                         break
                 inx += 1
 
             # Determine start_alert (ts_start is not None)
-            #if debug: print '\n (debug) -- (determine_action) have alerts...get start alert...'
-            '''
-            inx = 1
-            if verbose:
-                for item in alerts:
-                    print '\n (verbose) alert -- %d: %s' % (inx, item.to_json())
-                    inx += 1
-            '''
             start_alert = None
             for item in alerts:
                 if item.ts_start is not None:
                     start_alert = item
                     break
-            #if debug: print '\n (debug) -- Found start_alert: ', start_alert.to_json()
-            #if debug: print '\n (debug) -- type(start_alert): ', type(start_alert)
 
             # Now have initial alert which kicked off (start_alert)
             # Evaluate time delta (event_time) of this alert versus start_alert
             delta = (alert.event_time - start_alert.ts_start).total_seconds()
-            #if debug: print '\n (debug) -- delta: ', delta
-            #if debug: print '\n (debug) -- alert_alarm_definition.escalate_on: ', alert_alarm_definition.escalate_on
 
             # if delta is greater than escalate_on value (from definition), has alert been previously escalated?
             if delta <= alert_alarm_definition.escalate_on:
-                #if debug: print '\n (debug) -- have not reached escalate on!  Keep going....no ticket yet....'
                 pass
             elif delta > alert_alarm_definition.escalate_on:
 
                 # if alert hasn't been previously escalated, begin escalation
-                #if debug: print '\n (debug) -- delta > alert_alarm_definition.escalate_on'
                 if not previously_escalated: #alert.escalated:
-                    #if debug: print '\n (debug) -- not previously_escalated - begin_notification_process', alert.to_json()
                     action = 'begin_notification_process'
                     return action
 
@@ -289,48 +252,37 @@ def determine_action(id):
                     # If boundary has not been crossed, update existing ticket
                     if delta <= alert_alarm_definition.escalate_boundary:
                         # Escalate boundary has not been crossed, update existing ticket
-                        #if debug: print '\n (debug) -- Escalate boundary has not been crossed, update existing ticket (ticket_id: %d) \n' % alert.ticket_id
                         action = 'update_notification_ticket'
                         return action
 
                     elif delta > alert_alarm_definition.escalate_boundary:
                         # Escalate boundary has been crossed, issue new ticket 'reissue_notification_ticket'
-                        #if debug: print '\n (debug) -- Escalate boundary has been crossed, reissue ticket (current ticket_id: %d) \n' % alert.ticket_id
-                        #if debug: print '\n (debug) -- delta > alert_alarm_definition.escalate_boundary'
                         action = 'reissue_notification_ticket'
                         start_alert.ts_start = None
                         try:
                             db.session.add(start_alert)
                             db.session.commit()
                         except Exception as err:
-                            # todo review exception handling
-                            if debug: print '\n (debug) -- (Escalate boundary has been crossed) (1) exception: ', err.message
-
-                        #if debug: print '\n (debug) -- ***** start_alert.ts_start (should be None): ', start_alert.to_json()
+                            current_app.logger.exception('(Escalate boundary has been crossed) (1) %s ' % err.message)
 
                         alert.ts_start = alert.event_time
                         try:
                             db.session.add(alert)
                             db.session.commit()
                         except Exception as err:
-                            # todo review exception handling
-                            if debug: print '\n (debug) -- (Escalate boundary has been crossed) (2) exception: ', err.message
-
+                            current_app.logger.exception('(Escalate boundary has been crossed) [2] %s ' % err.message)
                         return action
 
         return action
 
     except Exception as err:
         message = err.message
-        #if log: print'\n (debug) -- (determine_action) exception: ', err.message
         current_app.logger.exception('[determine_action] %s ' % message)
         return action
 
 def update_notification_ticket(id):
     """ Update redmine ticket as a part of notification process (for alerts only)
     """
-    debug = False
-    #log = False
     result = None
     try:
         # Get alert, definition and notification to update redmine ticket
@@ -354,13 +306,11 @@ def update_notification_ticket(id):
         else:
             # todo issue - assigned_user is None
             message = "Invalid User ID, User record not found."
-            #if log: print '\n message: ', message
             return bad_request(message)
 
         # Get alert ticket id
         ticket_id = alert.ticket_id
 
-        #if debug: print '\n (debug) update_notification_ticket id: ', ticket_id
         ts_updated = dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%dT%H:%M:%S")
         update_info = '\nUpdated: %s ' % ts_updated
 
@@ -398,7 +348,6 @@ def update_notification_ticket(id):
             message = 'Failed to update redmine ticket (ticket_id: %d' % ticket_id
             raise Exception(message)
 
-        if debug: print '\n \tupdate_notification_ticket - ticket_id: ', ticket_id
         return ticket_id
 
     except Exception as err:
@@ -437,12 +386,8 @@ def get_user_redmine_id(project_name, name):
 def reissue_notification_ticket(id):
     """ Create another (re-issue) redmine ticket as a part of notification process (for alerts only)
     """
-    debug = False   # development debug
-    #log = False     # used in except blocks
     result = None
     try:
-        if debug: print '\n \t(debug) entered reissue_notification_ticket, id: ', id
-
         # Get alert, definition and notification to update redmine ticket
         alert, definition, notification = get_redmine_info_from_alert(id)
         if alert is None or definition is None or notification is None:
@@ -453,13 +398,8 @@ def reissue_notification_ticket(id):
         # Populate required fields to create a redmine ticket
         project = current_app.config['REDMINE_PROJECT_ID']
 
-        if debug:
-            print '\n \t(debug) -- Reissue redmine ticket (project: %s), get ticket_id...' % project
-            print'\n \t(debug) -- Current ticket id: ', alert.ticket_id
-
         # Get current redmine ticket
         redmine_ticket = get_redmine_ticket_for_notification(alert.ticket_id)
-        if debug: print '\n \t(debug) -- Current redmine ticket: ', redmine_ticket
 
         # Set assigned id to reflect update to user currently assigned to alert.ticket_id
         #assigned_id = redmine_ticket['assigned_to']
@@ -478,21 +418,17 @@ def reissue_notification_ticket(id):
             else:
                 # todo issue - assigned_user is None
                 message = "Invalid User ID, User record not found."
-                #if log: print '\n message: ', message
                 return bad_request(message)
             assigned_id = redmine_id
 
         # Update description to indicate previously issued ticket id for this alert.
         update_info = '\n* Associated with previously issued ticket: %d' % alert.ticket_id
-        if debug: print '\n \t(debug) -- New reissued ticket update_info: ', update_info
 
         # Create new redmine ticket
         prefix = (alert.event_type).upper() + '*: '
         subject = prefix + alert.event_response
         description = alert.event_response + update_info
         priority = definition.severity
-        if debug: print '\n \t(debug) New ticket subject: ', subject
-        if debug: print '\n \t(debug) New ticket description: ', description
 
         ticket_id = create_redmine_ticket_for_notification(project, subject, description, priority, assigned_id)
         if ticket_id is None:
@@ -503,20 +439,18 @@ def reissue_notification_ticket(id):
         # update escalate fields if successful creating the redmine ticket
         escalated = True
         ts_escalated = dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%dT%H:%M:%S") # should this be event_time?
-        SystemEvent.update_alert_alarm_escalation(id=alert.id, ticket_id=ticket_id,
+
+        try:
+            SystemEvent.update_alert_alarm_escalation(id=alert.id, ticket_id=ticket_id,
                                                   escalated=escalated, ts_escalated=ts_escalated)
+        except Exception as err:
+            message = 'Reissued redmine ticket (id:%d) but failed to update_alert_alarm_escaltion; %s' % (ticket_id, err.message)
+            current_app.logger.exception('[reissue_notification_ticket] %s ' % message)
+            return result
 
-        if debug: print '\n \t(debug) reissue_notification_ticket -- updated alert_alarm: ', alert.to_json()
+
         ticket_link_id = TicketSystemEventLink.insert_ticket_link(system_event_id=alert.id, ticket_id=ticket_id)
-        if debug: print '\n \t(debug) -- (notifications) ticket_link_id: ', ticket_link_id
-        '''
-        # debug - view contents of alert_alarm escalation fields; verify changes have been persisted
-        escalated_alert_alarm = SystemEvent.query.get(alert_alarm.id)
-        print '\n (debug) *** escalated alert_alarm.to_json(): ', escalated_alert_alarm.to_json()
-        '''
-
         result = ticket_id
-        if debug: print '\n \treissue_notification_ticket - ticket_id: ', ticket_id
 
     except Exception as err:
         message = err.message
