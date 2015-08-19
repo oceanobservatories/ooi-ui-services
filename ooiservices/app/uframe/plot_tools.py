@@ -220,7 +220,7 @@ class OOIPlots(object):
         return fig
 
     def plot_1d_quiver(self, fig, ax, time, u, v, title='', ylabel='',
-                       title_font={}, axis_font={}, tick_font={},
+                       title_font={}, axis_font={}, tick_font={}, key_units='m/s',
                        legend_title="Magnitude", start=None, end=None, **kwargs):
 
         if not title_font:
@@ -243,13 +243,21 @@ class OOIPlots(object):
         # p = ax.add_patch(plt.Rectangle((1, 1), 1, 1, fc='k', alpha=0.1))
         # leg1 = ax.legend([p], [legend_title], loc='lower right')
         # leg1._drawFrame = False
+        mean_val = np.mean(magnitude)
+        # Quick conversion of most popular key_units
+        if key_units == 'm s-1':
+            key_units = 'm/s'
+        key_str = '{0:.2f} {1}'.format(mean_val, key_units)
 
-        # # 1D Quiver plot
+        # 1D Quiver plot
         q = ax.quiver(time, 0, u, v, **kwargs)
-        plt.quiverkey(q, 0.2, 0.05, 0.2,
-                      r'$0.2 \frac{m}{s}$',
+        plt.quiverkey(q, 0.1, 0.05, mean_val,
+                      key_str,
                       labelpos='W',
-                      fontproperties={'weight': 'bold'})
+                      fontproperties={'weight': 'light',
+                                      'style': 'italic',
+                                      'size': 'small',
+                                      'stretch': 'condensed'})
 
         ax.xaxis_date()
         date_list = mdates.num2date(time)
