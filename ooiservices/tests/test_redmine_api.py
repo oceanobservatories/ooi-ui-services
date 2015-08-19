@@ -6,7 +6,8 @@ Unit testing for the Redmine API
 
 from ooiservices.app import create_app, db
 from ooiservices.app.redmine.routes import (redmine_login, get_redmine_users_by_project,
-                                            get_redmine_ticket_for_notification, create_redmine_ticket_for_notification)
+                                            get_redmine_ticket_for_notification, create_redmine_ticket_for_notification,
+                                            update_redmine_ticket_for_notification)
 from ooiservices.app.models import User, UserScope, Organization
 from flask import current_app
 import unittest
@@ -240,3 +241,21 @@ class RedmineTestCase(unittest.TestCase):
         self.assertEquals(result['status'], status)
         self.assertEquals(result['assigned_to'], assigned_to)
         self.assertEquals(result['priority'], redmine_priority)
+
+        project = 'foo'
+        subject = 'Redmine API - Negative Test'
+        description = 'This should fail.'
+        priority = 1
+        assigned_id = None
+        result = create_redmine_ticket_for_notification(project, subject, description, priority, assigned_id)
+        self.assertTrue(result is None)
+
+        result = get_redmine_ticket_for_notification(-1)
+        self.assertTrue(result is None)
+
+        result = get_redmine_ticket_for_notification(ticket_id)
+        project = None
+        subject = None
+        assigned_id = None
+        result = update_redmine_ticket_for_notification(ticket_id, project, subject, description, priority, assigned_id)
+        self.assertTrue(result is None)
