@@ -18,6 +18,8 @@ import datetime
 from netCDF4 import num2date
 from operator import itemgetter
 from threading import Thread
+from sets import Set
+from copy import deepcopy
 
 #Default number of times to retry the connection:
 requests.adapters.DEFAULT_RETRIES = 2
@@ -464,10 +466,10 @@ def get_assets():
             lon = ""
             ref_des = ""
             deployment_number = ""
-            row['id'] = row.pop('assetId')
-            row['asset_class'] = row.pop('@class')
-            row['events'] = _associate_events(row['id'])
             try:
+                row['id'] = row.pop('assetId')
+                row['asset_class'] = row.pop('@class')
+                row['events'] = _associate_events(row['id'])
                 if row['metaData'] is not None:
                     for meta_data in row['metaData']:
                         if meta_data['key'] == 'Laditude ':
@@ -509,8 +511,8 @@ def get_assets():
                         except:
                             pass
 
-            except:
-                pass
+            except AttributeError, KeyError:
+                print "Key or Attribute error in %s" % row
 
         if "error" not in data:
             cache.set('asset_list', data, timeout=CACHE_TIMEOUT)
@@ -533,22 +535,37 @@ def get_assets():
 
     if request.args.get('search') and request.args.get('search') != "":
         return_list = []
-        search_term = request.args.get('search')
-        for item in data:
-            if search_term.lower() in str(item['assetInfo']['name']).lower():
-                return_list.append(item)
-            elif search_term.lower() in str(item['id']):
-                return_list.append(item)
-            elif search_term.lower() in str(item['ref_des']).lower():
-                return_list.append(item)
-            elif search_term.lower() in str(item['assetInfo']['type']).lower():
-
-                return_list.append(item)
-            elif search_term.lower() in str(item['events']).lower():
-                return_list.append(item)
-            elif search_term.lower() in str(item['metaData']).lower():
-                return_list.append(item)
-        data = return_list
+        search_term = str(request.args.get('search')).split()
+        search_set = set(search_term)
+        for subset in search_set:
+            if len(return_list) > 0:
+                ven_set = deepcopy(return_list)
+                ven_subset = []
+                for item in return_list:
+                    if subset.lower() in str(item['assetInfo']['name']).lower():
+                        ven_subset.append(item)
+                    elif subset.lower() in str(item['ref_des']).lower():
+                        ven_subset.append(item)
+                    elif subset.lower() in str(item['assetInfo']['type']).lower():
+                        ven_subset.append(item)
+                    elif subset.lower() in str(item['events']).lower():
+                        ven_subset.append(item)
+                    elif subset.lower() in str(item['metaData']).lower():
+                        ven_subset.append(item)
+                data = ven_subset
+            else:
+                for item in data:
+                    if subset.lower() in str(item['assetInfo']['name']).lower():
+                        return_list.append(item)
+                    elif subset.lower() in str(item['ref_des']).lower():
+                        return_list.append(item)
+                    elif subset.lower() in str(item['assetInfo']['type']).lower():
+                        return_list.append(item)
+                    elif subset.lower() in str(item['events']).lower():
+                        return_list.append(item)
+                    elif subset.lower() in str(item['metaData']).lower():
+                        return_list.append(item)
+                data = return_list
 
     if request.args.get('startAt'):
         start_at = int(request.args.get('startAt'))
