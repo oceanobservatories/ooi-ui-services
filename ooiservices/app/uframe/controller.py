@@ -214,6 +214,7 @@ def streams_list():
                 del obj['units']
                 del obj['variable_type']
                 del obj['variable_types']
+                del obj['download']
                 del obj['variables']
                 del obj['variables_shape']
             except KeyError:
@@ -232,12 +233,16 @@ def streams_list():
                         ven_subset.append(item)
                     elif subset.lower() in str(item['reference_designator']).lower():
                         ven_subset.append(item)
+                    elif subset.lower() in str(item['variables']).lower():
+                        ven_subset.append(item)
                 retval = ven_subset
             else:
                 for item in retval:
                     if subset.lower() in str(item['long_display_name']).lower():
                         return_list.append(item)
                     elif subset.lower() in str(item['reference_designator']).lower():
+                        return_list.append(item)
+                    elif subset.lower() in str(item['variables']).lower():
                         return_list.append(item)
                 retval = return_list
 
