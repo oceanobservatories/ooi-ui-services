@@ -224,7 +224,6 @@ def streams_list():
         search_term = str(request.args.get('search')).split()
         search_set = set(search_term)
         for subset in search_set:
-            print len(return_list)
             if len(return_list) > 0:
                 ven_set = deepcopy(return_list)
                 ven_subset = []
