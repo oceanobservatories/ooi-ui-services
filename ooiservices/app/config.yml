@@ -48,6 +48,7 @@ LOCAL_DEVELOPMENT: &local_dev
     SQLALCHEMY_DATABASE_URI: 'postgres://postgres:postgres@localhost/ooiuidev'
     SSL_DISABLE: True
     WTF_CSRF_ENABLED: False
+    TOEMAIL: 'name@email.com'
 
 TESTING_CONFIG: &testing
     <<: *common

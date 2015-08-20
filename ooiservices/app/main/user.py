@@ -12,7 +12,7 @@ from ooiservices.app.main.authentication import auth, verify_auth
 from ooiservices.app.models import User, UserScope, UserScopeLink
 from ooiservices.app.decorators import scope_required
 from ooiservices.app.redmine.routes import redmine_login
-import json
+import json, smtplib, string
 
 @api.route('/user/<int:id>', methods=['GET'])
 @auth.login_required
@@ -28,6 +28,7 @@ def put_user(id):
     data = json.loads(request.data)
     scopes = data.get('scopes')
     active = data.get('active')
+    activating= User.query.get(id).active is False and active is True
     changed = False
     if scopes is not None:
         valid_scopes = UserScope.query.filter(UserScope.scope_name.in_(scopes)).all()
@@ -36,10 +37,30 @@ def put_user(id):
     if active is not None:
         user_account.active = bool(active)
         changed = True
+        if activating is True:
+            send_activate_email(data["email"])
     if changed:
         db.session.add(user_account)
         db.session.commit()
     return jsonify(**user_account.to_json()), 201
+
+def send_activate_email(to):
+    sender="help@ooi.rutgers.edu"
+    subject="OOI Registration Complete"
+    message=string.join(("From: %s" % sender,
+                         "To: %s" % current_app.config["TOEMAIL"] if current_app.config["ENVIORNMENT"] else to,
+                         "Subject: %s" % subject,
+                         "Your registration to the Ocean Observatories Initiative WebPortal has been completed.",
+                         "",
+                         "",
+                         "Please visit http://casadev.ooi.rutgers.edu to login to the system"),"\r\n")
+
+    try:
+        smtpObj=smtplib.SMTP("localhost")
+        smtpObj.sendmail(sender,to,message)
+
+    except:
+        print "error sending mail"
 
 @api.route('/user_scopes')
 @auth.login_required
