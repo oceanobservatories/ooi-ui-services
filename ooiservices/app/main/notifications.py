@@ -448,7 +448,6 @@ def reissue_notification_ticket(id):
             current_app.logger.exception('[reissue_notification_ticket] %s ' % message)
             return result
 
-
         ticket_link_id = TicketSystemEventLink.insert_ticket_link(system_event_id=alert.id, ticket_id=ticket_id)
         result = ticket_id
 
