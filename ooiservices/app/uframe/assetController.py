@@ -535,11 +535,15 @@ def get_assets():
 
     if request.args.get('search') and request.args.get('search') != "":
         return_list = []
+        ven_set = []
         search_term = str(request.args.get('search')).split()
         search_set = set(search_term)
         for subset in search_set:
             if len(return_list) > 0:
-                ven_set = deepcopy(return_list)
+                if len(ven_set) > 0:
+                    ven_set = deepcopy(ven_subset)
+                else:
+                    ven_set = deepcopy(return_list)
                 ven_subset = []
                 for item in return_list:
                     if subset.lower() in str(item['assetInfo']['name']).lower():
