@@ -267,9 +267,9 @@ def generate_plot(data, plot_options):
         kwargs = dict(units='y',
                       scale_units='y',
                       scale=1,
-                      headlength=5,
-                      headaxislength=5,
-                      width=0.025,
+                      headlength=1.5,
+                      headaxislength=1.5,
+                      width=0.006,
                       alpha=0.5)
 
         time = mdates.date2num(data['x']['time'])
@@ -303,6 +303,7 @@ def generate_plot(data, plot_options):
                                  axis_font=axis_font,
                                  start=start_dt,
                                  end=end_dt,
+                                 key_units = data['y_units'][0],
                                  **kwargs)
 
     elif plot_layout == '3d_scatter':
