@@ -17,7 +17,8 @@ from ooiservices.app.main.alertsalarms import (create_uframe_alertfilter_data, g
                                                uframe_create_alertfilter, uframe_update_alertfilter,
                                                uframe_acknowledge_alert_alarm, user_event_notification_has_required_fields,
                                                create_has_required_fields, update_uframe_alertfilter,
-                                               create_uframe_alertfilter, safe_to_delete_alert_alarm_definition)
+                                               create_uframe_alertfilter, safe_to_delete_alert_alarm_definition,
+                                               get_alert_alarm_json)
 
 import datetime as dt
 import requests
@@ -86,39 +87,40 @@ class AlertAlarmTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Data setup. (Now have three arrays, three platforms, each populated with instruments)
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        '''
         array_CE = 'CE'
         array_GP = 'GP'
         array_CP = 'CP'
+        '''
         CP02PMCO_WFP01_rd = 'CP02PMCO-WFP01'
+        '''
         CP02PMCO_SBS01_rd = 'CP02PMCO-SBS01'
         CP02PMUI_RII01_rd = 'CP02PMUI-RII01'
+        '''
         DOFSTK000_rd = 'CP02PMCO-WFP01-02-DOFSTK000'
         CTDPFK000_rd = 'CP02PMCO-WFP01-03-CTDPFK000'
         PARADK000_rd = 'CP02PMCO-WFP01-05-PARADK000'
+        rd = 'CE01ISSP-XX099-01-CTDPFJ999'
 
-        arrays = [array_CE, array_GP, array_CP]
-        platforms = [CP02PMCO_WFP01_rd] #, CP02PMCO_SBS01_rd, CP02PMUI_RII01_rd]
-        instruments = [DOFSTK000_rd, CTDPFK000_rd, PARADK000_rd]
+        arrays = ['CE', 'GP', 'CP']  #array_CE, array_GP, array_CP]
+        platforms = [CP02PMCO_WFP01_rd, 'CE01ISSP-XX099']
+        instruments = [DOFSTK000_rd, CTDPFK000_rd, PARADK000_rd, rd]
 
         # Create some definitions
-        alarm1 = self.create_alert_alarm_definition(DOFSTK000_rd, 'alarm', 2, 1)
-        alarm2 = self.create_alert_alarm_definition(CTDPFK000_rd, 'alarm', 2, 2)
-        alarm3 = self.create_alert_alarm_definition(PARADK000_rd, 'alarm', 2, 3)
-        alert1 = self.create_alert_alarm_definition(DOFSTK000_rd, 'alert', 2, 1)
-        alert2 = self.create_alert_alarm_definition(CTDPFK000_rd, 'alert', 2, 2)
-        alert3 = self.create_alert_alarm_definition(PARADK000_rd, 'alert', 2, 3)
+
+        alarm1 = self.create_alert_alarm_definition(rd, 'alarm', 2, 1)
+        alert1 = self.create_alert_alarm_definition(rd, 'alert', 1, 1)
 
         # test /alert_alarm_definition route using request.arg array_name
         for array in arrays:
-            #array_code = array.array_code
             url = url_for('main.get_alerts_alarms_def')
             url += '?array_name=%s' % array
             response = self.client.get(url, content_type=content_type, headers=headers)
             self.assertEquals(response.status_code, 200)
             data = json.loads(response.data)
             self.assertTrue('alert_alarm_definition' in data)
-            if array == 'CP':
-                self.assertEquals(len(data['alert_alarm_definition']), 6)
+            if array == 'CE':
+                self.assertEquals(len(data['alert_alarm_definition']), 2)
             else:
                 self.assertEquals(len(data['alert_alarm_definition']), 0)
 
@@ -131,8 +133,8 @@ class AlertAlarmTestCase(unittest.TestCase):
             self.assertEquals(response.status_code, 200)
             data = json.loads(response.data)
             self.assertTrue('alert_alarm_definition' in data)
-            if platform == CP02PMCO_WFP01_rd:
-                self.assertEquals(len(data['alert_alarm_definition']), 6)
+            if platform == 'CE01ISSP-XX099': #CP02PMCO_WFP01_rd:
+                self.assertEquals(len(data['alert_alarm_definition']), 2)
             else:
                 self.assertEquals(len(data['alert_alarm_definition']), 0)
 
@@ -146,7 +148,10 @@ class AlertAlarmTestCase(unittest.TestCase):
             self.assertEquals(response.status_code, 200)
             data = json.loads(response.data)
             self.assertTrue('alert_alarm_definition' in data)
-            self.assertEquals(len(data['alert_alarm_definition']), 2)
+            if instrument == rd:
+                self.assertEquals(len(data['alert_alarm_definition']), 2)
+            else:
+                self.assertEquals(len(data['alert_alarm_definition']), 0)
 
         # GET an alert_alarm_def (no request.args), create new definition and POST
         url = url_for('main.get_alert_alarm_def', id=1)     #url += '?array_name=%s' % array_code
@@ -201,7 +206,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertEquals(response.status_code, 200)
         data = json.loads(response.data)
         self.assertTrue('alert_alarm_definition' in data)
-        self.assertEquals(len(data['alert_alarm_definition']), 7)
+        self.assertEquals(len(data['alert_alarm_definition']), 3)
 
         if verbose: print '\nArray: ', array_code
         url = url_for('main.get_alerts_alarms_def')
@@ -210,7 +215,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertEquals(response.status_code, 200)
         data = json.loads(response.data)
         self.assertTrue('alert_alarm_definition' in data)
-        self.assertEquals(len(data['alert_alarm_definition']), 7)
+        self.assertEquals(len(data['alert_alarm_definition']), 3)
 
         # Check if SystemEvent(s) have been created...should not have any at this time
         url = url_for('main.get_alerts_alarms')
@@ -260,7 +265,7 @@ class AlertAlarmTestCase(unittest.TestCase):
             event_time = 3607761438.72      # uframe sample event_time float: 3607761438.72
             event_data = {}
             event_data['uframe_event_id'] = inx * 314       # instance
-            event_data['uframe_filter_id'] = 2 #inx         # definition - hardcoded for now; uframe update required
+            event_data['uframe_filter_id'] = 2
             event_data['system_event_definition_id'] = system_event_definition_id
             event_data['event_time'] = event_time
             event_data['event_type'] = event_type
@@ -271,12 +276,6 @@ class AlertAlarmTestCase(unittest.TestCase):
             new_event = json.dumps(event_data)
             response = self.client.post(url_for('main.create_alert_alarm'), headers=headers,data=new_event)
             self.assertEquals(response.status_code, 201)
-
-            # Sample response data:
-            # {u'uframe_filter_id': 2,
-            # u'event_response': u'Instrument: CP02PMCO-WFP01-02-DOFSTK000 condition exceeded where parameter temperature GREATER 10.0 1.0',
-            # u'event_type': u'alarm', u'event_time': u'Sun, 19 Jul 2015 21:33:50 GMT', u'system_event_definition_id': 1,
-            # u'method': u'telemetered', u'uframe_event_id': 314, u'deployment': 1, u'id': 1}
             response_data = json.loads(response.data)
             self.assertTrue(response_data is not None)
             self.assertTrue('id' in response_data)
@@ -287,7 +286,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         response = self.client.get(url, content_type=content_type, headers=headers)
         self.assertEquals(response.status_code, 200)
         data = json.loads(response.data)
-        #print '\n data: ', data
         self.assertTrue('alert_alarm' in data)
         self.assertTrue(len(data['alert_alarm']) > 0)
 
@@ -312,11 +310,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         data = json.loads(response.data)
         self.assertTrue('alert_alarm_definition' in data)
 
-        # todo Revisit this section to rework exception handling tests for create and update.
-        # Here just generating rotten test data to force errors and exercise branches in code.
-        #  Force an error (400) on create definition; utilize session.rollback() in except block
-        #  create alert or alarm, note w/o type checking or validation this passes db add and
-        # commit, but fails on jsonify for return
         z = {}
         z['uframe_filter_id'] = 10101
         z['reference_designator'] = 'CE01ISSP-XX099-01-CTDPFJ999'
@@ -356,16 +349,12 @@ class AlertAlarmTestCase(unittest.TestCase):
         z_id = response_data['id']
         list_alertfilter_ids.append(uframe_id)
 
-        # todo - Rework this section and previous create_alert_alarm_def. Must generate 400 after uframe alertfilter create.
-        # todo - creates instance; then rollback will require deleting uframe filter created.
-        # Get this back in: This test verifies after the previous error (400), a rollback is issued in except block;
-        # if it hasn't been then this GET would fail.
         url = url_for('main.get_alerts_alarms_def')
         response = self.client.get(url, content_type=content_type, headers=headers)
         self.assertEquals(response.status_code, 200)
         data = json.loads(response.data)
         self.assertTrue('alert_alarm_definition' in data)
-        self.assertEquals(len(data['alert_alarm_definition']), 8)
+        self.assertEquals(len(data['alert_alarm_definition']), 4)
         # save alert definition to use in PUT below
         alert_definition = None
         for d in data['alert_alarm_definition']:
@@ -376,7 +365,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         new_definition_id = alert_definition['id']
 
         # test PUT to update definition (use BAD data on update)
-        response = self.client.get(url_for('main.get_alert_alarm_def', id=2), content_type=content_type,headers=headers)
+        response = self.client.get(url_for('main.get_alert_alarm_def', id=new_definition_id), content_type=content_type,headers=headers)
         self.assertEquals(response.status_code, 200)
 
         response = self.client.get(url_for('main.get_alerts_alarms', type='alert'), content_type=content_type,headers=headers)
@@ -430,17 +419,14 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertEquals(response.status_code, 200)
         data = json.loads(response.data)
         self.assertTrue('alert_alarm_definition' in data)
-        self.assertEquals(len(data['alert_alarm_definition']),8)
+        self.assertEquals(len(data['alert_alarm_definition']),4)
         self.assertTrue('alert_alarm_definition' in data)
         definitions = data['alert_alarm_definition']
-        #print '\n Number of alert_alarm_definitions: ', len(definitions)
-
         for definition in definitions:
             if definition['uframe_filter_id'] > 3 and definition['uframe_filter_id'] != 2228:      # not retiring filterId 1 or 2 right now
                 url = url_for('main.delete_alert_alarm_definition', id=definition['id'])
                 response = self.client.delete(url, headers=headers)
                 self.assertEquals(response.status_code, 200)
-
 
         # PUT using alert_Definition from above, remove uframe_filter_id element
         update_description = 'this is an update!'
@@ -451,7 +437,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertEquals(response.status_code, 409)
 
         # Delete all alertfilter ids (where id > 3)
-        #if verbose: print '\n list_alertfilter_ids(%d): %s' % (len(list_alertfilter_ids), list_alertfilter_ids)
         self.delete_alertfilters(list_alertfilter_ids)
 
         # ======== NEVER USE THIS CODE EXCEPT FOR TEST DEVELOPMENT ===========
@@ -466,7 +451,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         headers = self.get_api_headers('admin', 'test')
 
         # Create alarm definition
-        rd = 'CP02PMCO-WFP01-02-DOFSTK000'
+        rd = 'CE01ISSP-XX099-01-CTDPFJ999'
         definition = self.create_alert_alarm_definition(rd, 'alarm', 2, 1)
 
         response = self.client.get(url_for('main.get_alert_alarm_def', id=1), content_type=content_type,headers=headers)
@@ -514,7 +499,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         headers = self.get_api_headers('admin', 'test')
 
         # Create alarm definition
-        rd = 'CP02PMCO-WFP01-02-DOFSTK000'
+        rd = 'CE01ISSP-XX099-01-CTDPFJ999'
         definition = self.create_alert_alarm_definition(rd, 'alarm', 2, 1)
         response = self.client.get(url_for('main.get_alert_alarm_def', id=1), content_type=content_type,headers=headers)
         self.assertEquals(response.status_code, 200)
@@ -661,7 +646,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         new_definition['use_sms'] = True
         bad_def = json.dumps(new_definition)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=bad_def)
-        response_data = json.loads(response.data)
         self.assertEquals(response.status_code, 201)
         response_data = json.loads(response.data)
         self.assertTrue(response_data is not None)
@@ -872,7 +856,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         response = self.client.post(url_for('main.acknowledge_alert_alarm'), headers=headers, data=acknowledged_event)
         self.assertEquals(response.status_code, 409)
         response_data = json.loads(response.data)
-        #print '\n response_data: ', response_data
         self.assertTrue('message' in response_data)
         self.assertTrue(response_data['message'] is not None)
 
@@ -886,7 +869,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         # # Create an alert
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         reference_designator = "CE01ISSP-XX099-01-CTDPFJ999"
-        test_alert = self.create_alert_alarm_definition(reference_designator, event_type='alert', uframe_id=2, severity=1)
+        test_alert = self.create_alert_alarm_definition(reference_designator, event_type='alert', uframe_id=3, severity=1)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # GET alert definition by SystemEventDefinition id
@@ -987,7 +970,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         response = self.client.post(url_for('main.acknowledge_alert_alarm'), headers=headers, data=acknowledged_event)
         self.assertEquals(response.status_code, 409)
         response_data = json.loads(response.data)
-        #print '\n response_data: ', response_data
         self.assertTrue('message' in response_data)
         self.assertTrue(response_data['message'] is not None)
 
@@ -996,7 +978,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         debug = False
         if verbose: print '\n'
 
-        content_type =  'application/json'
         headers = self.get_api_headers('admin', 'test')
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1088,7 +1069,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         response = self.client.post(url_for('main.acknowledge_alert_alarm'), headers=headers, data=acknowledged_event)
         self.assertEquals(response.status_code, 201)
         response_data = json.loads(response.data)
-        #print '\n response_data: ', response_data
         self.assertTrue('acknowledged' in response_data)
         self.assertTrue('ack_by' in response_data)
         self.assertTrue('ts_acknowledged' in response_data)
@@ -1144,7 +1124,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         response = self.client.post(url_for('main.acknowledge_alert_alarm'), headers=headers, data=acknowledged_event)
         self.assertEquals(response.status_code, 400)
         response_data = json.loads(response.data)
-        #print '\n response_data: ', response_data
         self.assertTrue('message' in response_data)
         self.assertTrue(response_data['message'] is not None)
 
@@ -1347,7 +1326,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Delete all uframe alertfilter ids created during test case (id > 3)
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        #print '\n list_alertfilter_ids(%d): %s' % (len(list_alertfilter_ids), list_alertfilter_ids)
         self.delete_alertfilters(list_alertfilter_ids)
 
 
@@ -1604,7 +1582,6 @@ class AlertAlarmTestCase(unittest.TestCase):
             db.session.add(tmp_event)
             db.session.commit()
         except:
-            #print '\n Exception in workaround persisting SystemEvent when do not have qpid process.'
             self.assertEquals('Exception in workaround persisting SystemEvent','when do not have qpid process.')
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1777,7 +1754,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Delete all uframe alertfilter ids created during test case (id > 3)
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        #print '\n filter_ids(%d): %s' % (len(list_alertfilter_ids), list_alertfilter_ids)
         self.delete_alertfilters(list_alertfilter_ids)
 
     def test_SystemEventDefinition_required_fields(self):
@@ -1786,7 +1762,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         """
         content_type =  'application/json'
         headers = self.get_api_headers('admin', 'test')
-        list_alertfilter_ids = []
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # GET /alert_alarm when there aren't any
@@ -1930,6 +1905,48 @@ class AlertAlarmTestCase(unittest.TestCase):
         definition = json.loads(response.data)
         self.assertTrue(definition is not None)
 
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Negative) Create some alarm definitions - escalate_on is wrong type
+        # Error: "Insufficient data, or bad data format. (Invalid escalate_on value type (u'A').)"
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        data = {'platform_name': u'CE01ISSP-XX099', 'high_value': u'31.0', 'event_type': u'alert',
+                'stream': u'ctdpf_j_cspp_instrument', 'severity': 2, 'low_value': u'10.0', 'active': True,
+                'array_name': u'CE', 'reference_designator': u'CE01ISSP-XX099-01-CTDPFJ999',
+                'operator': u'GREATER', 'instrument_name': u'CE01ISSP-XX099-01-CTDPFJ999',
+                'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
+                'description': 'initial', "escalate_on": 'A', "escalate_boundary": 10.0,
+                'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
+                'use_log': False, 'use_sms': True}
+
+        request_data = json.dumps(data)
+        response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
+        self.assertEquals(response.status_code, 409)
+        self.assertTrue(response is not None)
+        self.assertTrue(response.data is not None)
+        definition = json.loads(response.data)
+        self.assertTrue(definition is not None)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Negative) Create some alarm definitions - escalate_boundary is wrong type
+        # Error: "Insufficient data, or bad data format. (Invalid escalate_boundary value type (u'B').)"
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        data = {'platform_name': u'CE01ISSP-XX099', 'high_value': u'31.0', 'event_type': u'alert',
+                'stream': u'ctdpf_j_cspp_instrument', 'severity': 2, 'low_value': u'10.0', 'active': True,
+                'array_name': u'CE', 'reference_designator': u'CE01ISSP-XX099-01-CTDPFJ999',
+                'operator': u'GREATER', 'instrument_name': u'CE01ISSP-XX099-01-CTDPFJ999',
+                'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
+                'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 'B',
+                'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
+                'use_log': False, 'use_sms': True}
+
+        request_data = json.dumps(data)
+        response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
+        self.assertEquals(response.status_code, 409)
+        self.assertTrue(response is not None)
+        self.assertTrue(response.data is not None)
+        definition = json.loads(response.data)
+        self.assertTrue(definition is not None)
+
 
     def test_SystemEvent_uframe_integration_negative(self):
         """
@@ -2052,7 +2069,6 @@ class AlertAlarmTestCase(unittest.TestCase):
                 db.session.rollback()
                 self.assertTrue('Failed to update SystemEvent with bad uframe_event_id', 'error')
 
-        #print '\n BAD uframe_event_id: ', tmp_alert_alarm.uframe_event_id
         bad_alert_alarm_uframe_event_id = tmp_alert_alarm.uframe_event_id
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2090,14 +2106,29 @@ class AlertAlarmTestCase(unittest.TestCase):
         ack_data['system_event_definition_id'] = system_event_definition_id
         ack_data['event_type'] = event_type
         ack_data['ack_by'] = 1
-
-        # sample BAD ack_data:  {'uframe_filter_id': 892, 'event_type': 'alarm',
-        # 'system_event_definition_id': 1, 'acknowledged': True,
-        # 'uframe_event_id': 100, 'ack_by': 1, 'id': 999}
-
         acknowledged_event = json.dumps(ack_data)
         response = self.client.post(url_for('main.acknowledge_alert_alarm'), headers=headers, data=acknowledged_event)
         self.assertEquals(response.status_code, 400)
+        response_data = json.loads(response.data)
+        self.assertTrue('error' in response_data)
+        self.assertTrue('message' in response_data)
+        self.assertTrue(response_data['message'] is not None)
+        self.assertTrue(response_data['error'] is not None)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Negative) Acknowledge alert_alarm missing required element 'uframe_event_id'
+        # error: "Insufficient data, or bad data format; Missing required field ('uframe_event_id') in request.data"
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        ack_data = {}
+        ack_data['id'] = alert_alarm_id
+        #ack_data['uframe_event_id'] = bad_alert_alarm_uframe_event_id
+        ack_data['uframe_filter_id'] = uframe_filter_id
+        ack_data['system_event_definition_id'] = system_event_definition_id
+        ack_data['event_type'] = event_type
+        ack_data['ack_by'] = 1
+        acknowledged_event = json.dumps(ack_data)
+        response = self.client.post(url_for('main.acknowledge_alert_alarm'), headers=headers, data=acknowledged_event)
+        self.assertEquals(response.status_code, 409)
         response_data = json.loads(response.data)
         self.assertTrue('error' in response_data)
         self.assertTrue('message' in response_data)
@@ -2240,7 +2271,6 @@ class AlertAlarmTestCase(unittest.TestCase):
             db.session.add(tmp_event)
             db.session.commit()
         except:
-            #print '\n Exception in workaround persisting SystemEvent when do not have qpid process.'
             self.assertEquals('Exception in workaround persisting SystemEvent','when do not have qpid process.')
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2312,7 +2342,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Delete all uframe alertfilter ids created during test case (id > 3)
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        #print '\n filter_ids(%d): %s' % (len(list_alertfilter_ids), list_alertfilter_ids)
         self.delete_alertfilters(list_alertfilter_ids)
 
     def test_SystemEventDefinition_operators(self):
@@ -2350,7 +2379,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         # - - Create alert_alarm_definition (Alarm)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=json.dumps(data))
         response_data = json.loads(response.data)
-        #print '\n response_data: ', response_data
         self.assertEquals(response.status_code, 201)
         self.assertTrue(response is not None)
         self.assertTrue(response.data is not None)
@@ -2523,7 +2551,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Delete all uframe alertfilters created during test case (id > 3)
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        #print '\n filter_ids(%d): %s' % (len(filter_ids), filter_ids)
         self.delete_alertfilters(filter_ids)
 
     def test_SystemEventDefinition_update_user_notification(self):
@@ -2785,7 +2812,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Delete all uframe alertfilters created during test case (id > 3)
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        #print '\n filter_ids(%d): %s' % (len(filter_ids), filter_ids)
         self.delete_alertfilters(filter_ids)
 
         if verbose: print '\n '
@@ -2811,11 +2837,12 @@ class AlertAlarmTestCase(unittest.TestCase):
         alarm_definition_id, alert_definition_id, filter_ids = self.create_valid_definition_and_events()
 
         # Configure test case items for exercising filter variables
-        valid_filter_items = ['type', 'method', 'deployment', 'acknowledged',
+        valid_filter_items = ['type', 'event_type', 'method', 'deployment', 'acknowledged',
                               'array_name', 'platform_name', 'instrument_name',
                               'reference_designator', 'active', 'retired']
         valid_filter_values = {
                                 'type': ['alert', 'alarm'],
+                                'event_type': ['alert', 'alarm'],
                                 'method': ['telemetered', 'discovered'],
                                 'deployment' : [1, 2],
                                 'acknowledged' : ['true', 'false'],
@@ -2828,6 +2855,7 @@ class AlertAlarmTestCase(unittest.TestCase):
                             }
         valid_filter_counts = {
                                 'type': [ 1, 1],
+                                'event_type': [ 1, 1],
                                 'method': [ 2, 0],
                                 'deployment' : [ 2, 0],
                                 'acknowledged' : [ 0, 2],
@@ -2840,6 +2868,7 @@ class AlertAlarmTestCase(unittest.TestCase):
                             }
         invalid_filter_values = {
                                 'type': [None, '', 'foo', 'Alert', 'Alarm'],
+                                'event_type': [None, '', 'foo', 'Alert', 'Alarm'],
                                 'method': [None, ''],
                                 'deployment': [None, 'a', True, ''],
                                 'acknowledged': [None, 'a', ''],
@@ -2852,6 +2881,7 @@ class AlertAlarmTestCase(unittest.TestCase):
                             }
         invalid_filter_counts = {
                                 'type': [ 2, 2, 0, 0, 0, 0 ],
+                                'event_type': [ 2, 2, 0, 0, 0, 0 ],
                                 'method': [ 0, 0],
                                 'deployment' : [ 2, 2, 2, 2],
                                 'acknowledged' : [ 2, 2, 2],
@@ -2898,8 +2928,151 @@ class AlertAlarmTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Delete all uframe alertfilters created during test case (id > 3)
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        #print '\n filter_ids(%d): %s' % (len(filter_ids), filter_ids)
         self.delete_alertfilters(filter_ids)
+
+        if verbose: print '\n'
+
+    def test_get_alert_alarm_json(self):
+        try:
+            result = get_alert_alarm_json(['junk'], None)
+            self.assertTrue(result is None)
+        except:
+            pass
+
+    def test_multiple_query_filter_options(self):
+        """
+        Test alert_alarm queries with multiple filter rules.
+
+        Current SystemEvenetDefinition filter options for request.args:
+            'retired', 'array_name', 'platform_name', 'instrument_name', 'reference_designator'
+
+        Current SystemEvent filter options for request.args:
+            'type', 'method', 'deployment', 'acknowledged', 'array_name', 'platform_name', 'instrument_name',
+            'reference_designator', 'active', 'retired'
+
+        """
+        content_type =  'application/json'
+        headers = self.get_api_headers('admin', 'test')
+        verbose = self.verbose
+        debug = False
+        root = self.root
+        if verbose: print '\n'
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Create alert_alarm_definitions and alert_alarm instances with route /create_alert_alarm.
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        alarm_definition_id, alert_definition_id, filter_ids = self.create_valid_definition_and_events()
+
+
+        """
+        - http://localhost:4000/alert_alarm?array_name=CE&method=telemetered&retired=false
+        - http://localhost:4000/alert_alarm?array_name=CE&method=telemetered&retired=true
+        - http://localhost:4000/alert_alarm?array_name=CE&method=telemetered&retired=false&type=alarm
+        - http://localhost:4000/alert_alarm?array_name=CE&method=telemetered&retired=true&type=alarm
+        http://localhost:4000/alert_alarm?array_name=CE&deployment=1
+        http://localhost:4000/alert_alarm?type=alert&acknowledged=false&method=recovered
+        http://localhost:4000/alert_alarm?acknowledged=false&type=alert http://localhost:4000/alert_alarm?acknowledged=false&type=alert&instrument_name=CE01ISSP-XX099-01-CTDPFJ999
+        http://localhost:4000/alert_alarm?acknowledged=false&type=alert&instrument_name=CE01ISSP-XX099-01-CTDPFJ999
+        http://localhost:4000/alert_alarm?acknowledged=false&type=alert&platform_name=CE01ISSP-XX099
+        http://localhost:4000/alert_alarm?acknowledged=false&type=alert&platform_name=CE01ISSP-XX099
+        http://localhost:4000/alert_alarm?type=alert&platform_name=CE01ISSP-XX099&method=telemetered
+        http://localhost:4000/alert_alarm?platform_name=CE01ISSP-XX099&type=alert&acknowledged=false
+        http://localhost:4000/alert_alarm?platform_name=CE01ISSP-XX099&event_type=alert&acknowledged=false
+        http://localhost:4000/alert_alarm?platform_name=CE01ISSP-XX099&method=telemetered
+        http://localhost:4000/alert_alarm?platform_name=CE01ISSP-XX099&method=recovered
+        """
+
+        # http://localhost:4000/alert_alarm?array_name=CE&method=telemetered&retired=false
+        url = url_for('main.get_alerts_alarms')
+        url += '?array_name=CE&method=telemetered&retired=false'
+        if verbose: print root+url
+        response = self.client.get(url, content_type=content_type, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertTrue('alert_alarm' in data)
+        self.assertTrue(data['alert_alarm'] is not None)
+        self.assertTrue(len(data['alert_alarm']) > 0)
+
+        # http://localhost:4000/alert_alarm?array_name=CE&method=telemetered&retired=true
+        url = url_for('main.get_alerts_alarms')
+        url += '?array_name=CE&method=telemetered&retired=true'
+        if verbose: print root+url
+        response = self.client.get(url, content_type=content_type, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertTrue('alert_alarm' in data)
+        self.assertTrue(data['alert_alarm'] is not None)
+        self.assertEquals(len(data['alert_alarm']), 0)
+
+        # http://localhost:4000/alert_alarm?array_name=CE&method=telemetered&retire=false&type=alarm
+        url = url_for('main.get_alerts_alarms')
+        url += '?array_name=CE&method=telemetered&retired=false&type=alarm'
+        if verbose: print root+url
+        response = self.client.get(url, content_type=content_type, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertTrue('alert_alarm' in data)
+        self.assertTrue(data['alert_alarm'] is not None)
+        self.assertTrue(len(data['alert_alarm']) > 0)
+
+        # http://localhost:4000/alert_alarm?array_name=CE&method=telemetered&retire=true&type=alarm
+        url = url_for('main.get_alerts_alarms')
+        url += '?array_name=CE&method=telemetered&retired=true&type=alarm'
+        if verbose: print root+url
+        response = self.client.get(url, content_type=content_type, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertTrue('alert_alarm' in data)
+        self.assertTrue(data['alert_alarm'] is not None)
+        self.assertEquals(len(data['alert_alarm']), 0)
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # create definitions, instances and acknowledgements
+        # urls:
+        # http://localhost:4000/alert_alarm?array_name=CE&method=telemetered&acknowledged=true
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        _alarm_definition_id, _alert_definition_id, _filter_ids = self.create_valid_definition_and_events_with_acknowledgments()
+
+        # http://localhost:4000/alert_alarm?acknowledged=true
+        url = url_for('main.get_alerts_alarms')
+        url += '?acknowledged=true'
+        if verbose: print root+url
+        response = self.client.get(url, content_type=content_type, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertTrue('alert_alarm' in data)
+        self.assertTrue(data['alert_alarm'] is not None)
+        self.assertEquals(len(data['alert_alarm']), 2)
+
+        # http://localhost:4000/alert_alarm?acknowledged=true&type=alarm
+        url = url_for('main.get_alerts_alarms')
+        url += '?acknowledged=true&type=alarm'
+        if verbose: print root+url
+        response = self.client.get(url, content_type=content_type, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertTrue('alert_alarm' in data)
+        self.assertTrue(data['alert_alarm'] is not None)
+        self.assertEquals(len(data['alert_alarm']), 1)
+
+        # http://localhost:4000/alert_alarm?acknowledged=true&type=alert
+        url = url_for('main.get_alerts_alarms')
+        url += '?acknowledged=true&type=alert'
+        if verbose: print root+url
+        response = self.client.get(url, content_type=content_type, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertTrue('alert_alarm' in data)
+        self.assertTrue(data['alert_alarm'] is not None)
+        self.assertEquals(len(data['alert_alarm']), 1)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Delete all uframe alertfilters created during test case (id > 3)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if len(filter_ids) > 0:
+            self.delete_alertfilters(filter_ids)
+        if len(_filter_ids) > 0:
+            self.delete_alertfilters(_filter_ids)
 
         if verbose: print '\n'
 
@@ -2987,7 +3160,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Delete all uframe alertfilters created during test case (id > 3)
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        #print '\n filter_ids(%d): %s' % (len(filter_ids), filter_ids)
         self.delete_alertfilters(filter_ids)
 
         if verbose: print '\n'
@@ -3069,7 +3241,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         alert_escalate_on = alert_time_start + escalate_on
         alert_escalate_boundary = alert_time_start + escalate_boundary
         offset = 2208988800
-        ts_event_time = self.convert_from_utc(alert_time_start - offset)
 
         # Sample loops to generate alerts, verify timestamp
         inx = 0.0
@@ -3080,18 +3251,17 @@ class AlertAlarmTestCase(unittest.TestCase):
 
             ts_tmp = alert_time_start + inx
             #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-            # POST alert which uses the SystemEventDefinition id
+            # POST alert instance which uses the SystemEventDefinition id
             #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-            event_type = 'alert'
             system_event_definition_id = alert_definition_id
             uframe_filter_id = alert_definition['uframe_filter_id']
             event_data = {}
             event_data['uframe_event_id'] = -1
             event_data['uframe_filter_id'] = uframe_filter_id
             event_data['system_event_definition_id'] = system_event_definition_id
-            event_data['event_time'] = ts_tmp  #event_time
+            event_data['event_time'] = ts_tmp
             event_data['event_type'] = 'alert'
-            event_data['event_response'] = 'Test alert %d' % int(inx) #event_response_message
+            event_data['event_response'] = 'Test alert %d' % int(inx)
             event_data['method'] = 'telemetered'
             event_data['deployment'] = 1
             new_event = json.dumps(event_data)
@@ -3118,8 +3288,7 @@ class AlertAlarmTestCase(unittest.TestCase):
                 if debug: print '\n ------ updated ticket_id: ', response_data['ticket_id']
 
             if debug: print '\n Created alert (%d) for %s' % (int(inx+1),
-                                                     dt.datetime.strftime(self.convert_from_utc(ts_tmp - offset),
-                                                                          "%Y-%m-%dT%H:%M:%S"))
+                                    dt.datetime.strftime(self.convert_from_utc(ts_tmp - offset), "%Y-%m-%dT%H:%M:%S"))
             inx += 1.0
 
         if debug: print '\n ------ ticket_id_escalate_on: ', ticket_id_escalate_on
@@ -3129,19 +3298,15 @@ class AlertAlarmTestCase(unittest.TestCase):
         # Delete all uframe alertfilter ids created during test case (id > 3)
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         if len(list_filter_ids) != 0:
-            if debug: print '\n list_alertfilter_ids(%d): %s' % (len(list_filter_ids), list_filter_ids)
             self.delete_alertfilters(list_filter_ids)
         if verbose: print '\n'
 
     def test_z_last_test_scrub(self):
-
         self.scrub_alertfilters()
-        #print '\n last test to execute...'
 
     def test_uframe_get_instrument_metadata(self):
 
         content_type = 'application/json'
-        headers = self.get_api_headers('admin', 'test')
         ref = 'CE01ISSM-SBD17-04-VELPTA000'
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Verify uframe is available and the selected instrument is present, if not exit without failure.
@@ -3161,7 +3326,6 @@ class AlertAlarmTestCase(unittest.TestCase):
             response_data = json.loads(response.data)
             self.assertTrue(response_data is not None)
         else:
-            #print '\n failed with response.status_code: ', response.status_code
             self.assertEquals('failed with response.status_code: ', response.status_code)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3240,11 +3404,10 @@ class AlertAlarmTestCase(unittest.TestCase):
                     'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
                     'use_log': False, 'use_sms': True}
             result = create_uframe_alertfilter_data(data)
-            if debug: print '\n result: ', result
             self.assertTrue(result is not None)
             self.assertTrue(len(result) > 0)
         except Exception as err:
-            if debug: print '\n exception: ', err.message
+            if debug: print '\n message: ', err.message
             self.assertEquals('Failed to create uframe alertfilter input data', 'error')
 
         try:
@@ -3547,7 +3710,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         # Cleanup extra alterfilters created during test case
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         if len(filter_ids) > 0:
-            if debug: print '\n filter_ids: ', filter_ids
             self.delete_alertfilters(filter_ids)
 
     def test_safe_to_delete_alert_alarm_definition(self):
@@ -3582,7 +3744,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue(timeout is not None)
         self.assertTrue(timeout_read is not None)
 
-
     def test_get_alertfilter(self):
         """
         Get uframe configuration variables.
@@ -3601,9 +3762,8 @@ class AlertAlarmTestCase(unittest.TestCase):
         # error:
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         try:
-            filterId = 90999
-            result = get_alertfilter(filterId)
-            self.assertEquals('get_alertfilter failed to generate error with invalid filterId', filterId)
+            result = get_alertfilter(90999)
+            self.assertEquals('get_alertfilter failed to generate error with invalid filterId (90999).')
         except Exception as err:
             if debug: print '\n exception: ', err.message
 
@@ -3706,17 +3866,16 @@ class AlertAlarmTestCase(unittest.TestCase):
     def test_update_uframe_alertfilter(self):
         headers = self.get_api_headers('admin', 'test')
         filter_ids = []
-        debug = False
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Create valid alarm definition
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        data = {'platform_name': u'CE01ISSP-XX099', 'high_value': u'31.0', 'event_type': u'alarm',
+        data = {'platform_name': u'CE01ISSP-XX099', 'high_value': u'31.0', 'event_type': u'alert',
                 'stream': u'ctdpf_j_cspp_instrument', 'severity': 2, 'low_value': u'10.0', 'active': True,
                 'array_name': u'CE', 'reference_designator': u'CE01ISSP-XX099-01-CTDPFJ999',
                 'operator': u'GREATER', 'instrument_name': u'CE01ISSP-XX099-01-CTDPFJ999',
                 'instrument_parameter': u'salinity', 'instrument_parameter_pdid': u'PD440',
-                'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10.0,
+                'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10,
                 "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
                 "use_log": False, "use_sms": True}
 
@@ -3730,7 +3889,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue('id' in alarm_definition)
         self.assertTrue('uframe_filter_id' in alarm_definition)
         self.assertTrue('description' in alarm_definition)
-        alarm_definition_id = alarm_definition['id']
         alarm_filter_id = alarm_definition['uframe_filter_id']
         filter_ids.append(alarm_filter_id)
 
@@ -3739,15 +3897,15 @@ class AlertAlarmTestCase(unittest.TestCase):
         try:
             result = update_uframe_alertfilter(data, alarm_filter_id)
             self.assertTrue(result is not None)
-        except Exception as err:
-            if debug: print '\n message: ', err.message
+        except:
+            pass
 
         # (Negative)
         result = None
         try:
             result = update_uframe_alertfilter(data, 10101010101)
-        except Exception as err:
-            if debug: print '\n message: ', err.message
+        except:
+            pass
         self.assertTrue(result is None)
 
         # (Negative)
@@ -3755,24 +3913,24 @@ class AlertAlarmTestCase(unittest.TestCase):
         try:
             bad_data = {'platform_name': u'CE01ISSP-XX099', 'high_value': u'31.0', 'event_type': u'alarm'}
             result = update_uframe_alertfilter(bad_data, alarm_filter_id)
-        except Exception as err:
-            if debug: print '\n message: ', err.message
+        except:
+            pass
         self.assertTrue(result is None)
 
         # (Negative)
         result = None
         try:
             result = update_uframe_alertfilter({}, alarm_filter_id)
-        except Exception as err:
-            if debug: print '\n message: ', err.message
+        except:
+            pass
         self.assertTrue(result is None)
 
         # (Negative)
         result = None
         try:
             result = update_uframe_alertfilter(None, alarm_filter_id)
-        except Exception as err:
-            if debug: print '\n message: ', err.message
+        except:
+            pass
         self.assertTrue(result is None)
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3784,17 +3942,15 @@ class AlertAlarmTestCase(unittest.TestCase):
 
     def test_uframe_update_alertfilter(self):
 
-        content_type = 'application/json'
-        headers = self.get_api_headers('admin', 'test')
         filter_ids = []
         uframe_successful_create = 'CREATED'
         uframe_successful_update = 'OK'
         uframe_server_error = u'INTERNAL_SERVER_ERROR'
-        filter_response_data = {u'eventId': 6724, u'stream': u'ctdpf_j_cspp_instrument', u'referenceDesignator': {u'node': u'XX099',
-        u'sensor': u'01-CTDPFJ999', u'full': True, u'subsite': u'CE01ISSP'}, u'enabled': True,
-        u'alertRule': {u'filter': u'GREATER', u'errMessage': None, u'valid': True, u'lowVal': 10.0, u'highVal': 31.0},
-        u'alertMetadata': {u'severity': 2, u'description': u'Rule 99 - disabled'}, u'@class': u'.AlertFilterRecord',
-        u'pdId': u'PD440'}
+        filter_response_data = {u'eventId': 6724, u'stream': u'ctdpf_j_cspp_instrument',
+        u'referenceDesignator': {u'node': u'XX099', u'sensor': u'01-CTDPFJ999', u'full': True, u'subsite': u'CE01ISSP'},
+        u'enabled': True, u'alertRule': {u'filter': u'GREATER', u'errMessage': None, u'valid': True,
+        u'lowVal': 10.0, u'highVal': 31.0}, u'alertMetadata': {u'severity': 2, u'description': u'Rule 99 - disabled'},
+        u'@class': u'.AlertFilterRecord', u'pdId': u'PD440'}
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Create alertfilter
@@ -3849,58 +4005,24 @@ class AlertAlarmTestCase(unittest.TestCase):
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Update alertfilter; Response data: {u'message': u'Update successful.', u'id': 6724, u'statusCode': u'OK'}
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        data = {'stream': u'ctdpf_j_cspp_instrument', 'enabled': True,
+        data = {'stream': u'ctdpf_j_cspp_instrument', 'enabled': False,
          'referenceDesignator': {'node': u'XX099', 'sensor': u'01-CTDPFJ999', 'full': True, 'subsite': u'CE01ISSP'},
          'alertRule': {'filter': u'GREATER', 'errMessage': None, 'valid': True, 'lowVal': 10.0, 'highVal': 31.0},
          'alertMetadata': {'severity': 2, 'description': u'Rule 99 - disabled'},
          '@class': 'com.raytheon.uf.common.ooi.dataplugin.alert.alertfilter.AlertFilterRecord', 'pdId': u'PD440'}
         response = uframe_update_alertfilter(data, filter_id)
         self.assertEquals(response.status_code, 200)
-        #response_data = json.loads(response.content)
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Get alertfilter and check enabled and description values
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        alerts_url, timeout, timeout_read = self.get_uframe_alerts_info()
-        url = "/".join([alerts_url, 'alertfilters', str(filter_id)])
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        response_data = json.loads(response.content)
-        self.assertTrue(response_data is not None)
-        self.assertEquals(response.status_code, 200)
-
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Update alertfilter (in uframe) - change description
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        previous_description = data['alertMetadata']['description']
-        data = {'stream': u'ctdpf_j_cspp_instrument', 'enabled': True,
-         'referenceDesignator': {'node': u'XX099', 'sensor': u'01-CTDPFJ999', 'full': True, 'subsite': u'CE01ISSP'},
-         'alertRule': {'filter': u'GREATER', 'errMessage': None, 'valid': True, 'lowVal': 10.0, 'highVal': 31.0},
-         'alertMetadata': {'severity': 2, 'description': u'Rule 99 - update again'},
-         '@class': 'com.raytheon.uf.common.ooi.dataplugin.alert.alertfilter.AlertFilterRecord', 'pdId': u'PD440'}
-        response = uframe_update_alertfilter(data, filter_id)
-        self.assertEquals(response.status_code, 200)
-        response_data = json.loads(response.content)
-        self.assertTrue('statusCode' in response_data)
-        self.assertEquals(response_data['statusCode'], uframe_successful_update)
-
-        # -- Get alertfilter and check description values
-        alerts_url, timeout, timeout_read = self.get_uframe_alerts_info()
-        url = "/".join([alerts_url, 'alertfilters', str(filter_id)])
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        self.assertEquals(response.status_code, 200)
-        response_data = json.loads(response.content)
-        self.assertTrue(response_data is not None)
-        self.assertTrue('alertMetadata' in response_data)
-        self.assertTrue('description' in response_data['alertMetadata'])
-        self.assertEquals(data['alertMetadata']['description'], response_data['alertMetadata']['description'])
-        self.assertTrue(previous_description != response_data['alertMetadata']['description'])
-
-        '''
-        if response.content is not None:
-            response_data = json.loads(response.content)
-            print '\n response_data: ', response_data
-        else:
-            print '\n response.content is None when status_code == %d' % response.status_code
-        '''
+        result = self.get_alertfilter(filter_id)
+        self.assertTrue(result is not None)
+        self.assertTrue('enabled' in result)
+        self.assertEquals(result['enabled'], data['enabled'])
+        self.assertTrue('alertMetadata' in result)
+        self.assertTrue('description' in result['alertMetadata'])
+        updated_description = result['alertMetadata']['description']
+        self.assertEquals(data['alertMetadata']['description'], updated_description)
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # (Negative) empty data dictionary as input
@@ -3921,21 +4043,14 @@ class AlertAlarmTestCase(unittest.TestCase):
         except Exception as err:
             pass
         self.assertEquals(response.status_code, 500)
-        '''
-        if response.content is not None:
-            rc = str(response.content)
-            if rc:
-                response_data = json.loads(response.content)
-                print '\n ------ response_data: ', response_data
-        '''
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Update alertfilter and set enabled == False; Response data:
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        data = {'stream': u'ctdpf_j_cspp_instrument', 'enabled': False,
+        data = {'stream': u'ctdpf_j_cspp_instrument', 'enabled': True,
          'referenceDesignator': {'node': u'XX099', 'sensor': u'01-CTDPFJ999', 'full': True, 'subsite': u'CE01ISSP'},
          'alertRule': {'filter': u'GREATER', 'errMessage': None, 'valid': True, 'lowVal': 10.0, 'highVal': 31.0},
-         'alertMetadata': {'severity': 2, 'description': u'Rule 99 - disabled'},
+         'alertMetadata': {'severity': 2, 'description': u'Rule 99'},
          '@class': 'com.raytheon.uf.common.ooi.dataplugin.alert.alertfilter.AlertFilterRecord', 'pdId': u'PD440'}
         response = uframe_update_alertfilter(data, filter_id)
         self.assertEquals(response.status_code, 200)
@@ -3944,17 +4059,35 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue('statusCode' in response_data)
         self.assertEquals(response_data['statusCode'], uframe_successful_update)
 
-        # -- Get alertfilter and check enabled and description values
-        alerts_url, timeout, timeout_read = self.get_uframe_alerts_info()
-        url = "/".join([alerts_url, 'alertfilters', str(filter_id)])
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        self.assertEquals(response.status_code, 200)
-        response_data = json.loads(response.content)
+        result = self.get_alertfilter(filter_id)
+        self.assertTrue(result is not None)
         self.assertTrue(response_data is not None)
-        self.assertEquals(response_data['enabled'], False)
-        self.assertEquals(response_data['alertMetadata']['description'], data['alertMetadata']['description'])
+        self.assertEquals(result['enabled'], True)
+        self.assertEquals(result['alertMetadata']['description'], data['alertMetadata']['description'])
 
-        # Cleanup extra alterfilters created during test case
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Update alertfilter and set @class to invalid value
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        data = {'stream': u'ctdpf_j_cspp_instrument', 'enabled': True,
+         'referenceDesignator': {'node': u'XX099', 'sensor': u'01-CTDPFJ999', 'full': True, 'subsite': u'CE01ISSP'},
+         'alertRule': {'filter': u'GREATER', 'errMessage': None, 'valid': True, 'lowVal': 10.0, 'highVal': 31.0},
+         'alertMetadata': {'severity': 2, 'description': u'Rule 99'},
+         '@class': 'com.raytheon.uf.common.ooi.dataplugin.alert', 'pdId': u'PD440'}
+        response = uframe_update_alertfilter(data, filter_id)
+        self.assertEquals(response.status_code, 500)
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Update alertfilter and set valid to invalid value (None)
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        data = {'stream': u'ctdpf_j_cspp_instrument', 'enabled': True,
+         'referenceDesignator': {'node': u'XX099', 'sensor': u'01-CTDPFJ999', 'full': True, 'subsite': u'CE01ISSP'},
+         'alertRule': {'filter': u'GREATER', 'errMessage': None, 'valid': None, 'lowVal': 10.0, 'highVal': 31.0},
+         'alertMetadata': {'severity': 2, 'description': u'Rule 99'},
+         '@class': 'com.raytheon.uf.common.ooi.dataplugin.alert', 'pdId': u'PD440'}
+        response = uframe_update_alertfilter(data, filter_id)
+        self.assertEquals(response.status_code, 500)
+
+        # Cleanup extra alertfilters created during test case
         if len(filter_ids) > 0:
             self.delete_alertfilters(filter_ids)
 
@@ -4008,8 +4141,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         response_data = json.loads(response.data)
         self.assertTrue(response_data is not None)
 
-        #print '\n *** response_data: ', response_data
-
         '''
         alerts_url, timeout, timeout_read = self.get_uframe_alerts_info()
         url = "/".join([alerts_url, 'alertfilters', str(alarm_uframe_id)])
@@ -4033,17 +4164,13 @@ class AlertAlarmTestCase(unittest.TestCase):
 
         tmp = alarms[0]
         event_id = tmp['eventId']
-        #print '\n event_id: ', event_id
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Create instance of newly created alert
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # 3637761438.72, 2015-04-11T17:17:18
-        escalate_on = 5.0
-        escalate_boundary = 10.0
         alert_time_start = 3637761438.72            # 3607761438.72, 2014-04-29T11:57:18
         offset = 2208988800
-        ts_event_time = self.convert_from_utc(alert_time_start - offset)
 
         # Sample loops to generate alerts, verify timestamp
         inx = 1.0
@@ -4051,7 +4178,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # POST alert which uses the SystemEventDefinition id
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        event_type = 'alarm'
         system_event_definition_id = alarm_definition_id
         uframe_filter_id = alarm_definition['uframe_filter_id']
         event_data = {}
@@ -4072,8 +4198,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue(response_data['id'] is not None)
         self.assertTrue('uframe_event_id' in response_data)
         self.assertTrue(response_data['uframe_event_id'] is not None)
-
-        #print '\n response_data: ', response_data
 
         # Acknowledge alert/alarm
         if not uframe_acknowledge_alert_alarm(event_id, 1):
@@ -4110,7 +4234,6 @@ class AlertAlarmTestCase(unittest.TestCase):
             user_event_notification_has_required_fields(data)
             self.assertEquals('user_event_notification_has_required_fields should have failed', 'missing user_id')
         except Exception as err:
-            #print '\n message: ', err.message
             pass
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4196,27 +4319,46 @@ class AlertAlarmTestCase(unittest.TestCase):
 # private test helper methods and tests
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     def get_alertfilter(self, id):
-        debug = True
         headers = self.get_api_headers('admin', 'test')
         try:
             alerts_url, timeout, timeout_read = self.get_uframe_alerts_info()
             url = "/".join([alerts_url, 'alertfilters', str(id)])
-            if debug: print '\n get url: ', url
             response = requests.get(url, timeout=(timeout, timeout_read), headers=headers)
             self.assertEquals(response.status_code, 200)
             filter = json.loads(response.content)
-            if debug: print '\n filter: ', filter
             return filter
-        except Exception as err:
-            if debug: print '\n (get_alterfilter) id: %d, %s' % (id, err.message)
+        except:
             raise
 
+    def get_uframe_event(self, filter_id):
+        # Using filterId, find eventId /alertalarms?acknowledged=false
+        headers = self.get_api_headers('admin', 'test')
+        event_id = None
+        event = None
+        found_event = False
+        try:
+            alerts_url, timeout, timeout_read = self.get_uframe_alerts_info()
+            url = "/".join([alerts_url, 'alertalarms?acknowledged=false'])
+            response = requests.get(url, timeout=(timeout, timeout_read), headers=headers)
+            self.assertEquals(response.status_code, 200)
+            events = json.loads(response.content)
+            for tmp in events:
+                if 'associatedId' in tmp:
+                    id = tmp['associatedId']
+                    if id == filter_id:
+                        event = tmp
+                        found_event = True
+                        break
+            if found_event:
+                event_id = event['eventId']
+            return event_id
+        except:
+            raise
 
     def create_alert_alarm_definition_wo_notification(self, ref_def, event_type, uframe_filter_id, severity):
         # Note, creates a definition in test database only, just used to exercise SystemEventDefinition class
         # but does NOT create alertfilter id in uframe. An alertfilter is created when the /alert_alarm_definition
         # route is called.
-        headers = self.get_api_headers('admin', 'test')
         alert_alarm_definition = None
         array_name = ref_def[0:0+2]
         platform_name = ref_def[0:0+14]
@@ -4250,8 +4392,8 @@ class AlertAlarmTestCase(unittest.TestCase):
             try:
                 db.session.add(alert_alarm_definition)
                 db.session.commit()
-            except Exception as err:
-                print '\n *** %s **** message: %s' % (ref_def,err.message)
+            except:
+                raise
 
         return alert_alarm_definition
 
@@ -4398,216 +4540,228 @@ class AlertAlarmTestCase(unittest.TestCase):
 
         return alarm_definition_id, alert_definition_id, list_filter_ids
 
-    def exercise_alert_alarm_definition_no_data(self, arrays, platforms, instruments):
-        verbose = self.verbose
-        root = self.root
-        if verbose: print '\n'
-
+    def create_valid_definition_and_events_with_acknowledgments(self):
+        """
+        Create valid alert_alarm_definitions (2) and alert_alarm instances (2) to use in test cases.
+        reference designator: 'CE01ISSP-XX099-01-CTDPFJ999'
+        Perform acknowledgements of alert and alarm instances.
+        """
         content_type =  'application/json'
         headers = self.get_api_headers('admin', 'test')
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Basic positive tests - array, platform, instrument w/o data (no alerts or alarms yet)
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        url = url_for('main.get_alerts_alarms_def')
-        if verbose: print root+url
-        response = self.client.get(url, content_type=content_type, headers=headers)
+        list_filter_ids = []
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Create (1) valid alarm definition and user event_notification
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        data = {'platform_name': u'CE01ISSP-XX099', 'high_value': u'31.0', 'event_type': u'alarm',
+                'stream': u'ctdpf_j_cspp_instrument', 'severity': 2, 'low_value': u'10.0', 'active': True,
+                'array_name': u'CE', 'reference_designator': u'CE01ISSP-XX099-01-CTDPFJ999',
+                'operator': u'GREATER', 'instrument_name': u'CE01ISSP-XX099-01-CTDPFJ999',
+                'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
+                'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10.0,
+                "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
+                "use_log": False, "use_sms": True}
+
+        request_data = json.dumps(data)
+        response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
+        self.assertEquals(response.status_code, 201)
+        self.assertTrue(response is not None)
+        self.assertTrue(response.data is not None)
+        alarm_definition = json.loads(response.data)
+        self.assertTrue(alarm_definition is not None)
+        self.assertTrue('id' in alarm_definition)
+        self.assertTrue('uframe_filter_id' in alarm_definition)
+        self.assertTrue('description' in alarm_definition)
+        alarm_definition_id = alarm_definition['id']
+        alarm_filter_id = alarm_definition['uframe_filter_id']
+        list_filter_ids.append(alarm_filter_id)
+
+        result = self.get_alertfilter(alarm_filter_id)
+        self.assertTrue('alertMetadata' in result)
+        self.assertTrue('severity' in result['alertMetadata'])
+        severity = result['alertMetadata']['severity']
+        self.assertTrue(severity < 0)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # GET alarm definition by SystemEventDefinition id
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        response = self.client.get(url_for('main.get_alert_alarm_def', id=alarm_definition_id), content_type=content_type)
         self.assertEquals(response.status_code, 200)
-        data = json.loads(response.data)
-        self.assertTrue('alert_alarm_definition' in data)
-        self.assertEquals(len(data['alert_alarm_definition']), 0)
+        response_data = json.loads(response.data)
+        self.assertTrue(response_data is not None)
 
-        # http://localhost:4000/alert_alarm_definition?array_name=array_code
-        for array in arrays:
-            array_code = array.array_code
-            if verbose: print '\nArray: ', array_code
-            url = url_for('main.get_alerts_alarms_def')
-            url += '?array_name=%s' % array_code
-            if verbose: print root+url
-            response = self.client.get(url, content_type=content_type, headers=headers)
-            self.assertEquals(response.status_code, 200)
-            data = json.loads(response.data)
-            self.assertTrue('alert_alarm_definition' in data)
-            self.assertEquals(len(data['alert_alarm_definition']), 0)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Create (2) valid alert definition (no 'id' or 'uframe_filter_id' on create)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        data = {'platform_name': u'CE01ISSP-XX099', 'high_value': u'31.0', 'event_type': u'alert',
+                'stream': u'ctdpf_j_cspp_instrument', 'severity': 2, 'low_value': u'10.0', 'active': True,
+                'array_name': u'CE', 'reference_designator': u'CE01ISSP-XX099-01-CTDPFJ999',
+                'operator': u'GREATER', 'instrument_name': u'CE01ISSP-XX099-01-CTDPFJ999',
+                'instrument_parameter': u'salinity', 'instrument_parameter_pdid': u'PD440',
+                'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10.0,
+                "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
+                "use_log": False, "use_sms": True}
 
-        # http://localhost:4000/alert_alarm_definition?platform_name=platform
-        for platform in platforms:
-            if verbose: print '\nPlatform: ', platform
-            url = url_for('main.get_alerts_alarms_def')
-            url += '?platform_name=%s' % platform
-            if verbose: print root+url
-            response = self.client.get(url, content_type=content_type, headers=headers)
-            self.assertEquals(response.status_code, 200)
-            data = json.loads(response.data)
-            self.assertTrue('alert_alarm_definition' in data)
-            self.assertEquals(len(data['alert_alarm_definition']), 0)
+        request_data = json.dumps(data)
+        response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
+        self.assertEquals(response.status_code, 201)
+        self.assertTrue(response is not None)
+        self.assertTrue(response.data is not None)
+        alert_definition = json.loads(response.data)
+        self.assertTrue(alert_definition is not None)
+        self.assertTrue('id' in alert_definition)
+        self.assertTrue('uframe_filter_id' in alert_definition)
+        self.assertTrue('description' in alert_definition)
+        alert_definition_id = alert_definition['id']
+        alert_uframe_id = alert_definition['uframe_filter_id']
+        list_filter_ids.append(alert_uframe_id)
 
-        # http://localhost:4000/alert_alarm_definition?instrument_name=instrument
-        for instrument in instruments:
-            if verbose: print '\nInstrument: ', instrument
-            url = url_for('main.get_alerts_alarms_def')
-            url += '?instrument_name=%s' % instrument
-            if verbose: print root+url
-            response = self.client.get(url, content_type=content_type, headers=headers)
-            self.assertEquals(response.status_code, 200)
-            data = json.loads(response.data)
-            self.assertTrue('alert_alarm_definition' in data)
-            self.assertEquals(len(data['alert_alarm_definition']), 0)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # GET alert definition by SystemEventDefinition id
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        response = self.client.get(url_for('main.get_alert_alarm_def', id=alert_definition_id), content_type=content_type)
+        self.assertEquals(response.status_code, 200)
+        response_data = json.loads(response.data)
+        self.assertTrue(response_data is not None)
 
-        # http://localhost:4000/alert_alarm_definition?reference_designator=instrument
-        for instrument in instruments:
-            if verbose: print '\nReference Designator: ', instrument
-            url = url_for('main.get_alerts_alarms_def')
-            url += '?reference_designator=%s' % instrument
-            if verbose: print root+url
-            response = self.client.get(url, content_type=content_type, headers=headers)
-            self.assertEquals(response.status_code, 200)
-            data = json.loads(response.data)
-            self.assertTrue('alert_alarm_definition' in data)
-            self.assertEquals(len(data['alert_alarm_definition']), 0)
+        alerts_url, timeout, timeout_read = self.get_uframe_alerts_info()
+        url = "/".join([alerts_url, 'alertalarms?acknowledged=false'])
+        response = requests.get(url, timeout=(timeout, timeout_read), headers=headers)
+        self.assertEquals(response.status_code, 200)
+        events = json.loads(response.content)
+        tmp = events[0]
+        event_id = tmp['eventId']
 
-        if verbose: print '\n'
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # POST alarm instance which uses the SystemEventDefinition id
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        event_type = 'alarm'
+        system_event_definition_id = alarm_definition_id
+        uframe_event_id = event_id
+        uframe_filter_id = alarm_definition['uframe_filter_id']
+        instrument_name = alarm_definition['reference_designator']
+        instrument_parameter = alarm_definition['instrument_parameter']
+        operator = alarm_definition['operator']
+        high_value = alarm_definition['high_value']
+        low_value = alarm_definition['low_value']
+        event_response_message = "Instrument: {0} condition exceeded where parameter {1} {2} {3} {4}".format(
+                                        instrument_name, instrument_parameter, operator, high_value, low_value)
+        event_time = 3607761438.72
+        event_data = {}
+        event_data['uframe_event_id'] = uframe_event_id
+        event_data['uframe_filter_id'] = uframe_filter_id
+        event_data['system_event_definition_id'] = system_event_definition_id
+        event_data['event_time'] = event_time
+        event_data['event_type'] = event_type
+        event_data['event_response'] = event_response_message
+        event_data['method'] = 'telemetered'
+        event_data['deployment'] = 1
+        new_event = json.dumps(event_data)
+        response = self.client.post(url_for('main.create_alert_alarm'), headers=headers, data=new_event)
+        self.assertEquals(response.status_code, 201)
+        self.assertTrue(response.data is not None)
+        response_data = json.loads(response.data)
+        self.assertTrue('id' in response_data)
+        self.assertTrue(response_data['id'] is not None)
+        alarm_id = response_data['id']
 
-        return
+        # This section requires LIVE/REAL uframe 'uframe_event_id' returned from qpid message
+        alarm_definition = SystemEventDefinition.query.get(alarm_definition['id'])
+        self.assertTrue(alarm_definition is not None)
+        alarm = SystemEvent.query.get(alarm_id)
+        self.assertTrue(alarm is not None)
+        ack_data = {}
+        ack_data['id'] = alarm.id
+        ack_data['uframe_event_id'] = event_id  # actual eventID value from qpid message
+        ack_data['uframe_filter_id'] = alarm.uframe_filter_id
+        ack_data['system_event_definition_id'] = alarm_definition.id
+        ack_data['event_type'] = alarm.event_type
+        ack_data['ack_by'] = 1
+        acknowledged_event = json.dumps(ack_data)
+        response = self.client.post(url_for('main.acknowledge_alert_alarm'), headers=headers, data=acknowledged_event)
+        self.assertEquals(response.status_code, 201)
 
-    def create_platform_deployment(self, platform_reference_designator):
-        platform_deployment = None
-        if platform_reference_designator == 'CP02PMCO-WFP01':
-            CP02PMCO_WFP01    = PlatformDeployment(reference_designator=platform_reference_designator)
-            CP02PMCO_WFP01.reference_designator = platform_reference_designator
-            CP02PMCO_WFP01.display_name = 'CP02PMCO_WFP01 display_name'
-            CP02PMCO_WFP01.array_id = 3
-            db.session.add(CP02PMCO_WFP01)
-            db.session.commit()
-            platform_deployment = CP02PMCO_WFP01
-        elif platform_reference_designator == 'CP02PMCO-SBS01':
-            CP02PMCO_SBS01    = PlatformDeployment(reference_designator=platform_reference_designator)
-            CP02PMCO_SBS01.reference_designator = platform_reference_designator
-            CP02PMCO_SBS01.display_name = 'CP02PMCO_SBS01 display_name'
-            CP02PMCO_SBS01.array_id = 3
-            db.session.add(CP02PMCO_SBS01)
-            db.session.commit()
-            platform_deployment = CP02PMCO_SBS01
-        elif platform_reference_designator == 'CP02PMUI-RII01':
-            CP02PMUI_RII01    = PlatformDeployment(reference_designator=platform_reference_designator)
-            CP02PMUI_RII01.reference_designator = platform_reference_designator
-            CP02PMUI_RII01.display_name = 'CP02PMUI_RII01 display_name'
-            CP02PMUI_RII01.array_id = 3
-            db.session.add(CP02PMUI_RII01)
-            db.session.commit()
-            platform_deployment = CP02PMUI_RII01
-        else:
-            platform_deployment = PlatformDeployment(reference_designator=platform_reference_designator)
-            db.session.add(platform_deployment)
-            db.session.commit()
-        return platform_deployment
+        response = self.client.get(url_for('main.get_alert_alarm', id=alarm_id), headers=headers)
+        self.assertEquals(response.status_code, 200)
+        self.assertTrue(response.data is not None)
+        response_data = json.loads(response.data)
+        self.assertTrue('acknowledged' in response_data)
+        self.assertEquals(response_data['acknowledged'], True)
+        self.assertTrue('ack_by' in response_data)
+        self.assertEquals(response_data['ack_by'], 1)
 
-    def create_CP_platform_deployments(self):
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # POST alert which uses the SystemEventDefinition id
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        event_type = 'alert'
+        system_event_definition_id = alert_definition_id
+        uframe_event_id = -1
+        uframe_filter_id = alert_definition['uframe_filter_id']
+        instrument_name = alert_definition['reference_designator']
+        instrument_parameter = alert_definition['instrument_parameter']
+        operator = alert_definition['operator']
+        high_value = alert_definition['high_value']
+        low_value = alert_definition['low_value']
+        event_response_message = "{0} condition exceeded parameter {1} {2} {3} {4}".format(
+                                        instrument_name, instrument_parameter, operator, high_value, low_value)
+        event_time = 3607761438.72
+        event_data = {}
+        event_data['uframe_event_id'] = uframe_event_id
+        event_data['uframe_filter_id'] = uframe_filter_id
+        event_data['system_event_definition_id'] = system_event_definition_id
+        event_data['event_time'] = event_time
+        event_data['event_type'] = event_type
+        event_data['event_response'] = event_response_message
+        event_data['method'] = 'telemetered'
+        event_data['deployment'] = 1
+        new_event = json.dumps(event_data)
+        response = self.client.post(url_for('main.create_alert_alarm'), headers=headers, data=new_event)
+        self.assertEquals(response.status_code, 201)
+        self.assertTrue(response.data is not None)
+        response_data = json.loads(response.data)
+        self.assertTrue('id' in response_data)
+        self.assertTrue(response_data['id'] is not None)
+        alert_id = response_data['id']
 
-        # platform deployment 1
-        CP02PMCO_WFP01_rd = 'CP02PMCO-WFP01'
-        CP02PMCO_WFP01 = self.create_platform_deployment(CP02PMCO_WFP01_rd)
-        # platform deployment 2
-        CP02PMCO_SBS01_rd = 'CP02PMCO-SBS01'
-        CP02PMCO_SBS01 = self.create_platform_deployment(CP02PMCO_SBS01_rd)
-        # platform deployment 3
-        CP02PMUI_RII01_rd = 'CP02PMUI-RII01'
-        CP02PMUI_RII01 = self.create_platform_deployment(CP02PMUI_RII01_rd)
-        # platform deployment 4
-        CP02PMCI_WFP01_rd = 'CP02PMCI-WFP01'
-        CP02PMCI_WFP01 = self.create_platform_deployment(CP02PMCI_WFP01_rd)
+        response = self.client.get(url_for('main.get_alert_alarm', id=alert_id), headers=headers)
+        self.assertEquals(response.status_code, 200)
+        self.assertTrue(response.data is not None)
+        response_data = json.loads(response.data)
+        self.assertTrue('id' in response_data)
 
-        return CP02PMCO_WFP01, CP02PMCO_SBS01, CP02PMUI_RII01, CP02PMCI_WFP01
+        # Acknowledge alert...
+        alert = SystemEvent.query.get(alert_id)
+        self.assertTrue(alert is not None)
+        alarm_definition = SystemEventDefinition.query.get(alert_definition_id)
+        self.assertTrue(alarm_definition is not None)
+        ack_data = {}
+        ack_data['id'] = alert.id
+        ack_data['uframe_event_id'] = -1
+        ack_data['uframe_filter_id'] = alert.uframe_filter_id
+        ack_data['system_event_definition_id'] = alert.system_event_definition_id
+        ack_data['event_type'] = alert.event_type
+        ack_data['ack_by'] = 1
+        acknowledged_event = json.dumps(ack_data)
+        response = self.client.post(url_for('main.acknowledge_alert_alarm'), headers=headers, data=acknowledged_event)
+        self.assertEquals(response.status_code, 201)
 
+        response = self.client.get(url_for('main.get_alert_alarm', id=alert.id), headers=headers)
+        self.assertEquals(response.status_code, 200)
+        self.assertTrue(response.data is not None)
+        response_data = json.loads(response.data)
+        self.assertTrue('acknowledged' in response_data)
+        self.assertEquals(response_data['acknowledged'], True)
+        self.assertTrue('ack_by' in response_data)
+        self.assertEquals(response_data['ack_by'], 1)
+        self.assertTrue('ts_acknowledged' in response_data)
+        self.assertTrue(response_data['ts_acknowledged'] is not None)
 
-    def create_instrument_deployment(self, instrument_reference_designator, platform_deployment_id):
-        instrument_deployment = None
-        if instrument_reference_designator == 'CP02PMCO-WFP01-02-DOFSTK000':
-            DOFSTK000 = InstrumentDeployment(reference_designator=instrument_reference_designator)
-            DOFSTK000.depth = 1000.0
-            DOFSTK000.display_name = 'Dissolved Oxygen Fast Response'
-            DOFSTK000.end_date = dt.datetime.now()
-            DOFSTK000.geo_location = 'POINT(-70 40)'
-            DOFSTK000.platform_deployment_id = platform_deployment_id
-            DOFSTK000.reference_designator = instrument_reference_designator
-            DOFSTK000.start_date = dt.datetime.now()
-            db.session.add(DOFSTK000)
-            db.session.commit()
-            instrument_deployment = DOFSTK000
-
-        elif instrument_reference_designator == 'CP02PMCO-WFP01-03-CTDPFK000':
-            CTDPFK000 = InstrumentDeployment(reference_designator=instrument_reference_designator)
-            CTDPFK000.depth = 1000.0
-            CTDPFK000.display_name = 'CTD Profiler'
-            CTDPFK000.end_date = dt.datetime.now()
-            CTDPFK000.geo_location = 'POINT(-70 40)'
-            CTDPFK000.platform_deployment_id = platform_deployment_id
-            CTDPFK000.reference_designator = instrument_reference_designator
-            CTDPFK000.start_date = dt.datetime.now()
-            db.session.add(CTDPFK000)
-            db.session.commit()
-            instrument_deployment = CTDPFK000
-        elif instrument_reference_designator == 'CP02PMCO-WFP01-05-PARADK000':
-            PARADK000 = InstrumentDeployment(reference_designator=instrument_reference_designator)
-            PARADK000.depth = 1000.0
-            PARADK000.display_name = 'Photosynthetically Available Radiation'
-            PARADK000.end_date = dt.datetime.now()
-            PARADK000.geo_location = 'POINT(-70 40)'
-            PARADK000.platform_deployment_id = platform_deployment_id
-            PARADK000.reference_designator = instrument_reference_designator
-            PARADK000.start_date = dt.datetime.now()
-            db.session.add(PARADK000)
-            db.session.commit()
-            instrument_deployment = PARADK000
-        elif instrument_reference_designator == 'CP02PMCO-SBS01-01-MOPAK0000':
-            MOPAK0000 = InstrumentDeployment(reference_designator=instrument_reference_designator)
-            MOPAK0000.depth = 1000.0
-            MOPAK0000.display_name = '2-Wavelength Fluorometer'
-            MOPAK0000.end_date = dt.datetime.now()
-            MOPAK0000.geo_location = 'POINT(-70 40)'
-            MOPAK0000.platform_deployment_id = platform_deployment_id
-            MOPAK0000.reference_designator = instrument_reference_designator
-            MOPAK0000.start_date = dt.datetime.now()
-            db.session.add(MOPAK0000)
-            db.session.commit()
-            instrument_deployment = MOPAK0000
-        elif instrument_reference_designator == 'CP02PMUI-RII01-02-ADCPTG000':
-            ADCPTG000 = InstrumentDeployment(reference_designator=instrument_reference_designator)
-            ADCPTG000.depth = 1000.0
-            ADCPTG000.display_name = 'Velocity Profiler (short range)'
-            ADCPTG000.end_date = dt.datetime.now()
-            ADCPTG000.geo_location = 'POINT(-70 40)'
-            ADCPTG000.platform_deployment_id = platform_deployment_id
-            ADCPTG000.reference_designator = instrument_reference_designator
-            ADCPTG000.start_date = dt.datetime.now()
-            db.session.add(ADCPTG000)
-            db.session.commit()
-            instrument_deployment = ADCPTG000
-
-        elif instrument_reference_designator == 'CP02TEST-SBS01-01-MOPAK0000':
-            test = InstrumentDeployment(reference_designator=instrument_reference_designator)
-            test.depth = 1000.0
-            test.display_name = 'Test instrument'
-            test.end_date = dt.datetime.now()
-            test.geo_location = 'POINT(-70 40)'
-            test.platform_deployment_id = platform_deployment_id
-            test.reference_designator = instrument_reference_designator
-            test.start_date = dt.datetime.now()
-            db.session.add(test)
-            db.session.commit()
-            instrument_deployment = test
-        else:
-            instrument_deployment = InstrumentDeployment(reference_designator=instrument_reference_designator)
-            instrument_deployment.reference_designator = platform_deployment_id
-            db.session.add(instrument_deployment)
-            db.session.commit()
-        return instrument_deployment
+        return alarm_definition_id, alert_definition_id, list_filter_ids
 
     def create_alert_alarm_definition(self, instrument_reference_designator, event_type, uframe_id, severity):
         # Note, creates a definition in test database only, just used to exercise SystemEventDefinition class
         # but does NOT create alertfilter id in uframe. An alertfilter is created when the /alert_alarm_definition
         # route is called.
-        headers = self.get_api_headers('admin', 'test')
-        valid_event_type = ['alert','alarm']
         alert_alarm_definition = None
         array_name = instrument_reference_designator[0:0+2]
         platform_name = instrument_reference_designator[0:0+14]
@@ -4648,7 +4802,7 @@ class AlertAlarmTestCase(unittest.TestCase):
                 db.session.add(alert_alarm_definition)
                 db.session.commit()
             except Exception as err:
-                print '\n *** %s **** message: %s' % (instrument_reference_designator,err.message)
+                raise
             try:
                 # Create corresponding UserEventNotification when alert or alarm definition is created
                 new_id = UserEventNotification.insert_user_event_notification(
@@ -4660,36 +4814,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                                                      use_log=use_log,
                                                      use_sms=use_sms)
             except Exception as err:
-                print '\n ******* Create UserEventNotification message: \n', err.message
+                raise
         return alert_alarm_definition
-
-
-    def setup_array_data(self):
-        # Create test data - three arrays (CE, GP, CP)
-        array_CE = Array(array_code='CE')
-        array_CE.array_name  = 'Endurance'
-        array_CE.description = 'Coastal node array description...'
-        array_CE.display_name= 'Coastal Endurance'
-        array_CE.geo_location= 'POINT(-70 40)'
-        db.session.add(array_CE)
-        db.session.commit()
-
-        array_GP = Array(array_code='GP')
-        array_GP.array_name  = 'Papa'
-        array_GP.description = 'Global Station Papa node array description...'
-        array_GP.display_name= 'Global Station Papa'
-        array_GP.geo_location= 'POINT(-70 40)'
-        db.session.add(array_GP)
-        db.session.commit()
-
-        array_CP = Array(array_code='CP')
-        array_CP.array_name  = 'Pioneer'
-        array_CP.description = 'array description...'
-        array_CP.display_name= 'Coastal Pioneer'
-        array_CP.geo_location= 'POINT(-70 45)'
-        db.session.add(array_CP)
-        db.session.commit()
-        return array_CE, array_GP, array_CP
 
     def get_uframe_info(self):
         """ Get uframe alertalarm configuration information. (port 12577) """
@@ -4732,7 +4858,7 @@ class AlertAlarmTestCase(unittest.TestCase):
     def get_alertfilters(self):
         """
         Get list of all alertfilter ids in uframe. Only to be used during development testing.
-        Warning constrained to 3 < alertfilter id < 100000.
+        Warning: constrained to 3 < alertfilter id < 100000.
         """
         list_of_alertfilter_ids = []
         uframe_url, timeout, timeout_read = self.get_uframe_info()
@@ -4749,49 +4875,13 @@ class AlertAlarmTestCase(unittest.TestCase):
         return list_of_alertfilter_ids
 
     def scrub_alertfilters(self):
-        debug = False
-        # ======== NEVER USE THIS CODE EXCEPT FOR TEST DEVELOPMENT ===========
+        # ======== TEST DEVELOPMENT ONLY ===========
         # Get all alertfilter ids (where id > 3)
         list_alertfilter_ids = self.get_alertfilters()
         list_alertfilter_ids.sort()
-        if debug: print '\n list_alertfilter_ids(%d): %s' % (len(list_alertfilter_ids), list_alertfilter_ids)
 
         # Delete all alertfilter ids (where id > 3)
-        if debug: print '\n list_alertfilter_ids(%d): %s' % (len(list_alertfilter_ids), list_alertfilter_ids)
         self.delete_alertfilters(list_alertfilter_ids)
         return
-
-    '''
-    reference_designator = 'CE01ISSP-XX099-01-CTDPFJ999'
-    def make_fake_uframe_alertfilter_data(self):
-        """ Make uframe input data for evaluation/test processing; works in conjunction with manual ingestion process. """
-        result = {
-              "@class" : "com.raytheon.uf.common.ooi.dataplugin.alert.alertfilter.AlertFilterRecord",
-              "enabled" : True,
-              "stream" : "ctdpf_j_cspp_instrument",
-              "referenceDesignator" : {
-                "node" : "XX099",
-                "full" : True,
-                "subsite" : "CE01ISSP",
-                "sensor" : "01-CTDPFJ999"
-              },
-              "alertRule" : {
-                "filter" : "GREATER",
-                "valid" : True,
-                "highVal" : 31.0,
-                "errMessage" : None,
-                "lowVal" : 10.0
-              },
-              "pdId" : "PD440",
-              "eventId" : 2,
-              "alertMetadata" : {
-                "severity" : -2,
-                "description" : "Rule 42"
-              }
-            }
-
-        return result
-    '''
-
 
 
