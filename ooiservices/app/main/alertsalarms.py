@@ -355,8 +355,11 @@ def create_alert_alarm_def():
         alert_alarm_def.reference_designator = data['reference_designator'] # Instrument reference designator
         alert_alarm_def.severity = data['severity']
         alert_alarm_def.stream = data['stream']
-        alert_alarm_def.escalate_on = data['escalate_on']
-        alert_alarm_def.escalate_boundary = data['escalate_boundary']
+        alert_alarm_def.escalate_on = 0.0
+        alert_alarm_def.escalate_boundary = 0.0
+        if alert_alarm_def.event_type == 'alert':
+            alert_alarm_def.escalate_on = data['escalate_on']
+            alert_alarm_def.escalate_boundary = data['escalate_boundary']
         alert_alarm_def.created_time = dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%dT%H:%M:%S")
         alert_alarm_def.uframe_filter_id = uframe_filter_id # Returned from POST to uFrame
         alert_alarm_def.ts_retired = None
@@ -596,12 +599,13 @@ def create_definition_has_required_fields(data):
         if data['operator'] not in valid_operators:
             message = 'Invalid operator value provided (%r).' % data['operator']
             raise Exception(message)
-        if (not isinstance(data['escalate_on'], type(1.0))) and (not isinstance(data['escalate_on'], type(1))):
-            message = 'Invalid escalate_on value type (%r).' % data['escalate_on']
-            raise Exception(message)
-        if (not isinstance(data['escalate_boundary'], type(1.0))) and (not isinstance(data['escalate_on'], type(1))):
-            message = 'Invalid escalate_boundary value type (%r).' % data['escalate_boundary']
-            raise Exception(message)
+        if data['event_type'] == 'alert':
+            if (not isinstance(data['escalate_on'], type(1.0))) and (not isinstance(data['escalate_on'], type(1))):
+                message = 'Invalid escalate_on value type (%r).' % data['escalate_on']
+                raise Exception(message)
+            if (not isinstance(data['escalate_boundary'], type(1.0))) and (not isinstance(data['escalate_boundary'], type(1))):
+                message = 'Invalid escalate_boundary value type (%r).' % data['escalate_boundary']
+                raise Exception(message)
         if data['escalate_on'] < 0:
             message = 'Invalid escalate_on value provided (%r).' % data['escalate_on']
             raise Exception(message)
@@ -685,6 +689,10 @@ def get_query_filters(request_args):
         tmp = str(request_args.get('type'))
         if tmp is not None and tmp != '' and tmp != 'None':
             event_type = request_args.get('type')
+    elif 'event_type' in request.args:
+        tmp = str(request_args.get('event_type'))
+        if tmp is not None and tmp != '' and tmp != 'None':
+            event_type = request_args.get('event_type')
     if 'method' in request_args:
         if request_args.get('method') is not None:
             method = request_args.get('method')
@@ -807,8 +815,8 @@ def get_alert_alarm_json(alerts_alarms, definition_filters):
                         result_json.append(tmp_json_dict)
             result = result_json
         return result
-    except:                     # todo test case
-        raise                   # todo test case
+    except:
+        raise
 
 def get_definitions_query_filter(request_args):
     """ Get query_filter for alert_alarm_definition list route.
@@ -1005,6 +1013,8 @@ def create_uframe_alertfilter_data(data):
         stream = data['stream']
         reference_designator = data['reference_designator']
         severity = data['severity']
+        if data['event_type'] == 'alarm':
+            severity = severity * -1
         high_value = data['high_value']
         low_value = data['low_value']
         description = data['description']
