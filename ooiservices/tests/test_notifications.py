@@ -1417,7 +1417,7 @@ class NotificationsTestCase(unittest.TestCase):
         array_name = ref_def[0:0+2]
         platform_name = ref_def[0:0+14]
         instrument_parameter = 'temperature'
-        instrument_parameter_pdid = 'PD100'
+        instrument_parameter_pdid = 'PD440'
         operator = 'GREATER'
         high_value = '10.0'
         low_value = '1.0'
@@ -1477,7 +1477,7 @@ class NotificationsTestCase(unittest.TestCase):
         array_name = ref_def[0:0+2]
         platform_name = ref_def[0:0+14]
         instrument_parameter = 'temperature'
-        instrument_parameter_pdid = 'PD100'
+        instrument_parameter_pdid = 'PD440'
         operator = 'GREATER'
         high_value = '10.0'
         low_value = '1.0'

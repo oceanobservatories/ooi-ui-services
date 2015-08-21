@@ -22,8 +22,8 @@ from ooiservices.app import db
 from ooiservices.app.main import api
 from ooiservices.app.decorators import scope_required
 from ooiservices.app.main.authentication import auth
-from ooiservices.app.main.errors import (conflict, bad_request, internal_server_error)
-from ooiservices.app.models import (SystemEventDefinition, SystemEvent, UserEventNotification, User)
+from ooiservices.app.main.errors import (conflict, bad_request)
+from ooiservices.app.models import (SystemEventDefinition, SystemEvent, UserEventNotification)
 from ooiservices.app.main.notifications import (alert_escalation_state, begin_notification_process,
                                                 update_notification_ticket, reissue_notification_ticket)
 import requests
@@ -57,9 +57,9 @@ def get_alerts_alarms():
             else:
                 result = result_json
         return jsonify( {'alert_alarm': result})
-    except Exception as err:                                                        # todo test case
-        message = 'Insufficient data, or bad data format. (%s)' % str(err.message)  # todo test case
-        return conflict(message)                                                    # todo test case
+    except Exception as err:
+        message = 'Insufficient data, or bad data format. (%s)' % str(err.message)
+        return conflict(message)
 
 #List an alerts and alarms by id
 @api.route('/alert_alarm/<int:id>')
@@ -136,10 +136,10 @@ def create_alert_alarm():
             db.session.commit()
             db.session.flush()
         except Exception as err:
-            message = 'IntegrityError creating alert_alarm; %s' % str(err.message)  # todo test case
-            current_app.logger.exception(message)                                   # todo test case
-            db.session.rollback()                                                   # todo test case
-            return bad_request('IntegrityError creating alert_alarm.')              # todo test case
+            message = 'IntegrityError creating alert_alarm; %s' % str(err.message)
+            current_app.logger.exception(message)
+            db.session.rollback()
+            return bad_request('IntegrityError creating alert_alarm.')
 
         # If 'alert' received, start the alert escalation process, otherwise begin the
         # notification process for an alarm.
@@ -183,9 +183,9 @@ def create_alert_alarm():
         elif alert_alarm.event_type == 'alarm':
             ticket_id = begin_notification_process(alert_alarm.id)
             if ticket_id is None:
-                message = 'Failed to create redmine ticket for alarm (id:%d)' % alert_alarm.id      # todo test case
-                current_app.logger.exception(message)                                               # todo test case
-                return bad_request(message)                                                         # todo test case
+                message = 'Failed to create redmine ticket for alarm (id:%d)' % alert_alarm.id
+                current_app.logger.exception(message)
+                return bad_request(message)
 
         return jsonify(alert_alarm.to_json()), 201
     except Exception as err:
@@ -336,8 +336,8 @@ def create_alert_alarm_def():
         # Persist alert_alarm_def in uframe using POST
         uframe_filter_id = create_uframe_alertfilter(data)
         if uframe_filter_id is None:
-            message = 'Failed to create alertfilter in uframe.'                 # todo test case
-            raise Exception(message)                                            # todo test case
+            message = 'Failed to create alertfilter in uframe.'
+            raise Exception(message)
 
         # Persist alert_alarm_def in ooi-ui-services db
         alert_alarm_def = SystemEventDefinition()
@@ -654,11 +654,11 @@ def acknowledge_has_required_fields(data):
                            'event_type', 'ack_by']
         for field in required_fields:
             if field not in data:
-                message = 'Missing required field (%r) in request.data' % field         # todo test case
-                raise Exception(message)                                                # todo test case
+                message = 'Missing required field (%r) in request.data' % field
+                raise Exception(message)
         return
-    except:             # todo test case
-        raise           # todo test case
+    except:
+        raise
 
 def get_query_filters(request_args):
     """ Create filter dictionaries for SystemEvent and SystemEventDefinition; used in route /alert_alarm.
@@ -791,8 +791,8 @@ def get_alert_alarm_json(alerts_alarms, definition_filters):
                 definition = SystemEventDefinition.query.filter_by(id=definition_id, event_type=event_type).first()
                 if definition is None:
                     message = 'No alert_alarm_definition (id:%d) for alert_alarm (id: %d, %s).' % \
-                              (definition_id, alert_alarm.id, alert_alarm.event_type)               # todo test case
-                    raise Exception(message)                                                        # todo test case
+                              (definition_id, alert_alarm.id, alert_alarm.event_type)
+                    raise Exception(message)
 
                 # Determine if this alert_alarm_definition data matches definition_filters
                 tmp_json_dict['alert_alarm_definition'] = {}
@@ -856,7 +856,7 @@ def safe_to_delete_alert_alarm_definition(id):
     # If alert_alarm_definition already retired, just return
     if alert_alarm_def.retired is not None:
         if alert_alarm_def.retired:
-            return result                                       # todo test case
+            return result
     # Determine if definition id is used by any alert or alarm instances where acknowledged is False
     active_alerts_alarms = SystemEvent.query.filter_by(system_event_definition_id=id, acknowledged=False).first()
     if active_alerts_alarms is not None:
@@ -1008,7 +1008,7 @@ def create_uframe_alertfilter_data(data):
         create_definition_has_required_fields(data)
         instrument_parameter_pdid = data['instrument_parameter_pdid']
         if instrument_parameter_pdid is None:
-            raise Exception('Required parameter (instrument_parameter_pdid) is None.')  # todo test case
+            raise Exception('Required parameter (instrument_parameter_pdid) is None.')
 
         stream = data['stream']
         reference_designator = data['reference_designator']
@@ -1024,9 +1024,6 @@ def create_uframe_alertfilter_data(data):
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Validate reference_designator length and set additional field (subsite, node and sensor)
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        subsite = None
-        node = None
-        sensor = None
         if len(reference_designator) != 27:
             raise Exception('reference_designator is malformed.')
         else:
@@ -1069,7 +1066,6 @@ def create_uframe_alertfilter_data(data):
     except:
         raise
 
-
 # Note: start of unix epoch (jan 1, 1900 at midnight 00:00) in seconds == 2208988800
 # http://stackoverflow.com/questions/13260863/convert-a-unixtime-to-a-datetime-object-and-back-again-pair-of-time-conversion
 # Convert a unix time u to a datetime object d, and vice versa
@@ -1077,7 +1073,7 @@ def convert_from_utc(u): return dt.datetime.utcfromtimestamp(u)
 def ut(d): return calendar.timegm(d.timetuple())
 
 def get_uframe_alerts_info():
-    """ Get uframe alertalarm configuration information. (port 12577) """
+    """ Get uframe alertalarm configuration information. """
     uframe_url = current_app.config['UFRAME_ALERTS_URL']
     timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
     timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
@@ -1137,14 +1133,14 @@ def uframe_acknowledge_alert_alarm(uframe_event_id, value):
         if response.content:
             """
             Sample uframe response content:
-            {"message" : "Acknowledged record [2] by [jimkorman@raytheon]", "id" : 2, "statusCode" : "OK"}
+            {"message" : "Acknowledged record [2] by [testuser@company]", "id" : 2, "statusCode" : "OK"}
             """
             acknowledgement = json.loads(response.content)
             if 'statusCode' in acknowledgement:
                 if acknowledgement['statusCode'] == uframe_success:
                     result = True
-    except Exception as err:                                                            # todo test case
-        current_app.logger.exception('[acknowledge_alert_alarm] %s ' % err.message)     # todo test case
+    except Exception as err:
+        current_app.logger.exception('[acknowledge_alert_alarm] %s ' % err.message)
     finally:
         return result
 
@@ -1166,7 +1162,7 @@ def uframe_instrument_available(ref):
         if 'parameters' in metadata:
             parameters = metadata['parameters']
             if parameters is None:
-                return bad_request('Failure to get metadata parameters from uframe response.')  # todo test case
+                return bad_request('Failure to get metadata parameters from uframe response.')
             else:
                 results = parameters
         return jsonify(metadata=results)
@@ -1183,10 +1179,10 @@ def uframe_get_instrument_metadata(ref):
         http://localhost:4000/alert_alarm_get_instrument_metadata/CE01ISSM-SBD17-04-VELPTA000
 
     Reference regarding urls utilized to process the sample request above:
-        http://uframe-test.ooi.rutgers.edu:12576/sensor/inv/CE01ISSM/SBD17/04-VELPTA000
-        http://uframe-test.ooi.rutgers.edu:12576/sensor/inv/CE01ISSM/SBD17/04-VELPTA000/telemetered
-        http://uframe-test.ooi.rutgers.edu:12576/sensor/inv/CE01ISSM/SBD17/04-VELPTA000/recoveredi
-        http://uframe-test.ooi.rutgers.edu:12576/sensor/inv/CE01ISSM/SBD17/04-VELPTA000/metadata
+        http://host:port/sensor/inv/CE01ISSM/SBD17/04-VELPTA000
+        http://host:port/sensor/inv/CE01ISSM/SBD17/04-VELPTA000/telemetered
+        http://host:port/sensor/inv/CE01ISSM/SBD17/04-VELPTA000/recoveredi
+        http://host:port/sensor/inv/CE01ISSM/SBD17/04-VELPTA000/metadata
     '''
     methods = None
     parameters = None
@@ -1211,9 +1207,9 @@ def uframe_get_instrument_metadata(ref):
         if response.status_code == 200:
             methods = response.json()
         if methods is None:
-            return bad_request('Failure to compile response, instrument %s has no methods.' % ref)  # todo test case
+            return bad_request('Failure to compile response, instrument %s has no methods.' % ref)
 
-        # Get streams for each method (expects unique list of methods from uframe; no dups)
+        # Get streams for each method (expects unique list of methods from uframe; no duplicates)
         for method in methods:
             url = "/".join([uframe_url, mooring, platform, instrument, method])
             response = requests.get(url, timeout=(timeout, timeout_read))
@@ -1222,7 +1218,7 @@ def uframe_get_instrument_metadata(ref):
                 if streams_data is not None:
                     streams[str(method)] = streams_data
         if len(streams) == 0:
-            return bad_request('Failure to compile response, instrument %s has methods with no streams.' % ref) # todo test
+            return bad_request('Failure to compile response, instrument %s has methods with no streams.' % ref)
 
         # Compile result from methods, streams and parameters
         tmp = {}

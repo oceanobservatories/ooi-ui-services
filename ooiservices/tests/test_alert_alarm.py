@@ -3231,7 +3231,6 @@ class AlertAlarmTestCase(unittest.TestCase):
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Create alerts
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # 3637761438.72, 2015-04-11T17:17:18
@@ -4363,7 +4362,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         array_name = ref_def[0:0+2]
         platform_name = ref_def[0:0+14]
         instrument_parameter = 'temperature'
-        instrument_parameter_pdid = 'PD100'
+        instrument_parameter_pdid = 'PD440'
         operator = 'GREATER'
         high_value = '10.0'
         low_value = '1.0'
@@ -4766,7 +4765,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         array_name = instrument_reference_designator[0:0+2]
         platform_name = instrument_reference_designator[0:0+14]
         instrument_parameter = 'temperature'
-        instrument_parameter_pdid = 'PD100'
+        instrument_parameter_pdid = 'PD440'
         operator = 'GREATER'
         high_value = '10.0'
         low_value = '1.0'
