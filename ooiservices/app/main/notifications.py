@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 '''
-User event notifications endpoints (for Alerts & Alarms Notification process)
+System event notifications endpoints (for Alerts & Alarms Notification process)
 
 '''
 __author__ = 'Edna Donoughe'
 
 from flask import (current_app)
 from ooiservices.app import db
-#from ooiservices.app.decorators import scope_required
-#from ooiservices.app.main.authentication import auth
 from ooiservices.app.models import (UserEventNotification, User, SystemEvent, SystemEventDefinition, TicketSystemEventLink)
 from ooiservices.app.main.errors import bad_request
 from ooiservices.app.redmine.routes import (create_redmine_ticket_for_notification, get_redmine_users_by_project,
@@ -16,14 +14,12 @@ from ooiservices.app.redmine.routes import (create_redmine_ticket_for_notificati
 import datetime as dt
 from sqlalchemy import desc
 
-# todo - discuss scope_required for 'notifications'
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Notification processing - notification of Alerts/Alarms from ooi-ui-notifications service
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Begin notification process for an alert or an alarm
 def begin_notification_process(id):
     """
-    Initiate the escalation process for an alert or an alarm (id provided)
+    Initiate the notification/escalation process for an alert or an alarm (id provided)
     Process:
     - Get alert_alarm
     - Get alert_alarm_definition
@@ -48,8 +44,7 @@ def begin_notification_process(id):
         project = current_app.config['REDMINE_PROJECT_ID']
 
         # Use user_event_notification for determining assigned user's redmine id
-        redmine_id = 1  # this assumes Redmine ADmin is assigned to redmine user id 1; should lookup 'Redmine Admin' todo
-        name = None
+        redmine_id = 1  # this assumes Redmine Admin is assigned to redmine user id 1
         assigned_user = User.query.get(user_event_notification.user_id)
         if assigned_user is not None:
             name = assigned_user.first_name + ' ' + assigned_user.last_name
@@ -81,7 +76,6 @@ def begin_notification_process(id):
         current_app.logger.exception('[begin_notification_process] %s ' % err.message)
     finally:
         return result
-
 
 def get_redmine_info_from_alert(id):
     """ Get information necessary to create or update a redmine ticket.
@@ -132,14 +126,7 @@ def alert_escalation_state(id):
     """
     action = None
     try:
-        valid_actions = ['begin_notification_process', 'update_notification_ticket', 'reissue_notification_ticket', None]
-        action = determine_action(id)          # actual alert escalation state review to determine action goes here
-        '''
-        if action not in valid_actions:
-            message = 'Invalid action \'%s\' situation, failure to process alert (id:%d) escalation.' % (action, id)
-            if log: print '\n (log) [alert_escalation_state] - message: ', message
-            current_app.logger.exception('[alert_escalation_state] %s ' % message)
-        '''
+        action = determine_action(id)
     except Exception as err:
         message = err.message
         current_app.logger.exception('[alert_escalation_state] %s ' % message)
@@ -263,14 +250,16 @@ def determine_action(id):
                             db.session.add(start_alert)
                             db.session.commit()
                         except Exception as err:
-                            current_app.logger.exception('(Escalate boundary has been crossed) (1) %s ' % err.message)
+                            message = '[determine_action] (Escalate boundary has been crossed) (1) %s ' % err.message
+                            current_app.logger.exception(message)
 
                         alert.ts_start = alert.event_time
                         try:
                             db.session.add(alert)
                             db.session.commit()
                         except Exception as err:
-                            current_app.logger.exception('(Escalate boundary has been crossed) [2] %s ' % err.message)
+                            message = '[determine_action] (Escalate boundary has been crossed) [2] %s ' % err.message
+                            current_app.logger.exception(message)
                         return action
 
         return action
@@ -281,7 +270,7 @@ def determine_action(id):
         return action
 
 def update_notification_ticket(id):
-    """ Update redmine ticket as a part of notification process (for alerts only)
+    """ Update redmine ticket as a part of alert notification process.
     """
     result = None
     try:
@@ -323,21 +312,6 @@ def update_notification_ticket(id):
         priority = redmine_ticket['priority']
         if 'assigned_to' in redmine_ticket:
             assigned_id = redmine_ticket['assigned_to']
-        '''
-        else:
-            # Use user_event_notification for determining assigned user's redmine id
-            redmine_id = 1
-            assigned_user = User.query.get(notification.user_id)
-            if assigned_user is not None:
-                name = assigned_user.first_name + ' ' + assigned_user.last_name
-                tmp_id = get_user_redmine_id(project, name)
-                if tmp_id is not None:
-                    redmine_id = tmp_id
-            else:
-                message = "Invalid User ID, User record not found."
-                return bad_request(message)
-            assigned_id = redmine_id
-        '''
 
         # Update subject for recent receipt of alert (not past escalate boundary yet)
         description += update_info
@@ -400,7 +374,6 @@ def reissue_notification_ticket(id):
         redmine_ticket = get_redmine_ticket_for_notification(alert.ticket_id)
 
         # Set assigned id to reflect update to user currently assigned to alert.ticket_id
-        #assigned_id = redmine_ticket['assigned_to']
         if 'assigned_to' in redmine_ticket:
             assigned_id = redmine_ticket['assigned_to']
         else:
@@ -432,15 +405,14 @@ def reissue_notification_ticket(id):
             current_app.logger.exception('[reissue_notification_ticket] %s ' % message)
             return result
 
-        # update escalate fields if successful creating the redmine ticket
+        # update escalate fields, if successful, create the redmine ticket
         escalated = True
         ts_escalated = dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%dT%H:%M:%S") # should this be event_time?
-
         try:
             SystemEvent.update_alert_alarm_escalation(id=alert.id, ticket_id=ticket_id,
                                                   escalated=escalated, ts_escalated=ts_escalated)
         except Exception as err:
-            message = 'Reissued redmine ticket (id:%d) but failed to update_alert_alarm_escaltion; %s' % (ticket_id, err.message)
+            message = 'Reissued redmine ticket (id:%d) but failed to update_alert_alarm_escalation; %s' % (ticket_id, err.message)
             current_app.logger.exception('[reissue_notification_ticket] %s ' % message)
             return result
 
