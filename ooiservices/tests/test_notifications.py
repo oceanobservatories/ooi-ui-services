@@ -474,7 +474,7 @@ class NotificationsTestCase(unittest.TestCase):
         z['instrument_parameter_pdid'] = 'PD440'
         z['operator'] = 'GREATER'
         z['event_type'] = 'alarm'
-        z['active'] = str(True)
+        z['active'] = True
         z['description'] = ''
         z['high_value'] = '13'
         z['low_value'] = '10'
@@ -1519,116 +1519,6 @@ class NotificationsTestCase(unittest.TestCase):
         use_log = False
         use_sms = True
         create_time = dt.datetime.now()
-        '''
-        if ref_def == 'CP02PMCO-WFP01-02-DOFSTK000':
-            alert_alarm_definition = SystemEventDefinition(reference_designator=ref_def)
-            alert_alarm_definition.active = True
-            alert_alarm_definition.event_type = event_type
-            alert_alarm_definition.array_name = array_name
-            alert_alarm_definition.platform_name = platform_name
-            alert_alarm_definition.instrument_name = ref_def
-            alert_alarm_definition.instrument_parameter = instrument_parameter
-            alert_alarm_definition.instrument_parameter_pdid = instrument_parameter_pdid
-            alert_alarm_definition.operator = operator
-            alert_alarm_definition.created_time = create_time
-            alert_alarm_definition.uframe_filter_id = uframe_filter_id
-            alert_alarm_definition.high_value = high_value
-            alert_alarm_definition.low_value = low_value
-            alert_alarm_definition.severity = severity
-            alert_alarm_definition.stream = stream
-            alert_alarm_definition.escalate_on = escalate_on
-            alert_alarm_definition.escalate_boundary = escalate_boundary
-            try:
-                db.session.add(alert_alarm_definition)
-                db.session.commit()
-            except Exception as err:
-                print '\n ***  CP02PMCO-WFP01-02-DOFSTK000 **** message: ', err.message
-            try:
-                # Create corresponding UserEventNotification when alert or alarm definition is created
-                new_id = UserEventNotification.insert_user_event_notification(
-                                                     system_event_definition_id=alert_alarm_definition.id,
-                                                     user_id=user_id,
-                                                     use_email=use_email,
-                                                     use_redmine=use_redmine,
-                                                     use_phone=use_phone,
-                                                     use_log=use_log,
-                                                     use_sms=use_sms)
-            except Exception as err:
-                print '\n ******* Create CP02PMCO-WFP01-02-DOFSTK000 UserEventNotification message: \n', err.message
-        elif alert_alarm_definition == 'CP02PMCO-WFP01-03-CTDPFK000':
-            alert_alarm_definition = SystemEventDefinition(reference_designator=ref_def)
-            alert_alarm_definition.active = True
-            alert_alarm_definition.event_type = event_type
-            alert_alarm_definition.array_name = array_name
-            alert_alarm_definition.platform_name = platform_name
-            alert_alarm_definition.instrument_name = ref_def
-            alert_alarm_definition.instrument_parameter = instrument_parameter
-            alert_alarm_definition.instrument_parameter_pdid = instrument_parameter_pdid
-            alert_alarm_definition.operator = operator
-            alert_alarm_definition.created_time = create_time
-            alert_alarm_definition.uframe_filter_id = uframe_filter_id
-            alert_alarm_definition.high_value = high_value
-            alert_alarm_definition.low_value = low_value
-            alert_alarm_definition.severity = severity
-            alert_alarm_definition.stream = stream
-            alert_alarm_definition.escalate_on = escalate_on
-            alert_alarm_definition.escalate_boundary = escalate_boundary
-            try:
-                db.session.add(alert_alarm_definition)
-                db.session.commit()
-            except Exception as err:
-                print '\n ******* CP02PMCO-WFP01-03-CTDPFK000 message: ', err.message
-            try:
-                # Create corresponding UserEventNotification when alert or alarm definition is created
-                new_id = UserEventNotification.insert_user_event_notification(
-                                                     system_event_definition_id=alert_alarm_definition.id,
-                                                     user_id=user_id,
-                                                     use_email=use_email,
-                                                     use_redmine=use_redmine,
-                                                     use_phone=use_phone,
-                                                     use_log=use_log,
-                                                     use_sms=use_sms)
-            except Exception as err:
-                print '\n ******* Create CP02PMCO-WFP01-03-CTDPFK000 UserEventNotification message: \n', err.message
-
-        elif alert_alarm_definition == 'CP02PMCO-WFP01-05-PARADK000':
-            alert_alarm_definition = SystemEventDefinition(reference_designator=ref_def)
-            alert_alarm_definition.active = True
-            alert_alarm_definition.event_type = event_type
-            alert_alarm_definition.array_name = array_name
-            alert_alarm_definition.platform_name = platform_name
-            alert_alarm_definition.instrument_name = ref_def
-            alert_alarm_definition.instrument_parameter = instrument_parameter
-            alert_alarm_definition.instrument_parameter_pdid = instrument_parameter_pdid
-            alert_alarm_definition.operator = operator
-            alert_alarm_definition.created_time = create_time
-            alert_alarm_definition.uframe_filter_id = uframe_filter_id
-            alert_alarm_definition.high_value = high_value
-            alert_alarm_definition.low_value = low_value
-            alert_alarm_definition.severity = severity
-            alert_alarm_definition.stream = stream
-            alert_alarm_definition.escalate_on = escalate_on
-            alert_alarm_definition.escalate_boundary = escalate_boundary
-            try:
-                db.session.add(alert_alarm_definition)
-                db.session.commit()
-            except Exception as err:
-                print '\n *** CP02PMCO-WFP01-05-PARADK000 **** message: ', err.message
-
-            try:
-                # Create corresponding UserEventNotification when alert or alarm definition is created
-                new_id = UserEventNotification.insert_user_event_notification(
-                                                     system_event_definition_id=alert_alarm_definition.id,
-                                                     user_id=user_id,
-                                                     use_email=use_email,
-                                                     use_redmine=use_redmine,
-                                                     use_phone=use_phone,
-                                                     use_log=use_log,
-                                                     use_sms=use_sms)
-            except Exception as err:
-                print '\n ******* Create CP02PMCO-WFP01-05-PARADK000 UserEventNotification message: \n', err.message
-        else:
-        '''
         if ref_def is not None:
             alert_alarm_definition = SystemEventDefinition(reference_designator=ref_def)
             alert_alarm_definition.active = True
