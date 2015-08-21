@@ -84,10 +84,10 @@ def get_display_name_by_rd(reference_designator):
     #this is a dirty hack....
     glider_hack = False
     number = ""
-    if "MOAS-GL" in reference_designator:        
+    if "MOAS-GL" in reference_designator:
         splits = reference_designator.split("MOAS-GL")
         number = splits[-1]
-        reference_designator = splits[0]+"MOAS-GL"+"001"        
+        reference_designator = splits[0]+"MOAS-GL"+"001"
         glider_hack= True
 
     if len(reference_designator) <= 14:
@@ -109,11 +109,43 @@ def get_display_name_by_rd(reference_designator):
     else:
         return None
 
-    if glider_hack:        
+    if glider_hack:
         display_name = display_name.replace('001',number)
 
     return display_name
 
+def get_long_display_name_by_rd(reference_designator):
+    if len(reference_designator) <= 14:
+        platform_deployment_filtered = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first()
+        if platform_deployment_filtered is None:
+            return None
+        display_name = platform_deployment_filtered.proper_display_name
+    elif len(reference_designator) == 27:
+        platform_deployment = PlatformDeployment.query.filter_by(reference_designator=reference_designator[:14]).first()
+        if platform_deployment is None:
+            return None
+        platform_display_name = platform_deployment.proper_display_name
+        instrument_class = reference_designator[18:18+5]
+        instrument_name = Instrumentname.query.filter_by(instrument_class=instrument_class).first()
+        if 'ENG' in instrument_class or instrument_class == '00000':
+            instrument_name = 'Engineering'
+        elif instrument_name is None:
+            instrument_name = reference_designator[18:]
+        else:
+            instrument_name = instrument_name.display_name
+
+        display_name = ' - '.join([platform_display_name, instrument_name])
+    else:
+        return None
+    return display_name
+
+def get_platform_display_name_by_rd(reference_designator):
+    platform_deployment = PlatformDeployment.query.filter_by(reference_designator=reference_designator[:14]).first()
+    if platform_deployment is None:
+        return None
+    platform_display_name = platform_deployment.proper_display_name
+
+    return platform_display_name
 @api.route('/display_name', methods=['GET'])
 def get_display_name():
     # 'CE01ISSM-SBD17'

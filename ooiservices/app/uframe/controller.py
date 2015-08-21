@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 '''
 uframe endpoints
 
@@ -33,12 +34,13 @@ import csv
 import io
 import numpy as np
 import pytz
-from ooiservices.app.main.routes import get_display_name_by_rd
+from ooiservices.app.main.routes import get_display_name_by_rd, get_long_display_name_by_rd, get_platform_display_name_by_rd
 from ooiservices.app.main.arrays import get_arrays, get_array
 from contextlib import closing
 import time
 from ooiservices.app.models import PlatformDeployment
 import urllib2
+from copy import deepcopy
 
 requests.adapters.DEFAULT_RETRIES = 2
 CACHE_TIMEOUT = 86400
@@ -152,6 +154,8 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
     data_dict['units'] = {}
     data_dict['variables_shape'] = {}
     data_dict['display_name'] = get_display_name_by_rd(ref)
+    data_dict['long_display_name'] = get_long_display_name_by_rd(ref)
+    data_dict['platform_name'] = get_platform_display_name_by_rd(ref)
     data_dict['download'] = {
                              "csv":"/".join(['api/uframe/get_csv', stream_name, ref]),
                              "json":"/".join(['api/uframe/get_json', stream_name, ref]),
@@ -212,6 +216,7 @@ def streams_list():
                 del obj['units']
                 del obj['variable_type']
                 del obj['variable_types']
+                del obj['download']
                 del obj['variables']
                 del obj['variables_shape']
             except KeyError:
@@ -219,15 +224,37 @@ def streams_list():
 
     if request.args.get('search') and request.args.get('search') != "":
         return_list = []
-        search_term = request.args.get('search')
-        for item in retval:
-            if search_term.lower() in str(item['stream_name']).lower():
-                return_list.append(item)
-            if search_term.lower() in str(item['display_name']).lower():
-                return_list.append(item)
-            if search_term.lower() in str(item['reference_designator']).lower():
-                return_list.append(item)
-        retval = return_list
+        ven_set = []
+        search_term = str(request.args.get('search')).split()
+        search_set = set(search_term)
+        for subset in search_set:
+            if len(return_list) > 0:
+                if len(ven_set) > 0:
+                    ven_set = deepcopy(ven_subset)
+                else:
+                    ven_set = deepcopy(return_list)
+                ven_subset = []
+                for item in ven_set:
+                    if subset.lower() in str(item['long_display_name']).lower():
+                        ven_subset.append(item)
+                    elif subset.lower() in str(item['reference_designator']).lower():
+                        ven_subset.append(item)
+                    elif subset.lower() in str(item['variables']).lower():
+                        ven_subset.append(item)
+                    elif subset.lower() in str(item['stream_name']).lower():
+                        ven_subset.append(item)
+                retval = ven_subset
+            else:
+                for item in retval:
+                    if subset.lower() in str(item['long_display_name']).lower():
+                        return_list.append(item)
+                    elif subset.lower() in str(item['reference_designator']).lower():
+                        return_list.append(item)
+                    elif subset.lower() in str(item['variables']).lower():
+                        return_list.append(item)
+                    elif subset.lower() in str(item['stream_name']).lower():
+                        return_list.append(item)
+                retval = return_list
 
     if request.args.get('startAt'):
         start_at = int(request.args.get('startAt'))
@@ -742,12 +769,12 @@ def get_netcdf(stream, ref, start_time, end_time, dpa_flag, provenance, annotati
 @api.route('/get_data/<string:instrument>/<string:stream>/<string:yvar>/<string:xvar>', methods=['GET'])
 def get_data_api(stream, instrument, yvar, xvar):
     # return if error
-    try:        
+    try:
         xvar = xvar.split(',')
         yvar = yvar.split(',')
         resp_data,units = get_simple_data(stream, instrument, yvar, xvar)
     except Exception as err:
-        return jsonify(error='%s' % str(err.message)), 400       
+        return jsonify(error='%s' % str(err.message)), 400
     return jsonify(data=resp_data,units=units)
 
 @auth.login_required
