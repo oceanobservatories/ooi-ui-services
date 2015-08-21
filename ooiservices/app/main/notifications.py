@@ -296,7 +296,6 @@ def update_notification_ticket(id):
 
         # Use user_event_notification for determining assigned user's redmine id
         redmine_id = 1
-        name = None
         assigned_user = User.query.get(notification.user_id)
         if assigned_user is not None:
             name = assigned_user.first_name + ' ' + assigned_user.last_name
@@ -304,9 +303,9 @@ def update_notification_ticket(id):
             if tmp_id is not None:
                 redmine_id = tmp_id
         else:
-            # todo issue - assigned_user is None
             message = "Invalid User ID, User record not found."
             return bad_request(message)
+        assigned_id = redmine_id
 
         # Get alert ticket id
         ticket_id = alert.ticket_id
@@ -324,10 +323,10 @@ def update_notification_ticket(id):
         priority = redmine_ticket['priority']
         if 'assigned_to' in redmine_ticket:
             assigned_id = redmine_ticket['assigned_to']
+        '''
         else:
             # Use user_event_notification for determining assigned user's redmine id
             redmine_id = 1
-            name = None
             assigned_user = User.query.get(notification.user_id)
             if assigned_user is not None:
                 name = assigned_user.first_name + ' ' + assigned_user.last_name
@@ -335,11 +334,10 @@ def update_notification_ticket(id):
                 if tmp_id is not None:
                     redmine_id = tmp_id
             else:
-                # todo issue - assigned_user is None
                 message = "Invalid User ID, User record not found."
-                #if log: print '\n message: ', message
                 return bad_request(message)
             assigned_id = redmine_id
+        '''
 
         # Update subject for recent receipt of alert (not past escalate boundary yet)
         description += update_info
@@ -408,7 +406,6 @@ def reissue_notification_ticket(id):
         else:
             # Use user_event_notification for determining assigned user's redmine id
             redmine_id = 1
-            name = None
             assigned_user = User.query.get(notification.user_id)
             if assigned_user is not None:
                 name = assigned_user.first_name + ' ' + assigned_user.last_name
@@ -416,7 +413,6 @@ def reissue_notification_ticket(id):
                 if tmp_id is not None:
                     redmine_id = tmp_id
             else:
-                # todo issue - assigned_user is None
                 message = "Invalid User ID, User record not found."
                 return bad_request(message)
             assigned_id = redmine_id
