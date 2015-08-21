@@ -48,12 +48,12 @@ def send_activate_email(to):
     sender="help@ooi.rutgers.edu"
     subject="OOI Registration Complete"
     message=string.join(("From: %s" % sender,
-                         "To: %s" % current_app.config["TOEMAIL"] if current_app.config["ENVIORNMENT"] else to,
+                         "To: %s" % current_app.config["TOEMAIL"] if current_app.config["ENVIORNMENT"]=="LOCAL_DEVELOPMENT" else to,
                          "Subject: %s" % subject,
                          "Your registration to the Ocean Observatories Initiative WebPortal has been completed.",
-                         "",
-                         "",
-                         "Please visit http://casadev.ooi.rutgers.edu to login to the system"),"\r\n")
+                         " ",
+                         " ",
+                         "Please visit http://%s to login to the system" % current_app.config["SERVER_DNS"]),"\r\n")
 
     try:
         smtpObj=smtplib.SMTP("localhost")

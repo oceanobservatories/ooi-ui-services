@@ -34,6 +34,7 @@ COMMON: &common
     UFRAME_DATA_REQUEST_LIMIT: 2880
     GOOGLE_ANALYTICS_URL: 'https://www.google-analytics.com/collect?v=1&tid=UA-50606390-3&cid=1&t=event'
     DATA_POINTS: 1000
+    SERVER_DNS: 'localhost' 
 
 DEVELOPMENT: &development
     <<: *common
