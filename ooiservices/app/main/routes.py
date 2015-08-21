@@ -139,6 +139,13 @@ def get_long_display_name_by_rd(reference_designator):
         return None
     return display_name
 
+def get_platform_display_name_by_rd(reference_designator):
+    platform_deployment = PlatformDeployment.query.filter_by(reference_designator=reference_designator[:14]).first()
+    if platform_deployment is None:
+        return None
+    platform_display_name = platform_deployment.proper_display_name
+
+    return platform_display_name
 @api.route('/display_name', methods=['GET'])
 def get_display_name():
     # 'CE01ISSM-SBD17'

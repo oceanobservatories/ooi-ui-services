@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 '''
 uframe endpoints
 
@@ -33,7 +34,7 @@ import csv
 import io
 import numpy as np
 import pytz
-from ooiservices.app.main.routes import get_display_name_by_rd, get_long_display_name_by_rd
+from ooiservices.app.main.routes import get_display_name_by_rd, get_long_display_name_by_rd, get_platform_display_name_by_rd
 from ooiservices.app.main.arrays import get_arrays, get_array
 from contextlib import closing
 import time
@@ -154,6 +155,7 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
     data_dict['variables_shape'] = {}
     data_dict['display_name'] = get_display_name_by_rd(ref)
     data_dict['long_display_name'] = get_long_display_name_by_rd(ref)
+    data_dict['platform_name'] = get_platform_display_name_by_rd(ref)
     data_dict['download'] = {
                              "csv":"/".join(['api/uframe/get_csv', stream_name, ref]),
                              "json":"/".join(['api/uframe/get_json', stream_name, ref]),
@@ -239,6 +241,8 @@ def streams_list():
                         ven_subset.append(item)
                     elif subset.lower() in str(item['variables']).lower():
                         ven_subset.append(item)
+                    elif subset.lower() in str(item['stream_name']).lower():
+                        ven_subset.append(item)
                 retval = ven_subset
             else:
                 for item in retval:
@@ -247,6 +251,8 @@ def streams_list():
                     elif subset.lower() in str(item['reference_designator']).lower():
                         return_list.append(item)
                     elif subset.lower() in str(item['variables']).lower():
+                        return_list.append(item)
+                    elif subset.lower() in str(item['stream_name']).lower():
                         return_list.append(item)
                 retval = return_list
 
