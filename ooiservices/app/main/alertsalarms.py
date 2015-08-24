@@ -194,7 +194,7 @@ def create_alert_alarm():
         return conflict(message)
 
 # Acknowledge alert/alarm
-@api.route('/ack_alert_alarm', methods=['POST'])
+@api.route('/ack_alert_alarm', methods=['POST','PUT'])
 @auth.login_required
 @scope_required(u'user_admin')
 @scope_required(u'redmine')
@@ -1217,6 +1217,7 @@ def uframe_get_instrument_metadata(ref):
                 streams_data = response.json()
                 if streams_data is not None:
                     streams[str(method)] = streams_data
+
         if len(streams) == 0:
             return bad_request('Failure to compile response, instrument %s has methods with no streams.' % ref)
 
@@ -1226,7 +1227,6 @@ def uframe_get_instrument_metadata(ref):
             streams_for_method = streams[str(method)]
             tmp[method] = {}
             for stream in streams_for_method:
-                tmp[method] = {}
                 key = "_".join([str(method), str(stream)])
                 list_of_parameters = []
                 for param in parameters:
