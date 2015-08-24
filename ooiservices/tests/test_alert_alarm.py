@@ -743,6 +743,127 @@ class AlertAlarmTestCase(unittest.TestCase):
         response = self.client.put(url, headers=headers, data=bad_def)
         self.assertEquals(response.status_code, 409)
 
+    '''
+    def test_acknowledge_alert(self):
+        """
+        Process:
+            create definition for alert, with user event notification
+            create instance
+            acknowledge alert instance
+            get alert instance
+            verify fields
+        """
+        print '\n ************** test_acknowledge_alert'
+        # Create definition for alert (with user event notification)
+        verbose = self.verbose
+        debug = False
+        if verbose: print '\n'
+
+        headers = self.get_api_headers('admin', 'test')
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Create alarm definition
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        reference_designator = "CE01ISSP-XX099-01-CTDPFJ999"
+        # Create and alert and an alarm
+        #test_alarm = self.create_alert_alarm_definition(reference_designator, event_type='alarm', uframe_id=2, severity=1)
+        test_alert = self.create_alert_alarm_definition(reference_designator, event_type='alert', uframe_id=-1, severity=1)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # GET alarm definition by SystemEventDefinition id
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        response = self.client.get(url_for('main.get_alert_alarm_def', id=test_alert.id), headers=headers)
+        self.assertEquals(response.status_code, 200)
+        definition = json.loads(response.data)
+        if debug: print '\n -- definition: ', definition
+        self.assertTrue(definition is not None)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Get user_event_notifications (1)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        response = self.client.get(url_for('main.get_user_event_notifications'), headers=headers)
+        self.assertEquals(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertTrue(data is not None)
+        notifications = data['notifications']
+        self.assertTrue(notifications is not None)
+        self.assertEquals(len(notifications), 1)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Create instance
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # POST alarm instance which uses an INVALID SystemEventDefinition id (expect failure)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        tmp = alarms[0]
+        event_type = 'alarm'
+        system_event_definition_id = test_alarm.id #90909090 #alarm_definition['id']
+        uframe_event_id = tmp['eventId'] #100
+        uframe_filter_id = alarm_definition['uframe_filter_id']
+        instrument_name = alarm_definition['reference_designator']
+        instrument_parameter = alarm_definition['instrument_parameter']
+        operator = alarm_definition['operator']
+        high_value = alarm_definition['high_value']
+        low_value = alarm_definition['low_value']
+        event_response_message = "Instrument: {0} condition exceeded where parameter {1} {2} {3} {4}".format(
+                                        instrument_name, instrument_parameter, operator, high_value, low_value)
+        event_time = 3607761438.72
+        event_data = {}
+        event_data['uframe_event_id'] = uframe_event_id
+        event_data['uframe_filter_id'] = uframe_filter_id
+        event_data['system_event_definition_id'] = test_alert.id #system_event_definition_id
+        event_data['event_time'] = event_time
+        event_data['event_type'] = event_type
+        event_data['event_response'] = event_response_message
+        event_data['method'] = 'telemetered'
+        event_data['deployment'] = 1
+        new_event = json.dumps(event_data)
+        response = self.client.post(url_for('main.create_alert_alarm'), headers=headers, data=new_event)
+        self.assertEquals(response.status_code, 201)
+        self.assertTrue(response.data is not None)
+        response_data = json.loads(response.data)
+        self.assertTrue('id' in response_data)
+        self.assertTrue(response_data['id'] is not None)
+
+        alarm = SystemEvent.query.get(response_data['id'])
+
+        # Try to acknowledge the alarm when definition does not have a user event_notification - force error.
+        # This section requires LIVE/REAL uframe 'uframe_event_id' returned from qpid message (re: ooi-ui-alerts uframe_qpid)
+        ack_data = {}
+        ack_data['id'] = alarm.id
+        ack_data['uframe_event_id'] = alarm.uframe_event_id  # actual eventID value from qpid message
+        ack_data['uframe_filter_id'] = alarm.uframe_filter_id
+        ack_data['system_event_definition_id'] = alarm_definition['id'] #system_event_definition_id
+        ack_data['event_type'] = alarm.event_type
+        ack_data['ack_by'] = 1
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # POST alarm instance which uses the SystemEventDefinition id
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        acknowledged_event = json.dumps(ack_data)
+        response = self.client.post(url_for('main.acknowledge_alert_alarm'), headers=headers, data=acknowledged_event)
+        self.assertEquals(response.status_code, 201)
+        response_data = json.loads(response.data)
+        self.assertTrue('acknowledged' in response_data)
+        self.assertTrue('ack_by' in response_data)
+        self.assertTrue('ts_acknowledged' in response_data)
+        self.assertEquals(response_data['acknowledged'], True)
+        self.assertEquals(response_data['ack_by'], 1)
+        self.assertTrue(response_data['ts_acknowledged'] is not None)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Acknowledge alert instance
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Get alert instance
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Verify fields
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    '''
+
 
     def test_user_event_notification_alarm(self):
         verbose = self.verbose
@@ -984,7 +1105,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         # # Create alert and an alarm
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         reference_designator = "CE01ISSP-XX099-01-CTDPFJ999"
-        # Create and alert and an alarm
+        # Create an alert and an alarm
         test_alarm = self.create_alert_alarm_definition(reference_designator, event_type='alarm', uframe_id=2, severity=1)
         test_alert = self.create_alert_alarm_definition(reference_designator, event_type='alert', uframe_id=-1, severity=1)
 
