@@ -26,8 +26,7 @@ def get_annotations(instrument,stream):
         url = current_app.config['UFRAME_ANNOTATION_URL'] + current_app.config['UFRAME_ANNOTATION_BASE']+"/find/"+instrument
         r = requests.get(url)
         data = r.json() 
-        print data   
-
+        
         return jsonify( {'annotations' : data }), 201
        
     except Exception, e:
@@ -39,10 +38,9 @@ def get_all_annotations():
     try:
         url = current_app.config['UFRAME_ANNOTATION_URL'] + current_app.config['UFRAME_ANNOTATION_BASE']+"/find/all"
         r = requests.get(url)
-        data = r.json() 
-        print data   
+        data = r.json()    
 
-        return jsonify( {'annotations' : data }), 201
+        return jsonify( {'annotations' : data }), 200
        
     except Exception, e:
         return jsonify( {'error' : "could not obtain annotation(s): "+str(e) }), 500
