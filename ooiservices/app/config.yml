@@ -35,6 +35,7 @@ COMMON: &common
     GOOGLE_ANALYTICS_URL: 'https://www.google-analytics.com/collect?v=1&tid=UA-50606390-3&cid=1&t=event'
     DATA_POINTS: 1000
     SERVER_DNS: 'localhost' 
+    UFRAME_PLOT_TIMEOUT: 60
 
 DEVELOPMENT: &development
     <<: *common

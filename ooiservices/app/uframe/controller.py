@@ -532,39 +532,32 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
         url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])
 
-        print "***:",url
+        current_app.logger.debug("***:" + url)
 
         TOO_BIG = 1024 * 1024 * 15 # 15MB
         CHUNK_SIZE = 1024 * 32   #...KB
-        TOTAL_SECONDS = 20
+        TOTAL_SECONDS = current_app.config['UFRAME_PLOT_TIMEOUT']
         dataBlock = ""
         idx = 0
 
-        #counter
+        # counter
         t0 = time.time()
 
-        with closing(requests.get(url,stream=True)) as response:
+        with closing(requests.get(url, stream=True)) as response:
             content_length = 0
             for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
                 content_length = content_length + CHUNK_SIZE
                 t1 = time.time()
                 total = t1-t0
-                idx+=1
-                if content_length > TOO_BIG or total > TOTAL_SECONDS:
-                    #('uframe response to large.')
-                    # break it down to the last know good spot
-                    t00 = time.time()
-                    idx_c = dataBlock.rfind('}, {')
-                    dataBlock = dataBlock[:idx_c]
-                    dataBlock+="}\n]"
-                    t11 = time.time()
-                    totaln = t11-t00
+                idx += 1
 
-                    print "size_limit or time reached", content_length/(1024),total,idx
-                    return json.loads(dataBlock),200
-                # all the data is in the resonse return it as normal
-                #previousBlock = dataBlock
-                dataBlock+=chunk
+                if content_length > TOO_BIG:
+                    return 'Data request too large, greater than 15MB', 500
+
+                if total > TOTAL_SECONDS:
+                    return 'Data request time out', 500
+
+                dataBlock += chunk
             #print "transfer complete",content_length/(1024 * 1024),total
 
             #if str(dataBlock[-3:-1]) != '} ]':
@@ -579,10 +572,10 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
             urllib2.urlopen(GA_URL)
             return json.loads(dataBlock),200
 
-    except Exception,e:
+    except Exception, e:
         #return json.loads(dataBlock), 200
         print str(e)
-        return internal_server_error('uframe connection unstable. '+str(e)),500
+        return 'uframe connection unstable. '+str(e),500
 
 def get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag):
     '''
