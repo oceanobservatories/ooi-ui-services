@@ -318,8 +318,8 @@ def get_alert_alarm_def(id):
 
 #Create a new alert/alarm definition
 @api.route('/alert_alarm_definition', methods=['POST'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'user_admin')
 def create_alert_alarm_def():
     """ Create an alert or alarm definition, including the the user_event_notification record.
 
