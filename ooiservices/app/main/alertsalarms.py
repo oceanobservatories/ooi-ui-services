@@ -287,23 +287,6 @@ def is_valid_alert_alarm_for_ack(data):
     except:
         raise
 
-
-def update_ticket_for_acknowledge(ticket_id):
-    """
-    When alert or alarm instance is acknowledged successfully, if redmine ticket exists,
-    update subject to reflect datetime of acknowledgment.
-    """
-    result = False
-    try:
-        if ticket_id is None or ticket_id == 0:
-            return result
-
-        return result
-
-    except Exception as err:
-        print '\n message: ', err.message
-        raise
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Alerts & Alarms Definitions
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -335,8 +318,8 @@ def get_alert_alarm_def(id):
 
 #Create a new alert/alarm definition
 @api.route('/alert_alarm_definition', methods=['POST'])
-@auth.login_required
-@scope_required(u'user_admin')
+#@auth.login_required
+#@scope_required(u'user_admin')
 def create_alert_alarm_def():
     """ Create an alert or alarm definition, including the the user_event_notification record.
 

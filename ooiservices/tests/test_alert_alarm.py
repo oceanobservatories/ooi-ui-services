@@ -497,6 +497,7 @@ class AlertAlarmTestCase(unittest.TestCase):
 
         content_type =  'application/json'
         headers = self.get_api_headers('admin', 'test')
+        list_alertfilter_ids = []
 
         # Create alarm definition
         rd = 'CE01ISSP-XX099-01-CTDPFJ999'
@@ -649,6 +650,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue(response_data is not None)
         self.assertTrue('id' in response_data)
         new_alarm_definition_id = response_data['id']
+        list_alertfilter_ids.append(response_data['uframe_filter_id'])
 
         # create_alert_alarm_def shall also create user_event_notification, test this.
         user_event_notification = UserEventNotification.query.filter_by(system_event_definition_id=new_alarm_definition_id).first()
@@ -737,6 +739,9 @@ class AlertAlarmTestCase(unittest.TestCase):
         response = self.client.put(url, headers=headers, data=bad_def)
         self.assertEquals(response.status_code, 409)
 
+        # Delete all alertfilter ids (where id > 3)
+        if len(list_alertfilter_ids) > 0:
+            self.delete_alertfilters(list_alertfilter_ids)
 
     def test_alert_acknowledge(self):
         """
@@ -1287,14 +1292,34 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertEquals(response.status_code, 200)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Create an alarm definition - Andy test
+        # Create an alarm definition - Andy test negative
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        data = {'platform_name': 'CP01CNSM-SBD11', 'high_value': '10', 'event_type': 'alert',
-                'stream': 'mopak_o_dcl_accel', 'severity': 5, 'low_value': '1', 'active': False,
-                'array_name': 'CP', 'reference_designator': 'CP01CNSM-SBD11-01-MOPAK0000',
-                'operator': 'GREATER', 'instrument_name': 'CP01CNSM-SBD11-01-MOPAK0000',
+        data = {'platform_name': 'CE01ISSM-SBD17', 'high_value': '1', 'event_type': 'alarm',
+                'stream': 'mopak_o_dcl_accel', 'severity': '1', 'low_value': '-1', 'active': False,
+                'array_name': 'CE', 'reference_designator': 'CE01ISSM-SBD17-01-MOPAK0000',
+                'operator': 'GREATER', 'instrument_name': 'CE01ISSM-SBD17-01-MOPAK0000',
                 'instrument_parameter': 'time', 'instrument_parameter_pdid': 'PD7',
-                'description': 'simple alarm test', 'escalate_on': 5, 'escalate_boundary': 6,
+                'description': 'asdasdasd', 'escalate_on': 0, 'escalate_boundary': 0,
+                'user_id': 1, 'use_email': False, 'use_redmine': False, 'use_phone': False, 'use_log': False,
+                'use_sms': False}
+
+        request_data = json.dumps(data)
+        response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers,data=request_data)
+        self.assertEquals(response.status_code, 409)
+        self.assertTrue(response is not None)
+        self.assertTrue(response.data is not None)
+        definition = json.loads(response.data)
+        self.assertTrue(definition is not None)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Create an alarm definition - Andy test positive
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        data = {'platform_name': 'CE01ISSM-SBD17', 'high_value': '1', 'event_type': 'alarm',
+                'stream': 'mopak_o_dcl_accel', 'severity': 1, 'low_value': '-1', 'active': False,
+                'array_name': 'CE', 'reference_designator': 'CE01ISSM-SBD17-01-MOPAK0000',
+                'operator': 'GREATER', 'instrument_name': 'CE01ISSM-SBD17-01-MOPAK0000',
+                'instrument_parameter': 'time', 'instrument_parameter_pdid': 'PD7',
+                'description': 'asdasdasd', 'escalate_on': 0, 'escalate_boundary': 0,
                 'user_id': 1, 'use_email': False, 'use_redmine': False, 'use_phone': False, 'use_log': False,
                 'use_sms': False}
 
@@ -2489,7 +2514,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         data = {
               "active": True,
               "array_name": "CE",
-              "description": "Rule 42",
+              "description": "Rule 1",
               "event_type": "alarm",
               "high_value": "31.0",
               "instrument_name": "CE01ISSP-XX099-01-CTDPFJ999",
@@ -2540,7 +2565,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         data = {
               "active": True,
               "array_name": "CE",
-              "description": "Rule 42",
+              "description": "Rule 2",
               "event_type": "alarm",
               "high_value": "31.0",
               "instrument_name": "CE01ISSP-XX099-01-CTDPFJ999",
@@ -2582,7 +2607,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         data = {
               "active": True,
               "array_name": "CE",
-              "description": "Rule 42",
+              "description": "Rule 3",
               "event_type": "alert",
               "high_value": "31.0",
               "instrument_name": "CE01ISSP-XX099-01-CTDPFJ999",
@@ -2642,7 +2667,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         data = {
               "active": True,
               "array_name": "CE",
-              "description": "Rule 42",
+              "description": "Rule 4",
               "event_type": "alert",
               "high_value": "31.0",
               "instrument_name": "CE01ISSP-XX099-01-CTDPFJ999",
@@ -2702,7 +2727,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         data = {
               "active": True,
               "array_name": "CE",
-              "description": "Rule 42",
+              "description": "Rule 5",
               "event_type": "alarm",
               "high_value": "31.0",
               "instrument_name": "CE01ISSP-XX099-01-CTDPFJ999",
@@ -2801,7 +2826,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         data = {
               "active": True,
               "array_name": "CE",
-              "description": "Rule 42",
+              "description": "Rule 6",
               "event_type": "alarm",
               "high_value": "31.0",
               "instrument_name": "CE01ISSP-XX099-01-CTDPFJ999",
@@ -2843,7 +2868,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         data = {
               "active": True,
               "array_name": "CE",
-              "description": "Rule 42",
+              "description": "Rule 7",
               "event_type": "alert",
               "high_value": "31.0",
               "instrument_name": "CE01ISSP-XX099-01-CTDPFJ999",
@@ -2903,7 +2928,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         data = {
               "active": True,
               "array_name": "CE",
-              "description": "Rule 42",
+              "description": "Rule 8",
               "event_type": "alert",
               "high_value": "31.0",
               "instrument_name": "CE01ISSP-XX099-01-CTDPFJ999",
@@ -3316,7 +3341,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         root = self.root
         if verbose: print '\n'
 
-        self.scrub_alertfilters()
+        #self.scrub_alertfilters()
 
         content_type =  'application/json'
         headers = self.get_api_headers('admin', 'test')
@@ -3430,8 +3455,8 @@ class AlertAlarmTestCase(unittest.TestCase):
             self.delete_alertfilters(list_filter_ids)
         if verbose: print '\n'
 
-    def test_z_last_test_scrub(self):
-        self.scrub_alertfilters()
+    #def test_z_last_test_scrub(self):
+    #    self.scrub_alertfilters()
 
     def test_uframe_get_instrument_metadata(self):
 
@@ -3972,25 +3997,33 @@ class AlertAlarmTestCase(unittest.TestCase):
             self.delete_alertfilters(list_filter_ids)
 
     def test_uframe_create_alertfilter(self):
-
+        filter_ids = []
         data = {'stream': u'ctdpf_j_cspp_instrument', 'enabled': True,
          'referenceDesignator': {'node': u'XX099', 'sensor': u'01-CTDPFJ999', 'full': True, 'subsite': u'CE01ISSP'},
          'alertRule': {'filter': u'GREATER', 'errMessage': None, 'valid': True, 'lowVal': 10.0, 'highVal': 31.0},
-         'alertMetadata': {'severity': 2, 'description': u'Rule 42'},
+         'alertMetadata': {'severity': 2, 'description': u'Rule 9'},
          '@class': 'com.raytheon.uf.common.ooi.dataplugin.alert.alertfilter.AlertFilterRecord', 'pdId': u'PD440'}
         response = uframe_create_alertfilter(data)
         self.assertEquals(response.status_code, 201)
+        response_data = response.json()
+        filter_ids.append(response_data['id'])
 
         data = {
          'referenceDesignator': {'node': u'XX099', 'sensor': u'01-CTDPFJ999', 'full': True, 'subsite': u'CE01ISSP'},
          'alertRule': {'filter': u'GREATER', 'errMessage': None, 'valid': True, 'lowVal': 10.0, 'highVal': 31.0},
-         'alertMetadata': {'severity': 2, 'description': u'Rule 42'},
+         'alertMetadata': {'severity': 2, 'description': u'Rule XX'},
          '@class': 'com.raytheon.uf.common.ooi.dataplugin.alert.alertfilter.AlertFilterRecord', 'pdId': u'PD440'}
         response = uframe_create_alertfilter(data)
         self.assertTrue(response.status_code != 201)
 
         response = uframe_create_alertfilter(None)
         self.assertTrue(response.status_code != 201)
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Cleanup extra alterfilters created during test case
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if len(filter_ids) > 0:
+            self.delete_alertfilters(filter_ids)
 
     def test_update_uframe_alertfilter(self):
         headers = self.get_api_headers('admin', 'test')
@@ -4088,7 +4121,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         data = {'stream': u'ctdpf_j_cspp_instrument', 'enabled': True,
          'referenceDesignator': {'node': u'XX099', 'sensor': u'01-CTDPFJ999', 'full': True, 'subsite': u'CE01ISSP'},
          'alertRule': {'filter': u'GREATER', 'errMessage': None, 'valid': True, 'lowVal': 10.0, 'highVal': 31.0},
-         'alertMetadata': {'severity': 2, 'description': u'Rule 42'},
+         'alertMetadata': {'severity': 2, 'description': u'Rule 10'},
          '@class': 'com.raytheon.uf.common.ooi.dataplugin.alert.alertfilter.AlertFilterRecord', 'pdId': u'PD440'}
         response = uframe_create_alertfilter(data)
         self.assertEquals(response.status_code, 201)
@@ -4137,7 +4170,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         data = {'stream': u'ctdpf_j_cspp_instrument', 'enabled': False,
          'referenceDesignator': {'node': u'XX099', 'sensor': u'01-CTDPFJ999', 'full': True, 'subsite': u'CE01ISSP'},
          'alertRule': {'filter': u'GREATER', 'errMessage': None, 'valid': True, 'lowVal': 10.0, 'highVal': 31.0},
-         'alertMetadata': {'severity': 2, 'description': u'Rule 99 - disabled'},
+         'alertMetadata': {'severity': 2, 'description': u'Rule 10 - disabled'},
          '@class': 'com.raytheon.uf.common.ooi.dataplugin.alert.alertfilter.AlertFilterRecord', 'pdId': u'PD440'}
         response = uframe_update_alertfilter(data, filter_id)
         self.assertEquals(response.status_code, 200)
@@ -4179,7 +4212,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         data = {'stream': u'ctdpf_j_cspp_instrument', 'enabled': True,
          'referenceDesignator': {'node': u'XX099', 'sensor': u'01-CTDPFJ999', 'full': True, 'subsite': u'CE01ISSP'},
          'alertRule': {'filter': u'GREATER', 'errMessage': None, 'valid': True, 'lowVal': 10.0, 'highVal': 31.0},
-         'alertMetadata': {'severity': 2, 'description': u'Rule 99'},
+         'alertMetadata': {'severity': 2, 'description': u'Rule 10 --'},
          '@class': 'com.raytheon.uf.common.ooi.dataplugin.alert.alertfilter.AlertFilterRecord', 'pdId': u'PD440'}
         response = uframe_update_alertfilter(data, filter_id)
         self.assertEquals(response.status_code, 200)
@@ -4200,7 +4233,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         data = {'stream': u'ctdpf_j_cspp_instrument', 'enabled': True,
          'referenceDesignator': {'node': u'XX099', 'sensor': u'01-CTDPFJ999', 'full': True, 'subsite': u'CE01ISSP'},
          'alertRule': {'filter': u'GREATER', 'errMessage': None, 'valid': True, 'lowVal': 10.0, 'highVal': 31.0},
-         'alertMetadata': {'severity': 2, 'description': u'Rule 99'},
+         'alertMetadata': {'severity': 2, 'description': u'Rule 11'},
          '@class': 'com.raytheon.uf.common.ooi.dataplugin.alert', 'pdId': u'PD440'}
         response = uframe_update_alertfilter(data, filter_id)
         self.assertEquals(response.status_code, 500)
@@ -4211,7 +4244,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         data = {'stream': u'ctdpf_j_cspp_instrument', 'enabled': True,
          'referenceDesignator': {'node': u'XX099', 'sensor': u'01-CTDPFJ999', 'full': True, 'subsite': u'CE01ISSP'},
          'alertRule': {'filter': u'GREATER', 'errMessage': None, 'valid': None, 'lowVal': 10.0, 'highVal': 31.0},
-         'alertMetadata': {'severity': 2, 'description': u'Rule 99'},
+         'alertMetadata': {'severity': 2, 'description': u'Rule 12'},
          '@class': 'com.raytheon.uf.common.ooi.dataplugin.alert', 'pdId': u'PD440'}
         response = uframe_update_alertfilter(data, filter_id)
         self.assertEquals(response.status_code, 500)
@@ -4228,7 +4261,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         filter_ids = []
 
         # Create alarm definition
-        self.scrub_alertfilters()
+        #self.scrub_alertfilters()
 
         content_type =  'application/json'
         headers = self.get_api_headers('admin', 'test')
@@ -4243,7 +4276,7 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'array_name': u'CE', 'reference_designator': u'CE01ISSP-XX099-01-CTDPFJ999',
                 'operator': u'GREATER', 'instrument_name': u'CE01ISSP-XX099-01-CTDPFJ999',
                 'instrument_parameter': u'salinity', 'instrument_parameter_pdid': u'PD440',
-                'description': 'initial', "escalate_on": escalate_on, "escalate_boundary": escalate_boundary,
+                'description': 'Rule 12', "escalate_on": escalate_on, "escalate_boundary": escalate_boundary,
                 "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
                 "use_log": False, "use_sms": True}
 
@@ -4259,7 +4292,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue('description' in alarm_definition)
         alarm_definition_id = alarm_definition['id']
         alarm_uframe_id = alarm_definition['uframe_filter_id']
-
         filter_ids.append(alarm_uframe_id)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4543,7 +4575,7 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'array_name': u'CE', 'reference_designator': u'CE01ISSP-XX099-01-CTDPFJ999',
                 'operator': u'GREATER', 'instrument_name': u'CE01ISSP-XX099-01-CTDPFJ999',
                 'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
-                'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10.0,
+                'description': 'initial*', "escalate_on": 5.0, "escalate_boundary": 10.0,
                 "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
                 "use_log": False, "use_sms": True}
 
@@ -4577,7 +4609,7 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'array_name': u'CE', 'reference_designator': u'CE01ISSP-XX099-01-CTDPFJ999',
                 'operator': u'GREATER', 'instrument_name': u'CE01ISSP-XX099-01-CTDPFJ999',
                 'instrument_parameter': u'salinity', 'instrument_parameter_pdid': u'PD440',
-                'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10.0,
+                'description': 'initial**', "escalate_on": 5.0, "escalate_boundary": 10.0,
                 "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
                 "use_log": False, "use_sms": True}
 
@@ -4687,7 +4719,7 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'array_name': u'CE', 'reference_designator': u'CE01ISSP-XX099-01-CTDPFJ999',
                 'operator': u'GREATER', 'instrument_name': u'CE01ISSP-XX099-01-CTDPFJ999',
                 'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
-                'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10.0,
+                'description': 'initial (with acknowledgements)', "escalate_on": 5.0, "escalate_boundary": 10.0,
                 "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
                 "use_log": False, "use_sms": True}
 
@@ -4727,7 +4759,7 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'array_name': u'CE', 'reference_designator': u'CE01ISSP-XX099-01-CTDPFJ999',
                 'operator': u'GREATER', 'instrument_name': u'CE01ISSP-XX099-01-CTDPFJ999',
                 'instrument_parameter': u'salinity', 'instrument_parameter_pdid': u'PD440',
-                'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10.0,
+                'description': 'initial (2, with acknowledgements)', "escalate_on": 5.0, "escalate_boundary": 10.0,
                 "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
                 "use_log": False, "use_sms": True}
 
@@ -4946,6 +4978,7 @@ class AlertAlarmTestCase(unittest.TestCase):
                 raise
         return alert_alarm_definition
 
+
     def get_uframe_info(self):
         """ Get uframe alertalarm configuration information. (port 12577) """
         uframe_url = self.app.config['UFRAME_ALERTS_URL']
@@ -4984,6 +5017,7 @@ class AlertAlarmTestCase(unittest.TestCase):
                 self.assertEquals(get_uframe_data['statusCode'],'OK')
         return
 
+    '''
     def get_alertfilters(self):
         """
         Get list of all alertfilter ids in uframe. Only to be used during development testing.
@@ -5003,6 +5037,7 @@ class AlertAlarmTestCase(unittest.TestCase):
                     list_of_alertfilter_ids.append(uframe_id)
         return list_of_alertfilter_ids
 
+
     def scrub_alertfilters(self):
         # ======== TEST DEVELOPMENT ONLY ===========
         # Get all alertfilter ids (where id > 3)
@@ -5012,5 +5047,5 @@ class AlertAlarmTestCase(unittest.TestCase):
         # Delete all alertfilter ids (where id > 3)
         self.delete_alertfilters(list_alertfilter_ids)
         return
-
+    '''
 

@@ -564,7 +564,8 @@ class NotificationsTestCase(unittest.TestCase):
                 self.assertEquals(response.status_code, 200)
 
         # Delete all alertfilter ids (where id > 3)
-        self.delete_alertfilters(list_alertfilter_ids)
+        if len(list_alertfilter_ids) != 0:
+            self.delete_alertfilters(list_alertfilter_ids)
 
         if verbose: print '\n '
 
@@ -865,9 +866,11 @@ class NotificationsTestCase(unittest.TestCase):
                     self.assertEquals(response.status_code, 400)
 
         # Delete all alertfilter ids (where id > 3)
-        self.delete_alertfilters(list_alertfilter_ids)
+        if len(list_alertfilter_ids) != 0:
+            self.delete_alertfilters(list_alertfilter_ids)
         if verbose: print '\n '
 
+    '''
     def scrub_alertfilters(self):
         debug = False
         # ======== Only use for TEST DEVELOPMENT ===========
@@ -880,6 +883,7 @@ class NotificationsTestCase(unittest.TestCase):
         if debug: print '\n list_alertfilter_ids(%d): %s' % (len(list_alertfilter_ids), list_alertfilter_ids)
         self.delete_alertfilters(list_alertfilter_ids)
         return
+    '''
 
     def test_SystemEventDefinitions_uframe_integration(self):
         """
@@ -999,7 +1003,8 @@ class NotificationsTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Delete all uframe alertfilter ids created during test case (id > 3)
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        self.delete_alertfilters(list_alertfilter_ids)
+        if len(list_alertfilter_ids) != 0:
+            self.delete_alertfilters(list_alertfilter_ids)
 
     def create_valid_definition_and_events(self):
         """
@@ -1380,7 +1385,8 @@ class NotificationsTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Delete all uframe alertfilter ids created during test case (id > 3)
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        self.delete_alertfilters(list_alertfilter_ids)
+        if len(list_alertfilter_ids) != 0:
+            self.delete_alertfilters(list_alertfilter_ids)
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # private test helper methods and tests
@@ -1542,6 +1548,7 @@ class NotificationsTestCase(unittest.TestCase):
                 self.assertEquals(get_uframe_data['statusCode'],'OK')
         return
 
+    '''
     def get_alertfilters(self):
         """
         Get list of all alertfilter ids in uframe. Only to be used during development testing.
@@ -1557,6 +1564,7 @@ class NotificationsTestCase(unittest.TestCase):
         for alertfilter in alertfilters:
             if 'eventId' in alertfilter:
                 uframe_id = alertfilter['eventId']
-                if uframe_id > 3 and uframe_id != 2228:
+                if uframe_id > 3:
                     list_of_alertfilter_ids.append(uframe_id)
         return list_of_alertfilter_ids
+    '''
