@@ -7,7 +7,7 @@ __author__ = 'Edna Donoughe'
 
 from flask import (current_app)
 from ooiservices.app import db
-from ooiservices.app.models import (UserEventNotification, User, SystemEvent, SystemEventDefinition, TicketSystemEventLink)
+from ooiservices.app.models import (UserEventNotification, User, SystemEvent, SystemEventDefinition)
 from ooiservices.app.main.errors import bad_request
 from ooiservices.app.redmine.routes import (create_redmine_ticket_for_notification, get_redmine_users_by_project,
                                             update_redmine_ticket_for_notification, get_redmine_ticket_for_notification)
@@ -69,7 +69,7 @@ def begin_notification_process(id):
         SystemEvent.update_alert_alarm_escalation(id=alert_alarm.id, ticket_id=ticket_id,
                                                   escalated=escalated, ts_escalated=ts_escalated)
 
-        ticket_link_id = TicketSystemEventLink.insert_ticket_link(system_event_id=alert_alarm.id, ticket_id=ticket_id)
+        #ticket_link_id = TicketSystemEventLink.insert_ticket_link(system_event_id=alert_alarm.id, ticket_id=ticket_id)
         result = ticket_id
 
     except Exception as err:
@@ -416,7 +416,7 @@ def reissue_notification_ticket(id):
             current_app.logger.exception('[reissue_notification_ticket] %s ' % message)
             return result
 
-        ticket_link_id = TicketSystemEventLink.insert_ticket_link(system_event_id=alert.id, ticket_id=ticket_id)
+        #ticket_link_id = TicketSystemEventLink.insert_ticket_link(system_event_id=alert.id, ticket_id=ticket_id)
         result = ticket_id
 
     except Exception as err:

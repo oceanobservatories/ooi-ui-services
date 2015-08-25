@@ -287,6 +287,23 @@ def is_valid_alert_alarm_for_ack(data):
     except:
         raise
 
+
+def update_ticket_for_acknowledge(ticket_id):
+    """
+    When alert or alarm instance is acknowledged successfully, if redmine ticket exists,
+    update subject to reflect datetime of acknowledgment.
+    """
+    result = False
+    try:
+        if ticket_id is None or ticket_id == 0:
+            return result
+
+        return result
+
+    except Exception as err:
+        print '\n message: ', err.message
+        raise
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Alerts & Alarms Definitions
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -326,7 +343,6 @@ def create_alert_alarm_def():
     The create_alert_alarm_def method requires parameters for user_event_notification also. The
     user_event_notification is created immediately after the alert_alarm_definition.
     """
-    alert_alarm_def = None
     try:
         # Process request.data; verify required fields provided for create, including user_event_notification
         data = json.loads(request.data)
@@ -358,8 +374,8 @@ def create_alert_alarm_def():
         alert_alarm_def.escalate_on = 0.0
         alert_alarm_def.escalate_boundary = 0.0
         if alert_alarm_def.event_type == 'alert':
-            alert_alarm_def.escalate_on = data['escalate_on']
-            alert_alarm_def.escalate_boundary = data['escalate_boundary']
+            alert_alarm_def.escalate_on = float(data['escalate_on'])
+            alert_alarm_def.escalate_boundary = float(data['escalate_boundary'])
         alert_alarm_def.created_time = dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%dT%H:%M:%S")
         alert_alarm_def.uframe_filter_id = uframe_filter_id # Returned from POST to uFrame
         alert_alarm_def.ts_retired = None
@@ -394,9 +410,10 @@ def create_alert_alarm_def():
                                                      use_sms=use_sms)
         except:
             # Error creating user_event_notification, rollback: delete system_event_definition and uframe alertfilter
-            message = 'IntegrityError creating alert_alarm_definition. failed to insert_user_event_notification.'
+            message = 'IntegrityError creating alert_alarm_definition (failed to insert_user_event_notification).'
             try:
-                SystemEventDefinition.delete_system_event_definition(alert_alarm_def)
+                db.session.delete(alert_alarm_def)
+                db.session.commit()
             except:
                 message += ' Failed to rollback system_event_definition (%d)' % alert_alarm_def.id
             result = delete_alertfilter(uframe_filter_id)
@@ -410,8 +427,8 @@ def create_alert_alarm_def():
         return conflict(message)
 
 @api.route('/alert_alarm_definition/<int:id>', methods=['PUT'])
-# @auth.login_required
-# @scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'user_admin')
 def update_alert_alarm_def(id):
     """Update an alert or an alarm definition. Optional update of associated user_event_notification available.
 
@@ -523,8 +540,8 @@ def update_alert_alarm_def(id):
         return conflict(message)
 
 @api.route('/delete_alert_alarm_definition/<int:id>', methods=['DELETE'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'user_admin')
 def delete_alert_alarm_definition(id):
     """ Delete SystemEventDefinition for alert or alarm; this retires SystemEventDefinition (no deletion).
     """
@@ -557,8 +574,8 @@ def delete_alert_alarm_definition(id):
     return jsonify(), 200
 
 @api.route('/ok_to_delete_alert_alarm_definition/<int:id>', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'user_admin')
+@auth.login_required
+@scope_required(u'user_admin')
 def ok_to_delete_alert_alarm_definition(id):
     """ Determine if an alert_alarm_definition can be deleted (retired) at this time.
     Response format:  { "status": false | true }

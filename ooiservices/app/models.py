@@ -931,47 +931,6 @@ class SystemEvent(db.Model):
             return v.isoformat()
         return str(v)
 
-class TicketSystemEventLink(db.Model):
-    __tablename__ = 'ticket_system_event_link'
-    __table_args__ = {u'schema': __schema__}
-
-    id = db.Column(db.Integer, primary_key=True)
-    system_event_id = db.Column(db.ForeignKey(u'' + __schema__ + '.system_events.id'), nullable=False)
-    ticket_id = db.Column(db.Text, nullable=False)
-
-    system_event = db.relationship(u'SystemEvent')
-
-    """
-    # todo - Review
-    @staticmethod
-    def insert_ticket_link():
-        usl = TicketSystemEventLink(user_id='1')
-        usl.scope_id='1'
-        db.session.add(usl)
-        db.session.commit()
-    """
-    @staticmethod
-    def insert_ticket_link(system_event_id, ticket_id):
-        try:
-            new_ticket_system_event = TicketSystemEventLink()
-            new_ticket_system_event.system_event_id = system_event_id
-            new_ticket_system_event.ticket_id = ticket_id
-            db.session.add(new_ticket_system_event)
-            db.session.commit()
-            db.session.flush()
-            return new_ticket_system_event.id
-        except Exception as err:
-            db.session.rollback()
-            raise Exception(err.message)
-
-    def to_json(self):
-        json_ticket_system_event = {
-            'id': self.id,
-            'system_event_id': self.system_event_id,
-            'ticket_id': self.ticket_id,
-        }
-        return json_ticket_system_event
-
 
 class UserEventNotification(db.Model):
     """
@@ -1010,8 +969,12 @@ class UserEventNotification(db.Model):
     @staticmethod
     def insert_user_event_notification(system_event_definition_id, user_id, use_email, use_redmine, use_phone,
                                         use_log, use_sms):
-        user_event_id = None
         try:
+            tmp = SystemEventDefinition.query.get(system_event_definition_id)
+            if tmp is None:
+                message = 'Invalid ID, system_event_definition_id record not found.'
+                raise Exception(message)
+
             new_user_event_notification = UserEventNotification()
             new_user_event_notification.system_event_definition_id = system_event_definition_id
             new_user_event_notification.user_id = user_id
@@ -1020,14 +983,16 @@ class UserEventNotification(db.Model):
             new_user_event_notification.use_phone = use_phone
             new_user_event_notification.use_log = use_log
             new_user_event_notification.use_sms = use_sms
-            db.session.add(new_user_event_notification)
-            db.session.commit()
+            try:
+                db.session.add(new_user_event_notification)
+                db.session.commit()
+            except:
+                db.session.rollback()
+                raise Exception(message)
             user_event_id = new_user_event_notification.id
             return user_event_id
         except:
-            db.session.rollback()
-            message = 'Failed to insert_user_event_notification.'
-            raise Exception(message)
+            raise
 
     @staticmethod
     def update_user_event_notification(id, system_event_definition_id, user_id,
@@ -1051,7 +1016,6 @@ class UserEventNotification(db.Model):
             db.session.rollback()
             message = 'Failed to update_user_event_notification.'
             raise Exception(message)
-
 
 class UserScopeLink(db.Model):
     __tablename__ = 'user_scope_link'
