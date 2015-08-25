@@ -9,6 +9,7 @@ from flask import request, current_app
 import numpy as np
 from collections import OrderedDict
 import requests
+import json
 
 __author__ = 'Andy Bird'
 
@@ -76,13 +77,13 @@ def get_simple_data(stream, instrument, yfields, xfields, include_time=True):
             # data, status_code = get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
             data, status_code = get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag, parameter_ids)
 
-            if status_code != 200:                
-                raise Exception('(%s) could not get_uframe_stream_contents' % str(status_code))
+            if status_code != 200:
+                raise Exception(data)
             else:
-                return data,units_mapping;
+                return data, units_mapping
 
     except Exception as e:
-        message = 'Failed to make plot - received error on uframe request. error: ' + str(e.message)
+        message = 'Failed to make plot - received error on uframe request. Error: ' + str(e.message)
         current_app.logger.exception(message)
         raise Exception(message)
 
@@ -98,7 +99,7 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
     #
     #-------------------
     # TODO: create better error handler if uframe is not online/responding
-    '''    
+    '''
     mooring, platform, instrument, stream_type, stream = split_stream_name('_'.join([instrument, stream]))
     parameter_ids, y_units, x_units,units_mapping = find_parameter_ids(mooring, platform, instrument, yfields, xfields)
 
@@ -118,7 +119,7 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
             if status_code != 200:
                 # return {'error': 'could not get data'}
                 # return {'error': '(%s) could not get_uframe_stream_contents' % str(response.status_code)}
-                raise Exception('(%s) could not get_uframe_stream_contents' % str(status_code))
+                raise Exception(data)
         else:
             message = 'Failed to make plot - start end dates not applied.'
             current_app.logger.exception(message)
