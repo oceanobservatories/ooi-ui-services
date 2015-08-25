@@ -425,5 +425,3 @@ def reissue_notification_ticket(id):
     finally:
         return result
 
-
-

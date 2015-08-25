@@ -287,23 +287,6 @@ def is_valid_alert_alarm_for_ack(data):
     except:
         raise
 
-
-def update_ticket_for_acknowledge(ticket_id):
-    """
-    When alert or alarm instance is acknowledged successfully, if redmine ticket exists,
-    update subject to reflect datetime of acknowledgment.
-    """
-    result = False
-    try:
-        if ticket_id is None or ticket_id == 0:
-            return result
-
-        return result
-
-    except Exception as err:
-        print '\n message: ', err.message
-        raise
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Alerts & Alarms Definitions
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
