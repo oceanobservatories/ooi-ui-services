@@ -9,7 +9,6 @@ from flask import request, current_app
 import numpy as np
 from collections import OrderedDict
 import requests
-import json
 
 __author__ = 'Andy Bird'
 
