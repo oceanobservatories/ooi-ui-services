@@ -517,7 +517,11 @@ def get_assets():
         if "error" not in data:
             cache.set('asset_list', data, timeout=CACHE_TIMEOUT)
 
-    data = sorted(data, key=itemgetter('id'))
+    try:
+        data = sorted(data, key=itemgetter('ref_des'))
+    except (TypeError, KeyError) as e:
+        print e
+
 
     if request.args.get('min') == 'True':
         for obj in data:
