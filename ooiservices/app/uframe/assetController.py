@@ -240,7 +240,7 @@ def _associate_events(id):
             sort_by = 'eventId'
         result = sorted(result, key=itemgetter(sort_by))
     except (TypeError, KeyError) as e:
-        print e
+        raise
 
     return result
 
@@ -531,8 +531,7 @@ def get_assets():
             sort_by = 'ref_des'
         data = sorted(data, key=itemgetter(sort_by))
     except (TypeError, KeyError) as e:
-        print e
-
+        raise
 
     if request.args.get('min') == 'True':
         for obj in data:
