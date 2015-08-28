@@ -41,6 +41,7 @@ import time
 from ooiservices.app.models import PlatformDeployment
 import urllib2
 from copy import deepcopy
+from operator import itemgetter
 
 requests.adapters.DEFAULT_RETRIES = 2
 CACHE_TIMEOUT = 86400
@@ -208,6 +209,20 @@ def streams_list():
                     continue
             retval.append(data_dict)
         cache.set('stream_list', retval, timeout=CACHE_TIMEOUT)
+
+    try:
+        is_reverse = False
+        if request.args.get('sort') and request.args.get('sort') != "":
+            sort_by = request.args.get('sort')
+            if request.args.get('order') and request.args.get('order') != "":
+                order = request.args.get('order')
+                if order == 'reverse':
+                    is_reverse = True
+        else:
+            sort_by = 'reference_designator'
+        retval = sorted(retval, key=itemgetter(sort_by), reverse=is_reverse)
+    except (TypeError, KeyError) as e:
+        raise
 
     if request.args.get('min') == 'True':
         for obj in retval:

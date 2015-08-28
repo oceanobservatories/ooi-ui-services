@@ -233,7 +233,14 @@ def _associate_events(id):
             pass
         result.append(d)
 
-    result = sorted(result, key=itemgetter('eventId'))
+    try:
+        if request.args.get('sort') and request.args.get('sort') != "":
+            sort_by = request.args.get('sort')
+        else:
+            sort_by = 'eventId'
+        result = sorted(result, key=itemgetter(sort_by))
+    except (TypeError, KeyError) as e:
+        print e
 
     return result
 
@@ -511,14 +518,18 @@ def get_assets():
                         except:
                             pass
 
-            except AttributeError, KeyError:
+            except (AttributeError, KeyError):
                 print "Key or Attribute error in %s" % row
 
         if "error" not in data:
             cache.set('asset_list', data, timeout=CACHE_TIMEOUT)
 
     try:
-        data = sorted(data, key=itemgetter('ref_des'))
+        if request.args.get('sort') and request.args.get('sort') != "":
+            sort_by = request.args.get('sort')
+        else:
+            sort_by = 'ref_des'
+        data = sorted(data, key=itemgetter(sort_by))
     except (TypeError, KeyError) as e:
         print e
 
