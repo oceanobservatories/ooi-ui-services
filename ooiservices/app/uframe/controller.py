@@ -219,7 +219,7 @@ def streams_list():
                 if order == 'reverse':
                     is_reverse = True
         else:
-            sort_by = 'reference_designator'
+            sort_by = 'end'
         retval = sorted(retval, key=itemgetter(sort_by), reverse=is_reverse)
     except (TypeError, KeyError) as e:
         raise
