@@ -267,9 +267,9 @@ def generate_plot(data, plot_options):
         kwargs = dict(units='y',
                       scale_units='y',
                       scale=1,
-                      headlength=1.5,
-                      headaxislength=1.5,
-                      width=0.006,
+                      headlength=1.0,
+                      headaxislength=1.0,
+                      width=0.002,
                       alpha=0.5)
 
         time = mdates.date2num(data['x']['time'])
@@ -281,7 +281,7 @@ def generate_plot(data, plot_options):
 
         u = data['y'][data['y_field'][0]]
         v = data['y'][data['y_field'][1]]
-        ylabel = data['y_field'][0] + " (" + data['y_units'][0] + ")"
+        ylabel = "Velocity" + " (" + data['y_units'][0] + ")"
 
         # # Mask the bad data
         # qaqc_u = data['qaqc'][data['y_field'][0]] < 1
