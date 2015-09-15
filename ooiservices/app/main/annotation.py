@@ -23,23 +23,25 @@ import requests
 @api.route('/annotation/<string:instrument>/<string:stream>')
 def get_annotations(instrument,stream):
     try:
-        if 'startdate' in request.args and 'enddate' in request.args:
-            st_date = request.args['startdate']
-            ed_date = request.args['enddate']
+        url = current_app.config['UFRAME_ANNOTATION_URL'] + current_app.config['UFRAME_ANNOTATION_BASE']+"/find/"+instrument
+        r = requests.get(url)
+        data = r.json() 
+        
+        return jsonify( {'annotations' : data }), 201
+       
+    except Exception, e:
+        return jsonify( {'error' : "could not obtain annotation(s): "+str(e) }), 500
 
-            mooring, platform, instrument, stream_type, stream = split_stream_name('_'.join([instrument, stream]))
-            #fixed parameter request            
-            query = '?beginDT=%s&endDT=%s&limit=%s&include_annotations=true&parameters=PD7' % (st_date, ed_date, 3)
+#List all annotations. build 6
+@api.route('/annotation/all')
+def get_all_annotations():
+    try:
+        url = current_app.config['UFRAME_ANNOTATION_URL'] + current_app.config['UFRAME_ANNOTATION_BASE']+"/find/all"
+        r = requests.get(url)
+        data = r.json()    
 
-            UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-            url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])
-
-            r = requests.get(url)
-            data = r.json()        
-
-            return jsonify( {'annotations' : data['annotations'] }), 201
-        else:
-            return jsonify( {'error' : "no dates specified" }), 500   
+        return jsonify( {'annotations' : data }), 200
+       
     except Exception, e:
         return jsonify( {'error' : "could not obtain annotation(s): "+str(e) }), 500
 
