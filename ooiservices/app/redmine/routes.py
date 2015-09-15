@@ -56,18 +56,24 @@ def create_redmine_ticket():
     for field in required_fields + recommended_fields:
         if field in dataDict:
             fields[field] = dataDict[field]
+    try:
+        # Log into Redmine
+        redmine = redmine_login()
 
-    # Log into Redmine
-    redmine = redmine_login()
+        # Create new issue
+        issue = redmine.issue.new()
+        issue.tracker_id = 3  # support
+        for key, value in fields.iteritems():
+            if value is not None:
+                setattr(issue, key, value)
 
-    # Create new issue
-    issue = redmine.issue.new()
-    issue.tracker_id = 3 # support
-    for key, value in fields.iteritems():
-        setattr(issue, key, value)
-    issue.save()
+        issue.save()
 
-    return data, 201
+        return data, 201
+    except Exception as e:
+        current_app.logger.exception('[create_redmine_ticket] %s ' % e.message)
+        return Response(response='{"error":"'+e.message+'"}', status=400, mimetype="application/json")
+
 
 @api.route('/ticket/', methods=['GET'])
 @auth.login_required
