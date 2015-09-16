@@ -11,6 +11,7 @@ import matplotlib.dates as mdates
 from matplotlib.ticker import FuncFormatter
 import seawater as sw
 from matplotlib.dates import datestr2num
+from matplotlib.image import NonUniformImage
 
 axis_font_default = {'fontname': 'Calibri',
                      'size': '14',
@@ -135,11 +136,53 @@ class OOIPlots(object):
         ax.invert_yaxis()
         cbar = plt.colorbar(h)
         if cbar_title:
-            cbar.ax.set_ylabel(cbar_title)
+            cbar.ax.set_ylabel(cbar_title, **axis_font)
         ax.grid(True)
         if tick_font:
             ax.tick_params(**tick_font)
         plt.tight_layout()
+
+    def plot_stacked_time_series_image(self, fig, ax, x, y, z, title='', ylabel='',
+                                       cbar_title='', title_font={}, axis_font={}, tick_font = {},
+                                       **kwargs):
+        '''
+        This plot is a stacked time series that uses NonUniformImage with regualrly spaced ydata from
+        a linear interpolation. Designed to support FRF ADCP data.
+        '''
+
+        if not title_font:
+            title_font = title_font_default
+        if not axis_font:
+            axis_font = axis_font_default
+        # z = np.ma.array(z, mask=np.isnan(z))
+
+        h = NonUniformImage(ax, interpolation='bilinear', extent=(min(x), max(x), min(y), max(y)),
+                            cmap=plt.cm.jet)
+        h.set_data(x, y, z)
+        ax.images.append(h)
+        ax.set_xlim(min(x), max(x))
+        ax.set_ylim(min(y), max(y))
+        # h = plt.pcolormesh(x, y, z, shading='gouraud', **kwargs)
+        # h = plt.pcolormesh(x, y, z, **kwargs)
+        if ylabel:
+            ax.set_ylabel(ylabel, **axis_font)
+        if title:
+            ax.set_title(title, **title_font)
+        # plt.axis('tight')
+        ax.xaxis_date()
+        date_list = mdates.num2date(x)
+        self.get_time_label(ax, date_list)
+        fig.autofmt_xdate()
+        # if invert:
+        ax.invert_yaxis()
+        cbar = plt.colorbar(h)
+        if cbar_title:
+            cbar.ax.set_ylabel(cbar_title, **axis_font)
+
+        ax.grid(True)
+        if tick_font:
+            ax.tick_params(**tick_font)
+        # plt.show()
 
     def plot_profile(self, fig, ax, x, y, xlabel='', ylabel='',
                      axis_font={}, tick_font={}, scatter=False, **kwargs):

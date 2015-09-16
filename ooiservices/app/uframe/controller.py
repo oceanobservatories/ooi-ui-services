@@ -581,7 +581,7 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
             #    dataBlock+="} ]"
             #    print 'uFrame appended Error Message to Stream',"\n",dataBlock[-3:-1]
             idx_c = dataBlock.rfind('}\n]')
-            print idx_c
+            # print idx_c
             if idx_c == -1:
                 dataBlock+="]"
             urllib2.urlopen(GA_URL)
