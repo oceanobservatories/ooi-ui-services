@@ -279,8 +279,8 @@ def generate_plot(data, plot_options):
         start_dt = mdates.date2num(datetime.strptime(start.split('.')[0], '%Y-%m-%dT%H:%M:%S'))
         end_dt = mdates.date2num(datetime.strptime(end.split('.')[0], '%Y-%m-%dT%H:%M:%S'))
 
-        u = data['y'][data['y_field'][0]]
-        v = data['y'][data['y_field'][1]]
+        u = np.array(data['y'][data['y_field'][0]])
+        v = np.array(data['y'][data['y_field'][1]])
         ylabel = "Velocity" + " (" + data['y_units'][0] + ")"
 
         # # Mask the bad data
@@ -306,6 +306,25 @@ def generate_plot(data, plot_options):
                                  key_units = data['y_units'][0],
                                  **kwargs)
 
+    elif plot_layout == 'stacked':
+        '''
+        Plot colored stacked time series
+        '''
+
+        current_app.logger.debug('Plotting Stacked')
+
+        time = mdates.date2num(data['x']['time'])
+        z = np.array(data['y'][data['y_field'][0]])
+        label = data['y_field'][0] + " (" + data['y_units'][0] + ")"
+
+        ooi_plots.plot_stacked_time_series(fig, ax, time, np.arange(len(z[0]))[::-1], z.transpose(),
+                                           title=data['title']+'\n'+'Stacked Time Series Plot',
+                                           ylabel='bin',
+                                           cbar_title=label,
+                                           title_font=title_font,
+                                           axis_font=axis_font,
+                                           tick_font=tick_font)
+
     elif plot_layout == '3d_scatter':
         '''
         Plot 3d scatter plot
@@ -317,9 +336,9 @@ def generate_plot(data, plot_options):
         xlabel = data['y_field'][0]
         ylabel = data['y_field'][1]
         zlabel = data['y_field'][2]
-        x = data['y'][xlabel]
-        y = data['y'][ylabel]
-        z = data['y'][zlabel]
+        x = np.array(data['y'][xlabel])
+        y = np.array(data['y'][ylabel])
+        z = np.array(data['y'][zlabel])
 
         # # Mask the bad data
         # qaqc_x = data['qaqc'][xlabel] < 1
@@ -351,8 +370,8 @@ def generate_plot(data, plot_options):
 
         xlabel = data['y_field'][0]
         ylabel = data['y_field'][1]
-        magnitude = data['y'][xlabel]
-        direction = data['y'][ylabel]
+        magnitude = np.array(data['y'][xlabel])
+        direction = np.array(data['y'][ylabel])
 
         # # Mask the bad data
         # qaqc_mag = data['qaqc'][xlabel] < 1

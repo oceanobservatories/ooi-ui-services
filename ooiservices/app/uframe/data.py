@@ -162,9 +162,11 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
                 raise Exception(message)
 
     # Initialize the data dicts
-    vals = [np.empty(len(data)) for field in xfields]
+    # vals = [np.empty(len(data)) for field in xfields]
+    vals = [[] for field in xfields]
     x = OrderedDict(zip(xfields, vals))
-    vals = [np.empty(len(data)) for field in yfields]
+    # vals = [np.empty(len(data)) for field in yfields]
+    vals = [[] for field in yfields]
     y = OrderedDict(zip(yfields, vals))
 
     if len(yfields) >= len(xfields):
@@ -172,7 +174,8 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
     else:
         qaqc_fields = xfields
 
-    vals = [np.zeros(len(data)) for field in qaqc_fields]
+    # vals = [np.zeros(len(data)) for field in qaqc_fields]
+    vals = [[] for field in qaqc_fields]
     qaqc = OrderedDict(zip(qaqc_fields, vals))
 
     # Loop through rows of data and fill the response data
@@ -182,23 +185,29 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
             # x
             for xfield in xfields:
                 if xfield == 'time':
-                    x[xfield][ind] = float(row['pk']['time'])
+                    # x[xfield][ind] = float(row['pk']['time'])
+                    x[xfield].append(float(row['pk']['time']))
                 else:
-                    x[xfield][ind] = row[xfield]
+                    # x[xfield][ind] = row[xfield]
+                    x[xfield].append(row[xfield])
                     key = xfield + '_qc_results'
                     if key in row:
-                        qaqc[yfield][ind] = int(row[key])
+                        # qaqc[yfield][ind] = int(row[key])
+                        qaqc[yfield].append(int(row[key]))
                     # else:
                     #     current_app.logger.exception('QAQC not found for {0}'.format(xfield))
             # y
             for yfield in yfields:
                 if yfield == 'time':
-                    y[yfield][ind] = float(row['pk']['time'])
+                    # y[yfield][ind] = float(row['pk']['time'])
+                    y[yfield].append(float(row['pk']['time']))
                 else:
-                    y[yfield][ind] = row[yfield]
+                    # y[yfield][ind] = row[yfield]
+                    y[yfield].append(row[yfield])
                     key = yfield + '_qc_results'
                     if key in row:
-                        qaqc[yfield][ind] = int(row[key])
+                        # qaqc[yfield][ind] = int(row[key])
+                        qaqc[yfield].append(int(row[key]))
                     # else:
                     #     current_app.logger.exception('QAQC not found for {0}'.format(yfield))
 
