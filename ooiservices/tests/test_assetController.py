@@ -15,8 +15,8 @@ from flask import url_for, jsonify
 from ooiservices.app import create_app, db
 from ooiservices.app.models import User, UserScope, UserScopeLink, Organization
 from collections import OrderedDict
-from ooiservices.app.uframe.assetController import uFrameAssetCollection
-from ooiservices.app.uframe.assetController import uFrameEventCollection
+from ooiservices.app.uframe.UFrameAssetsCollection import UFrameAssetsCollection as uFrameAssetCollection
+from ooiservices.app.uframe.UFrameEventsCollection import UFrameEventsCollection as uFrameEventCollection
 
 '''
 These tests are additional to the normal testing performed by coverage; each of
@@ -68,36 +68,6 @@ class PrivateMethodsTest(unittest.TestCase):
         non_dup_data_set = _remove_duplicates(duplicate_data_set)
         self.assertTrue(len(non_dup_data_set) == 1)
 
-    #_uframe_url
-        from ooiservices.app.uframe.assetController import _uframe_url
-        endpoint = "assets"
-        endpoint_id = "1"
-        uframe_base_url = self.app.config['UFRAME_ASSETS_URL']
-        #Build the control url: List
-        control = '/'.join([uframe_base_url, endpoint])
-        list_endpoint_url = _uframe_url(endpoint)
-        #Verify the url matches the config
-        self.assertTrue(control == list_endpoint_url)
-        #Build the control url: object
-        control = '/'.join([uframe_base_url, endpoint, endpoint_id])
-        obj_endpoint_url = _uframe_url(endpoint, endpoint_id)
-        self.assertTrue(control == obj_endpoint_url)
-
-    #_uframe_collection
-        from ooiservices.app.uframe.assetController import _uframe_collection
-        #using uframe url created previously
-        #This will be more meaningful when uframe is up and running.
-        collection = _uframe_collection(obj_endpoint_url)
-        self.assertTrue(type(collection) is dict)
-        #Test error message if uframe is not running.
-        spoof_conn = _uframe_collection('NOTAREALURL')
-        self.assertTrue(spoof_conn['status_code'] == 500)
-
-    #_api_headers
-        from ooiservices.app.uframe.assetController import _uframe_headers
-        uframe_headers = _uframe_headers()
-        self.assertTrue(uframe_headers['Accept'] == 'application/json')
-
     #_normalize
         #Use the asset.json file as a sample set for this test.
         from ooiservices.app.uframe.assetController import _normalize
@@ -128,8 +98,8 @@ class PrivateMethodsTest(unittest.TestCase):
         no_convert = _convert_lat_lon(dec_deg_lat, dec_deg_lon)
         self.assertTrue(no_convert == (dec_deg_lat, dec_deg_lon))
 
-    #_convert_date_time
-        from ooiservices.app.uframe.assetController import _convert_date_time
+    #convert_date_time
+        from ooiservices.app.uframe.assetController import convert_date_time as _convert_date_time
         #Date with no time:
         raw_date = self.asset_json['metaData'][4]['value']
         date = _convert_date_time(raw_date)
@@ -140,7 +110,7 @@ class PrivateMethodsTest(unittest.TestCase):
         self.assertTrue(date_time == '13-Apr-14 17:29')
 
     #_convert_water_depth
-        from ooiservices.app.uframe.assetController import _convert_water_depth
+        from ooiservices.app.uframe.assetController import convert_water_depth as _convert_water_depth
         #Water depth with a space between the value and units.
         raw_depth = self.asset_json['metaData'][3]['value']
         converted_water_depth = _convert_water_depth(raw_depth)
