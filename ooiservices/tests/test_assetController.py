@@ -76,7 +76,7 @@ class PrivateMethodsTest(unittest.TestCase):
         self.assertTrue(normalized_lat == "40 05 45.792 N")
 
     #_convert_lat_lon
-        from ooiservices.app.uframe.assetController import _convert_lat_lon
+        from ooiservices.app.uframe.assetController import convert_lat_lon
         #Test a North West input
         normalized_lon = _normalize(self.asset_json['metaData'][1]['value'])
         coords = _convert_lat_lon(normalized_lat, normalized_lon)
