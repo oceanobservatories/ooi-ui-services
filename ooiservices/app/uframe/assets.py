@@ -124,7 +124,7 @@ def get_assets():
                     del obj['attachments']
                     del obj['purchaseAndDeliveryInfo']
                     del obj['lastModifiedTimestamp']
-                except TypeError, KeyError:
+                except Exception:
                     print "could not delete one or more elements"
                     pass
 
