@@ -193,14 +193,11 @@ def associate_events(id):
     '''
     uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/assets/%s/events' % (id)
     result = []
-    try:
-        data = requests.get(uframe_url)
-    except Exception as e:
-        data = { 'Status': 'Error associating events',
-                 'Message': e}
-        return data
+    payload = requests.get(uframe_url)
+    if payload.status_code != 200:
+        return [{ "error": "server responded with error code: %s" % payload.status_code }]
 
-    json_data = data.json()
+    json_data = payload.json()
     for row in json_data:
         try:
             d = {'url': url_for('uframe.get_event', id=row['eventId']),
