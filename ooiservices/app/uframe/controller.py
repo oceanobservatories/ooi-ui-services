@@ -20,7 +20,7 @@ from urllib import urlencode
 # data ones
 from ooiservices.app.uframe.data import get_data, get_simple_data,COSMO_CONSTANT,find_parameter_ids
 from ooiservices.app.uframe.plotting import generate_plot
-from ooiservices.app.uframe.assetController import _get_events_by_ref_des
+from ooiservices.app.uframe.assetController import get_events_by_ref_des
 from datetime import datetime
 from dateutil.parser import parse as parse_date
 import requests
@@ -181,22 +181,16 @@ def streams_list():
     '''
 
     if request.args.get('stream_name'):
-        try:
-            dict_from_stream(request.args.get('stream_name'))
-        except Exception as e:
-            current_app.logger.exception('**** (1) exception: ' + e.message)
-            return jsonify(error=e.message), 500
+        dict_from_stream(request.args.get('stream_name'))
 
     cached = cache.get('stream_list')
     if cached:
         retval = cached
     else:
-        try:
-            streams = dfs_streams()
-        except Exception as e:
-            current_app.logger.exception('**** (2) exception: ' + e.message)
-            return jsonify(error=e.message), 500
-
+        #TODO: This error checking was causing a bunch of problems.
+        #TODO: For the sake of getting this done, I've (Matt C) removed
+        #TODO: it for now, but should be revisitied asap!
+        streams = dfs_streams()
         retval = []
         for stream in streams:
             try:
@@ -824,7 +818,7 @@ def get_svg_plot(instrument, stream):
     events = {}
     if use_event:
         try:
-            response = _get_events_by_ref_des(instrument[0])
+            response = get_events_by_ref_des(instrument[0])
             events = json.loads(response.data)
         except Exception as err:
             current_app.logger.exception(str(err.message))
