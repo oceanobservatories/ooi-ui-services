@@ -16,8 +16,6 @@ import re
 import datetime
 from netCDF4 import num2date
 from operator import itemgetter
-from threading import Thread
-from sets import Set
 from copy import deepcopy
 from ooiservices.app import cache
 
@@ -25,6 +23,40 @@ from ooiservices.app import cache
 requests.adapters.DEFAULT_RETRIES = 2
 CACHE_TIMEOUT = 86400
 
+def _uframe_url(endpoint, id=None):
+    '''
+    Two options for creating the uframe url:
+    - If an id is provided, the return is a url points to a specific id.
+    - If no id, a url for a GET list or a post is returned.
+    '''
+    if id is not None:
+        uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (endpoint, id)
+    else:
+        uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/%s' % endpoint
+    return uframe_url
+
+def _uframe_collection(uframe_url):
+    '''
+    After a url is determined, this method will do the heavy lifting of contacting
+    uframe and either getting the json back, or returning a 500 error.
+    '''
+    data = requests.get(uframe_url)
+
+    if (data.status_code == 200):
+        return data
+    else:
+        return data.message, data.status_code
+
+def _uframe_headers():
+    '''
+    No special headers are needed to connect to uframe.  This def simply states
+    the default content type, and would be where authentication would be added
+    if there ever is a need.
+    '''
+    return {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    }
 def _normalize_whitespace(string):
     '''
     Requires re

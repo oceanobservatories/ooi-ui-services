@@ -6,10 +6,13 @@ from ooiservices.app.uframe.assetController import get_events_by_ref_des
 from ooiservices.app.uframe.assetController import convert_lat_lon
 from ooiservices.app.uframe.assetController import convert_date_time
 from ooiservices.app.uframe.assetController import convert_water_depth
+from ooiservices.app.uframe.assetController import _uframe_url
+from ooiservices.app.uframe.assetController import _uframe_headers
 from ooiservices.app.main.routes import get_display_name_by_rd
 from ooiservices.app import cache
 from operator import itemgetter
 from copy import deepcopy
+from netCDF4 import num2date
 
 import json
 import requests
@@ -45,7 +48,11 @@ def get_events():
 
             #create uframe instance, and fetch the data.
             uframe_obj = UFrameEventsCollection()
-            data = uframe_obj.to_json()
+            payload = uframe_obj.to_json()
+            data = payload.json()
+            if payload.status_code != 200:
+                return  jsonify({ "events" : payload.json()}), payload.status_code
+
             try:
                 for row in data:
                     row['id'] = row.pop('eventId')
@@ -96,7 +103,11 @@ def get_event(id):
         asset_id = ""
         #create uframe instance, and fetch the data.
         uframe_obj = UFrameEventsCollection()
-        data = uframe_obj.to_json(id)
+        payload = uframe_obj.to_json(id)
+        data = payload.json()
+        if payload.status_code != 200:
+            return  jsonify({ "events" : payload.json()}), payload.status_code
+
         try:
             data['class'] = data.pop('@class')
             data['startDate'] = num2date(float(data['startDate'])/1000, units='seconds since 1970-01-01 00:00:00', calendar='gregorian')

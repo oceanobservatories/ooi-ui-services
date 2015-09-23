@@ -51,9 +51,7 @@ class UFrameAssetsCollection(object):
 
         try:
             payload = requests.get(url)
-
-            data = payload.json()
-            return data
+            return payload
         except Exception as e:
             return make_response("error: %s. UFrameAssetsCollection.py. Line # %s" % (e,sys.exc_info()[2].tb_lineno ), 500)
 

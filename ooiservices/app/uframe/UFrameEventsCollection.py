@@ -19,6 +19,7 @@ import sys
 class UFrameEventsCollection(object):
 
     __endpoint__ = 'events'
+    __uframe_url__ = ''
     #Create a json object that contains all uframe assets.
     #This will be the collection that will may be parsed.
     obj = None
@@ -36,9 +37,7 @@ class UFrameEventsCollection(object):
 
         try:
             payload = requests.get(url)
-
-            data = payload.json()
-            return data
+            return payload
         except Exception as e:
             return make_response("error: %s. UFrameEventsCollection.py. Line # %s" % (e,sys.exc_info()[2].tb_lineno ), 500)
 

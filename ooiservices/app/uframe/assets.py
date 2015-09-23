@@ -7,10 +7,13 @@ from ooiservices.app.uframe.assetController import convert_lat_lon
 from ooiservices.app.uframe.assetController import convert_date_time
 from ooiservices.app.uframe.assetController import convert_water_depth
 from ooiservices.app.uframe.assetController import associate_events
+from ooiservices.app.uframe.assetController import _uframe_url
+from ooiservices.app.uframe.assetController import _uframe_headers
 from ooiservices.app.main.routes import get_display_name_by_rd
 from ooiservices.app import cache
 from operator import itemgetter
 from copy import deepcopy
+from netCDF4 import num2date
 
 import json
 import requests
@@ -39,7 +42,10 @@ def get_assets():
             data = cached
         else:
             uframe_obj = UFrameAssetsCollection()
-            data = uframe_obj.to_json()
+            payload = uframe_obj.to_json()
+            data = payload.json()
+            if payload.status_code != 200:
+                return  jsonify({ "assets" : payload.json()}), payload.status_code
             for row in data:
                 lat = ""
                 lon = ""
@@ -191,9 +197,11 @@ def get_asset(id):
     try:
         uframe_obj = UFrameAssetsCollection()
         payload = uframe_obj.to_json(id)
-        data = payload.data
+        data = payload.json()
         if payload.status_code != 200:
-            return  jsonify({ "assets" : payload.data}), payload.status_code
+            return  jsonify({ "assets" : payload.json()}), payload.status_code
+
+        print payload.status_code
 
         deployment_number = None
         data['events'] = associate_events(id)
