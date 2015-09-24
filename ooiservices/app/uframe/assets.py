@@ -87,10 +87,12 @@ def get_assets():
                             row['coordinates'] = convert_lat_lon(lat,lon)
                             lat = 0.0
                             lon = 0.0
-                        if len(ref_des) > 0:
-                            # determine the asset name from the DB if there is none.
-                            if (not(row['assetInfo'].has_key('name'))):
-                                row['assetInfo']['name'] = get_display_name_by_rd(ref_des)
+                        # determine the asset name from the DB if there is none.
+                        if (not(row['assetInfo'].has_key('name')) and len(ref_des) > 0):
+                            row['assetInfo']['name'] = get_display_name_by_rd(ref_des)
+                        elif (row['assetInfo'].has_key('name') and len(ref_des) > 0):
+                            row['assetInfo']['name'] = row['assetInfo']['name'] or get_display_name_by_rd(ref_des)
+
 
                 except AttributeError, TypeError:
                     pass
@@ -237,12 +239,12 @@ def get_asset(id):
                 data['coordinates'] = convert_lat_lon(lat,lon)
                 lat = 0.0
                 lon = 0.0
-            if len(ref_des) > 0:
-                '''
-                Determine the asset name from the DB if there is none.
-                '''
-                if (not(row['assetInfo'].has_key('name'))):
+
+                # determine the asset name from the DB if there is none.
+                if (not(row['assetInfo'].has_key('name')) and len(ref_des) > 0):
                     row['assetInfo']['name'] = get_display_name_by_rd(ref_des)
+                elif (row['assetInfo'].has_key('name') and len(ref_des) > 0):
+                    row['assetInfo']['name'] = row['assetInfo']['name'] or get_display_name_by_rd(ref_des)
 
         return jsonify(**data)
 
