@@ -26,9 +26,10 @@ CACHE_TIMEOUT = 86400
 ### ---------------------------------------------------------------------------
 #Read (list)
 @api.route('/assets', methods=['GET'])
-def get_assets():
+def get_assets(use_min=False,normal_data=False):
     '''
     Listing GET request of all assets.  This method is cached for 1 hour.
+    add in helped params to bypass the json response and minification
     '''
     try:
         #Manually set up the cache
@@ -113,7 +114,8 @@ def get_assets():
             print e
             pass
 
-        if request.args.get('min') == 'True':
+        if request.args.get('min') == 'True' or use_min == True:            
+            del_count = 0 
             for obj in data:
                 try:
                     del obj['metaData']
@@ -125,8 +127,10 @@ def get_assets():
                     del obj['purchaseAndDeliveryInfo']
                     del obj['lastModifiedTimestamp']
                 except Exception:
-                    print "could not delete one or more elements"
+                    del_count+=1                    
                     pass
+                    
+            print "could not delete one or more elements: ",del_count
 
         if request.args.get('search') and request.args.get('search') != "":
             return_list = []
@@ -177,7 +181,10 @@ def get_assets():
                                 "assets": data_slice})
             return result
         else:
-            result = jsonify({ 'assets' : data })
+            if normal_data:
+                result = data
+            else:
+                result = jsonify({ 'assets' : data })
             return result
 
     except requests.exceptions.ConnectionError as e:

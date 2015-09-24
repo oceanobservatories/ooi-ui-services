@@ -26,11 +26,13 @@ from ooiservices.app.main.errors import (conflict, bad_request)
 from ooiservices.app.models import (SystemEventDefinition, SystemEvent, UserEventNotification)
 from ooiservices.app.main.notifications import (alert_escalation_state, begin_notification_process,
                                                 update_notification_ticket, reissue_notification_ticket)
+
+from ooiservices.app.uframe.assets import get_assets
+
 import requests
 import json
 import datetime as dt
 import calendar
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Alerts & Alarms
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -41,25 +43,34 @@ def get_alerts_alarms():
     Dynamically construct filters to query SystemEvent and SystemEventDefinitions.
     List output for each alert_alarm which includes system_event_definition content based request.args 'filters'.
     """
-    result = []
+    
     try:
-        # Get query filters, query SystemEvents using event_filters
-        event_filters, definition_filters = get_query_filters(request.args)
-        if event_filters is None:   # alerts_alarms
-            alerts_alarms = db.session.query(SystemEvent).all()
-        else:
-            alerts_alarms = db.session.query(SystemEvent).filter_by(**event_filters)
-        # Process alert_alarm json output based on definition filters
-        if alerts_alarms is not None:
-            result_json = get_alert_alarm_json(alerts_alarms, definition_filters)
-            if result_json is None:
-                result = []
-            else:
-                result = result_json
+        result = get_alerts_alarms_object()                
         return jsonify( {'alert_alarm': result})
     except Exception as err:
         message = 'Insufficient data, or bad data format. (%s)' % str(err.message)
         return conflict(message)
+
+def get_alerts_alarms_object():
+    '''
+    helper function to get alert alarms
+    '''
+    result = []
+    # Get query filters, query SystemEvents using event_filters
+    event_filters, definition_filters = get_query_filters(request.args)
+    if event_filters is None:   # alerts_alarms
+        alerts_alarms = db.session.query(SystemEvent).all()
+    else:
+        alerts_alarms = db.session.query(SystemEvent).filter_by(**event_filters)
+    # Process alert_alarm json output based on definition filters
+    if alerts_alarms is not None:
+        result_json = get_alert_alarm_json(alerts_alarms, definition_filters)
+        if result_json is None:
+            result = []
+        else:
+            result = result_json
+    return result
+   
 
 #List an alerts and alarms by id
 @api.route('/alert_alarm/<int:id>')
@@ -69,6 +80,94 @@ def get_alert_alarm(id):
         message = 'alert_alarm not found'
         return bad_request(message)
     return jsonify(alert_alarm.to_json())
+
+
+def get_asset_list():   
+    data = get_assets(True,True)
+    ref_list = []
+    name_list = []
+    for d in data:
+        split_ref = d['ref_des'].split('-')
+        if d['ref_des'] not in name_list and len(split_ref)>1:
+            ref_list.append(d)
+            name_list.append(d['ref_des'])
+    return ref_list,name_list
+
+@api.route('/alert_alarm/status', methods=['GET'])
+def get_alert_alarm_status():
+    '''
+    gets the alert alarm status for all available assets
+    '''    
+
+    #the actual alert alarms
+    data = get_alerts_alarms_object()      
+    status_info = []
+    status_outline = {}
+
+    for d in data:        
+        if d["acknowledged"] == False:
+            ref_des = d['alert_alarm_definition']['reference_designator']
+            if ref_des not in status_outline:
+                status_outline[ref_des] = d
+                status_outline[ref_des]['count'] = 0
+            else:
+                count = status_outline[ref_des]['count']                
+                #figure out which one is higher
+                if d["event_type"] == "alarm":
+                    status_outline[ref_des] = d
+                else:
+                    pass
+                status_outline[ref_des]['count'] = count+1
+
+    #get dict of assets available
+    assets_dict, assets_names = get_asset_list()
+
+    #get the list of alert/alarm definitions
+    aa_def = get_alerts_alarms_def_object()    
+    aa_def_list = []
+
+    #alerts and alarms
+    for aa_item in aa_def:
+        #get the A/A definitions
+        if aa_item['reference_designator'] not in aa_def_list:
+            #used to identify halth sensors            
+            aa_def_list.append(aa_item['reference_designator'])
+        if aa_item['reference_designator'] not in assets_names:
+            #means an asset was in the A/A definition, that was not in the asset list returned  
+            #create and add it so we can see the status, the TOC may not reflect this          
+            print "Ref-Des not in asset name list: ERROR: appending", aa_item['reference_designator']            
+            new_asset = {'ref_des':aa_item['reference_designator'],
+                         'assetInfo':{'type':"Sensor"},
+                         'coordinates':[0,0]
+                        }            
+            aa_def_list.append(assets_dict)
+            assets_names.append(aa_item['reference_designator'])
+
+
+    #use all the info to create status
+    for asset in assets_dict:
+        d = asset['ref_des']
+        #create inital entry
+        entry = {'reference_designator':d, "count":0,
+                "event_type":'unknown', 
+                'coordinates':asset['coordinates'],
+                'asset_type':asset['assetInfo']['type']}        
+        
+        #use alert alarms status (alarm or alert)
+        if d in status_outline.keys():
+            entry["count"] = status_outline[d]['count']
+            entry["event_type"] = status_outline[d]["event_type"]
+        #healthly 
+        elif d in aa_def_list:
+            #used to identify health sensors
+            entry["event_type"] = 'inactive'
+        #no status, unknown
+        else:
+            #nothing to do here
+            pass
+
+        status_info.append(entry)
+    return jsonify({'alert_alarm':status_info})
 
 #Create a new alert/alarm
 @api.route('/alert_alarm', methods=['POST'])
@@ -295,6 +394,10 @@ def is_valid_alert_alarm_for_ack(data):
 def get_alerts_alarms_def():
     """ Get a list of alert or alarm definition(s).
     """
+    result = get_alerts_alarms_def_object
+    return jsonify( {'alert_alarm_definition' : result })
+
+def get_alerts_alarms_def_object():
     result = []
     query_filter = get_definitions_query_filter(request.args)
     if query_filter is None:
@@ -303,7 +406,7 @@ def get_alerts_alarms_def():
         alerts_alarms_def = db.session.query(SystemEventDefinition).filter_by(**query_filter)
     if alerts_alarms_def is not None:
         result = [alert_alarm_def.to_json() for alert_alarm_def in alerts_alarms_def]
-    return jsonify( {'alert_alarm_definition' : result })
+    return result
 
 #List an alerts and alarms definition by id
 @api.route('/alert_alarm_definition/<int:id>')
