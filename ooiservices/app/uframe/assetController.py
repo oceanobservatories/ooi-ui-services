@@ -245,6 +245,7 @@ def get_events_by_ref_des(ref_des):
     #Create the container for the processed response
     result = []
     #Get all the events to begin searching though...
+    from ooiservices.app.uframe.UFrameEventsCollection import UFrameEventsCollection
     uframe_obj = UFrameEventsCollection()
     data = uframe_obj.to_json()
     for row in data:
