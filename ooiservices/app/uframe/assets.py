@@ -89,12 +89,8 @@ def get_assets():
                             lon = 0.0
                         if len(ref_des) > 0:
                             # determine the asset name from the DB if there is none.
-
-                            try:
-                                if (row['assetInfo']['name'] == None) or (row['assetInfo']['name'] == ""):
-                                    row['assetInfo']['name'] = get_display_name_by_rd(ref_des)
-                            except:
-                                pass
+                            if (not(row['assetInfo'].has_key('name'))):
+                                row['assetInfo']['name'] = get_display_name_by_rd(ref_des)
 
                 except AttributeError, TypeError:
                     pass
@@ -245,12 +241,8 @@ def get_asset(id):
                 '''
                 Determine the asset name from the DB if there is none.
                 '''
-
-                try:
-                    if data['assetInfo']['name'] == None:
-                        data['assetInfo']['name'] = get_display_name_by_rd(ref_des)
-                except:
-                    pass
+                if (not(row['assetInfo'].has_key('name'))):
+                    row['assetInfo']['name'] = get_display_name_by_rd(ref_des)
 
         return jsonify(**data)
 
