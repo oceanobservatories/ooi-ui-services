@@ -9,7 +9,7 @@ from ooiservices.app.uframe.assetController import convert_water_depth
 from ooiservices.app.uframe.assetController import associate_events
 from ooiservices.app.uframe.assetController import _uframe_url
 from ooiservices.app.uframe.assetController import _uframe_headers
-from ooiservices.app.main.routes import get_display_name_by_rd
+from ooiservices.app.main.routes import get_display_name_by_rd, get_long_display_name_by_rd
 from ooiservices.app import cache
 from operator import itemgetter
 from copy import deepcopy
@@ -90,8 +90,10 @@ def get_assets():
                         # determine the asset name from the DB if there is none.
                         if (not(row['assetInfo'].has_key('name')) and len(ref_des) > 0):
                             row['assetInfo']['name'] = get_display_name_by_rd(ref_des)
+                            row['assetInfo']['longName'] = get_long_display_name_by_rd(ref_des)
                         elif (row['assetInfo'].has_key('name') and len(ref_des) > 0):
                             row['assetInfo']['name'] = row['assetInfo']['name'] or get_display_name_by_rd(ref_des)
+                            row['assetInfo']['longName'] = get_long_display_name_by_rd(ref_des)
 
 
                 except AttributeError, TypeError:
@@ -243,8 +245,10 @@ def get_asset(id):
                 # determine the asset name from the DB if there is none.
                 if (not(row['assetInfo'].has_key('name')) and len(ref_des) > 0):
                     row['assetInfo']['name'] = get_display_name_by_rd(ref_des)
+                    row['assetInfo']['longName'] = get_long_display_name_by_rd(ref_des)
                 elif (row['assetInfo'].has_key('name') and len(ref_des) > 0):
                     row['assetInfo']['name'] = row['assetInfo']['name'] or get_display_name_by_rd(ref_des)
+                    row['assetInfo']['longName'] = get_long_display_name_by_rd(ref_des)
 
         return jsonify(**data)
 
