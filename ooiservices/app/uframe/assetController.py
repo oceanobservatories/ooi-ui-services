@@ -245,8 +245,13 @@ def get_events_by_ref_des(ref_des):
     #Create the container for the processed response
     result = []
     #Get all the events to begin searching though...
-    uframe_obj = UFrameEventCollection()
-    data = uframe_obj.to_json()
+    from ooiservices.app.uframe.UFrameEventsCollection import UFrameEventsCollection
+    uframe_obj = UFrameEventsCollection()
+    payload = uframe_obj.to_json()
+    if payload.status_code != 200:
+        return  jsonify({ "events" : payload.json()}), payload.status_code
+
+    data = payload.json()
     for row in data:
         #variables used in loop
         temp_dict = {}
@@ -272,7 +277,7 @@ def get_events_by_ref_des(ref_des):
                 result.append(temp_dict)
                 temp_dict = {}
         except (KeyError, TypeError):
-            pass
+            raise
     result = jsonify({ 'events' : result })
     return result
 

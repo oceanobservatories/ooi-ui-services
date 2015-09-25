@@ -9,7 +9,7 @@ from ooiservices.app.uframe.assetController import convert_water_depth
 from ooiservices.app.uframe.assetController import associate_events
 from ooiservices.app.uframe.assetController import _uframe_url
 from ooiservices.app.uframe.assetController import _uframe_headers
-from ooiservices.app.main.routes import get_display_name_by_rd
+from ooiservices.app.main.routes import get_display_name_by_rd, get_long_display_name_by_rd
 from ooiservices.app import cache
 from operator import itemgetter
 from copy import deepcopy
@@ -87,14 +87,14 @@ def get_assets():
                             row['coordinates'] = convert_lat_lon(lat,lon)
                             lat = 0.0
                             lon = 0.0
-                        if len(ref_des) > 0:
-                            # determine the asset name from the DB if there is none.
+                        # determine the asset name from the DB if there is none.
+                        if (not(row['assetInfo'].has_key('name')) and len(ref_des) > 0):
+                            row['assetInfo']['name'] = get_display_name_by_rd(ref_des)
+                            row['assetInfo']['longName'] = get_long_display_name_by_rd(ref_des)
+                        elif (row['assetInfo'].has_key('name') and len(ref_des) > 0):
+                            row['assetInfo']['name'] = row['assetInfo']['name'] or get_display_name_by_rd(ref_des)
+                            row['assetInfo']['longName'] = get_long_display_name_by_rd(ref_des)
 
-                            try:
-                                if (row['assetInfo']['name'] == None) or (row['assetInfo']['name'] == ""):
-                                    row['assetInfo']['name'] = get_display_name_by_rd(ref_des)
-                            except:
-                                pass
 
                 except AttributeError, TypeError:
                     pass
@@ -241,16 +241,14 @@ def get_asset(id):
                 data['coordinates'] = convert_lat_lon(lat,lon)
                 lat = 0.0
                 lon = 0.0
-            if len(ref_des) > 0:
-                '''
-                Determine the asset name from the DB if there is none.
-                '''
 
-                try:
-                    if data['assetInfo']['name'] == None:
-                        data['assetInfo']['name'] = get_display_name_by_rd(ref_des)
-                except:
-                    pass
+                # determine the asset name from the DB if there is none.
+                if (not(row['assetInfo'].has_key('name')) and len(ref_des) > 0):
+                    row['assetInfo']['name'] = get_display_name_by_rd(ref_des)
+                    row['assetInfo']['longName'] = get_long_display_name_by_rd(ref_des)
+                elif (row['assetInfo'].has_key('name') and len(ref_des) > 0):
+                    row['assetInfo']['name'] = row['assetInfo']['name'] or get_display_name_by_rd(ref_des)
+                    row['assetInfo']['longName'] = get_long_display_name_by_rd(ref_des)
 
         return jsonify(**data)
 
