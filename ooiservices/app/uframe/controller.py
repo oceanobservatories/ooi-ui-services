@@ -32,6 +32,7 @@ import datetime
 import math
 import csv
 import io
+import sys
 import numpy as np
 import pytz
 from ooiservices.app.main.routes import get_display_name_by_rd, get_long_display_name_by_rd, get_platform_display_name_by_rd
@@ -54,8 +55,15 @@ def dfs_streams():
 
     streams = []
 
-    toc = requests.get(TOC, timeout=(timeout, timeout_read))
-    toc = toc.json()
+    try:
+        payload = requests.get(TOC, timeout=(timeout, timeout_read))
+    except requests.exceptions.ConnectionError as e:
+        error = "Error: Cannot connect to uframe.  %s" % e
+        print error
+        return make_response(error, 500)
+
+    toc = payload.json()
+
 
     for instrument in toc:
 
@@ -187,10 +195,10 @@ def streams_list():
     if cached:
         retval = cached
     else:
-        #TODO: This error checking was causing a bunch of problems.
-        #TODO: For the sake of getting this done, I've (Matt C) removed
-        #TODO: it for now, but should be revisitied asap!
         streams = dfs_streams()
+        if type(streams) is Response and  streams.status_code != 200:
+            return make_response("Error in streams, please make sure uframe connection is open.", streams.status_code)
+
         retval = []
         for stream in streams:
             try:
