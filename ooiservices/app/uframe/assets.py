@@ -1,4 +1,4 @@
-from flask import url_for, request, current_app, jsonify
+from flask import url_for, request, current_app, jsonify, make_response
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.uframe.UFrameAssetsCollection import UFrameAssetsCollection
@@ -17,6 +17,7 @@ from netCDF4 import num2date
 
 import json
 import requests
+import sys
 
 #Default number of times to retry the connection:
 requests.adapters.DEFAULT_RETRIES = 2
@@ -44,9 +45,17 @@ def get_assets(use_min=False,normal_data=False):
         else:
             uframe_obj = UFrameAssetsCollection()
             payload = uframe_obj.to_json()
-            data = payload.json()
             if payload.status_code != 200:
-                return  jsonify({ "assets" : payload.json()}), payload.status_code
+                try:
+                    return  jsonify({ "assets" : payload.json()}), payload.status_code
+                except AttributeError:
+                    try:
+                        return jsonify({ "assets" : 'Undefined response'}), payload.status_code
+                    except Exception as e:
+                        return make_response("unhandled exception: %s.  Line # %s" % (e,sys.exc_info()[2].tb_lineno ), 500)
+
+            data = payload.json()
+
             for row in data:
                 lat = ""
                 lon = ""
@@ -75,6 +84,10 @@ def get_assets(use_min=False,normal_data=False):
                             if meta_data['key'] == 'Deployment Number':
                                 deployment_number = meta_data['value']
                         row['ref_des'] = ref_des
+                        if len(row['ref_des']) == 27:
+                            row['asset_class'] = '.InstrumentAssetRecord'
+                        if len(row['ref_des']) < 27:
+                            row['asset_class'] = '.AssetRecord'
 
                         if deployment_number is not None:
                             row['deployment_number'] = deployment_number
@@ -88,17 +101,24 @@ def get_assets(use_min=False,normal_data=False):
                             row['coordinates'] = convert_lat_lon(lat,lon)
                             lat = 0.0
                             lon = 0.0
-                        # determine the asset name from the DB if there is none.
-                        if (not(row['assetInfo'].has_key('name')) and len(ref_des) > 0):
-                            row['assetInfo']['name'] = get_display_name_by_rd(ref_des)
-                            row['assetInfo']['longName'] = get_long_display_name_by_rd(ref_des)
-                        elif (row['assetInfo'].has_key('name') and len(ref_des) > 0):
-                            row['assetInfo']['name'] = row['assetInfo']['name'] or get_display_name_by_rd(ref_des)
-                            row['assetInfo']['longName'] = get_long_display_name_by_rd(ref_des)
+
+                    #TODO: Band-aid to work with the old version of uframe on the VM since rutgers is down.
+                    if (not(row['assetInfo']) ):
+                        row['assetInfo'] = { 'name': '', 'type': '', 'owner': '', 'description': ''}
+
+                    # determine the asset name from the DB if there is none.
+                    if (not(row['assetInfo'].has_key('name')) and len(ref_des) > 0):
+                        row['assetInfo']['name'] = get_display_name_by_rd(ref_des) or ""
+                        row['assetInfo']['longName'] = get_long_display_name_by_rd(ref_des)
+                    elif (row['assetInfo'].has_key('name') and len(ref_des) > 0):
+                        row['assetInfo']['name'] = row['assetInfo']['name'] or get_display_name_by_rd(ref_des) or ""
+                        row['assetInfo']['longName'] = get_long_display_name_by_rd(ref_des)
+                    else:
+                        row['assetInfo']['name'] = ""
 
 
                 except AttributeError, TypeError:
-                    pass
+                    raise
 
             if "error" not in data:
                 cache.set('asset_list', data, timeout=CACHE_TIMEOUT)
@@ -114,8 +134,8 @@ def get_assets(use_min=False,normal_data=False):
             print e
             pass
 
-        if request.args.get('min') == 'True' or use_min == True:            
-            del_count = 0 
+        if request.args.get('min') == 'True' or use_min == True:
+            del_count = 0
             for obj in data:
                 try:
                     del obj['metaData']
@@ -127,9 +147,9 @@ def get_assets(use_min=False,normal_data=False):
                     del obj['purchaseAndDeliveryInfo']
                     del obj['lastModifiedTimestamp']
                 except Exception:
-                    del_count+=1                    
+                    del_count+=1
                     pass
-                    
+
             print "could not delete one or more elements: ",del_count
 
         if request.args.get('search') and request.args.get('search') != "":
@@ -206,7 +226,13 @@ def get_asset(id):
         payload = uframe_obj.to_json(id)
         data = payload.json()
         if payload.status_code != 200:
-            return  jsonify({ "assets" : payload.json()}), payload.status_code
+            try:
+                return jsonify({ "assets" : payload.json()}), payload.status_code
+            except AttributeError:
+                try:
+                    return jsonify({ "assets" : payload.data()}), payload.status_code
+                except Exception as e:
+                    return make_response("unhandled exception: %s.  Line # %s" % (e,sys.exc_info()[2].tb_lineno ), 500)
 
         print payload.status_code
 
