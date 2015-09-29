@@ -148,10 +148,34 @@ def get_alert_alarm_status():
     for asset in assets_dict:
         d = asset['ref_des']
         #create inital entry
-        entry = {'reference_designator':d, "count":0,
+
+        if 'manufactureInfo' in asset:            
+            entry = {'reference_designator':d, "count":0,
                 "event_type":'unknown', 
                 'coordinates':asset['coordinates'],
-                'asset_type':asset['assetInfo']['type']}        
+                'asset_type':asset['assetInfo']['type'],
+                'longName':asset['assetInfo']['longName'],
+                'name':asset['assetInfo']['name'],
+                'instrumentClass':asset['assetInfo']['instrumentClass'],
+                'manufacturer': asset['manufactureInfo']['manufacturer'],
+                'modelNumber': asset['manufactureInfo']['modelNumber'],
+                'serialNumber': asset['manufactureInfo']['serialNumber'],
+                'owner': asset['assetInfo']['owner'],
+                'description': asset['assetInfo']['description']}    
+        else:
+            entry = {'reference_designator':d, "count":0,
+                "event_type":'unknown', 
+                'coordinates':asset['coordinates'],
+                'asset_type':asset['assetInfo']['type'],
+                'longName':asset['assetInfo']['longName'],
+                'name':asset['assetInfo']['name'],
+                'instrumentClass':asset['assetInfo']['instrumentClass'],
+                'manufacturer': 'N/A',
+                'modelNumber': 'N/A',
+                'serialNumber': 'N/A',
+                'owner': asset['assetInfo']['owner'],
+                'description': asset['assetInfo']['description']}    
+          
         
         #use alert alarms status (alarm or alert)
         if d in status_outline.keys():
