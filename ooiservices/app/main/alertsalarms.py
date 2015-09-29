@@ -394,7 +394,7 @@ def is_valid_alert_alarm_for_ack(data):
 def get_alerts_alarms_def():
     """ Get a list of alert or alarm definition(s).
     """
-    result = get_alerts_alarms_def_object
+    result = get_alerts_alarms_def_object()
     return jsonify( {'alert_alarm_definition' : result })
 
 def get_alerts_alarms_def_object():
