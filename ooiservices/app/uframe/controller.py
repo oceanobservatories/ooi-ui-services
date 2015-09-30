@@ -299,8 +299,7 @@ def get_uframe_glider_track():
     glider_ids = []
     glider_locations = []
 
-
-    base_url = "http://uframe-test.ooi.rutgers.edu:12576/sensor/inv/"
+    base_url, timeout, timeout_read = get_uframe_info()
     #get the list of mobile assets
     r = requests.get(base_url)
     all_platforms = r.json()
