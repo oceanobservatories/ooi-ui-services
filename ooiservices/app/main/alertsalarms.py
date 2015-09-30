@@ -147,9 +147,7 @@ def get_alert_alarm_status():
     #use all the info to create status
     for asset in assets_dict:
         d = asset['ref_des']
-        #create inital entry
-        if asset['assetInfo']['longName'] is None or asset['assetInfo']['longName'] == None:
-            asset['assetInfo']['longName'] = asset['ref_des']        
+        #create inital entry   
 
         if 'manufactureInfo' in asset:
             entry = {'reference_designator':d, "count":0,
