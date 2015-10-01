@@ -288,91 +288,105 @@ def streams_list():
         return jsonify(streams=retval)
 
 
-@cache.memoize(timeout=3600)
 #@auth.login_required
 @api.route('/get_glider_tracks')
 def get_uframe_glider_track():
     '''
     get glider tracks
     '''
-    # we will always want the telemetered data, and the engineering stream
-    glider_ids = []
-    glider_locations = []
+    try:
+        cached = cache.get('glider_tracks')
+        will_reset_cache = False
+        if request.args.get('reset') == 'true':
+            will_reset_cache = True
 
-    base_url, timeout, timeout_read = get_uframe_info()
-    #get the list of mobile assets
-    r = requests.get(base_url)
-    all_platforms = r.json()
+        will_reset = request.args.get('reset')
+        if cached and not(will_reset_cache):
+            data = cached
+        else:
+            # we will always want the telemetered data, and the engineering stream
+            glider_ids = []
+            glider_locations = []
 
-    for p in all_platforms:
-        if "MOAS" in p:        
-            r_p = requests.get(base_url+p)
-            try:
-                p_p = r_p.json()            
-                for gl in p_p:
-                    glider_location = p+"/"+gl+"/00-ENG000000/"
-                    glider_locations.append(base_url+glider_location)
-                    glider_name =  glider_location + 'telemetered/glider_eng_telemetered'
-                    url = base_url+glider_name
-                    glider_ids.append(url)
-            except:
-                print r_p.content()
+            base_url, timeout, timeout_read = get_uframe_info()
+            #get the list of mobile assets
+            r = requests.get(base_url)
+            all_platforms = r.json()
 
-    #params for position and depth info
-    params = "?parameters=PD1335,PD1336,PD1276&limit=1000"
-    data = []
-    print len(glider_ids)," gliders..."
-    for i,gl_id in enumerate(glider_ids):    
-        try:
+            for p in all_platforms:
+                if "MOAS" in p:
+                    r_p = requests.get(base_url+p)
+                    try:
+                        p_p = r_p.json()
+                        for gl in p_p:
+                            glider_location = p+"/"+gl+"/00-ENG000000/"
+                            glider_locations.append(base_url+glider_location)
+                            glider_name =  glider_location + 'telemetered/glider_eng_telemetered'
+                            url = base_url+glider_name
+                            glider_ids.append(url)
+                    except:
+                        print r_p.content()
 
-            print glider_locations[i]+'metadata'
-            r_units = requests.get(glider_locations[i]+'metadata')
-            d_units = r_units.json()
-            d_units = d_units['parameters']
-                
-            #create the units    
-            glider_depth_units = "m"
-            
-            for row in d_units:            
-                if row['particleKey'] == 'm_depth':
-                    #override them in case something different
-                    glider_depth_units = row['particleKey']
-            
-            data_url = gl_id + params
-            #print data_url
-            r = requests.get(data_url)
-            metadata = r.json()
+            #params for position and depth info
+            params = "?parameters=PD1335,PD1336,PD1276&limit=1000"
+            data = []
+            print len(glider_ids)," gliders..."
+            for i,gl_id in enumerate(glider_ids):
+                try:
 
-            coors = []
-            dt = []
-            depths = []
-            for row in metadata:
+                    print glider_locations[i]+'metadata'
+                    r_units = requests.get(glider_locations[i]+'metadata')
+                    d_units = r_units.json()
+                    d_units = d_units['parameters']
 
-                has_lon   = not np.isnan(row['m_gps_lon'])
-                has_lat   = not np.isnan(row['m_gps_lat']) 
-                has_depth = not np.isnan(row['m_depth'])     
-                #only add the glider information if deoth is available                              
-                if has_lat and has_lon and has_depth and (float(row['m_depth']) != -999): 
-                    #add position
-                    coors.append([row['m_gps_lon'], row['m_gps_lat']])
-                    dt.append(row['pk']['time'])
-                    #add depth                   
-                    depths.append(row['m_depth'])                                
+                    #create the units
+                    glider_depth_units = "m"
 
-            #add glider info to dict
-            data_item = {"name":row['pk']['subsite']+"-"+row['pk']['node'],
-                         "reference_designator": row['pk']['subsite']+"-"+row['pk']['node']+"-"+row['pk']['sensor'],
-                         "type": "LineString",
-                         "coordinates" : coors,
-                         "times": dt,
-                         "units": glider_depth_units,
-                         "depths": depths}
-                    
-        except:
-            continue
-        data.append(data_item)
+                    for row in d_units:
+                        if row['particleKey'] == 'm_depth':
+                            #override them in case something different
+                            glider_depth_units = row['particleKey']
 
-    return jsonify({"gliders":data})
+                    data_url = gl_id + params
+                    #print data_url
+                    r = requests.get(data_url)
+                    metadata = r.json()
+
+                    coors = []
+                    dt = []
+                    depths = []
+                    for row in metadata:
+
+                        has_lon   = not np.isnan(row['m_gps_lon'])
+                        has_lat   = not np.isnan(row['m_gps_lat'])
+                        has_depth = not np.isnan(row['m_depth'])
+                        #only add the glider information if deoth is available
+                        if has_lat and has_lon and has_depth and (float(row['m_depth']) != -999):
+                            #add position
+                            coors.append([row['m_gps_lon'], row['m_gps_lat']])
+                            dt.append(row['pk']['time'])
+                            #add depth
+                            depths.append(row['m_depth'])
+
+                    #add glider info to dict
+                    data_item = {"name":row['pk']['subsite']+"-"+row['pk']['node'],
+                                 "reference_designator": row['pk']['subsite']+"-"+row['pk']['node']+"-"+row['pk']['sensor'],
+                                 "type": "LineString",
+                                 "coordinates" : coors,
+                                 "times": dt,
+                                 "units": glider_depth_units,
+                                 "depths": depths}
+                except:
+                    continue
+                data.append(data_item)
+            if "error" not in data:
+                cache.set('glider_tracks', data, timeout=CACHE_TIMEOUT)
+
+        return jsonify({"gliders":data})
+    except requests.exceptions.ConnectionError as e:
+        error = "Error: Cannot connect to uframe.  %s" % e
+        print error
+        return make_response(error, 500)
 
 #@cache.memoize(timeout=3600)
 def get_uframe_streams(mooring, platform, instrument, stream_type):
