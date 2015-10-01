@@ -127,54 +127,66 @@ def get_alert_alarm_status():
     aa_def_list = []
 
     #alerts and alarms
-    for aa_item in aa_def:
-        #get the A/A definitions
-        if aa_item['reference_designator'] not in aa_def_list:
-            #used to identify halth sensors            
-            aa_def_list.append(aa_item['reference_designator'])
-        if aa_item['reference_designator'] not in assets_names:
-            #means an asset was in the A/A definition, that was not in the asset list returned  
-            #create and add it so we can see the status, the TOC may not reflect this          
-            print "Ref-Des not in asset name list: ERROR: appending", aa_item['reference_designator']            
-            new_asset = {'ref_des':aa_item['reference_designator'],
-                         'assetInfo':{'type':"Sensor"},
-                         'coordinates':[0,0]
-                        }            
-            aa_def_list.append(assets_dict)
-            assets_names.append(aa_item['reference_designator'])
+    for aa_item in aa_def:        
+        if 'reference_designator' in aa_item:
+            #get the A/A definitions
+            if aa_item['reference_designator'] not in aa_def_list:
+                #used to identify halth sensors            
+                aa_def_list.append(aa_item['reference_designator'])
+            if aa_item['reference_designator'] not in assets_names:
+                #means an asset was in the A/A definition, that was not in the asset list returned  
+                #create and add it so we can see the status, the TOC may not reflect this          
+                print "Ref-Des not in asset name list: ERROR: appending", aa_item['reference_designator']            
+
+                new_asset = {'ref_des':aa_item['reference_designator'],
+                             'coordinates': [0, 0],
+                             'assetInfo': {"type":"Sensor",
+                                           "longName":aa_item['reference_designator'],
+                                           "instrumentClass": "Sensor",
+                                           "name":aa_item['reference_designator'],
+                                           "owner":"N/A",
+                                           "description":"N/A"
+                              },                             
+                            }            
+
+                #append the dict to
+                assets_dict.append(new_asset)
+                aa_def.append(new_asset)
+
+                aa_def_list.append(aa_item['reference_designator'])
+                assets_names.append(aa_item['reference_designator'])
 
 
     #use all the info to create status
     for asset in assets_dict:
         d = asset['ref_des']
         #create inital entry   
-
         if 'manufactureInfo' in asset:
             entry = {'reference_designator':d, "count":0,
-                "event_type":'unknown', 
-                'coordinates':asset['coordinates'],
-                'asset_type':asset['assetInfo']['type'],
-                'longName':asset['assetInfo']['longName'],
-                'name':asset['assetInfo']['name'],
-                'instrumentClass':asset['assetInfo']['instrumentClass'],
-                'manufacturer': asset['manufactureInfo']['manufacturer'],
-                'modelNumber': asset['manufactureInfo']['modelNumber'],
-                'serialNumber': asset['manufactureInfo']['serialNumber'],
-                'owner': asset['assetInfo']['owner'],
-                'description': asset['assetInfo']['description']}
+                    "event_type":'unknown', 
+                    'coordinates':asset['coordinates'],
+                    'asset_type':asset['assetInfo']['type'],
+                    'longName':asset['assetInfo']['longName'],
+                    'name':asset['assetInfo']['name'],
+                    'instrumentClass':asset['assetInfo']['instrumentClass'],
+                    'manufacturer': asset['manufactureInfo']['manufacturer'],
+                    'modelNumber': asset['manufactureInfo']['modelNumber'],
+                    'serialNumber': asset['manufactureInfo']['serialNumber'],
+                    'owner': asset['assetInfo']['owner'],
+                    'description': asset['assetInfo']['description']}
         else:
             entry = {'reference_designator':d, "count":0,
-                "event_type":'unknown', 
-                'coordinates':asset['coordinates'],
-                'asset_type':asset['assetInfo']['type'],
-                'longName':asset['assetInfo']['longName'],
-                'name':asset['assetInfo']['name'],
-                'instrumentClass':asset['assetInfo']['instrumentClass'],
-                'manufacturer': 'N/A',
-                'modelNumber': 'N/A',
-                'serialNumber': 'N/A',
-                'owner': asset['assetInfo']['owner'],
-                'description': asset['assetInfo']['description']}
+                    "event_type":'unknown', 
+                    'coordinates':asset['coordinates'],
+                    'asset_type':asset['assetInfo']['type'],
+                    'longName':asset['assetInfo']['longName'],
+                    'name':asset['assetInfo']['name'],
+                    'instrumentClass':asset['assetInfo']['instrumentClass'],
+                    'manufacturer': 'N/A',
+                    'modelNumber': 'N/A',
+                    'serialNumber': 'N/A',
+                    'owner': asset['assetInfo']['owner'],
+                    'description': asset['assetInfo']['description']}
           
         
         #use alert alarms status (alarm or alert)
