@@ -315,17 +315,17 @@ def get_uframe_glider_track():
 
             for p in all_platforms:
                 if "MOAS" in p:
-                    r_p = requests.get(base_url+p)
+                    r_p = requests.get(base_url+"/"+p)
                     try:
                         p_p = r_p.json()
                         for gl in p_p:
-                            glider_location = p+"/"+gl+"/00-ENG000000/"
+                            glider_location = "/"+p+"/"+gl+"/00-ENG000000/"
                             glider_locations.append(base_url+glider_location)
                             glider_name =  glider_location + 'telemetered/glider_eng_telemetered'
                             url = base_url+glider_name
                             glider_ids.append(url)
                     except:
-                        print r_p.content()
+                        print "error:", p, r_p.content
 
             #params for position and depth info
             params = "?parameters=PD1335,PD1336,PD1276&limit=1000"
@@ -333,8 +333,7 @@ def get_uframe_glider_track():
             print len(glider_ids)," gliders..."
             for i,gl_id in enumerate(glider_ids):
                 try:
-
-                    print glider_locations[i]+'metadata'
+                    #print glider_locations[i]+'metadata'
                     r_units = requests.get(glider_locations[i]+'metadata')
                     d_units = r_units.json()
                     d_units = d_units['parameters']
