@@ -348,22 +348,18 @@ def get_uframe_glider_track():
             depths = []
             for row in metadata:
 
-                hasLon = not np.isnan(row['m_gps_lon'])
-                hasLat = not np.isnan(row['m_gps_lat'])      
-                #print hasLat,hasLon,row['m_gps_lon']                                
-                if hasLon and hasLat:
+                has_lon   = not np.isnan(row['m_gps_lon'])
+                has_lat   = not np.isnan(row['m_gps_lat']) 
+                has_depth = not np.isnan(row['m_depth']):     
+                #only add the glider information if deoth is available                              
+                if has_lat and has_lon and has_depth and (float(row['m_depth']) != -999): 
                     #add position
                     coors.append([row['m_gps_lon'], row['m_gps_lat']])
                     dt.append(row['pk']['time'])
-                    #add depth
-                    if not np.isnan(row['m_depth']):
-                        depths.append(row['m_depth'])
-                    else:
-                        depths.append(-999)
+                    #add depth                   
+                    depths.append(row['m_depth'])                                
 
-                    #print row['m_depth'], row['m_gps_lat'], row['m_gps_lon'], row['pk']['time']
-                else:
-                    pass
+            #add glider info to dict
             data_item = {"name":row['pk']['subsite']+"-"+row['pk']['node'],
                          "reference_designator": row['pk']['subsite']+"-"+row['pk']['node']+"-"+row['pk']['sensor'],
                          "type": "LineString",
