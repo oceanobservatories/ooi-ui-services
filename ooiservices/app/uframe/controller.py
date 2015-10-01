@@ -679,67 +679,63 @@ def validate_date_time(start_time, end_time):
 
 
 @auth.login_required
-@api.route('/get_csv/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>',methods=['GET'])
-def get_csv(stream, ref,start_time,end_time,dpa_flag):
+@api.route('/get_csv/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>', methods=['GET'])
+def get_csv(stream, ref, start_time, end_time, dpa_flag):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
 
-    #figures out if its in a date time range
+    # figures out if its in a date time range
     end_time = validate_date_time(start_time, end_time)
-    data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag)
+
     try:
         GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_csv&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
         urllib2.urlopen(GA_URL)
     except KeyError:
         pass
 
-    if data.status_code != 200:
-        return data, data.status_code, dict(data.headers)
+    uframe_url, timeout, timeout_read = get_uframe_info()
+    if dpa_flag == '0':
+        query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
+    else:
+        query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
+    query += '&format=application/csv'
 
-    output = io.BytesIO()
-    data = data.json()
-    f = csv.DictWriter(output, fieldnames = data[0].keys())
-    f.writeheader()
-    for row in data:
-        f.writerow(row)
+    url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
+    current_app.logger.debug('***** url: ' + url)
+    response = requests.get(url, timeout=(timeout, timeout_read))
 
-    filename = '-'.join([stream, ref])
-
-    buf = output.getvalue()
-    returned_csv = make_response(buf)
-    returned_csv.headers["Content-Disposition"] = "attachment; filename=%s.csv" % filename
-    returned_csv.headers["Content-Type"] = "text/csv"
-
-    output.close()
-
-    return returned_csv
+    return response.text, response.status_code
 
 
 @auth.login_required
-@api.route('/get_json/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>/<string:provenance>/<string:annotations>',methods=['GET'])
+@api.route('/get_json/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>/<string:provenance>/<string:annotations>', methods=['GET'])
 def get_json(stream, ref, start_time, end_time, dpa_flag, provenance, annotations):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
 
-    #figures out if its in a date time range
+    # figures out if its in a date time range
     end_time = validate_date_time(start_time, end_time)
 
-    data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag, provenance, annotations)
     try:
         GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_json&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
         urllib2.urlopen(GA_URL)
     except KeyError:
         pass
 
-    if data.status_code != 200:
-        return data, data.status_code, dict(data.headers)
-    response = '{"data":%s}' % data.content
-    filename = '-'.join([stream,ref])
-    returned_json = make_response(response)
-    returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json"%filename
-    returned_json.headers["Content-Type"] = "application/json"
+    uframe_url, timeout, timeout_read = get_uframe_info()
 
-    return returned_json
+    if dpa_flag == '0':
+        query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s' % (start_time, end_time, provenance, annotations)
+    else:
+        query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s&execDPA=true' % (start_time, end_time, provenance, annotations)
+    query += '&format=application/json'
+
+    url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
+    current_app.logger.debug('***** url: ' + url)
+    response = requests.get(url, timeout=(timeout, timeout_read))
+
+    return response.text, response.status_code
+
 
 @auth.login_required
 @api.route('/get_netcdf/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>/<string:provenance>/<string:annotations>', methods=['GET'])
@@ -764,18 +760,11 @@ def get_netcdf(stream, ref, start_time, end_time, dpa_flag, provenance, annotati
     url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
     current_app.logger.debug('***** url: ' + url)
     response = requests.get(url, timeout=(timeout, timeout_read))
-    if response.status_code != 200:
-        return response.text, response.status_code
 
-    filename = '-'.join([stream, ref])
-    buf = response.content
-    returned_netcdf = make_response(buf)
-    returned_netcdf.headers["Content-Disposition"] = "attachment; filename=%s.zip" % filename
-    returned_netcdf.headers["Content-Type"] = "application/zip"
+    return response.text, response.status_code
 
-    return returned_netcdf
 
-#@auth.login_required
+# @auth.login_required
 @api.route('/get_data/<string:instrument>/<string:stream>/<string:yvar>/<string:xvar>', methods=['GET'])
 def get_data_api(stream, instrument, yvar, xvar):
     # return if error
