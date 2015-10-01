@@ -350,7 +350,7 @@ def get_uframe_glider_track():
 
                 has_lon   = not np.isnan(row['m_gps_lon'])
                 has_lat   = not np.isnan(row['m_gps_lat']) 
-                has_depth = not np.isnan(row['m_depth']):     
+                has_depth = not np.isnan(row['m_depth'])     
                 #only add the glider information if deoth is available                              
                 if has_lat and has_lon and has_depth and (float(row['m_depth']) != -999): 
                     #add position
