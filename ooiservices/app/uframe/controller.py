@@ -1,51 +1,40 @@
 #!/usr/bin/env python
-
 '''
 uframe endpoints
-
 '''
-__author__ = 'Andy Bird'
-#base
-from flask import (jsonify, request, current_app, url_for, Flask, make_response,
-                   url_for, Response)
-from ooiservices.app import db, cache, celery
+# base
+from flask import jsonify, request, current_app, make_response, Response
+from ooiservices.app import cache
 from ooiservices.app.uframe import uframe as api
-from ooiservices.app.models import (Array, PlatformDeployment,
-                                    InstrumentDeployment, Stream,
-                                    StreamParameter, Organization,
-                                    Instrumentname, Annotation)
-from ooiservices.app.main.authentication import auth,verify_auth
+from ooiservices.app.models import PlatformDeployment
+from ooiservices.app.main.routes import get_display_name_by_rd, get_long_display_name_by_rd, get_platform_display_name_by_rd
+from ooiservices.app.main.authentication import auth
 from ooiservices.app.main.errors import internal_server_error
-from urllib import urlencode
-# data ones
-from ooiservices.app.uframe.data import get_data, get_simple_data,COSMO_CONSTANT,find_parameter_ids
+# data imports
+from ooiservices.app.uframe.data import get_data, get_simple_data, find_parameter_ids, get_multistream_data
 from ooiservices.app.uframe.plotting import generate_plot
 from ooiservices.app.uframe.assetController import get_events_by_ref_des
+
+from urllib import urlencode
 from datetime import datetime
 from dateutil.parser import parse as parse_date
 import requests
-# primarily for encoding coordinates to GeoJSON
-from geojson import LineString
-#additional ones
 import json
-import datetime
-import math
-import csv
-import io
-import sys
 import numpy as np
 import pytz
-from ooiservices.app.main.routes import get_display_name_by_rd, get_long_display_name_by_rd, get_platform_display_name_by_rd
-from ooiservices.app.main.arrays import get_arrays, get_array
 from contextlib import closing
 import time
-from ooiservices.app.models import PlatformDeployment
 import urllib2
 from copy import deepcopy
 from operator import itemgetter
 
+
+__author__ = 'Andy Bird'
+
+
 requests.adapters.DEFAULT_RETRIES = 2
 CACHE_TIMEOUT = 86400
+
 
 def dfs_streams():
 
@@ -63,7 +52,6 @@ def dfs_streams():
         return make_response(error, 500)
 
     toc = payload.json()
-
 
     for instrument in toc:
 
@@ -598,6 +586,68 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
     except Exception as e:
         return internal_server_error('uFrame connection cannot be made. ' + str(e.message))
 
+
+@auth.login_required
+@api.route('/get_multistream/<string:stream1>/<string:stream2>/<string:instrument1>/<string:instrument2>/<string:var1>/<string:var2>', methods=['GET'])
+def multistream_api(stream1, stream2, instrument1, instrument2, var1, var2):
+    '''
+    Service endpoint to get multistream interploated data
+    Example request:
+        http://localhost:4000/uframe/get_multistream/CP05MOAS-GL340-03-CTDGVM000/CP05MOAS-GL340-02-FLORTM000/telemetered_ctdgv_m_glider_instrument/
+        telemetered_flort_m_glider_instrument/sci_water_pressure/sci_flbbcd_chlor_units?startdate=2015-05-07T02:49:22.745Z&enddate=2015-06-28T04:00:41.282Z
+    '''
+    try:
+        resp_data, units1, units2 = get_multistream_data(instrument1, instrument2, stream1, stream2, var1, var2)
+    except Exception as err:
+        return jsonify(error='%s' % str(err.message)), 400
+    return jsonify(data=resp_data, units=[units1, units2])
+
+
+def get_uframe_multi_stream_contents(stream1_dict, stream2_dict, start_time, end_time):
+    '''
+    Gets the data from an interpolated multi stream request.
+
+    For details on the UFrame API:
+        https://uframe-cm.ooi.rutgers.edu/projects/ooi/wiki/Web_Interface
+
+    Example request:
+        http://uframe-test.ooi.rutgers.edu:12576/sensor?r=r1&r=r2&r1.refdes=CP05MOAS-GL340-03-CTDGVM000&
+        r2.refdes=CP05MOAS-GL340-02-FLORTM000&r1.method=telemetered&r2.method=telemetered&r1.stream=ctdgv_m_glider_instrument&
+        r2.stream=flort_m_glider_instrument&r1.params=PD1527&r2.params=PD1485&limit=1000&startDT=2015-05-07T02:49:22.745Z&endDT=2015-06-28T04:00:41.282Z
+    '''
+
+    # Get the parts of the request from the input stream dicts
+    refdes1 = stream1_dict['refdes']
+    refdes2 = stream2_dict['refdes']
+
+    method1 = stream1_dict['method']
+    method2 = stream2_dict['method']
+
+    stream1 = stream1_dict['stream']
+    stream2 = stream2_dict['stream']
+
+    params1 = stream1_dict['params']
+    params2 = stream2_dict['params']
+
+    limit = current_app.config['DATA_POINTS']
+
+    GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=multistreamdata&ea=%s&el=%s' % ('-'.join([refdes1+stream1, refdes1+stream2]), '-'.join([start_time, end_time]))
+
+    query = ('sensor?r=r1&r=r2&r1.refdes=%s&r2.refdes=%s&r1.method=%s&r2.method=%s'
+             '&r1.stream=%s&r2.stream=%s&r1.params=%s&r2.params=%s&limit=%s&startDT=%s&endDT=%s'
+             % (refdes1, refdes2, method1, method2, stream1, stream2,
+                params1, params2, limit, start_time, end_time))
+
+    url = "/".join([current_app.config['UFRAME_URL'], query])
+
+    current_app.logger.debug("***:" + url)
+
+    _, timeout, timeout_read = get_uframe_info()
+    response = requests.get(url, timeout=(timeout, timeout_read))
+
+    return response.text, response.status_code
+
+
 def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag, parameter_ids):
     '''
     Gets the bounded stream contents, start_time and end_time need to be datetime objects
@@ -615,7 +665,7 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
         GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=plot&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
 
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])
+        url = "/".join([UFRAME_DATA, mooring, platform, instrument, stream_type, stream + query])
 
         current_app.logger.debug("***:" + url)
 
@@ -957,6 +1007,7 @@ def get_svg_plot(instrument, stream):
                     'use_qaqc': qaqc,
                     'st_date': request.args['startdate'],
                     'ed_date': request.args['enddate']}
+
     try:
         buf = generate_plot(data, plot_options)
 
