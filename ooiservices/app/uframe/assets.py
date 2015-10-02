@@ -60,6 +60,7 @@ def get_assets(use_min=False,normal_data=False):
                 lat = ""
                 lon = ""
                 ref_des = ""
+                has_deployment_event = False
                 deployment_number = ""
                 try:
                     row['id'] = row.pop('assetId')
@@ -84,6 +85,7 @@ def get_assets(use_min=False,normal_data=False):
                             if meta_data['key'] == 'Deployment Number':
                                 deployment_number = meta_data['value']
                         row['ref_des'] = ref_des
+
                         if len(row['ref_des']) == 27:
                             row['asset_class'] = '.InstrumentAssetRecord'
                         if len(row['ref_des']) < 27:
@@ -91,16 +93,16 @@ def get_assets(use_min=False,normal_data=False):
 
                         if deployment_number is not None:
                             row['deployment_number'] = deployment_number
-                        if lat > 0 and lon > 0:
-                            row['coordinates'] = convert_lat_lon(lat, lon)
-                        else:
-                            for events in row['events']:
-                                if events['locationLonLat'] is not None:
-                                    lat = events['locationLonLat'][1]
-                                    lon = events['locationLonLat'][0]
-                            row['coordinates'] = convert_lat_lon(lat,lon)
-                            lat = 0.0
-                            lon = 0.0
+                        for events in row['events']:
+                            if events['locationLonLat'] is not None and lat == 0.0 and lon == 0.0:
+                                lat = events['locationLonLat'][1]
+                                lon = events['locationLonLat'][0]
+                            if events['class'] == '.DeploymentEvent':
+                                has_deployment_event = True
+                        row['hasDeploymentEvent'] = has_deployment_event
+                        row['coordinates'] = convert_lat_lon(lat,lon)
+                        lat = 0.0
+                        lon = 0.0
 
                     #TODO: Band-aid to work with the old version of uframe on the VM since rutgers is down.
                     if (not(row['assetInfo']) ):
@@ -136,19 +138,39 @@ def get_assets(use_min=False,normal_data=False):
 
         if request.args.get('min') == 'True' or use_min == True:
             del_count = 0
+            showDeployments = False
+            deploymentEvents = []
+            if request.args.get('deployments') == 'True':
+                showDeployments = True
             for obj in data:
                 try:
-                    del obj['metaData']
-                    del obj['events']
-                    del obj['manufactureInfo']
-                    del obj['notes']
-                    del obj['physicalInfo']
-                    del obj['attachments']
-                    del obj['purchaseAndDeliveryInfo']
-                    del obj['lastModifiedTimestamp']
+                    if obj.has_key('metaData'):
+                        del obj['metaData']
+                    if obj.has_key('events'):
+                        if showDeployments:
+                            for event in obj['events']:
+                                if event['class'] == '.DeploymentEvent':
+                                    deploymentEvents.append(event)
+                            del obj['events']
+                            obj['events'] = deploymentEvents
+                            deploymentEvents = []
+                        else:
+                            del obj['events']
+                    if obj.has_key('manufactureInfo'):
+                        del obj['manufactureInfo']
+                    if obj.has_key('notes'):
+                        del obj['notes']
+                    if obj.has_key('physicalInfo'):
+                        del obj['physicalInfo']
+                    if obj.has_key('attachments'):
+                        del obj['attachments']
+                    if obj.has_key('purchaseAndDeliveryInfo'):
+                        del obj['purchaseAndDeliveryInfo']
+                    if obj.has_key('lasModifiedTimestamp'):
+                        del obj['lastModifiedTimestamp']
                 except Exception:
+                    raise
                     del_count+=1
-                    pass
 
             print "could not delete one or more elements: ",del_count
 
