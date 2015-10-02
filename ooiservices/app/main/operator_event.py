@@ -380,5 +380,4 @@ def delete_log_entry_comment(id):
     comment.retired = True
     db.session.add(comment)
     db.session.commit()
-
     return jsonify(), 204
