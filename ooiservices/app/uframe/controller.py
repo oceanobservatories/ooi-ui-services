@@ -288,36 +288,104 @@ def streams_list():
         return jsonify(streams=retval)
 
 
-#@cache.memoize(timeout=3600)
-@auth.login_required
-@api.route('/get_glider_track/<string:ref>')
-def get_uframe_glider_track(ref):
+#@auth.login_required
+@api.route('/get_glider_tracks')
+def get_uframe_glider_track():
     '''
-    Given a reference designator, returns a GeoJSON LineString for glider
-    tracks
+    get glider tracks
     '''
-    # we will always want the telemetered data, and the engineering stream
-    # data should reside in the same place
-    res = get_json('telemetered_glider_eng_telemetered', ref)
     try:
-        if res.status_code == 200:
-            res_arr = json.loads(res.data)['data']
-            # load the JSON into a shapely LineString.
-            track = LineString([(pt['m_gps_lon'], pt['m_gps_lat'])
-                                for pt in res_arr if pt['m_gps_lon'] != 'NaN'
-                                and pt['m_gps_lat'] != 'NaN'])
-            # serialize the Python object of containing tracks to GeoJSON
-            return Response(json.dumps(track),
-                            mimetype='application/json')
+        cached = cache.get('glider_tracks')
+        will_reset_cache = False
+        if request.args.get('reset') == 'true':
+            will_reset_cache = True
+
+        will_reset = request.args.get('reset')
+        if cached and not(will_reset_cache):
+            data = cached
         else:
-            # if not a valid response, attempt to return the response as is.
-            return Response(json.dumps({'type': "LineString",'coordinates':[],'note':'invalid status code'}),
-                            mimetype='application/json')
-            #return res.text, res.status_code, res.headers.items()
-    except AttributeError:
-        #return nothing
-        return Response(json.dumps({'type': "LineString",'coordinates':[],'note':'AttributeError'}),
-                            mimetype='application/json')
+            # we will always want the telemetered data, and the engineering stream
+            glider_ids = []
+            glider_locations = []
+
+            base_url, timeout, timeout_read = get_uframe_info()
+            #get the list of mobile assets
+            r = requests.get(base_url)
+            all_platforms = r.json()
+
+            for p in all_platforms:
+                if "MOAS" in p:
+                    r_p = requests.get(base_url+"/"+p)
+                    try:
+                        p_p = r_p.json()
+                        for gl in p_p:
+                            glider_location = "/"+p+"/"+gl+"/00-ENG000000/"
+                            glider_locations.append(base_url+glider_location)
+                            glider_name =  glider_location + 'telemetered/glider_eng_telemetered'
+                            url = base_url+glider_name
+                            glider_ids.append(url)
+                    except:
+                        print "error:", p, r_p.content
+
+            #params for position and depth info
+            params = "?parameters=PD1335,PD1336,PD1276&limit=1000"
+            data = []
+            print len(glider_ids)," gliders..."
+            for i,gl_id in enumerate(glider_ids):
+                try:
+                    #print glider_locations[i]+'metadata'
+                    r_units = requests.get(glider_locations[i]+'metadata')
+                    d_units = r_units.json()
+                    d_units = d_units['parameters']
+
+                    #create the units
+                    glider_depth_units = "m"
+
+                    for row in d_units:
+                        if row['particleKey'] == 'm_depth':
+                            #override them in case something different
+                            glider_depth_units = row['particleKey']
+
+                    data_url = gl_id + params
+                    #print data_url
+                    r = requests.get(data_url)
+                    metadata = r.json()
+
+                    coors = []
+                    dt = []
+                    depths = []
+                    for row in metadata:
+
+                        has_lon   = not np.isnan(row['m_gps_lon'])
+                        has_lat   = not np.isnan(row['m_gps_lat'])
+                        has_depth = not np.isnan(row['m_depth'])
+                        #only add the glider information if deoth is available
+                        if has_lat and has_lon and has_depth and (float(row['m_depth']) != -999):
+                            #add position
+                            coors.append([row['m_gps_lon'], row['m_gps_lat']])
+                            dt.append(row['pk']['time'])
+                            #add depth
+                            depths.append(row['m_depth'])
+
+                    #add glider info to dict
+                    data_item = {"name":row['pk']['subsite']+"-"+row['pk']['node'],
+                                 "reference_designator": row['pk']['subsite']+"-"+row['pk']['node']+"-"+row['pk']['sensor'],
+                                 "type": "LineString",
+                                 "coordinates" : coors,
+                                 "times": dt,
+                                 "units": glider_depth_units,
+                                 "depths": depths}
+                except:
+                    continue
+                data.append(data_item)
+            if "error" not in data:
+                cache.set('glider_tracks', data, timeout=CACHE_TIMEOUT)
+
+        return jsonify({"gliders":data})
+    except requests.exceptions.ConnectionError as e:
+        error = "Error: Cannot connect to uframe.  %s" % e
+        print error
+        return make_response(error, 500)
 
 #@cache.memoize(timeout=3600)
 def get_uframe_streams(mooring, platform, instrument, stream_type):
@@ -679,67 +747,63 @@ def validate_date_time(start_time, end_time):
 
 
 @auth.login_required
-@api.route('/get_csv/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>',methods=['GET'])
-def get_csv(stream, ref,start_time,end_time,dpa_flag):
+@api.route('/get_csv/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>', methods=['GET'])
+def get_csv(stream, ref, start_time, end_time, dpa_flag):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
 
-    #figures out if its in a date time range
+    # figures out if its in a date time range
     end_time = validate_date_time(start_time, end_time)
-    data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag)
+
     try:
         GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_csv&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
         urllib2.urlopen(GA_URL)
     except KeyError:
         pass
 
-    if data.status_code != 200:
-        return data, data.status_code, dict(data.headers)
+    uframe_url, timeout, timeout_read = get_uframe_info()
+    if dpa_flag == '0':
+        query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
+    else:
+        query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
+    query += '&format=application/csv'
 
-    output = io.BytesIO()
-    data = data.json()
-    f = csv.DictWriter(output, fieldnames = data[0].keys())
-    f.writeheader()
-    for row in data:
-        f.writerow(row)
+    url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
+    current_app.logger.debug('***** url: ' + url)
+    response = requests.get(url, timeout=(timeout, timeout_read))
 
-    filename = '-'.join([stream, ref])
-
-    buf = output.getvalue()
-    returned_csv = make_response(buf)
-    returned_csv.headers["Content-Disposition"] = "attachment; filename=%s.csv" % filename
-    returned_csv.headers["Content-Type"] = "text/csv"
-
-    output.close()
-
-    return returned_csv
+    return response.text, response.status_code
 
 
 @auth.login_required
-@api.route('/get_json/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>/<string:provenance>/<string:annotations>',methods=['GET'])
+@api.route('/get_json/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>/<string:provenance>/<string:annotations>', methods=['GET'])
 def get_json(stream, ref, start_time, end_time, dpa_flag, provenance, annotations):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
 
-    #figures out if its in a date time range
+    # figures out if its in a date time range
     end_time = validate_date_time(start_time, end_time)
 
-    data = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag, provenance, annotations)
     try:
         GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_json&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
         urllib2.urlopen(GA_URL)
     except KeyError:
         pass
 
-    if data.status_code != 200:
-        return data, data.status_code, dict(data.headers)
-    response = '{"data":%s}' % data.content
-    filename = '-'.join([stream,ref])
-    returned_json = make_response(response)
-    returned_json.headers["Content-Disposition"] = "attachment; filename=%s.json"%filename
-    returned_json.headers["Content-Type"] = "application/json"
+    uframe_url, timeout, timeout_read = get_uframe_info()
 
-    return returned_json
+    if dpa_flag == '0':
+        query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s' % (start_time, end_time, provenance, annotations)
+    else:
+        query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s&execDPA=true' % (start_time, end_time, provenance, annotations)
+    query += '&format=application/json'
+
+    url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
+    current_app.logger.debug('***** url: ' + url)
+    response = requests.get(url, timeout=(timeout, timeout_read))
+
+    return response.text, response.status_code
+
 
 @auth.login_required
 @api.route('/get_netcdf/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>/<string:provenance>/<string:annotations>', methods=['GET'])
@@ -764,18 +828,11 @@ def get_netcdf(stream, ref, start_time, end_time, dpa_flag, provenance, annotati
     url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
     current_app.logger.debug('***** url: ' + url)
     response = requests.get(url, timeout=(timeout, timeout_read))
-    if response.status_code != 200:
-        return response.text, response.status_code
 
-    filename = '-'.join([stream, ref])
-    buf = response.content
-    returned_netcdf = make_response(buf)
-    returned_netcdf.headers["Content-Disposition"] = "attachment; filename=%s.zip" % filename
-    returned_netcdf.headers["Content-Type"] = "application/zip"
+    return response.text, response.status_code
 
-    return returned_netcdf
 
-#@auth.login_required
+# @auth.login_required
 @api.route('/get_data/<string:instrument>/<string:stream>/<string:yvar>/<string:xvar>', methods=['GET'])
 def get_data_api(stream, instrument, yvar, xvar):
     # return if error
