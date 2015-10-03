@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-'''
+"""
 Alerts & Alarms Endpoints
 
 Routes:
@@ -14,25 +14,25 @@ Routes:
  DELETE /delete_alert_alarm_definition/<int:id>
  GET    /ok_to_delete_alert_alarm_definition/<int:id>
 
-'''
+"""
 __author__ = 'James Case'
 
-from flask import (jsonify, request, current_app)
+from flask import (jsonify, request, current_app, g)
 from ooiservices.app import db
 from ooiservices.app.main import api
 from ooiservices.app.decorators import scope_required
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.main.errors import (conflict, bad_request)
-from ooiservices.app.models import (SystemEventDefinition, SystemEvent, UserEventNotification)
-from ooiservices.app.main.notifications import (alert_escalation_state, begin_notification_process,
-                                                update_notification_ticket, reissue_notification_ticket)
-
+from ooiservices.app.main.notifications import handle_notifications
+from ooiservices.app.models import (SystemEventDefinition, SystemEvent, UserEventNotification, User)
 from ooiservices.app.uframe.assets import get_assets
 
 import requests
 import json
 import datetime as dt
 import calendar
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Alerts & Alarms
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -43,7 +43,6 @@ def get_alerts_alarms():
     Dynamically construct filters to query SystemEvent and SystemEventDefinitions.
     List output for each alert_alarm which includes system_event_definition content based request.args 'filters'.
     """
-    
     try:
         result = get_alerts_alarms_object()                
         return jsonify( {'alert_alarm': result})
@@ -51,10 +50,10 @@ def get_alerts_alarms():
         message = 'Insufficient data, or bad data format. (%s)' % str(err.message)
         return conflict(message)
 
+
 def get_alerts_alarms_object():
-    '''
-    helper function to get alert alarms
-    '''
+    """ helper function to get alert alarms
+    """
     result = []
     # Get query filters, query SystemEvents using event_filters
     event_filters, definition_filters = get_query_filters(request.args)
@@ -70,35 +69,32 @@ def get_alerts_alarms_object():
         else:
             result = result_json
     return result
-   
 
-#List an alerts and alarms by id
+#List an alert or alarm by id
 @api.route('/alert_alarm/<int:id>')
 def get_alert_alarm(id):
     alert_alarm = SystemEvent.query.filter_by(id=id).first()
     if alert_alarm is None:
-        message = 'alert_alarm not found'
+        message = 'alert_alarm not found.'
         return bad_request(message)
     return jsonify(alert_alarm.to_json())
 
 
 def get_asset_list():   
-    data = get_assets(True,True)
+    data = get_assets(True, True)
     ref_list = []
     name_list = []
     for d in data:
         split_ref = d['ref_des'].split('-')
-        if d['ref_des'] not in name_list and len(split_ref)>1:
+        if d['ref_des'] not in name_list and len(split_ref) > 1:
             ref_list.append(d)
             name_list.append(d['ref_des'])
-    return ref_list,name_list
+    return ref_list, name_list
 
 @api.route('/alert_alarm/status', methods=['GET'])
 def get_alert_alarm_status():
-    '''
-    gets the alert alarm status for all available assets
-    '''    
-
+    """ Gets the alert alarm status for all available assets.
+    """
     #the actual alert alarms
     data = get_alerts_alarms_object()      
     status_info = []
@@ -127,6 +123,7 @@ def get_alert_alarm_status():
     aa_def_list = []
 
     #alerts and alarms
+
     for aa_item in aa_def:        
         if 'reference_designator' in aa_item:
             #get the A/A definitions
@@ -160,6 +157,7 @@ def get_alert_alarm_status():
     #use all the info to create status
     for asset in assets_dict:
         d = asset['ref_des']
+
         #create inital entry   
         if 'manufactureInfo' in asset:
             entry = {'reference_designator':d, "count":0,
@@ -188,6 +186,7 @@ def get_alert_alarm_status():
                     'owner': asset['assetInfo']['owner'],
                     'description': asset['assetInfo']['description']}
           
+
         
         #use alert alarms status (alarm or alert)
         if d in status_outline.keys():
@@ -203,7 +202,7 @@ def get_alert_alarm_status():
             pass
 
         status_info.append(entry)
-    return jsonify({'alert_alarm':status_info})
+    return jsonify({'alert_alarm': status_info})
 
 #Create a new alert/alarm
 @api.route('/alert_alarm', methods=['POST'])
@@ -230,21 +229,21 @@ def create_alert_alarm():
             system_event_definition_id = system_event_definition.id
 
         except Exception as err:
-            # This is a severe error, definitely should be logged (failure to record instance of alert or alarm from uframe)
+            # This is a severe error, should be logged (failure to record instance of alert or alarm from uframe)
             message = 'Unable to retrieve system_event_definition using uframe_filter_id; %s ' % str(err.message)
-            current_app.logger.exception(message)
+            current_app.logger.info(message)
             raise  Exception(err.message)
 
         # If the system_event_definition is not active, do not create alert_alarm instance
         if not system_event_definition.active:
-            message = 'Failed to create alert_alarm; system_event_definition (id:%d) is not active.' % system_event_definition.id
-            current_app.logger.exception(message)
+            message = 'Failed to create alert_alarm; system_event_definition (id:%d) is not active.' % \
+                      system_event_definition.id
             raise Exception(message)
         # If the system_event_definition is retired, do not create alert_alarm instance
         if system_event_definition.retired is not None:
             if system_event_definition.retired:
-                message = 'Failed to create alert_alarm - system_event_definition is retired. (%d)' % system_event_definition.id
-                current_app.logger.exception(message)
+                message = 'Failed to create alert_alarm - system_event_definition is retired. (%d)' % \
+                          system_event_definition.id
                 raise Exception(message)
 
         # Determine if uframe_filter_id provided matches system_event_definition.uframe_filter_id, if not error (409)
@@ -272,61 +271,19 @@ def create_alert_alarm():
             db.session.flush()
         except Exception as err:
             message = 'IntegrityError creating alert_alarm; %s' % str(err.message)
-            current_app.logger.exception(message)
+            current_app.logger.info(message)
             db.session.rollback()
             return bad_request('IntegrityError creating alert_alarm.')
 
-        # If 'alert' received, start the alert escalation process, otherwise begin the
-        # notification process for an alarm.
-        valid_actions = ['begin_notification_process', 'update_notification_ticket', 'reissue_notification_ticket']
-        if alert_alarm.event_type == 'alert':
-            action = alert_escalation_state(alert_alarm.id)
-            if action is not None:
-                ticket_id = None
-                is_dirty = False
-                if action in valid_actions:
-                    if action == 'begin_notification_process':
-                        ticket_id = begin_notification_process(alert_alarm.id)
-                        if ticket_id is None:
-                            message = 'Failed to create redmine ticket for alert (id:%d).' % alert_alarm.id
-                            current_app.logger.exception(message)
-                        else:
-                            alert_alarm.ticket_id = ticket_id
-                            is_dirty = True
-                    elif action == 'update_notification_ticket':
-                        ticket_id = update_notification_ticket(alert_alarm.id)
-                        if ticket_id is None:
-                            message ='Failed to update redmine ticket for alert (id:%d)' % alert_alarm.id
-                            current_app.logger.exception(message)
-                    elif action == 'reissue_notification_ticket':
-                        ticket_id = reissue_notification_ticket(alert_alarm.id)
-                        if ticket_id is None:
-                            message ='Failed to reissue redmine ticket for alert (id:%d)' % alert_alarm.id
-                            current_app.logger.exception(message)
-                        else:
-                            alert_alarm.ticket_id = ticket_id
-                            is_dirty = True
-                    if is_dirty:
-                        try:
-                            db.session.add(alert_alarm)
-                            db.session.commit()
-                        except Exception as err:
-                            message = 'Error updating alert_alarm with ticket_id; %s' % str(err.message)
-                            current_app.logger.exception(message)
-                            return bad_request(message)
-
-        elif alert_alarm.event_type == 'alarm':
-            ticket_id = begin_notification_process(alert_alarm.id)
-            if ticket_id is None:
-                message = 'Failed to create redmine ticket for alarm (id:%d)' % alert_alarm.id
-                current_app.logger.exception(message)
-                return bad_request(message)
+        # Perform notification processes as required
+        handle_notifications(alert_alarm.id)
 
         return jsonify(alert_alarm.to_json()), 201
     except Exception as err:
         message = 'Insufficient data, or bad data format. %s' % err.message
-        current_app.logger.exception(message)
+        current_app.logger.info(message)
         return conflict(message)
+
 
 # Acknowledge alert/alarm
 @api.route('/ack_alert_alarm', methods=['POST','PUT'])
@@ -335,7 +292,6 @@ def create_alert_alarm():
 @scope_required(u'redmine')
 def acknowledge_alert_alarm():
     """ Acknowledge an alert or an alarm.
-    Acknowledge alert/alarm in uframe, required eventId (id) and acknowledged by value (ack_value).
     """
     try:
         # Process request.data; verify required fields are present
@@ -346,7 +302,7 @@ def acknowledge_alert_alarm():
         alert_alarm = is_valid_alert_alarm_for_ack(data)
 
         # Get alert_alarm_definition.
-        alert_alarm_definition = SystemEventDefinition.query.get(alert_alarm.system_event_definition_id)
+        #alert_alarm_definition = SystemEventDefinition.query.get(alert_alarm.system_event_definition_id)
 
         # Acknowledge alert/alarm in uframe. acknowledgedBy is str(user_id)
         ack_value = None
@@ -363,7 +319,7 @@ def acknowledge_alert_alarm():
         if alert_alarm.event_type == 'alarm':
             if not (uframe_acknowledge_alert_alarm(ack_id, ack_value)):
                 message = 'Failed to acknowledge alarm (id:%d) in uframe.' % alert_alarm.id
-                current_app.logger.exception('[acknowledge_alert_alarm] %s ' % message)
+                current_app.logger.info('[acknowledge_alert_alarm] %s ' % message)
                 return bad_request(message)
 
         # Update alert_alarm acknowledged, ack_by and ts_acknowledged
@@ -379,7 +335,9 @@ def acknowledge_alert_alarm():
         return jsonify(alert_alarm.to_json()), 201
     except Exception as err:
         message = 'Insufficient data, or bad data format; %s' % err.message
+        current_app.logger.info('[acknowledge_alert_alarm] %s ' % message)
         return conflict(message)
+
 
 def is_valid_alert_alarm_for_ack(data):
     """ Validate this is the alert alarm to be acknowledged.
@@ -389,11 +347,13 @@ def is_valid_alert_alarm_for_ack(data):
         definition = SystemEventDefinition.query.get(definition_id)
         if definition is None:
             message = 'Acknowledge failed to retrieve SystemEventDefinition (id: %d)' % definition_id
+            current_app.logger.info('[is_valid_alert_alarm_for_ack] %s ' % message)
             raise Exception(message)
 
         user_event_notification = UserEventNotification.query.filter_by(system_event_definition_id=definition_id).first()
         if user_event_notification is None:
             message = 'Acknowledge failed to retrieve UserEventNotification for definition (id: %d)' % definition_id
+            current_app.logger.info('[is_valid_alert_alarm_for_ack] %s ' % message)
             raise Exception(message)
 
         # Variables for sanity tests
@@ -403,10 +363,14 @@ def is_valid_alert_alarm_for_ack(data):
 
         # Sanity test variables alert_alarm data against definition
         if definition.uframe_filter_id != uframe_filter_id:
-            message = 'Acknowledge failed to match alert_alarm uframe_filter_id with SystemEventDefinition (id: %d)' % definition_id
+            message = 'Acknowledge failed to match alert_alarm uframe_filter_id with SystemEventDefinition (id: %d)' % \
+                      definition_id
+            current_app.logger.info('[is_valid_alert_alarm_for_ack] %s ' % message)
             raise Exception(message)
         if definition.event_type != event_type:
-            message = 'Acknowledge failed to match alert_alarm event_type with SystemEventDefinition (id: %d)' % definition_id
+            message = 'Acknowledge failed to match alert_alarm event_type with SystemEventDefinition (id: %d)' % \
+                      definition_id
+            current_app.logger.info('[is_valid_alert_alarm_for_ack] %s ' % message)
             raise Exception(message)
 
         # Sanity test existing alert_alarm; first get alert_alarm to be acknowledged, verify variables for consistency
@@ -414,13 +378,16 @@ def is_valid_alert_alarm_for_ack(data):
         alert_alarm = SystemEvent.query.get(id)
         if alert_alarm is None:
             message = 'Acknowledge failed to retrieve SystemEvent (id: %d)' % id
+            current_app.logger.info('[is_valid_alert_alarm_for_ack] %s ' % message)
             raise Exception(message)
         if alert_alarm.uframe_event_id != uframe_event_id:
             message = 'Acknowledge failed to match alert_alarm uframe_event_id  (id: %d)' % id
+            current_app.logger.info('[is_valid_alert_alarm_for_ack] %s ' % message)
             raise Exception(message)
         return alert_alarm
     except:
         raise
+
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Alerts & Alarms Definitions
@@ -430,30 +397,40 @@ def is_valid_alert_alarm_for_ack(data):
 def get_alerts_alarms_def():
     """ Get a list of alert or alarm definition(s).
     """
-    result = get_alerts_alarms_def_object()
-    return jsonify( {'alert_alarm_definition' : result })
+    try:
+        result = get_alerts_alarms_def_object()
+        return jsonify( {'alert_alarm_definition': result})
+    except Exception as err:
+        return bad_request(err.message)
+
 
 def get_alerts_alarms_def_object():
-    result = []
-    query_filter = get_definitions_query_filter(request.args)
-    if query_filter is None:
-        alerts_alarms_def = SystemEventDefinition.query.filter_by(retired=False)
-    else:
-        alerts_alarms_def = db.session.query(SystemEventDefinition).filter_by(**query_filter)
-    if alerts_alarms_def is not None:
-        result = [alert_alarm_def.to_json() for alert_alarm_def in alerts_alarms_def]
-    return result
+    try:
+        result = []
+        query_filter = get_definitions_query_filter(request.args)
+        if query_filter is None:
+            alerts_alarms_defs = SystemEventDefinition.query.filter_by(retired=False)
+        else:
+            alerts_alarms_defs = db.session.query(SystemEventDefinition).filter_by(**query_filter)
+        if alerts_alarms_defs is not None:
+            for definition in alerts_alarms_defs:
+                tmp = get_alert_alarm_definition(definition.id)
+                result.append(tmp)
+        return result
+    except:
+        raise
 
 #List an alerts and alarms definition by id
 @api.route('/alert_alarm_definition/<int:id>')
 def get_alert_alarm_def(id):
     """ Get an alert or alarm definition by id.
     """
-    alert_alarm_def = SystemEventDefinition.query.filter_by(id=id).first()
-    if alert_alarm_def is None:
-        message = 'alert_alarm_definition not found.'
-        return bad_request(message)
-    return jsonify(alert_alarm_def.to_json())
+    try:
+        result = get_alert_alarm_definition(id)
+        return jsonify(result)
+    except Exception as err:
+        return bad_request(err.message)
+
 
 #Create a new alert/alarm definition
 @api.route('/alert_alarm_definition', methods=['POST'])
@@ -548,6 +525,7 @@ def create_alert_alarm_def():
         message = 'Insufficient data, or bad data format. (%s)' % str(err.message)
         return conflict(message)
 
+
 @api.route('/alert_alarm_definition/<int:id>', methods=['PUT'])
 @auth.login_required
 @scope_required(u'user_admin')
@@ -555,7 +533,7 @@ def update_alert_alarm_def(id):
     """Update an alert or an alarm definition. Optional update of associated user_event_notification available.
 
     update_alert_alarm_def only requires request.data for alert_alarm_def; no parameters for user_event_notification
-    are required. If 'update_user_event_notification' in the request.data (not empty), then
+    are required. If 'update_user_event_notification' (not empty) in the request.data, then
     the user_event_notification will be updated within this method; in this case, all user_event_notification
     fields must also be provided in the request.data.
     """
@@ -633,7 +611,7 @@ def update_alert_alarm_def(id):
         if update_user_event_notification:
             try:
                 # Update corresponding UserEventNotification for when alert or alarm instance
-                system_event_definition_id = alert_alarm_def.id
+                sys_event_definition_id = alert_alarm_def.id
                 user_id = data['user_id']
                 use_email = data['use_email']
                 use_redmine = data['use_redmine']
@@ -641,7 +619,7 @@ def update_alert_alarm_def(id):
                 use_log = data['use_log']
                 use_sms = data['use_sms']
                 UserEventNotification.update_user_event_notification(id=user_event_notification_id,
-                                                                     system_event_definition_id=system_event_definition_id,
+                                                                     system_event_definition_id=sys_event_definition_id,
                                                                      user_id=user_id,
                                                                      use_email=use_email,
                                                                      use_redmine=use_redmine,
@@ -649,7 +627,8 @@ def update_alert_alarm_def(id):
                                                                      use_log=use_log,
                                                                      use_sms=use_sms)
             except:
-                # Error updating user_event_notification, rollback: updates to system_event_definition and uframe alertfilter
+                # Error updating user_event_notification, rollback: updates to system_event_definition and
+                # updates to uframe alertfilter
                 message = 'IntegrityError update_alert_alarm_def; failed to update_user_event_notification.'
                 result = update_uframe_alertfilter(original_alert_alarm_def.to_json(), uframe_filter_id)
                 if result is None:
@@ -660,6 +639,7 @@ def update_alert_alarm_def(id):
     except Exception as err:
         message = str(err.message)
         return conflict(message)
+
 
 @api.route('/delete_alert_alarm_definition/<int:id>', methods=['DELETE'])
 @auth.login_required
@@ -681,7 +661,7 @@ def delete_alert_alarm_definition(id):
     active_alerts_alarms = SystemEvent.query.filter_by(system_event_definition_id=id, acknowledged=False).first()
     if active_alerts_alarms is not None:
         # There are existing alert_alarm instances using this id which have not been acknowledged
-        message = 'There are existing %s instance(s) using this definition id (%d) which have not yet been acknowledged.' \
+        message = 'There are existing %s instance(s) using this definition id (%d) not yet acknowledged.' \
                   % (alert_alarm_def.event_type, id)
         return bad_request(message)
     alert_alarm_def.retired = True
@@ -695,21 +675,51 @@ def delete_alert_alarm_definition(id):
         return bad_request(message)
     return jsonify(), 200
 
+
 @api.route('/ok_to_delete_alert_alarm_definition/<int:id>', methods=['GET'])
 @auth.login_required
 @scope_required(u'user_admin')
 def ok_to_delete_alert_alarm_definition(id):
-    """ Determine if an alert_alarm_definition can be deleted (retired) at this time.
-    Response format:  { "status": false | true }
+    """ Determine if an alert_alarm_definition can be deleted (retired). Response format:  { "status": false | true }
     """
     if safe_to_delete_alert_alarm_definition(id):
         return jsonify(status=True), 200
     else:
         return jsonify(status=False), 200
 
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Private Methods for routes
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+def get_alert_alarm_definition(id):
+    """Get alert or alarm definition with user_event_notification; return json.
+    """
+    try:
+        alert_alarm_def = SystemEventDefinition.query.filter_by(id=id).first()
+        if alert_alarm_def is None:
+            message = 'alert_alarm_definition not found.'
+            raise Exception(message)
+        user_event_notification = get_user_event_notification(id)
+        if user_event_notification is None:
+            message = 'user_event_notification (for alert_alarm_definition) not found.'
+            raise Exception(message)
+        result = alert_alarm_def.to_json()
+        result['user_event_notification'] = user_event_notification
+        return result
+    except:
+        raise
+
+
+def get_user_event_notification(definition_id):
+    """ Get user_event_notification for system_event_definition; return json.
+    """
+    result = []
+    notification = UserEventNotification.query.filter_by(system_event_definition_id=definition_id).first()
+    if notification is not None:
+        result = notification.to_json()
+    return result
+
+
 def create_definition_has_required_fields(data):
     """ Verify SystemEventDefinition creation has required fields in request.data. Error otherwise.
     SystemEventDefinition update can re-use this method but must also check for uframe_filter_id.
@@ -742,7 +752,8 @@ def create_definition_has_required_fields(data):
             if (not isinstance(data['escalate_on'], type(1.0))) and (not isinstance(data['escalate_on'], type(1))):
                 message = 'Invalid escalate_on value type (%r).' % data['escalate_on']
                 raise Exception(message)
-            if (not isinstance(data['escalate_boundary'], type(1.0))) and (not isinstance(data['escalate_boundary'], type(1))):
+            if (not isinstance(data['escalate_boundary'], type(1.0))) and \
+                    (not isinstance(data['escalate_boundary'], type(1))):
                 message = 'Invalid escalate_boundary value type (%r).' % data['escalate_boundary']
                 raise Exception(message)
         if data['escalate_on'] < 0:
@@ -754,6 +765,7 @@ def create_definition_has_required_fields(data):
         return
     except:
         raise
+
 
 def user_event_notification_has_required_fields(data):
     """ Verify insert_user_event_notification data has required fields. Error otherwise.
@@ -771,6 +783,7 @@ def user_event_notification_has_required_fields(data):
     except:
         raise
 
+
 def create_has_required_fields(data):
     """ Verify SystemEvent creation has required fields in request.data. Error otherwise.
     """
@@ -785,6 +798,7 @@ def create_has_required_fields(data):
     except:
         raise
 
+
 def acknowledge_has_required_fields(data):
     """ Verify SystemEvent acknowledge has required fields in request.data. Error otherwise.
     """
@@ -798,6 +812,7 @@ def acknowledge_has_required_fields(data):
         return
     except:
         raise
+
 
 def get_query_filters(request_args):
     """ Create filter dictionaries for SystemEvent and SystemEventDefinition; used in route /alert_alarm.
@@ -900,6 +915,7 @@ def get_query_filters(request_args):
         definition_filters = None
     return event_filters, definition_filters
 
+
 def to_bool(value):
     """ Converts 'something' to boolean. Raises exception for invalid formats.
     Possible True  values: 1, True, "1", "TRue", "yes", "y", "t"
@@ -910,6 +926,7 @@ def to_bool(value):
     if str(value).lower() in ("no",  "n", "false", "f", "0", "0.0", "", "none", "[]", "{}"):
         return False
     raise Exception('Invalid value for boolean conversion: ' + str(value))
+
 
 def get_alert_alarm_json(alerts_alarms, definition_filters):
     """ For a collection of alert_alarm objects, use definition_filters to determine if this alert_alarm
@@ -957,6 +974,7 @@ def get_alert_alarm_json(alerts_alarms, definition_filters):
     except:
         raise
 
+
 def get_definitions_query_filter(request_args):
     """ Get query_filter for alert_alarm_definition list route.
     """
@@ -1002,6 +1020,7 @@ def safe_to_delete_alert_alarm_definition(id):
         return result
     return True
 
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Methods for uframe integration
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1034,6 +1053,7 @@ def create_uframe_alertfilter(request_data):
         return result
     except:
         raise
+
 
 def update_uframe_alertfilter(request_data, id):
     """ Update alertfilter in uframe. Return if successful, Exception if error.
@@ -1093,6 +1113,7 @@ def delete_alertfilter(id):
     except:
         return result
 
+
 def get_alertfilter(id):
     """ Get alertfilter in uframe. On error return None, else return id.
     Used by update_alert_alarm on rollback when error persisting to ooi-ui-services db, then rollback
@@ -1114,12 +1135,13 @@ def get_alertfilter(id):
                 tmp = json.loads(response.content)
                 if 'message' in tmp:
                     message += '; uframe error: %s %r' % (tmp['message'], tmp['id'])
-            current_app.logger.exception(message)
+            current_app.logger.info(message)
             raise Exception(message)
         result = json.loads(response.content)
         return result
     except:
         return result
+
 
 def create_uframe_alertfilter_data(data):
     """ Create alertfilter dictionary for uframe processing.
@@ -1205,11 +1227,18 @@ def create_uframe_alertfilter_data(data):
     except:
         raise
 
+
 # Note: start of unix epoch (jan 1, 1900 at midnight 00:00) in seconds == 2208988800
-# http://stackoverflow.com/questions/13260863/convert-a-unixtime-to-a-datetime-object-and-back-again-pair-of-time-conversion
+# http://stackoverflow.com/questions/13260863/convert-a-unixtime-to-a-datetime-object-
+# and-back-again-pair-of-time-conversion (url continued from previous line)
 # Convert a unix time u to a datetime object d, and vice versa
-def convert_from_utc(u): return dt.datetime.utcfromtimestamp(u)
-def ut(d): return calendar.timegm(d.timetuple())
+def convert_from_utc(u):
+    return dt.datetime.utcfromtimestamp(u)
+
+
+def ut(d):
+    return calendar.timegm(d.timetuple())
+
 
 def get_uframe_alerts_info():
     """ Get uframe alertalarm configuration information. """
@@ -1218,6 +1247,7 @@ def get_uframe_alerts_info():
     timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
     return uframe_url, timeout, timeout_read
 
+
 def get_uframe_info():
     """ Get uframe configuration information. (uframe_url, uframe timeout_connect and timeout_read.) """
     uframe_url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
@@ -1225,9 +1255,11 @@ def get_uframe_info():
     timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
     return uframe_url, timeout, timeout_read
 
+
 def headers():
     """ Headers for uframe PUT and POST. """
     return {"Content-Type": "application/json"}
+
 
 def uframe_create_alertfilter(uframe_data):
     """ Create alertfilter in uframe. """
@@ -1237,6 +1269,7 @@ def uframe_create_alertfilter(uframe_data):
     response = requests.post(url, timeout=(timeout, timeout_read), headers=headers(), data=data)
     return response
 
+
 def uframe_update_alertfilter(uframe_data, alertfilter_id):
     """ Update alertfilter in uframe. """
     uframe_url, timeout, timeout_read = get_uframe_alerts_info()
@@ -1244,6 +1277,7 @@ def uframe_update_alertfilter(uframe_data, alertfilter_id):
     data = json.dumps(uframe_data)
     response = requests.put(url, timeout=(timeout, timeout_read), headers=headers(), data=data)
     return response
+
 
 def uframe_acknowledge_alert_alarm(uframe_event_id, value):
     """ Acknowledge alert or alarm in uframe using eventId and value. Return True (success), False or error.
@@ -1266,12 +1300,11 @@ def uframe_acknowledge_alert_alarm(uframe_event_id, value):
         response = requests.put(url, timeout=(timeout, timeout_read), headers=headers(), data=data)
         if response.status_code != 200:
             message = 'Failure to issue uframe acknowledge for alert_alarm (event id: %d) in uframe. ' % uframe_event_id
-            current_app.logger.exception('[uframe_acknowledge_alert_alarm] %s ' % message)
+            current_app.logger.info('[uframe_acknowledge_alert_alarm] %s ' % message)
             return result
 
         if response.content:
-            """
-            Sample uframe response content:
+            """ Sample uframe response content:
             {"message" : "Acknowledged record [2] by [testuser@company]", "id" : 2, "statusCode" : "OK"}
             """
             acknowledgement = json.loads(response.content)
@@ -1279,14 +1312,15 @@ def uframe_acknowledge_alert_alarm(uframe_event_id, value):
                 if acknowledgement['statusCode'] == uframe_success:
                     result = True
     except Exception as err:
-        current_app.logger.exception('[acknowledge_alert_alarm] %s ' % err.message)
+        current_app.logger.info('[acknowledge_alert_alarm] %s ' % err.message)
     finally:
         return result
+
 
 @api.route('/alert_alarm_instrument_available/<string:ref>', methods=['GET'])
 def uframe_instrument_available(ref):
     """
-    Retrieve uframe metadata parameters for a specific instrument
+    Retrieve uframe metadata parameters for a specific instrument.
     """
     results = None
     try:
@@ -1307,6 +1341,7 @@ def uframe_instrument_available(ref):
         return jsonify(metadata=results)
     except Exception as err:
         return bad_request('Failed to retrieve instrument metadata from uframe. ' + str(err.message))
+
 
 @api.route('/alert_alarm_get_instrument_metadata/<string:ref>', methods=['GET'])
 def uframe_get_instrument_metadata(ref):
@@ -1380,3 +1415,65 @@ def uframe_get_instrument_metadata(ref):
         return jsonify(stream_metadata=results)
     except Exception as err:
         return bad_request('Failed to compile instrument metadata by stream. ' + str(err.message))
+
+
+# Clear instances for alert/alarm definition
+@api.route('/clear_alert_alarm/<int:definition_id>', methods=['GET'])
+@auth.login_required
+@scope_required(u'user_admin')
+def clear_alert_alarm(definition_id):
+    """ Clear all alert(s) or an alarm(s) associated with the definition identified by definition_id.
+    """
+    try:
+        # Get definition identified in request
+        definition = SystemEventDefinition.query.get(definition_id)
+        if definition is None:
+            message = 'Failed to retrieve SystemEventDefinition for id provided: %d' % definition_id
+            return bad_request(message)
+
+        # Verify definition is not in active state; otherwise error
+        if definition.active:
+            message = '%s definition must be disabled before clearing any associated instances.' % definition.event_type
+            return bad_request(message)
+
+        # Determine current user who is auto clearing alert or alarm instances (written to log)
+        assigned_user = User.query.get(g.current_user.id)
+        if assigned_user is not None:
+            name = assigned_user.first_name + ' ' + assigned_user.last_name
+        else:
+            name = 'Unknown/unassigned user with g.current_user.id: %s' % str(g.current_user.id)
+
+        # Identify default user and message for auto acknowledgment; log activity
+        ack_by = 1
+        ack_value = 'Log: Auto acknowledge (ooi-ui-services) OBO user \'%s\'; %s definition id: %d' % \
+                        (name,definition.event_type, definition.id)
+        current_app.logger.info(ack_value)
+
+        # Get all active instances for this definition which have not been acknowledged.
+        instances = SystemEvent.query.filter_by(system_event_definition_id=definition.id,acknowledged=False).all()
+        for instance in instances:
+            if instance.event_type=='alarm':
+                if not (uframe_acknowledge_alert_alarm(instance.uframe_event_id, ack_value)):
+                    message = 'Failed to acknowledge alarm (id:%d) in uframe, prior to clearing instance.' % instance.id
+                    current_app.logger.info('[clear_alert_alarm] %s ' % message)
+                    return bad_request(message)
+
+            # Update alert_alarm acknowledged, ack_by and ts_acknowledged
+            instance.acknowledged = True
+            instance.ack_by = ack_by
+            instance.ts_acknowledged = dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%dT%H:%M:%S")
+            try:
+                db.session.add(instance)
+                db.session.commit()
+            except:
+                db.session.rollback()
+                return bad_request('IntegrityError during auto-acknowledgment of %s by %s.' %
+                                   (instance.event_type, str(ack_by)))
+
+        result = 'ok'
+        return jsonify( {'result' : result }), 200
+
+    except Exception as err:
+        message = 'Insufficient data, or bad data format. %s' % str(err.message)
+        current_app.logger.info(message)
+        return conflict(message)

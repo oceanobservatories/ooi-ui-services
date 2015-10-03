@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-'''
+"""
 Specific testing for Alert and Alarm Notifications (class UserEventNotifications)
-'''
+"""
 __author__ = 'Edna Donoughe'
 
 import unittest
@@ -18,17 +18,21 @@ import calendar
 from unittest import skipIf
 import os
 
-'''
+"""
 These tests are additional to the normal testing performed by coverage; each of
 these tests are to validate model logic outside of db management.
 
-'''
+"""
 
 @skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
 class NotificationsTestCase(unittest.TestCase):
-
-    # enable verbose during development and documentation to get a list of sample
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    # This suite of test cases utilizes redmine for notifications produced during escalation.
+    # It also uses uframe alerts and uframe sensor inv - so be sure all corresponding urls are
+    # properly configured when running this test.
+    # enable verbose (during development and documentation) to get a list of sample
     # urls used throughout test cases. Always set to False before check in.
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     verbose = False
     debug = False
     root = 'http://localhost:4000'
@@ -67,8 +71,11 @@ class NotificationsTestCase(unittest.TestCase):
             'Content-Type': 'application/json'
         }
 
-    def convert_from_utc(self, u): return dt.datetime.utcfromtimestamp(u)
-    def ut(self, d): return calendar.timegm(d.timetuple())
+    def convert_from_utc(self, u):
+        return dt.datetime.utcfromtimestamp(u)
+
+    def ut(self, d):
+        return calendar.timegm(d.timetuple())
 
     def test_reissue_notification_ticket(self):
         """
@@ -80,7 +87,6 @@ class NotificationsTestCase(unittest.TestCase):
             - one when escalate_on is reached and
             - one when escalate_boundary is reached
 
-        Use redmine to fetch tickets created.
         Cleanup: remove alertfilter created in uframe
 
         """
@@ -103,7 +109,7 @@ class NotificationsTestCase(unittest.TestCase):
                 'instrument_parameter': u'salinity', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial', "escalate_on": escalate_on, "escalate_boundary": escalate_boundary,
                 "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
-                "use_log": False, "use_sms": True}
+                "use_log": False, "use_sms": False}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
@@ -127,7 +133,6 @@ class NotificationsTestCase(unittest.TestCase):
         response_data = json.loads(response.data)
         self.assertTrue(response_data is not None)
 
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Create alerts
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -169,17 +174,15 @@ class NotificationsTestCase(unittest.TestCase):
             self.assertTrue('id' in response_data)
             self.assertTrue(response_data['id'] is not None)
 
-            # create alert using ts_tmp
+            # report on escalation progress
             if ts_tmp == (alert_escalate_on + 1.0):
                 if debug: print '\n ------ Escalate On - Issued redmine ticket...'
                 if debug: print '\n ------ ticket_id: ', response_data['ticket_id']
                 ticket_id_escalate_on = response_data['ticket_id']
             elif ts_tmp == (alert_escalate_boundary + 1.0):
                 if debug: print '\n ------ Escalate Boundary reached..............'
-                ticket_id_escalate_boundary = response_data['ticket_id']
-            elif ts_tmp == (alert_escalate_boundary + 1.0):
-                if debug: print '\n ------ Escalate Boundary - Reissue redmine ticket...'
                 if debug: print '\n ------ ticket_id: ', response_data['ticket_id']
+                ticket_id_escalate_boundary = response_data['ticket_id']
             elif ts_tmp > (alert_escalate_boundary + 1.0):
                 if debug: print '\n ------ Update reissued redmine ticket...'
                 if debug: print '\n ------ updated ticket_id: ', response_data['ticket_id']
@@ -199,6 +202,313 @@ class NotificationsTestCase(unittest.TestCase):
             self.delete_alertfilters(list_filter_ids)
         if verbose: print '\n'
 
+    def test_reissue_notification_no_redmine(self):
+        """
+        Test alert routes associated with the escalation process and subsequent notifications
+        w/o issuing redmine tickets or updates to tickets.
+
+        1. Create alert definition (using route) with low escalate_on and low escalate_boundary values.
+        2. Create alerts (using route) until escalate_on reached, continue to escalate_boundary + 1.0.
+        3. Verify no redmine tickets have been issued:
+            - one when escalate_on is reached and
+            - one when escalate_boundary is reached
+
+        Cleanup: remove alertfilter created in uframe
+
+        """
+        verbose = self.verbose
+        debug = False
+        root = self.root
+        if verbose: print '\n'
+
+        content_type =  'application/json'
+        headers = self.get_api_headers('admin', 'test')
+        list_filter_ids = []
+
+        escalate_on = 5.0
+        escalate_boundary = 10.0
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Create valid alert definition (escalate on 5 and escalate_boundary 10)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        data = {'platform_name': u'CE01ISSP-XX099', 'high_value': u'31.0', 'event_type': u'alert',
+                'stream': u'ctdpf_j_cspp_instrument', 'severity': 2, 'low_value': u'10.0', 'active': True,
+                'array_name': u'CE', 'reference_designator': u'CE01ISSP-XX099-01-CTDPFJ999',
+                'operator': u'GREATER', 'instrument_name': u'CE01ISSP-XX099-01-CTDPFJ999',
+                'instrument_parameter': u'salinity', 'instrument_parameter_pdid': u'PD440',
+                'description': 'initial', "escalate_on": escalate_on, "escalate_boundary": escalate_boundary,
+                "user_id": 1, "use_email": False, "use_redmine": False, "use_phone": False,
+                "use_log": False, "use_sms": True}
+
+        request_data = json.dumps(data)
+        response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
+        self.assertEquals(response.status_code, 201)
+        self.assertTrue(response is not None)
+        self.assertTrue(response.data is not None)
+        alert_definition = json.loads(response.data)
+        self.assertTrue(alert_definition is not None)
+        self.assertTrue('id' in alert_definition)
+        self.assertTrue('uframe_filter_id' in alert_definition)
+        self.assertTrue('description' in alert_definition)
+        alert_definition_id = alert_definition['id']
+        alert_uframe_id = alert_definition['uframe_filter_id']
+        list_filter_ids.append(alert_uframe_id)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # GET alert definition by SystemEventDefinition id
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        response = self.client.get(url_for('main.get_alert_alarm_def', id=alert_definition_id), content_type=content_type)
+        self.assertEquals(response.status_code, 200)
+        response_data = json.loads(response.data)
+        self.assertTrue(response_data is not None)
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Create alerts
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # 3637761438.72, 2015-04-11T17:17:18
+        escalate_on = 5.0
+        escalate_boundary = 10.0
+        alert_time_start = 3637761438.72            # 3607761438.72, 2014-04-29T11:57:18
+        alert_escalate_on = alert_time_start + escalate_on
+        alert_escalate_boundary = alert_time_start + escalate_boundary
+        offset = 2208988800
+
+        # Sample loops to generate alerts, verify timestamp
+        inx = 0.0
+        ts_tmp = alert_time_start
+        ticket_id_escalate_on = None
+        ticket_id_escalate_boundary = None
+        while ts_tmp <= alert_escalate_boundary + 1.0:
+
+            ts_tmp = alert_time_start + inx
+            #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            # POST alert instance which uses the SystemEventDefinition id
+            #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            system_event_definition_id = alert_definition_id
+            uframe_filter_id = alert_definition['uframe_filter_id']
+            event_data = {}
+            event_data['uframe_event_id'] = -1
+            event_data['uframe_filter_id'] = uframe_filter_id
+            event_data['system_event_definition_id'] = system_event_definition_id
+            event_data['event_time'] = ts_tmp
+            event_data['event_type'] = 'alert'
+            event_data['event_response'] = 'Test alert %d' % int(inx)
+            event_data['method'] = 'telemetered'
+            event_data['deployment'] = 1
+            new_event = json.dumps(event_data)
+            response = self.client.post(url_for('main.create_alert_alarm'), headers=headers, data=new_event)
+            self.assertEquals(response.status_code, 201)
+            self.assertTrue(response.data is not None)
+            response_data = json.loads(response.data)
+            self.assertTrue('id' in response_data)
+            self.assertTrue(response_data['id'] is not None)
+
+            # report on escalation progress
+            if ts_tmp == (alert_escalate_on + 1.0):
+                if debug: print '\n ------ Escalate On - begin notification...'
+                if debug: print '\n ------ id: ', response_data['ticket_id']
+                ticket_id_escalate_on = response_data['ticket_id']
+            elif ts_tmp == (alert_escalate_boundary + 1.0):
+                if debug: print '\n ------ Escalate Boundary reached..............'
+                ticket_id_escalate_boundary = response_data['ticket_id']
+            elif ts_tmp == (alert_escalate_boundary + 1.0):
+                if debug: print '\n ------ Escalate Boundary - Reissue notification...'
+                if debug: print '\n ------ id: ', response_data['ticket_id']
+            elif ts_tmp > (alert_escalate_boundary + 1.0):
+                if debug: print '\n ------ Update reissued notification...'
+                if debug: print '\n ------ updated id: ', response_data['ticket_id']
+
+            if debug: print '\n Created alert (%d) for %s' % (int(inx+1),
+                                    dt.datetime.strftime(self.convert_from_utc(ts_tmp - offset), "%Y-%m-%dT%H:%M:%S"))
+            inx += 1.0
+
+        # if redmine is only notification type available (which it is as of September 29, 2015) AND it is disabled,
+        # then ticket_id values should be 0
+        if debug: print '\n ------ (should be 0) ticket_id_escalate_on: ', ticket_id_escalate_on
+        if debug: print '\n ------ (should be 0) ticket_id_escalate_boundary: ', ticket_id_escalate_boundary
+        self.assertTrue(ticket_id_escalate_on == 0)
+        self.assertTrue(ticket_id_escalate_boundary == 0)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Delete all uframe alertfilter ids created during test case (id > 3)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if len(list_filter_ids) != 0:
+            self.delete_alertfilters(list_filter_ids)
+        if verbose: print '\n'
+
+
+    def test_enable_redmine_once_escalation_in_progress(self):
+        """
+        Test alert routes associated with the escalation process and subsequent notifications
+        using redmine. The 'use_redmine' flag in UserEventNotification is initally set to False.
+        Once the escalate_on time has been reached, and after the initial alert instance is created
+        when use_redmine == False, the use_redmine is set to True and tickets are then created.
+
+        1. Create alert definition (using route) with low escalate_on and low escalate_boundary values.
+        2. Create alerts (using route) until escalate_on reached, continue to escalate_boundary + 1.0.
+        3. Verify two redmine tickets have been issued:
+            - one when escalate_on is reached and alerts are being created; it is upadated
+            - one when escalate_boundary is reached
+
+        Cleanup: remove alertfilter created in uframe
+
+        """
+        verbose = self.verbose
+        debug = self.debug
+        root = self.root
+        if verbose: print '\n'
+        content_type =  'application/json'
+        headers = self.get_api_headers('admin', 'test')
+        list_filter_ids = []
+
+        escalate_on = 5.0
+        escalate_boundary = 10.0
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Create valid alert definition (escalate on 5 and escalate_boundary 10)
+        # Note: 'use_redmine' initially set to False
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        data = {'platform_name': u'CE01ISSP-XX099', 'high_value': u'31.0', 'event_type': u'alert',
+                'stream': u'ctdpf_j_cspp_instrument', 'severity': 2, 'low_value': u'10.0', 'active': True,
+                'array_name': u'CE', 'reference_designator': u'CE01ISSP-XX099-01-CTDPFJ999',
+                'operator': u'GREATER', 'instrument_name': u'CE01ISSP-XX099-01-CTDPFJ999',
+                'instrument_parameter': u'salinity', 'instrument_parameter_pdid': u'PD440',
+                'description': 'initial', "escalate_on": escalate_on, "escalate_boundary": escalate_boundary,
+                "user_id": 1, "use_email": False, "use_redmine": False, "use_phone": False,
+                "use_log": False, "use_sms": True}
+
+        request_data = json.dumps(data)
+        response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
+        self.assertEquals(response.status_code, 201)
+        self.assertTrue(response is not None)
+        self.assertTrue(response.data is not None)
+        alert_definition = json.loads(response.data)
+        self.assertTrue(alert_definition is not None)
+        self.assertTrue('id' in alert_definition)
+        self.assertTrue('uframe_filter_id' in alert_definition)
+        self.assertTrue('description' in alert_definition)
+        alert_definition_id = alert_definition['id']
+        alert_uframe_id = alert_definition['uframe_filter_id']
+        list_filter_ids.append(alert_uframe_id)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # GET alert definition by SystemEventDefinition id
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        response = self.client.get(url_for('main.get_alert_alarm_def', id=alert_definition_id), content_type=content_type)
+        self.assertEquals(response.status_code, 200)
+        response_data = json.loads(response.data)
+        self.assertTrue(response_data is not None)
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Create alerts
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # 3637761438.72, 2015-04-11T17:17:18
+        alert_time_start = 3637761438.72            # 3607761438.72, 2014-04-29T11:57:18
+        alert_escalate_on = alert_time_start + escalate_on
+        alert_escalate_boundary = alert_time_start + escalate_boundary
+        offset = 2208988800
+
+        # Sample loops to generate alerts, verify timestamp
+        inx = 0.0
+        ts_tmp = alert_time_start
+        ticket_id_escalate_on = None
+        ticket_id_escalate_boundary = None
+        while ts_tmp <= alert_escalate_boundary + 1.0:
+
+            ts_tmp = alert_time_start + inx
+            #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            # POST alert instance which uses the SystemEventDefinition id
+            #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            if ts_tmp == (alert_escalate_on + 2.0):
+                #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                # Enable 'use_redmine' after reaching escalate_on and after one alert has been processed.
+                #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                #if debug: print '\n alert_definition_id: ', alert_definition_id
+                notification = UserEventNotification.query.filter_by(system_event_definition_id=alert_definition_id).first()
+                if debug: print '\n Enable \'use_redmine\' after reaching escalate_on'
+                self.assertTrue(notification is not None)
+                if debug: print '\n ***** notification.use_redmine is False: ', notification.use_redmine
+                self.assertTrue(not notification.use_redmine)
+                try:
+                    notification.use_redmine = True
+                    db.session.add(notification)
+                    db.session.commit()
+                except:
+                    if debug: print '\n ***************** Error enabling use_redmine in notification.'
+
+                self.assertTrue(notification.use_redmine)
+                if debug: print '\n ***** notification.use_redmine is True: ', notification.use_redmine
+                #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                # GET alert definition by SystemEventDefinition id
+                #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                response = self.client.get(url_for('main.get_user_event_notification', id=notification.id), content_type=content_type)
+                self.assertEquals(response.status_code, 200)
+                response_data = json.loads(response.data)
+                self.assertTrue(response_data is not None)
+                if debug: print '\n ***** updated user_event_notification: ', response_data
+
+
+            system_event_definition_id = alert_definition_id
+            uframe_filter_id = alert_definition['uframe_filter_id']
+            event_data = {}
+            event_data['uframe_event_id'] = -1
+            event_data['uframe_filter_id'] = uframe_filter_id
+            event_data['system_event_definition_id'] = system_event_definition_id
+            event_data['event_time'] = ts_tmp
+            event_data['event_type'] = 'alert'
+            event_data['event_response'] = 'Test alert %d' % int(inx)
+            event_data['method'] = 'telemetered'
+            event_data['deployment'] = 1
+            new_event = json.dumps(event_data)
+            response = self.client.post(url_for('main.create_alert_alarm'), headers=headers, data=new_event)
+            self.assertEquals(response.status_code, 201)
+            self.assertTrue(response.data is not None)
+            response_data = json.loads(response.data)
+            self.assertTrue('id' in response_data)
+            self.assertTrue(response_data['id'] is not None)
+
+            # report on escalation progress
+            if ts_tmp == (alert_escalate_on + 1.0):
+                if debug: print '\n ------ Escalate On - begin notification...use_redmine == False'
+                if debug: print '\n ------ id: ', response_data['ticket_id']
+                ticket_id_escalate_on = response_data['ticket_id']
+                self.assertTrue(ticket_id_escalate_on == 0)
+            elif ts_tmp == (alert_escalate_on + 2.0):
+                if debug: print '\n ------ Escalate On - begin notification...use_redmine == True'
+                if debug: print '\n ------ id: ', response_data['ticket_id']
+                ticket_id_escalate_on = response_data['ticket_id']
+            elif ts_tmp == (alert_escalate_boundary + 1.0):
+                if debug: print '\n ------ Escalate Boundary reached..............'
+                ticket_id_escalate_boundary = response_data['ticket_id']
+                self.assertTrue(ticket_id_escalate_on != 0)
+            elif ts_tmp > (alert_escalate_boundary + 1.0):
+                if debug: print '\n ------ Update reissued notification...'
+                if debug: print '\n ------ updated id: ', response_data['ticket_id']
+
+            if debug: print '\n Created alert (%d) for %s' % (int(inx+1),
+                                    dt.datetime.strftime(self.convert_from_utc(ts_tmp - offset), "%Y-%m-%dT%H:%M:%S"))
+            inx += 1.0
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Verify ticket_id values are not zero or None
+        # if redmine is only notification type available (which it is as of October 1, 2015) AND it is enabled,
+        # then ticket_id values should not be 0 or None.
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if debug: print '\n ------ (should NOT be 0) ticket_id_escalate_on: ', ticket_id_escalate_on
+        if debug: print '\n ------ (should NOT be 0) ticket_id_escalate_boundary: ', ticket_id_escalate_boundary
+        self.assertTrue(ticket_id_escalate_on is not None)
+        self.assertTrue(ticket_id_escalate_boundary is not None)
+        self.assertTrue(ticket_id_escalate_on != 0)
+        self.assertTrue(ticket_id_escalate_boundary != 0)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Delete all uframe alertfilter ids created during test case (id > 3)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if len(list_filter_ids) != 0:
+            self.delete_alertfilters(list_filter_ids)
+        if verbose: print '\n'
 
     def test_notification_routes(self):
         """
@@ -530,7 +840,7 @@ class NotificationsTestCase(unittest.TestCase):
         self.assertEquals(response.status_code, 409)
 
         # PUT invalid (nonexistent) uframe_filter_id == 37, generate 400
-        alert_definition['uframe_filter_id'] = 37
+        alert_definition['uframe_filter_id'] = 10101037
         alert_definition['event_type'] = 'alarm'
         stuff = json.dumps(alert_definition)
         response = self.client.put(url_for('main.update_alert_alarm_def', id=new_definition_id), headers=headers, data=stuff)
@@ -772,13 +1082,16 @@ class NotificationsTestCase(unittest.TestCase):
         event_data['ticket_id'] = 0     # default, i.e. no ticket
         new_event = json.dumps(event_data)
         response = self.client.post(url_for('main.create_alert_alarm'), headers=headers,data=new_event)
-        self.assertEquals(response.status_code, 400)
+        self.assertEquals(response.status_code, 201)
         response_data = json.loads(response.data)
-        self.assertTrue('message' in response_data)
-        self.assertTrue(len(response_data['message']) > 0)
-        self.assertEquals(len(response_data), 2)
+        self.assertTrue(len(response_data) > 0)
+        self.assertTrue(response_data is not None)
+        #print '\n === response_data: ', response_data
+        #self.assertTrue('message' in response_data)
+        #self.assertTrue(len(response_data['message']) > 0)
+        #self.assertEquals(len(response_data), 2)
 
-        # Add user_event_notifications
+        # Add user_event_notifications; should check content of 'notification' to see if valid!
         notification = self.create_user_event_notification(alarm1.id)
         notification = self.create_user_event_notification(alarm2.id)
         notification = self.create_user_event_notification(alarm3.id)

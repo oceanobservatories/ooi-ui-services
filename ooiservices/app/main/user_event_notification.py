@@ -130,7 +130,7 @@ def update_user_event_notification(id):
         try:
             db.session.add(notification)
             db.session.commit()
-        except Exception as err:
+        except:
             db.session.rollback()
             return bad_request('IntegrityError creating user_event_notification.')
 
