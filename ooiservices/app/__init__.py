@@ -12,8 +12,6 @@ from flask_environments import Environments
 from flask.ext.cache import Cache
 from flask_wtf.csrf import CsrfProtect
 from sqlalchemy_searchable import make_searchable
-from celery import Celery
-from flask_redis import Redis
 from flask_cors import CORS
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -21,13 +19,12 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 login_manager = LoginManager()
 login_manager.session_protection = 'strong'
 
-cache = Cache(config={'CACHE_TYPE':'simple'})
+cache = Cache(config={'CACHE_TYPE': 'simple'})
 db = SQLAlchemy()
 make_searchable()
 csrf = CsrfProtect()
-celery = Celery('__main__')
-redis_store = Redis()
 cors = CORS()
+
 
 def create_app(config_name):
     app = Flask(__name__)
@@ -36,11 +33,9 @@ def create_app(config_name):
         env.from_yaml(os.path.join(basedir, 'config_local.yml'))
     else:
         env.from_yaml(os.path.join(basedir, 'config.yml'))
-    celery.conf.update(BROKER_URL=app.config['REDIS_URL'],
-                CELERY_RESULT_BACKEND=app.config['REDIS_URL'])
 
-    #Adding logging capabilities.
-    if app.config['LOGGING'] == True:
+    # Adding logging capabilities.
+    if app.config['LOGGING'] is True:
         import logging
         logger = logging.getLogger('replicate')
         logger.setLevel(logging.DEBUG)
@@ -56,11 +51,11 @@ def create_app(config_name):
         file_handler.setFormatter(formatter)
         stream_handler.setFormatter(formatter)
         app.logger.addHandler(file_handler)
-        #app.logger.addHandler(stream_handler)
+        # app.logger.addHandler(stream_handler)
         app.logger.setLevel(logging.DEBUG)
         app.logger.info('Application Process Started')
 
-    #SSL
+    # SSL
     if not app.debug and not app.testing and app.config['SSL_DISABLE']:
         from flask.ext.sslify import SSLify
         sslify = SSLify(app)
@@ -73,7 +68,6 @@ def create_app(config_name):
     login_manager.init_app(app)
     cache.init_app(app)
     csrf.init_app(app)
-    redis_store.init_app(app)
     cors.init_app(app)
 
     from ooiservices.app.main import api as main_blueprint
@@ -85,12 +79,15 @@ def create_app(config_name):
     from ooiservices.app.redmine import redmine as redmine_blueprint
     app.register_blueprint(redmine_blueprint, url_prefix='/redmine')
 
+    from ooiservices.app.alfresco import alfresco as alfresco_blueprint
+    app.register_blueprint(alfresco_blueprint, url_prefix='/alfresco')
+
     # If debug is enabled add route for site-map
     if app.config['DEBUG']:
         app.add_url_rule('/site-map', 'site_map', site_map)
 
-
     return app
+
 
 def has_no_empty_params(rule):
     '''
@@ -100,7 +97,8 @@ def has_no_empty_params(rule):
     arguments = rule.arguments if rule.arguments is not None else ()
     return len(defaults) >= len(arguments)
 
-#route("/site-map")
+
+# route("/site-map")
 def site_map():
     '''
     Returns a json structure for the site routes and handlers
@@ -127,10 +125,10 @@ def site_map():
             delete_links.append((url, rule.endpoint))
     # links is now a list of url, endpoint tuples
     doc = {
-        'get_links' : get_links,
-        'put_links' : put_links,
-        'post_links' : post_links,
-        'delete_links' : delete_links
+        'get_links': get_links,
+        'put_links': put_links,
+        'post_links': post_links,
+        'delete_links': delete_links
     }
 
     return jsonify(**doc)
