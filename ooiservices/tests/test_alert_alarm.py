@@ -10,7 +10,6 @@ from base64 import b64encode
 from flask import (url_for, current_app)
 from ooiservices.app import (create_app, db)
 from ooiservices.app.models import (User, UserScope, Organization)
-from ooiservices.app.models import (Array, PlatformDeployment, InstrumentDeployment)
 from ooiservices.app.models import (SystemEventDefinition, SystemEvent, UserEventNotification)
 from ooiservices.app.main.alertsalarms import (create_uframe_alertfilter_data, get_uframe_alerts_info,
                                                get_uframe_info, get_alertfilter, delete_alertfilter,
@@ -35,9 +34,10 @@ these tests are to validate model logic outside of db management.
 @skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
 class AlertAlarmTestCase(unittest.TestCase):
 
-    # enable verbose during development and documentation to get a list of sample
+    # enable verbose (during development and documentation) to get a list of sample
     # urls used throughout test cases. Always set to False before check in.
     verbose = False
+    debug = False
     root = 'http://localhost:4000'
 
     def setUp(self):
@@ -3461,7 +3461,9 @@ class AlertAlarmTestCase(unittest.TestCase):
     def test_uframe_get_instrument_metadata(self):
 
         content_type = 'application/json'
-        ref = 'CE01ISSM-SBD17-04-VELPTA000'
+        #ref = 'CE01ISSM-SBD17-04-VELPTA000'
+        #ref = 'CP03ISSM-SBD11-01-MOPAK0000'
+        ref = 'CP01CNSM-RID27-02-FLORTD000'
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Verify uframe is available and the selected instrument is present, if not exit without failure.
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3525,6 +3527,229 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertEquals(response.status_code, 400)
         response_data = json.loads(response.data)
         self.assertTrue(response_data is not None)
+
+    def test_clear_alert_alarm(self):
+        """
+        Test clear_alert_alarm route.
+
+        Create alert definitions and alert instances.
+        1. Create alert definition (using route) with low escalate_on and low escalate_boundary values.
+        2. Create alerts (using route) until escalate_on reached, continue to escalate_boundary + 1.0.
+        3. Verify two redmine tickets have been issued:
+            - one when escalate_on is reached and
+            - one when escalate_boundary is reached
+
+        Exercise clear_alert_alarm route with positive and negative tests..
+
+        Cleanup: remove alertfilter created in uframe
+
+        """
+        verbose = self.verbose
+        debug = self.debug
+        if verbose: print '\n'
+        content_type =  'application/json'
+        headers = self.get_api_headers('admin', 'test')
+        list_filter_ids = []
+        escalate_on = 5.0
+        escalate_boundary = 10.0
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Create valid alert definition (escalate on 5 and escalate_boundary 10)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        data = {'platform_name': u'CE01ISSP-XX099', 'high_value': u'31.0', 'event_type': u'alert',
+                'stream': u'ctdpf_j_cspp_instrument', 'severity': 2, 'low_value': u'10.0', 'active': True,
+                'array_name': u'CE', 'reference_designator': u'CE01ISSP-XX099-01-CTDPFJ999',
+                'operator': u'GREATER', 'instrument_name': u'CE01ISSP-XX099-01-CTDPFJ999',
+                'instrument_parameter': u'salinity', 'instrument_parameter_pdid': u'PD440',
+                'description': 'initial', "escalate_on": escalate_on, "escalate_boundary": escalate_boundary,
+                "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
+                "use_log": False, "use_sms": False}
+
+        request_data = json.dumps(data)
+        response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
+        self.assertEquals(response.status_code, 201)
+        self.assertTrue(response is not None)
+        self.assertTrue(response.data is not None)
+        alert_definition = json.loads(response.data)
+        self.assertTrue(alert_definition is not None)
+        self.assertTrue('id' in alert_definition)
+        self.assertTrue('uframe_filter_id' in alert_definition)
+        self.assertTrue('description' in alert_definition)
+        alert_definition_id = alert_definition['id']
+        alert_uframe_id = alert_definition['uframe_filter_id']
+        list_filter_ids.append(alert_uframe_id)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # GET alert definition by SystemEventDefinition id
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        response = self.client.get(url_for('main.get_alert_alarm_def', id=alert_definition_id), content_type=content_type)
+        self.assertEquals(response.status_code, 200)
+        response_data = json.loads(response.data)
+        self.assertTrue(response_data is not None)
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Create alerts
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # 3637761438.72, 2015-04-11T17:17:18
+        escalate_on = 5.0
+        escalate_boundary = 10.0
+        alert_time_start = 3637761438.72            # 3607761438.72, 2014-04-29T11:57:18
+        alert_escalate_on = alert_time_start + escalate_on
+        alert_escalate_boundary = alert_time_start + escalate_boundary
+        offset = 2208988800
+
+        # Sample loops to generate alerts, verify timestamp
+        inx = 0.0
+        ts_tmp = alert_time_start
+        ticket_id_escalate_on = None
+        ticket_id_escalate_boundary = None
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # POST alerts which uses the SystemEventDefinition id
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        while ts_tmp <= alert_escalate_boundary: # + 6.0:
+
+            ts_tmp = alert_time_start + inx
+            #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            # POST alert which uses the SystemEventDefinition id
+            #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            system_event_definition_id = alert_definition_id
+            uframe_filter_id = alert_definition['uframe_filter_id']
+            event_data = {}
+            event_data['uframe_event_id'] = -1
+            event_data['uframe_filter_id'] = uframe_filter_id
+            event_data['system_event_definition_id'] = system_event_definition_id
+            event_data['event_time'] = ts_tmp
+            event_data['event_type'] = 'alert'
+            event_data['event_response'] = '[Test] Alert %d' % int(inx)
+            event_data['method'] = 'telemetered'
+            event_data['deployment'] = 1
+            new_event = json.dumps(event_data)
+            response = self.client.post(url_for('main.create_alert_alarm'), headers=headers, data=new_event)
+            self.assertEquals(response.status_code, 201)
+            self.assertTrue(response.data is not None)
+            response_data = json.loads(response.data)
+            self.assertTrue('id' in response_data)
+            self.assertTrue(response_data['id'] is not None)
+
+            # report on escalation progress
+            if ts_tmp == (alert_escalate_on + 1.0):
+                if debug: print '\n ------ Escalate On - Issued redmine ticket...'
+                if debug: print '\n ------ ticket_id: ', response_data['ticket_id']
+                ticket_id_escalate_on = response_data['ticket_id']
+            elif ts_tmp == (alert_escalate_boundary + 1.0):
+                if debug: print '\n ------ Escalate Boundary reached..............'
+                if debug: print '\n ------ ticket_id: ', response_data['ticket_id']
+                ticket_id_escalate_boundary = response_data['ticket_id']
+            elif ts_tmp > (alert_escalate_boundary + 1.0):
+                if debug: print '\n ------ Update reissued redmine ticket...'
+                if debug: print '\n ------ updated ticket_id: ', response_data['ticket_id']
+
+            if debug: print '\n Created alert (%d) for %s' % (int(inx+1),
+                                                     dt.datetime.strftime(self.convert_from_utc(ts_tmp - offset),
+                                                                          "%Y-%m-%dT%H:%M:%S"))
+            inx += 1.0
+
+        number_of_alerts_created = inx
+        if debug: print '\n ------ ticket_id_escalate_on: ', ticket_id_escalate_on
+        if debug: print '\n ------ ticket_id_escalate_boundary: ', ticket_id_escalate_boundary
+        if debug: print '\n ------ number of alerts created: ', number_of_alerts_created
+        self.assertTrue(ticket_id_escalate_on is not None)
+        self.assertTrue(ticket_id_escalate_boundary is not None)
+        self.assertTrue(ticket_id_escalate_on != 0)
+        self.assertTrue(ticket_id_escalate_boundary != 0)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Positive) Get alert definition and verify active == True; get definition_id
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        response = self.client.get(url_for('main.get_alert_alarm_def', id=alert_definition_id), content_type=content_type)
+        self.assertEquals(response.status_code, 200)
+        response_data = json.loads(response.data)
+        self.assertTrue(response_data is not None)
+        self.assertTrue('active' in response_data)
+        self.assertTrue('id' in response_data)
+        self.assertTrue(response_data['active'])
+        self.assertTrue(response_data['id'] is not None)
+        definition_id = response_data['id']
+        z = response_data
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Positive) Get instances of alerts for this definition
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        url = url_for('main.get_alerts_alarms', id=definition_id)
+        url += '&acknowledged=false'
+        if debug: print '\n url: ', url
+        response = self.client.get(url, content_type=content_type)
+        self.assertEquals(response.status_code, 200)
+        response_data = json.loads(response.data)
+        self.assertTrue(response_data is not None)
+        self.assertTrue('alert_alarm' in response_data)
+        if debug: print '\n Number of events associated with this definition: ', len(response_data['alert_alarm'])
+        self.assertTrue(len(response_data['alert_alarm']) > 0)
+        self.assertEquals(len(response_data['alert_alarm']), number_of_alerts_created)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Negative) Issue clear for instances associated with this definition; fail since definition is active.
+        # error: 'alert definition must be disabled before clearing any associated instances.'
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        response = self.client.get(url_for('main.clear_alert_alarm', definition_id=definition_id),
+                                   headers=headers, content_type=content_type)
+        self.assertEquals(response.status_code, 400)
+        response_data = json.loads(response.data)
+        self.assertTrue(response_data is not None)
+        self.assertTrue('error' in response_data)
+        self.assertTrue('message' in response_data)
+        self.assertTrue(response_data['error'] is not None)
+        self.assertTrue(response_data['message'] is not None)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Positive) Modify definition so active == False; verify change by getting and inspecting active
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        z['active'] = False
+        data = json.dumps(z)
+        response = self.client.put(url_for('main.update_alert_alarm_def', id=definition_id),headers=headers, data=data)
+        self.assertEquals(response.status_code, 201)
+        response = self.client.get(url_for('main.get_alert_alarm_def', id=definition_id), content_type=content_type)
+        self.assertEquals(response.status_code, 200)
+        response_data = json.loads(response.data)
+        self.assertTrue(response_data is not None)
+        self.assertTrue('active' in response_data)
+        self.assertTrue(not response_data['active'])
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Positive) Issue clear for instances associated with this definition; expect success
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        response = self.client.get(url_for('main.clear_alert_alarm', definition_id=definition_id),
+                                   headers=headers, content_type=content_type)
+        self.assertEquals(response.status_code, 200)
+        response_data = json.loads(response.data)
+        self.assertTrue(response_data is not None)
+        self.assertTrue('error' not in response_data)
+        self.assertTrue('result' in response_data)
+        self.assertTrue(response_data['result'] is not None)
+        self.assertEquals(response_data['result'], 'ok')
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Negative) Get instances associated with this definition; verify they have been (auto) acknowledged.
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        url = url_for('main.get_alerts_alarms', id=definition_id)
+        url += '&acknowledged=false'
+        if debug: print '\n url: ', url
+        response = self.client.get(url, content_type=content_type)
+        self.assertEquals(response.status_code, 200)
+        response_data = json.loads(response.data)
+        self.assertTrue(response_data is not None)
+        self.assertTrue('alert_alarm' in response_data)
+        if debug: print '\n Number of unacknowledged events for this definition: ', len(response_data['alert_alarm'])
+        self.assertEquals(len(response_data['alert_alarm']), 0)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Delete all uframe alertfilter ids created during test case (id > 3)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if len(list_filter_ids) != 0:
+            self.delete_alertfilters(list_filter_ids)
+        if verbose: print '\n'
+
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Test private methods in alertsalarms.py
