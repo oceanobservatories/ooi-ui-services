@@ -597,7 +597,7 @@ def multistream_api(stream1, stream2, instrument1, instrument2, var1, var2):
         telemetered_flort_m_glider_instrument/sci_water_pressure/sci_flbbcd_chlor_units?startdate=2015-05-07T02:49:22.745Z&enddate=2015-06-28T04:00:41.282Z
     '''
     try:
-        resp_data, units1, units2 = get_multistream_data(instrument1, instrument2, stream1, stream2, var1, var2)
+        resp_data, units = get_multistream_data(instrument1, instrument2, stream1, stream2, var1, var2)
     except Exception as err:
         return jsonify(error='%s' % str(err.message)), 400
 
@@ -611,7 +611,7 @@ def multistream_api(stream1, stream2, instrument1, instrument2, var1, var2):
     except IndexError:
         return internal_server_error('UFrame array length error')
 
-    return jsonify(data=resp_data[header1], units=[units1, units2])
+    return jsonify(data=resp_data[header1], units=units)
 
 
 def get_uframe_multi_stream_contents(stream1_dict, stream2_dict, start_time, end_time):

@@ -67,6 +67,9 @@ def get_multistream_data(stream1, stream2, instrument1, instrument2, var1, var2)
     parameter_ids1, y_units1, _, units_mapping1 = find_parameter_ids(mooring1, platform1, instrument1, [var1], [])
     parameter_ids2, y_units2, _, units_mapping2 = find_parameter_ids(mooring2, platform2, instrument2, [var2], [])
 
+    units = units_mapping1.copy()
+    units.update(units_mapping2)
+
     stream1_dict = {}
     stream2_dict = {}
     stream1_dict['refdes'] = '-'.join([mooring1, platform1, instrument1])  # 'CP05MOAS-GL340-03-CTDGVM000'
@@ -94,7 +97,7 @@ def get_multistream_data(stream1, stream2, instrument1, instrument2, var1, var2)
             if status_code != 200:
                 raise Exception(data)
             else:
-                return data, units_mapping1, units_mapping2
+                return data, units
         else:
             message = 'Failed to make interpolated data plot: Need to include startdata and enddate'
             current_app.logger.exception(message)
