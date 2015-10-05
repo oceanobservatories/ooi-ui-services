@@ -87,7 +87,8 @@ class ModelTestCase(unittest.TestCase):
             'phone_primary' : None,
             'scopes' : [],
             'role' : None,
-            'user_name': None})
+            'user_name': None,
+            'email_opt_in': None})
 
     def test_operator_event_type(self):
         #Test the json in the object
