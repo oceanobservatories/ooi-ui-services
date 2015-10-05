@@ -10,9 +10,7 @@ import json
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.alfresco import alfresco as api
 # utilities from alfresco bp
-from ooiservices.app.alfresco.utils import make_alfresco_conn, \
-    make_alfresco_ticket, make_alfresco_query, make_alfresco_download_link
-
+from ooiservices.app.alfresco.utils import AlfrescoCMIS as ACMIS
 
 @api.route('/', methods=['GET'])
 @auth.login_required
@@ -23,8 +21,10 @@ def get_alfresco_connection():
     # make the alfresco connection and store the repo obj
 
     try:
-        repo = make_alfresco_conn()
-    except:
+        alf = ACMIS()
+        repo = alf.make_alfresco_conn()
+    except Exception as e:
+        print e
         error_response = \
             {'error': 'Alfresco configuration not set or incorrect',
             'status_code': 500}
@@ -48,8 +48,10 @@ def get_alfresco_ticket():
     the services.
     '''
     try:
-        ticket = make_alfresco_ticket()
-    except:
+        alf = ACMIS()
+        ticket = alf.make_alfresco_ticket()
+    except Exception as e:
+        print e
         error_response = {'error': 'Alfresco configuration invalid,' +
             ' cannot create ticket.', 'status_code': 500}
         response = make_response(jsonify(error_response), 500)
@@ -72,15 +74,22 @@ def get_doc(query):
     # since we'll need the ticket to access any of these
     # documents, lets send it over with the payload . . .
     ticket = get_alfresco_ticket()
-
-    results = make_alfresco_query(query)
+    try:
+        alf = ACMIS()
+        results = alf.make_alfresco_query(query)
+    except Exception as e:
+        print e
+        error_response = {'error': 'Alfresco configuration invalid,' +
+            ' cannot create download link.', 'status_code': 500}
+        response = make_response(jsonify(error_response), 500)
+        return response, response.status_code
 
     result_list = []
     for result in results:
         result_dict = {}
         result_dict['name'] = result.name
         result_dict['id'] = result.id
-        result_dict['url'] = make_alfresco_download_link(result.id, ticket)
+        result_dict['url'] = alf.make_alfresco_download_link(result.id, ticket)
         result_list.append(result_dict)
 
     return jsonify({'results': result_list})
