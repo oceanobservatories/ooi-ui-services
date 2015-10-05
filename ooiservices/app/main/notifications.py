@@ -35,7 +35,7 @@ def handle_notifications(id):
 
         # Notification type: Proposed (but unavailable) notification types.
         if notification.use_email or notification.use_phone or notification.use_log or notification.use_sms:
-            message = 'Unavailable alert alarm notification type (one of: use_email, use_phone, use_log or use_sms)'
+            message = 'Unavailable notification type selected (one of: use_email, use_phone, use_log or use_sms)'
             current_app.logger.info(message)
 
         # Notification type: Unknown

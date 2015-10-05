@@ -789,6 +789,7 @@ class SystemEventDefinition(db.Model):
     ts_retired = db.Column(db.DateTime(True), nullable=True)
     escalate_on = db.Column(db.Float, nullable=False)
     escalate_boundary = db.Column(db.Float, nullable=False)
+    event_receipt_delta = db.Column(db.Integer, nullable=False, server_default=db.text("0"))
 
     @staticmethod
     def delete_system_event_definition(system_event_definition_id):
@@ -833,7 +834,8 @@ class SystemEventDefinition(db.Model):
             'stream': self.stream,
             'retired': self.retired,
             'escalate_on': self.escalate_on,
-            'escalate_boundary': self.escalate_boundary
+            'escalate_boundary': self.escalate_boundary,
+            'event_receipt_delta': self.event_receipt_delta
         }
         if self.created_time is not None:
             json_system_event_definition['created_time'] = self._pytype(self.created_time)
@@ -877,6 +879,8 @@ class SystemEvent(db.Model):
     ts_escalated = db.Column(db.DateTime(False), nullable=True)
     timestamp = db.Column(db.DateTime(True), nullable=False)
     ts_start = db.Column(db.DateTime(True), nullable=True)
+    resolved = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))
+    resolved_comment = db.Column(db.Text, nullable=True)
 
     event = db.relationship(u'SystemEventDefinition')
 
@@ -911,6 +915,8 @@ class SystemEvent(db.Model):
             'ack_by': self.ack_by,
             'ticket_id': self.ticket_id,
             'escalated': self.escalated,
+            'resolved': self.resolved,
+            'resolved_comment': self.resolved_comment
         }
         if self.event_time is not None:
             json_system_event['event_time'] = self._pytype(self.event_time)
@@ -986,8 +992,9 @@ class UserEventNotification(db.Model):
             try:
                 db.session.add(new_user_event_notification)
                 db.session.commit()
-            except:
+            except Exception as err:
                 db.session.rollback()
+                message = 'Failed to insert user_event_notification; %s' % err.message
                 raise Exception(message)
             user_event_id = new_user_event_notification.id
             return user_event_id
