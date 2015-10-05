@@ -4,7 +4,7 @@
 '''
 __author__ = 'M@Campbell'
 
-from flask import jsonify, make_response
+from flask import jsonify, make_response, request
 import json
 
 from ooiservices.app.main.authentication import auth
@@ -64,13 +64,14 @@ def get_alfresco_ticket():
     return ticket
 
 
-@api.route('/documents/<string:query>', methods=['GET'])
+@api.route('/documents', methods=['GET'])
 @auth.login_required
-def get_doc(query):
+def get_doc():
     '''
     This is a general search query for now, it may take a while to
     get a response!
     '''
+    query = request.args['search']
     # since we'll need the ticket to access any of these
     # documents, lets send it over with the payload . . .
     ticket = get_alfresco_ticket()
