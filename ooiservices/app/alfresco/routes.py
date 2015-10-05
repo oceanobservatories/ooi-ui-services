@@ -4,10 +4,8 @@
 '''
 __author__ = 'M@Campbell'
 
-from flask import url_for, request, current_app, jsonify, make_response
-import os
+from flask import jsonify, make_response
 import json
-from cmislib.model import CmisClient
 
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.alfresco import alfresco as api
@@ -26,8 +24,9 @@ def get_alfresco_connection():
 
     try:
         repo = make_alfresco_conn()
-    except Exception as e:
-        error_response = {'error': 'Alfresco configuration not set or incorrect',
+    except:
+        error_response = \
+            {'error': 'Alfresco configuration not set or incorrect',
             'status_code': 500}
         response = make_response(jsonify(error_response), 500)
         return response, response.status_code
@@ -40,6 +39,7 @@ def get_alfresco_connection():
 
     return jsonify(info_dict)
 
+
 @api.route('/', methods=['POST'])
 @auth.login_required
 def get_alfresco_ticket():
@@ -49,8 +49,8 @@ def get_alfresco_ticket():
     '''
     try:
         ticket = make_alfresco_ticket()
-    except Exception as e:
-        error_response = {'error': 'Alfresco configuration invalid,' + \
+    except:
+        error_response = {'error': 'Alfresco configuration invalid,' +
             ' cannot create ticket.', 'status_code': 500}
         response = make_response(jsonify(error_response), 500)
         return response, response.status_code
@@ -60,6 +60,7 @@ def get_alfresco_ticket():
     ticket = ticket_num['data']['ticket']
 
     return ticket
+
 
 @api.route('/documents/<string:query>', methods=['GET'])
 @auth.login_required
