@@ -1,41 +1,56 @@
 ENV_NAME: 'LOCAL_DEVELOPMENT'
 
 COMMON: &common
+    # Logging
     LOGGING: True
     LOG_FILE_PTAH: '/logs/'
     LOG_FILE: 'ooiservices.log'
+    # Server config
+    DEPLOYMENT_SCENARIO: LOCAL_DEVELOPMENT
     SECRET_KEY: 'ccdf5de08ac74855bda3e7e309d871e5'
+    UI_API_KEY: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     SSL_DISABLE: False
+    JSONIFY_PRETTYPRINT_REGULAR: true
+    # sql / db config
     SQLALCHEMY_COMMIT_ON_TEARDOWN: True
     SQLALCHEMY_RECORD_QUERIES: True
     OOI_SLOW_DB_QUERY_TIME: 0.5
+    WHOOSH_BASE: 'ooiservices/whoosh_index'
+    SERVER_DNS: 'localhost'
     HOST: localhost
     PORT: 4000
-    JSONIFY_PRETTYPRINT_REGULAR: true
-    UFRAME_URL: 'http://localhost:12575'
-    UFRAME_ASSETS_URL: 'http://localhost:12573'
+    # UFrame config
+    UFRAME_URL:             'http://localhost:12575'
+    UFRAME_ASSETS_URL:      'http://localhost:12573'
     UFRAME_ANNOTATION_URL : 'http://localhost:12580'
+    UFRAME_ALERTS_URL:      'http://localhost:12577'
+    UFRAME_INST_URL:        'http://localhost:12572'
     UFRAME_ANNOTATION_BASE: '/annotations'
-    UFRAME_URL_BASE: '/sensor/inv'
-    UFRAME_TOC: '/sensor/inv/toc'
-    UFRAME_INST_URL: 'http://localhost:12572'
-    UFRAME_INST_BASE: '/instrument/api'
-    UFRAME_PLAT_BASE: '/platform/api'
+    UFRAME_URL_BASE:        '/sensor/inv'
+    UFRAME_TOC:             '/sensor/inv/toc'
+    UFRAME_INST_BASE:       '/instrument/api'
+    UFRAME_PLAT_BASE:       '/platform/api'
     UFRAME_TIMEOUT_CONNECT: 5
     UFRAME_TIMEOUT_READ: 30
-    UFRAME_ALERTS_URL: 'http://localhost:12577'
+    UFRAME_DATA_REQUEST_LIMIT: 2880
+    UFRAME_PLOT_TIMEOUT: 60
+    DATA_POINTS: 1000
+    # redmine
     REDMINE_KEY: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    UI_API_KEY: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     REDMINE_URL: 'https://redmine-asa.ooi.rutgers.edu' #'https://uframe-cm.ooi.rutgers.edu'
     REDMINE_PROJECT_ID: 'ocean-observatory' #'ooi-ui-api-testing'
-    WHOOSH_BASE: 'ooiservices/whoosh_index'
+    # redis
     REDIS_URL: 'redis://:password@localhost:6379'
-    DEPLOYMENT_SCENARIO: LOCAL_DEVELOPMENT
-    UFRAME_DATA_REQUEST_LIMIT: 2880
+    # google
     GOOGLE_ANALYTICS_URL: 'https://www.google-analytics.com/collect?v=1&tid=UA-50606390-3&cid=1&t=event'
-    DATA_POINTS: 1000
-    SERVER_DNS: 'localhost' 
-    UFRAME_PLOT_TIMEOUT: 60
+    # alfresco
+    ALFRESCO_CMIS_URL:  'https://alfresco.oceanobservatories.org/alfresco/s/api/cmis'
+    ALFRESCO_DL_URL:    'https://alfresco.oceanobservatories.org/alfresco/s/api/node/content/workspace/SpacesStore'
+    ALFRESCO_TICKET_URL: 'https://alfresco.oceanobservatories.org/alfresco/s/api/login'
+    ALFRESCO_REPO_ID:   'c161bc66-4f7e-4a4f-b5f2-aac9fbf1d3cd'
+    ALFRESCO_USERNAME:  'admin'
+    ALFRESCO_PASSWORD:  'admin'
+
 
 DEVELOPMENT: &development
     <<: *common

@@ -11,7 +11,7 @@ from flask import Blueprint
 
 alfresco = Blueprint('alfresco', __name__)
 
-from ooiservices.app.alfresco import routes, utils
+from ooiservices.app.alfresco import routes, utils, errors
 
 '''
 routes will hold ONLY endpoints.  Please NO other methods.
@@ -22,3 +22,8 @@ routes
 utils will hold only methods. Please NO routes / endpoints.
 '''
 utils
+
+'''
+custom errors for all alfresco requests
+'''
+errors
