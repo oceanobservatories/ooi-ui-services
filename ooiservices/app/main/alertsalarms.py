@@ -136,6 +136,7 @@ def get_alert_alarm_status():
                 print "Ref-Des not in asset name list: ERROR: appending", aa_item['reference_designator']            
 
                 new_asset = {'ref_des':aa_item['reference_designator'],
+                             'hasDeploymentEvent' : True,
                              'coordinates': [0, 0],
                              'assetInfo': {"type":"Sensor",
                                            "longName":aa_item['reference_designator'],
@@ -158,51 +159,52 @@ def get_alert_alarm_status():
     for asset in assets_dict:
         d = asset['ref_des']
 
-        #create inital entry   
-        if 'manufactureInfo' in asset:
-            entry = {'reference_designator':d, "count":0,
-                    "event_type":'unknown', 
-                    'coordinates':asset['coordinates'],
-                    'asset_type':asset['assetInfo']['type'],
-                    'longName':asset['assetInfo']['longName'],
-                    'name':asset['assetInfo']['name'],
-                    'instrumentClass':asset['assetInfo']['instrumentClass'],
-                    'manufacturer': asset['manufactureInfo']['manufacturer'],
-                    'modelNumber': asset['manufactureInfo']['modelNumber'],
-                    'serialNumber': asset['manufactureInfo']['serialNumber'],
-                    'owner': asset['assetInfo']['owner'],
-                    'description': asset['assetInfo']['description']}
-        else:
-            entry = {'reference_designator':d, "count":0,
-                    "event_type":'unknown', 
-                    'coordinates':asset['coordinates'],
-                    'asset_type':asset['assetInfo']['type'],
-                    'longName':asset['assetInfo']['longName'],
-                    'name':asset['assetInfo']['name'],
-                    'instrumentClass':asset['assetInfo']['instrumentClass'],
-                    'manufacturer': 'N/A',
-                    'modelNumber': 'N/A',
-                    'serialNumber': 'N/A',
-                    'owner': asset['assetInfo']['owner'],
-                    'description': asset['assetInfo']['description']}
-          
+        if 'hasDeploymentEvent' in asset and asset['hasDeploymentEvent']:
+            #create inital entry   
+            if 'manufactureInfo' in asset:
+                entry = {'reference_designator':d, "count":0,
+                        "event_type":'unknown', 
+                        'coordinates':asset['coordinates'],
+                        'asset_type':asset['assetInfo']['type'],
+                        'longName':asset['assetInfo']['longName'],
+                        'name':asset['assetInfo']['name'],
+                        'instrumentClass':asset['assetInfo']['instrumentClass'],
+                        'manufacturer': asset['manufactureInfo']['manufacturer'],
+                        'modelNumber': asset['manufactureInfo']['modelNumber'],
+                        'serialNumber': asset['manufactureInfo']['serialNumber'],
+                        'owner': asset['assetInfo']['owner'],
+                        'description': asset['assetInfo']['description']}
+            else:
+                entry = {'reference_designator':d, "count":0,
+                        "event_type":'unknown', 
+                        'coordinates':asset['coordinates'],
+                        'asset_type':asset['assetInfo']['type'],
+                        'longName':asset['assetInfo']['longName'],
+                        'name':asset['assetInfo']['name'],
+                        'instrumentClass':asset['assetInfo']['instrumentClass'],
+                        'manufacturer': 'N/A',
+                        'modelNumber': 'N/A',
+                        'serialNumber': 'N/A',
+                        'owner': asset['assetInfo']['owner'],
+                        'description': asset['assetInfo']['description']}
+              
+            
+            #use alert alarms status (alarm or alert)
+            if d in status_outline.keys():
+                entry["count"] = status_outline[d]['count']
+                entry["event_type"] = status_outline[d]["event_type"]
+            #healthly 
+            elif d in aa_def_list:
+                #used to identify health sensors
+                entry["event_type"] = 'inactive'
+            #no status, unknown
+            else:
+                #nothing to do here
+                pass
 
-        
-        #use alert alarms status (alarm or alert)
-        if d in status_outline.keys():
-            entry["count"] = status_outline[d]['count']
-            entry["event_type"] = status_outline[d]["event_type"]
-        #healthly 
-        elif d in aa_def_list:
-            #used to identify health sensors
-            entry["event_type"] = 'inactive'
-        #no status, unknown
-        else:
-            #nothing to do here
-            pass
+            status_info.append(entry)
+    return jsonify({'alert_alarm':status_info})
 
-        status_info.append(entry)
-    return jsonify({'alert_alarm': status_info})
 
 #Create a new alert/alarm
 @api.route('/alert_alarm', methods=['POST'])
