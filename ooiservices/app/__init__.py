@@ -85,6 +85,9 @@ def create_app(config_name):
     from ooiservices.app.redmine import redmine as redmine_blueprint
     app.register_blueprint(redmine_blueprint, url_prefix='/redmine')
 
+    from ooiservices.app.alfresco import alfresco as alfresco_blueprint
+    app.register_blueprint(alfresco_blueprint, url_prefix='/alfresco')
+
     # If debug is enabled add route for site-map
     if app.config['DEBUG']:
         app.add_url_rule('/site-map', 'site_map', site_map)
