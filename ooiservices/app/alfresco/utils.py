@@ -64,9 +64,8 @@ def make_alfresco_query(query):
     repo = make_alfresco_conn()
 
     # issue the query
-    normalized_query = query.replace('-', '-')
-    results = repo.query("select * from cmis:document where contains('%s')"
-        % normalized_query)
+    results = repo.query("select * from cmis:document where contains('\"%s\"')"
+        % query)
 
     return results
 
