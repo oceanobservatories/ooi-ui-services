@@ -21,7 +21,6 @@ __author__ = 'M@Campbell'
 
 import os
 from flask import Flask
-from flask.ext.mail import Mail, Message
 from celery import Celery
 
 '''
@@ -32,12 +31,10 @@ celery_app = Flask(__name__)
 
 # Celery configuration
 celery_app.config['CELERY_BROKER_URL'] = os.environ.get('REDISCLOUD_URL') or \
-        'redis://localhost:6379/0'
+    'redis://localhost:6379/0'
 celery_app.config['CELERY_RESULT_BACKEND'] = os.environ.get('REDISCLOUD_URL') or \
-        'redis://localhost:6379/0'
+    'redis://localhost:6379/0'
 
 # Initialize Celery
 celery = Celery(celery_app.name, broker=celery_app.config['CELERY_BROKER_URL'])
 celery.conf.update(celery_app.config)
-
-
