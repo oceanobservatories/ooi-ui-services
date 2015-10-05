@@ -8,6 +8,7 @@ __author__ = 'M@Campbell'
 import unittest
 import json
 import os
+from unittest import skipIf
 from base64 import b64encode
 from flask import url_for
 from ooiservices.app import create_app, db

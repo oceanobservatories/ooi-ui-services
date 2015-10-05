@@ -12,6 +12,7 @@ Created: 10/04/2015
 __author__ = 'M@Campbell'
 
 import unittest
+from unittest import skipIf
 import os
 from base64 import b64encode
 from ooiservices.app import create_app
