@@ -10,7 +10,7 @@ from ooiservices.app.main import api
 from ooiservices.app import db
 from authentication import auth
 from ooiservices.app.models import OperatorEvent, OperatorEventType, Watch, Organization, LogEntry
-from ooiservices.app.models import LogEntryComment
+from ooiservices.app.models import LogEntryComment,User
 from datetime import datetime
 from wtforms import ValidationError
 from sqlalchemy_searchable import search
@@ -207,12 +207,42 @@ def get_log_entries():
         offset = 0
 
     if 'organization_id' in request.args:
-        query = LogEntry.query.filter(LogEntry.organization_id == request.args['organization_id'],sa.not_(LogEntry.retired))
+        query = LogEntry.query\
+            .filter(LogEntry.organization_id == request.args['organization_id'])\
+                .filter(sa.not_(LogEntry.retired))
+
     else:
         query = LogEntry.query.filter(sa.not_(LogEntry.retired))
 
     if 'search' in request.args:
-        query = query.search(request.args['search'])
+        if request.args["search"]:
+            slist = []
+            clist=[]
+            for s in request.args["search"].split():
+                slist.append(sa.or_(sa.func.upper(LogEntry.entry_title).like("%" + s.upper() + "%")))
+                slist.append(sa.or_(sa.func.upper(LogEntry.entry_description).like("%" + s.upper() + "%")))
+                clist.append(sa.or_(sa.func.upper(LogEntryComment.comment).like("%" + s.upper() + "%")))
+
+            query=LogEntry.query\
+                .filter(sa.or_(*slist) | LogEntry.id.in_(LogEntryComment.query.with_entities("log_entry_id")\
+                                                         .filter(sa.or_(*clist))\
+                                                         .filter(LogEntryComment.retired == False)))\
+                    .filter (LogEntry.user_id.in_(User.query.with_entities("id")\
+                        .filter(sa.func.upper(User.first_name).in_(request.args["search"].upper().split()) | sa.func.upper(User.last_name).in_(request.args["search"].upper().split()))))\
+                            .filter(LogEntry.organization_id == request.args['organization_id'])\
+                                .filter(sa.not_(LogEntry.retired))
+
+            if query.count()==0:
+                query=LogEntry.query\
+                    .filter(sa.or_(*slist) | LogEntry.id.in_(LogEntryComment.query.with_entities("log_entry_id")\
+                                                             .filter(sa.or_(*clist))\
+                                                             .filter(LogEntryComment.retired == False)))\
+                        .filter(LogEntry.organization_id == request.args['organization_id'])\
+                            .filter(LogEntry.retired == False)
+
+    if 'daterange' in request.args and request.args["daterange"]:
+        rdates=request.args["daterange"].split('_')
+        query.whereclause.append(sa.between(LogEntry.entry_time,rdates[0] + " 00:00:00.000",rdates[1] + " 11:59:59.000"))
 
     log_entries = query.order_by(sa.desc(LogEntry.entry_time)).limit(limit).offset(offset).all()
 
@@ -350,5 +380,4 @@ def delete_log_entry_comment(id):
     comment.retired = True
     db.session.add(comment)
     db.session.commit()
-
     return jsonify(), 204

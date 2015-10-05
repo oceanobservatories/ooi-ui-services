@@ -230,13 +230,13 @@ class TestLogEntries(unittest.TestCase):
             self.assertEquals(response.status_code, 200)
 
         # GET /log_entry?search=Japanese
-        response = self.client.get('/log_entry?search=Japanese')
+        response = self.client.get('/log_entry?search=Japanese&organization_id=1')
         self.assertEquals(response.status_code, 200)
         entries = json.loads(response.data)
         self.assertEquals(len(entries['log_entries']), 1)
         
         # GET /log_entry?search=dragon
-        response = self.client.get('/log_entry?search=dragon')
+        response = self.client.get('/log_entry?search=dragon&organization_id=1')
         self.assertEquals(response.status_code, 200)
         entries = json.loads(response.data)
         self.assertEquals(len(entries['log_entries']), 1)
