@@ -28,6 +28,7 @@ def put_user(id):
     data = json.loads(request.data)
     scopes = data.get('scopes')
     active = data.get('active')
+    email_opt_in = data.get('email_opt_in')
     activating= User.query.get(id).active is False and active is True
     changed = False
     if scopes is not None:
@@ -39,6 +40,9 @@ def put_user(id):
         changed = True
         if activating is True:
             send_activate_email(data["email"])
+    if email_opt_in is not None:
+        user_account.email_opt_in = bool(email_opt_in)
+        changed = True
     if changed:
         db.session.add(user_account)
         db.session.commit()

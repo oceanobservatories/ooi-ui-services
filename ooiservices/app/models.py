@@ -1101,6 +1101,7 @@ class User(UserMixin, db.Model):
     phone_primary = db.Column(db.Text)
     phone_alternate = db.Column(db.Text)
     role = db.Column(db.Text)
+    email_opt_in = db.Column(db.Boolean, nullable=False, server_default=db.text("true"))
     organization_id = db.Column(db.ForeignKey(u'' + __schema__ + '.organizations.id'), nullable=False)
     scopes = db.relationship(u'UserScope', secondary=UserScopeLink.__table__)
     organization = db.relationship(u'Organization')
@@ -1125,7 +1126,8 @@ class User(UserMixin, db.Model):
             'role' : self.role,
             'organization_id' : self.organization_id,
             'scopes' : [s.scope_name for s in self.scopes],
-            'user_name' : self.user_name
+            'user_name' : self.user_name,
+            'email_opt_in' : self.email_opt_in
         }
         if self.organization:
             json_user['organization'] = self.organization.organization_name
@@ -1142,6 +1144,7 @@ class User(UserMixin, db.Model):
         last_name = json.get('last_name')
         role = json.get('role_name')
         organization_id = json.get('organization_id')
+        email_opt_in = json.get('email_opt_in')
 
         #Validate some of the field.
 
@@ -1159,12 +1162,13 @@ class User(UserMixin, db.Model):
                     first_name=first_name,
                     last_name=last_name,
                     organization_id=organization_id,
-                    role=role)
+                    role=role,
+                    email_opt_in=email_opt_in)
 
 
     @staticmethod
     def insert_user(username='admin', password=None, first_name='First', last_name='Last', email='FirstLast@somedomain.com', org_name='RPS ASA', phone_primary='8001234567'):
-        user = User(password=password, first_name=first_name, active=True)
+        user = User(password=password, first_name=first_name, active=True, email_opt_in=True)
         user.validate_username(username)
         user.validate_email(email)
         user.user_name = username

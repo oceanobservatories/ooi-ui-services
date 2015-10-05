@@ -40,9 +40,9 @@ def find_parameter_ids(mooring, platform, instrument, y_parameters, x_parameters
     units_mapping = {}
     for each in parameter_list:
         parameter_dict[each['particleKey']] = each['pdId']
-        all_units[each['particleKey']] = each['units']   
+        all_units[each['particleKey']] = each['units']
 
-    for each in x_parameters:        
+    for each in x_parameters:
         parameter_ids.append(str(parameter_dict[each]).strip())
         x_units.append(shorten_time_units(all_units[each]))
         units_mapping[each] = shorten_time_units(all_units[each])
@@ -52,7 +52,62 @@ def find_parameter_ids(mooring, platform, instrument, y_parameters, x_parameters
         y_units.append(shorten_time_units(all_units[each]))
         units_mapping[each] = shorten_time_units(all_units[each])
 
-    return parameter_ids, y_units, x_units,units_mapping
+    return parameter_ids, y_units, x_units, units_mapping
+
+
+def get_multistream_data(stream1, stream2, instrument1, instrument2, var1, var2):
+
+    from ooiservices.app.uframe.controller import split_stream_name, get_uframe_multi_stream_contents, validate_date_time
+    '''
+    get data from uframe
+    '''
+    mooring1, platform1, instrument1, stream_type1, stream1 = split_stream_name('_'.join([instrument1, stream1]))
+    mooring2, platform2, instrument2, stream_type2, stream2 = split_stream_name('_'.join([instrument2, stream2]))
+
+    parameter_ids1, y_units1, _, units_mapping1 = find_parameter_ids(mooring1, platform1, instrument1, [var1], [])
+    parameter_ids2, y_units2, _, units_mapping2 = find_parameter_ids(mooring2, platform2, instrument2, [var2], [])
+
+    units = units_mapping1.copy()
+    units.update(units_mapping2)
+
+    stream1_dict = {}
+    stream2_dict = {}
+    stream1_dict['refdes'] = '-'.join([mooring1, platform1, instrument1])  # 'CP05MOAS-GL340-03-CTDGVM000'
+    stream2_dict['refdes'] = '-'.join([mooring2, platform2, instrument2])  # 'CP05MOAS-GL340-02-FLORTM000'
+
+    stream1_dict['method'] = stream_type1
+    stream2_dict['method'] = stream_type2
+
+    stream1_dict['stream'] = stream1
+    stream2_dict['stream'] = stream2
+
+    stream1_dict['params'] = parameter_ids1[0]
+    stream2_dict['params'] = parameter_ids2[0]
+
+    try:
+        if 'startdate' in request.args and 'enddate' in request.args:
+            st_date = request.args['startdate']
+            ed_date = request.args['enddate']
+
+            ed_date = validate_date_time(st_date, ed_date)
+
+            # data, status_code = get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
+            data, status_code = get_uframe_multi_stream_contents(stream1_dict, stream2_dict, st_date, ed_date)
+
+            if status_code != 200:
+                raise Exception(data)
+            else:
+                return data, units
+        else:
+            message = 'Failed to make interpolated data plot: Need to include startdata and enddate'
+            current_app.logger.exception(message)
+            raise Exception(message)
+
+    except Exception as e:
+        message = 'Failed to make interpolated data plot. Error: ' + str(e.message)
+        current_app.logger.exception(message)
+        raise Exception(message)
+
 
 def get_simple_data(stream, instrument, yfields, xfields, include_time=True):
     from ooiservices.app.uframe.controller import split_stream_name, get_uframe_plot_contents_chunked, validate_date_time, to_bool_str
@@ -85,7 +140,6 @@ def get_simple_data(stream, instrument, yfields, xfields, include_time=True):
         message = 'Failed to make plot - received error on uframe request. Error: ' + str(e.message)
         current_app.logger.exception(message)
         raise Exception(message)
-
 
 
 def get_data(stream, instrument, yfields, xfields, include_time=True):
