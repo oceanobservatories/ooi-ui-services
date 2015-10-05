@@ -1168,7 +1168,7 @@ class User(UserMixin, db.Model):
 
     @staticmethod
     def insert_user(username='admin', password=None, first_name='First', last_name='Last', email='FirstLast@somedomain.com', org_name='RPS ASA', phone_primary='8001234567'):
-        user = User(password=password, first_name=first_name, active=True)
+        user = User(password=password, first_name=first_name, active=True, email_opt_in=True)
         user.validate_username(username)
         user.validate_email(email)
         user.user_name = username
