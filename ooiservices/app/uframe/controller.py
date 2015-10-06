@@ -93,8 +93,8 @@ def data_streams_in_instrument(instrument, parameters_dict, streams):
            instrument['platform_code'],
            instrument['mooring_code'],
            instrument['instrument_code'],
-           data_stream['method'].replace("_","-"),
-           data_stream['stream'].replace("_","-"),
+           data_stream['method'],
+           data_stream['stream'],
            instrument['reference_designator'],
            data_stream['beginTime'],
            data_stream['endTime'],
@@ -118,11 +118,6 @@ def split_stream_name(ui_stream_name):
     print ui_stream_name
     mooring, platform, instrument = ui_stream_name.split('-', 2)
     instrument, stream_type, stream = instrument.split('_', 2)
-
-
-    stream_type = stream_type.replace("-","_")
-    stream = stream.replace("-","_")
-
     return (mooring, platform, instrument, stream_type, stream)
 
 
@@ -678,11 +673,10 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
         elif dpa_flag == '1' and len(parameter_ids)>0:
             query = '?beginDT=%s&endDT=%s&limit=%s&execDPA=true&parameters=%s' % (start_time, end_time, current_app.config['DATA_POINTS'], ','.join(map(str, parameter_ids)))
 
-        GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=plot&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream_type ,stream]), '-'.join([start_time, end_time]))
+        GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=plot&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
 
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-
-        url = "/".join([UFRAME_DATA, mooring, platform, instrument, stream_type, stream + query ])
+        url = "/".join([UFRAME_DATA, mooring, platform, instrument, stream_type, stream + query])
 
         current_app.logger.debug("***:" + url)
 
