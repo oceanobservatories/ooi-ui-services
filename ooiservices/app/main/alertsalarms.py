@@ -2,18 +2,6 @@
 """
 Alerts & Alarms Endpoints
 
-Routes:
- GET    /alert_alarm
- GET    /alert_alarm/<string:id>
- POST   /alert_alarm
- POST   /ack_alert_alarm
- GET    /alert_alarm_definition
- GET    /alert_alarm_definition/<string:id>
- POST   /alert_alarm_definition
- PUT    /alert_alarm_definition/<int:id>
- DELETE /delete_alert_alarm_definition/<int:id>
- GET    /ok_to_delete_alert_alarm_definition/<int:id>
-
 """
 __author__ = 'James Case'
 
@@ -594,9 +582,12 @@ def update_alert_alarm_def(id):
         alert_alarm_def.stream = data['stream']
         alert_alarm_def.escalate_on = data['escalate_on']
         alert_alarm_def.escalate_boundary = data['escalate_boundary']
+
+        '''
         if 'retired' in data:
             if data['retired'] is not None:
                 alert_alarm_def.retired = data['retired']
+        '''
         try:
             db.session.add(alert_alarm_def)
             db.session.commit()
@@ -694,7 +685,7 @@ def ok_to_delete_alert_alarm_definition(id):
 # Private Methods for routes
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def get_alert_alarm_definition(id):
-    """Get alert or alarm definition with user_event_notification; return json.
+    """ Get alert or alarm definition with user_event_notification; return json.
     """
     try:
         alert_alarm_def = SystemEventDefinition.query.filter_by(id=id).first()
@@ -1419,12 +1410,12 @@ def uframe_get_instrument_metadata(ref):
         return bad_request('Failed to compile instrument metadata by stream. ' + str(err.message))
 
 
-# Clear instances for alert/alarm definition
-@api.route('/clear_alert_alarm/<int:definition_id>', methods=['GET'])
+# Acknowledge instances for alert/alarm definition
+@api.route('/ack_alert_alarm_definition/<int:definition_id>', methods=['GET'])
 @auth.login_required
 @scope_required(u'user_admin')
-def clear_alert_alarm(definition_id):
-    """ Clear all alert(s) or an alarm(s) associated with the definition identified by definition_id.
+def ack_alert_alarm_definition(definition_id):
+    """ Acknowledge all alert(s) or an alarm(s) associated with the definition identified by definition_id.
     """
     try:
         # Get definition identified in request
@@ -1471,6 +1462,155 @@ def clear_alert_alarm(definition_id):
                 db.session.rollback()
                 return bad_request('IntegrityError during auto-acknowledgment of %s by %s.' %
                                    (instance.event_type, str(ack_by)))
+
+        result = 'ok'
+        return jsonify( {'result' : result }), 200
+
+    except Exception as err:
+        message = 'Insufficient data, or bad data format. %s' % str(err.message)
+        current_app.logger.info(message)
+        return conflict(message)
+
+#------------------------------------------------
+#------------------------------------------------
+# Resolve instance of alert/alarm
+@api.route('/resolve_alert_alarm/<int:id>', methods=['PUT'])
+@auth.login_required
+@scope_required(u'user_admin')
+def resolve_alert_alarm(id):
+    """ Resolve an alert or an alarm.
+    """
+    try:
+        # Input request data must provide resolved comment field; regardless of event_type.
+        if request.data is None:
+            message = 'Failed to provide request data to resolve alert or alarm.'
+            return bad_request(message)
+
+        data = json.loads(request.data)
+        if 'resolved_comment' not in data:
+            message = 'Failed to provide resolved comment in request data; unable to resolve alert or alarm.'
+            return bad_request(message)
+        resolved_comment = data['resolved_comment']
+
+        # Get instance identified in request
+        instance = SystemEvent.query.get(id)
+        if instance is None:
+            message = 'Failed to retrieve SystemEvent for id provided: %d' % id
+            return bad_request(message)
+
+        # Instance must be acknowledged to be resolved
+        if not instance.acknowledged:
+            message = 'Cannot clear %s unless it is acknowledged. (id: %d)' % (instance.event_type, id)
+            return bad_request(message)
+
+        # To resolve an alarm instance, the resolved_comment must be provided and not None.
+        if instance.event_type == 'alarm':
+            if resolved_comment is None:
+                message = 'Resolved comment in request data is empty of None; unable to resolve alert or alarm.'
+                return bad_request(message)
+
+        # Determine current user who is auto clearing alert or alarm instances (written to log)
+        assigned_user = User.query.get(g.current_user.id)
+        if assigned_user is not None:
+            name = assigned_user.first_name + ' ' + assigned_user.last_name
+        else:
+            message = 'Unknown/unassigned user with g.current_user.id: %s' % str(g.current_user.id)
+            return bad_request(message)
+
+        # Resolve alert or alarm instance
+        instance.resolved_comment = '[' + name + '] ' + resolved_comment
+        instance.resolved = True
+        try:
+            db.session.add(instance)
+            db.session.commit()
+        except:
+            db.session.rollback()
+            return bad_request('IntegrityError during resolve of %s.' % instance.event_type)
+
+        result = 'ok'
+        return jsonify( {'result' : result }), 200
+
+    except Exception as err:
+        message = 'Insufficient data, or bad data format. %s' % str(err.message)
+        current_app.logger.info(message)
+        return conflict(message)
+
+
+# Resolve all instances for alert/alarm definition
+@api.route('/resolve_alert_alarm_definition/<int:definition_id>', methods=['PUT'])
+@auth.login_required
+@scope_required(u'user_admin')
+def resolve_alert_alarm_definition(definition_id):
+    """ Resolve alert alarm definition. ('Clear')
+
+    To 'Clear' an alert or alarm definition:
+        Definition must not be active and
+        All instances must be previously acknowledged.
+        And, for alarms, resolved_comment shall not be None.
+    """
+    try:
+        # Input request data must provide resolved comment field; regardless of event_type.
+        if request.data is None:
+            message = 'Failed to provide request data to resolve alert or alarm.'
+            current_app.logger.info(message)
+            return bad_request(message)
+
+        data = json.loads(request.data)
+        if 'resolved_comment' not in data:
+            message = 'Failed to provide resolved comment in request data; unable to resolve alert or alarm.'
+            current_app.logger.info(message)
+            return bad_request(message)
+        resolved_comment = data['resolved_comment']
+
+        # Get definition identified in request
+        definition = SystemEventDefinition.query.get(definition_id)
+        if definition is None:
+            message = 'Failed to retrieve SystemEventDefinition for id provided: %d' % definition_id
+            current_app.logger.info(message)
+            return bad_request(message)
+
+        if definition.event_type is 'alarm:':
+            if resolved_comment is None:
+                message = 'Resolved comment must not be None for this alarm definition (id: %d).'  % definition.id
+                current_app.logger.info(message)
+                current_app.logger.info('[resolve_alert_alarm_definition] %s ' % message)
+                return bad_request(message)
+
+        # Verify definition is not in active state; otherwise error
+        if definition.active == True:
+            message = '%s definition must be disabled before clearing any associated instances.' % definition.event_type
+            current_app.logger.info(message)
+            return bad_request(message)
+
+        # Determine current user who is auto clearing alert or alarm instances (written to log)
+        assigned_user = User.query.get(g.current_user.id)
+        if assigned_user is not None:
+            name = assigned_user.first_name + ' ' + assigned_user.last_name
+        else:
+            message = 'Unknown/unassigned user with g.current_user.id: %s' % str(g.current_user.id)
+            current_app.logger.info(message)
+            return bad_request(message)
+
+        # Get all instances for this definition which have not been resolved.
+        ack_instances = SystemEvent.query.filter_by(system_event_definition_id=definition.id, acknowledged=False).first()
+        if ack_instances is not None:
+            message = 'To resolve %s definition, all associated instances must be acknowledged.' % definition.event_type
+            current_app.logger.info(message)
+            return bad_request(message)
+
+        # Get all instances for this definition which have not been resolved.
+        instances = SystemEvent.query.filter_by(system_event_definition_id=definition.id, resolved=False).all()
+        for instance in instances:
+            instance.resolved_comment = '[' + name + '] ' + resolved_comment
+            instance.resolved = True
+            try:
+                db.session.add(instance)
+                db.session.commit()
+            except:
+                db.session.rollback()
+                message = 'IntegrityError during resolve of %s.' % instance.event_type
+                current_app.logger.info(message)
+                return bad_request(message)
 
         result = 'ok'
         return jsonify( {'result' : result }), 200

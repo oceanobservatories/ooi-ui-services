@@ -365,10 +365,12 @@ class AlertAlarmTestCase(unittest.TestCase):
         new_definition_id = alert_definition['id']
 
         # test PUT to update definition (use BAD data on update)
-        response = self.client.get(url_for('main.get_alert_alarm_def', id=new_definition_id), content_type=content_type,headers=headers)
+        response = self.client.get(url_for('main.get_alert_alarm_def', id=new_definition_id), content_type=content_type,
+                                   headers=headers)
         self.assertEquals(response.status_code, 200)
 
-        response = self.client.get(url_for('main.get_alerts_alarms', type='alert'), content_type=content_type,headers=headers)
+        response = self.client.get(url_for('main.get_alerts_alarms', type='alert'), content_type=content_type,
+                                   headers=headers)
         self.assertEquals(response.status_code, 200)
         alerts = json.loads(response.data)
         self.assertTrue(len(alerts) > 0)
@@ -378,10 +380,12 @@ class AlertAlarmTestCase(unittest.TestCase):
         alert_definition['description'] = update_description
         alert_definition['uframe_filter_id'] = uframe_id
         good_stuff = json.dumps(alert_definition)
-        response = self.client.put(url_for('main.update_alert_alarm_def', id=new_definition_id),headers=headers, data=good_stuff)
+        response = self.client.put(url_for('main.update_alert_alarm_def', id=new_definition_id),headers=headers,
+                                   data=good_stuff)
         self.assertEquals(response.status_code, 201)
 
-        response = self.client.get(url_for('main.get_alert_alarm_def', id=new_definition_id),content_type=content_type, headers=headers)
+        response = self.client.get(url_for('main.get_alert_alarm_def', id=new_definition_id),
+                                   content_type=content_type, headers=headers)
         self.assertEquals(response.status_code, 200)
         data = json.loads(response.data)
         self.assertTrue('description' in data)
@@ -391,14 +395,16 @@ class AlertAlarmTestCase(unittest.TestCase):
         alert_definition['uframe_filter_id'] = uframe_id
         alert_definition['event_type'] = 'not_alert_or_alarm'
         stuff = json.dumps(alert_definition)
-        response = self.client.put(url_for('main.update_alert_alarm_def', id=new_definition_id), headers=headers, data=stuff)
+        response = self.client.put(url_for('main.update_alert_alarm_def', id=new_definition_id), headers=headers,
+                                   data=stuff)
         self.assertEquals(response.status_code, 409)
 
         # PUT invalid (nonexistent) uframe_filter_id == 37, generate 400
         alert_definition['uframe_filter_id'] = 379379379
         alert_definition['event_type'] = 'alarm'
         stuff = json.dumps(alert_definition)
-        response = self.client.put(url_for('main.update_alert_alarm_def', id=new_definition_id), headers=headers, data=stuff)
+        response = self.client.put(url_for('main.update_alert_alarm_def', id=new_definition_id), headers=headers,
+                                   data=stuff)
         self.assertEquals(response.status_code, 400)
 
         # PUT data=None, generate 409
@@ -406,7 +412,8 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertEquals(response.status_code, 400)
 
         # GET invalid id=9876
-        response = self.client.get(url_for('main.get_alert_alarm_def', id=9876), content_type=content_type, headers=headers)
+        response = self.client.get(url_for('main.get_alert_alarm_def', id=9876), content_type=content_type,
+                                   headers=headers)
         self.assertEquals(response.status_code, 400)
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -423,7 +430,8 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue('alert_alarm_definition' in data)
         definitions = data['alert_alarm_definition']
         for definition in definitions:
-            if definition['uframe_filter_id'] > 3 and definition['uframe_filter_id'] != 2228:      # not retiring filterId 1 or 2 right now
+            # not retiring filterId 1 or 2 right now
+            if definition['uframe_filter_id'] > 3 and definition['uframe_filter_id'] != 2228:
                 url = url_for('main.delete_alert_alarm_definition', id=definition['id'])
                 response = self.client.delete(url, headers=headers)
                 self.assertEquals(response.status_code, 200)
@@ -433,7 +441,8 @@ class AlertAlarmTestCase(unittest.TestCase):
         alert_definition['description'] = update_description
         del alert_definition['uframe_filter_id']
         good_stuff = json.dumps(alert_definition)
-        response = self.client.put(url_for('main.update_alert_alarm_def', id=new_definition_id),headers=headers, data=good_stuff)
+        response = self.client.put(url_for('main.update_alert_alarm_def', id=new_definition_id),headers=headers,
+                                   data=good_stuff)
         self.assertEquals(response.status_code, 409)
 
         # Delete all alertfilter ids (where id > 3)
@@ -461,7 +470,8 @@ class AlertAlarmTestCase(unittest.TestCase):
         tmp = definition.to_json()
         tmp['description'] = None
         good_stuff = json.dumps(tmp)
-        response = self.client.put(url_for('main.update_alert_alarm_def', id=definition.id),headers=headers, data=good_stuff)
+        response = self.client.put(url_for('main.update_alert_alarm_def', id=definition.id),headers=headers,
+                                   data=good_stuff)
         self.assertEquals(response.status_code, 201)
 
         # PUT using definition from above, high_value = None and low_value = None
@@ -470,7 +480,8 @@ class AlertAlarmTestCase(unittest.TestCase):
         tmp['high_value'] = None
         tmp['low_value'] = None
         good_stuff = json.dumps(tmp)
-        response = self.client.put(url_for('main.update_alert_alarm_def', id=definition.id),headers=headers, data=good_stuff)
+        response = self.client.put(url_for('main.update_alert_alarm_def', id=definition.id),headers=headers,
+                                   data=good_stuff)
         self.assertEquals(response.status_code, 409)
 
         # PUT using definition from above, reference_designator = None
@@ -480,7 +491,8 @@ class AlertAlarmTestCase(unittest.TestCase):
         tmp['low_value'] = 5.0
         tmp['reference_designator'] = None
         good_stuff = json.dumps(tmp)
-        response = self.client.put(url_for('main.update_alert_alarm_def', id=definition.id),headers=headers, data=good_stuff)
+        response = self.client.put(url_for('main.update_alert_alarm_def', id=definition.id),headers=headers,
+                                   data=good_stuff)
         self.assertEquals(response.status_code, 409)
 
         # PUT using definition from above, reference_designator = None
@@ -490,7 +502,8 @@ class AlertAlarmTestCase(unittest.TestCase):
         tmp['low_value'] = 5.0
         tmp['reference_designator'] = rd[0:5]
         good_stuff = json.dumps(tmp)
-        response = self.client.put(url_for('main.update_alert_alarm_def', id=definition.id),headers=headers, data=good_stuff)
+        response = self.client.put(url_for('main.update_alert_alarm_def', id=definition.id),headers=headers,
+                                   data=good_stuff)
         self.assertEquals(response.status_code, 409)
 
     def test_create_alert_alarm_negative(self):
@@ -502,7 +515,8 @@ class AlertAlarmTestCase(unittest.TestCase):
         # Create alarm definition
         rd = 'CE01ISSP-XX099-01-CTDPFJ999'
         definition = self.create_alert_alarm_definition(rd, 'alarm', 2, 1)
-        response = self.client.get(url_for('main.get_alert_alarm_def', id=1), content_type=content_type,headers=headers)
+        response = self.client.get(url_for('main.get_alert_alarm_def', id=1), content_type=content_type,
+                                   headers=headers)
         self.assertEquals(response.status_code, 200)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -860,7 +874,8 @@ class AlertAlarmTestCase(unittest.TestCase):
         # Create alert
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         reference_designator = "CE01ISSP-XX099-01-CTDPFJ999"
-        test_alarm = self.create_alert_alarm_definition(reference_designator, event_type='alarm', uframe_id=2, severity=1)
+        test_alarm = self.create_alert_alarm_definition(reference_designator,
+                                                        event_type='alarm', uframe_id=2, severity=1)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # GET alarm definition by SystemEventDefinition id
@@ -1087,8 +1102,10 @@ class AlertAlarmTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         reference_designator = "CE01ISSP-XX099-01-CTDPFJ999"
         # Create an alert and an alarm
-        test_alarm = self.create_alert_alarm_definition(reference_designator, event_type='alarm', uframe_id=2, severity=1)
-        test_alert = self.create_alert_alarm_definition(reference_designator, event_type='alert', uframe_id=-1, severity=1)
+        test_alarm = self.create_alert_alarm_definition(reference_designator, event_type='alarm',
+                                                        uframe_id=2, severity=1)
+        test_alert = self.create_alert_alarm_definition(reference_designator, event_type='alert',
+                                                        uframe_id=-1, severity=1)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # GET alarm definition by SystemEventDefinition id
@@ -1441,7 +1458,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # POST Update to description field; this also performs uframe alertfilter update
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        data['retired'] = True
+        #data['retired'] = True
         data['uframe_filter_id'] = alert_alarm_def_uframe_id
         data['id'] = definition_id
 
@@ -1456,6 +1473,16 @@ class AlertAlarmTestCase(unittest.TestCase):
         response = self.client.put(url_for('main.update_alert_alarm_def', id=definition_id),
                                    headers=headers, data=good_stuff)
         self.assertEquals(response.status_code, 201)
+
+        # Force 'retired' to True
+        defin = SystemEventDefinition.query.get(definition_id)
+        self.assertTrue(defin is not None)
+        defin.retired = True
+        try:
+            db.session.add(defin)
+            db.session.commit()
+        except:
+            print '\n Failed to force retire on SystemEventDefinition.'
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # GET updated alert/alarm definition by SystemEventDefinition id
@@ -1976,14 +2003,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue(response.data is not None)
         definition = json.loads(response.data)
         self.assertTrue(definition is not None)
-        '''
-        self.assertTrue('id' in definition)
-        self.assertTrue('uframe_filter_id' in definition)
-        self.assertTrue('description' in definition)
-        definition_id = definition['id']
-        alert_alarm_def_uframe_id = definition['uframe_filter_id']
-        list_alertfilter_ids.append(alert_alarm_def_uframe_id)
-        '''
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # (Negative) Create some alarm definitions - event_type is invalid
@@ -2004,14 +2023,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue(response.data is not None)
         definition = json.loads(response.data)
         self.assertTrue(definition is not None)
-        '''
-        self.assertTrue('id' in definition)
-        self.assertTrue('uframe_filter_id' in definition)
-        self.assertTrue('description' in definition)
-        definition_id = definition['id']
-        alert_alarm_def_uframe_id = definition['uframe_filter_id']
-        list_alertfilter_ids.append(alert_alarm_def_uframe_id)
-        '''
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # (Negative) Create some alarm definitions - operator is None
@@ -2032,13 +2043,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue(response.data is not None)
         definition = json.loads(response.data)
         self.assertTrue(definition is not None)
-        '''
-        self.assertTrue('uframe_filter_id' in definition)
-        self.assertTrue('description' in definition)
-        definition_id = definition['id']
-        alert_alarm_def_uframe_id = definition['uframe_filter_id']
-        list_alertfilter_ids.append(alert_alarm_def_uframe_id)
-        '''
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # (Negative) Create some alarm definitions - operator is invalid
@@ -3379,7 +3383,8 @@ class AlertAlarmTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # GET alert definition by SystemEventDefinition id
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        response = self.client.get(url_for('main.get_alert_alarm_def', id=alert_definition_id), content_type=content_type)
+        response = self.client.get(url_for('main.get_alert_alarm_def', id=alert_definition_id),
+                                   content_type=content_type)
         self.assertEquals(response.status_code, 200)
         response_data = json.loads(response.data)
         self.assertTrue(response_data is not None)
@@ -3528,7 +3533,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         response_data = json.loads(response.data)
         self.assertTrue(response_data is not None)
 
-    def test_clear_alert_alarm(self):
+    def test_resolve_alert_alarm_definition(self):
         """
         Test clear_alert_alarm route.
 
@@ -3539,7 +3544,7 @@ class AlertAlarmTestCase(unittest.TestCase):
             - one when escalate_on is reached and
             - one when escalate_boundary is reached
 
-        Exercise clear_alert_alarm route with positive and negative tests..
+        Exercise clear_alert_alarm_definition route with positive and negative tests..
 
         Cleanup: remove alertfilter created in uframe
 
@@ -3582,7 +3587,8 @@ class AlertAlarmTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # GET alert definition by SystemEventDefinition id
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        response = self.client.get(url_for('main.get_alert_alarm_def', id=alert_definition_id), content_type=content_type)
+        response = self.client.get(url_for('main.get_alert_alarm_def', id=alert_definition_id),
+                                   content_type=content_type)
         self.assertEquals(response.status_code, 200)
         response_data = json.loads(response.data)
         self.assertTrue(response_data is not None)
@@ -3662,7 +3668,8 @@ class AlertAlarmTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # (Positive) Get alert definition and verify active == True; get definition_id
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        response = self.client.get(url_for('main.get_alert_alarm_def', id=alert_definition_id), content_type=content_type)
+        response = self.client.get(url_for('main.get_alert_alarm_def', id=alert_definition_id),
+                                   content_type=content_type)
         self.assertEquals(response.status_code, 200)
         response_data = json.loads(response.data)
         self.assertTrue(response_data is not None)
@@ -3688,12 +3695,15 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue(len(response_data['alert_alarm']) > 0)
         self.assertEquals(len(response_data['alert_alarm']), number_of_alerts_created)
 
+
+        #print '\n Step 1............'
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # (Negative) Issue clear for instances associated with this definition; fail since definition is active.
         # error: 'alert definition must be disabled before clearing any associated instances.'
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        response = self.client.get(url_for('main.clear_alert_alarm', definition_id=definition_id),
-                                   headers=headers, content_type=content_type)
+        data = {'resolved_comment': 'foo for a comment.'}
+        response = self.client.put(url_for('main.resolve_alert_alarm_definition', definition_id=definition_id),
+                                   headers=headers, content_type=content_type, data=json.dumps(data))
         self.assertEquals(response.status_code, 400)
         response_data = json.loads(response.data)
         self.assertTrue(response_data is not None)
@@ -3702,12 +3712,10 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue(response_data['error'] is not None)
         self.assertTrue(response_data['message'] is not None)
 
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # (Positive) Modify definition so active == False; verify change by getting and inspecting active
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        #print '\n Step 2............'
         z['active'] = False
-        data = json.dumps(z)
-        response = self.client.put(url_for('main.update_alert_alarm_def', id=definition_id),headers=headers, data=data)
+        response = self.client.put(url_for('main.update_alert_alarm_def', id=definition_id),
+                                   headers=headers, data=json.dumps(z))
         self.assertEquals(response.status_code, 201)
         response = self.client.get(url_for('main.get_alert_alarm_def', id=definition_id), content_type=content_type)
         self.assertEquals(response.status_code, 200)
@@ -3716,10 +3724,15 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue('active' in response_data)
         self.assertTrue(not response_data['active'])
 
+        tmp = SystemEventDefinition.query.get(definition_id)
+        if debug: print '\n tmp.active: ', tmp.active
+
+
+        #print '\n Step 3............'
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # (Positive) Issue clear for instances associated with this definition; expect success
+        # (Positive) Issue clear instances associated with this definition; expect success
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        response = self.client.get(url_for('main.clear_alert_alarm', definition_id=definition_id),
+        response = self.client.get(url_for('main.ack_alert_alarm_definition', definition_id=definition_id),
                                    headers=headers, content_type=content_type)
         self.assertEquals(response.status_code, 200)
         response_data = json.loads(response.data)
@@ -3729,6 +3742,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue(response_data['result'] is not None)
         self.assertEquals(response_data['result'], 'ok')
 
+        #print '\n Step 4............'
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # (Negative) Get instances associated with this definition; verify they have been (auto) acknowledged.
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3742,6 +3756,35 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue('alert_alarm' in response_data)
         if debug: print '\n Number of unacknowledged events for this definition: ', len(response_data['alert_alarm'])
         self.assertEquals(len(response_data['alert_alarm']), 0)
+
+        #print '\n Step 5............'
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Positive) Issue clear instances associated with this definition; expect success
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        data = {'resolved_comment': 'Some resolution has been completed.'}
+        response = self.client.put(url_for('main.resolve_alert_alarm_definition', definition_id=definition_id),
+                                   headers=headers, content_type=content_type, data=json.dumps(data))
+        self.assertEquals(response.status_code, 200)
+        response_data = json.loads(response.data)
+        self.assertTrue(response_data is not None)
+        self.assertTrue('result' in response_data)
+        self.assertTrue(response_data['result'] is not None)
+        self.assertEquals(response_data['result'], 'ok')
+
+        #print '\n Step 6............'
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Negative) Get instances associated with this definition; verify they have been (auto) acknowledged.
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        url = url_for('main.get_alerts_alarms', id=definition_id)
+        url += '&acknowledged=true'
+        if debug: print '\n url: ', url
+        response = self.client.get(url, content_type=content_type)
+        self.assertEquals(response.status_code, 200)
+        response_data = json.loads(response.data)
+        self.assertTrue(response_data is not None)
+        self.assertTrue('alert_alarm' in response_data)
+        if debug: print '\n Number of unacknowledged events for this definition: ', len(response_data['alert_alarm'])
+        self.assertEquals(len(response_data['alert_alarm']), number_of_alerts_created)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Delete all uframe alertfilter ids created during test case (id > 3)
