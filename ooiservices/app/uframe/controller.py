@@ -93,8 +93,8 @@ def data_streams_in_instrument(instrument, parameters_dict, streams):
            instrument['platform_code'],
            instrument['mooring_code'],
            instrument['instrument_code'],
-           data_stream['method'],
-           data_stream['stream'],
+           data_stream['method'].replace("_","-"),
+           data_stream['stream'].replace("_","-"),
            instrument['reference_designator'],
            data_stream['beginTime'],
            data_stream['endTime'],
@@ -118,6 +118,11 @@ def split_stream_name(ui_stream_name):
     print ui_stream_name
     mooring, platform, instrument = ui_stream_name.split('-', 2)
     instrument, stream_type, stream = instrument.split('_', 2)
+
+
+    stream_type = stream_type.replace("-","_")
+    stream = stream.replace("-","_")
+
     return (mooring, platform, instrument, stream_type, stream)
 
 
@@ -673,7 +678,7 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
         elif dpa_flag == '1' and len(parameter_ids)>0:
             query = '?beginDT=%s&endDT=%s&limit=%s&execDPA=true&parameters=%s' % (start_time, end_time, current_app.config['DATA_POINTS'], ','.join(map(str, parameter_ids)))
 
-        GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=plot&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
+        GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=plot&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream_type ,stream]), '-'.join([start_time, end_time]))
 
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
         url = "/".join([UFRAME_DATA, mooring, platform, instrument, stream_type, stream + query])
@@ -823,10 +828,12 @@ def get_csv(stream, ref, start_time, end_time, dpa_flag):
         pass
 
     uframe_url, timeout, timeout_read = get_uframe_info()
+    user = request.args.get('user', '')
+    email = request.args.get('email', '')
     if dpa_flag == '0':
-        query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
+        query = '?beginDT=%s&endDT=%s&user=%s&email=%s' % (start_time, end_time, user, email)
     else:
-        query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
+        query = '?beginDT=%s&endDT=%s&execDPA=true&user=%s&email=%s' % (start_time, end_time, user, email)
     query += '&format=application/csv'
 
     url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
@@ -852,11 +859,12 @@ def get_json(stream, ref, start_time, end_time, dpa_flag, provenance, annotation
         pass
 
     uframe_url, timeout, timeout_read = get_uframe_info()
-
+    user = request.args.get('user', '')
+    email = request.args.get('email', '')
     if dpa_flag == '0':
-        query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s' % (start_time, end_time, provenance, annotations)
+        query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s&user=%s&email=%s' % (start_time, end_time, provenance, annotations, user, email)
     else:
-        query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s&execDPA=true' % (start_time, end_time, provenance, annotations)
+        query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s&execDPA=true&user=%s&email=%s' % (start_time, end_time, provenance, annotations, user, email)
     query += '&format=application/json'
 
     url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
@@ -879,11 +887,13 @@ def get_netcdf(stream, ref, start_time, end_time, dpa_flag, provenance, annotati
         pass
 
     uframe_url, timeout, timeout_read = get_uframe_info()
+    user = request.args.get('user', '')
+    email = request.args.get('email', '')
     # url = '/'.join([uframe_url, mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag])
     if dpa_flag == '0':
-        query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s' % (start_time, end_time, provenance, annotations)
+        query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s&user=%s&email=%s' % (start_time, end_time, provenance, annotations, user, email)
     else:
-        query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s&execDPA=true' % (start_time, end_time, provenance, annotations)
+        query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s&execDPA=true&user=%s&email=%s' % (start_time, end_time, provenance, annotations, user, email)
     query += '&format=application/netcdf'
     uframe_url, timeout, timeout_read = get_uframe_info()
     url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
