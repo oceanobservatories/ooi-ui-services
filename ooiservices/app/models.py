@@ -814,6 +814,8 @@ class SystemEventDefinition(db.Model):
             raise
 
     def to_json(self):
+        if '_' in self.stream:
+            self.stream = self.stream.replace('_', '-')
         json_system_event_definition = {
             'id' : self.id,
             'uframe_filter_id': self.uframe_filter_id,

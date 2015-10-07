@@ -1394,7 +1394,7 @@ def uframe_get_instrument_metadata(ref):
             streams_for_method = streams[str(method)]
             tmp[method] = {}
             for stream in streams_for_method:
-                key = "_".join([str(method), str(stream)])
+                key = "_".join([str(method), str(stream).replace('_', '-')])
                 list_of_parameters = []
                 for param in parameters:
                     if str(param['stream']) == str(stream):
