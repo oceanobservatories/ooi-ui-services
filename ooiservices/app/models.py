@@ -814,6 +814,9 @@ class SystemEventDefinition(db.Model):
             raise
 
     def to_json(self):
+        tmp = self.stream
+        if '_' in self.stream:
+            tmp = self.stream.replace('_', '-')
         json_system_event_definition = {
             'id' : self.id,
             'uframe_filter_id': self.uframe_filter_id,
@@ -831,7 +834,7 @@ class SystemEventDefinition(db.Model):
             'high_value': self.high_value,
             'low_value': self.low_value,
             'severity': self.severity,
-            'stream': self.stream,
+            'stream': tmp, #self.stream,
             'retired': self.retired,
             'escalate_on': self.escalate_on,
             'escalate_boundary': self.escalate_boundary,

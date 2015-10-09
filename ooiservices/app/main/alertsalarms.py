@@ -438,6 +438,9 @@ def create_alert_alarm_def():
         create_definition_has_required_fields(data)
         user_event_notification_has_required_fields(data)
 
+        tmp = data['stream']
+        data['stream'] = tmp.replace('-','_')
+
         # Persist alert_alarm_def in uframe using POST
         uframe_filter_id = create_uframe_alertfilter(data)
         if uframe_filter_id is None:
@@ -542,6 +545,9 @@ def update_alert_alarm_def(id):
             message = 'uframe_filter_id not in alertfilter update request.data'
             raise Exception(message)
 
+        tmp = data['stream']
+        data['stream'] = tmp.replace('-','_')
+
         #user_event_notification = None
         user_event_notification_id = None
         update_user_event_notification = False
@@ -582,12 +588,6 @@ def update_alert_alarm_def(id):
         alert_alarm_def.stream = data['stream']
         alert_alarm_def.escalate_on = data['escalate_on']
         alert_alarm_def.escalate_boundary = data['escalate_boundary']
-
-        '''
-        if 'retired' in data:
-            if data['retired'] is not None:
-                alert_alarm_def.retired = data['retired']
-        '''
         try:
             db.session.add(alert_alarm_def)
             db.session.commit()
@@ -1175,6 +1175,9 @@ def create_uframe_alertfilter_data(data):
         if description is None:                     # uframe will fail if None is provided for description
             description = ''
 
+        if '-' in stream:
+            stream.replace('-', '_')
+
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Validate reference_designator length and set additional field (subsite, node and sensor)
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1394,7 +1397,8 @@ def uframe_get_instrument_metadata(ref):
             streams_for_method = streams[str(method)]
             tmp[method] = {}
             for stream in streams_for_method:
-                key = "_".join([str(method), str(stream)])
+                key = "_".join([str(method), str(stream).replace('_', '-')])
+                #key = "_".join([str(method), str(stream)])
                 list_of_parameters = []
                 for param in parameters:
                     if str(param['stream']) == str(stream):

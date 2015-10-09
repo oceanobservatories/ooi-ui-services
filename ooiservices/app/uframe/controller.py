@@ -811,12 +811,14 @@ def validate_date_time(start_time, end_time):
     '''
     return end_time
 
-
 @auth.login_required
 @api.route('/get_csv/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>', methods=['GET'])
 def get_csv(stream, ref, start_time, end_time, dpa_flag):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
+
+    stream_type = stream_type.replace('-','_')
+    stream = stream.replace('-','_')
 
     # figures out if its in a date time range
     end_time = validate_date_time(start_time, end_time)
@@ -849,6 +851,9 @@ def get_json(stream, ref, start_time, end_time, dpa_flag, provenance, annotation
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
 
+    stream_type = stream_type.replace('-','_')
+    stream = stream.replace('-','_')
+
     # figures out if its in a date time range
     end_time = validate_date_time(start_time, end_time)
 
@@ -879,6 +884,9 @@ def get_json(stream, ref, start_time, end_time, dpa_flag, provenance, annotation
 def get_netcdf(stream, ref, start_time, end_time, dpa_flag, provenance, annotations):
     mooring, platform, instrument = ref.split('-', 2)
     stream_type, stream = stream.split('_', 1)
+
+    stream_type = stream_type.replace('-','_')
+    stream = stream.replace('-','_')
 
     try:
         GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_netcdf&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
