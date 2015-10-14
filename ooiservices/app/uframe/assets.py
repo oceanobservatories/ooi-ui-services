@@ -21,7 +21,7 @@ import sys
 
 #Default number of times to retry the connection:
 requests.adapters.DEFAULT_RETRIES = 2
-CACHE_TIMEOUT = 86400
+CACHE_TIMEOUT = 172800
 ### ---------------------------------------------------------------------------
 ### BEGIN Assets CRUD methods.
 ### ---------------------------------------------------------------------------
@@ -126,11 +126,12 @@ def get_assets(use_min=False,normal_data=False):
                 cache.set('asset_list', data, timeout=CACHE_TIMEOUT)
 
         try:
+            sort_by = ''
             if request.args.get('sort') and request.args.get('sort') != "":
                 sort_by = request.args.get('sort')
-                if not(sort_by):
-                    sort_by = 'ref_des'
-                data = sorted(data, key=itemgetter(sort_by))
+            else:
+                sort_by = 'ref_des'
+            data = sorted(data, key=itemgetter(sort_by))
 
         except Exception as e:
             print e
@@ -416,3 +417,36 @@ def delete_asset(id):
 ### ---------------------------------------------------------------------------
 ### END Assets CRUD methods.
 ### ---------------------------------------------------------------------------
+
+@cache.memoize(timeout=3600)
+@api.route('/asset/classes', methods=['GET'])
+def get_asset_classes_list():
+    '''
+    Lists all the class types available from uFrame.
+    '''
+    data = []
+    uframe_obj = UFrameAssetsCollection()
+    temp_list = uframe_obj.to_json()
+    for row in temp_list:
+        if row['class'] is not None:
+            data.append(row['class'])
+    data = _remove_duplicates(data)
+    return jsonify({ 'class_types' : data })
+
+@cache.memoize(timeout=3600)
+@api.route('/asset/serials', methods=['GET'])
+def get_asset_serials():
+    '''
+    Lists all the class types available from uFrame.
+    '''
+    data = []
+    manuf_info = []
+    uframe_obj = UFrameAssetsCollection()
+    temp_list = uframe_obj.to_json()
+    for row in temp_list:
+        if row['manufactureInfo'] is not None:
+            manuf_info.append(row['manufactureInfo'])
+            for serial in manuf_info:
+                data.append(serial['serialNumber'])
+    data = _remove_duplicates(data)
+    return jsonify({ 'serial_numbers' : data })
