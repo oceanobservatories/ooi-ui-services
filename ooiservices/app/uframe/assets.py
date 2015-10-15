@@ -9,7 +9,7 @@ from ooiservices.app.uframe.assetController import convert_water_depth
 from ooiservices.app.uframe.assetController import associate_events
 from ooiservices.app.uframe.assetController import _uframe_url
 from ooiservices.app.uframe.assetController import _uframe_headers
-from ooiservices.app.main.routes import get_display_name_by_rd, get_long_display_name_by_rd
+from ooiservices.app.main.routes import get_display_name_by_rd, get_long_display_name_by_rd, get_assembly_by_rd
 from ooiservices.app import cache
 from operator import itemgetter
 from copy import deepcopy
@@ -117,6 +117,8 @@ def get_assets(use_min=False,normal_data=False):
                         row['assetInfo']['longName'] = get_long_display_name_by_rd(ref_des)
                     else:
                         row['assetInfo']['name'] = ""
+                    row['assetInfo']['array'] = get_display_name_by_rd(ref_des[:2])
+                    row['assetInfo']['assembly'] = get_assembly_by_rd(ref_des)
 
 
                 except AttributeError, TypeError:
@@ -305,6 +307,10 @@ def get_asset(id):
                 elif (row['assetInfo'].has_key('name') and len(ref_des) > 0):
                     row['assetInfo']['name'] = row['assetInfo']['name'] or get_display_name_by_rd(ref_des)
                     row['assetInfo']['longName'] = get_long_display_name_by_rd(ref_des)
+                else:
+                    row['assetInfo']['name'] = ""
+                row['assetInfo']['array'] = get_display_name_by_rd(ref_des[:2])
+                row['assetInfo']['assembly'] = get_assembly_by_rd(ref_des)
 
         return jsonify(**data)
 
