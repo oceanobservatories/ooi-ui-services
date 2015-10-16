@@ -11,12 +11,155 @@ from ooiservices.app.models import Array
 from ooiservices.app.main.routes import get_display_name_by_rd
 import json, os
 import requests
+import datetime
 from urllib import urlencode
 from ooiservices.app.main.errors import bad_request
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.decorators import scope_required
 import datetime as dt
 from ooiservices.app.models import PlatformDeployment
+
+MOCK_MISSIONS =[{'mission_id': 0,
+                'runs':[{'date':'2015-10-15 15:35:46.247735',"status":"error"},{'date':'2015-10-16 15:35:46.247735',"status":"good"}],
+                'status':'active',
+                'state':'running',
+                'reference_designator':'RS01SUM1-MJ01B-05-CAMDSB103',
+                'created_by':"system",
+                'created_date':'2015-10-16 15:35:46.247735',
+                'name': 'HydrateRidgeSummit_Camera_Standard',
+                'desc': 'SAMPLE: Uses the Digital Still Camera at Hydrate Ridge to '
+                        'take pictures on a scheduled time according to the OOI Sampling Policy',
+                'version': '1-00',
+                'drivers': ['RS01SUM1-MJ01B-05-CAMDSB103'],
+                'schedule': {'hour': '0,6,12,18'},
+                'error_policy': {'type': 'abort'},
+                'debug': True,
+                'mission': {
+                    'type': 'block',
+                    'sequence': [
+                        {'execute': 'RS01SUM1-MJ01B-05-CAMDSB103', 'command': 'start_autosample'},
+                        {'sleep': 2.5},
+                        {'set': 'RS01SUM1-MJ01B-05-CAMDSB103', 'parameter': 'p1', 'value': 5},
+                        {'type': 'block', 'sequence': [{'sleep': 2.5}]},
+                    ]
+                },
+                'blocks': [
+                    {'type': 'block', 'label': 'capture', 'sequence': []},
+                ],
+            }]
+
+MISSION_FIELDS = ['reference_designator','created_by','name','desc','version','drivers','schedule','error_policy','debug','mission','blocks']
+MISSION_RESERVED_FIELD = ['mission_id','state','status','created_date']
+# - - - - - - - - - - - - - - - - - - - - - - - -
+# C2 mission routes...
+# - - - - - - - - - - - - - - - - - - - - - - - -
+
+def get_missions():
+    '''
+    get the list of missions...MOCK
+    '''
+    return MOCK_MISSIONS
+
+def get_new_mission_id():
+    '''
+    MOCK
+    '''
+    return len(get_missions())+1
+
+def add_mission_to_store(mission):
+    '''
+    MOCK
+    '''
+    MOCK_MISSIONS.append(mission)  
+
+def remove_mission_from_store(mission_id):
+    '''
+    MOCK
+    '''    
+    for i,mission in enumerate(MOCK_MISSIONS):
+        print i, mission
+        if mission['mission_id'] == mission_id:            
+            del MOCK_MISSIONS[i]
+            return True   
+
+    return False
+
+def add_mission_entry(data):
+    '''
+    adds a mision to the existing list
+    '''
+    entry = {}   
+    if data is not None:
+        valid = True
+
+        for field in MISSION_RESERVED_FIELD:
+            if field in data:
+                valid = False
+                break
+
+        if valid:
+            for field in MISSION_FIELDS:
+                if field not in data:
+                    valid = False
+                else:
+                    entry[field] = data[field]   
+
+            if valid:
+                entry['status']        = 'inactive'                         #status of the jobs (good,warning,error)
+                entry['state']         = 'pending'                          #running,pending
+                entry['runs']          = []                                 #array of jobs as run
+                entry['created_date']  = str(datetime.datetime.utcnow())    #datetime
+                entry['mission_id']    = get_new_mission_id()               #id of the mission
+                add_mission_to_store(entry)
+                return True
+
+    return False
+
+
+def remove_mission_entry(remove_mission_id):
+    return remove_mission_from_store(remove_mission_id)
+
+@api.route('/c2/missions', methods=['GET'])
+def get_missions_route():
+    return jsonify(missions=get_missions())
+
+@api.route('/c2/missions', methods=['POST'])
+def add_mission():
+    try:
+        if request.data:            
+            request_data = json.loads(request.data)            
+            add_mission_entry(request_data)   
+            return jsonify(msg='done'),201           
+    except:
+        pass
+    return jsonify(msg='error'),400  
+
+@api.route('/c2/missions', methods=['DELETE'])
+def del_mission():
+    try:
+        if request.data:            
+            request_data = json.loads(request.data)            
+            remove_mission_entry(request_data)            
+            return jsonify(msg='done'),201 
+    except:
+        pass
+    return jsonify(msg='error'),400  
+
+'''
+@app.route('/missions/<mission_id>', methods=['GET'])
+def get_mission(mission_id):
+
+@app.route('/missions/<mission_id>', methods=['DELETE'])
+def del_mission(mission_id):
+
+@app.route('/missions/<mission_id>/activate')
+def activate_mission(mission_id):
+
+
+@app.route('/missions/<mission_id>/deactivate')
+def deactivate_mission(mission_id):
+
+'''
 
 # - - - - - - - - - - - - - - - - - - - - - - - -
 # C2 array routes
