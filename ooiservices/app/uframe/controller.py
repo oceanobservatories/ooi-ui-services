@@ -281,6 +281,36 @@ def streams_list():
         return jsonify(streams=retval)
 
 
+@api.route('/antelope_acoustic/list', methods=['GET'])
+def get_acoustic_datalist():
+    '''
+    Get all available acoustic data sets
+    '''
+    with open('ooiservices/app/json/sampleAntelopeResponse.json') as data_file:
+        data = json.load(data_file)
+    COSMO_CONSTANT = 2208988800
+    for ind, record in enumerate(data):
+        data[ind]['filename'] = record['downloadUrl'].split("/")[-1]
+        data[ind]['startTime'] = data[ind]['startTime'] - COSMO_CONSTANT
+        data[ind]['endTime'] = data[ind]['endTime'] - COSMO_CONSTANT
+
+    if request.args.get('startAt'):
+        start_at = int(request.args.get('startAt'))
+        print 'SHIT'
+        print start_at
+        count = int(request.args.get('count'))
+        total = int(len(data))
+        retval_slice = data[start_at:(start_at + count)]
+        result = jsonify({"count": count,
+                          "total": total,
+                          "startAt": start_at,
+                          "results": retval_slice})
+        return result
+
+    else:
+        return jsonify(results=data)
+
+
 #@auth.login_required
 @api.route('/get_glider_tracks')
 def get_uframe_glider_track():
