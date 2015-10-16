@@ -286,8 +286,10 @@ def get_acoustic_datalist():
     '''
     Get all available acoustic data sets
     '''
-    with open('ooiservices/app/json/sampleAntelopeResponse.json') as data_file:
-        data = json.load(data_file)
+    antelope_url = current_app.config['UFRAME_ANTELOPE_URL']
+    r = requests.get(antelope_url)
+    data = r.json()
+
     COSMO_CONSTANT = 2208988800
     for ind, record in enumerate(data):
         data[ind]['filename'] = record['downloadUrl'].split("/")[-1]
