@@ -296,8 +296,6 @@ def get_acoustic_datalist():
 
     if request.args.get('startAt'):
         start_at = int(request.args.get('startAt'))
-        print 'SHIT'
-        print start_at
         count = int(request.args.get('count'))
         total = int(len(data))
         retval_slice = data[start_at:(start_at + count)]
