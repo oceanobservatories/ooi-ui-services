@@ -19,6 +19,7 @@ from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployme
 from ooiservices.app.main.c2 import get_missions as me_get_missions 
 from ooiservices.app.main.c2 import add_mission_entry as me_add_mission
 from ooiservices.app.main.c2 import remove_mission_entry as me_remove_mission
+from ooiservices.app.main.c2 import update_mission_entry as me_update_mission
 
 '''
 These tests...test the services for mission executive...MOCK!
@@ -220,3 +221,53 @@ class CommandAndControlMissionTestCase(unittest.TestCase):
         mission_list = me_get_missions() 
         for mission in mission_list:
             self.assertFalse(mission['mission_id'] == mission_id)
+
+
+    def test_update_mission_id(self):  
+        '''
+            test the ability to update a field in the mission, should update a mission field in the store
+        '''      
+        mission_list = me_get_missions()        
+        self.assertTrue(len(mission_list) > 0)
+        f_len = len(mission_list)
+
+        sel_mission = mission_list[len(mission_list)-1]
+        cur_desc = sel_mission['desc']
+        mission_id = sel_mission['mission_id']
+
+        new_desc = 'new description here'
+        ret_val = me_update_mission(mission_id,'desc',new_desc)
+        self.assertTrue(ret_val)
+
+        #check its not there anymore
+        mission_list = me_get_missions() 
+        for mission in mission_list:
+            #get the one we modified
+            if mission['mission_id'] == mission_id:
+                self.assertTrue(mission['desc'] == new_desc)
+
+    def test_update_mission_id(self):  
+        '''
+            test the ability update a reserved field in the mission, should NOT update
+        '''      
+        mission_list = me_get_missions()        
+        self.assertTrue(len(mission_list) > 0)
+        f_len = len(mission_list)
+
+        sel_mission = mission_list[len(mission_list)-1]
+        cur_desc = sel_mission['desc']
+        mission_id = sel_mission['mission_id']
+
+        new_value = 1000
+        ret_val = me_update_mission(mission_id,'mission_id',new_value)
+        self.assertFalse(ret_val)
+
+        #check its not there anymore
+        mission_list = me_get_missions() 
+        for mission in mission_list:
+            #get the one we modified
+            if mission['mission_id'] == mission_id:
+                self.assertTrue(mission['mission_id'] != new_value)
+                
+
+

@@ -76,10 +76,20 @@ def remove_mission_from_store(mission_id):
     '''
     MOCK
     '''    
-    for i,mission in enumerate(MOCK_MISSIONS):
-        print i, mission
+    for i,mission in enumerate(MOCK_MISSIONS):       
         if mission['mission_id'] == mission_id:            
             del MOCK_MISSIONS[i]
+            return True   
+
+    return False
+
+def update_mission_in_store(mission_id,field,new_value):
+    '''
+    MOCK
+    '''    
+    for i,mission in enumerate(MOCK_MISSIONS):    
+        if mission['mission_id'] == mission_id:            
+            MOCK_MISSIONS[i][field] = new_value
             return True   
 
     return False
@@ -119,6 +129,12 @@ def add_mission_entry(data):
 def remove_mission_entry(remove_mission_id):
     return remove_mission_from_store(remove_mission_id)
 
+def update_mission_entry(mission_id,field,value):
+    if field not in MISSION_RESERVED_FIELD:
+        return update_mission_in_store(mission_i,field,value)
+    else:
+        return False
+
 @api.route('/c2/missions', methods=['GET'])
 def get_missions_route():
     return jsonify(missions=get_missions())
@@ -133,6 +149,18 @@ def add_mission():
     except:
         pass
     return jsonify(msg='error'),400  
+
+@api.route('/c2/missions', methods=['PUT'])
+def update_mission():
+    try:
+        if request.data:            
+            request_data = json.loads(request.data)            
+            update_mission_entry(request_data)   
+            return jsonify(msg='done'),201           
+    except:
+        pass
+    return jsonify(msg='error'),400  
+
 
 @api.route('/c2/missions', methods=['DELETE'])
 def del_mission():
