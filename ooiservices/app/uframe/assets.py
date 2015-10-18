@@ -196,6 +196,8 @@ def get_assets(use_min=False,normal_data=False):
                             ven_subset.append(item)
                         elif subset.lower() in str(item['assetInfo']['type']).lower():
                             ven_subset.append(item)
+                        elif subset.lower() in str(item['assetInfo']['array']).lower():
+                            ven_subset.append(item)
                         elif subset.lower() in str(item['events']).lower():
                             ven_subset.append(item)
                         elif subset.lower() in str(item['metaData']).lower():
@@ -209,6 +211,8 @@ def get_assets(use_min=False,normal_data=False):
                             return_list.append(item)
                         elif subset.lower() in str(item['assetInfo']['type']).lower():
                             return_list.append(item)
+                        elif subset.lower() in str(item['assetInfo']['array']).lower():
+                            ven_subset.append(item)
                         elif subset.lower() in str(item['events']).lower():
                             return_list.append(item)
                         elif subset.lower() in str(item['metaData']).lower():

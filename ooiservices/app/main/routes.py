@@ -123,10 +123,15 @@ def get_display_name_by_rd(reference_designator):
 
     if len(reference_designator) == 2:
         array = Array.query.filter_by(array_code=reference_designator).first()
-        return array.display_name
+        if array is not None:
+            return array.display_name
+        else:
+            return None
     else:
+        array_name = ""
         array = Array.query.filter_by(array_code=reference_designator[:2]).first()
-        array_name = array.display_name
+        if array is not None:
+            array_name = array.display_name
 
     if len(reference_designator) <= 14:
         platform_deployment_filtered = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first()
@@ -156,10 +161,15 @@ def get_display_name_by_rd(reference_designator):
 def get_long_display_name_by_rd(reference_designator):
     if len(reference_designator) == 2:
         array = Array.query.filter_by(array_code=reference_designator).first()
-        return array.display_name
+        if array is not None:
+            return array.display_name
+        else:
+            return None
     else:
+        array_name = ""
         array = Array.query.filter_by(array_code=reference_designator[:2]).first()
-        array_name = array.display_name
+        if array is not None:
+            array_name = array.display_name
 
     if len(reference_designator) <= 14:
         platform_deployment_filtered = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first()
@@ -183,7 +193,7 @@ def get_long_display_name_by_rd(reference_designator):
         display_name = ' - '.join([platform_display_name, instrument_name])
     else:
         return None
-    return display_name.replace('Mobile', '').replace(array_name+' ', '')
+    return display_name
 
 
 def get_platform_display_name_by_rd(reference_designator):
