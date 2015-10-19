@@ -197,13 +197,21 @@ def get_long_display_name_by_rd(reference_designator):
 
 
 def get_platform_display_name_by_rd(reference_designator):
-    platform_deployment = PlatformDeployment.query.filter_by(reference_designator=reference_designator[:14]).first()
-    if platform_deployment is None:
+    platform = Platformname.query.filter_by(reference_designator=reference_designator[:14]).first()
+    if platform is None:
         return None
-    platform_display_name = platform_deployment.proper_display_name
+    platform_display_name = platform.platform
 
     return platform_display_name
 
+
+def get_site_display_name_by_rd(reference_designator):
+    site = Platformname.query.filter_by(reference_designator=reference_designator[:8]).first()
+    if site is None:
+        return None
+    site_display_name = site.site
+
+    return site_display_name
 
 def get_parameter_name_by_parameter(stream_parameter_name):
     streamParameter = StreamParameter.query.filter_by(stream_parameter_name = stream_parameter_name).first()
