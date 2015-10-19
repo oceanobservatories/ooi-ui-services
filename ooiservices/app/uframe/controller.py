@@ -7,7 +7,8 @@ from flask import jsonify, request, current_app, make_response, Response
 from ooiservices.app import cache
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.models import PlatformDeployment
-from ooiservices.app.main.routes import get_display_name_by_rd, get_long_display_name_by_rd, get_platform_display_name_by_rd
+from ooiservices.app.main.routes import get_display_name_by_rd, get_long_display_name_by_rd,\
+    get_platform_display_name_by_rd, get_parameter_name_by_parameter as get_param_names
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.main.errors import internal_server_error
 # data imports
@@ -170,7 +171,11 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
     data_dict['variables_shape'] = variables_shape
     data_dict['parameter_id'] = parameter_id
 
+    display_names = []
+    for variable in variables:
+        display_names.append(get_param_names(variable))
 
+    data_dict['paramter_display_name'] = display_names
     return data_dict
 
 
