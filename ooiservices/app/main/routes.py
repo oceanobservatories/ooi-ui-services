@@ -146,6 +146,16 @@ def get_platform_display_name_by_rd(reference_designator):
     platform_display_name = platform_deployment.proper_display_name
 
     return platform_display_name
+
+def get_parameter_name_by_parameter(stream_parameter_name):
+    streamParameter = StreamParameter.query.filter_by(stream_parameter_name = stream_parameter_name).first()
+    if streamParameter is None or streamParameter is []:
+        return None
+
+    stream_display_name = streamParameter.standard_name
+
+    return stream_display_name
+
 @api.route('/display_name', methods=['GET'])
 def get_display_name():
     # 'CE01ISSM-SBD17'
