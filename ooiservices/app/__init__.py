@@ -88,6 +88,9 @@ def create_app(config_name):
     from ooiservices.app.alfresco import alfresco as alfresco_blueprint
     app.register_blueprint(alfresco_blueprint, url_prefix='/alfresco')
 
+    from ooiservices.app.m2m import m2m as m2m_blueprint
+    app.register_blueprint(m2m_blueprint, url_prefix='/m2m')
+
     # If debug is enabled add route for site-map
     if app.config['DEBUG']:
         app.add_url_rule('/site-map', 'site_map', site_map)
