@@ -90,7 +90,7 @@ class TOCTestCase(unittest.TestCase):
         #Create a sample data set
         #TODO : This will be replaced by an endpoint
 
-        stream_name = Stream(stream_name='mopak_o_dcl_accel_unprocessed')
+        stream_name = Stream(stream='mopak_o_dcl_accel_unprocessed')
 
         db.session.add(stream_name)
         db.session.commit()

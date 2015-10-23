@@ -106,7 +106,7 @@ class UserTestCase(unittest.TestCase):
         content_type = 'application/json'
 
         #Create a sample data set
-        stream_name = Stream(stream_name='mopak_o_dcl_accel_unprocessed')
+        stream_name = Stream(stream='mopak_o_dcl_accel_unprocessed')
         db.session.add(stream_name)
         db.session.commit()
 

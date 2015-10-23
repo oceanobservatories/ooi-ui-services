@@ -58,7 +58,7 @@ class ModelTestCase(unittest.TestCase):
             'start_date' : None
         }
         self.assertEquals(instrument_deployment.to_json() , should_be)
-
+    @skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
     def test_stream(self):
         #Test the json in the object
         stream = Stream()
