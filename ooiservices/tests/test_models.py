@@ -11,6 +11,7 @@ from ooiservices.app import create_app, db
 from ooiservices.app.models import Array, InstrumentDeployment, PlatformDeployment, Stream, \
 StreamParameter, User, OperatorEvent, OperatorEventType, Organization
 
+from unittest import skipIf
 '''
 These tests are additional to the normal testing performed by coverage; each of
 these tests are to validate model logic outside of db management.
