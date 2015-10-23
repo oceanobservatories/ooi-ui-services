@@ -737,18 +737,25 @@ class Stream(db.Model):
     __table_args__ = {u'schema': __schema__}
 
     id = db.Column(db.Integer, primary_key=True)
-    stream_name = db.Column(db.Text)
-    instrument_id = db.Column(db.ForeignKey(u'' + __schema__ + '.instruments.id'))
-    description = db.Column(db.Text)
+    stream = db.Column(db.Text)
+    delivery_method = db.Column(db.Text)
+    data_type = db.Column(db.Text)
+    content = db.Column(db.Text)
+    stream_description = db.Column(db.Text)
+    concatenated_name = db.Column(db.Text)
 
+    instrument_id = db.Column(db.ForeignKey(u'' + __schema__ + '.instruments.id'))
     instrument = db.relationship(u'Instrument')
 
     def to_json(self):
         json_stream = {
             'id' : self.id,
-            'stream_name' : self.stream_name,
-            'instrument_id' : self.instrument_id,
-            'description' : self.description
+            'stream' : self.stream,
+            'delivery_method': self.delivery_method,
+            'data_type': self.data_type,
+            'content': self.content,
+            'stream_description': self.stream_description,
+            'concatenated_name': self.concatenated_name
         }
         return json_stream
 
