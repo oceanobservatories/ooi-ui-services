@@ -166,6 +166,8 @@ def deploy(password, bulkload):
     if bulkload:
         with open('db/ooiui_schema_data.sql') as f:
             psql('ooiuidev', _in=f)
+        with open('db/ooiui_params_streams_data.sql') as h:
+            psql('ooiuidev', _in=h)
         app.logger.info('Bulk test data loaded.')
 
     # migrate database to latest revision

@@ -11,6 +11,8 @@ from ooiservices.app import create_app, db
 from ooiservices.app.models import Array, InstrumentDeployment, PlatformDeployment, Stream, \
 StreamParameter, User, OperatorEvent, OperatorEventType, Organization
 
+from unittest import skipIf
+import os
 '''
 These tests are additional to the normal testing performed by coverage; each of
 these tests are to validate model logic outside of db management.
@@ -59,6 +61,7 @@ class ModelTestCase(unittest.TestCase):
         }
         self.assertEquals(instrument_deployment.to_json() , should_be)
 
+    @skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
     def test_stream(self):
         #Test the json in the object
         stream = Stream()

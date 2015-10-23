@@ -86,24 +86,6 @@ class TOCTestCase(unittest.TestCase):
 
         self.assertTrue(response.status_code == 200)
 
-    def test_stream(self):
-        #Create a sample data set
-        #TODO : This will be replaced by an endpoint
-
-        stream_name = Stream(stream_name='mopak_o_dcl_accel_unprocessed')
-
-        db.session.add(stream_name)
-        db.session.commit()
-
-        response = self.client.get(url_for('main.get_streams'), content_type = \
-        'application/json')
-
-        self.assertTrue(response.status_code == 200)
-
-        response = self.client.get(url_for('main.get_stream', \
-        id='mopak_o_dcl_accel_unprocessed'), content_type = 'application/json')
-
-        self.assertTrue(response.status_code == 200)
 
     def test_parameter(self):
         #Create a sample data set

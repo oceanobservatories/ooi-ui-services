@@ -301,36 +301,3 @@ def get_asset_types():
                 data.append(a_t['type'])
     data = _remove_duplicates(data)
     return jsonify({ 'asset_types' : data })
-
-@cache.memoize(timeout=3600)
-@api.route('/asset/classes', methods=['GET'])
-def get_asset_classes_list():
-    '''
-    Lists all the class types available from uFrame.
-    '''
-    data = []
-    uframe_obj = uFrameAssetCollection()
-    temp_list = uframe_obj.to_json()
-    for row in temp_list:
-        if row['@class'] is not None:
-            data.append(row['@class'])
-    data = _remove_duplicates(data)
-    return jsonify({ 'class_types' : data })
-
-@cache.memoize(timeout=3600)
-@api.route('/asset/serials', methods=['GET'])
-def get_asset_serials():
-    '''
-    Lists all the class types available from uFrame.
-    '''
-    data = []
-    manuf_info = []
-    uframe_obj = uFrameAssetCollection()
-    temp_list = uframe_obj.to_json()
-    for row in temp_list:
-        if row['manufactureInfo'] is not None:
-            manuf_info.append(row['manufactureInfo'])
-            for serial in manuf_info:
-                data.append(serial['serialNumber'])
-    data = _remove_duplicates(data)
-    return jsonify({ 'serial_numbers' : data })

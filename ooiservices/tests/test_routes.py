@@ -100,23 +100,6 @@ class UserTestCase(unittest.TestCase):
         self.assertTrue(response.status_code == 200)
 
 
-    # Test [GET] /streams  - 'main.get_streams'
-    def test_stream(self):
-
-        content_type = 'application/json'
-
-        #Create a sample data set
-        stream_name = Stream(stream_name='mopak_o_dcl_accel_unprocessed')
-        db.session.add(stream_name)
-        db.session.commit()
-
-        response = self.client.get(url_for('main.get_streams'), content_type=content_type)
-        self.assertTrue(response.status_code == 200)
-
-        response = self.client.get(url_for('main.get_stream', id='mopak_o_dcl_accel_unprocessed'),
-                                   content_type=content_type)
-        self.assertTrue(response.status_code == 200)
-
     # Test [GET] /parameters - 'main.get_parameters'
     def test_get_parameters(self):
         '''
