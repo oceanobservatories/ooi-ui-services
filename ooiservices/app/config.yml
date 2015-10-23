@@ -25,7 +25,7 @@ COMMON: &common
     UFRAME_ANNOTATION_URL : 'http://localhost:12580'
     UFRAME_ALERTS_URL:      'http://localhost:12577'
     UFRAME_INST_URL:        'http://localhost:12572'
-    UFRAME_ANTELOPE_URL:    'https://murmuring-sea-3348.herokuapp.com'
+    UFRAME_ANTELOPE_URL:    'http://uft21.ooi.rutgers.edu:12582/data/list/antelope/'
     UFRAME_ANNOTATION_BASE: '/annotations'
     UFRAME_URL_BASE:        '/sensor/inv'
     UFRAME_TOC:             '/sensor/inv/toc'
