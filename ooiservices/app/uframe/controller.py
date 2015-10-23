@@ -301,6 +301,20 @@ def get_acoustic_datalist():
         data[ind]['startTime'] = data[ind]['startTime'] - COSMO_CONSTANT
         data[ind]['endTime'] = data[ind]['endTime'] - COSMO_CONSTANT
 
+    try:
+        is_reverse = False
+        if request.args.get('sort') and request.args.get('sort') != "":
+            sort_by = request.args.get('sort')
+            if request.args.get('order') and request.args.get('order') != "":
+                order = request.args.get('order')
+                if order == 'reverse':
+                    is_reverse = True
+        else:
+            sort_by = 'endTime'
+        data = sorted(data, key=itemgetter(sort_by), reverse=is_reverse)
+    except (TypeError, KeyError):
+        raise
+
     if request.args.get('startAt'):
         start_at = int(request.args.get('startAt'))
         count = int(request.args.get('count'))
@@ -316,7 +330,7 @@ def get_acoustic_datalist():
         return jsonify(results=data)
 
 
-#@auth.login_required
+# @auth.login_required
 @api.route('/get_glider_tracks')
 def get_uframe_glider_track():
     '''
