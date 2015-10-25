@@ -302,14 +302,12 @@ class CommandAndControlTestCase(unittest.TestCase):
         http://localhost:4000/c2/array/CP/current_status_display
         http://localhost:4000/c2/array/CP/history
         http://localhost:4000/c2/array/CP/status_display
-        http://localhost:4000/c2/array/CP/mission_display
 
         # c2 platform routes:
         http://localhost:4000/c2/platform/CP02PMCO-WFP01/abstract
         http://localhost:4000/c2/platform/CP02PMCO-WFP01/current_status_display
         http://localhost:4000/c2/platform/CP02PMCO-WFP01/history
         http://localhost:4000/c2/platform/CP02PMCO-WFP01/status_display
-        http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission_display
         http://localhost:4000/c2/platform/CP02PMCO-WFP01/commands
 
         # c2 instrument routes:
@@ -318,23 +316,11 @@ class CommandAndControlTestCase(unittest.TestCase):
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/commands
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/history
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/status_display
-        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/mission_display
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/parad_k_stc_imodem_instrument/fields
 
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-03-CTDPFK000/commands
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-02-DOFSTK000/dofst_k_wfp_metadata/fields
 
-        # c2 mission control (platform and instrument)
-        [Platform] Mission
-        http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission_selections
-        http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission_selection/mission4
-        return mission_plan  {"mission_plan": ["name: Mission 4"]}
-
-        [Instrument] Mission
-        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/mission_selections
-        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/mission_selection/mission4
-        http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission_selection/mission_does_not_exist
-        return mission_plan {"mission_plan": []}
         '''
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Create a sample data set:
@@ -535,19 +521,16 @@ class CommandAndControlTestCase(unittest.TestCase):
         http://localhost:4000/c2/array/CE/abstract
         http://localhost:4000/c2/array/CE/current_status_display
         http://localhost:4000/c2/array/CE/history
-        http://localhost:4000/c2/array/CE/mission_display
 
         Array:  GP
         http://localhost:4000/c2/array/GP/abstract
         http://localhost:4000/c2/array/GP/current_status_display
         http://localhost:4000/c2/array/GP/history
-        http://localhost:4000/c2/array/GP/mission_display
 
         Array:  CP
         http://localhost:4000/c2/array/CP/abstract
         http://localhost:4000/c2/array/CP/current_status_display
         http://localhost:4000/c2/array/CP/history
-        http://localhost:4000/c2/array/CP/mission_display
 
         '''
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -633,12 +616,6 @@ class CommandAndControlTestCase(unittest.TestCase):
             response = self.client.get(url,content_type=content_type, headers=headers)
             self.assertEquals(response.status_code, 200)
 
-            # http://localhost:4000/c2/array/CP/mission_display
-            url = url_for('main.c2_get_array_mission_display', array_code=array_code)
-            if verbose: print root+url
-            response = self.client.get(url,content_type=content_type, headers=headers)
-            self.assertEquals(response.status_code, 200)
-
         if verbose: print '\n'
 
     def test_c2_array_routes_negative(self):
@@ -653,13 +630,11 @@ class CommandAndControlTestCase(unittest.TestCase):
             http://localhost:4000/c2/array//abstract
             http://localhost:4000/c2/array//current_status_display
             http://localhost:4000/c2/array//history
-            http://localhost:4000/c2/array//mission_display
 
         Following tests should generate bad_request (400), with consistent error message:
             http://localhost:4000/c2/array/no_such_array/abstract
             http://localhost:4000/c2/array/no_such_array/current_status_display
             http://localhost:4000/c2/array/no_such_array/history
-            http://localhost:4000/c2/array/no_such_array/mission_display
         All tests returning bad_request (400) shall have following error:
             {
               "error": "bad request",
@@ -765,12 +740,6 @@ class CommandAndControlTestCase(unittest.TestCase):
         response = self.client.get(url, content_type=content_type, headers=headers)
         self.assertTrue(response.status_code == 404)
 
-        # http://localhost:4000/c2/array/CP/mission_display
-        url = url_for('main.c2_get_array_mission_display', array_code=array_code)
-        if verbose: print root+url
-        response = self.client.get(url, content_type=content_type, headers=headers)
-        self.assertTrue(response.status_code == 404)
-
         # Bad array_code
         array_code='no_such_array'
         url = url_for('main.c2_get_array_abstract', array_code=array_code)
@@ -799,15 +768,6 @@ class CommandAndControlTestCase(unittest.TestCase):
         self.assertTrue('message' in data)
         self.assertEquals(data['message'], error_text)
 
-        # http://localhost:4000/c2/array/no_such_array/mission_display
-        url = url_for('main.c2_get_array_mission_display', array_code=array_code)
-        if verbose: print root+url
-        response = self.client.get(url, content_type=content_type, headers=headers)
-        self.assertTrue(response.status_code == 400)
-        data = json.loads(response.data)
-        self.assertTrue('message' in data)
-        self.assertEquals(data['message'], error_text)
-
         if verbose: print '\n'
 
     def test_c2_platform_routes(self):
@@ -822,45 +782,35 @@ class CommandAndControlTestCase(unittest.TestCase):
         http://localhost:4000/c2/platform/CP02PMCO-WFP01/current_status_display
         http://localhost:4000/c2/platform/CP02PMCO-WFP01/ports_display
         http://localhost:4000/c2/platform/CP02PMCO-WFP01/history
-        http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission_display
         http://localhost:4000/c2/platform/CP02PMCO-WFP01/commands
-        http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission/instruments_list
 
         Platform:  CP02PMCO-SBS01
         http://localhost:4000/c2/platform/CP02PMCO-SBS01/abstract
         http://localhost:4000/c2/platform/CP02PMCO-SBS01/current_status_display
         http://localhost:4000/c2/platform/CP02PMCO-SBS01/ports_display
         http://localhost:4000/c2/platform/CP02PMCO-SBS01/history
-        http://localhost:4000/c2/platform/CP02PMCO-SBS01/mission_display
         http://localhost:4000/c2/platform/CP02PMCO-SBS01/commands
-        http://localhost:4000/c2/platform/CP02PMCO-SBS01/mission/instruments_list
 
         Platform:  CP02PMUI-RII01
         http://localhost:4000/c2/platform/CP02PMUI-RII01/abstract
         http://localhost:4000/c2/platform/CP02PMUI-RII01/current_status_display
         http://localhost:4000/c2/platform/CP02PMUI-RII01/ports_display
         http://localhost:4000/c2/platform/CP02PMUI-RII01/history
-        http://localhost:4000/c2/platform/CP02PMUI-RII01/mission_display
         http://localhost:4000/c2/platform/CP02PMUI-RII01/commands
-        http://localhost:4000/c2/platform/CP02PMUI-RII01/mission/instruments_list
 
         Platform:  CP02PMCI-WFP01
         http://localhost:4000/c2/platform/CP02PMCI-WFP01/abstract
         http://localhost:4000/c2/platform/CP02PMCI-WFP01/current_status_display
         http://localhost:4000/c2/platform/CP02PMCI-WFP01/ports_display
         http://localhost:4000/c2/platform/CP02PMCI-WFP01/history
-        http://localhost:4000/c2/platform/CP02PMCI-WFP01/mission_display
         http://localhost:4000/c2/platform/CP02PMCI-WFP01/commands
-        http://localhost:4000/c2/platform/CP02PMCI-WFP01/mission/instruments_list
 
         Manually testing RS:
         http://localhost:4000/c2/platform/RS03ASHS-ID03A/abstract
         http://localhost:4000/c2/platform/RS03ASHS-ID03A/current_status_display
         http://localhost:4000/c2/platform/RS03ASHS-ID03A/ports_display
         http://localhost:4000/c2/platform/RS03ASHS-ID03A/history
-        *http://localhost:4000/c2/platform/RS03ASHS-ID03A/mission_display
         http://localhost:4000/c2/platform/RS03ASHS-ID03A/commands
-        http://localhost:4000/c2/platform/RS03ASHS-ID03A/mission/instruments_list
 
         http://localhost:4000/c2/instrument/RS03ASHS-ID03A-06-CAMHDA301/abstract
         http://localhost:4000/c2/instrument/RS03ASHS-ID03A-06-CAMHDA301/commands
@@ -956,20 +906,8 @@ class CommandAndControlTestCase(unittest.TestCase):
             response = self.client.get(url, content_type=content_type, headers=headers)
             self.assertEquals(response.status_code, 200)
 
-            #http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission_display
-            url = url_for('main.c2_get_platform_mission_display', reference_designator=platform)
-            if verbose: print root+url
-            response = self.client.get(url, content_type=content_type, headers=headers)
-            self.assertEquals(response.status_code, 200)
-
             #http://localhost:4000/c2/platform/CP02PMCO-WFP01/commands
             url = url_for('main.c2_get_platform_commands', reference_designator=platform)
-            if verbose: print root+url
-            response = self.client.get(url, content_type=content_type, headers=headers)
-            self.assertEquals(response.status_code, 200)
-
-            # http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission/instruments_list
-            url = url_for('main.c2_get_platform_mission_instruments_list', reference_designator=platform)
             if verbose: print root+url
             response = self.client.get(url, content_type=content_type, headers=headers)
             self.assertEquals(response.status_code, 200)
@@ -987,10 +925,8 @@ class CommandAndControlTestCase(unittest.TestCase):
             http://localhost:4000/c2/platform/BAD/current_status_display
             http://localhost:4000/c2/platform/BAD/history
             http://localhost:4000/c2/platform/BAD/ports_display
-            http://localhost:4000/c2/platform/BAD/mission_display
             http://localhost:4000/c2/platform/BAD/commands
-            http://localhost:4000/c2/platform/BAD/mission_selections
-            http://localhost:4000/c2/platform/BAD/mission_selection/mission4
+
         All shall return error (400) with following bad_request message (consistency):
             {
               "error": "bad request",
@@ -1043,17 +979,6 @@ class CommandAndControlTestCase(unittest.TestCase):
         self.assertTrue('ports_display' in data)
         self.assertEquals(len(data['ports_display']), 0)
 
-        # http://localhost:4000/c2/platform/BAD/mission_display
-        url = url_for('main.c2_get_platform_mission_display', reference_designator=platform)
-        if verbose: print root+url
-
-        response = self.client.get(url, content_type=content_type, headers=headers)
-        self.assertEquals(response.status_code, 200)
-        data = json.loads(response.data)
-
-        self.assertTrue('mission_display' in data)
-        self.assertEquals(len(data['mission_display']), 0)
-
         # http://localhost:4000/c2/platform/BAD/commands
         url = url_for('main.c2_get_platform_commands', reference_designator=platform)
         if verbose: print root+url
@@ -1062,34 +987,6 @@ class CommandAndControlTestCase(unittest.TestCase):
         data = json.loads(response.data)
         self.assertTrue('commands' in data)
         self.assertEquals(len(data['commands']), 0)
-
-        # http://localhost:4000/c2/platform/BAD/mission_selections
-        url = url_for('main.c2_get_platform_mission_selections', reference_designator=platform)
-        if verbose: print root+url
-        response = self.client.get(url, content_type=content_type, headers=headers)
-        self.assertEquals(response.status_code, 200)
-        data = json.loads(response.data)
-        self.assertTrue('mission_selections' in data)
-        self.assertEquals(len(data['mission_selections']), 0)
-
-        # http://localhost:4000/c2/platform/BAD/mission_selection/mission4
-        mission_plan_store = 'mission4'
-        url = url_for('main.c2_get_platform_mission_selection', reference_designator=platform, mission_plan_store=mission_plan_store)
-        if verbose: print root+url
-        response = self.client.get(url, content_type=content_type, headers=headers)
-        self.assertEquals(response.status_code, 200)
-        data = json.loads(response.data)
-        self.assertTrue('mission_plan' in data)
-        self.assertEquals(len(data['mission_plan']), 0)
-
-        # http://localhost:4000/c2/platform/CP02PMCO-WFP01/mission/instruments_list
-        url = url_for('main.c2_get_platform_mission_instruments_list', reference_designator=platform)
-        if verbose: print root+url
-        response = self.client.get(url, content_type=content_type, headers=headers)
-        self.assertEquals(response.status_code, 200)
-        data = json.loads(response.data)
-        self.assertTrue('instruments' in data)
-        self.assertEquals(len(data['instruments']), 0)
 
         if verbose: print '\n'
 
@@ -1106,35 +1003,30 @@ class CommandAndControlTestCase(unittest.TestCase):
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-02-DOFSTK000/ports_display
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-02-DOFSTK000/status
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-02-DOFSTK000/history
-        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-02-DOFSTK000/mission_display
 
         Instrument:  CP02PMCO-WFP01-03-CTDPFK000
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-03-CTDPFK000/abstract
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-03-CTDPFK000/ports_display
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-03-CTDPFK000/status
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-03-CTDPFK000/history
-        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-03-CTDPFK000/mission_display
 
         Instrument:  CP02PMCO-WFP01-05-PARADK000
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/abstract
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/ports_display
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/status
         http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/history
-        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/mission_display
 
         Instrument:  CP02PMCO-SBS01-01-MOPAK0000
         http://localhost:4000/c2/instrument/CP02PMCO-SBS01-01-MOPAK0000/abstract
         http://localhost:4000/c2/instrument/CP02PMCO-SBS01-01-MOPAK0000/ports_display
         http://localhost:4000/c2/instrument/CP02PMCO-SBS01-01-MOPAK0000/status
         http://localhost:4000/c2/instrument/CP02PMCO-SBS01-01-MOPAK0000/history
-        http://localhost:4000/c2/instrument/CP02PMCO-SBS01-01-MOPAK0000/mission_display
 
         Instrument:  CP02PMCI-WFP01-03-CTDPFK000
         http://localhost:4000/c2/instrument/CP02PMCI-WFP01-03-CTDPFK000/abstract
         http://localhost:4000/c2/instrument/CP02PMCI-WFP01-03-CTDPFK000/ports_display
         http://localhost:4000/c2/instrument/CP02PMCI-WFP01-03-CTDPFK000/status
         http://localhost:4000/c2/instrument/CP02PMCI-WFP01-03-CTDPFK000/history
-        http://localhost:4000/c2/instrument/CP02PMCI-WFP01-03-CTDPFK000/mission_display
 
         '''
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1261,19 +1153,6 @@ class CommandAndControlTestCase(unittest.TestCase):
             else:
                 self.assertEquals(len(result), 0)
 
-            #http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/mission_display
-            url = url_for('main.c2_get_instrument_mission_display', reference_designator=instrument)
-            if verbose: print root+url
-            response = self.client.get(url, content_type=content_type, headers=headers)
-            self.assertEquals(response.status_code, 200)
-            data = json.loads(response.data)
-            self.assertTrue('mission_display' in data)
-            result = data['mission_display']
-            if instrument == _CTDPFK000_rd:
-                self.assertTrue(result> 0)
-            else:
-                self.assertEquals(len(result), 0)
-
     def test_c2_instrument_routes_negative(self):
         verbose = self.verbose
         root = self.root
@@ -1283,10 +1162,7 @@ class CommandAndControlTestCase(unittest.TestCase):
             http://localhost:4000/c2/instrument/BAD/abstract
             http://localhost:4000/c2/instrument/BAD/history
             http://localhost:4000/c2/instrument/BAD/ports_display
-            http://localhost:4000/c2/instrument/BAD/mission_display
             http://localhost:4000/c2/instrument/BAD/commands
-            http://localhost:4000/c2/instrument/BAD/mission_selections
-            http://localhost:4000/c2/instrument/BAD/mission_selection/mission4
 
         Additional negative tests:
             http://localhost:4000/c2/instrument/CP02PMUI-RII01-02-ADCPTG000/commands
@@ -1378,15 +1254,6 @@ class CommandAndControlTestCase(unittest.TestCase):
         self.assertTrue('ports_display' in data)
         self.assertEquals(len(data['ports_display']), 0)
 
-        # http://localhost:4000/c2/instrument/BAD/mission_display
-        url = url_for('main.c2_get_instrument_mission_display', reference_designator=instrument)
-        if verbose: print root+url
-        response = self.client.get(url, content_type=content_type, headers=headers)
-        self.assertEquals(response.status_code, 200)
-        data = json.loads(response.data)
-        self.assertTrue('mission_display' in data)
-        self.assertEquals(len(data['mission_display']), 0)
-
         # http://localhost:4000/c2/instrument/BAD/commands
         url = url_for('main.c2_get_instrument_driver_status', reference_designator=instrument)
         if verbose: print root+url
@@ -1395,25 +1262,6 @@ class CommandAndControlTestCase(unittest.TestCase):
         data = json.loads(response.data)
         self.assertTrue('message' in data)
         self.assertTrue(len(data['message']) > 0)
-
-        # http://localhost:4000/c2/instrument/BAD/mission_selections
-        url = url_for('main.c2_get_instrument_mission_selections', reference_designator=instrument)
-        if verbose: print root+url
-        response = self.client.get(url, content_type=content_type, headers=headers)
-        self.assertEquals(response.status_code, 200)
-        data = json.loads(response.data)
-        self.assertTrue('mission_selections' in data)
-        self.assertEquals(len(data['mission_selections']), 0)
-
-        # http://localhost:4000/c2/instrument/BAD/mission_selection/mission4
-        mission_plan_store = 'mission4'
-        url = url_for('main.c2_get_instrument_mission_selection', reference_designator=instrument, mission_plan_store=mission_plan_store)
-        if verbose: print root+url
-        response = self.client.get(url, content_type=content_type, headers=headers)
-        self.assertEquals(response.status_code, 200)
-        data = json.loads(response.data)
-        self.assertTrue('mission_plan' in data)
-        self.assertEquals(len(data['mission_plan']), 0)
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Basic negative tests - instrument
@@ -1449,242 +1297,6 @@ class CommandAndControlTestCase(unittest.TestCase):
         data = json.loads(response.data)
         self.assertTrue('history' in data)
         self.assertEquals(len(data['history']), 0)
-
-        if verbose: print '\n'
-
-    def test_c2_mission_routes(self):
-        verbose = self.verbose
-        root = self.root
-        if verbose: print '\n'
-        '''
-        Exercises a variety of routes:
-
-        Mission Control - Platforms (positive)
-        http://localhost:4000/c2/platform/CP02PMCI-WFP01/mission_selections
-        http://localhost:4000/c2/platform/CP02PMCI-WFP01/mission_selection/mission4
-
-        Mission Control - Platforms (negative)
-        http://localhost:4000/c2/platform/CP02PMCI-WFP01/mission_selection/no_such_mission_store
-        http://localhost:4000/c2/platform//mission_selection/mission4
-        http://localhost:4000/c2/platform//mission_selection/no_such_mission_store
-        http://localhost:4000/c2/platform/CP02PMCI-WFP01/mission_selection/
-        http://localhost:4000/c2/platform/CP02PMCI-WFP01/mission_selection/empty_mission
-
-        Mission Control - Instruments (positive)
-        http://localhost:4000/c2/instrument/CP02PMCI-WFP01-03-CTDPFK000/mission_display
-        http://localhost:4000/c2/instrument/CP02PMCI-WFP01-03-CTDPFK000/mission_selection/mission4
-
-        Mission Control - Instruments (negative)
-        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/mission_display
-        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/mission_selections
-        http://localhost:4000/c2/instrument/CP02PMCO-WFP01-05-PARADK000/mission_selection/mission4
-        http://localhost:4000/c2/instrument/CP02PMCI-WFP01-03-CTDPFK000/mission_selection/mission_does_not_exist
-        '''
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Setup data - Arrays and Platforms
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        self.setup_array_data()
-        array_CP_platforms = []
-        CP02PMCO_WFP01, CP02PMCO_SBS01, CP02PMUI_RII01, CP02PMCI_WFP01 = self.create_CP_platform_deployments()
-        CP02PMCO_WFP01_rd = CP02PMCO_WFP01.reference_designator
-        CP02PMCO_SBS01_rd = CP02PMCO_SBS01.reference_designator
-        CP02PMUI_RII01_rd = CP02PMUI_RII01.reference_designator
-        CP02PMCI_WFP01_rd = CP02PMCI_WFP01.reference_designator
-        # platform deployment 1
-        CP02PMCO_WFP01_id = CP02PMCO_WFP01.id
-        array_CP_platforms.append(CP02PMCO_WFP01_rd)
-        # platform deployment 2
-        CP02PMCO_SBS01_id = CP02PMCO_SBS01.id
-        array_CP_platforms.append(CP02PMCO_SBS01_rd)
-        # platform deployment 3
-        CP02PMUI_RII01_id = CP02PMUI_RII01.id
-        array_CP_platforms.append(CP02PMUI_RII01_rd)
-        # platform deployment 4
-        CP02PMCI_WFP01_id = CP02PMCI_WFP01.id
-        array_CP_platforms.append(CP02PMCI_WFP01_rd)
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Setup data - Instruments
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # (platform deployment 1) instrument deployment 1
-        DOFSTK000_rd = 'CP02PMCO-WFP01-02-DOFSTK000'
-        DOFSTK000 = self.create_instrument_deployment(DOFSTK000_rd, CP02PMCO_WFP01_id)
-        # (platform deployment 1) instrument deployment 2
-        CTDPFK000_rd = 'CP02PMCO-WFP01-03-CTDPFK000'
-        CTDPFK000 = self.create_instrument_deployment(CTDPFK000_rd, CP02PMCO_WFP01_id)
-        # (platform deployment 1) instrument deployment 3
-        PARADK000_rd = 'CP02PMCO-WFP01-05-PARADK000'
-        PARADK000 = self.create_instrument_deployment(PARADK000_rd, CP02PMCO_WFP01_id)
-        # (platform deployment 2) instrument deployment 1
-        MOPAK0000_rd = 'CP02PMCO-SBS01-01-MOPAK0000'
-        MOPAK0000 = self.create_instrument_deployment(MOPAK0000_rd, CP02PMCO_SBS01_id)
-        # (platform deployment 3) instrument deployment 1
-        ADCPTG000_rd = 'CP02PMUI-RII01-02-ADCPTG000'
-        ADCPTG000 = self.create_instrument_deployment(ADCPTG000_rd, CP02PMUI_RII01_id)
-        # (platform deployment 4) instrument deployment 1
-        _CTDPFK000_rd = 'CP02PMCI-WFP01-03-CTDPFK000'
-        _CTDPFK000 = self.create_instrument_deployment(_CTDPFK000_rd, CP02PMCI_WFP01_id)
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # End of data setup. (Now have three arrays, four platforms, each populated with instruments)
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Proceed with C2 tests
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        content_type = 'application/json'
-        headers = self.get_api_headers('admin', 'test')
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Basic positive tests - Mission Control - Platforms
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if verbose: print '\n'
-        if verbose: print 'Mission Control - Platforms (positive)'
-        platform = CP02PMCI_WFP01.reference_designator
-
-        #http://localhost:4000/c2/platform/CP02PMCI-WFP01/mission_selections
-        url = url_for('main.c2_get_platform_mission_selections', reference_designator=platform)
-        if verbose: print root+url
-        response = self.client.get(url,content_type=content_type, headers=headers)
-        self.assertEquals(response.status_code, 200)
-        data = json.loads(response.data)
-        self.assertTrue('mission_selections' in data)
-        result = data['mission_selections']
-        self.assertTrue(result != None)
-        #self.assertEquals(len(result), 5)
-
-        # http://localhost:4000/c2/platform/CP02PMCI-WFP01/mission_selection/mission4  (POSITIVE)
-        mission_plan_store_name = 'mission4'
-        url = url_for('main.c2_get_platform_mission_selection',
-                        reference_designator=platform, mission_plan_store=mission_plan_store_name)
-        if verbose: print root+url
-        response = self.client.get(url, content_type=content_type, headers=headers)
-        self.assertEquals(response.status_code, 200)
-        data = json.loads(response.data)
-        self.assertTrue('mission_plan' in data)
-        result = data['mission_plan']
-        self.assertTrue(result != None)
-        #self.assertTrue(len(result) > 0)
-
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Basic negative tests - Mission Control - Platforms
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # http://localhost:4000/c2/platform/CP02PMCI-WFP01/mission_selection/no_such_mission_store
-        if verbose: print '\n'
-        if verbose: print 'Mission Control - Platforms (negative)'
-        bad_mission_plan_store_name = 'no_such_mission_store'
-        url = url_for('main.c2_get_platform_mission_selection',
-                        reference_designator=platform, mission_plan_store=bad_mission_plan_store_name)
-        if verbose: print root+url
-        response = self.client.get(url,content_type=content_type, headers=headers)
-        self.assertEquals(response.status_code, 200)
-        contents = json.loads(response.data)
-        self.assertTrue(contents != None)
-        self.assertTrue('mission_plan' in contents)
-        self.assertTrue(contents['mission_plan'] != None)
-        self.assertTrue(len(contents['mission_plan']) == 0)
-
-        # http://localhost:4000/c2/platform//mission_selection/mission4
-        empty_platform = ''
-        mission_plan_store_name = 'mission4'
-        url = url_for('main.c2_get_platform_mission_selection',
-                        reference_designator=empty_platform, mission_plan_store=mission_plan_store_name)
-        if verbose: print root+url
-        response = self.client.get(url,content_type=content_type, headers=headers)
-        self.assertTrue(response.status_code == 404)
-
-        # http://localhost:4000/c2/platform//mission_selection/no_such_mission_store
-        empty_platform = ''
-        bad_mission_plan_store = 'no_such_mission_store'
-        url = url_for('main.c2_get_platform_mission_selection',
-                        reference_designator=empty_platform, mission_plan_store=bad_mission_plan_store)
-        if verbose: print root+url
-        response = self.client.get(url,content_type=content_type, headers=headers)
-        self.assertTrue(response.status_code == 404)
-
-        # http://localhost:4000/c2/platform/CP02PMCI-WFP01/mission_selection/
-        empty_mission_plan_store = ''
-        url = url_for('main.c2_get_platform_mission_selection',
-                        reference_designator=platform, mission_plan_store=empty_mission_plan_store)
-        if verbose: print root+url
-        response = self.client.get(url,content_type=content_type, headers=headers)
-        self.assertTrue(response.status_code == 404)
-
-        # http://localhost:4000/c2/platform/CP02PMCI-WFP01/mission_selection/empty_mission
-        mission_plan_store = 'empty_mission'
-        url = url_for('main.c2_get_platform_mission_selection',
-                        reference_designator=platform, mission_plan_store=mission_plan_store)
-        if verbose: print root+url
-        response = self.client.get(url, content_type=content_type, headers=headers)
-        self.assertEquals(response.status_code, 200)
-        contents = json.loads(response.data)
-        self.assertTrue(contents != None)
-        self.assertTrue('mission_plan' in contents)
-        self.assertTrue(len(contents['mission_plan']) == 0)
-
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Basic positive tests - Mission Control - Instruments
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if verbose: print '\n'
-        if verbose: print 'Mission Control - Instruments (positive)'
-        # http://localhost:4000/c2/instrument/CP02PMCI-WFP01-03-CTDPFK000/mission_display
-        instrument = _CTDPFK000.reference_designator     # 'CP02PMCI-WFP01-03-CTDPFK000'
-        url = url_for('main.c2_get_instrument_mission_display', reference_designator=instrument)
-        if verbose: print root+url
-        response = self.client.get(url,content_type=content_type, headers=headers)
-        data = json.loads(response.data)
-        self.assertEquals(response.status_code, 200)
-
-        # http://localhost:4000/c2/instrument/CP02PMCI-WFP01-03-CTDPFK000/mission_selection/mission4
-        mission_plan_store = 'mission4'
-        instrument = _CTDPFK000.reference_designator
-        url = url_for('main.c2_get_instrument_mission_selection',
-                        reference_designator=instrument, mission_plan_store=mission_plan_store)
-        if verbose: print root+url
-        response = self.client.get(url,content_type=content_type, headers=headers)
-        self.assertEquals(response.status_code, 200)
-        data = json.loads(response.data)
-        self.assertTrue('mission_plan' in data)
-        result = data['mission_plan']
-        self.assertTrue(result != None)
-
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Basic negative tests - Mission Control - Instruments
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if verbose: print '\n'
-        if verbose: print 'Mission Control - Instruments (negative)'
-        # http://localhost:4000/c2/instrument/CP02PMCI-WFP01-05-PARADK000/mission_display
-        instrument = PARADK000.reference_designator #'CP02PMCO-WFP01-05-PARADK000'
-        url = url_for('main.c2_get_instrument_mission_display', reference_designator=instrument)
-        if verbose: print root+url
-        response = self.client.get(url,content_type=content_type, headers=headers)
-        self.assertEquals(response.status_code, 200)
-
-        # http://localhost:4000/c2/instrument/CP02PMCI-WFP01-05-PARADK000/mission_selections
-        instrument = PARADK000.reference_designator
-        url = url_for('main.c2_get_instrument_mission_selections', reference_designator=instrument)
-        if verbose: print root+url
-        response = self.client.get(url,content_type=content_type, headers=headers)
-        self.assertEquals(response.status_code, 200)
-
-        # http://localhost:4000/c2/instrument/CP02PMCI-WFP01-05-PARADK000/mission_selection/mission4
-        mission_plan_store = 'mission4'
-        instrument = PARADK000.reference_designator
-        url = url_for('main.c2_get_instrument_mission_selection',
-                        reference_designator=instrument, mission_plan_store=mission_plan_store)
-        if verbose: print root+url
-        response = self.client.get(url,content_type=content_type, headers=headers)
-        self.assertEquals(response.status_code, 200)
-        data = json.loads(response.data)
-        self.assertTrue('mission_plan' in data)
-        result = data['mission_plan']
-        self.assertTrue(result != None)
-        self.assertEquals(len(result), 0)
-
-        # http://localhost:4000/c2/instrument/CP02PMCI-WFP01-05-PARADK000/mission_selection/mission_does_not_exist
-        mission_plan_store_does_not_exist = 'mission_does_not_exist'
-        instrument = _CTDPFK000.reference_designator
-        url = url_for('main.c2_get_instrument_mission_selection',
-                        reference_designator=instrument, mission_plan_store=mission_plan_store_does_not_exist)
-        if verbose: print root+url
-        response = self.client.get(url,content_type=content_type, headers=headers)
-        self.assertEquals(response.status_code, 200)
-        data = json.loads(response.data)
 
         if verbose: print '\n'
 
