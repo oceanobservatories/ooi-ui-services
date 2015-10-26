@@ -462,7 +462,6 @@ def read_store(filename):
     '''
     APP_ROOT = os.path.dirname(os.path.abspath(__file__))   # refers to application_top
     c2_data_path = os.path.join(APP_ROOT, '..', '..', 'tests', 'c2data')
-    data = None
     try:
         tmp = "/".join([c2_data_path, filename])
         f = open(tmp, 'rb')
@@ -514,10 +513,10 @@ def json_get_uframe_platform_operational_status(platform):
 @auth.login_required
 @scope_required(u'user_admin')
 def c2_get_instruments_status():
-    '''
+    """
     # get status of all instrument agents, return json.
     # sample: localhost:12572/instrument/api
-    '''
+    """
     statuses = []
     try:
         data = _c2_get_instruments_status()
@@ -532,12 +531,12 @@ def c2_get_instruments_status():
 @auth.login_required
 @scope_required(u'user_admin')
 def c2_get_instrument_driver_status(reference_designator):
-    '''
+    """
     Get the current overall state of the specified instrument (id is the reference designator of the instrument).
     If the query option "blocking" is specified as true, then this call will block until a state change,
     allowing for a push-like interface for web clients.
     Sample: localhost:12572/instrument/api/reference_designator/status
-    '''
+    """
     status = []
     try:
         data = _c2_get_instrument_driver_status(reference_designator)
@@ -551,10 +550,10 @@ def c2_get_instrument_driver_status(reference_designator):
 @auth.login_required
 @scope_required(u'user_admin')
 def c2_get_instrument_driver_state(reference_designator):
-    '''
+    """
     Return the instrument driver state. Returns json.
     Sample: http://host:12572/instrument/api/reference_designator/state
-    '''
+    """
     state = []
     try:
         data = _c2_get_instrument_driver_state(reference_designator)
@@ -613,14 +612,14 @@ def c2_set_instrument_driver_parameters(reference_designator):
 @auth.login_required
 @scope_required(u'user_admin')
 def c2_instrument_driver_execute(reference_designator):
-    '''
+    """
     Command the driver to execute a capability. Returns json.
     Accepts the following urlencoded parameters:
         command:    capability to execute
         kwargs:     JSON-encoded dictionary specifying any necessary keyword arguments for the command
         timeout:    in milliseconds, default value is 60000
     Sample: http://host:12572/instrument/api/TEST-TEST-TEST/execute
-    '''
+    """
     execute = []
     try:
         if request.data:
@@ -638,10 +637,10 @@ def c2_instrument_driver_execute(reference_designator):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def _c2_get_instruments_status():
-    '''
+    """
     Get status of all instrument agents. Returns response.content as json.
     Sample: http://localhost:4000/instrument/api
-    '''
+    """
     try:
         data = None
         response = uframe_get_instruments_status()
@@ -657,10 +656,10 @@ def _c2_get_instruments_status():
         raise
 
 def uframe_get_instruments_status():
-    '''
+    """
     Returns the uframe response for status of all instrument agents.
     Sample: http://host:12572/instrument/api
-    '''
+    """
     try:
         url, timeout, timeout_read = get_uframe_info()
         response = requests.get(url, timeout=(timeout, timeout_read))
@@ -670,12 +669,12 @@ def uframe_get_instruments_status():
 
 # todo re: blocking
 def _c2_get_instrument_driver_status(reference_designator):
-    '''
+    """
     Get the current overall state of the specified instrument (id is the reference designator of the instrument).
     If the query option "blocking" is specified as true, then this call will block until a state change,
     allowing for a push-like interface for web clients.
     Sample: http://host:12572/instrument/api/reference_designator
-    '''
+    """
     try:
         # Get status
         data = None
@@ -717,10 +716,10 @@ def _c2_get_instrument_driver_status(reference_designator):
 
 # todo re: blocking
 def uframe_get_instrument_driver_status(reference_designator):
-    '''
+    """
     Returns the uframe response for status of single instrument agent
     Sample: http://host:12572/instrument/api/reference_designator
-    '''
+    """
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, reference_designator])
@@ -732,10 +731,10 @@ def uframe_get_instrument_driver_status(reference_designator):
 
 
 def _c2_get_instrument_driver_state(reference_designator):
-    '''
+    """
     Return the instrument driver state.
     Sample: localhost:12572/instrument/api/reference_designator/state [GET]
-    '''
+    """
     try:
         data = None
         response = uframe_get_instrument_driver_command(reference_designator, 'state')
@@ -751,7 +750,7 @@ def _c2_get_instrument_driver_state(reference_designator):
         raise
 
 def _c2_get_instrument_driver_parameters(reference_designator):
-    '''
+    """
     Return the instrument driver response, state, parameters and parameter values.
     Sample: localhost:12572/instrument/api/reference_designator/resource
     - call _c2_get_instrument_driver_status, get response_data['parameters'] and response_data['state']:
@@ -821,7 +820,7 @@ def _c2_get_instrument_driver_parameters(reference_designator):
         "state": "DRIVER_STATE_COMMAND"
         "value": { ... }
     }
-    '''
+    """
     result = {}
     response_status = {}
     response_status['status_code'] = 200
@@ -907,7 +906,7 @@ def _c2_get_instrument_driver_parameters(reference_designator):
         raise
 
 def _c2_get_instrument_driver_parameter_values(reference_designator):
-    '''
+    """
     Return the instrument driver parameter values.
     Sample: localhost:12572/instrument/api/reference_designator/resource with data dictionary.
         {
@@ -944,7 +943,7 @@ def _c2_get_instrument_driver_parameter_values(reference_designator):
                     }
         }
 
-    '''
+    """
     try:
         data = None
         response = uframe_get_instrument_driver_parameter_values(reference_designator, 'resource')
@@ -961,9 +960,9 @@ def _c2_get_instrument_driver_parameter_values(reference_designator):
         raise
 
 def uframe_get_instrument_driver_parameter_values(reference_designator, command):
-    '''
+    """
     Return the uframe response of instrument command resource with payload provided for GET
-    '''
+    """
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, reference_designator, command])
@@ -1040,13 +1039,13 @@ def scrub_ui_request_data(data, parameter_types):
         raise
 
 def _c2_set_instrument_driver_parameters(reference_designator, data):
-    '''
+    """
     Set one or more instrument driver parameters.
     Accepts the following urlencoded parameters:
       resource: JSON-encoded dictionary of parameter:value pairs
       timeout:  in milliseconds, default value is 60000
     Sample: localhost:12572/instrument/api/reference_designator/resource [POST]
-    '''
+    """
     debug = False
     response_status = {}
     response_status['status_code'] = 200
@@ -1155,10 +1154,10 @@ def get_instrument_parameters(status):
     return parameters
 
 def _uframe_post_instrument_driver_set(reference_designator, command, data):
-    '''
+    """
     Return the uframe response of instrument driver command and suffix provided for POST.
     example of suffix = '?command=%22DRIVER_EVENT_STOP_AUTOSAMPLE%22&timeout=60000'
-    '''
+    """
     # info: resource=%7B%22ave%22%3A+20%7D&timeout=6000
     try:
         suffix = urlencode(data)
@@ -1174,7 +1173,7 @@ def _uframe_post_instrument_driver_set(reference_designator, command, data):
 
 #TODO enable kwargs parameter
 def _c2_instrument_driver_execute(reference_designator, data):
-    '''
+    """
     Command the driver to execute a capability. [POST]
     Accepts the following urlencoded parameters:
        command: capability to execute
@@ -1224,7 +1223,7 @@ def _c2_instrument_driver_execute(reference_designator, data):
             ]
           }
         }
-    '''
+    """
     result = {}
     response_status = {}
     response_status['status_code'] = 200
@@ -1429,9 +1428,9 @@ def _get_data_from_stream(reference_designator, command_name):
     return result
 
 def get_uframe_stream_types(mooring, platform, instrument):
-    '''
+    """
     Lists all the stream types
-    '''
+    """
     try:
         uframe_url, timeout, timeout_read = get_uframe_data_info()
         url = '/'.join([uframe_url, mooring, platform, instrument])
@@ -1442,9 +1441,9 @@ def get_uframe_stream_types(mooring, platform, instrument):
         return _response_internal_server_error(message)
 
 def get_uframe_streams(mooring, platform, instrument, stream_type):
-    '''
+    """
     Lists all the streams
-    '''
+    """
     try:
         uframe_url, timeout, timeout_read = get_uframe_data_info()
         url = '/'.join([uframe_url, mooring, platform, instrument, stream_type])
@@ -1486,9 +1485,9 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def uframe_get_instrument_driver_command(reference_designator, command):
-    '''
+    """
     Return the uframe response of instrument command provided for GET
-    '''
+    """
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, reference_designator, command])
@@ -1499,10 +1498,10 @@ def uframe_get_instrument_driver_command(reference_designator, command):
         return _response_internal_server_error(message)
 
 def uframe_post_instrument_driver_command(reference_designator, command, suffix):
-    '''
+    """
     Return the uframe response of instrument driver command and suffix provided for POST.
     example of suffix = '?command=%22DRIVER_EVENT_STOP_AUTOSAMPLE%22&timeout=60000'
-    '''
+    """
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, reference_designator, command])
@@ -1514,9 +1513,9 @@ def uframe_post_instrument_driver_command(reference_designator, command, suffix)
         return _response_internal_server_error(message)
 
 def get_uframe_info(type='instrument'):
-    '''
+    """
     returns uframe instrument/api specific configuration information. (port 12572)
-    '''
+    """
     if type == 'instrument':
         uframe_url = "".join([current_app.config['UFRAME_INST_URL'], current_app.config['UFRAME_INST_BASE']])
     else:
@@ -1526,9 +1525,9 @@ def get_uframe_info(type='instrument'):
     return uframe_url, timeout, timeout_read
 
 def get_uframe_data_info():
-    '''
+    """
     returns uframe data configuration information. (port 12576)
-    '''
+    """
     uframe_url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
     timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
     timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
@@ -1546,22 +1545,22 @@ def _response_internal_server_error(msg=None):
     return response
 
 def _post_headers():
-    '''
+    """
     urlencoded values for uframe POST.
-    '''
+    """
     return {"Content-Type": "application/x-www-form-urlencoded"}
 
 def _headers():
-    '''
+    """
     for uframe POST.
-    '''
+    """
     return {"Content-Type": "application/json"}
 
 def _eval_POST_response_data(response_data, msg=None):
-    '''
+    """
     Evaluate the value dictionary from uframe POST response data.
     Return error code, type and message.
-    '''
+    """
     try:
         value = None
         type = None
@@ -1641,102 +1640,11 @@ def _get_toc():
                 toc['moorings'] = mooring_list
                 toc['platforms'] = platform_list
                 toc['instruments'] = instrument_list
+
         return toc
     except Exception as e:
         return None
 
-'''
-def get_structured_toc():
-    try:
-        toc = {}
-        array_list = []
-        mooring_list = []
-        mooring_key = []
-
-        platform_list = []
-        platform_key = []
-
-        instrument_list = []
-        instrument_key = []
-
-        data = get_uframe_toc()
-        for d in data:
-            if d['reference_designator'] not in instrument_key:
-                array_code = d['reference_designator'][0:2]
-                if array_code not in array_list:
-                    array_list.append(array_code)
-                instrument_list.append({'array_code':d['reference_designator'][0:2],
-                                        'display_name': d['instrument_display_name'],
-                                        'mooring_code': d['mooring_code'],
-                                        'platform_code': d['platform_code'],
-                                        'instrument_code': d['platform_code'],
-                                        'streams':d['streams'],
-                                        'instrument_parameters':d['instrument_parameters'],
-                                        'reference_designator':d['reference_designator']
-                                     })
-
-                instrument_key.append(d['reference_designator'])
-
-
-            if d['mooring_code'] not in mooring_key:
-                mooring_list.append({'array_code':d['reference_designator'][0:2],
-                                     'mooring_code':d['mooring_code'],
-                                     'platform_code':d['platform_code'],
-                                     'display_name':d['mooring_display_name'],
-                                     'geo_location':[],
-                                     'reference_designator':d['mooring_code']
-                                     })
-
-                mooring_key.append(d['mooring_code'])
-
-            if d['mooring_code']+d['platform_code'] not in platform_key:
-                platform_list.append({'array_code':d['reference_designator'][0:2],
-                                      'platform_code':d['platform_code'],
-                                      'mooring_code':d['mooring_code'],
-                                      'reference_designator':d['reference_designator'],
-                                      'display_name': d['platform_display_name']
-                                        })
-
-                platform_key.append(d['mooring_code']+d['platform_code'])
-
-            arrays = Array.query.all()
-            toc['arrays'] = [array.to_json() for array in arrays]
-            toc['moorings'] = mooring_list
-            toc['platforms'] = platform_list
-            toc['instruments'] = instrument_list
-
-        return toc
-
-    except Exception as e:
-        return None
-
-def get_uframe_toc():
-    uframe_url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_TOC']
-    r = requests.get(uframe_url)
-    if r.status_code == 200:
-        d =  r.json()
-        for row in d:
-            try:
-                # FIX FOR THE WRONG WAY ROUND
-                temp1 = row['platform_code']
-                temp2 = row['mooring_code']
-                row['mooring_code'] = temp1
-                row['platform_code'] = temp2
-                #
-
-                instrument_display_name = PlatformDeployment._get_display_name(row['reference_designator'])
-                split_name = instrument_display_name.split(' - ')
-                row['instrument_display_name'] = split_name[-1]
-                row['mooring_display_name'] = split_name[0]
-                row['platform_display_name'] = split_name[1]
-            except:
-                row['instrument_display_name'] = ""
-                row['platform_display_name'] = ""
-                row['mooring_display_name'] = ""
-        return d
-    else:
-        return []
-'''
 
 def _get_platforms(array):
     # Returns all platforms for specified array from uframe.
@@ -1754,6 +1662,7 @@ def _get_platforms(array):
     except:
         return None
 
+
 def _get_platform(reference_designator):
     # Returns requested platform information from uframe.
     try:
@@ -1769,6 +1678,7 @@ def _get_platform(reference_designator):
             return platform_deployment
     except:
         return None
+
 
 def _get_instrument(reference_designator):
     # Returns requested instrument information from uframe.
@@ -1786,6 +1696,7 @@ def _get_instrument(reference_designator):
     except:
         return None
 
+
 def _get_instruments(platform):
     # Returns list of all instruments (dict) for specified platform (reference_designator).
     instruments = []        # list of dictionaries
@@ -1799,6 +1710,7 @@ def _get_instruments(platform):
                 oinstruments.append(instrument['reference_designator'])
                 instruments.append(instrument)
     return instruments, oinstruments
+
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Disabled instrument/api routes and supporting methods
