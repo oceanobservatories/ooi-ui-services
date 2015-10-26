@@ -216,13 +216,6 @@ def get_assets(use_min=False,normal_data=False):
                             return_list.append(item)
                     data = return_list
 
-        new_list = []
-
-        for asset in data:
-            if not request.args.get('eng') and 'ENG' not in asset['ref_des'] and '0000' not in asset['ref_des']:
-                new_list.append(asset)
-        data = new_list
-
         if request.args.get('startAt'):
             start_at = int(request.args.get('startAt'))
             count = int(request.args.get('count'))
