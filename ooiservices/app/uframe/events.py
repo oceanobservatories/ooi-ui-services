@@ -31,21 +31,18 @@ def get_events():
     Added to support event query on stream data.
     '''
     try:
-        if 'ref_des' in request.args:
-            events = get_events_by_ref_des(request.args.get('ref_des'))
-            return events
+        '''
+        Listing GET request of all events.  This method is cached for 1 hour.
+        '''
+        #set up all the contaners.
+        data = {}
+
+        #Manually set up the cache
+        cached = cache.get('event_list')
+        if cached:
+            data = cached
+
         else:
-            '''
-            Listing GET request of all events.  This method is cached for 1 hour.
-            '''
-            #set up all the contaners.
-            data = {}
-
-            #Manually set up the cache
-            cached = cache.get('event_list')
-            if cached:
-                data = cached
-
             #create uframe instance, and fetch the data.
             uframe_obj = UFrameEventsCollection()
             payload = uframe_obj.to_json()
@@ -64,27 +61,44 @@ def get_events():
             if "error" not in data:
                 cache.set('event_list', data, timeout=CACHE_TIMEOUT)
 
-            #data = sorted(data, key=itemgetter('id'))
+        #data = sorted(data, key=itemgetter('id'))
 
-            if request.args.get('search') and request.args.get('search') != "":
-                return_list = []
-                search_term = request.args.get('search')
-                for item in data:
-                    if search_term.lower() in str(item['class']).lower():
-                        return_list.append(item)
-                    if search_term.lower() in str(item['id']):
-                        return_list.append(item)
-                    #if search_term.lower() in str(item['referenceDesignator']).lower():
-                    #    return_list.append(item)
-                    if search_term.lower() in str(item['startDate']).lower():
-                        return_list.append(item)
-                    #if search_term.lower() in str(item['assetInfo']['owner']).lower():
-                        #return_list.append(item)
-                data = return_list
+        if request.args.get('search') and request.args.get('search') != "":
+            return_list = []
+            ven_set = []
+            search_term = str(request.args.get('search')).split()
+            search_set = set(search_term)
+            for subset in search_set:
+                if len(return_list) > 0:
+                    if len(ven_set) > 0:
+                        ven_set = deepcopy(ven_subset)
+                    else:
+                        ven_set = deepcopy(return_list)
+                    ven_subset = []
+                    for item in return_list:
+                        if subset.lower() in str(item['class']).lower():
+                            ven_subset.append(item)
+                        elif subset.lower() in str(item['id']).lower():
+                            ven_subset.append(item)
+                        elif subset.lower() in str(item['startDate']).lower():
+                            ven_subset.append(item)
+                        elif subset.lower() in str(item['referenceDesignator']).lower():
+                            ven_subset.append(item)
+                    data = ven_subset
+                else:
+                    for item in data:
+                        if subset.lower() in str(item['class']).lower():
+                            return_list.append(item)
+                        elif subset.lower() in str(item['id']).lower():
+                            return_list.append(item)
+                        elif subset.lower() in str(item['startDate']).lower():
+                            return_list.append(item)
+                        elif subset.lower() in str(item['referenceDesignator']).lower():
+                            return_list.append(item)
+                    data = return_list
 
-            result = jsonify({ 'events' : data })
-
-            return result
+        result = jsonify({ 'events' : data })
+        return result
 
     except requests.exceptions.ConnectionError as e:
         error = "Error: Cannot connect to uframe.  %s" % e

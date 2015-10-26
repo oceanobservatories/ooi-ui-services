@@ -3,19 +3,20 @@
 uframe endpoints
 '''
 # base
-from flask import jsonify, request, current_app, make_response, Response
+from flask import jsonify, request, current_app, make_response, Response, url_for
 from ooiservices.app import cache
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.models import PlatformDeployment
 from ooiservices.app.main.routes import get_display_name_by_rd, get_long_display_name_by_rd,\
     get_platform_display_name_by_rd, get_parameter_name_by_parameter as get_param_names, get_assembly_by_rd, \
-    get_site_display_name_by_rd as get_site_name
+    get_site_display_name_by_rd as get_site_name, get_stream_name_by_stream as get_stream_name
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.main.errors import internal_server_error
 # data imports
 from ooiservices.app.uframe.data import get_data, get_simple_data, find_parameter_ids, get_multistream_data
 from ooiservices.app.uframe.plotting import generate_plot
 from ooiservices.app.uframe.assetController import get_events_by_ref_des
+from ooiservices.app.uframe.events import get_events
 
 from urllib import urlencode
 from datetime import datetime
@@ -153,6 +154,7 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
     data_dict['end'] = endTime
     data_dict['reference_designator'] = reference_designator
     data_dict['stream_name'] = stream_name
+    data_dict['stream_display_name'] = get_stream_name(stream_name)
     data_dict['variables'] = []
     data_dict['variable_types'] = {}
     data_dict['units'] = {}
@@ -190,6 +192,14 @@ def streams_list():
     Accepts stream_name or reference_designator as a URL argument
     '''
 
+    cached = cache.get('event_list')
+    event_list = []
+    if cached:
+        event_list = cached
+    else:
+        get_events()
+        event_list = cache.get('event_list')
+
     if request.args.get('stream_name'):
         dict_from_stream(request.args.get('stream_name'))
 
@@ -213,6 +223,24 @@ def streams_list():
                     continue
 
             retval.append(data_dict)
+
+        new_list = []
+        for stream in retval:
+            if not request.args.get('eng') and 'ENG' not in stream['reference_designator'] and '0000' not in stream['reference_designator']:
+                new_list.append(stream)
+        retval = new_list
+
+        for stream in retval:
+            response = get_events_by_ref_des(event_list, stream['reference_designator'])
+            events = json.loads(response.data)
+
+            for event in events['events']:
+                if event['class'] == '.DeploymentEvent' and event['tense'] == 'PRESENT':
+                    stream['depth'] = event['depth']
+                    stream['lat_lon'] = event['lat_lon']
+                    stream['cruise_number'] = event['cruise_number']
+                    stream['deployment_number'] = event['deployment_number']
+
         cache.set('stream_list', retval, timeout=CACHE_TIMEOUT)
 
     try:

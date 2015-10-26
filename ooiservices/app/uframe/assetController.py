@@ -241,17 +241,10 @@ def associate_events(id):
 
     return result
 
-def get_events_by_ref_des(ref_des):
+def get_events_by_ref_des(data, ref_des):
     #Create the container for the processed response
     result = []
     #Get all the events to begin searching though...
-    from ooiservices.app.uframe.UFrameEventsCollection import UFrameEventsCollection
-    uframe_obj = UFrameEventsCollection()
-    payload = uframe_obj.to_json()
-    if payload.status_code != 200:
-        return  jsonify({ "events" : payload.json()}), payload.status_code
-
-    data = payload.json()
     for row in data:
         #variables used in loop
         temp_dict = {}
@@ -265,15 +258,22 @@ def get_events_by_ref_des(ref_des):
                     if metaData['key'] == 'Ref Des':
                         ref_des_check = metaData['value']
             if ref_des_check == ref_des:
-                temp_dict['id'] = row['eventId']
                 temp_dict['ref_des'] = ref_des_check
+                temp_dict['class'] = row['class']
+                if row['class'] == '.DeploymentEvent':
+                    temp_dict['cruise_number'] = row['cruiseNumber']
+                    temp_dict['cruise_plan_doc'] = row['cruisePlanDocument']
+                    temp_dict['depth'] = row['depth']
+                    temp_dict['lat_lon'] = row['locationLonLat']
+                    temp_dict['deployment_number'] = row['deploymentNumber']
+                temp_dict['tense'] = row['tense']
+
                 temp_dict['start_date'] = num2date(float(row['startDate'])/1000, units='seconds since 1970-01-01 00:00:00', calendar='gregorian')
-                temp_dict['class'] = row['@class']
+                if row['endDate'] is not None:
+                    temp_dict['end_date'] = num2date(float(row['endDate'])/1000, units='seconds since 1970-01-01 00:00:00', calendar='gregorian')
                 temp_dict['event_description'] = row['eventDescription']
                 temp_dict['event_type'] = row['eventType']
                 temp_dict['notes'] = row['notes']
-                temp_dict['url'] =  url_for('uframe.get_event', id=row['eventId'])
-                temp_dict['uframe_url'] = current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (uframe_obj.__endpoint__, row['eventId'])
                 result.append(temp_dict)
                 temp_dict = {}
         except (KeyError, TypeError):
