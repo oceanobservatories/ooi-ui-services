@@ -224,12 +224,6 @@ def streams_list():
 
             retval.append(data_dict)
 
-        new_list = []
-        for stream in retval:
-            if not request.args.get('eng') and 'ENG' not in stream['reference_designator'] and '0000' not in stream['reference_designator']:
-                new_list.append(stream)
-        retval = new_list
-
         for stream in retval:
             response = get_events_by_ref_des(event_list, stream['reference_designator'])
             events = json.loads(response.data)
