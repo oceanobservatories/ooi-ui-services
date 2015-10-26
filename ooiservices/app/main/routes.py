@@ -222,6 +222,15 @@ def get_parameter_name_by_parameter(stream_parameter_name):
 
     return stream_display_name
 
+def get_stream_name_by_stream(stream):
+    stream = Stream.query.filter_by(stream=stream).first()
+    if stream is None or stream is []:
+        return None
+
+    stream_display_name = stream.concatenated_name
+
+    return stream_display_name
+
 
 @api.route('/display_name', methods=['GET'])
 def get_display_name():

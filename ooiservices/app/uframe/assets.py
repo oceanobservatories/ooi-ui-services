@@ -173,9 +173,6 @@ def get_assets(use_min=False,normal_data=False):
                         del obj['lastModifiedTimestamp']
                 except Exception:
                     raise
-                    del_count+=1
-
-            print "could not delete one or more elements: ",del_count
 
         if request.args.get('search') and request.args.get('search') != "":
             return_list = []
@@ -212,12 +209,19 @@ def get_assets(use_min=False,normal_data=False):
                         elif subset.lower() in str(item['assetInfo']['type']).lower():
                             return_list.append(item)
                         elif subset.lower() in str(item['assetInfo']['array']).lower():
-                            ven_subset.append(item)
+                            return_list.append(item)
                         elif subset.lower() in str(item['events']).lower():
                             return_list.append(item)
                         elif subset.lower() in str(item['metaData']).lower():
                             return_list.append(item)
                     data = return_list
+
+        new_list = []
+
+        for asset in data:
+            if not request.args.get('eng') and 'ENG' not in asset['ref_des'] and '0000' not in asset['ref_des']:
+                new_list.append(asset)
+        data = new_list
 
         if request.args.get('startAt'):
             start_at = int(request.args.get('startAt'))
