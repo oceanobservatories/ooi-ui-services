@@ -3416,7 +3416,11 @@ INSERT INTO platformnames VALUES (242, 'RS03INT1', 'Cabled', 'Axial Seamount', '
 INSERT INTO platformnames VALUES (243, 'RS03INT1-MJ03C', 'Cabled', 'Axial Seamount', 'International District', 'Junction Box', 'Junction Box');
 INSERT INTO platformnames VALUES (244, 'RS03INT2', 'Cabled', 'Axial Seamount', 'International District', 'Junction Box', NULL);
 INSERT INTO platformnames VALUES (245, 'RS03INT2-MJ03D', 'Cabled', 'Axial Seamount', 'International District', 'Junction Box', 'Junction Box');
-
+INSERT INTO platformnames VALUES (246, 'CE04OSPS', 'Coastal', 'Endurance', 'OR Offshore', 'Cabled Shallow Profiler Mooring', ‘NULL’);
+INSERT INTO platformnames VALUES (247, 'CE04OSPS-PC01B’, 'Coastal', 'Endurance', 'OR Offshore', 'Cabled Shallow Profiler Mooring', ‘Platform Interface Controller’);
+INSERT INTO platformnames VALUES (248, 'CE04OSPS-SF01B’, 'Coastal', 'Endurance', 'OR Offshore', 'Cabled Shallow Profiler Mooring', ‘Shallow Profiler’);
+INSERT INTO platformnames VALUES (249, 'CE09OSPM-WFP01’, 'Coastal', 'Endurance', 'Upstream Inshore', 'Profiler Mooring', 'Wire-Following Profiler');
+INSERT INTO platformnames VALUES (250, 'GP02HYPM-RIM01’, 'Global', 'Station Papa', 'Apex', 'Profiler Mooring', 'Mooring Riser');
 
 --
 -- Name: platformnames_id_seq; Type: SEQUENCE SET; Schema: ooiui; Owner: postgres
