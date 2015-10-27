@@ -82,8 +82,6 @@ def get_events():
                             ven_subset.append(item)
                         elif subset.lower() in str(item['startDate']).lower():
                             ven_subset.append(item)
-                        elif subset.lower() in str(item['referenceDesignator']).lower():
-                            ven_subset.append(item)
                     data = ven_subset
                 else:
                     for item in data:
@@ -92,8 +90,6 @@ def get_events():
                         elif subset.lower() in str(item['id']).lower():
                             return_list.append(item)
                         elif subset.lower() in str(item['startDate']).lower():
-                            return_list.append(item)
-                        elif subset.lower() in str(item['referenceDesignator']).lower():
                             return_list.append(item)
                     data = return_list
 
