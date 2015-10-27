@@ -159,13 +159,13 @@ def deploy(password, bulkload, production):
         except:
             pass
         psql('-c', 'create database ooiuiprod;', '-U', 'postgres')
-        psql('ooiuiprod', '-c', 'create schema ooiui')
-        psql('ooiuiprod', '-c', 'create extension postgis')
+        psql('ooiuiprod', '-c', 'create schema ooiui', '-U', 'postgres')
+        psql('ooiuiprod', '-c', 'create extension postgis', '-U', 'postgres')
         app.logger.info('Populating Database . . .')
         with open('db/ooiui_schema_data.sql') as f:
-            psql('ooiuiprod', _in=f)
+            psql('-U', 'postgres', 'ooiuiprod', _in=f)
         with open('db/ooiui_params_streams_data.sql') as h:
-            psql('ooiuiprod', _in=h)
+            psql('-U', 'postgres', 'ooiuiprod', _in=h)
         app.logger.info('Database loaded.')
 
     #Create the local database
@@ -362,17 +362,17 @@ def destroy():
         "Are you sure you want to do drop %s" % db_check
     ):
         try:
-            psql('-c', 'drop database ooiuiprod')
+            psql('-c', 'drop database ooiuiprod', '-U', 'postgres')
         except:
             print 'prod db not found'
             pass
         try:
-            psql('-c', 'drop database ooiuidev')
+            psql('-c', 'drop database ooiuidev', '-U', 'postgres')
         except:
             print 'dev db not found'
             pass
         try:
-            psql('-c', 'drop database ooiuitest')
+            psql('-c', 'drop database ooiuitest', '-U', 'postgres')
         except:
             print 'test db not found'
             pass
