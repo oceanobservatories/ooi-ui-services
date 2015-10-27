@@ -76,6 +76,6 @@ TESTING_CONFIG: &testing
 
 PRODUCTION: &production
     <<: *common
-    SQLALCHEMY_DATABASE_URI: 'postgres://user:password@hostname/database_name'
-    SSL_DISABLE: True
-    WTF_CSRF_ENABLED: False
+    SQLALCHEMY_DATABASE_URI: 'postgres://postgres:postgres@localhost/ooiuiprod'
+    SSL_DISABLE: False
+    WTF_CSRF_ENABLED: True
