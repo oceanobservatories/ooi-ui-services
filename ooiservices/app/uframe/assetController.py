@@ -14,6 +14,7 @@ import json
 import requests
 import re
 import datetime
+import math
 from netCDF4 import num2date
 from operator import itemgetter
 from copy import deepcopy
@@ -148,6 +149,8 @@ def _get_latlon(item):
         # round to _decimal_places
         tmp = str(round(val,_decimal_places))
         result = float(tmp)
+        if math.isnan(result):
+            return 0.0
         return result
     else:
         if item == "":

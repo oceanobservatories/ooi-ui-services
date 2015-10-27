@@ -145,12 +145,29 @@ def test(coverage=False, testmodule=None):
         sys.exit(1)
 
 @manager.option('-bl', '--bulkload', default=False)
+@manager.option('--production', default=False)
 @manager.option('-p', '--password', required=True)
-def deploy(password, bulkload):
+def deploy(password, bulkload, production):
     from flask.ext.migrate import upgrade
     from ooiservices.app.models import User, UserScope, UserScopeLink, Array, Organization
     from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameterLink
     from sh import psql
+    if production:
+        app.logger.info('Creating PRODUCTION Database')
+        try:
+            psql('-c', 'CREATE ROLE postgres LOGIN SUPERUSER')
+        except:
+            pass
+        psql('-c', 'create database ooiuiprod;', '-U', 'postgres')
+        psql('ooiuiprod', '-c', 'create schema ooiui')
+        psql('ooiuiprod', '-c', 'create extension postgis')
+        app.logger.info('Populating Database . . .')
+        with open('db/ooiui_schema_data.sql') as f:
+            psql('ooiuiprod', _in=f)
+        with open('db/ooiui_params_streams_data.sql') as h:
+            psql('ooiuiprod', _in=h)
+        app.logger.info('Database loaded.')
+
     #Create the local database
     app.logger.info('Creating DEV and TEST Databases')
     psql('-c', 'create database ooiuidev;', '-U', 'postgres')
@@ -344,12 +361,22 @@ def destroy():
     if prompt_bool(
         "Are you sure you want to do drop %s" % db_check
     ):
-        if (db_check == 'Engine(postgres://postgres:***@localhost/ooiuidev)'):
+        try:
+            psql('-c', 'drop database ooiuiprod')
+        except:
+            print 'prod db not found'
+            pass
+        try:
             psql('-c', 'drop database ooiuidev')
+        except:
+            print 'dev db not found'
+            pass
+        try:
             psql('-c', 'drop database ooiuitest')
-            app.logger.info('ooiuidev and ooiuitest databases have been dropped.')
-        else:
-            print 'Must be working on LOCAL_DEVELOPMENT to destroy db'
+        except:
+            print 'test db not found'
+            pass
+        app.logger.info('Databases have been dropped.')
 
 if __name__ == '__main__':
     manager.run()
