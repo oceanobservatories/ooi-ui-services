@@ -46,3 +46,4 @@ seawater==3.3.2
 simplejson==3.6.5
 SQLAlchemy-Searchable==0.9.2
 cmislib==0.5.1
+redis=2.10

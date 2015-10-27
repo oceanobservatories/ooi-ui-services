@@ -21,7 +21,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 login_manager = LoginManager()
 login_manager.session_protection = 'strong'
 
-cache = Cache(config={'CACHE_TYPE':'simple'})
+cache = Cache(config={'CACHE_TYPE': 'redis'})
 db = SQLAlchemy()
 make_searchable()
 csrf = CsrfProtect()
