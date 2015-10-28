@@ -161,16 +161,17 @@ def deploy(password, bulkload, production):
         psql('-c', 'create database ooiuiprod;', '-U', 'postgres')
         psql('ooiuiprod', '-c', 'create schema ooiui', '-U', 'postgres')
         psql('ooiuiprod', '-c', 'create extension postgis', '-U', 'postgres')
+    else:
+        #Create the local database
+        app.logger.info('Creating DEV and TEST Databases')
+        psql('-c', 'create database ooiuidev;', '-U', 'postgres')
+        psql('ooiuidev', '-c', 'create schema ooiui', '-U', 'postgres')
+        psql('ooiuidev', '-c', 'create extension postgis', '-U', 'postgres')
+        #Create the local test database
+        psql('-c', 'create database ooiuitest;', '-U', 'postgres')
+        psql('ooiuitest', '-c', 'create schema ooiui', '-U', 'postgres')
+        psql('ooiuitest', '-c', 'create extension postgis', '-U', 'postgres')
 
-    #Create the local database
-    app.logger.info('Creating DEV and TEST Databases')
-    psql('-c', 'create database ooiuidev;', '-U', 'postgres')
-    psql('ooiuidev', '-c', 'create schema ooiui', '-U', 'postgres')
-    psql('ooiuidev', '-c', 'create extension postgis', '-U', 'postgres')
-    #Create the local test database
-    psql('-c', 'create database ooiuitest;', '-U', 'postgres')
-    psql('ooiuitest', '-c', 'create schema ooiui', '-U', 'postgres')
-    psql('ooiuitest', '-c', 'create extension postgis', '-U', 'postgres')
     from sqlalchemy.orm.mapper import configure_mappers
     configure_mappers()
     db.create_all()
