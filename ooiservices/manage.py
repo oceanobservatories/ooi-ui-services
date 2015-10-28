@@ -161,12 +161,6 @@ def deploy(password, bulkload, production):
         psql('-c', 'create database ooiuiprod;', '-U', 'postgres')
         psql('ooiuiprod', '-c', 'create schema ooiui', '-U', 'postgres')
         psql('ooiuiprod', '-c', 'create extension postgis', '-U', 'postgres')
-        app.logger.info('Populating Database . . .')
-        with open('db/ooiui_schema_data.sql') as f:
-            psql('-U', 'postgres', 'ooiuiprod', _in=f)
-        with open('db/ooiui_params_streams_data.sql') as h:
-            psql('-U', 'postgres', 'ooiuiprod', _in=h)
-        app.logger.info('Database loaded.')
 
     #Create the local database
     app.logger.info('Creating DEV and TEST Databases')
@@ -180,6 +174,14 @@ def deploy(password, bulkload, production):
     from sqlalchemy.orm.mapper import configure_mappers
     configure_mappers()
     db.create_all()
+    if production:
+        app.logger.info('Populating Database . . .')
+        with open('db/ooiui_schema_data.sql') as f:
+            psql('-U', 'postgres', 'ooiuiprod', _in=f)
+        with open('db/ooiui_params_streams_data.sql') as h:
+            psql('-U', 'postgres', 'ooiuiprod', _in=h)
+        app.logger.info('Database loaded.')
+
     if bulkload:
         with open('db/ooiui_schema_data.sql') as f:
             psql('ooiuidev', _in=f)
