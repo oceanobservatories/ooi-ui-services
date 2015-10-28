@@ -471,6 +471,22 @@ def read_store(filename):
         raise Exception('%s' % err.message)
     return data
 
+def read_store2(filename):
+    '''
+    open filename, read data, close file and return data
+    '''
+    APP_ROOT = os.path.dirname(os.path.abspath(__file__))   # refers to application_top
+    c2_data_path = os.path.join(APP_ROOT, '..', '..', 'tests', 'c2data')
+    try:
+        tmp = "/".join([c2_data_path, filename])
+        f = open(tmp, 'rb')
+        line = f.read()
+        data = line.split('\r')
+        f.close()
+    except Exception, err:
+        raise Exception('%s' % err.message)
+    return data
+
 # targeted for migration C
 def json_get_uframe_array_operational_status(array):
     filename = "_".join([array, 'operational_status'])
