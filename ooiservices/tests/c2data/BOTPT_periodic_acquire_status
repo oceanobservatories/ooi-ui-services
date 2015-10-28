@@ -1,0 +1,18 @@
+name: BOTPT_periodic_acquire_status
+desc: Periodic acquire status for BOTPT
+version: 1-00
+
+debug: true
+drivers:
+- RS10ENGC-XX00X-00-BOTPTA001
+error_policy:
+  type: abort
+
+schedule:
+  second: 0 # acquire status on the minute every minute
+
+blocks:
+- label: mission
+  sequence:
+  - execute: RS10ENGC-XX00X-00-BOTPTA001
+    command: DRIVER_EVENT_ACQUIRE_STATUS
