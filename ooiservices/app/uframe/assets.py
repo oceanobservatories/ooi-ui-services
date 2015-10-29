@@ -117,6 +117,7 @@ def get_assets(use_min=False,normal_data=False):
                         row['assetInfo']['longName'] = get_long_display_name_by_rd(ref_des)
                     else:
                         row['assetInfo']['name'] = ""
+                        row['assetInfo']['longName'] = ""
                     row['assetInfo']['array'] = get_display_name_by_rd(ref_des[:2])
                     row['assetInfo']['assembly'] = get_assembly_by_rd(ref_des)
 
@@ -189,6 +190,8 @@ def get_assets(use_min=False,normal_data=False):
                     for item in return_list:
                         if subset.lower() in str(item['assetInfo']['name']).lower():
                             ven_subset.append(item)
+                        elif subset.lower() in str(item['assetInfo']['longName']).lower():
+                            ven_subset.append(item)
                         elif subset.lower() in str(item['ref_des']).lower():
                             ven_subset.append(item)
                         elif subset.lower() in str(item['assetInfo']['type']).lower():
@@ -203,6 +206,8 @@ def get_assets(use_min=False,normal_data=False):
                 else:
                     for item in data:
                         if subset.lower() in str(item['assetInfo']['name']).lower():
+                            return_list.append(item)
+                        elif subset.lower() in str(item['assetInfo']['longName']).lower():
                             return_list.append(item)
                         elif subset.lower() in str(item['ref_des']).lower():
                             return_list.append(item)
