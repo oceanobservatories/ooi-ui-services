@@ -6,23 +6,97 @@ uframe assets and events endpoint and class definition.
 '''
 __author__ = 'M@Campbell'
 
-from flask import jsonify, current_app, request, url_for, make_response
+from flask import jsonify, current_app, request, url_for
 from ooiservices.app.uframe import uframe as api
-from ooiservices.app.main.authentication import auth
-from ooiservices.app.main.routes import get_display_name_by_rd
-import json
+from ooiservices.app.main.routes import\
+    get_display_name_by_rd as get_dn_by_rd,\
+    get_long_display_name_by_rd as get_ldn_by_rd,\
+    get_assembly_by_rd
 import requests
 import re
-import datetime
 import math
 from netCDF4 import num2date
 from operator import itemgetter
-from copy import deepcopy
 from ooiservices.app import cache
 
-#Default number of times to retry the connection:
 requests.adapters.DEFAULT_RETRIES = 2
 CACHE_TIMEOUT = 86400
+
+
+def _compile_assets(data):
+    for row in data:
+        lat = ""
+        lon = ""
+        ref_des = ""
+        has_deployment_event = False
+        deployment_number = ""
+        try:
+            row['id'] = row.pop('assetId')
+            row['asset_class'] = row.pop('@class')
+            row['events'] = associate_events(row['id'])
+            if row['metaData'] is not None:
+                for meta_data in row['metaData']:
+                    if meta_data['key'] == 'Latitude':
+                        lat = meta_data['value']
+                        coord = convert_lat_lon(lat, "")
+                        meta_data['value'] = coord[0]
+                    if meta_data['key'] == 'Longitude':
+                        lon = meta_data['value']
+                        coord = convert_lat_lon("", lon)
+                        meta_data['value'] = coord[1]
+                    if meta_data['key'] == 'Ref Des':
+                        ref_des = meta_data['value']
+                    if meta_data['key'] == 'Deployment Number':
+                        deployment_number = meta_data['value']
+                row['ref_des'] = ref_des
+
+                if len(row['ref_des']) == 27:
+                    row['asset_class'] = '.InstrumentAssetRecord'
+                if len(row['ref_des']) < 27:
+                    row['asset_class'] = '.AssetRecord'
+
+                if deployment_number is not None:
+                    row['deployment_number'] = deployment_number
+                for events in row['events']:
+                    if events['locationLonLat'] is not None and\
+                            lat == 0.0 and lon == 0.0:
+                        lat = events['locationLonLat'][1]
+                        lon = events['locationLonLat'][0]
+                    if events['class'] == '.DeploymentEvent':
+                        has_deployment_event = True
+                row['hasDeploymentEvent'] = has_deployment_event
+                row['coordinates'] = convert_lat_lon(lat, lon)
+                lat = 0.0
+                lon = 0.0
+
+            if (not(row['assetInfo'])):
+                row['assetInfo'] = {
+                    'name': '',
+                    'type': '',
+                    'owner': '',
+                    'description': ''
+                }
+
+            # determine the asset name from the DB if there is none.
+            if (not('name' in row['assetInfo']) and len(ref_des) > 0):
+                row['assetInfo']['name'] = get_dn_by_rd(ref_des) or ""
+                row['assetInfo']['longName'] = get_ldn_by_rd(ref_des)
+            elif ('name' in row['assetInfo'] and len(ref_des) > 0):
+                row['assetInfo']['name'] = row['assetInfo']['name']\
+                    or get_dn_by_rd(ref_des) or ""
+                row['assetInfo']['longName'] = get_ldn_by_rd(ref_des)
+            else:
+                row['assetInfo']['name'] = ""
+                row['assetInfo']['longName'] = ""
+            row['assetInfo']['array'] = get_dn_by_rd(ref_des[:2])
+            row['assetInfo']['assembly'] = get_assembly_by_rd(ref_des)
+
+        except Exception as e:
+            print e
+            continue
+
+    return data
+
 
 def _uframe_url(endpoint, id=None):
     '''
@@ -213,6 +287,7 @@ def associate_events(id):
             d['notes'] = len(row['notes'])
             d['startDate'] = row['startDate']
             d['endDate'] = row['endDate']
+            d['tense'] = row['tense']
             if d['class'] == '.CalibrationEvent':
                 d['calibrationCoefficient'] = row['calibrationCoefficient']
                 lon = 0.0

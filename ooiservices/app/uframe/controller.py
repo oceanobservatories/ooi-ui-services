@@ -306,6 +306,8 @@ def streams_list():
                         return_list.append(item)
                     elif subset.lower() in str(item['parameter_display_name']).lower():
                         return_list.append(item)
+                    elif subset.lower() in str(item['stream_name']).lower():
+                        return_list.append(item)
                 retval = return_list
 
     if request.args.get('startAt'):
