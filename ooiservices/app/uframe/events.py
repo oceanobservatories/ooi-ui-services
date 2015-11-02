@@ -1,16 +1,11 @@
-from flask import url_for, request, current_app, jsonify
+from flask import request, jsonify
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.uframe.UFrameEventsCollection import UFrameEventsCollection
 from ooiservices.app.uframe.assetController import get_events_by_ref_des
-from ooiservices.app.uframe.assetController import convert_lat_lon
-from ooiservices.app.uframe.assetController import convert_date_time
-from ooiservices.app.uframe.assetController import convert_water_depth
 from ooiservices.app.uframe.assetController import _uframe_url
 from ooiservices.app.uframe.assetController import _uframe_headers
-from ooiservices.app.main.routes import get_display_name_by_rd
 from ooiservices.app import cache
-from operator import itemgetter
 from copy import deepcopy
 from netCDF4 import num2date
 
@@ -62,6 +57,10 @@ def get_events():
                 cache.set('event_list', data, timeout=CACHE_TIMEOUT)
 
         #data = sorted(data, key=itemgetter('id'))
+        if request.args.get('ref_des') and request.args.get('ref_des') != "":
+            ref_des = request.args.get('ref_des')
+            resp = get_events_by_ref_des(data, ref_des)
+            return resp
 
         if request.args.get('search') and request.args.get('search') != "":
             return_list = []
@@ -123,7 +122,8 @@ def get_event(id):
             data['startDate'] = num2date(float(data['startDate'])/1000, units='seconds since 1970-01-01 00:00:00', calendar='gregorian')
             data['endDate'] = num2date(float(data['endDate'])/1000, units='seconds since 1970-01-01 00:00:00', calendar='gregorian')
         except (KeyError, TypeError):
-            pass
+            print 'ERROR'
+
         return jsonify(**data)
 
     except requests.exceptions.ConnectionError as e:
