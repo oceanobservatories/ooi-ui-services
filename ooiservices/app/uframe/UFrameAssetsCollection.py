@@ -53,7 +53,7 @@ class UFrameAssetsCollection(object):
         unless necessary to support uframe updates.
         '''
         formatted_return = {
-            '@class': json.get('class'),
+            '@class': json.get('asset_class'),
             'metaData': json.get('metaData'),
             'remoteDocuments': json.get('remoteDocuments'),
             'assetInfo': json.get('assetInfo'),

@@ -214,10 +214,20 @@ def create_asset():
         data = json.loads(request.data)
         uframe_obj = UFrameAssetsCollection()
         uframe_assets_url = _uframe_url(uframe_obj.__endpoint__)
+        if 'lastModifiedTimestamp' in data:
+            del data['lastModifiedTimestamp']
+
+        if 'asset_class' in data:
+            data['@class'] = data.pop('asset_class')
+
+        print data
+        print uframe_assets_url
+        print _uframe_headers()
         response = requests.post(uframe_assets_url,
                                  data=json.dumps(data),
                                  headers=_uframe_headers())
 
+        print response.text
         if response.status_code == 201:
             json_response = json.loads(response.text)
             data['id'] = json_response['id']
