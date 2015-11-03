@@ -18,6 +18,7 @@ import math
 from netCDF4 import num2date
 from operator import itemgetter
 from ooiservices.app import cache
+import datetime
 
 requests.adapters.DEFAULT_RETRIES = 2
 CACHE_TIMEOUT = 86400
@@ -25,6 +26,7 @@ CACHE_TIMEOUT = 86400
 
 def _compile_assets(data):
     for row in data:
+        latest_deployment = None
         lat = ""
         lon = ""
         ref_des = ""
@@ -58,16 +60,23 @@ def _compile_assets(data):
                 if deployment_number is not None:
                     row['deployment_number'] = deployment_number
                 for events in row['events']:
-                    if events['locationLonLat'] is not None and\
-                            lat == 0.0 and lon == 0.0:
-                        lat = events['locationLonLat'][1]
-                        lon = events['locationLonLat'][0]
                     if events['class'] == '.DeploymentEvent':
                         has_deployment_event = True
+                    if latest_deployment is None and\
+                            events['locationLonLat'] is not None and\
+                            len(events['locationLonLat']) == 2:
+                        latest_deployment = events['startDate']
+                        lat = events['locationLonLat'][1]
+                        lon = events['locationLonLat'][0]
+                    if events['locationLonLat'] is not None and\
+                            latest_deployment is not None and\
+                            len(events['locationLonLat']) == 2 and\
+                            events['startDate'] > latest_deployment:
+                        latest_deployment = events['startDate']
+                        lat = events['locationLonLat'][1]
+                        lon = events['locationLonLat'][0]
                 row['hasDeploymentEvent'] = has_deployment_event
                 row['coordinates'] = convert_lat_lon(lat, lon)
-                lat = 0.0
-                lon = 0.0
 
             if (not(row['assetInfo'])):
                 row['assetInfo'] = {

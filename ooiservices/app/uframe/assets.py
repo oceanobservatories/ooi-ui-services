@@ -220,14 +220,10 @@ def create_asset():
         if 'asset_class' in data:
             data['@class'] = data.pop('asset_class')
 
-        print data
-        print uframe_assets_url
-        print _uframe_headers()
         response = requests.post(uframe_assets_url,
                                  data=json.dumps(data),
                                  headers=_uframe_headers())
 
-        print response.text
         if response.status_code == 201:
             json_response = json.loads(response.text)
             data['id'] = json_response['id']
@@ -311,9 +307,13 @@ def delete_asset(id):
 END Assets CRUD methods.
 '''
 
+'''
+#depricated
+#@cache.memoize(timeout=3600)
+#@api.route('/asset/classes', methods=['GET'])
+'''
 
-@cache.memoize(timeout=3600)
-@api.route('/asset/classes', methods=['GET'])
+
 def get_asset_classes_list():
     '''
     Lists all the class types available from uFrame.
@@ -328,8 +328,13 @@ def get_asset_classes_list():
     return jsonify({'class_types': data})
 
 
-@cache.memoize(timeout=3600)
-@api.route('/asset/serials', methods=['GET'])
+'''
+#depricated
+#@cache.memoize(timeout=3600)
+#@api.route('/asset/serials', methods=['GET'])
+'''
+
+
 def get_asset_serials():
     '''
     Lists all the class types available from uFrame.
