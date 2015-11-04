@@ -138,6 +138,9 @@ def get_assets(use_min=False, normal_data=False):
                     elif subset.lower() in\
                             str(item['metaData']).lower():
                         ven_subset.append(item)
+                    elif subset.lower() in\
+                            str(item['tense']).lower():
+                        ven_subset.append(item)
                 data = ven_subset
             else:
                 for item in data:
@@ -161,6 +164,9 @@ def get_assets(use_min=False, normal_data=False):
                         return_list.append(item)
                     elif subset.lower() in\
                             str(item['metaData']).lower():
+                        return_list.append(item)
+                    elif subset.lower() in\
+                            str(item['tense']).lower():
                         return_list.append(item)
                 data = return_list
 
@@ -227,6 +233,7 @@ def create_asset():
         if response.status_code == 201:
             json_response = json.loads(response.text)
             data['id'] = json_response['id']
+            data['tense'] = 'NEW'
             data_list = []
             data_list.append(data)
             data = _compile_assets(data_list)

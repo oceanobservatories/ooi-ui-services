@@ -18,7 +18,6 @@ import math
 from netCDF4 import num2date
 from operator import itemgetter
 from ooiservices.app import cache
-import datetime
 
 requests.adapters.DEFAULT_RETRIES = 2
 CACHE_TIMEOUT = 86400
@@ -36,6 +35,9 @@ def _compile_assets(data):
             row['id'] = row.pop('assetId')
             row['asset_class'] = row.pop('@class')
             row['events'] = associate_events(row['id'])
+            if len(row['events']) == 0:
+                row['events'] = []
+            row['tense'] = None
             if row['metaData'] is not None:
                 for meta_data in row['metaData']:
                     if meta_data['key'] == 'Latitude':
@@ -62,6 +64,10 @@ def _compile_assets(data):
                 for events in row['events']:
                     if events['class'] == '.DeploymentEvent':
                         has_deployment_event = True
+                        if events['tense'] == 'PRESENT':
+                            row['tense'] = events['tense']
+                        else:
+                            row['tense'] = 'PAST'
                     if latest_deployment is None and\
                             events['locationLonLat'] is not None and\
                             len(events['locationLonLat']) == 2:
