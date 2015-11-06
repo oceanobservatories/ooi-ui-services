@@ -16,7 +16,7 @@ from ooiservices.app.main.errors import bad_request
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.decorators import scope_required
 import datetime as dt
-from ooiservices.app.models import PlatformDeployment
+
 
 # - - - - - - - - - - - - - - - - - - - - - - - -
 # C2 array routes
@@ -56,12 +56,7 @@ def get_array_abstract(array_code):
     response_dict['array_id'] = array.id
     response_dict['operational_status'] = 'Online' #c2_get_array_operational_status(array_code)
     response_dict['mission_enabled'] = 'False'
-    '''
-    if array_code == 'RS':
-        response_dict['mission_enabled'] = 'True'
-    else:
-        response_dict['mission_enabled'] = 'False'
-    '''
+
     return response_dict
 
 #TODO get operational status from uframe
@@ -457,9 +452,9 @@ def c2_get_platform_operational_status(reference_designator):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # targeted for deprecation
 def read_store(filename):
-    '''
+    """
     open filename, read data, close file and return data
-    '''
+    """
     APP_ROOT = os.path.dirname(os.path.abspath(__file__))   # refers to application_top
     c2_data_path = os.path.join(APP_ROOT, '..', '..', 'tests', 'c2data')
     try:
@@ -471,10 +466,12 @@ def read_store(filename):
         raise Exception('%s' % err.message)
     return data
 
+
+'''
 def read_store2(filename):
-    '''
+    """
     open filename, read data, close file and return data
-    '''
+    """
     APP_ROOT = os.path.dirname(os.path.abspath(__file__))   # refers to application_top
     c2_data_path = os.path.join(APP_ROOT, '..', '..', 'tests', 'c2data')
     try:
@@ -495,6 +492,8 @@ def json_get_uframe_array_operational_status(array):
     except:
         return None
     return data
+'''
+
 # targeted for migration B
 def json_get_uframe_platform_commands(platform):
     filename = "_".join([platform, 'commands'])
@@ -503,6 +502,8 @@ def json_get_uframe_platform_commands(platform):
     except:
         return None
     return data
+
+'''
 # targeted for migration C
 def json_get_uframe_platforms_operational_status(array_code):
     filename = "_".join([array_code, 'operational_statuses'])
@@ -511,6 +512,9 @@ def json_get_uframe_platforms_operational_status(array_code):
     except:
         return None
     return data
+'''
+
+'''
 # targeted for migration B
 def json_get_uframe_platform_operational_status(platform):
     filename = "_".join([platform, 'operational_status'])
@@ -519,7 +523,7 @@ def json_get_uframe_platform_operational_status(platform):
     except:
         return None
     return data
-
+'''
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # uframe interface for c2 instrument/api - uframe 4.x targeted
@@ -680,8 +684,11 @@ def uframe_get_instruments_status():
         url, timeout, timeout_read = get_uframe_info()
         response = requests.get(url, timeout=(timeout, timeout_read))
         return response
-    except:
-        return _response_internal_server_error()
+    except Exception as err:
+        #return _response_internal_server_error()
+        message = str(err.message)
+        current_app.logger.info(message)
+        raise
 
 # todo re: blocking
 def _c2_get_instrument_driver_status(reference_designator):
@@ -987,7 +994,9 @@ def uframe_get_instrument_driver_parameter_values(reference_designator, command)
         return response
     except Exception as err:
         message = str(err.message)
-        return _response_internal_server_error(message)
+        #return _response_internal_server_error(message)
+        current_app.logger.info(message)
+        raise
 
 def convert(data):
     test = dict([(str(k), v) for k, v in data.items()])
@@ -1000,7 +1009,6 @@ def convert(data):
 def scrub_ui_request_data(data, parameter_types):
     """ Modify format of float, int and bool data values provided by ooi-ui.
     """
-    debug = False
     if not data:
         message = 'Parameter data is empty or null.'
         raise Exception(message)
@@ -1018,7 +1026,7 @@ def scrub_ui_request_data(data, parameter_types):
                     result[k] = float_value
                 except:
                     message = 'Failed to convert value for %s to float' % k
-                    if debug: print '\n message: ', message
+                    current_app.logger.info(message)
                     raise Exception(message)
             elif parameter_types[k] == 'int':
                 try:
@@ -1026,7 +1034,7 @@ def scrub_ui_request_data(data, parameter_types):
                     result[k] = int_value
                 except:
                     message = 'Failed to convert value for %s to int' % k
-                    if debug: print '\n message: ', message
+                    current_app.logger.info(message)
                     raise Exception(message)
             elif parameter_types[k] == 'bool':
                 try:
@@ -1035,18 +1043,18 @@ def scrub_ui_request_data(data, parameter_types):
                     result[k] = tmp.lower()
                 except:
                     message = 'Failed to convert value for %s to bool' % k
-                    if debug: print '\n message: ', message
+                    current_app.logger.info(message)
                     raise Exception(message)
             elif parameter_types[k] == 'string':
                 try:
                     result[k] = str(v)
                 except:
                     message = 'Failed to convert value for %s to string' % k
-                    if debug: print '\n message: ', message
+                    current_app.logger.info(message)
                     raise Exception(message)
             else:
                 message = 'Unknown parameter type: %s' % parameter_types[k]
-                if debug: print '\n message: ', message
+                current_app.logger.info(message)
                 result[k] = v
 
         return result
@@ -1062,7 +1070,6 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
       timeout:  in milliseconds, default value is 60000
     Sample: localhost:12572/instrument/api/reference_designator/resource [POST]
     """
-    debug = False
     response_status = {}
     response_status['status_code'] = 200
     response_status['message'] = ""
@@ -1090,14 +1097,14 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
         _status = get_instrument_status(reference_designator)
         if _status is None:
             message = 'Failed to retrieve instrument (%s) status.' % reference_designator
-            if debug: print '\n message: ', message
+            current_app.logger.info(message)
             raise Exception(message)
 
         # Get parameters from status.
         _parameters = get_instrument_parameters(_status)
         if _parameters is None:
             message = 'Failed to retrieve instrument (%s) parameters from status.' % reference_designator
-            if debug: print '\n message: ', message
+            current_app.logger.info(message)
             raise Exception(message)
 
         # Create parameter type dictionary.
@@ -1107,14 +1114,14 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
             parameter_dict[str(parameter)] = str(tmp['value']['type'])
         if payload['resource'] is None or not parameter_dict:
             message = 'The payload \'resource\' element is None or parameters dictionary is empty.'
-            if debug: print '\n message: ', message
+            current_app.logger.info(message)
             raise Exception(message)
 
         # Scrub payload resource value using parameter type dictionary.
         result = scrub_ui_request_data(payload['resource'], parameter_dict)
         if result is None or not result:
             message = 'Unable to process resource payload (result is None or empty).'
-            if debug: print '\n message: ', message
+            current_app.logger.info(message)
             raise Exception(message)
 
         # Update value of resource in payload.
@@ -1125,7 +1132,7 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
         if response.status_code !=200:
             if response.content:
                 message = '(%s) %s' % (str(response.status_code), str(response.content))
-            if debug: print '\n message: ', message
+            current_app.logger.info(message)
             raise Exception(message)
         if response.content:
             try:
@@ -1185,7 +1192,9 @@ def _uframe_post_instrument_driver_set(reference_designator, command, data):
         return response
     except Exception as err:
         message = str(err.message)
-        return _response_internal_server_error(message)
+        #return _response_internal_server_error(message)
+        current_app.logger.info(message)
+        raise
 
 #TODO enable kwargs parameter
 def _c2_instrument_driver_execute(reference_designator, data):
@@ -1313,6 +1322,7 @@ def _c2_instrument_driver_execute(reference_designator, data):
                         response_status['message'] = '(%s) Failed to retrieve stream contents. ' % command_name
                 except Exception as err:
                     message = str(err.message)
+                    current_app.logger.info(message)
                     response_status['status_code'] = 400
                     response_status['message'] = message
 
@@ -1327,16 +1337,26 @@ def _c2_instrument_driver_execute(reference_designator, data):
         # Get over_all state, return in status attribute of result
         try:
             status = _c2_get_instrument_driver_status(reference_designator)
-        except Exception as err:
+        except Exception:
             status = {}
         result['status'] = status
 
         return result
-    except:
+    except Exception as err:
+        message = str(err.message)
+        #print '\n exit exception message: ', message
+        current_app.logger.info(message)
         raise
 
 def _get_data_from_stream(reference_designator, command_name):
+    """
+    Get stream content response - type of request is based on command_name provided.
+    If command_name is a status command, stream_key is set to 'status'; otherwise it is set to data.
 
+    Stream types (methods) are retrieved; if multiple stream types (methods) are returned, then the first stream_type
+    in the list is used.
+    """
+    debug = False
     if not reference_designator:
         raise exception('reference_designator empty')
     if not command_name:
@@ -1351,44 +1371,63 @@ def _get_data_from_stream(reference_designator, command_name):
         if 'STATUS' in command_name:
             stream_key = 'status'
 
+        if debug : print '\n stream_key: ', stream_key
+
         # Get request info: stream types
         stream_types = None
         mooring, platform, instrument = reference_designator.split('-', 2)
         response = get_uframe_stream_types(mooring, platform, instrument)
         if response.status_code != 200:
             message = 'Failed to retrieve stream types.'
+            current_app.logger.info(message)
             raise Exception(message)
         try:
             stream_types = response.json()
         except:
             message = 'Failed to process stream types to json.'
+            current_app.logger.info(message)
             raise Exception(message)
+
+        if debug: print '\n stream_types: ', stream_types
 
         # Process stream types list and identify target stream name;
         stream_type = None
+        multiple_stream_types = False
         # If only one stream type, use it
         if len(stream_types) > 0:
             if len(stream_types) == 1:
                 stream_type = stream_types[0]
+
             # multiple stream_types - walk until find first instance of stream name to satisfy request (revisit!)
             else:
-                #print '\n -- multiple stream types - violation of agreed upon interface rules! discuss.'
+                multiple_stream_types = True
+                message = '-- multiple stream types - violation of agreed upon interface rules! Review.'
+                if debug: print '\n multiple stream types message: %s; stream_types available: %s' % \
+                                (message,stream_types)
+                current_app.logger.info(message)
                 stream_type = stream_types[0]
         else:
             # error, no stream_types to process
-            message = 'Failed to retrieve stream names.'
+            message = 'Failed to retrieve stream types; no stream types to process.'
+            current_app.logger.info(message)
             raise Exception(message)
+
+        if debug: print '\n stream_type: ', stream_type
 
         # for stream_type, fetch stream names
         response = get_uframe_streams(mooring, platform, instrument, stream_type)
         if response.status_code != 200:
             message = 'Failed to retrieve stream names.'
+            current_app.logger.info(message)
             raise Exception(message)
         try:
             stream_names = response.json()
         except:
             message = 'Failed to process stream names to json.'
+            current_app.logger.info(message)
             raise Exception(message)
+
+        if debug: print '\n stream_names: ', stream_names
 
         # Process stream names list and identify target stream name based on ACQUIRE request type
         stream_name = None
@@ -1398,9 +1437,14 @@ def _get_data_from_stream(reference_designator, command_name):
                 break
 
         if stream_name is None:
-            message = 'Failed to identify stream name to process \'%s\' request.' % command_name
+            tmp = [str(name) for name in stream_names]
+            if debug: print '\n tmp: ', tmp
+            message = 'Failed to identify stream name to process \'%s\' request.  Available Stream Names: %s' % \
+                      (command_name, tmp)
+            current_app.logger.info(message)
             raise Exception(message)
 
+        if debug: print '\n stream_name: ', stream_name
         # Prepare to retrieve stream contents for past 60 seconds
         X = 60
         end_time = dt.datetime.now()
@@ -1411,12 +1455,16 @@ def _get_data_from_stream(reference_designator, command_name):
         response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream_name,
                                    formatted_start_time, formatted_end_time, dpa_flag)
 
+        if debug: print '\n response: ', response
+
         if response is None:
             message = 'Get stream contents failed for stream (%s).' % stream_name
+            current_app.logger.info(message)
             raise Exception(message)
 
         if response.status_code != 200:
             message = '(%s) Failed to retrieve stream (%s) contents.' % (str(response.status_code), stream_name)
+            current_app.logger.info(message)
             raise Exception(message)
 
         if response.content:
@@ -1424,37 +1472,46 @@ def _get_data_from_stream(reference_designator, command_name):
                 error_check = json.dumps(response.content)
                 if 'Error' in error_check or 'HTTPConnectionPool' in error_check or 'Read timed out' in error_check:
                     message = 'Failed to retrieve valid stream (%s) contents; uframe error: %s.' % (stream_name, error_check)
+                    current_app.logger.info(message)
                     raise Exception(message)
                 else:
                     try:
                         result = response.json()
                     except:
                         message = 'Failed to process stream (%s) contents to json.' % (stream_name)
+                        current_app.logger.info(message)
                         raise Exception(message)
             except:
                 raise
         else:
             message = 'Failed to retrieve stream (%s) contents from uframe'
+            current_app.logger.info(message)
             raise Exception(message)
+
+        return result
 
     except Exception as err:
         message = str(err.message)
+        if debug: print '\n exit exception message: ', message
+        current_app.logger.info(message)
         raise Exception(message)
 
-    return result
 
 def get_uframe_stream_types(mooring, platform, instrument):
     """
     Lists all the stream types
     """
+    debug = False
     try:
         uframe_url, timeout, timeout_read = get_uframe_data_info()
         url = '/'.join([uframe_url, mooring, platform, instrument])
+        if debug: print '\n (get_uframe_stream_types) url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read))
         return response
     except Exception as err:
         message = str(err.message)
-        return _response_internal_server_error(message)
+        current_app.logger.info(message)
+        raise
 
 def get_uframe_streams(mooring, platform, instrument, stream_type):
     """
@@ -1467,33 +1524,40 @@ def get_uframe_streams(mooring, platform, instrument, stream_type):
         return response
     except Exception as err:
         message = str(err.message)
-        return _response_internal_server_error(message)
+        current_app.logger.info(message)
+        raise
+
 
 def get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag):
     """
     Gets the bounded stream contents, start_time and end_time need to be datetime objects; returns Respnse object.
     """
+    debug = False
     try:
         if dpa_flag == '0':
             query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
         else:
             query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
+        query += '&limit=100'
         uframe_url, timeout, timeout_read = get_uframe_data_info()
         url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
+        if debug: print '\n (get_uframe_stream_contents) url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read))
-        if not response:
-            message = 'No data available from uFrame for this request.'
-            #print '\n*** message: ', message
+        if not response or response is None:
+            message = 'No data available from uFrame for this request.\rInstrument: %s, Method: %s, Stream: %s' % \
+                            (instrument, stream_type, stream)
+            current_app.logger.info(message)
+            current_app.logger.info('C2 Failed request: ' + url)
             raise Exception(message)
         if response.status_code != 200:
             message = '(%s) failed to retrieve stream contents from uFrame.', response.status_code
-            #print '\n*** message: ', message
+            current_app.logger.info(message)
             raise Exception(message)
         return response
     except Exception as err:
         message = str(err.message)
-        #print '\n*** (exception) message: ', message
-        return _response_internal_server_error(message)
+        current_app.logger.info(message)
+        raise
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1511,7 +1575,8 @@ def uframe_get_instrument_driver_command(reference_designator, command):
         return response
     except Exception as err:
         message = str(err.message)
-        return _response_internal_server_error(message)
+        #return _response_internal_server_error(message)        # 2015-10-30
+        raise
 
 def uframe_post_instrument_driver_command(reference_designator, command, suffix):
     """
@@ -1526,7 +1591,8 @@ def uframe_post_instrument_driver_command(reference_designator, command, suffix)
         return response
     except Exception as err:
         message = str(err.message)
-        return _response_internal_server_error(message)
+        #return _response_internal_server_error(message)        # 2015-10-30
+        raise
 
 def get_uframe_info(type='instrument'):
     """
@@ -1731,6 +1797,7 @@ def _get_instruments(platform):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Disabled instrument/api routes and supporting methods
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Disabled instrument/api routes
 '''
 #@api.route('/c2/instrument/<string:reference_designator>/start', methods=['POST'])
 #@auth.login_required
@@ -2060,6 +2127,7 @@ def c2_get_instrument_driver_parameter_values(reference_designator):
     except Exception as err:
         return bad_request(err.message)
 '''
+# Disabled supporting functions
 '''
 def _c2_instrument_driver_start(reference_designator, data):
     """
