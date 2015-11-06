@@ -467,7 +467,7 @@ def read_store(filename):
     return data
 
 
-'''
+
 def read_store2(filename):
     """
     open filename, read data, close file and return data
@@ -484,6 +484,7 @@ def read_store2(filename):
         raise Exception('%s' % err.message)
     return data
 
+'''
 # targeted for migration C
 def json_get_uframe_array_operational_status(array):
     filename = "_".join([array, 'operational_status'])
