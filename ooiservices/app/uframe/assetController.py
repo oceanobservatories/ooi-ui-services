@@ -335,23 +335,26 @@ def associate_events(id):
     return result
 
 def get_events_by_ref_des(data, ref_des):
-    #Create the container for the processed response
+    # Create the container for the processed response
     result = []
-    #Get all the events to begin searching though...
+    # Get all the events to begin searching though...
     for row in data:
-        #variables used in loop
+        # variables used in loop
         temp_dict = {}
-        platform = ""
-        mooring = ""
-        instrument = ""
         ref_des_check = ""
         try:
-            if row['asset']['metaData']:
-                for metaData in row['asset']['metaData']:
-                    if metaData['key'] == 'Ref Des':
-                        ref_des_check = metaData['value']
+
+            if 'referenceDesignator' in row and row['referenceDesignator']['full']:
+                ref_des_check = (row['referenceDesignator']['subsite'] + '-' + row['referenceDesignator']['node'] +
+                                 '-' + row['referenceDesignator']['sensor'])
+            else:
+                if row['asset']['metaData']:
+                    for metaData in row['asset']['metaData']:
+                        if metaData['key'] == 'Ref Des':
+                            ref_des_check = metaData['value']
             if ref_des_check == ref_des:
                 temp_dict['ref_des'] = ref_des_check
+                temp_dict['id'] = row['id']
                 temp_dict['class'] = row['class']
                 if row['class'] == '.DeploymentEvent':
                     temp_dict['cruise_number'] = row['cruiseNumber']
@@ -360,10 +363,11 @@ def get_events_by_ref_des(data, ref_des):
                     temp_dict['lat_lon'] = row['locationLonLat']
                     temp_dict['deployment_number'] = row['deploymentNumber']
                 temp_dict['tense'] = row['tense']
-
-                temp_dict['start_date'] = num2date(float(row['startDate'])/1000, units='seconds since 1970-01-01 00:00:00', calendar='gregorian')
+                start_date = num2date(float(row['startDate'])/1000, units='seconds since 1970-01-01 00:00:00', calendar='gregorian')
+                temp_dict['start_date'] = start_date.strftime("%B %d %Y, %I:%M:%S %p")
                 if row['endDate'] is not None:
-                    temp_dict['end_date'] = num2date(float(row['endDate'])/1000, units='seconds since 1970-01-01 00:00:00', calendar='gregorian')
+                    end_date = num2date(float(row['endDate'])/1000, units='seconds since 1970-01-01 00:00:00', calendar='gregorian')
+                    temp_dict['end_date'] = end_date.strftime("%B %d %Y, %I:%M:%S %p")
                 temp_dict['event_description'] = row['eventDescription']
                 temp_dict['event_type'] = row['eventType']
                 temp_dict['notes'] = row['notes']
