@@ -67,9 +67,46 @@ class AlfrescoCMIS(object):
         # use this files connection method
 
         # issue the query
-        results = repo.query(
-            "select * from cmis:document where contains('\"%s\"')" % query)
+        results = repo.query("select * from cmis:document where contains('\"%s\"')" % query)
 
+        return results
+
+    def make_alfresco_cruise_query(self, array,cruise):
+        '''
+        query the alfresco server for all documents relating to a cruise
+        '''
+        # create the cmis client
+        client = CmisClient(self.ALFRESCO_URL, self.ALFRESCO_UN, self.ALFRESCO_PW)
+
+        # connect to the alfresco server and return the repo object
+        repo = client.getRepository(self.ALFRESCO_ID)
+        # use this files connection method
+
+        cruise = cruise.split(" ")[1]
+
+        doc = repo.getObjectByPath("/OOI/"+array+" Array/Cruise Data")
+        folder_query = "IN_FOLDER('"+doc.id+"')"
+        cruise_query = " AND CONTAINS('cmis:name:*"+cruise+"*')"
+        array_cruises = repo.query("select * FROM cmis:folder  WHERE "+folder_query)
+
+        cruise_id = None
+        for r in array_cruises:
+            if cruise in r.getName():
+                cruise_id = r.id
+                results = repo.query("select * FROM cmis:folder"+" WHERE "+folder_query + cruise_query)
+                if len(results) == 1:
+                    print "\n----CRUISE"
+                    for r in results:
+                        print r.getName(),r.id
+
+                    print "\n----FILES"
+                    results = repo.query("select * FROM cmis:document where IN_FOLDER('"+results[0].id+"')")
+
+                    for r in results:
+                        print r.getName()
+                    break
+
+        # issue the query
         return results
 
     def make_alfresco_download_link(self, id, ticket):

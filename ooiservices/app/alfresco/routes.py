@@ -72,12 +72,17 @@ def get_doc():
     get a response!
     '''
     query = request.args['search']
+    cruise = request.args['cruise']
+    array = request.args['array']
     # since we'll need the ticket to access any of these
     # documents, lets send it over with the payload . . .
     ticket = get_alfresco_ticket()
     try:
         alf = ACMIS()
-        results = alf.make_alfresco_query(query)
+
+        results = alf.make_alfresco_cruise_query(array,cruise)
+
+        #results = alf.make_alfresco_query(query)
     except Exception as e:
         print e
         error_response = {'error': 'Alfresco configuration invalid,' +
