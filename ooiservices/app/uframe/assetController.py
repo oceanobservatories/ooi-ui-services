@@ -292,8 +292,8 @@ def associate_events(id):
     json_data = payload.json()
     for row in json_data:
         try:
-            d = {'url': url_for('uframe.get_event', id=row['eventId']),
-                    'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/events/%s' % row['eventId']}
+           
+            d = {}
             # set up some static keys
             d['locationLonLat'] = []
 

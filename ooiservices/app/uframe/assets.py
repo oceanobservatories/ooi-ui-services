@@ -20,7 +20,7 @@ CACHE_TIMEOUT = 172800
 
 
 @api.route('/assets', methods=['GET'])
-def get_assets(use_min=False, normal_data=False):
+def get_assets(use_min=False, normal_data=False, reset=False):
     '''
     Listing GET request of all assets.  This method is cached for 1 hour.
     add in helped params to bypass the json response and minification
@@ -28,7 +28,7 @@ def get_assets(use_min=False, normal_data=False):
     try:
         cached = cache.get('asset_list')
 
-        if cached:
+        if cached and reset is not True:
             data = cached
         else:
             uframe_obj = UFrameAssetsCollection()
@@ -80,7 +80,7 @@ def get_assets(use_min=False, normal_data=False):
                 if 'metaData' in obj:
                     del obj['metaData']
                 if 'events' in obj:
-                    if showDeployments:
+                    if showDeployments and obj['events'] is not None:
                         for event in obj['events']:
                             if event['class'] == '.DeploymentEvent':
                                 deploymentEvents.append(event)
@@ -208,8 +208,8 @@ def get_asset(id):
         return make_response(error, 500)
 
 
-@auth.login_required
 @api.route('/assets', methods=['POST'])
+@auth.login_required
 def create_asset():
     '''
     Create a new asset, the return will be right from uframe if all goes well.
@@ -251,8 +251,8 @@ def create_asset():
         return make_response(error, 500)
 
 
-@auth.login_required
 @api.route('/assets/<int:id>', methods=['PUT'])
+@auth.login_required
 def update_asset(id):
     try:
         data = json.loads(request.data)
@@ -282,8 +282,8 @@ def update_asset(id):
         return make_response(error, 500)
 
 
-@auth.login_required
 @api.route('/assets/<int:id>', methods=['DELETE'])
+@auth.login_required
 def delete_asset(id):
     '''
     Delete an asset by providing the id

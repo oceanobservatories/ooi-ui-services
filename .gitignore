@@ -70,3 +70,9 @@ whoosh_index
 
 .DS_Store
 docs/ # softlink to wiki
+
+#NoSQL
+*.rdb
+
+#celery
+celerybeat-schedule
