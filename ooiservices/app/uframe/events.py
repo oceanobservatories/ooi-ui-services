@@ -122,7 +122,7 @@ def get_event(id):
             data['startDate'] = num2date(float(data['startDate'])/1000, units='seconds since 1970-01-01 00:00:00', calendar='gregorian')
             data['endDate'] = num2date(float(data['endDate'])/1000, units='seconds since 1970-01-01 00:00:00', calendar='gregorian')
         except (KeyError, TypeError):
-            print 'ERROR'
+            pass
 
         return jsonify(**data)
 
