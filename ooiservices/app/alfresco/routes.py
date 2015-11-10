@@ -80,7 +80,7 @@ def get_doc():
     try:
         alf = ACMIS()
 
-        results = alf.make_alfresco_cruise_query(array,cruise)
+        results,cruise = alf.make_alfresco_cruise_query(array,cruise)
 
         #results = alf.make_alfresco_query(query)
     except Exception as e:
@@ -91,11 +91,23 @@ def get_doc():
         return response, response.status_code
 
     result_list = []
+    #add the cruise information
+    if cruise is not None:
+        result_dict = {}
+        result_dict['name'] = cruise.name
+        result_dict['id'] = cruise.id
+        result_dict['type'] = cruise.type
+        result_dict['url'] = alf.make_alfresco_page_link(cruise.id, ticket)
+        result_list.append(result_dict)
+
+    #add the results
     for result in results:
         result_dict = {}
         result_dict['name'] = result.name
         result_dict['id'] = result.id
-        result_dict['url'] = alf.make_alfresco_download_link(result.id, ticket)
+        result_dict['type'] = result.type
+        if result_dict['type'] == "cruise" or result_dict['type'] == "asset":
+            result_dict['url'] = alf.make_alfresco_download_link(result.id, ticket)
         result_list.append(result_dict)
 
     return jsonify({'results': result_list})

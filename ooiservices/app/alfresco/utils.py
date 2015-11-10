@@ -8,7 +8,7 @@ import os
 import requests
 import json
 from cmislib.model import CmisClient
-
+import re
 from flask import current_app
 
 
@@ -30,6 +30,8 @@ class AlfrescoCMIS(object):
             os.environ.get('ALFRSCO_TICKET_URL')
         self.ALFRESCO_DL_URL = current_app.config['ALFRESCO_DL_URL'] or \
             os.environ.get('ALFRESCO_DL_URL')
+        self.ALFRESCO_LINK_URL = current_app.config['ALFRESCO_LINK_URL'] or \
+            os.environ.get('ALFRESCO_LINK_URL')
         pass
 
     def make_alfresco_conn(self):
@@ -82,32 +84,47 @@ class AlfrescoCMIS(object):
         repo = client.getRepository(self.ALFRESCO_ID)
         # use this files connection method
 
-        cruise = cruise.split(" ")[1]
-
         doc = repo.getObjectByPath("/OOI/"+array+" Array/Cruise Data")
         folder_query = "IN_FOLDER('"+doc.id+"')"
-        cruise_query = " AND CONTAINS('cmis:name:*"+cruise+"*')"
+
         array_cruises = repo.query("select * FROM cmis:folder  WHERE "+folder_query)
 
+        #setup the cruise information
+        results = []
         cruise_id = None
-        for r in array_cruises:
-            if cruise in r.getName():
-                cruise_id = r.id
-                results = repo.query("select * FROM cmis:folder"+" WHERE "+folder_query + cruise_query)
-                if len(results) == 1:
-                    print "\n----CRUISE"
-                    for r in results:
-                        print r.getName(),r.id
+        if len(cruise) > 0:
+            cruise_split = re.split('\s|-|;|,|\*|\n',cruise)
+            cruise = "-".join(cruise_split)
+            #unique case...
+            if cruise == "Scarlett-Isabella":
+                cruise = "SI"
 
-                    print "\n----FILES"
-                    results = repo.query("select * FROM cmis:document where IN_FOLDER('"+results[0].id+"')")
-
-                    for r in results:
-                        print r.getName()
+            for r in array_cruises:
+                cruise_str = r.getName().split("_")[1]
+                if cruise in cruise_str:
+                    cruise_id = r
                     break
 
-        # issue the query
-        return results
+            #only should the cruise information if its availablep
+            if cruise_id is not None:
+                cruise_results = repo.query("select * FROM cmis:document where IN_FOLDER('"+cruise_id.id+"')")
+                for c in cruise_results:
+                    c.type = "cruise"
+                #add the cruise link
+                cruise_id.type = "link"
+                return cruise_results,cruise_id
+
+        #return the defaults if not available
+        return results,cruise_id
+
+    def make_alfresco_page_link(self,id,ticket):
+        '''
+        creates an alfresco url page link
+        '''
+        arrID = id.split('/')
+        hex_id = arrID[3]
+        url = self.ALFRESCO_LINK_URL+hex_id
+        return url
 
     def make_alfresco_download_link(self, id, ticket):
         '''
