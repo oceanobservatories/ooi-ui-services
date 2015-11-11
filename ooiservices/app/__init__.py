@@ -21,7 +21,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 login_manager = LoginManager()
 login_manager.session_protection = 'strong'
 
-cache = Cache()
+cache = Cache(config={'CACHE_TYPE': 'redis'})
 db = SQLAlchemy()
 make_searchable()
 csrf = CsrfProtect()
@@ -36,11 +36,6 @@ def create_app(config_name):
         env.from_yaml(os.path.join(basedir, 'config_local.yml'))
     else:
         env.from_yaml(os.path.join(basedir, 'config.yml'))
-    celery.conf.update(BROKER_URL=app.config['REDIS_URL'],
-                CELERY_RESULT_BACKEND=app.config['REDIS_URL'])
-
-    # Uses REDIS_URL from config.yml to set the connection to the redis-server
-    cache.config = {'CACHE_TYPE': 'redis', 'CACHE_REDIS_URL': app.config['REDIS_URL']}
 
 
     #Adding logging capabilities.

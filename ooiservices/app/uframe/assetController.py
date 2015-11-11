@@ -107,18 +107,6 @@ def _compile_assets(data):
     return data
 
 
-def _uframe_url(endpoint, id=None):
-    '''
-    Two options for creating the uframe url:
-    - If an id is provided, the return is a url points to a specific id.
-    - If no id, a url for a GET list or a post is returned.
-    '''
-    if id is not None:
-        uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (endpoint, id)
-    else:
-        uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/%s' % endpoint
-    return uframe_url
-
 def _uframe_collection(uframe_url):
     '''
     After a url is determined, this method will do the heavy lifting of contacting

@@ -1,10 +1,7 @@
-from flask import request, jsonify, make_response
+from flask import request, jsonify, make_response, current_app
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.authentication import auth
-from ooiservices.app.uframe.UFrameEventsCollection import \
-    UFrameEventsCollection
 from ooiservices.app.uframe.assetController import get_events_by_ref_des
-from ooiservices.app.uframe.assetController import _uframe_url
 from ooiservices.app.uframe.assetController import _uframe_headers
 from ooiservices.app import cache
 from copy import deepcopy
@@ -15,7 +12,6 @@ import requests
 requests.adapters.DEFAULT_RETRIES = 2
 CACHE_TIMEOUT = 86400
 
-uframe_obj = UFrameEventsCollection()
 
 '''
  BEGIN Events CRUD methods.
@@ -39,7 +35,11 @@ def get_events():
             data = cached
 
         else:
-            payload = uframe_obj.to_json()
+            url = current_app.config['UFRAME_ASSETS_URL']\
+                + '/%s' % 'events'
+
+            payload = requests.get(url)
+
             data = payload.json()
             if payload.status_code != 200:
                 return jsonify({"events": payload.json()}), payload.status_code
@@ -106,7 +106,9 @@ def get_event(id):
     '''
     try:
         data = {}
-        payload = uframe_obj.to_json(id)
+        url = current_app.config['UFRAME_ASSETS_URL']\
+            + '/%s/%s' % ('events', id)
+        payload = requests.get(url)
         data = payload.json()
         if payload.status_code != 200:
             return jsonify({"events": payload.json()}), payload.status_code
@@ -134,9 +136,10 @@ def create_event():
     '''
     try:
         data = json.loads(request.data)
-        uframe_events_url = _uframe_url(uframe_obj.__endpoint__)
+        url = current_app.config['UFRAME_ASSETS_URL']\
+            + '/%s/%s' % ('events', id)
         data['@class'] = data.pop('class')
-        response = requests.post(uframe_events_url,
+        response = requests.post(url,
                                  data=json.dumps(data),
                                  headers=_uframe_headers())
         cache.delete('event_list')
@@ -153,9 +156,10 @@ def create_event():
 def update_event(id):
     try:
         data = json.loads(request.data)
-        uframe_events_url = _uframe_url(uframe_obj.__endpoint__, id)
+        url = current_app.config['UFRAME_ASSETS_URL']\
+            + '/%s/%s' % ('events', id)
         data['@class'] = data.pop('class')
-        response = requests.put(uframe_events_url,
+        response = requests.put(url,
                                 data=json.dumps(data),
                                 headers=_uframe_headers())
         cache.delete('event_list')
@@ -174,9 +178,9 @@ def delete_event(id):
     Delete an existing event
     '''
     try:
-        uframe_obj = UFrameEventsCollection()
-        uframe_events_url = _uframe_url(uframe_obj.__endpoint__, id)
-        response = requests.delete(uframe_events_url,
+        url = current_app.config['UFRAME_ASSETS_URL']\
+            + '/%s/%s' % ('events', id)
+        response = requests.delete(url,
                                    headers=_uframe_headers())
         cache.delete('event_list')
         return response.text
