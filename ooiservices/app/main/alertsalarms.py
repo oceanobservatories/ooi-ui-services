@@ -14,6 +14,7 @@ from ooiservices.app.main.errors import (conflict, bad_request)
 from ooiservices.app.main.notifications import handle_notifications
 from ooiservices.app.models import (SystemEventDefinition, SystemEvent, UserEventNotification, User)
 from ooiservices.app.uframe.assets import get_assets
+from sqlalchemy import desc
 
 import requests
 import json
@@ -1623,3 +1624,50 @@ def resolve_alert_alarm_definition(definition_id):
         message = 'Insufficient data, or bad data format. %s' % str(err.message)
         current_app.logger.info(message)
         return conflict(message)
+
+
+#==============================================================
+#List all alert and alarm definitions
+@api.route('/alert_alarms', methods=['GET'])
+def get_triggered_alerts_alarms():
+    """ Get a list of triggered alert(s) or alarm(s).
+    """
+    try:
+        alert_alarm = get_alert_alarm_definitions_list()
+        return jsonify( {'alert_alarm': alert_alarm})
+    except Exception as err:
+        return bad_request(err.message)
+
+
+def get_alert_alarm_definitions_list(limit=None):
+    """ Get list of alert or alarm definition ids; return list.
+    """
+    ids = []
+    alerts_alarms = []
+    try:
+        # Get all definitions, if definitions continue otherwise raise Exception.
+        definitions = SystemEventDefinition.query.order_by(SystemEventDefinition.id).all()
+        if definitions is None:
+            message = 'No alert or alarm definitions found; unable to retrieve triggered alerts and alarms.'
+            raise Exception(message)
+
+        # Get list of definition ids
+        #for definition in definitions:
+        #    ids.append(definition.id)
+
+        # For each definition, get SystemEvent(s) using definition id; order by descending SystemEvent id.
+        for definition in definitions:
+            id = definition.id
+            instance = SystemEvent.query.filter_by(system_event_definition_id=id).order_by(desc(SystemEvent.id)).first()
+            if instance is None:
+                continue
+            the_count = SystemEvent.query.filter_by(system_event_definition_id=id).order_by(desc(SystemEvent.id)).count()
+            json_instance = instance.to_json()
+            json_definition = (SystemEventDefinition.query.get(id)).to_json()
+            json_instance['count'] = the_count
+            json_instance['alert_alarm_definition'] = json_definition
+            alerts_alarms.append(json_instance)
+
+        return alerts_alarms
+    except:
+        raise
