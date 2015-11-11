@@ -38,10 +38,10 @@ def create_app(config_name):
         env.from_yaml(os.path.join(basedir, 'config.yml'))
     celery.conf.update(BROKER_URL=app.config['REDIS_URL'],
                 CELERY_RESULT_BACKEND=app.config['REDIS_URL'])
-    if app.config['REDIS_CACHE']:
-        cache.config = {'CACHE_TYPE': 'redis', 'CACHE_REDIS_URL': app.config['REDIS_URL']}
-    else:
-        cache.config = {'CACHE_TYPE': 'simple'}
+
+    # Uses REDIS_URL from config.yml to set the connection to the redis-server
+    cache.config = {'CACHE_TYPE': 'redis', 'CACHE_REDIS_URL': app.config['REDIS_URL']}
+
 
     #Adding logging capabilities.
     if app.config['LOGGING'] == True:
