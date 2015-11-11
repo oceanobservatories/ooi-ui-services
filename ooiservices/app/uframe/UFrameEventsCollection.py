@@ -45,33 +45,3 @@ class UFrameEventsCollection(object):
             return make_response(
                 "error: %s. UFrameEventsCollection.py. Line # %s"
                 % (e, sys.exc_info()[2].tb_lineno), 500)
-
-    def from_json(self, json):
-        formatted_return = {
-            '@class': json.get('class'),
-            'deploymentNumber': json.get('deploymentNumber'),
-            'deploymentDocUrls': json.get('deploymentDocUrls'),
-            'cruiseNumber': json.get('cruiseNumber'),
-            'recoveryCruiseNumber': json.get('recoveryCruiseNumber'),
-            'recoveryPlanDocument': json.get('recoveryPlanDocument'),
-            'mooring': json.get('mooring'),
-            'deploymentShipName': json.get('deploymentShipName'),
-            'recoveryShipName': json.get('recoveryShipName'),
-            'recoveryLocationLonLat': json.get('referenceDesignator'),
-            'depth': json.get('depth'),
-            'locationLonLat': json.get('locationLonLat'),
-            'locationName': json.get('locationName'),
-            'locationType': json.get('locationType'),
-            'locationChangeNotes': json.get('locationChangeNotes'),
-            'metaData': json.get('metaData'),
-            'eventType': json.get('eventType'),
-            'remoteDocuments': json.get('remoteDocuments'),
-            'recordedBy': json.get('recordedBy'),
-            'notes': json.get('notes'),
-            'tense': json.get('tense'),
-            'startDate': json.get('startDate'),
-            'endDate': json.get('endDate'),
-            'attachments': json.get('attachments'),
-            'dataSource': json.get('dataSource')
-        }
-        return formatted_return

@@ -18,6 +18,8 @@ import sys
 requests.adapters.DEFAULT_RETRIES = 2
 CACHE_TIMEOUT = 172800
 
+uframe_obj = UFrameAssetsCollection()
+
 
 @api.route('/assets', methods=['GET'])
 def get_assets(use_min=False, normal_data=False):
@@ -31,7 +33,6 @@ def get_assets(use_min=False, normal_data=False):
         if cached:
             data = cached
         else:
-            uframe_obj = UFrameAssetsCollection()
             payload = uframe_obj.to_json()
             if payload.status_code != 200:
                 try:
@@ -188,7 +189,6 @@ def get_asset(id):
     Object response for the GET(id) request.  This response is NOT cached.
     '''
     try:
-        uframe_obj = UFrameAssetsCollection()
         payload = uframe_obj.to_json(id)
         data = payload.json()
         data_list = []
@@ -212,7 +212,6 @@ def create_asset():
     '''
     try:
         data = json.loads(request.data)
-        uframe_obj = UFrameAssetsCollection()
         uframe_assets_url = _uframe_url(uframe_obj.__endpoint__)
         if 'lastModifiedTimestamp' in data:
             del data['lastModifiedTimestamp']
@@ -249,7 +248,6 @@ def create_asset():
 def update_asset(id):
     try:
         data = json.loads(request.data)
-        uframe_obj = UFrameAssetsCollection()
         uframe_assets_url = _uframe_url(uframe_obj.__endpoint__, id)
         response = requests.put(uframe_assets_url,
                                 data=json.dumps(data),
@@ -283,7 +281,6 @@ def delete_asset(id):
     '''
     thisAsset = ""
     try:
-        uframe_obj = UFrameAssetsCollection()
         uframe_assets_url = _uframe_url(uframe_obj.__endpoint__, id)
         response = requests.delete(uframe_assets_url,
                                    headers=_uframe_headers())
@@ -319,7 +316,6 @@ def get_asset_classes_list():
     Lists all the class types available from uFrame.
     '''
     data = []
-    uframe_obj = UFrameAssetsCollection()
     temp_list = uframe_obj.to_json()
     for row in temp_list:
         if row['class'] is not None:
@@ -341,7 +337,6 @@ def get_asset_serials():
     '''
     data = []
     manuf_info = []
-    uframe_obj = UFrameAssetsCollection()
     temp_list = uframe_obj.to_json()
     for row in temp_list:
         if row['manufactureInfo'] is not None:
