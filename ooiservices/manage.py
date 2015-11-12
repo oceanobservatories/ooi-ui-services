@@ -147,7 +147,8 @@ def test(coverage=False, testmodule=None):
 @manager.option('-bl', '--bulkload', default=False)
 @manager.option('--production', default=False)
 @manager.option('-p', '--password', required=True)
-def deploy(password, bulkload, production):
+@manager.option('-u', '--psqluser', default='postgres')
+def deploy(password, bulkload, production, psqluser):
     from flask.ext.migrate import upgrade
     from ooiservices.app.models import User, UserScope, UserScopeLink, Array, Organization
     from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameterLink
@@ -158,43 +159,35 @@ def deploy(password, bulkload, production):
             psql('-c', 'CREATE ROLE postgres LOGIN SUPERUSER')
         except:
             pass
-        psql('-c', 'create database ooiuiprod;', '-U', 'postgres')
-        psql('ooiuiprod', '-c', 'create schema ooiui', '-U', 'postgres')
-        psql('ooiuiprod', '-c', 'create extension postgis', '-U', 'postgres')
+        psql('-c', 'create database ooiuiprod;', '-U', psqluser)
+        psql('ooiuiprod', '-c', 'create schema ooiui', '-U', psqluser)
+        psql('ooiuiprod', '-c', 'create extension postgis', '-U', psqluser)
     else:
         #Create the local database
         app.logger.info('Creating DEV and TEST Databases')
-        psql('-c', 'create database ooiuidev;', '-U', 'postgres')
-        psql('ooiuidev', '-c', 'create schema ooiui', '-U', 'postgres')
-        psql('ooiuidev', '-c', 'create extension postgis', '-U', 'postgres')
+        psql('-c', 'create database ooiuidev;', '-U', psqluser)
+        psql('ooiuidev', '-c', 'create schema ooiui', '-U', psqluser)
+        psql('ooiuidev', '-c', 'create extension postgis', '-U', psqluser)
         #Create the local test database
-        psql('-c', 'create database ooiuitest;', '-U', 'postgres')
-        psql('ooiuitest', '-c', 'create schema ooiui', '-U', 'postgres')
-        psql('ooiuitest', '-c', 'create extension postgis', '-U', 'postgres')
+        psql('-c', 'create database ooiuitest;', '-U', psqluser)
+        psql('ooiuitest', '-c', 'create schema ooiui', '-U', psqluser)
+        psql('ooiuitest', '-c', 'create extension postgis', '-U', psqluser)
 
     from sqlalchemy.orm.mapper import configure_mappers
     configure_mappers()
     db.create_all()
-    if production:
-        app.logger.info('Populating Database . . .')
-        with open('db/ooiui_schema_data.sql') as f:
-            psql('-U', 'postgres', 'ooiuiprod', _in=f)
-        with open('db/ooiui_params_streams_data.sql') as h:
-            psql('-U', 'postgres', 'ooiuiprod', _in=h)
-        app.logger.info('Database loaded.')
 
     if bulkload:
+        app.logger.info('Populating Database . . .')
         with open('db/ooiui_schema_data.sql') as f:
-            psql('ooiuidev', _in=f)
+            psql('-U', psqluser, 'ooiuiprod', _in=f)
         with open('db/ooiui_params_streams_data.sql') as h:
-            psql('ooiuidev', _in=h)
-        app.logger.info('Bulk test data loaded.')
+            psql('-U', psqluser, 'ooiuiprod', _in=h)
+        app.logger.info('Database loaded.')
 
     # migrate database to latest revision
     #upgrade()
     if not os.getenv('TRAVIS'):
-        Organization.insert_org()
-        UserScope.insert_scopes()
         app.logger.info('Insert default user, name: admin')
         User.insert_user(password=password)
         admin = User.query.first()
@@ -202,10 +195,7 @@ def deploy(password, bulkload, production):
         admin.scopes.append(UserScope.query.filter_by(scope_name='redmine').first())
         db.session.add(admin)
         db.session.commit()
-        if bulkload:
-            with open('db/ooiui_schema_data_notifications.sql') as f:
-                psql('ooiuidev', _in=f)
-            app.logger.info('Bulk test data loaded for notifications.')
+
 
 @manager.option('-s', '--schema', required=True)
 @manager.option('-o', '--schema_owner', required=True)
@@ -241,9 +231,14 @@ def rebuild_schema(schema, schema_owner, save_users, admin_username, admin_passw
 
     app.logger.info('Adding base user_scopes')
     UserScope.insert_scopes()
+    db.session.commit()
 
     app.logger.info('Loading default data into database')
     load_data('ooiui_schema_data.sql')
+    db.session.commit()
+
+    app.logger.info('Loading params data into database')
+    load_data(sql_file='ooiui_params_streams_data.sql')
     db.session.commit()
 
     if save_users == 'True':
@@ -306,8 +301,7 @@ def rebuild_schema(schema, schema_owner, save_users, admin_username, admin_passw
             app.logger.info('Admin org_name set to: Rutgers')
             org_name = 'Rutgers'
         add_admin_user(username=admin_username, password=admin_password, first_name=first_name, last_name=last_name, email=email, org_name=org_name)
-    load_data(sql_file='ooiui_schema_data_notifications.sql')
-    app.logger.info('Database reloaded successfully')
+
 
 @manager.option('-u', '--username', required=True)
 @manager.option('-p', '--password', required=True)
@@ -336,17 +330,22 @@ def load_data(sql_file):
     Bulk loads the OOI UI data
     :return:
     '''
+    import sqlalchemy.exc
+    import codecs
     APP_ROOT = os.path.dirname(os.path.abspath(__file__))   # refers to application_top
     APP_DB = os.path.join(APP_ROOT, '..', 'db')
-    with open(os.path.join(APP_DB, sql_file)) as f:
+    with codecs.open(os.path.join(APP_DB, sql_file), "r", "utf-8") as f:
         try:
             from ooiservices.app.models import __schema__
             db.session.execute("SET search_path = {0}, public, pg_catalog;".format(__schema__))
             db.session.execute(f.read())
             db.session.commit()
-            app.logger.info('Bulk test data loaded.')
-        except Exception, err:
-            app.logger.error('Bulk test data failed: ' + err.message)
+            app.logger.info('Success: Bulk data loaded from file: ' + sql_file)
+        except sqlalchemy.exc.IntegrityError, exc:
+            app.logger.info('Failure: Bulk data NOT loaded from file: ' + sql_file)
+            reason = exc.message
+            app.logger.info('Cause: ' + reason)
+
 
 @manager.command
 def profile(length=25, profile_dir=None):
