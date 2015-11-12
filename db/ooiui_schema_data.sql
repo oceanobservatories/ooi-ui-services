@@ -3395,14 +3395,3 @@ INSERT INTO platformnames VALUES (247, 'CE04OSPS-PC01B', 'Coastal', 'Endurance',
 INSERT INTO platformnames VALUES (248, 'CE04OSPS-SF01B', 'Coastal', 'Endurance', 'OR Offshore', 'Cabled Shallow Profiler Mooring', 'Shallow Profiler');
 INSERT INTO platformnames VALUES (249, 'CE09OSPM-WFP01', 'Coastal', 'Endurance', 'Upstream Inshore', 'Profiler Mooring', 'Wire-Following Profiler');
 INSERT INTO platformnames VALUES (250, 'GP02HYPM-RIM01', 'Global', 'Station Papa', 'Apex', 'Profiler Mooring', 'Mooring Riser');
-
---
--- Data for Name: system_event_definitions; Type: TABLE DATA; Schema: ooiui; Owner: postgres
---
-
-INSERT INTO system_event_definitions VALUES (1, 1, 'CE01ISSP-XX099-01-CTDPFJ999', 'CE', 'CE01ISSP-XX099', 'CE01ISSP-XX099-01-CTDPFJ999', 'temperature', 'PD440', 'GREATER', '2015-03-31 21:23:31-04', 'alert', true, 'Monitor water temp does not exceed upper limit', '31.0', '10.0', 3, 'ctdpf-j-cspp-instrument', false, NULL, 5, 10, 0);
-INSERT INTO system_event_definitions VALUES (2, 2, 'CE01ISSP-XX099-01-CTDPFJ999', 'CE', 'CE01ISSP-XX099', 'CE01ISSP-XX099-01-CTDPFJ999', 'temperature', 'PD440', 'GREATER', '2015-03-31 23:23:31-04', 'alarm', true, 'Monitor water temp does not exceed upper limit', '31.0', '10.0', 2, 'ctdpf-j-cspp-instrument', false, NULL, 5, 10, 0);
-INSERT INTO system_event_definitions VALUES (3, 3, 'CE01ISSP-XX099-01-CTDPFJ999', 'CE', 'CE01ISSP-XX099', 'CE01ISSP-XX099-01-CTDPFJ999', 'temperature', 'PD440', 'GREATER', '2015-03-31 21:23:31-04', 'alert', true, 'Monitor water temp does not exceed upper limit', '31.0', '10.0', 3, 'ctdpf-j-cspp-instrument', false, NULL, 5, 10, 0);
-INSERT INTO system_event_definitions VALUES (4, 1, 'CE01ISSP-XX099-01-CTDPFJ999', 'CE', 'CE01ISSP-XX099', 'CE01ISSP-XX099-01-CTDPFJ999', 'temperature', 'PD440', 'GREATER', '2015-03-31 21:23:31-04', 'alert', true, 'Monitor water temp does not exceed upper limit', '31.0', '10.0', 3, 'ctdpf_j_cspp_instrument', false, NULL, 5, 10, 0);
-INSERT INTO system_event_definitions VALUES (5, 2, 'CE01ISSP-XX099-01-CTDPFJ999', 'CE', 'CE01ISSP-XX099', 'CE01ISSP-XX099-01-CTDPFJ999', 'temperature', 'PD440', 'GREATER', '2015-03-31 23:23:31-04', 'alarm', true, 'Monitor water temp does not exceed upper limit', '31.0', '10.0', 2, 'ctdpf_j_cspp_instrument', false, NULL, 5, 10, 0);
-INSERT INTO system_event_definitions VALUES (6, 3, 'CE01ISSP-XX099-01-CTDPFJ999', 'CE', 'CE01ISSP-XX099', 'CE01ISSP-XX099-01-CTDPFJ999', 'temperature', 'PD440', 'GREATER', '2015-03-31 21:23:31-04', 'alert', true, 'Monitor water temp does not exceed upper limit', '31.0', '10.0', 3, 'ctdpf_j_cspp_instrument', false, NULL, 5, 10, 0);
