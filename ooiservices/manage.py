@@ -188,6 +188,7 @@ def deploy(password, bulkload, production, psqluser):
     # migrate database to latest revision
     #upgrade()
     if not os.getenv('TRAVIS'):
+        UserScope.insert_scopes()
         app.logger.info('Insert default user, name: admin')
         User.insert_user(password=password)
         admin = User.query.first()
