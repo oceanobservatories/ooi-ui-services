@@ -49,6 +49,7 @@ COMMON: &common
     ALFRESCO_CMIS_URL:  'https://alfresco.oceanobservatories.org/alfresco/s/api/cmis'
     ALFRESCO_DL_URL:    'https://alfresco.oceanobservatories.org/alfresco/s/api/node/content/workspace/SpacesStore'
     ALFRESCO_TICKET_URL: 'https://alfresco.oceanobservatories.org/alfresco/s/api/login'
+    ALFRESCO_LINK_URL:  'https://alfresco.oceanobservatories.org/alfresco/n/content/workspace/SpacesStore/'
     ALFRESCO_REPO_ID:   'c161bc66-4f7e-4a4f-b5f2-aac9fbf1d3cd'
     ALFRESCO_USERNAME:  'admin'
     ALFRESCO_PASSWORD:  'admin'
