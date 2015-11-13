@@ -226,7 +226,7 @@ def streams_list():
             events = json.loads(response.data)
 
             for event in events['events']:
-                if event['class'] == '.DeploymentEvent' and event['tense'] == 'PRESENT':
+                if event['eventClass'] == '.DeploymentEvent' and event['tense'] == 'PRESENT':
                     stream['depth'] = event['depth']
                     stream['lat_lon'] = event['lat_lon']
                     stream['cruise_number'] = event['cruise_number']

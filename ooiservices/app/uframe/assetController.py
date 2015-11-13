@@ -337,7 +337,7 @@ def get_events_by_ref_des(data, ref_des):
             if ref_des_check == ref_des:
                 temp_dict['ref_des'] = ref_des_check
                 temp_dict['id'] = row['id']
-                temp_dict['eventClass'] = row['class']
+                temp_dict['eventClass'] = row['eventClass']
                 if row['eventClass'] == '.DeploymentEvent':
                     temp_dict['cruise_number'] = row['cruiseNumber']
                     temp_dict['cruise_plan_doc'] = row['cruisePlanDocument']
