@@ -82,7 +82,7 @@ def get_assets(use_min=False, normal_data=False):
                 if 'events' in obj:
                     if showDeployments:
                         for event in obj['events']:
-                            if event['class'] == '.DeploymentEvent':
+                            if event['eventClass'] == '.DeploymentEvent':
                                 deploymentEvents.append(event)
                         del obj['events']
                         obj['events'] = deploymentEvents
@@ -106,16 +106,12 @@ def get_assets(use_min=False, normal_data=False):
 
     if request.args.get('search') and request.args.get('search') != "":
         return_list = []
-        ven_set = []
         search_term = str(request.args.get('search')).split()
         search_set = set(search_term)
         for subset in search_set:
             if len(return_list) > 0:
                 ven_subset = []
-                if len(ven_set) > 0:
-                    ven_set = deepcopy(ven_subset)
-                else:
-                    ven_set = deepcopy(return_list)
+                return_list = deepcopy(data)
                 for item in return_list:
                     if subset.lower() in\
                             str(item['assetInfo']['name']).lower():
@@ -213,7 +209,7 @@ def get_asset_events(id):
                                 headers=_uframe_headers())
         data = response.json()
         for each in data:
-            each['class'] = each.pop('@class')
+            each['eventClass'] = each.pop('@class')
         return jsonify({'events': data})
 
     except requests.exceptions.ConnectionError as e:

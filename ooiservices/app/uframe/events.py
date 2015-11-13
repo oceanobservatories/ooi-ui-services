@@ -47,7 +47,7 @@ def get_events():
             try:
                 for row in data:
                     row['id'] = row.pop('eventId')
-                    row['class'] = row.pop('@class')
+                    row['eventClass'] = row.pop('@class')
             except (KeyError, TypeError, AttributeError):
                 pass
 
@@ -73,7 +73,7 @@ def get_events():
                         ven_set = deepcopy(return_list)
                     ven_subset = []
                     for item in return_list:
-                        if subset.lower() in str(item['class']).lower():
+                        if subset.lower() in str(item['eventClass']).lower():
                             ven_subset.append(item)
                         elif subset.lower() in str(item['id']).lower():
                             ven_subset.append(item)
@@ -82,7 +82,7 @@ def get_events():
                     data = ven_subset
                 else:
                     for item in data:
-                        if subset.lower() in str(item['class']).lower():
+                        if subset.lower() in str(item['eventClass']).lower():
                             return_list.append(item)
                         elif subset.lower() in str(item['id']).lower():
                             return_list.append(item)
@@ -114,7 +114,7 @@ def get_event(id):
             return jsonify({"events": payload.json()}), payload.status_code
 
         try:
-            data['class'] = data.pop('@class')
+            data['eventClass'] = data.pop('@class')
         except (KeyError, TypeError):
             pass
 
@@ -138,7 +138,7 @@ def create_event():
         data = json.loads(request.data)
         url = current_app.config['UFRAME_ASSETS_URL']\
             + '/%s/%s' % ('events', id)
-        data['@class'] = data.pop('class')
+        data['@class'] = data.pop('eventClass')
         response = requests.post(url,
                                  data=json.dumps(data),
                                  headers=_uframe_headers())
@@ -158,7 +158,7 @@ def update_event(id):
         data = json.loads(request.data)
         url = current_app.config['UFRAME_ASSETS_URL']\
             + '/%s/%s' % ('events', id)
-        data['@class'] = data.pop('class')
+        data['@class'] = data.pop('eventClass')
         response = requests.put(url,
                                 data=json.dumps(data),
                                 headers=_uframe_headers())

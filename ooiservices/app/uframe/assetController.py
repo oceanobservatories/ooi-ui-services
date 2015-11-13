@@ -60,7 +60,7 @@ def _compile_assets(data):
                 if deployment_number is not None:
                     row['deployment_number'] = deployment_number
                 for events in row['events']:
-                    if events['class'] == '.DeploymentEvent':
+                    if events['eventClass'] == '.DeploymentEvent':
                         has_deployment_event = True
                     if latest_deployment is None and\
                             events['locationLonLat'] is not None and\
@@ -280,12 +280,12 @@ def associate_events(id):
             d['locationLonLat'] = []
 
             d['eventId'] = row['eventId']
-            d['class'] = row['@class']
+            d['eventClass'] = row['@class']
             d['notes'] = len(row['notes'])
             d['startDate'] = row['startDate']
             d['endDate'] = row['endDate']
             d['tense'] = row['tense']
-            if d['class'] == '.CalibrationEvent':
+            if d['eventClass'] == '.CalibrationEvent':
                 d['calibrationCoefficient'] = row['calibrationCoefficient']
                 lon = 0.0
                 lat = 0.0
@@ -296,7 +296,7 @@ def associate_events(id):
                         lat = cal_coef['values']
                 if lon is not None and lat is not None:
                     d['locationLonLat'] = convert_lat_lon(lat, lon)
-            if d['class'] == '.DeploymentEvent':
+            if d['evetClass'] == '.DeploymentEvent':
                 d['deploymentDepth'] = row['deploymentDepth']
                 if row['locationLonLat']:
                     d['locationLonLat'] = convert_lat_lon(row['locationLonLat'][1], row['locationLonLat'][0])
@@ -337,8 +337,8 @@ def get_events_by_ref_des(data, ref_des):
             if ref_des_check == ref_des:
                 temp_dict['ref_des'] = ref_des_check
                 temp_dict['id'] = row['id']
-                temp_dict['class'] = row['class']
-                if row['class'] == '.DeploymentEvent':
+                temp_dict['eventClass'] = row['class']
+                if row['eventClass'] == '.DeploymentEvent':
                     temp_dict['cruise_number'] = row['cruiseNumber']
                     temp_dict['cruise_plan_doc'] = row['cruisePlanDocument']
                     temp_dict['depth'] = row['depth']
