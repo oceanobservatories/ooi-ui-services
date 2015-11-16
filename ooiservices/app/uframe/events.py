@@ -1,6 +1,7 @@
 from flask import request, jsonify, make_response, current_app
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.authentication import auth
+from ooiservices.app.decorators import scope_required
 from ooiservices.app.uframe.assetController import get_events_by_ref_des
 from ooiservices.app.uframe.assetController import _uframe_headers
 from ooiservices.app import cache
@@ -126,6 +127,7 @@ def get_event(id):
         return make_response(error, 500)
 
 
+@scope_required('asset_manager')
 @api.route('/events', methods=['POST'])
 @auth.login_required
 def create_event():
@@ -151,6 +153,7 @@ def create_event():
         return make_response(error, 500)
 
 
+@scope_required('asset_manager')
 @api.route('/events/<int:id>', methods=['PUT'])
 @auth.login_required
 def update_event(id):
@@ -171,6 +174,7 @@ def update_event(id):
         return make_response(error, 500)
 
 
+@scope_required('asset_manager')
 @api.route('/events/<int:id>', methods=['DELETE'])
 @auth.login_required
 def delete_event(id):

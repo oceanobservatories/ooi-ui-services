@@ -1,6 +1,7 @@
 from flask import request, jsonify, make_response, current_app
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.authentication import auth
+from ooiservices.app.decorators import scope_required
 from ooiservices.app.uframe.assetController import _compile_assets
 from ooiservices.app.uframe.assetController import _uframe_headers
 from ooiservices.app import cache
@@ -218,6 +219,7 @@ def get_asset_events(id):
         return make_response(error, 500)
 
 
+@scope_required('asset_manager')
 @auth.login_required
 @api.route('/assets', methods=['POST'])
 def create_asset():
@@ -261,6 +263,7 @@ def create_asset():
         return make_response(error, 500)
 
 
+@scope_required('asset_manager')
 @auth.login_required
 @api.route('/assets/<int:id>', methods=['PUT'])
 def update_asset(id):
@@ -293,6 +296,7 @@ def update_asset(id):
         return make_response(error, 500)
 
 
+@scope_required('asset_manager')
 @auth.login_required
 @api.route('/assets/<int:id>', methods=['DELETE'])
 def delete_asset(id):
