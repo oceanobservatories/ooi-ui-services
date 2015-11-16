@@ -1,12 +1,9 @@
-from flask import request, jsonify, make_response
+from flask import request, jsonify, make_response, current_app
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.authentication import auth
-from ooiservices.app.uframe.UFrameAssetsCollection import\
-    UFrameAssetsCollection
+from ooiservices.app.decorators import scope_required
 from ooiservices.app.uframe.assetController import _compile_assets
-from ooiservices.app.uframe.assetController import _uframe_url
 from ooiservices.app.uframe.assetController import _uframe_headers
-from ooiservices.app.uframe.assetController import _remove_duplicates
 from ooiservices.app import cache
 from operator import itemgetter
 from copy import deepcopy
@@ -31,8 +28,12 @@ def get_assets(use_min=False, normal_data=False):
         if cached:
             data = cached
         else:
-            uframe_obj = UFrameAssetsCollection()
-            payload = uframe_obj.to_json()
+
+            url = current_app.config['UFRAME_ASSETS_URL']\
+                + '/%s' % ('assets')
+
+            payload = requests.get(url)
+
             if payload.status_code != 200:
                 try:
                     return jsonify({"assets": payload.json()}),\
@@ -82,7 +83,7 @@ def get_assets(use_min=False, normal_data=False):
                 if 'events' in obj:
                     if showDeployments:
                         for event in obj['events']:
-                            if event['class'] == '.DeploymentEvent':
+                            if event['eventClass'] == '.DeploymentEvent':
                                 deploymentEvents.append(event)
                         del obj['events']
                         obj['events'] = deploymentEvents
@@ -106,16 +107,12 @@ def get_assets(use_min=False, normal_data=False):
 
     if request.args.get('search') and request.args.get('search') != "":
         return_list = []
-        ven_set = []
         search_term = str(request.args.get('search')).split()
         search_set = set(search_term)
         for subset in search_set:
             if len(return_list) > 0:
                 ven_subset = []
-                if len(ven_set) > 0:
-                    ven_set = deepcopy(ven_subset)
-                else:
-                    ven_set = deepcopy(return_list)
+                return_list = deepcopy(data)
                 for item in return_list:
                     if subset.lower() in\
                             str(item['assetInfo']['name']).lower():
@@ -188,8 +185,10 @@ def get_asset(id):
     Object response for the GET(id) request.  This response is NOT cached.
     '''
     try:
-        uframe_obj = UFrameAssetsCollection()
-        payload = uframe_obj.to_json(id)
+        url = current_app.config['UFRAME_ASSETS_URL']\
+            + '/%s/%s' % ('assets', id)
+        payload = requests.get(url)
+
         data = payload.json()
         data_list = []
         data_list.append(data)
@@ -202,6 +201,25 @@ def get_asset(id):
         return make_response(error, 500)
 
 
+@api.route('/assets/<int:id>/events', methods=['GET'])
+def get_asset_events(id):
+    try:
+        url = current_app.config['UFRAME_ASSETS_URL']\
+            + '/%s/%s/%s' % ('assets', id, 'events')
+        response = requests.get(url,
+                                headers=_uframe_headers())
+        data = response.json()
+        for each in data:
+            each['eventClass'] = each.pop('@class')
+        return jsonify({'events': data})
+
+    except requests.exceptions.ConnectionError as e:
+        error = "Error: Cannot connect to uframe.  %s" % e
+        print error
+        return make_response(error, 500)
+
+
+@scope_required('asset_manager')
 @auth.login_required
 @api.route('/assets', methods=['POST'])
 def create_asset():
@@ -212,15 +230,16 @@ def create_asset():
     '''
     try:
         data = json.loads(request.data)
-        uframe_obj = UFrameAssetsCollection()
-        uframe_assets_url = _uframe_url(uframe_obj.__endpoint__)
+        url = current_app.config['UFRAME_ASSETS_URL']\
+            + '/%s' % ('assets')
+
         if 'lastModifiedTimestamp' in data:
             del data['lastModifiedTimestamp']
 
         if 'asset_class' in data:
             data['@class'] = data.pop('asset_class')
 
-        response = requests.post(uframe_assets_url,
+        response = requests.post(url,
                                  data=json.dumps(data),
                                  headers=_uframe_headers())
 
@@ -244,16 +263,18 @@ def create_asset():
         return make_response(error, 500)
 
 
+@scope_required('asset_manager')
 @auth.login_required
 @api.route('/assets/<int:id>', methods=['PUT'])
 def update_asset(id):
     try:
         data = json.loads(request.data)
-        uframe_obj = UFrameAssetsCollection()
-        uframe_assets_url = _uframe_url(uframe_obj.__endpoint__, id)
-        response = requests.put(uframe_assets_url,
+        url = current_app.config['UFRAME_ASSETS_URL']\
+            + '/%s/%s' % ('assets', id)
+        response = requests.put(url,
                                 data=json.dumps(data),
                                 headers=_uframe_headers())
+
         if response.status_code == 200:
             asset_cache = cache.get('asset_list')
             data_list = []
@@ -275,6 +296,7 @@ def update_asset(id):
         return make_response(error, 500)
 
 
+@scope_required('asset_manager')
 @auth.login_required
 @api.route('/assets/<int:id>', methods=['DELETE'])
 def delete_asset(id):
@@ -283,9 +305,9 @@ def delete_asset(id):
     '''
     thisAsset = ""
     try:
-        uframe_obj = UFrameAssetsCollection()
-        uframe_assets_url = _uframe_url(uframe_obj.__endpoint__, id)
-        response = requests.delete(uframe_assets_url,
+        url = current_app.config['UFRAME_ASSETS_URL']\
+            + '/%s/%s' % ('assets', id)
+        response = requests.delete(url,
                                    headers=_uframe_headers())
 
         asset_cache = cache.get('asset_list')
@@ -306,47 +328,3 @@ def delete_asset(id):
 '''
 END Assets CRUD methods.
 '''
-
-'''
-#depricated
-#@cache.memoize(timeout=3600)
-#@api.route('/asset/classes', methods=['GET'])
-'''
-
-
-def get_asset_classes_list():
-    '''
-    Lists all the class types available from uFrame.
-    '''
-    data = []
-    uframe_obj = UFrameAssetsCollection()
-    temp_list = uframe_obj.to_json()
-    for row in temp_list:
-        if row['class'] is not None:
-            data.append(row['class'])
-    data = _remove_duplicates(data)
-    return jsonify({'class_types': data})
-
-
-'''
-#depricated
-#@cache.memoize(timeout=3600)
-#@api.route('/asset/serials', methods=['GET'])
-'''
-
-
-def get_asset_serials():
-    '''
-    Lists all the class types available from uFrame.
-    '''
-    data = []
-    manuf_info = []
-    uframe_obj = UFrameAssetsCollection()
-    temp_list = uframe_obj.to_json()
-    for row in temp_list:
-        if row['manufactureInfo'] is not None:
-            manuf_info.append(row['manufactureInfo'])
-            for serial in manuf_info:
-                data.append(serial['serialNumber'])
-    data = _remove_duplicates(data)
-    return jsonify({'serial_numbers': data})
