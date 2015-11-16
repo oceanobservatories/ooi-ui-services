@@ -235,13 +235,13 @@ def streams_list():
         cache.set('stream_list', retval, timeout=CACHE_TIMEOUT)
 
     try:
-        is_reverse = False
+        is_reverse = True
         if request.args.get('sort') and request.args.get('sort') != "":
             sort_by = request.args.get('sort')
             if request.args.get('order') and request.args.get('order') != "":
                 order = request.args.get('order')
                 if order == 'reverse':
-                    is_reverse = True
+                    is_reverse = False
         else:
             sort_by = 'end'
         retval = sorted(retval, key=itemgetter(sort_by), reverse=is_reverse)
