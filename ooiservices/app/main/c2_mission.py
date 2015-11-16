@@ -12,15 +12,13 @@ from ooiservices.app.decorators import scope_required
 import json
 import requests
 import datetime as dt
-
-
-from ooiservices.app.main.c2 import read_store, read_store2
-from ooiservices.app.main.c2 import _get_platform, _get_instrument, _get_instruments
-
+from base64 import b64encode
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # C2 Mission Control routes
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+'''
+# SHORT VERSION - FINAL TARGETED ROUTE!
 @api.route('/c2/missions', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'command_control')
@@ -29,26 +27,59 @@ def c2_get_missions():
     """
     Get list of missions.
     """
-    debug = False
+    valid_states = ['active', 'inactive']
     missions = []
     try:
-        active = None
+        state = None
         if request.args:
-            if 'active' in request.args:
-                active = to_bool(request.args['active'])
-        result = uframe_get_missions(active)
+            if 'state' in request.args:
+                state = (request.args['state']).lower()
+                if state not in valid_states:
+                    state = None
+        result = uframe_get_missions(state)
         if result is not None:
             missions = result
         return jsonify(missions=missions)
     except Exception as err:
         message = str(err.message)
-        if debug: print '\n (c2_get_missions) exception: ', message
+        current_app.logger.info(message)
+        return bad_request(message)
+'''
+# LONG VERSION - USE UNTIL ui navigation is modified (this is not recommended server side api usage)
+@api.route('/c2/missions', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'command_control')
+#@scope_required(u'mission_control')
+def c2_get_missions_long():
+    """
+    Get list of missions.
+    """
+    valid_states = ['active', 'inactive']
+    missions = []
+    try:
+        state = None
+        if request.args:
+            if 'state' in request.args:
+                state = (request.args['state']).lower()
+                if state not in valid_states:
+                    state = None
+        result = uframe_get_missions(state)
+        ids = []
+        if result is not None:
+            for item in result:
+                ids.append(item['mission_id'])
+            tmp = make_mission_response(ids)
+            if tmp is not None:
+                missions = tmp
+
+        return jsonify(missions=missions)
+    except Exception as err:
+        message = str(err.message)
         current_app.logger.info(message)
         return bad_request(message)
 
 
-@api.route('/c2/missions/<string:mission_id>', methods=['GET'])
-#@api.route('/c2/missions/<int:mission_id>', methods=['GET'])
+@api.route('/c2/missions/<int:mission_id>', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'command_control')
 #@scope_required(u'mission_control')
@@ -56,7 +87,6 @@ def c2_get_mission(mission_id):
     """
     Get a mission.
     """
-    debug = False
     try:
         result = uframe_get_mission(mission_id)
         mission = get_mission_info(mission_id, result)
@@ -64,34 +94,11 @@ def c2_get_mission(mission_id):
 
     except Exception as err:
         message = err.message
-        if debug: print '\n exception: ', err.message
-        current_app.logger.info(message)
-        return bad_request(message)
-
-@api.route('/c2/missions/<string:mission_id>/keys', methods=['GET'])
-#@api.route('/c2/missions/<int:mission_id>/keys', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'command_control')
-#@scope_required(u'mission_control')
-def c2_get_mission_keys(mission_id):
-    """
-    Get a mission.
-    """
-    debug = False
-    try:
-        result = uframe_get_mission(mission_id)
-        mission = get_mission_info(mission_id, result)
-        return jsonify(mission=mission.keys())
-
-    except Exception as err:
-        message = err.message
-        if debug: print '\n exception: ', err.message
         current_app.logger.info(message)
         return bad_request(message)
 
 
-@api.route('/c2/missions/<string:mission_id>', methods=['DELETE'])
-#@api.route('/c2/missions/<int:mission_id>', methods=['DELETE'])
+@api.route('/c2/missions/<string:mission_id>/delete', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'command_control')
 #@scope_required(u'mission_control')
@@ -99,15 +106,19 @@ def c2_delete_mission(mission_id):
     """
     Delete a mission.
     """
-    mission = {}
-    result = uframe_delete_mission(mission_id)
-    if result is not None:
-        mission = result
-    return jsonify(mission)
+    try:
+        mission = {}
+        result = uframe_delete_mission(mission_id)
+        if result is not None:
+            mission = result
+        return jsonify(mission)
+    except Exception as err:
+        message = err.message
+        current_app.logger.info(message)
+        return bad_request(message)
 
 
-@api.route('/c2/missions/<string:mission_id>/activate', methods=['GET'])
-#@api.route('/c2/missions/<int:mission_id>/activate', methods=['GET'])
+@api.route('/c2/missions/<int:mission_id>/activate', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'command_control')
 #@scope_required(u'mission_control')
@@ -115,23 +126,17 @@ def c2_activate_mission(mission_id):
     """
     Activate a mission.
     """
-    debug = False
     try:
-        if debug: print '\n (c2_activate_mission) '
         result = uframe_activate_mission(mission_id)
-        if debug: print '\n (c2_activate_mission) result: ', result
         mission = get_mission_info(mission_id, result)
-        if debug: print '\n (c2_activate_mission) mission: ', mission
         return jsonify(mission=mission)
     except Exception as err:
         message = err.message
-        if debug: print '\n exception: ', err.message
         current_app.logger.info(message)
         return bad_request(message)
 
 
-@api.route('/c2/missions/<string:mission_id>/deactivate', methods=['GET'])
-#@api.route('/c2/missions/<int:mission_id>/deactivate', methods=['GET'])
+@api.route('/c2/missions/<int:mission_id>/deactivate', methods=['GET'])
 #@auth.login_required
 #@scope_required(u'command_control')
 #@scope_required(u'mission_control')
@@ -139,14 +144,12 @@ def c2_deactivate_mission(mission_id):
     """
     Deactivate a mission.
     """
-    debug = False
     try:
         result = uframe_deactivate_mission(mission_id)
         mission = get_mission_info(mission_id, result)
         return jsonify(mission=mission), 200
     except Exception as err:
         message = err.message
-        if debug: print '\n exception: ', err.message
         current_app.logger.info(message)
         return bad_request(message)
 
@@ -159,29 +162,105 @@ def c2_add_mission():
     """
     Add a mission.
     """
-    debug = False
     try:
         if request.data is None:
             message = 'Provide request data to add new mission.'
             raise Exception(message)
-        data = json.loads(request.data)
-        result = uframe_add_mission(data)
-
+        result = uframe_add_mission(request.data)
         if result is None or len(result) == 0:
             message = 'Failed to add new mission.'
             raise Exception(message)
-        if 'name' not in result:
-            message = 'Malformed mission data; required field \'name\' not returned.'
-            raise Exception(message)
 
-        mission_id = result['name']
+        mission_id = result['id']
         result = uframe_get_mission(mission_id)
         mission = get_mission_info(mission_id, result)
         return jsonify(mission=mission), 201
 
     except Exception as err:
         message = err.message
-        if debug: print '\n exception: ', err.message
+        current_app.logger.info(message)
+        return bad_request(message)
+
+@api.route('/c2/missions/<int:mission_id>/versions', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'command_control')
+#@scope_required(u'mission_control')
+def c2_mission_versions(mission_id):
+    """
+    Get mission versions.
+    """
+    try:
+        result = uframe_mission_versions(mission_id)
+        return jsonify(result), 200
+    except Exception as err:
+        message = err.message
+        current_app.logger.info(message)
+        return bad_request(message)
+
+@api.route('/c2/missions/<int:mission_id>/versions/<int:version_id>', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'command_control')
+#@scope_required(u'mission_control')
+def c2_mission_version(mission_id, version_id):
+    """
+    Get mission versions.
+    """
+    try:
+        result = uframe_mission_version(mission_id, version_id)
+        return jsonify(result), 200
+    except Exception as err:
+        message = err.message
+        current_app.logger.info(message)
+        return bad_request(message)
+
+@api.route('/c2/missions/<int:mission_id>/versions/<int:version_id>', methods=['PUT'])
+#@auth.login_required
+#@scope_required(u'command_control')
+#@scope_required(u'mission_control')
+def c2_mission_set_version(mission_id, version_id):
+    """
+    Get mission versions.
+    """
+    try:
+        if request.data is None:
+            message = 'Provide request data to set script version.'
+            raise Exception(message)
+        result = uframe_mission_set_version(mission_id, version_id)
+        return jsonify(result), 200
+    except Exception as err:
+        message = err.message
+        current_app.logger.info(message)
+        return bad_request(message)
+
+@api.route('/c2/missions/<int:mission_id>/runs', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'command_control')
+#@scope_required(u'mission_control')
+def c2_mission_runs(mission_id):
+    """
+    Get mission versions.
+    """
+    try:
+        result = uframe_mission_runs(mission_id)
+        return jsonify(result), 200
+    except Exception as err:
+        message = err.message
+        current_app.logger.info(message)
+        return bad_request(message)
+
+@api.route('/c2/missions/<int:mission_id>/runs/<int:run_id>', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'command_control')
+#@scope_required(u'mission_control')
+def c2_mission_run(mission_id, run_id):
+    """
+    Get mission versions.
+    """
+    try:
+        result = uframe_mission_run(mission_id, run_id)
+        return jsonify(result), 200
+    except Exception as err:
+        message = err.message
         current_app.logger.info(message)
         return bad_request(message)
 
@@ -189,25 +268,25 @@ def c2_add_mission():
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # uframe helpers
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-def uframe_get_missions(active=None):
+def uframe_get_missions(state=None):
     """ Helper for get missions; issue upstream server request, process response and return missions.
     Sample of uframe request executed:    http://localhost:port/missions
     """
     result = []
     try:
-        response = uframe_issue_get_request(method='get', suffix=None)
+        suffix = None
+        if state is not None:
+            suffix = '?state='+state
+
+        response = uframe_issue_get_request(method='get', suffix=suffix)
         if response.status_code != 200:
             message = '(%s) Failed to get missions. ' % response.status_code
             raise Exception(message)
 
         missions = json.loads(response.content)
         for key in missions.keys():
-            tmp = get_mission_info(key, missions[key])
-            if active is None:
-                result.append(tmp)
-            else:
-                if tmp['active'] == active:
-                    result.append(tmp)
+            tmp = get_mission_info_short(key, missions[key])
+            result.append(tmp)
         return result
     except Exception as err:
         message = str(err.message)
@@ -220,56 +299,39 @@ def uframe_get_mission(id):
     Sample request executed:    http://localhost:port/mission/mission_id
     response:
     """
-    debug = False
     mission = {}
     try:
         suffix = '/%s' % str(id)
-        #result = uframe_issue_get_request(method='get', suffix=suffix, data=None)
         response = uframe_issue_get_request(method='get', suffix=suffix, data=None)
         if response.status_code != 200:
             message = '(%s) Failed to get mission \'%s\'. ' % (response.status_code, str(id))
-            if debug: print '\n (uframe_get_mission) message: ', message
             raise Exception(message)
         if response.content:
-            if debug:
-                print '\n response_status_code == 200'
-                print '\n response.content: ', response.content
             mission = json.loads(response.content)
-            if debug:  print '\n mission: ', mission
         return mission
     except Exception as err:
         message = str(err.message)
-        if debug: print '\n message: ', message
         current_app.logger.info(message)
         raise
 
-# todo finish when DELETE supported on upstream server
 def uframe_delete_mission(id):
     """ Delete mission.
     Sample:
     request:    http://localhost:port/mission/mission_id
     response:
     """
-    debug = False
     mission = {}
     try:
-        suffix = '/%s' % str(id)
-        #result = uframe_issue_get_request(method='delete', suffix=suffix, data=None)
+        suffix = '/%s' % id
         response = uframe_issue_get_request(method='delete', suffix=suffix, data=None)
         if response.status_code != 200:
-            if debug: print'\n (uframe_delete_mission) response.status_code: ', response.status_code
-            message = '(%d) Failed to delete mission \'%s\'. ' % (response.status_code, str(id))
+            message = '(%d) Failed to delete mission \'%s\'. ' % (response.status_code, id)
             raise Exception(message)
         if response.content:
-            if debug:
-                print '\n response_status_code == 200'
-                print '\n response.content: ', response.content
             mission = json.loads(response.content)
-            if debug:  print '\n mission: ', mission
         return mission
     except Exception as err:
         message = str(err.message)
-        if debug: print '\n message: ', message
         current_app.logger.info(message)
         raise
 
@@ -280,27 +342,18 @@ def uframe_activate_mission(id):
     request:    http://localhost:port/mission/mission_id/activate
     response:
     """
-    debug = False
     mission = {}
     try:
-        if debug: print '\n (uframe_activate_mission) mission_id: ', id
         suffix = '/%s/activate' % str(id)
-        #result = uframe_issue_get_request(method='get', suffix=suffix, data=None)
         response = uframe_issue_get_request(method='get', suffix=suffix, data=None)
         if response.status_code != 200:
             message = '(%s) Failed to activate mission \'%s\'. ' % (response.status_code, str(id))
-            if debug: print '\n (uframe_activate_mission) message: ', message
             raise Exception(message)
         if response.content:
-            if debug:
-                print '\n (uframe_activate_mission) response_status_code == 200'
-                print '\n (uframe_activate_mission) response.content: ', response.content
             mission = json.loads(response.content)
-            if debug:  print '\n (uframe_activate_mission) mission: ', mission
         return mission
     except Exception as err:
         message = str(err.message)
-        if debug: print '\n (uframe_activate_mission) exception message: ', message
         current_app.logger.info(message)
         raise
 
@@ -311,27 +364,20 @@ def uframe_deactivate_mission(id):
     request:    http://localhost:port/mission/mission_id/deactivate
     response:
     """
-    debug = False
     mission = {}
     try:
         suffix = '/%s/deactivate' % str(id)
         response = uframe_issue_get_request(method='get', suffix=suffix, data=None)
         if response.status_code != 200:
             message = '(%s) Failed to deactivate mission \'%s\'. ' % (response.status_code, str(id))
-            if response.content:
-                message += json.loads(response.content)
-            if debug: print '\n (uframe_deactivate_mission) message: ', message
+            #if response.content:
+            #    message += json.loads(response.content)
             raise Exception(message)
         if response.content:
-            if debug:
-                print '\n response_status_code == 200'
-                print '\n response.content: ', response.content
             mission = json.loads(response.content)
-            if debug:  print '\n mission: ', mission
         return mission
     except Exception as err:
         message = str(err.message)
-        if debug: print '\n message: ', message
         current_app.logger.info(message)
         raise
 
@@ -341,15 +387,169 @@ def uframe_add_mission(data):
     request:    http://localhost:port/mission/mission_id
     response:
     """
-    debug = False
+    mission = {}
     try:
-        result = uframe_issue_get_request(method='post', suffix=None, data=data)
-        return result
+        response = uframe_issue_get_request(method='post', suffix=None, data=data)
+        if response.status_code != 200:
+            message = '(%s) Failed to add mission. ' % response.status_code
+            # if response.content:
+            #     message += json.loads(response.content)
+            raise Exception(message)
+        if response.content:
+            mission = json.loads(response.content)
+        return mission
     except Exception as err:
         message = str(err.message)
-        if debug: print '\n message: ', message
         current_app.logger.info(message)
         raise
+
+def uframe_mission_versions(id):
+    """ Get mission versions.
+    Sample:
+    request:    http://localhost:port/mission/mission_id/versions
+    response:
+    """
+    mission = {}
+    try:
+        suffix = '/%s/versions' % str(id)
+        response = uframe_issue_get_request(method='get', suffix=suffix, data=None)
+        if response.status_code != 200:
+            message = '(%s) Failed to get mission versions. (id: \'%s\'). ' % (response.status_code, str(id))
+            if response.content:
+                message += json.loads(response.content)
+            raise Exception(message)
+        if response.content:
+            mission = json.loads(response.content)
+        return mission
+    except Exception as err:
+        message = str(err.message)
+        current_app.logger.info(message)
+        raise
+
+def uframe_mission_version(id, version_id):
+    """ Get mission version by version id.
+    Sample:
+    request:    http://localhost:port/mission/mission_id/versions/version_id
+    response:
+    """
+    mission = {}
+    try:
+        suffix = '/%s/versions/%s' % (str(id), str(version_id))
+        response = uframe_issue_get_request(method='get', suffix=suffix, data=None)
+        if response.status_code != 200:
+            message = '(%s) Failed to get mission versions. (id: \'%s\'; version: \'%s\'). ' \
+                      % (response.status_code, str(id), str(version_id))
+            if response.content:
+                message += json.loads(response.content)
+            raise Exception(message)
+        if response.content:
+            mission = json.loads(response.content)
+        return mission
+    except Exception as err:
+        message = str(err.message)
+        current_app.logger.info(message)
+        raise
+
+def uframe_mission_set_version(id, version_id):
+    """ Set mission version to version id.
+    Sample:
+    request:    http://localhost:port/mission/mission_id/versions/version_id
+    response:
+    """
+    mission = {}
+    try:
+        suffix = '/%s/versions/%s' % (str(id), str(version_id))
+        response = uframe_issue_get_request(method='put', suffix=suffix, data=None)
+        if response.status_code != 200:
+            message = '(%s) Failed to set mission version. (id: \'%s\'; version: \'%s\'). ' \
+                      % (response.status_code, str(id), str(version_id))
+            raise Exception(message)
+        if response.content:
+            mission = json.loads(response.content)
+        return mission
+    except Exception as err:
+        message = str(err.message)
+        current_app.logger.info(message)
+        raise
+
+
+def uframe_mission_runs(id):
+    """ Get mission runs.
+    Sample:
+    request:    http://localhost:port/mission/id/runs
+    response:
+    {
+      "runs": [
+        1088,
+        1089,
+        1090,
+        1091,
+        1092
+      ]
+    }
+    """
+    mission = {}
+    try:
+        suffix = '/%s/runs' % str(id)
+        response = uframe_issue_get_request(method='get', suffix=suffix, data=None)
+        if response.status_code != 200:
+            message = '(%s) Failed to get mission runs. (id: \'%s\'). ' % (response.status_code, str(id))
+            if response.content:
+                message += json.loads(response.content)
+            raise Exception(message)
+        if response.content:
+            mission = json.loads(response.content)
+        return mission
+    except Exception as err:
+        message = str(err.message)
+        current_app.logger.info(message)
+        raise
+
+def uframe_mission_run(id, run_id):
+    """ Get mission run by run id.
+    Sample:
+    request:    http://localhost:port/mission/id/runs/run_id
+    response:
+    {
+      "run": [
+        [
+          "2015-10-28T22:13:35.974476",
+          "start",
+          ""
+        ],
+        [
+          "2015-10-28T22:13:35.988206",
+          "lock",
+          "RS10ENGC-XX00X-00-BOTPTA001"
+        ],
+        [
+          "2015-10-28T22:13:35.993006",
+          "step",
+          {
+            "block_name": "initialize"
+          }
+        ],
+        . . .
+    }
+    """
+    mission = {}
+    try:
+        suffix = '/%s/runs/%s' % (str(id), str(run_id))
+        response = uframe_issue_get_request(method='get', suffix=suffix, data=None)
+        if response.status_code != 200:
+            message = '(%s) Failed to get mission run. (id: \'%s\'; run id: \'%s\'). ' \
+                      % (response.status_code, str(id), str(run_id))
+            if response.content:
+                message += json.loads(response.content)
+            raise Exception(message)
+        if response.content:
+            mission = json.loads(response.content)
+        return mission
+    except Exception as err:
+        message = str(err.message)
+        current_app.logger.info(message)
+        raise
+
 
 def get_mission_info(mission_id, result):
     """
@@ -378,30 +578,12 @@ def get_mission_info(mission_id, result):
     running = False
     active = False
     version = ''
-    events = []
     created = ''
     next_run = ""
     schedule = {}
     run_count = -1
-    body = {}
     drivers = []
-
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    # todo remove this script from file processing
-    # Display something for script; use previous work to display script file contents (for now).
     mission_plan = ''
-    try:
-        mission_plan = _get_mission_selection(mission_id) #'BOTPT_periodic_acquire_status')
-        # If no mission_plan in test data, display default ('mission_shallow_profiler')
-        if mission_plan is None or not mission_plan:
-            mission_plan = _get_mission_selection('mission_shallow_profiler') #mission_id) #'BOTPT_periodic_acquire_status')
-        #print '\n mission_plan: ', mission_plan
-    except:
-        message = 'exception fetching contents of mission plan from file datastore for mission: %s' % str(mission_id)
-        #if debug: print '\n mission response processing exception: ', message
-        current_app.logger.info(message)
-        raise Exception(message)
-    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     if result is not None:
         tmp = result
@@ -415,15 +597,16 @@ def get_mission_info(mission_id, result):
         schedule = tmp['schedule']
         run_count = tmp['run_count']
 
-        # todo remove default here when 'desc' field provided in response
-        desc = 'Element \'desc\' not provided.'
         if 'desc' in tmp:
             desc = tmp['desc']
 
-        # todo remove default here when 'drivers' field provided in response
-        drivers = ['Element \'drivers\' not provided.']
         if 'drivers' in tmp:
             drivers = tmp['drivers']
+
+        if 'script' in tmp:
+            # todo splitting here for ui; coordinate with ui and leave as a str
+            data = (tmp['script']).split('\n')
+            mission_plan = data
 
     # Process events
     events = []
@@ -442,12 +625,8 @@ def get_mission_info(mission_id, result):
     mission['next_run'] = next_run
     mission['schedule'] = schedule
     mission['run_count'] = run_count
-
-    # if not used downstream, remove
     mission['mission_id'] = mission_id
-
-    # todo remove when available - currently missing fields....populating with sample information
-    mission['mission'] = mission_plan[0]
+    mission['mission'] = mission_plan
     mission['desc'] = desc
     mission['drivers'] = drivers
 
@@ -469,30 +648,121 @@ def get_mission_info(mission_id, result):
     return mission
 
 
+def get_mission_info_short(mission_id, result):
+    """
+    Set return mission object content for ui /missions request (SHORT). No drivers, script
+    Using active/running to build the status:
+    active | running | status
+    F | F | inactive
+    T | F | loaded
+    T | T | running
+
+    Fields provided:
+    {
+      "1": {
+        "active": false,
+        "created": "2015-10-26T22:12:50.044857",
+        "current_step": null,
+        "desc": "Periodic acquire status for BOTPT",
+        "id": 1,
+        "name": "BOTPT_periodic_acquire_status",
+        "next_run": null,
+        "run_count": 1082,
+        "running": false,
+        "schedule": {
+          "second": 0
+        },
+        "version": "1-00"
+      }
+    }
+    """
+    mission = {}
+    active = False
+    created = ''
+    current_step = ''
+    desc = ''
+    name = ''
+    next_run = ''
+    run_count = -1
+    running = False
+    schedule = {}
+    version = ''
+
+    # Set values
+    if result is not None:
+        tmp = result
+        active = tmp['active']
+        created = tmp['created']
+        current_step = tmp['current_step']
+        desc = tmp['desc']
+        name = tmp['name']
+        next_run = tmp['next_run']
+        run_count = tmp['run_count']
+        running = tmp['running']
+        schedule = tmp['schedule']
+        version = tmp['version']
+        mission_id = tmp['id']
+
+    # Set state. Using 'active' element value ['Active' | 'Inactive']
+    if active:
+        state = 'Active'
+    else:
+        state = 'Inactive'
+
+    # Set Status. Determine status (uses 'active' and 'running'; valid status: ['Inactive', 'Loaded', 'Running']
+    if not active:
+        status = 'Inactive'
+    else:
+        status = 'Loaded'
+        if running:
+            status = 'Running'
+    mission['status']= status
+    mission['state'] = state
+
+    # Populate remaining mission executive dictionary values
+    mission['active'] = active
+    mission['created'] = created
+    mission['current_step'] = current_step
+    mission['desc'] = desc
+    mission['name'] = name
+    mission['next_run'] = next_run
+    mission['run_count'] = run_count
+    mission['running'] = running
+    mission['version'] = version
+    mission['schedule'] = schedule
+    mission['mission_id'] = mission_id
+
+    return mission
+
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # uframe specific functions
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def get_uframe_info():
-    """
-    returns uframe C2 mission api specific configuration information.
+    """ Returns uframe C2 mission api specific configuration information.
     """
     uframe_url = "".join([current_app.config['UFRAME_MISSIONS_URL'], current_app.config['UFRAME_MISSIONS_BASE']])
     timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
     timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
     return uframe_url, timeout, timeout_read
 
+def get_api_headers(username, password):
+        return {
+            'Authorization': 'Basic ' + b64encode(
+                (username + ':' + password).encode('utf-8')).decode('utf-8'),
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
 
 def uframe_issue_get_request(method='get', suffix=None, data=None):
     """ Issue uframe get request; returns response.content as result, otherwise None or raise Exception.
     """
-    debug = False
-    valid_methods = ['get', 'post', 'delete']
+    valid_methods = ['get', 'post', 'delete', 'put']
     headers = {"Content-Type": "application/json"}
     try:
         # Determine if supported/valid method request (i.e. one of valid_methods)
         if method not in valid_methods:
             message = 'Unknown or unsupported method for uframe request: %s' % method
-            if debug: print '\n message: ', message
             raise Exception(message)
 
         # Setup basic request info
@@ -500,10 +770,10 @@ def uframe_issue_get_request(method='get', suffix=None, data=None):
         if suffix is not None:
             url += suffix
 
-        if debug: print '\n (uframe_issue_get_request) %s url: %s' % (method.upper(), url)
         # Get response based on method
-        # Methods: 'get' and 'delete'
         response = None
+
+        # Methods: 'get' and 'delete'
         if method == 'get' or method == 'delete':
             if method == 'get':
                 response = requests.get(url, timeout=(timeout, timeout_read))
@@ -513,12 +783,18 @@ def uframe_issue_get_request(method='get', suffix=None, data=None):
         # Methods: 'post' and 'put'
         else:
             if method == 'post':
-                response = requests.post(url, timeout=(timeout, timeout_read), headers=headers, data=json.dumps(data))
+                response = requests.post(url, timeout=(timeout, timeout_read), data=data)
+
+            if method == 'put':
+                if data:
+                    response = requests.put(url, timeout=(timeout, timeout_read), headers=headers, data=data)
+                else:
+                    response = requests.put(url, timeout=(timeout, timeout_read), headers=headers)
+
 
         return response
     except Exception as err:
         message = str(err.message)
-        #print '\n (uframe_issue_get_request) exception: ', message
         current_app.logger.info(message)
         raise
 
@@ -566,14 +842,12 @@ def process_events(data):
 
         if item[2] is not None:
             event_text = str(item[2])
-            if len(event_text) > 60:
-                event_text = str(event_text)[0:60] + ' ...'
-            #print '\n event_text: ', event_text
+            if len(event_text) > 50:
+                event_text = str(event_text)[0:50] + ' ...'
 
         event['timestamp'] = timestamp
         event['event_type'] = event_type
         event['event_text'] = event_text
-
         events.append(event)
 
     return events
@@ -592,241 +866,24 @@ def to_bool(value):
     else:
         return None
 
-#==============================================================================
-#==============================================================================
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# C2 Mission Control - array routes
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-@api.route('/c2/array/<string:array_code>/mission_display', methods=['GET'])
-@auth.login_required
-@scope_required(u'command_control')
-def c2_get_array_mission_display(array_code):
-    #Get C2 array mission (display), return mission_display (contents of platform Mission tab)
-    array = Array.query.filter_by(array_code=array_code).first()
-    if not array:
-        return bad_request('unknown array (array_code: \'%s\')' % array_code)
-    mission_display = {}
-    return jsonify(mission_display=mission_display)
-
-# - - - - - - - - - - - - - - - - - - - - - - - -
-# C2 Mission Control - platform
-# - - - - - - - - - - - - - - - - - - - - - - - -
-@api.route('/c2/platform/<string:reference_designator>/mission/instruments_list', methods=['GET'])
-@auth.login_required
-@scope_required(u'command_control')
-def c2_get_platform_mission_instruments_list(reference_designator):
+def make_mission_response(ids):
     """
-    C2 get [platform] Mission tab instruments_list, return instruments [{instrument1}, {instrument2}, ...]
-    where each instrument dictionary (is a row in instruments list) contains:
-       {'reference_designator': reference_designator, 'instrument_deployment_id': id, 'display_name': display_name }
-    Samples:
-      http://localhost:4000/c2/platform/reference_designator/mission/instruments_list
-    Request:  http://localhost:4000/c2/platform/RS03ASHS-MJ03B/mission/instruments_list
-    Response:
-    {
-      "instruments": [
-        {
-          "display_name": "Diffuse Vent Fluid 3-D Temperature Array",
-          "reference_designator": "RS03ASHS-MJ03B-07-TMPSFA301"
-        }
-      ]
-    }
+    USED WITH LONG VERSION of /missions route.
+    Temporary workaround.
+
+    Used until UI navigates using (short) /missions route output uses selected mission_id
+    to invoke /missions/mission_id and process the output (which includes script and events).
+
+    For each mission id in ids, get mission (using /missions/id, append response data to result.
     """
-    contents = []
-    platform_info = {}
-    platform_deployment = _get_platform(reference_designator)
-    if platform_deployment:
-        # get ordered set of instrument_deployments for platform
-        # Get instruments for this platform
-        instruments, oinstruments = _get_instruments(reference_designator)
-        # create list of reference_designators (instruments) and accumulate dict result (key=reference_designator) for output
-        for instrument_deployment in instruments:
-            row = {}
-            row['reference_designator'] = instrument_deployment['reference_designator']
-            if instrument_deployment['display_name']:
-                row['display_name'] = instrument_deployment['display_name']
-            else:
-                row['display_name'] = instrument_deployment['reference_designator']
-            platform_info[instrument_deployment['reference_designator']] = row
-
-        # Create list of dictionaries representing row(s) for 'data' (ordered by reference_designator)
-        # 'data' == rows for initial grid ('Current Status')
-        for instrument_reference_designator in oinstruments:
-            if instrument_reference_designator in platform_info:
-                contents.append(platform_info[instrument_reference_designator])
-    return jsonify(instruments=contents)
-
-@api.route('/c2/platform/<string:reference_designator>/mission_display', methods=['GET'])
-@auth.login_required
-@scope_required(u'command_control')
-def c2_get_platform_mission_display(reference_designator):
-    #Get C2 platform Mission tab contents, return mission_display
-    mission_display = {}
-    platform = _get_platform(reference_designator)
-    if platform:
-        mission_display = {}  # todo populate display content
-    return jsonify(mission_display=mission_display)
-
-# - - - - - - - - - - - - - - - - - - - - - - - -
-# C2 Mission Control - instrument
-# - - - - - - - - - - - - - - - - - - - - - - - -
-@api.route('/c2/instrument/<string:reference_designator>/mission_display', methods=['GET'])
-@auth.login_required
-@scope_required(u'command_control')
-def c2_get_instrument_mission_display(reference_designator):
-    #Get C2 instrument Mission tab contents, return mission_display
-    mission_display = {}
-    instrument = _get_instrument(reference_designator)
-    if instrument:
-        mission_display = {}  # todo populated display content
-    return jsonify(mission_display=mission_display)
-
-@api.route('/c2/platform/<string:reference_designator>/mission_selections', methods=['GET'])
-@auth.login_required
-@scope_required(u'command_control')
-def c2_get_platform_mission_selections(reference_designator):
-    # C2 get platform Mission tab mission selections content, return mission_selections [{},{}...]
-    # return list of platform mission plans
-    mission_selections = []
-    platform = _get_platform(reference_designator)
-    if platform:
-        mission_selections = _get_mission_selections(reference_designator)
-    return jsonify(mission_selections=mission_selections)
-
-@api.route('/c2/instrument/<string:reference_designator>/mission_selections', methods=['GET'])
-@auth.login_required
-@scope_required(u'command_control')
-def c2_get_instrument_mission_selections(reference_designator):
-    # C2 get instrument Mission tab mission selections content, return mission_selections [{},{}...]
-    # return list of instrument mission plans
-    # Sample: http://localhost:4000/c2/instrument/RS03ASHS-MJ03B-07-TMPSFA301/mission_selections
-    '''
-    {
-      "mission_selections": [
-        {
-          "last-modified": "2014-11-23T20:00:00",
-          "mission_name": "Shallow Profiler",
-          "store": "mission_shallow_profiler"
-        },
-        {
-          "last-modified": "2014-12-12T09:20:00",
-          "mission_name": "Mission 1",
-          "store": "mission1"
-        },
-        . . .
-        {
-          "last-modified": "2015-03-14T07:14:00",
-          "mission_name": "Mission 4",
-          "store": "mission4"
-        }
-      ]
-    }
-    '''
-    mission_selections = []
-    instrument = _get_instrument(reference_designator)
-    if instrument:
-        mission_selections = _get_mission_selections(reference_designator)
-    return jsonify(mission_selections=mission_selections)
-
-@api.route('/c2/platform/<string:reference_designator>/mission_selection/<string:mission_plan_store>', methods=['GET'])
-@auth.login_required
-@scope_required(u'command_control')
-def c2_get_platform_mission_selection(reference_designator, mission_plan_store):
-    # C2 get [platform] selected mission_plan content, return mission_plan
-    # http://localhost:4000/c2/instrument/RS03ASHS-MJ03B-07-TMPSFA301/mission_selection/mission4
-    '''
-    {
-      "mission_plan": [
-        "name: Mission 4\rversion: 0.4\rdescription: Shallow Profiler Mission\r\r\r
-        platform:\r  platformID: SWPROF\rmission:\r  - missionThread: \r    instrumentID: ['OPTAA', 'PCO2W', 'CTDPF']\r
-            errorHandling:\r      default: retry\r      maxRetries: 3\r    schedule:\r      startTime: 2014-07-18T00:00:00\r
-              timeZone:\r      loop:\r        quantity: -1   # No. of loops (-1 for infinite)\r
-                      value: 1      # Repeat missionParams every 'xx' 'units'\r
-                              units: hrs    # mins, hrs, days\r      event:\r
-                                      parentID:\r
-                                              eventID:\r    preMissionSequence:\r
-                                                    - command: SWPROF, execute_resource(TURN_ON_PORT{OPTAA})\r
-                                                            onError: retry\r
-                                                                  - command: SWPROF, execute_resource(TURN_ON_PORT{PCO2W})\r
-                                                                          onError: retry\r      - command: SWPROF, execute_resource(TURN_ON_PORT{CTDPF})\r        onError: retry\r      - command: SWPROF, execute_resource(CLOCK_SYNC)\r        onError: retry\r      - command: OPTAA, execute_resource(CLOCK_SYNC)\r        onError: retry\r      - command: PCO2W, execute_resource(CLOCK_SYNC)\r        onError: retry\r      - command: CTDPF, execute_resource(CLOCK_SYNC)\r        onError: retry\r    missionSequence:\r      - command: SWPROF, execute_resource(TURN_ON_PORT{OPTAA})\r        onError: retry\r      - command: OPTAA, execute_agent(INITIALIZE) #OPTAA INACTIVE\r        onError: retry\r        onError: retry\r      - command: CTDPF, execute_agent(RUN) #CTD COMMAND\r        onError: retry\r      - command: CTDPF, set_resource(INTERVAL{1}) #CTD Set sampling interval\r        onError: retry\r      - command: CTDPF, execute_resource(START_AUTOSAMPLE)\r        onError: retry\r      - command: SWPROF, execute_resource(TURN_OFF_PORT{PCO2W})\r        onError: retry\r      - command: SWPROF, execute_resource(LOAD_MISSION{0})\r        onError: retry\r      - command: SWPROF, execute_resource(RUN_MISSION{0})\r        onError: retry\r    postMissionSequence:\r\r\r  - missionThread: \r    instrumentID: [SWPROF OPTAA]\r    errorHandling:\r      default: retry\r      maxRetries: 3\r    schedule:\r      startTime:\r      timeZone:\r      loop:\r        quantity:\r        value:\r        units:\r      event:\r        parentID: SWPROF\r        eventID: PROFILER_AT_CEILING\r    preMissionSequence:\r    missionSequence:\r      - command: OPTAA, execute_agent(GO_INACTIVE) #OPTAA INACTIVE\r        onError: retry\r      - command: SWPROF, execute_resource(TURN_OFF_PORT{OPTAA})\r        onError: retry\r    postMissionSequence:\r\r\r  - missionThread: \r    instrumentID: [SWPROF, PCO2W]\r    errorHandling:\r      default: retry\r      maxRetries: 3\r    schedule:\r      startTime:\r      timeZone:\r      loop:\r        quantity:\r        value:\r        units:\r      event:\r        parentID: SWPROF\r        eventID: PROFILER_AT_STEP\r    preMissionSequence:\r    missionSequence:\r      - command: PCO2W, execute_agent(GO_ACTIVE) #PCO2W IDLE\r        onError: retry\r      - command: PCO2W, execute_agent(RUN) #PCO2W COMMAND\r        onError: retry\r      - command: PCO2W, set_resource(INTERVAL{1}) #PCO2W Set Sampling Interval\r        onError: retry\r      - command: PCO2W, execute_resource(ACQUIRE_SAMPLE)\r        onError: retry\r      - command: PCO2W, execute_agent(GO_INACTIVE)\r        onError: retry\r    postMissionSequence:\r\r\r  - missionThread: \r    instrumentID: [SWPROF, OPTAA, PCO2W, CTDPF]\r    errorHandling:\r      default: retry\r      maxRetries: 3\r    schedule:\r      startTime:\r      timeZone:\r      loop:\r        quantity:\r        value:\r        units:\r      event:\r        parentID: SWPROF\r        eventID: PROFILER_AT_FLOOR\r    preMissionSequence:\r    missionSequence:\r      - command: CTDPF, execute_resource(STOP_AUTOSAMPLE)\r        onError: retry\r      - command: CTDPF, execute_agent(GO_INACTIVE)\r        onError: retry\r      - command: SWPROF, execute_resource(CLOCK_SYNC)\r        onError: retry\r      - command: OPTAA, execute_resource(CLOCK_SYNC)\r        onError: retry\r      - command: PCO2W, execute_resource(CLOCK_SYNC)\r        onError: retry\r      - command: CTDPF, execute_resource(CLOCK_SYNC)\r        onError: retry\r    postMissionSequence:"
-      ]
-    }
-
-    '''
-    if not mission_plan_store:
-        return bad_request('mission_plan_store parameter is empty')
-    mission_plan = {}
-    platform = _get_platform(reference_designator)
-    if platform:
-        mission_plan = _get_mission_selection(mission_plan_store)
-    return jsonify(mission_plan=mission_plan)
-
-@api.route('/c2/instrument/<string:reference_designator>/mission_selection/<string:mission_plan_store>', methods=['GET'])
-@auth.login_required
-@scope_required(u'command_control')
-def c2_get_instrument_mission_selection(reference_designator, mission_plan_store):
-    # C2 get [instrument] selected mission_plan content from store (file, uframe), return mission_plan
-    if not mission_plan_store:
-        return bad_request('mission_plan_store parameter is empty')
-    mission_plan = {}
-    instrument = _get_instrument(reference_designator)
-    if instrument:
-        mission_plan = _get_mission_selection(mission_plan_store)
-    return jsonify(mission_plan=mission_plan)
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# private helper methods
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-def _get_mission_selections(reference_designator):
-    mission_selections = []
-    response_text = json_get_uframe_mission_selections(reference_designator)
-    if response_text:
-        try:
-            mission_selections = json.loads(response_text)
-        except:
-            return bad_request('Malformed mission_selections; not in valid json format. (reference designator \'%s\')'
-                               % reference_designator)
-    return mission_selections
-
-def _get_mission_selection(mission_plan_store):
-    mission_plan = []
-    response_text = json_get_uframe_mission_selection(mission_plan_store)
-    if response_text:
-        try:
-            mission_plan.append(response_text)
-            #mission_plan = response_text
-            #print '\n ***** type(response_txt): ', type(response_text)
-            #print '\n ***** response_text: ', response_text[0].split('\r')
-        except:
-            return bad_request('Malformed mission_plan data; not in valid json format.')
-    return mission_plan
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Private helpers for file data (./ooiuiservices/tests/c2data/*)
-# Each of these will be replaced with interface to uframe or other interface (other than file)
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-def json_get_uframe_mission_selections(reference_designator):
+    result = []
     try:
-        data = None
-        if reference_designator:
-            if len(reference_designator) == 27:
-                mission_type = 'instrument'
-            elif len(reference_designator) == 14:
-                mission_type = 'platform'
-            else:
-                return []
-            filename = "_".join([mission_type, 'missions'])
-            data = read_store(filename)
-            #print '\n ***** data: ', data
-    except:
-        return None
-    return data
-
-def json_get_uframe_mission_selection(mission_plan_filename):
-    try:
-        data = None
-        if mission_plan_filename:
-            data = read_store2(mission_plan_filename)
-    except:
-        return None
-    return data
+        for id in ids:
+            mission = uframe_get_mission(id)
+            tmp = get_mission_info(id, mission)
+            result.append(tmp)
+        return result
+    except Exception as err:
+        message = str(err.message)
+        current_app.logger.info(message)
+        raise
