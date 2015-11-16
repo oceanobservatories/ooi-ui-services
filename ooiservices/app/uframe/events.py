@@ -151,9 +151,9 @@ def create_event():
         return make_response(error, 500)
 
 
-@api.route('/events/<int:assetId>/<int:id>', methods=['PUT'])
+@api.route('/events/<int:id>', methods=['PUT'])
 @auth.login_required
-def update_event(assetId, id):
+def update_event(id):
     try:
         data = json.loads(request.data)
         url = current_app.config['UFRAME_ASSETS_URL']\
