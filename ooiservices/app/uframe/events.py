@@ -143,7 +143,7 @@ def create_event():
                                  data=json.dumps(data),
                                  headers=_uframe_headers())
         cache.delete('event_list')
-        return response.text
+        return response.text, response.status_code
 
     except requests.exceptions.ConnectionError as e:
         error = "Error: Cannot connect to uframe.  %s" % e
@@ -163,7 +163,7 @@ def update_event(id):
                                 data=json.dumps(data),
                                 headers=_uframe_headers())
         cache.delete('event_list')
-        return response.text
+        return response.text, response.status_code
 
     except requests.exceptions.ConnectionError as e:
         error = "Error: Cannot connect to uframe.  %s" % e
@@ -183,7 +183,7 @@ def delete_event(id):
         response = requests.delete(url,
                                    headers=_uframe_headers())
         cache.delete('event_list')
-        return response.text
+        return response.text, response.status_code
 
     except requests.exceptions.ConnectionError as e:
         error = "Error: Cannot connect to uframe.  %s" % e
