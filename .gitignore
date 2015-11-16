@@ -71,8 +71,8 @@ whoosh_index
 .DS_Store
 docs/ # softlink to wiki
 
-#NoSQL
-*.rdb
-
-#celery
+#Celery beat
 celerybeat-schedule
+
+#redis
+*.rdb

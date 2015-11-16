@@ -62,7 +62,7 @@ def _compile_assets(data):
                 if deployment_number is not None:
                     row['deployment_number'] = deployment_number
                 for events in row['events']:
-                    if events['class'] == '.DeploymentEvent':
+                    if events['eventClass'] == '.DeploymentEvent':
                         has_deployment_event = True
                         if events['tense'] == 'PRESENT':
                             row['tense'] = events['tense']
@@ -112,18 +112,6 @@ def _compile_assets(data):
 
     return data
 
-
-def _uframe_url(endpoint, id=None):
-    '''
-    Two options for creating the uframe url:
-    - If an id is provided, the return is a url points to a specific id.
-    - If no id, a url for a GET list or a post is returned.
-    '''
-    if id is not None:
-        uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % (endpoint, id)
-    else:
-        uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/%s' % endpoint
-    return uframe_url
 
 def _uframe_collection(uframe_url):
     '''
@@ -298,12 +286,12 @@ def associate_events(id):
             d['locationLonLat'] = []
 
             d['eventId'] = row['eventId']
-            d['class'] = row['@class']
+            d['eventClass'] = row['@class']
             d['notes'] = len(row['notes'])
             d['startDate'] = row['startDate']
             d['endDate'] = row['endDate']
             d['tense'] = row['tense']
-            if d['class'] == '.CalibrationEvent':
+            if d['eventClass'] == '.CalibrationEvent':
                 d['calibrationCoefficient'] = row['calibrationCoefficient']
                 lon = 0.0
                 lat = 0.0
@@ -314,7 +302,7 @@ def associate_events(id):
                         lat = cal_coef['values']
                 if lon is not None and lat is not None:
                     d['locationLonLat'] = convert_lat_lon(lat, lon)
-            if d['class'] == '.DeploymentEvent':
+            if d['evetClass'] == '.DeploymentEvent':
                 d['deploymentDepth'] = row['deploymentDepth']
                 if row['locationLonLat']:
                     d['locationLonLat'] = convert_lat_lon(row['locationLonLat'][1], row['locationLonLat'][0])
@@ -355,8 +343,8 @@ def get_events_by_ref_des(data, ref_des):
             if ref_des_check == ref_des:
                 temp_dict['ref_des'] = ref_des_check
                 temp_dict['id'] = row['id']
-                temp_dict['class'] = row['class']
-                if row['class'] == '.DeploymentEvent':
+                temp_dict['eventClass'] = row['eventClass']
+                if row['eventClass'] == '.DeploymentEvent':
                     temp_dict['cruise_number'] = row['cruiseNumber']
                     temp_dict['cruise_plan_doc'] = row['cruisePlanDocument']
                     temp_dict['depth'] = row['depth']

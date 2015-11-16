@@ -3,17 +3,19 @@
 uframe endpoints
 '''
 # base
-from flask import jsonify, request, current_app, make_response, Response, url_for
+from flask import jsonify, request, current_app, make_response, Response
 from ooiservices.app import cache
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.models import PlatformDeployment
 from ooiservices.app.main.routes import get_display_name_by_rd, get_long_display_name_by_rd,\
-    get_platform_display_name_by_rd, get_parameter_name_by_parameter as get_param_names, get_assembly_by_rd, \
-    get_site_display_name_by_rd as get_site_name, get_stream_name_by_stream as get_stream_name
+    get_platform_display_name_by_rd, get_parameter_name_by_parameter as get_param_names,\
+    get_assembly_by_rd, get_site_display_name_by_rd as get_site_name,\
+    get_stream_name_by_stream as get_stream_name
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.main.errors import internal_server_error
 # data imports
-from ooiservices.app.uframe.data import get_data, get_simple_data, find_parameter_ids, get_multistream_data
+from ooiservices.app.uframe.data import get_data, get_simple_data,\
+    find_parameter_ids, get_multistream_data
 from ooiservices.app.uframe.plotting import generate_plot
 from ooiservices.app.uframe.assetController import get_events_by_ref_des
 from ooiservices.app.uframe.events import get_events
@@ -63,14 +65,9 @@ def dfs_streams():
 
     return streams
 
+
 def parameters_in_instrument(instrument):
     parameters_dict = {}
-    parameter_list = []
-
-    stream_parameters = []
-    stream_variable_type = []
-    stream_units = []
-    stream_variables_shape = []
 
     for parameter in instrument['instrument_parameters']:
         if parameter['shape'].lower() in ['scalar', 'function']:
@@ -229,7 +226,7 @@ def streams_list():
             events = json.loads(response.data)
 
             for event in events['events']:
-                if event['class'] == '.DeploymentEvent' and event['tense'] == 'PRESENT':
+                if event['eventClass'] == '.DeploymentEvent' and event['tense'] == 'PRESENT':
                     stream['depth'] = event['depth']
                     stream['lat_lon'] = event['lat_lon']
                     stream['cruise_number'] = event['cruise_number']
@@ -238,13 +235,13 @@ def streams_list():
         cache.set('stream_list', retval, timeout=CACHE_TIMEOUT)
 
     try:
-        is_reverse = False
+        is_reverse = True
         if request.args.get('sort') and request.args.get('sort') != "":
             sort_by = request.args.get('sort')
             if request.args.get('order') and request.args.get('order') != "":
                 order = request.args.get('order')
                 if order == 'reverse':
-                    is_reverse = True
+                    is_reverse = False
         else:
             sort_by = 'end'
         retval = sorted(retval, key=itemgetter(sort_by), reverse=is_reverse)
@@ -266,16 +263,12 @@ def streams_list():
 
     if request.args.get('search') and request.args.get('search') != "":
         return_list = []
-        ven_set = []
         search_term = str(request.args.get('search')).split()
         search_set = set(search_term)
         for subset in search_set:
             if len(return_list) > 0:
-                if len(ven_set) > 0:
-                    ven_set = deepcopy(ven_subset)
-                else:
-                    ven_set = deepcopy(return_list)
                 ven_subset = []
+                ven_set = deepcopy(retval)
                 for item in ven_set:
                     if subset.lower() in str(item['array_name']).lower():
                         ven_subset.append(item)
@@ -290,6 +283,8 @@ def streams_list():
                     elif subset.lower() in str(item['stream_name']).lower():
                         ven_subset.append(item)
                     elif subset.lower() in str(item['parameter_display_name']).lower():
+                        ven_subset.append(item)
+                    elif subset.lower() in str(item['long_display_name']).lower():
                         ven_subset.append(item)
                 retval = ven_subset
             else:
@@ -307,6 +302,8 @@ def streams_list():
                     elif subset.lower() in str(item['parameter_display_name']).lower():
                         return_list.append(item)
                     elif subset.lower() in str(item['stream_name']).lower():
+                        return_list.append(item)
+                    elif subset.lower() in str(item['long_display_name']).lower():
                         return_list.append(item)
                 retval = return_list
 
