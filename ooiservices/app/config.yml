@@ -44,7 +44,7 @@ COMMON: &common
     REDMINE_URL: 'https://redmine-asa.ooi.rutgers.edu' #'https://uframe-cm.ooi.rutgers.edu'
     REDMINE_PROJECT_ID: 'ocean-observatory' #'ooi-ui-api-testing'
     # redis
-    REDIS_URL: 'redis://:password@localhost:6379'
+    REDIS_URL: 'redis://localhost:6379'
     # google
     GOOGLE_ANALYTICS_URL: 'https://www.google-analytics.com/collect?v=1&tid=UA-50606390-3&cid=1&t=event'
     # alfresco

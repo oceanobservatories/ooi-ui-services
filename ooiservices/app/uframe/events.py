@@ -1,10 +1,8 @@
-from flask import request, jsonify, make_response
+from flask import request, jsonify, make_response, current_app
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.authentication import auth
-from ooiservices.app.uframe.UFrameEventsCollection import \
-    UFrameEventsCollection
+from ooiservices.app.decorators import scope_required
 from ooiservices.app.uframe.assetController import get_events_by_ref_des
-from ooiservices.app.uframe.assetController import _uframe_url
 from ooiservices.app.uframe.assetController import _uframe_headers
 from ooiservices.app import cache
 from copy import deepcopy
@@ -15,7 +13,6 @@ import requests
 requests.adapters.DEFAULT_RETRIES = 2
 CACHE_TIMEOUT = 86400
 
-uframe_obj = UFrameEventsCollection()
 
 '''
  BEGIN Events CRUD methods.
@@ -39,7 +36,11 @@ def get_events():
             data = cached
 
         else:
-            payload = uframe_obj.to_json()
+            url = current_app.config['UFRAME_ASSETS_URL']\
+                + '/%s' % 'events'
+
+            payload = requests.get(url)
+
             data = payload.json()
             if payload.status_code != 200:
                 return jsonify({"events": payload.json()}), payload.status_code
@@ -47,7 +48,7 @@ def get_events():
             try:
                 for row in data:
                     row['id'] = row.pop('eventId')
-                    row['class'] = row.pop('@class')
+                    row['eventClass'] = row.pop('@class')
             except (KeyError, TypeError, AttributeError):
                 pass
 
@@ -73,7 +74,7 @@ def get_events():
                         ven_set = deepcopy(return_list)
                     ven_subset = []
                     for item in return_list:
-                        if subset.lower() in str(item['class']).lower():
+                        if subset.lower() in str(item['eventClass']).lower():
                             ven_subset.append(item)
                         elif subset.lower() in str(item['id']).lower():
                             ven_subset.append(item)
@@ -82,7 +83,7 @@ def get_events():
                     data = ven_subset
                 else:
                     for item in data:
-                        if subset.lower() in str(item['class']).lower():
+                        if subset.lower() in str(item['eventClass']).lower():
                             return_list.append(item)
                         elif subset.lower() in str(item['id']).lower():
                             return_list.append(item)
@@ -106,13 +107,15 @@ def get_event(id):
     '''
     try:
         data = {}
-        payload = uframe_obj.to_json(id)
+        url = current_app.config['UFRAME_ASSETS_URL']\
+            + '/%s/%s' % ('events', id)
+        payload = requests.get(url)
         data = payload.json()
         if payload.status_code != 200:
             return jsonify({"events": payload.json()}), payload.status_code
 
         try:
-            data['class'] = data.pop('@class')
+            data['eventClass'] = data.pop('@class')
         except (KeyError, TypeError):
             pass
 
@@ -124,6 +127,7 @@ def get_event(id):
         return make_response(error, 500)
 
 
+@scope_required('asset_manager')
 @api.route('/events', methods=['POST'])
 @auth.login_required
 def create_event():
@@ -134,13 +138,14 @@ def create_event():
     '''
     try:
         data = json.loads(request.data)
-        uframe_events_url = _uframe_url(uframe_obj.__endpoint__)
-        data['@class'] = data.pop('class')
-        response = requests.post(uframe_events_url,
+        url = current_app.config['UFRAME_ASSETS_URL']\
+            + '/%s/%s' % ('events', id)
+        data['@class'] = data.pop('eventClass')
+        response = requests.post(url,
                                  data=json.dumps(data),
                                  headers=_uframe_headers())
         cache.delete('event_list')
-        return response.text
+        return response.text, response.status_code
 
     except requests.exceptions.ConnectionError as e:
         error = "Error: Cannot connect to uframe.  %s" % e
@@ -148,18 +153,20 @@ def create_event():
         return make_response(error, 500)
 
 
+@scope_required('asset_manager')
 @api.route('/events/<int:id>', methods=['PUT'])
 @auth.login_required
 def update_event(id):
     try:
         data = json.loads(request.data)
-        uframe_events_url = _uframe_url(uframe_obj.__endpoint__, id)
-        data['@class'] = data.pop('class')
-        response = requests.put(uframe_events_url,
+        url = current_app.config['UFRAME_ASSETS_URL']\
+            + '/%s/%s' % ('events', id)
+        data['@class'] = data.pop('eventClass')
+        response = requests.put(url,
                                 data=json.dumps(data),
                                 headers=_uframe_headers())
         cache.delete('event_list')
-        return response.text
+        return response.text, response.status_code
 
     except requests.exceptions.ConnectionError as e:
         error = "Error: Cannot connect to uframe.  %s" % e
@@ -167,6 +174,7 @@ def update_event(id):
         return make_response(error, 500)
 
 
+@scope_required('asset_manager')
 @api.route('/events/<int:id>', methods=['DELETE'])
 @auth.login_required
 def delete_event(id):
@@ -174,12 +182,12 @@ def delete_event(id):
     Delete an existing event
     '''
     try:
-        uframe_obj = UFrameEventsCollection()
-        uframe_events_url = _uframe_url(uframe_obj.__endpoint__, id)
-        response = requests.delete(uframe_events_url,
+        url = current_app.config['UFRAME_ASSETS_URL']\
+            + '/%s/%s' % ('events', id)
+        response = requests.delete(url,
                                    headers=_uframe_headers())
         cache.delete('event_list')
-        return response.text
+        return response.text, response.status_code
 
     except requests.exceptions.ConnectionError as e:
         error = "Error: Cannot connect to uframe.  %s" % e
