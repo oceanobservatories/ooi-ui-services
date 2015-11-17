@@ -201,6 +201,7 @@ def streams_list():
         dict_from_stream(request.args.get('stream_name'))
 
     cached = cache.get('stream_list')
+
     if cached:
         retval = cached
     else:
@@ -1003,10 +1004,12 @@ def get_data_api(stream, instrument, yvar, xvar):
     try:
         xvar = xvar.split(',')
         yvar = yvar.split(',')
-        resp_data,units = get_simple_data(stream, instrument, yvar, xvar)
+        resp_data, units = get_simple_data(stream, instrument, yvar, xvar)
+        instrument = instrument.split(',')
+        title = PlatformDeployment._get_display_name(instrument[0])
     except Exception as err:
         return jsonify(error='%s' % str(err.message)), 400
-    return jsonify(data=resp_data,units=units)
+    return jsonify(data=resp_data, units=units, title=title)
 
 @auth.login_required
 @api.route('/plot/<string:instrument>/<string:stream>', methods=['GET'])
