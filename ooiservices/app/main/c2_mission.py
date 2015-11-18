@@ -11,8 +11,9 @@ from ooiservices.app.main.authentication import auth
 from ooiservices.app.decorators import scope_required
 import json
 import requests
-import datetime as dt
 from base64 import b64encode
+import datetime as dt
+
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # C2 Mission Control routes
@@ -20,12 +21,11 @@ from base64 import b64encode
 '''
 # SHORT VERSION - FINAL TARGETED ROUTE!
 @api.route('/c2/missions', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'command_control')
+@auth.login_required
+@scope_required(u'command_control')
 #@scope_required(u'mission_control')
 def c2_get_missions():
-    """
-    Get list of missions.
+    """ Get list of missions.
     """
     valid_states = ['active', 'inactive']
     missions = []
@@ -45,14 +45,15 @@ def c2_get_missions():
         current_app.logger.info(message)
         return bad_request(message)
 '''
-# LONG VERSION - USE UNTIL ui navigation is modified (this is not recommended server side api usage)
+
+
+# LONG VERSION: Use until ui navigation is modified to use short version (short is recommended server side api usage)
 @api.route('/c2/missions', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'command_control')
+@auth.login_required
+@scope_required(u'command_control')
 #@scope_required(u'mission_control')
-def c2_get_missions_long():
-    """
-    Get list of missions.
+def c2_get_missions():
+    """ Get list of missions.
     """
     valid_states = ['active', 'inactive']
     missions = []
@@ -80,12 +81,11 @@ def c2_get_missions_long():
 
 
 @api.route('/c2/missions/<int:mission_id>', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'command_control')
+@auth.login_required
+@scope_required(u'command_control')
 #@scope_required(u'mission_control')
 def c2_get_mission(mission_id):
-    """
-    Get a mission.
+    """ Get a mission.
     """
     try:
         result = uframe_get_mission(mission_id)
@@ -99,12 +99,11 @@ def c2_get_mission(mission_id):
 
 
 @api.route('/c2/missions/<string:mission_id>/delete', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'command_control')
+@auth.login_required
+@scope_required(u'command_control')
 #@scope_required(u'mission_control')
 def c2_delete_mission(mission_id):
-    """
-    Delete a mission.
+    """ Delete a mission.
     """
     try:
         mission = {}
@@ -119,12 +118,11 @@ def c2_delete_mission(mission_id):
 
 
 @api.route('/c2/missions/<int:mission_id>/activate', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'command_control')
+@auth.login_required
+@scope_required(u'command_control')
 #@scope_required(u'mission_control')
 def c2_activate_mission(mission_id):
-    """
-    Activate a mission.
+    """ Activate a mission.
     """
     try:
         result = uframe_activate_mission(mission_id)
@@ -137,12 +135,11 @@ def c2_activate_mission(mission_id):
 
 
 @api.route('/c2/missions/<int:mission_id>/deactivate', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'command_control')
+@auth.login_required
+@scope_required(u'command_control')
 #@scope_required(u'mission_control')
 def c2_deactivate_mission(mission_id):
-    """
-    Deactivate a mission.
+    """ Deactivate a mission.
     """
     try:
         result = uframe_deactivate_mission(mission_id)
@@ -155,17 +152,17 @@ def c2_deactivate_mission(mission_id):
 
 
 @api.route('/c2/missions', methods=['POST'])
-#@auth.login_required
-#@scope_required(u'command_control')
+@auth.login_required
+@scope_required(u'command_control')
 #@scope_required(u'mission_control')
 def c2_add_mission():
-    """
-    Add a mission.
+    """ Add a mission.
     """
     try:
         if request.data is None:
             message = 'Provide request data to add new mission.'
             raise Exception(message)
+
         result = uframe_add_mission(request.data)
         if result is None or len(result) == 0:
             message = 'Failed to add new mission.'
@@ -181,13 +178,13 @@ def c2_add_mission():
         current_app.logger.info(message)
         return bad_request(message)
 
+
 @api.route('/c2/missions/<int:mission_id>/versions', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'command_control')
+@auth.login_required
+@scope_required(u'command_control')
 #@scope_required(u'mission_control')
 def c2_mission_versions(mission_id):
-    """
-    Get mission versions.
+    """ Get mission versions.
     """
     try:
         result = uframe_mission_versions(mission_id)
@@ -197,13 +194,13 @@ def c2_mission_versions(mission_id):
         current_app.logger.info(message)
         return bad_request(message)
 
+
 @api.route('/c2/missions/<int:mission_id>/versions/<int:version_id>', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'command_control')
+@auth.login_required
+@scope_required(u'command_control')
 #@scope_required(u'mission_control')
 def c2_mission_version(mission_id, version_id):
-    """
-    Get mission versions.
+    """ Get mission version.
     """
     try:
         result = uframe_mission_version(mission_id, version_id)
@@ -213,13 +210,13 @@ def c2_mission_version(mission_id, version_id):
         current_app.logger.info(message)
         return bad_request(message)
 
+
 @api.route('/c2/missions/<int:mission_id>/versions/<int:version_id>', methods=['PUT'])
-#@auth.login_required
-#@scope_required(u'command_control')
+@auth.login_required
+@scope_required(u'command_control')
 #@scope_required(u'mission_control')
 def c2_mission_set_version(mission_id, version_id):
-    """
-    Get mission versions.
+    """ Set mission version.
     """
     try:
         if request.data is None:
@@ -232,13 +229,13 @@ def c2_mission_set_version(mission_id, version_id):
         current_app.logger.info(message)
         return bad_request(message)
 
+
 @api.route('/c2/missions/<int:mission_id>/runs', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'command_control')
+@auth.login_required
+@scope_required(u'command_control')
 #@scope_required(u'mission_control')
 def c2_mission_runs(mission_id):
-    """
-    Get mission versions.
+    """ Get mission runs.
     """
     try:
         result = uframe_mission_runs(mission_id)
@@ -248,13 +245,13 @@ def c2_mission_runs(mission_id):
         current_app.logger.info(message)
         return bad_request(message)
 
+
 @api.route('/c2/missions/<int:mission_id>/runs/<int:run_id>', methods=['GET'])
-#@auth.login_required
-#@scope_required(u'command_control')
+@auth.login_required
+@scope_required(u'command_control')
 #@scope_required(u'mission_control')
 def c2_mission_run(mission_id, run_id):
-    """
-    Get mission versions.
+    """ Get mission run.
     """
     try:
         result = uframe_mission_run(mission_id, run_id)
@@ -296,8 +293,7 @@ def uframe_get_missions(state=None):
 
 def uframe_get_mission(id):
     """ Get mission.
-    Sample request executed:    http://localhost:port/mission/mission_id
-    response:
+    Sample request to be executed:    http://localhost:port/mission/mission_id
     """
     mission = {}
     try:
@@ -314,11 +310,10 @@ def uframe_get_mission(id):
         current_app.logger.info(message)
         raise
 
+
 def uframe_delete_mission(id):
     """ Delete mission.
-    Sample:
-    request:    http://localhost:port/mission/mission_id
-    response:
+    Sample request to be executed:    http://localhost:port/mission/mission_id
     """
     mission = {}
     try:
@@ -338,9 +333,7 @@ def uframe_delete_mission(id):
 
 def uframe_activate_mission(id):
     """ Activate mission.
-    Sample:
-    request:    http://localhost:port/mission/mission_id/activate
-    response:
+    Sample request to be executed:    http://localhost:port/mission/mission_id/activate
     """
     mission = {}
     try:
@@ -360,9 +353,7 @@ def uframe_activate_mission(id):
 
 def uframe_deactivate_mission(id):
     """ Deactivate mission.
-    Sample:
-    request:    http://localhost:port/mission/mission_id/deactivate
-    response:
+    Sample request to be executed:    http://localhost:port/mission/mission_id/deactivate
     """
     mission = {}
     try:
@@ -385,7 +376,6 @@ def uframe_deactivate_mission(id):
 def uframe_add_mission(data):
     """ Add mission using post method.
     request:    http://localhost:port/mission/mission_id
-    response:
     """
     mission = {}
     try:
@@ -403,11 +393,10 @@ def uframe_add_mission(data):
         current_app.logger.info(message)
         raise
 
+
 def uframe_mission_versions(id):
     """ Get mission versions.
-    Sample:
-    request:    http://localhost:port/mission/mission_id/versions
-    response:
+    Sample request to be executed:    http://localhost:port/mission/mission_id/versions
     """
     mission = {}
     try:
@@ -426,11 +415,10 @@ def uframe_mission_versions(id):
         current_app.logger.info(message)
         raise
 
+
 def uframe_mission_version(id, version_id):
     """ Get mission version by version id.
-    Sample:
-    request:    http://localhost:port/mission/mission_id/versions/version_id
-    response:
+    Sample request to be executed:    http://localhost:port/mission/mission_id/versions/version_id
     """
     mission = {}
     try:
@@ -450,11 +438,10 @@ def uframe_mission_version(id, version_id):
         current_app.logger.info(message)
         raise
 
+
 def uframe_mission_set_version(id, version_id):
     """ Set mission version to version id.
-    Sample:
-    request:    http://localhost:port/mission/mission_id/versions/version_id
-    response:
+    Sample request to be executed:    http://localhost:port/mission/mission_id/versions/version_id
     """
     mission = {}
     try:
@@ -475,8 +462,7 @@ def uframe_mission_set_version(id, version_id):
 
 def uframe_mission_runs(id):
     """ Get mission runs.
-    Sample:
-    request:    http://localhost:port/mission/id/runs
+    Sample request to be executed:    http://localhost:port/mission/id/runs
     response:
     {
       "runs": [
@@ -505,10 +491,10 @@ def uframe_mission_runs(id):
         current_app.logger.info(message)
         raise
 
+
 def uframe_mission_run(id, run_id):
     """ Get mission run by run id.
-    Sample:
-    request:    http://localhost:port/mission/id/runs/run_id
+    Sample request to be executed:    http://localhost:port/mission/id/runs/run_id
     response:
     {
       "run": [
@@ -571,6 +557,9 @@ def get_mission_info(mission_id, result):
     "running": false,
     "schedule": {"second": 0},
     "version": "1-00"
+
+    Really should validate result is well-formed before using.
+    valid_items = ['name', 'version', 'active', 'running', 'events', 'created', 'next_run', 'schedule', 'run_count']
     """
     mission = {}
     name = ''
@@ -591,18 +580,15 @@ def get_mission_info(mission_id, result):
         version = tmp['version']
         active = tmp['active']
         running = tmp['running']
-        events = tmp['events']
+        #events = tmp['events']
         created = tmp['created']
         next_run = tmp['next_run']
         schedule = tmp['schedule']
         run_count = tmp['run_count']
-
         if 'desc' in tmp:
             desc = tmp['desc']
-
         if 'drivers' in tmp:
             drivers = tmp['drivers']
-
         if 'script' in tmp:
             # todo splitting here for ui; coordinate with ui and leave as a str
             data = (tmp['script']).split('\n')
