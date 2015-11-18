@@ -16,7 +16,7 @@ before_install:
 install:
   - pip install -r ooiservices/requirements/dev.txt
 before_script:
-  - python ooiservices/manage.py deploy -p test
+  - python ooiservices/manage.py deploy -p test --production=True
 script:
   - python ooiservices/manage.py test --coverage
 notifications:
