@@ -6,7 +6,7 @@ uframe assets and events endpoint and class definition.
 '''
 __author__ = 'M@Campbell'
 
-from flask import jsonify, current_app, request, url_for
+from flask import jsonify, current_app, request
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.routes import\
     get_display_name_by_rd as get_dn_by_rd,\
@@ -21,6 +21,14 @@ from ooiservices.app import cache
 
 requests.adapters.DEFAULT_RETRIES = 2
 CACHE_TIMEOUT = 86400
+
+
+def _compile_events(data):
+    for row in data:
+        row['id'] = row.pop('eventId')
+        row['eventClass'] = row.pop('@class')
+
+    return data
 
 
 def _compile_assets(data):
@@ -280,7 +288,7 @@ def associate_events(id):
     json_data = payload.json()
     for row in json_data:
         try:
-           
+
             d = {}
             # set up some static keys
             d['locationLonLat'] = []
@@ -290,7 +298,7 @@ def associate_events(id):
             d['notes'] = len(row['notes'])
             d['startDate'] = row['startDate']
             d['endDate'] = row['endDate']
-            d['tense'] = row['tense'] or ""
+            d['tense'] = row['tense']
             if d['eventClass'] == '.CalibrationEvent':
                 d['calibrationCoefficient'] = row['calibrationCoefficient']
                 lon = 0.0

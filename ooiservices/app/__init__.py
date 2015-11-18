@@ -27,6 +27,7 @@ csrf = CsrfProtect()
 redis_store = Redis()
 cors = CORS()
 
+
 def create_app(config_name):
     app = Flask(__name__)
     env = Environments(app, default_env=config_name)
@@ -36,11 +37,12 @@ def create_app(config_name):
         env.from_yaml(os.path.join(basedir, 'config.yml'))
 
     # Uses REDIS_URL from config.yml to set the connection to the redis-server
-    cache.config = {'CACHE_TYPE': 'redis', 'CACHE_REDIS_URL': app.config['REDIS_URL']}
+    cache.config = {
+        'CACHE_TYPE': 'redis',
+        'CACHE_REDIS_URL': app.config['REDIS_URL']}
 
-
-    #Adding logging capabilities.
-    if app.config['LOGGING'] == True:
+    # Adding logging capabilities.
+    if app.config['LOGGING'] is True:
         import logging
         logger = logging.getLogger('replicate')
         logger.setLevel(logging.DEBUG)
@@ -52,15 +54,17 @@ def create_app(config_name):
         file_handler = logging.FileHandler(log_filename, mode='a+')
 
         stream_handler = logging.StreamHandler()
-        formatter = logging.Formatter('%(asctime)s - %(process)d - %(name)s - %(module)s:%(lineno)d - %(levelname)s - %(message)s')
+        formatter = logging.Formatter(
+            '%(asctime)s - %(process)d - %(name)s - ' +
+            '%(module)s:%(lineno)d - %(levelname)s - %(message)s')
         file_handler.setFormatter(formatter)
         stream_handler.setFormatter(formatter)
         app.logger.addHandler(file_handler)
-        #app.logger.addHandler(stream_handler)
+        # app.logger.addHandler(stream_handler)
         app.logger.setLevel(logging.DEBUG)
         app.logger.info('Application Process Started')
 
-    #SSL
+    # SSL
     if not app.debug and not app.testing and app.config['SSL_DISABLE']:
         from flask.ext.sslify import SSLify
         sslify = SSLify(app)
@@ -95,8 +99,28 @@ def create_app(config_name):
     if app.config['DEBUG']:
         app.add_url_rule('/site-map', 'site_map', site_map)
 
-
     return app
+
+
+from celery import Celery
+
+
+def create_celery_app(app=None):
+    app = app or create_app('LOCAL_DEVELOPMENT')
+    celery = Celery('__main__', broker='redis://localhost:6379/0')
+    celery.conf.update(app.config)
+    TaskBase = celery.Task
+
+    class ContextTask(TaskBase):
+        abstract = True
+
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                return TaskBase.__call__(self, *args, **kwargs)
+
+    celery.Task = ContextTask
+    return celery
+
 
 def has_no_empty_params(rule):
     '''
@@ -106,7 +130,8 @@ def has_no_empty_params(rule):
     arguments = rule.arguments if rule.arguments is not None else ()
     return len(defaults) >= len(arguments)
 
-#route("/site-map")
+
+# route("/site-map")
 def site_map():
     '''
     Returns a json structure for the site routes and handlers
@@ -133,10 +158,10 @@ def site_map():
             delete_links.append((url, rule.endpoint))
     # links is now a list of url, endpoint tuples
     doc = {
-        'get_links' : get_links,
-        'put_links' : put_links,
-        'post_links' : post_links,
-        'delete_links' : delete_links
+        'get_links': get_links,
+        'put_links': put_links,
+        'post_links': post_links,
+        'delete_links': delete_links
     }
 
     return jsonify(**doc)

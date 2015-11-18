@@ -1,9 +1,24 @@
 from celery.schedules import crontab
 
 CELERYBEAT_SCHEDULE = {
-    'every-minute': {
+    'get-assets': {
         'task': 'tasks.compile_assets',
         'schedule': crontab(minute='*/5'),
+        'args': (),
+        },
+    'get-streams': {
+        'task': 'tasks.compile_streams',
+        'schedule': crontab(minute='*/3'),
+        'args': (),
+        },
+    'get-events': {
+        'task': 'tasks.compile_events',
+        'schedule': crontab(minute='*/5'),
+        'args': (),
+        },
+    'get-glider-traks-every': {
+        'task': 'tasks.compile_glider_tracks',
+        'schedule': crontab(minute='*/7'),
         'args': (),
         },
     }
