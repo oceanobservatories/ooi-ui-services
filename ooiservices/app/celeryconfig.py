@@ -3,7 +3,7 @@ from celery.schedules import crontab
 CELERYBEAT_SCHEDULE = {
     'get-assets': {
         'task': 'tasks.compile_assets',
-        'schedule': crontab(minute='*/5'),
+        'schedule': crontab(minute='*/10'),
         'args': (),
         },
     'get-streams': {
@@ -18,7 +18,7 @@ CELERYBEAT_SCHEDULE = {
         },
     'get-glider-traks-every': {
         'task': 'tasks.compile_glider_tracks',
-        'schedule': crontab(minute='*/7'),
+        'schedule': crontab(minute='*/4'),
         'args': (),
         },
     }
