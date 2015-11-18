@@ -197,16 +197,19 @@ def deploy(password, bulkload, production, psqluser):
 
     if production:
         app.logger.info('Populating Production Database . . .')
-        with open('db/ooiui_schema_data.sql') as f:
-            psql('-U', psqluser, 'ooiuiprod', _in=f)
-        with open('db/ooiui_params_streams_data.sql') as h:
-            psql('-U', psqluser, 'ooiuiprod', _in=h)
-        app.logger.info('Database loaded.')
+        with open('db/ooiui_schema_data.sql') as ps:
+            psql('-U', psqluser, 'ooiuiprod', _in=ps)
+
+        with open('db/ooiui_params_streams_data.sql') as ps:
+            psql('-U', psqluser, 'ooiuiprod', _in=ps)
+
         app.logger.info('Populating Dev Database . . .')
-        with open('db/ooiui_schema_data.sql') as f:
-            psql('-U', psqluser, 'ooiuidev', _in=f)
-        with open('db/ooiui_params_streams_data.sql') as h:
-            psql('-U', psqluser, 'ooiuidev', _in=h)
+        with open('db/ooiui_schema_data.sql') as dd:
+            psql('-U', psqluser, 'ooiuidev', _in=dd)
+
+        with open('db/ooiui_params_streams_data.sql') as ds:
+            psql('-U', psqluser, 'ooiuidev', _in=ds)
+
         app.logger.info('Database loaded.')
 
     # migrate database to latest revision

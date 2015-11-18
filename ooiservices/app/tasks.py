@@ -14,7 +14,7 @@ Create the celery app, and configure it to talk to the redis broker.
 Then intialize it.
 '''
 
-celery = create_celery_app()
+celery = create_celery_app('PRODUCTION')
 celery.config_from_object('ooiservices.app.celeryconfig')
 
 '''

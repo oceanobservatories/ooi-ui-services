@@ -105,8 +105,8 @@ def create_app(config_name):
 from celery import Celery
 
 
-def create_celery_app(app=None):
-    app = app or create_app('LOCAL_DEVELOPMENT')
+def create_celery_app(env, app=None):
+    app = app or create_app(env)
     celery = Celery('__main__', broker='redis://localhost:6379/0')
     celery.conf.update(app.config)
     TaskBase = celery.Task
