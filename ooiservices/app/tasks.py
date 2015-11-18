@@ -40,8 +40,11 @@ def compile_assets():
         if payload.status_code is 200:
             data = payload.json()
             assets = _compile_assets(data)
-            cache.set('asset_list', assets, timeout=CACHE_TIMEOUT)
-            print "[+] Asset cache reset"
+            if "error" not in assets:
+                cache.set('asset_list', assets, timeout=CACHE_TIMEOUT)
+                print "[+] Asset cache reset"
+            else:
+                print "[-] Error in cache update"
 
 
 @celery.task(name='tasks.compile_streams')
@@ -53,8 +56,11 @@ def compile_streams():
 
         streams = dfs_streams()
 
-        cache.set('stream_list', streams, timeout=CACHE_TIMEOUT)
-        print "[+] Streams cache reset."
+        if "error" not in streams:
+            cache.set('stream_list', streams, timeout=CACHE_TIMEOUT)
+            print "[+] Streams cache reset."
+        else:
+            print "[-] Error in cache update"
 
 
 @celery.task(name='tasks.compile_events')
@@ -70,8 +76,12 @@ def compile_events():
         if payload.status_code is 200:
             data = payload.json()
             events = _compile_events(data)
-            cache.set('event_list', events, timeout=CACHE_TIMEOUT)
-            print "[+] Events cache reset."
+
+            if "error" not in events:
+                cache.set('event_list', events, timeout=CACHE_TIMEOUT)
+                print "[+] Events cache reset."
+            else:
+                print "[-] Error in cache update"
 
 
 @celery.task(name='tasks.compile_glider_tracks')
@@ -83,5 +93,8 @@ def compile_glider_tracks():
 
         glider_tracks = _compile_glider_tracks()
 
-        cache.set('glider_tracks', glider_tracks, timeout=CACHE_TIMEOUT)
-        print "[+] Glider tracks cache reset."
+        if "error" not in glider_tracks:
+            cache.set('glider_tracks', glider_tracks, timeout=CACHE_TIMEOUT)
+            print "[+] Glider tracks cache reset."
+        else:
+            print "[-] Error in cache update"
