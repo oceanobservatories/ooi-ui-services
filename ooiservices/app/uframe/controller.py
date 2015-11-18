@@ -245,7 +245,6 @@ def _compile_glider_tracks():
     #params for position and depth info
     params = "?parameters=PD1335,PD1336,PD1276&limit=1000"
     data = []
-    print len(glider_ids)," gliders..."
     for i,gl_id in enumerate(glider_ids):
         try:
             #print glider_locations[i]+'metadata'
