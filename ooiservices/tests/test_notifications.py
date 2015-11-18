@@ -109,7 +109,8 @@ class NotificationsTestCase(unittest.TestCase):
                 'instrument_parameter': u'salinity', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial', "escalate_on": escalate_on, "escalate_boundary": escalate_boundary,
                 "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
-                "use_log": False, "use_sms": False}
+                "use_log": False, "use_sms": False,
+                "event_receipt_delta": 5000}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
@@ -238,7 +239,8 @@ class NotificationsTestCase(unittest.TestCase):
                 'instrument_parameter': u'salinity', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial', "escalate_on": escalate_on, "escalate_boundary": escalate_boundary,
                 "user_id": 1, "use_email": False, "use_redmine": False, "use_phone": False,
-                "use_log": False, "use_sms": True}
+                "use_log": False, "use_sms": True,
+                "event_receipt_delta": 5000}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
@@ -376,7 +378,8 @@ class NotificationsTestCase(unittest.TestCase):
                 'instrument_parameter': u'salinity', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial', "escalate_on": escalate_on, "escalate_boundary": escalate_boundary,
                 "user_id": 1, "use_email": False, "use_redmine": False, "use_phone": False,
-                "use_log": False, "use_sms": True}
+                "use_log": False, "use_sms": True,
+                "event_receipt_delta": 5000}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
@@ -755,6 +758,7 @@ class NotificationsTestCase(unittest.TestCase):
 
 
         z = {}
+        z['event_receipt_delta'] = 5000
         z['uframe_filter_id'] = 10101
         z['reference_designator'] = 'CE01ISSP-XX099-01-CTDPFJ999'
         z['array_name'] = 'CP'
@@ -867,6 +871,15 @@ class NotificationsTestCase(unittest.TestCase):
         self.assertEquals(len(data['alert_alarm_definition']),8)
         self.assertTrue('alert_alarm_definition' in data)
         definitions = data['alert_alarm_definition']
+
+        for definition in definitions:
+            # PUT using alert_Definition from above, modify description field; check with GET
+            definition['active'] = False
+            definition['description'] = 'delete this definition'
+            good_stuff = json.dumps(definition)
+            response = self.client.put(url_for('main.update_alert_alarm_def', id=definition['id']),headers=headers, data=good_stuff)
+            self.assertEquals(response.status_code, 201)
+
         for definition in definitions:
             if definition['uframe_filter_id'] > 3 and definition['uframe_filter_id'] != 2228: # not retiring filterId 1 or 2 right now
                 url = url_for('main.delete_alert_alarm_definition', id=definition['id'])
@@ -1231,13 +1244,14 @@ class NotificationsTestCase(unittest.TestCase):
         # Create some alert definitions (do not provide 'id' or 'uframe_filter_id' on create)
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         data = {'platform_name': u'CE01ISSP-XX099', 'high_value': u'31.0', 'event_type': u'alarm',
-                'stream': u'ctdpf_j_cspp_instrument', 'severity': 2, 'low_value': u'10.0', 'active': True,
+                'stream': u'ctdpf_j_cspp_instrument', 'severity': 2, 'low_value': u'10.0', 'active': False,
                 'array_name': u'CE', 'reference_designator': u'CE01ISSP-XX099-01-CTDPFJ999',
                 'operator': u'GREATER', 'instrument_name': u'CE01ISSP-XX099-01-CTDPFJ999',
                 'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10.0,
                 "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
-                "use_log": False, "use_sms": True}
+                "use_log": False, "use_sms": True,
+                "event_receipt_delta": 5000}
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers,data=request_data)
         self.assertEquals(response.status_code, 201)
@@ -1338,7 +1352,8 @@ class NotificationsTestCase(unittest.TestCase):
                 'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10.0,
                 "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
-                "use_log": False, "use_sms": True}
+                "use_log": False, "use_sms": True,
+                "event_receipt_delta": 5000}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
@@ -1372,7 +1387,8 @@ class NotificationsTestCase(unittest.TestCase):
                 'instrument_parameter': u'salinity', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10.0,
                 "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
-                "use_log": False, "use_sms": True}
+                "use_log": False, "use_sms": True,
+                "event_receipt_delta": 5000}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
@@ -1501,7 +1517,8 @@ class NotificationsTestCase(unittest.TestCase):
                 'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10.0,
                 "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
-                "use_log": False, "use_sms": True}
+                "use_log": False, "use_sms": True,
+                "event_receipt_delta": 5000}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
@@ -1526,7 +1543,7 @@ class NotificationsTestCase(unittest.TestCase):
         self.assertTrue(definition is not None)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Check whether ok to delete alert_alarm_definition (no instances, should be ok)
+        # Check whether ok to delete alert_alarm_definition (no instances, active so not ok)
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         url = url_for('main.ok_to_delete_alert_alarm_definition', id=definition_id)
         response = self.client.get(url, headers=headers)
@@ -1535,7 +1552,7 @@ class NotificationsTestCase(unittest.TestCase):
         response_data = json.loads(response.data)
         self.assertTrue(response_data is not None)
         self.assertTrue('status' in response_data)
-        self.assertEquals(response_data['status'], True)
+        self.assertEquals(response_data['status'], False)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # POST alarm which uses the SystemEventDefinition id
@@ -1641,8 +1658,9 @@ class NotificationsTestCase(unittest.TestCase):
         response_data = json.loads(response.data)
         self.assertTrue(response_data is not None)
         self.assertTrue('status' in response_data)
-        self.assertEquals(response_data['status'], True)
+        self.assertEquals(response_data['status'], False)
 
+        '''
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Clean up by retiring alert_alarm_def
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1665,6 +1683,7 @@ class NotificationsTestCase(unittest.TestCase):
         self.assertTrue(definition['retired'] is not None)
         save_ts_retired = definition['ts_retired']
 
+
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Delete alert_alarm_def (which is already retired)
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1685,6 +1704,7 @@ class NotificationsTestCase(unittest.TestCase):
         self.assertTrue('ts_retired' in definition)
         self.assertEquals(definition['retired'], True)
         self.assertTrue(definition['retired'] is not None)
+        '''
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Delete non existing alert_alarm_definition ( {error': 'alert_alarm_definition not found' )

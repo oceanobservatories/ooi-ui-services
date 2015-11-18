@@ -466,6 +466,7 @@ def create_alert_alarm_def():
         alert_alarm_def.stream = data['stream']
         alert_alarm_def.escalate_on = 0.0
         alert_alarm_def.escalate_boundary = 0.0
+        alert_alarm_def.event_receipt_delta = int(data['event_receipt_delta'])
         if alert_alarm_def.event_type == 'alert':
             alert_alarm_def.escalate_on = float(data['escalate_on'])
             alert_alarm_def.escalate_boundary = float(data['escalate_boundary'])
@@ -589,6 +590,7 @@ def update_alert_alarm_def(id):
         alert_alarm_def.stream = data['stream']
         alert_alarm_def.escalate_on = data['escalate_on']
         alert_alarm_def.escalate_boundary = data['escalate_boundary']
+        alert_alarm_def.event_receipt_delta = data['event_receipt_delta']
         try:
             db.session.add(alert_alarm_def)
             db.session.commit()
@@ -648,8 +650,12 @@ def delete_alert_alarm_definition(id):
         return bad_request(message)
     # If alert_alarm_definition already retired, just return
     if alert_alarm_def.retired is not None:
-        if alert_alarm_def.retired == True:
+        if alert_alarm_def.retired:
             return jsonify(), 200
+
+    if alert_alarm_def.active:
+        message = 'alert_alarm_definition is currently active; disable first.'
+        return bad_request(message)
 
     # Determine if definition id is used by any alert or alarm instances where acknowledged is False)
     active_alerts_alarms = SystemEvent.query.filter_by(system_event_definition_id=id, acknowledged=False).first()
@@ -721,27 +727,36 @@ def create_definition_has_required_fields(data):
     Verify operator value is one of valid uframe operators.
     """
     try:
+        # Define required input field, valid operators and event_types.
         required_fields = ['active', 'array_name', 'description', 'event_type', 'high_value',
                            'instrument_name', 'instrument_parameter', 'instrument_parameter_pdid', 'low_value',
                            'operator',  'platform_name', 'reference_designator', 'severity',  'stream',
-                           'escalate_on', 'escalate_boundary']
+                           'escalate_on', 'escalate_boundary', 'event_receipt_delta']
         valid_operators = ['GREATER', 'LESS', 'BETWEEN_EXCLUSIVE', 'OUTSIDE_EXCLUSIVE']
         valid_event_types = ['alert', 'alarm']
+
+        # Verify all required fields have been provided, otherwise raise exception.
         for field in required_fields:
             if field not in data:
                 message = 'Missing required field (%r) in request.data' % field
                 raise Exception(message)
             if data[field] is None:
-                if field != 'description':
+                if field != 'description' and field != 'low_value' and field != 'high_value':
                     message = 'Required field (%r), in request.data, has a value of None' % field
                     raise Exception(message)
 
+        # Verify event_type is valid, otherwise raise exception.
         if data['event_type'] not in valid_event_types:
             message = 'Invalid event_type value provided (%s).' % data['event_type']
             raise Exception(message)
+
+        # Verify operator is one of uframe supported operators, otherwise raise exception.
         if data['operator'] not in valid_operators:
             message = 'Invalid operator value provided (%r).' % data['operator']
             raise Exception(message)
+
+        operator = data['operator']
+        # if alert, verify escalate_on and escalate_boundary are numeric values in data, otherwise raise exception.
         if data['event_type'] == 'alert':
             if (not isinstance(data['escalate_on'], type(1.0))) and (not isinstance(data['escalate_on'], type(1))):
                 message = 'Invalid escalate_on value type (%r).' % data['escalate_on']
@@ -750,12 +765,73 @@ def create_definition_has_required_fields(data):
                     (not isinstance(data['escalate_boundary'], type(1))):
                 message = 'Invalid escalate_boundary value type (%r).' % data['escalate_boundary']
                 raise Exception(message)
-        if data['escalate_on'] < 0:
-            message = 'Invalid escalate_on value provided (%r).' % data['escalate_on']
+            # Value of escalate_on (units: seconds) must be positive number, otherwise raise exception.
+            if data['escalate_on'] <= 0:
+                message = 'Invalid escalate_on value provided (%r); must be greater than zero.' % data['escalate_on']
+                raise Exception(message)
+
+            # Value of escalate_boundary (units: seconds) must be positive number, otherwise raise exception.
+            if data['escalate_boundary'] <= 0:
+                message = 'Invalid escalate_boundary value provided (%r); must be greater than zero.' % data['escalate_boundary']
+                raise Exception(message)
+
+            # Verify escalate_on < escalate_boundary, otherwise raise exception.
+            float_escalate_on = float(data['escalate_on'])
+            float_escalate_boundary = float(data['escalate_boundary'])
+            if float_escalate_on >= float_escalate_boundary:
+                message = 'The escalate_on value (%r) is greater than or equal to escalate_boundary(%r).' % \
+                          (float_escalate_on, float_escalate_boundary)
+                raise Exception(message)
+
+        # Verify value for event_receipt_delta value (shall be positive integer or raise exception).
+        # -- Verify event_receipt_delta is numeric (target type is int), otherwise raise exception.
+        if (not isinstance(data['event_receipt_delta'], type(1.0))) and \
+                    (not isinstance(data['event_receipt_delta'], type(1))):
+                message = 'Invalid event_receipt_delta value type (%r).' % data['event_receipt_delta']
+                raise Exception(message)
+        # -- Value of event_receipt_delta (units: milliseconds) must be positive number, otherwise raise exception.
+        if data['event_receipt_delta'] < 0:
+            message = 'Invalid event_receipt_delta value provided (%r).' % data['event_receipt_delta']
             raise Exception(message)
-        if data['escalate_boundary'] < 0:
-            message = 'Invalid escalate_boundary value provided (%r).' % data['escalate_boundary']
-            raise Exception(message)
+
+        # UI permits single low_value or high_value to be entered if operators 'GREATER' or 'LESS' selected.
+        # - If operator is 'GREATER', low_value required and set high_value to low_value provided.
+        # - If operator is 'LESS', high_value required and set low_value to high_value provided.
+        # - If operator is 'BETWEEN_EXCLUSIVE' or 'OUTSIDE_EXCLUSIVE' both low_value and high_value are required.
+        float_low_value = None
+        float_high_value = None
+        # If low_value is required: Verify low_value is numeric (target type is float), otherwise raise exception.
+        if operator != 'LESS':
+            try:
+                float_low_value = float(data['low_value'])
+            except:
+                message = 'Invalid low_value value type (%r); must be a number.' % data['low_value']
+                raise Exception(message)
+
+        # If high_value is required: Verify high_value is numeric (target type is float), otherwise raise exception.
+        if operator != 'GREATER':
+            try:
+                float_high_value = float(data['high_value'])
+            except:
+                message = 'Invalid high_value value type (%r); must be a number.' % data['high_value']
+                raise Exception(message)
+
+        # For selected operator, process low_value and high_value received as required.
+        if operator == 'GREATER':
+            # low_value is required
+            if float_low_value is not None:
+                data['high_value'] = float_low_value
+        elif operator == 'LESS':
+            # high_value is required
+            if float_high_value is not None:
+                data['low_value'] = float_high_value
+        else:
+            # low_value and high_value are both required
+            if float_high_value <= float_low_value:
+                message = 'The high value (%r) is less than or equal to the low value (%r).' % \
+                          (data['high_value'], data['low_value'])
+                raise Exception(message)
+
         return
     except:
         raise
@@ -996,6 +1072,7 @@ def get_definitions_query_filter(request_args):
             query_filters['retired'] = True
     return query_filters
 
+
 def safe_to_delete_alert_alarm_definition(id):
     """ Verify this alert_alarm_definition can be retired.
     """
@@ -1008,6 +1085,9 @@ def safe_to_delete_alert_alarm_definition(id):
     if alert_alarm_def.retired is not None:
         if alert_alarm_def.retired:
             return result
+    # If alert_alarm_definition is active, just return
+    if alert_alarm_def.active:
+        return result
     # Determine if definition id is used by any alert or alarm instances where acknowledged is False
     active_alerts_alarms = SystemEvent.query.filter_by(system_event_definition_id=id, acknowledged=False).first()
     if active_alerts_alarms is not None:
@@ -1165,6 +1245,7 @@ def create_uframe_alertfilter_data(data):
         if instrument_parameter_pdid is None:
             raise Exception('Required parameter (instrument_parameter_pdid) is None.')
 
+        event_receipt_delta = data['event_receipt_delta']
         stream = data['stream']
         reference_designator = data['reference_designator']
         severity = data['severity']
@@ -1206,6 +1287,7 @@ def create_uframe_alertfilter_data(data):
         uframe_data['enabled'] = data['active']
         uframe_data['pdId'] = instrument_parameter_pdid
         uframe_data['stream'] = stream
+        uframe_data['eventReceiptDelta'] = event_receipt_delta
         uframe_data['referenceDesignator'] = {}
         uframe_data['referenceDesignator']['subsite'] = subsite
         uframe_data['referenceDesignator']['node'] = node
@@ -1640,7 +1722,7 @@ def get_triggered_alerts_alarms():
 
 
 def get_alert_alarm_definitions_list(limit=None):
-    """ Get list of alert or alarm definition ids; return list.
+    """ Get list of alert or alarm definition ids; process triggered alerts and alarms, return list.
     """
     ids = []
     alerts_alarms = []

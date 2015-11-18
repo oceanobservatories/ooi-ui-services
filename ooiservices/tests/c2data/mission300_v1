@@ -1,0 +1,33 @@
+name: mission300
+desc: Configure the bench BOTPT and place it in AUTOSAMPLE
+version: 3-01
+
+debug: true
+drivers:
+- RS10ENGC-XX00X-00-BOTPTA001
+error_policy:
+  type: abort
+
+blocks:
+- label: mission
+  sequence:
+  - block_name: initialize
+  - discover: RS10ENGC-XX00X-00-BOTPTA001
+  - get_state: RS10ENGC-XX00X-00-BOTPTA001
+  - execute: RS10ENGC-XX00X-00-BOTPTA001
+    command: DRIVER_EVENT_START_AUTOSAMPLE
+
+- label: initialize
+  sequence:
+  - reset: RS10ENGC-XX00X-00-BOTPTA001
+    timeout: 1000
+  - sleep: 5
+  - set_init_params: RS10ENGC-XX00X-00-BOTPTA001
+    config:
+      parameters:
+        relevel_timeout: 600
+        auto_relevel: false
+        heat_duration: 1
+        output_rate_hz: 20
+        xtilt_relevel_trigger: 300.00
+        ytilt_relevel_trigger: 300.00
