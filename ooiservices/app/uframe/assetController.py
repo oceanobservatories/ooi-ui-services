@@ -290,7 +290,7 @@ def associate_events(id):
             d['notes'] = len(row['notes'])
             d['startDate'] = row['startDate']
             d['endDate'] = row['endDate']
-            d['tense'] = row['tense']
+            d['tense'] = row['tense'] or ""
             if d['eventClass'] == '.CalibrationEvent':
                 d['calibrationCoefficient'] = row['calibrationCoefficient']
                 lon = 0.0
