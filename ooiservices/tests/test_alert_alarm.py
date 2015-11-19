@@ -311,6 +311,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue('alert_alarm_definition' in data)
 
         z = {}
+        z['event_receipt_delta'] = 5000
         z['uframe_filter_id'] = 10101
         z['reference_designator'] = 'CE01ISSP-XX099-01-CTDPFJ999'
         z['array_name'] = 'CP'
@@ -320,7 +321,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         z['instrument_parameter_pdid'] = 'PD440'
         z['operator'] = 'GREATER'
         z['event_type'] = 'alarm'
-        z['active'] = True
+        z['active'] = False
         z['description'] = ''
         z['high_value'] = '13'
         z['low_value'] = '10'
@@ -418,7 +419,7 @@ class AlertAlarmTestCase(unittest.TestCase):
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Get alert and alarm definitions; loop through and delete definitions which have
-        # uframe_filter_id values > 2  (during development). Verify corresponding
+        # uframe_filter_id values > 3  (during development). Verify corresponding
         # alertfilter have been removed in uframe.
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         url = url_for('main.get_alerts_alarms_def')
@@ -428,13 +429,18 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue('alert_alarm_definition' in data)
         self.assertEquals(len(data['alert_alarm_definition']),4)
         self.assertTrue('alert_alarm_definition' in data)
+        '''
         definitions = data['alert_alarm_definition']
         for definition in definitions:
             # not retiring filterId 1 or 2 right now
             if definition['uframe_filter_id'] > 3 and definition['uframe_filter_id'] != 2228:
+                print '\n definition[uframe_filter_id]: ', definition['uframe_filter_id']
                 url = url_for('main.delete_alert_alarm_definition', id=definition['id'])
+                #url = url_for('main.delete_alert_alarm_definition', id=definition['uframe_filter_id'])
+                print '\n url: ', url
                 response = self.client.delete(url, headers=headers)
                 self.assertEquals(response.status_code, 200)
+
 
         # PUT using alert_Definition from above, remove uframe_filter_id element
         update_description = 'this is an update!'
@@ -444,6 +450,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         response = self.client.put(url_for('main.update_alert_alarm_def', id=new_definition_id),headers=headers,
                                    data=good_stuff)
         self.assertEquals(response.status_code, 409)
+        '''
 
         # Delete all alertfilter ids (where id > 3)
         self.delete_alertfilters(list_alertfilter_ids)
@@ -1286,7 +1293,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial', 'escalate_on': 0, 'escalate_boundary': 0,
                 "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False, "use_log": False,
-                "use_sms": True}
+                "use_sms": True,
+                "event_receipt_delta": 5000}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers,data=request_data)
@@ -1318,7 +1326,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'instrument_parameter': 'time', 'instrument_parameter_pdid': 'PD7',
                 'description': 'asdasdasd', 'escalate_on': 0, 'escalate_boundary': 0,
                 'user_id': 1, 'use_email': False, 'use_redmine': False, 'use_phone': False, 'use_log': False,
-                'use_sms': False}
+                'use_sms': False,
+                "event_receipt_delta": 5000}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers,data=request_data)
@@ -1338,7 +1347,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'instrument_parameter': 'time', 'instrument_parameter_pdid': 'PD7',
                 'description': 'asdasdasd', 'escalate_on': 0, 'escalate_boundary': 0,
                 'user_id': 1, 'use_email': False, 'use_redmine': False, 'use_phone': False, 'use_log': False,
-                'use_sms': False}
+                'use_sms': False,
+                "event_receipt_delta": 5000}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers,data=request_data)
@@ -1434,7 +1444,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial', 'escalate_on': 5.0, 'escalate_boundary': 10.0,
                 "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False, "use_log": False,
-                "use_sms": True}
+                "use_sms": True,
+                "event_receipt_delta": 5000}
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers,data=request_data)
         self.assertEquals(response.status_code, 201)
@@ -1551,7 +1562,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial', "escalate_on": 0.0, "escalate_boundary": 0.0,
                 'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                'use_log': False, 'use_sms': True}
+                'use_log': False, 'use_sms': True,
+                'event_receipt_delta': 5000}
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
         self.assertEquals(response.status_code, 201)
@@ -1574,6 +1586,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         definition = json.loads(response.data)
         self.assertTrue(definition is not None)
 
+        '''
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Check whether ok to delete alert_alarm_definition (no instances, should be ok)
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1585,6 +1598,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue(response_data is not None)
         self.assertTrue('status' in response_data)
         self.assertEquals(response_data['status'], True)
+        '''
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # POST alarm which uses the SystemEventDefinition id
@@ -1766,6 +1780,34 @@ class AlertAlarmTestCase(unittest.TestCase):
         except:
             self.assertEquals('Exception in workaround persisting SystemEvent','when do not have qpid process.')
 
+        #-------------------------------------------------------
+        #-------------------------------------------------------
+        #-------------------------------------------------------
+
+        data = {'platform_name': u'CE01ISSP-XX099', 'high_value': u'31.0', 'event_type': u'alarm',
+                'stream': u'ctdpf_j_cspp_instrument', 'severity': 2, 'low_value': u'10.0', 'active': False,
+                'array_name': u'CE', 'reference_designator': u'CE01ISSP-XX099-01-CTDPFJ999',
+                'operator': u'GREATER', 'instrument_name': u'CE01ISSP-XX099-01-CTDPFJ999',
+                'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
+                'description': 'initial', "escalate_on": 0.0, "escalate_boundary": 0.0,
+                'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
+                'use_log': False, 'use_sms': True,
+                'event_receipt_delta': 5000}
+
+        data['uframe_filter_id'] = alert_alarm_def_uframe_id
+        data['id'] = definition_id
+        request_data = json.dumps(data)
+        response = self.client.put(url_for('main.update_alert_alarm_def', id=system_event_definition_id),
+                                    headers=headers, data=request_data)
+        self.assertEquals(response.status_code, 201)
+        self.assertTrue(response is not None)
+        self.assertTrue(response.data is not None)
+        definition = json.loads(response.data)
+        self.assertTrue(definition is not None)
+        self.assertTrue('id' in definition)
+        self.assertTrue('active' in definition)
+        self.assertTrue(not definition['active'])
+
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Check whether ok to delete alert_alarm_definition (has single acknowledged instance, should be ok)
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1777,6 +1819,10 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue(response_data is not None)
         self.assertTrue('status' in response_data)
         self.assertEquals(response_data['status'], True)
+
+        #-------------------------------------------------------
+        #-------------------------------------------------------
+        #-------------------------------------------------------
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Clean up by retiring alert_alarm_def
@@ -1861,7 +1907,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial', "escalate_on": 5, "escalate_boundary": 10,
                 'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                'use_log': False, 'use_sms': True}
+                'use_log': False, 'use_sms': True,
+                'event_receipt_delta': 5000}
 
         # Booleans: 'user_id', 'use_email', 'use_redmine', 'use_phone', 'use_log', 'use_sms'
         request_data = json.dumps(data)
@@ -1966,7 +2013,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10.0,
                 'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                'use_log': False, 'use_sms': True}
+                'use_log': False, 'use_sms': True,
+                'event_receipt_delta': 5000}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
@@ -1994,7 +2042,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10.0,
                 'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                'use_log': False, 'use_sms': True}
+                'use_log': False, 'use_sms': True,
+                'event_receipt_delta': 5000}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
@@ -2014,7 +2063,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10.0,
                 'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                'use_log': False, 'use_sms': True}
+                'use_log': False, 'use_sms': True,
+                'event_receipt_delta': 5000}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
@@ -2034,7 +2084,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10.0,
                 'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                'use_log': False, 'use_sms': True}
+                'use_log': False, 'use_sms': True,
+                'event_receipt_delta': 5000}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
@@ -2054,7 +2105,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10.0,
                 'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                'use_log': False, 'use_sms': True}
+                'use_log': False, 'use_sms': True,
+                'event_receipt_delta': 5000}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
@@ -2075,7 +2127,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial', "escalate_on": 'A', "escalate_boundary": 10.0,
                 'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                'use_log': False, 'use_sms': True}
+                'use_log': False, 'use_sms': True,
+                'event_receipt_delta': 5000}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
@@ -2096,7 +2149,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 'B',
                 'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                'use_log': False, 'use_sms': True}
+                'use_log': False, 'use_sms': True,
+                'event_receipt_delta': 5000}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
@@ -2147,7 +2201,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10.0,
                 'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                'use_log': False, 'use_sms': True}
+                'use_log': False, 'use_sms': True,
+                'event_receipt_delta': 5000}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
@@ -2171,6 +2226,40 @@ class AlertAlarmTestCase(unittest.TestCase):
         definition = json.loads(response.data)
         self.assertTrue(definition is not None)
 
+        #------------------------------------------------
+        #------------------------------------------------
+        #------------------------------------------------
+        '''
+        data = {'platform_name': u'CE01ISSP-XX099', 'high_value': u'31.0', 'event_type': u'alarm',
+                'stream': u'ctdpf_j_cspp_instrument', 'severity': 2, 'low_value': u'10.0', 'active': False,
+                'array_name': u'CE', 'reference_designator': u'CE01ISSP-XX099-01-CTDPFJ999',
+                'operator': u'GREATER', 'instrument_name': u'CE01ISSP-XX099-01-CTDPFJ999',
+                'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
+                'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10.0,
+                'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
+                'use_log': False, 'use_sms': True,
+                'event_receipt_delta': 5000}
+
+        data['uframe_filter_id'] = alert_alarm_def_uframe_id
+        data['id'] = definition_id
+        request_data = json.dumps(data)
+        response = self.client.put(url_for('main.update_alert_alarm_def', id=definition_id),
+                                    headers=headers, data=request_data)
+        print '\n response.data: ', json.loads(response.data)
+        print '\n response.status_code: ', response.status_code
+        self.assertEquals(response.status_code, 201)
+        self.assertTrue(response is not None)
+        self.assertTrue(response.data is not None)
+        definition = json.loads(response.data)
+        self.assertTrue(definition is not None)
+        self.assertTrue('id' in definition)
+        self.assertTrue('active' in definition)
+        self.assertTrue(not definition['active'])
+        #------------------------------------------------
+        #------------------------------------------------
+        #------------------------------------------------
+        '''
+
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Check whether ok to delete alert_alarm_definition (no instances, should be ok)
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2181,7 +2270,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         response_data = json.loads(response.data)
         self.assertTrue(response_data is not None)
         self.assertTrue('status' in response_data)
-        self.assertEquals(response_data['status'], True)
+        self.assertEquals(response_data['status'], False)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # POST alarm which uses the SystemEventDefinition id
@@ -2345,7 +2434,6 @@ class AlertAlarmTestCase(unittest.TestCase):
         self.assertTrue(response_data['message'] is not None)
         self.assertTrue(response_data['error'] is not None)
 
-
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # (Negative) Acknowledge alert_alarm using non-existent system_event_definition_id = 999
         # error:
@@ -2432,6 +2520,39 @@ class AlertAlarmTestCase(unittest.TestCase):
         except:
             self.assertEquals('Exception in workaround persisting SystemEvent','when do not have qpid process.')
 
+        #------------------------------------------------
+        #------------------------------------------------
+        #------------------------------------------------
+
+        data = {'platform_name': u'CE01ISSP-XX099', 'high_value': u'31.0', 'event_type': u'alarm',
+                'stream': u'ctdpf_j_cspp_instrument', 'severity': 2, 'low_value': u'10.0', 'active': False,
+                'array_name': u'CE', 'reference_designator': u'CE01ISSP-XX099-01-CTDPFJ999',
+                'operator': u'GREATER', 'instrument_name': u'CE01ISSP-XX099-01-CTDPFJ999',
+                'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
+                'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10.0,
+                'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
+                'use_log': False, 'use_sms': True,
+                'event_receipt_delta': 5000}
+
+        data['uframe_filter_id'] = alert_alarm_def_uframe_id
+        data['id'] = definition_id
+        request_data = json.dumps(data)
+        response = self.client.put(url_for('main.update_alert_alarm_def', id=definition_id),
+                                    headers=headers, data=request_data)
+        self.assertEquals(response.status_code, 201)
+        self.assertTrue(response is not None)
+        self.assertTrue(response.data is not None)
+        definition = json.loads(response.data)
+        self.assertTrue(definition is not None)
+        self.assertTrue('id' in definition)
+        self.assertTrue('active' in definition)
+        self.assertTrue(not definition['active'])
+        #------------------------------------------------
+        #------------------------------------------------
+        #------------------------------------------------
+
+
+
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Check whether ok to delete alert_alarm_definition (has single acknowledged instance, should be ok)
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2516,7 +2637,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         # (Positive) Alarm - Valid alert_alarm_definition data
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         data = {
-              "active": True,
+              "active": False,
               "array_name": "CE",
               "description": "Rule 1",
               "event_type": "alarm",
@@ -2533,7 +2654,8 @@ class AlertAlarmTestCase(unittest.TestCase):
               "escalate_on": 5.0,
               "escalate_boundary": 10.0,
               "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
-              "use_log": False, "use_sms": True
+              "use_log": False, "use_sms": True,
+              "event_receipt_delta": 5000
         }
         # - - Create alert_alarm_definition (Alarm)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=json.dumps(data))
@@ -2584,7 +2706,8 @@ class AlertAlarmTestCase(unittest.TestCase):
               "escalate_on": 5.0,
               "escalate_boundary": 10.0,
               "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
-              "use_log": False, "use_sms": True
+              "use_log": False, "use_sms": True,
+              "event_receipt_delta": 5000
         }
         # - - POST create_alert_alarm_definition, receive error 'Insufficient data, or bad data format.'
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=json.dumps(data))
@@ -2609,7 +2732,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         # (Positive) Alert - Valid alert_alarm_definition data
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         data = {
-              "active": True,
+              "active": False,
               "array_name": "CE",
               "description": "Rule 3",
               "event_type": "alert",
@@ -2626,7 +2749,8 @@ class AlertAlarmTestCase(unittest.TestCase):
               "escalate_on": 5.0,
               "escalate_boundary": 10.0,
               "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
-              "use_log": False, "use_sms": True
+              "use_log": False, "use_sms": True,
+              "event_receipt_delta": 5000
         }
         # - - Create alert_alarm_definition (Alert)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=json.dumps(data))
@@ -2686,7 +2810,8 @@ class AlertAlarmTestCase(unittest.TestCase):
               "escalate_on": 5.0,
               "escalate_boundary": 10.0,
               "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
-              "use_log": False, "use_sms": True
+              "use_log": False, "use_sms": True,
+              "event_receipt_delta": 5000
         }
         # - - POST create_alert_alarm_definition, receive error 'Insufficient data, or bad data format.'
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=json.dumps(data))
@@ -2729,7 +2854,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         key_list = ['use_email', 'use_redmine', 'use_phone', 'use_log', 'use_sms']
         data = {
-              "active": True,
+              "active": False,
               "array_name": "CE",
               "description": "Rule 5",
               "event_type": "alarm",
@@ -2746,7 +2871,8 @@ class AlertAlarmTestCase(unittest.TestCase):
               "escalate_on": 5.0,
               "escalate_boundary": 10.0,
               "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
-              "use_log": False, "use_sms": True
+              "use_log": False, "use_sms": True,
+              "event_receipt_delta": 5000
         }
 
         # - - Create alert_alarm_definition (Alarm)
@@ -2845,7 +2971,8 @@ class AlertAlarmTestCase(unittest.TestCase):
               "escalate_on": 5.0,
               "escalate_boundary": 10.0,
               "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
-              "use_log": False, "use_sms": True
+              "use_log": False, "use_sms": True,
+              "event_receipt_delta": 5000
         }
         # - - POST create_alert_alarm_definition, receive error 'Insufficient data, or bad data format.'
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=json.dumps(data))
@@ -2870,7 +2997,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         # (Positive) Alert - Valid alert_alarm_definition data
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         data = {
-              "active": True,
+              "active": False,
               "array_name": "CE",
               "description": "Rule 7",
               "event_type": "alert",
@@ -2887,7 +3014,8 @@ class AlertAlarmTestCase(unittest.TestCase):
               "escalate_on": 5.0,
               "escalate_boundary": 10.0,
               "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
-              "use_log": False, "use_sms": True
+              "use_log": False, "use_sms": True,
+              "event_receipt_delta": 5000
         }
         # - - Create alert_alarm_definition (Alert)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=json.dumps(data))
@@ -2947,7 +3075,8 @@ class AlertAlarmTestCase(unittest.TestCase):
               "escalate_on": 5.0,
               "escalate_boundary": 10.0,
               "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
-              "use_log": False, "use_sms": True
+              "use_log": False, "use_sms": True,
+              "event_receipt_delta": 5000
         }
         # - - POST create_alert_alarm_definition, receive error 'Insufficient data, or bad data format.'
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=json.dumps(data))
@@ -3364,7 +3493,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'instrument_parameter': u'salinity', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial', "escalate_on": escalate_on, "escalate_boundary": escalate_boundary,
                 "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
-                "use_log": False, "use_sms": True}
+                "use_log": False, "use_sms": True,
+                "event_receipt_delta": 5000}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
@@ -3568,7 +3698,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'instrument_parameter': u'salinity', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial', "escalate_on": escalate_on, "escalate_boundary": escalate_boundary,
                 "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
-                "use_log": False, "use_sms": False}
+                "use_log": False, "use_sms": False,
+                "event_receipt_delta": 5000}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
@@ -3824,7 +3955,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                     'instrument_parameter': 'temperature', 'instrument_parameter_pdid': 'PD440',
                     'description': 'initial', 'escalate_on': 5.0, 'escalate_boundary': 10.0,
                     'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                    'use_log': False, 'use_sms': True}
+                    'use_log': False, 'use_sms': True,
+                    'event_receipt_delta': 5000}
             result = create_uframe_alertfilter_data(data)
             self.assertTrue(result is not None)
             self.assertTrue(len(result) > 0)
@@ -3843,7 +3975,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                     'instrument_parameter': 'temperature', 'instrument_parameter_pdid': 'PD440',
                     'description': 'initial', 'escalate_on': 5, 'escalate_boundary': 10.0,
                     'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                    'use_log': False, 'use_sms': True}
+                    'use_log': False, 'use_sms': True,
+                    'event_receipt_delta': 5000}
             result = create_uframe_alertfilter_data(data)
             self.assertEquals(result, None)
         except Exception as err:
@@ -3860,7 +3993,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                     'instrument_parameter': 'temperature', 'instrument_parameter_pdid': 'PD440',
                     'description': 'initial', 'escalate_on': 'bad', 'escalate_boundary': 10.0,
                     'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                    'use_log': False, 'use_sms': True}
+                    'use_log': False, 'use_sms': True,
+                    'event_receipt_delta': 5000}
             result = create_uframe_alertfilter_data(data)
             self.assertEquals(result, None)
         except Exception as err:
@@ -3877,7 +4011,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                     'instrument_parameter': 'temperature', 'instrument_parameter_pdid': 'PD440',
                     'description': 'initial', 'escalate_on': 5.0, 'escalate_boundary': 10,
                     'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                    'use_log': False, 'use_sms': True}
+                    'use_log': False, 'use_sms': True,
+                    'event_receipt_delta': 5000}
             result = create_uframe_alertfilter_data(data)
             self.assertEquals(result, None)
         except Exception as err:
@@ -3894,7 +4029,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                     'instrument_parameter': 'temperature', 'instrument_parameter_pdid': 'PD440',
                     'description': 'initial', 'escalate_on': -1.0, 'escalate_boundary': 10.0,
                     'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                    'use_log': False, 'use_sms': True}
+                    'use_log': False, 'use_sms': True,
+                    'event_receipt_delta': 5000}
             result = create_uframe_alertfilter_data(data)
             self.assertEquals(result, None)
         except Exception as err:
@@ -3911,7 +4047,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                     'instrument_parameter': 'temperature', 'instrument_parameter_pdid': 'PD440',
                     'description': 'initial', 'escalate_on': 5.0, 'escalate_boundary': -1.0,
                     'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                    'use_log': False, 'use_sms': True}
+                    'use_log': False, 'use_sms': True,
+                    'event_receipt_delta': 5000}
             result = create_uframe_alertfilter_data(data)
             self.assertEquals(result, None)
         except Exception as err:
@@ -3929,7 +4066,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                     'instrument_parameter': 'temperature', 'instrument_parameter_pdid': None,
                     'description': 'initial', 'escalate_on': 5.0, 'escalate_boundary': 10.0,
                     'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                    'use_log': False, 'use_sms': True}
+                    'use_log': False, 'use_sms': True,
+                    'event_receipt_delta': 5000}
             result = create_uframe_alertfilter_data(data)
             self.assertEquals(result, None)
         except Exception as err:
@@ -3947,7 +4085,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                     'instrument_parameter': 'temperature', 'instrument_parameter_pdid': 'PD440',
                     'description': 'initial', 'escalate_on': 5.0, 'escalate_boundary': 10.0,
                     'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                    'use_log': False, 'use_sms': True}
+                    'use_log': False, 'use_sms': True,
+                    'event_receipt_delta': 5000}
             result = create_uframe_alertfilter_data(data)
             self.assertEquals(result, None)
         except Exception as err:
@@ -3965,7 +4104,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                     'instrument_parameter': 'temperature', 'instrument_parameter_pdid': 'PD440',
                     'description': 'initial', 'escalate_on': 5.0, 'escalate_boundary': 10.0,
                     'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                    'use_log': False, 'use_sms': True}
+                    'use_log': False, 'use_sms': True,
+                    'event_receipt_delta': 5000}
             result = create_uframe_alertfilter_data(data)
             self.assertEquals(result, None)
         except Exception as err:
@@ -3983,7 +4123,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                     'instrument_parameter': 'temperature', 'instrument_parameter_pdid': 'PD440',
                     'description': 'initial', 'escalate_on': 5.0, 'escalate_boundary': 10.0,
                     'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                    'use_log': False, 'use_sms': True}
+                    'use_log': False, 'use_sms': True,
+                    'event_receipt_delta': 5000}
             result = create_uframe_alertfilter_data(data)
             self.assertEquals(result, None)
         except Exception as err:
@@ -4000,7 +4141,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                     'instrument_parameter': 'temperature', 'instrument_parameter_pdid': 'PD440',
                     'description': None, 'escalate_on': 5.0, 'escalate_boundary': 10.0,
                     'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                    'use_log': False, 'use_sms': True}
+                    'use_log': False, 'use_sms': True,
+                    'event_receipt_delta': 5000}
             result = create_uframe_alertfilter_data(data)
             self.assertTrue(result is not None)
             self.assertTrue(len(result) > 0)
@@ -4020,7 +4162,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                     'instrument_parameter': 'temperature', 'instrument_parameter_pdid': 'PD440',
                     'description': 'initial', 'escalate_on': 5.0, 'escalate_boundary': 10.0,
                     'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                    'use_log': False, 'use_sms': True}
+                    'use_log': False, 'use_sms': True,
+                    'event_receipt_delta': 5000}
             result = create_uframe_alertfilter_data(data)
             self.assertEquals(result, None)
         except Exception as err:
@@ -4038,7 +4181,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                     'instrument_parameter': 'temperature', 'instrument_parameter_pdid': 'PD440',
                     'description': 'initial', 'escalate_on': 5.0, 'escalate_boundary': 10.0,
                     'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                    'use_log': False, 'use_sms': True}
+                    'use_log': False, 'use_sms': True,
+                    'event_receipt_delta': 5000}
             result = create_uframe_alertfilter_data(data)
             self.assertEquals(result, None)
         except Exception as err:
@@ -4056,7 +4200,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                     'instrument_parameter': 'temperature', 'instrument_parameter_pdid': 'PD440',
                     'description': 'initial', 'escalate_on': 5.0, 'escalate_boundary': 10.0,
                     'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                    'use_log': False, 'use_sms': True}
+                    'use_log': False, 'use_sms': True,
+                    'event_receipt_delta': 5000}
             result = create_uframe_alertfilter_data(data)
             self.assertEquals(result, None)
         except Exception as err:
@@ -4074,7 +4219,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                     'instrument_parameter': 'temperature', 'instrument_parameter_pdid': 'PD440',
                     'description': 'initial', 'escalate_on': 5.0, 'escalate_boundary': 10.0,
                     'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                    'use_log': False, 'use_sms': True}
+                    'use_log': False, 'use_sms': True,
+                    'event_receipt_delta': 5000}
             result = create_uframe_alertfilter_data(data)
             self.assertEquals(result, None)
         except Exception as err:
@@ -4092,7 +4238,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                     'instrument_parameter': 'temperature', 'instrument_parameter_pdid': 'PD440',
                     'description': 'initial', 'escalate_on': 5.0, 'escalate_boundary': 10.0,
                     'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                    'use_log': False, 'use_sms': True}
+                    'use_log': False, 'use_sms': True,
+                    'event_receipt_delta': 5000}
             result = create_uframe_alertfilter_data(data)
             self.assertEquals(result, None)
         except Exception as err:
@@ -4119,7 +4266,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                     'instrument_parameter': 'temperature', 'instrument_parameter_pdid': 'PD440',
                     'description': 'initial', 'escalate_on': 5.0, 'escalate_boundary': 10.0,
                     'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
-                    'use_log': False, 'use_sms': False}
+                    'use_log': False, 'use_sms': False,
+                    'event_receipt_delta': 5000}
             result = create_uframe_alertfilter(data)
             self.assertTrue(result is not None)
             filter_ids.append(result)
@@ -4210,7 +4358,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                     'instrument_parameter': u'salinity', 'instrument_parameter_pdid': u'PD440',
                     'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10.0,
                     "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
-                    "use_log": False, "use_sms": True}
+                    "use_log": False, "use_sms": True,
+                    "event_receipt_delta": 5000}
 
             request_data = json.dumps(data)
             response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
@@ -4307,7 +4456,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'instrument_parameter': u'salinity', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial', "escalate_on": 5.0, "escalate_boundary": 10,
                 "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
-                "use_log": False, "use_sms": True}
+                "use_log": False, "use_sms": True,
+                "event_receipt_delta": 5000}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
@@ -4544,9 +4694,10 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'array_name': u'CE', 'reference_designator': u'CE01ISSP-XX099-01-CTDPFJ999',
                 'operator': u'GREATER', 'instrument_name': u'CE01ISSP-XX099-01-CTDPFJ999',
                 'instrument_parameter': u'salinity', 'instrument_parameter_pdid': u'PD440',
-                'description': 'Rule 12', "escalate_on": escalate_on, "escalate_boundary": escalate_boundary,
-                "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
-                "use_log": False, "use_sms": True}
+                'description': 'Rule 12', 'escalate_on': escalate_on, 'escalate_boundary': escalate_boundary,
+                'user_id': 1, 'use_email': False, 'use_redmine': True, 'use_phone': False,
+                'use_log': False, 'use_sms': True,
+                'event_receipt_delta': 5000}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
@@ -4587,54 +4738,55 @@ class AlertAlarmTestCase(unittest.TestCase):
         url = 'http://uframe-test.ooi.rutgers.edu:12577/alertalarms/inv/CE01ISSP/XX099/01-CTDPFJ999?acknowledged=false&sortorder=asc'
         uframe_url, timeout, timeout_read = self.get_uframe_alerts_info()
         response = requests.get(url, timeout=(timeout, timeout_read))
-        alarms = json.loads(response.content)
-        if alarms is None:
-            self.assertEquals('Failed to get alarms from uframe',0)
+        if response.status_code == 200:
+            alarms = json.loads(response.content)
+            if alarms is None:
+                self.assertEquals('Failed to get alarms from uframe',0)
 
-        tmp = alarms[0]
-        event_id = tmp['eventId']
+            tmp = alarms[0]
+            event_id = tmp['eventId']
 
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Create instance of newly created alert
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # 3637761438.72, 2015-04-11T17:17:18
-        alert_time_start = 3637761438.72            # 3607761438.72, 2014-04-29T11:57:18
-        offset = 2208988800
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            # Create instance of newly created alert
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            # 3637761438.72, 2015-04-11T17:17:18
+            alert_time_start = 3637761438.72            # 3607761438.72, 2014-04-29T11:57:18
+            offset = 2208988800
 
-        # Sample loops to generate alerts, verify timestamp
-        inx = 1.0
-        ts_tmp = alert_time_start + inx
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # POST alert which uses the SystemEventDefinition id
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        system_event_definition_id = alarm_definition_id
-        uframe_filter_id = alarm_definition['uframe_filter_id']
-        event_data = {}
-        event_data['uframe_event_id'] = event_id
-        event_data['uframe_filter_id'] = uframe_filter_id
-        event_data['system_event_definition_id'] = system_event_definition_id
-        event_data['event_time'] = ts_tmp  #event_time
-        event_data['event_type'] = 'alarm'
-        event_data['event_response'] = 'Test alert %d' % int(inx) #event_response_message
-        event_data['method'] = 'telemetered'
-        event_data['deployment'] = 1
-        new_event = json.dumps(event_data)
-        response = self.client.post(url_for('main.create_alert_alarm'), headers=headers, data=new_event)
-        self.assertEquals(response.status_code, 201)
-        self.assertTrue(response.data is not None)
-        response_data = json.loads(response.data)
-        self.assertTrue('id' in response_data)
-        self.assertTrue(response_data['id'] is not None)
-        self.assertTrue('uframe_event_id' in response_data)
-        self.assertTrue(response_data['uframe_event_id'] is not None)
+            # Sample loops to generate alerts, verify timestamp
+            inx = 1.0
+            ts_tmp = alert_time_start + inx
+            #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            # POST alert which uses the SystemEventDefinition id
+            #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            system_event_definition_id = alarm_definition_id
+            uframe_filter_id = alarm_definition['uframe_filter_id']
+            event_data = {}
+            event_data['uframe_event_id'] = event_id
+            event_data['uframe_filter_id'] = uframe_filter_id
+            event_data['system_event_definition_id'] = system_event_definition_id
+            event_data['event_time'] = ts_tmp  #event_time
+            event_data['event_type'] = 'alarm'
+            event_data['event_response'] = 'Test alert %d' % int(inx) #event_response_message
+            event_data['method'] = 'telemetered'
+            event_data['deployment'] = 1
+            new_event = json.dumps(event_data)
+            response = self.client.post(url_for('main.create_alert_alarm'), headers=headers, data=new_event)
+            self.assertEquals(response.status_code, 201)
+            self.assertTrue(response.data is not None)
+            response_data = json.loads(response.data)
+            self.assertTrue('id' in response_data)
+            self.assertTrue(response_data['id'] is not None)
+            self.assertTrue('uframe_event_id' in response_data)
+            self.assertTrue(response_data['uframe_event_id'] is not None)
 
-        # Acknowledge alert/alarm
-        if not uframe_acknowledge_alert_alarm(event_id, 1):
-            message = 'uframe_acknowledge_alert_alarm failed for event_id (%d)' % event_id
-            self.assertTrue(message, 'test_uframe_acknowledge_alert_alarm')
+            # Acknowledge alert/alarm
+            if not uframe_acknowledge_alert_alarm(event_id, 1):
+                message = 'uframe_acknowledge_alert_alarm failed for event_id (%d)' % event_id
+                self.assertTrue(message, 'test_uframe_acknowledge_alert_alarm')
 
-        if len(filter_ids) > 0:
-            self.delete_alertfilters(filter_ids)
+            if len(filter_ids) > 0:
+                self.delete_alertfilters(filter_ids)
 
     def test_user_event_notification_has_required_fields(self):
 
@@ -4845,7 +4997,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial*', "escalate_on": 5.0, "escalate_boundary": 10.0,
                 "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
-                "use_log": False, "use_sms": True}
+                "use_log": False, "use_sms": True,
+                "event_receipt_delta": 5000}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
@@ -4879,7 +5032,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'instrument_parameter': u'salinity', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial**', "escalate_on": 5.0, "escalate_boundary": 10.0,
                 "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
-                "use_log": False, "use_sms": True}
+                "use_log": False, "use_sms": True,
+                "event_receipt_delta": 5000}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
@@ -4989,7 +5143,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'instrument_parameter': u'temperature', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial (with acknowledgements)', "escalate_on": 5.0, "escalate_boundary": 10.0,
                 "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
-                "use_log": False, "use_sms": True}
+                "use_log": False, "use_sms": True,
+                "event_receipt_delta": 5000}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
@@ -5029,7 +5184,8 @@ class AlertAlarmTestCase(unittest.TestCase):
                 'instrument_parameter': u'salinity', 'instrument_parameter_pdid': u'PD440',
                 'description': 'initial (2, with acknowledgements)', "escalate_on": 5.0, "escalate_boundary": 10.0,
                 "user_id": 1, "use_email": False, "use_redmine": True, "use_phone": False,
-                "use_log": False, "use_sms": True}
+                "use_log": False, "use_sms": True,
+                "event_receipt_delta": 5000}
 
         request_data = json.dumps(data)
         response = self.client.post(url_for('main.create_alert_alarm_def'), headers=headers, data=request_data)
@@ -5208,6 +5364,7 @@ class AlertAlarmTestCase(unittest.TestCase):
         use_phone = False
         use_log = False
         use_sms = True
+        event_receipt_delta = 5000
         create_time = dt.datetime.now()
         if instrument_reference_designator is not None:
             alert_alarm_definition = SystemEventDefinition(reference_designator=instrument_reference_designator)
@@ -5227,6 +5384,7 @@ class AlertAlarmTestCase(unittest.TestCase):
             alert_alarm_definition.stream = stream
             alert_alarm_definition.escalate_on = escalate_on
             alert_alarm_definition.escalate_boundary = escalate_boundary
+            alert_alarm_definition.event_receipt_delta = event_receipt_delta
             try:
                 db.session.add(alert_alarm_definition)
                 db.session.commit()
