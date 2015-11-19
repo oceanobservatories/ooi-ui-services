@@ -148,7 +148,7 @@ def test(coverage=False, testmodule=None):
 @manager.option('--production', default=False)
 @manager.option('-p', '--password', required=True)
 @manager.option('-u', '--psqluser', default='postgres')
-def deploy(password, bulkload, production, psqluser):
+def deploy(password, production, psqluser):
     from flask.ext.migrate import upgrade
     from ooiservices.app.models import User, UserScope, UserScopeLink, Array, Organization
     from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameterLink
