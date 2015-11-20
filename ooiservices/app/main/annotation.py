@@ -15,7 +15,6 @@ from ooiservices.app.main.errors import forbidden, conflict
 from datetime import datetime
 from dateutil.parser import parse as date_parse
 import sqlalchemy as sa
-from ooiservices.app.uframe.controller import split_stream_name
 import json
 import requests
 
@@ -25,10 +24,10 @@ def get_annotations(instrument,stream):
     try:
         url = current_app.config['UFRAME_ANNOTATION_URL'] + current_app.config['UFRAME_ANNOTATION_BASE']+"/find/"+instrument
         r = requests.get(url)
-        data = r.json() 
-        
+        data = r.json()
+
         return jsonify( {'annotations' : data }), 201
-       
+
     except Exception, e:
         return jsonify( {'error' : "could not obtain annotation(s): "+str(e) }), 500
 
@@ -38,10 +37,10 @@ def get_all_annotations():
     try:
         url = current_app.config['UFRAME_ANNOTATION_URL'] + current_app.config['UFRAME_ANNOTATION_BASE']+"/find/all"
         r = requests.get(url)
-        data = r.json()    
+        data = r.json()
 
         return jsonify( {'annotations' : data }), 200
-       
+
     except Exception, e:
         return jsonify( {'error' : "could not obtain annotation(s): "+str(e) }), 500
 
@@ -54,18 +53,18 @@ def process_annotation(begin_dt,end_dt,annotation_text,ref_def,annotation_id=Non
                 'endDT': end_dt,
                 'referenceDesignator' : ref_def,
                 'annotation': annotation_text,
-                'id':annotation_id   
+                'id':annotation_id
                 }
-   
+
     if annotation_id == None:
         if 'id' in post_req: del post_req['id']
-            
+
     uframe_link = current_app.config['UFRAME_ANNOTATION_URL'] + current_app.config['UFRAME_ANNOTATION_BASE']
     annotation_url = "/".join([uframe_link,'add',ref_def])
 
     r = requests.post(annotation_url , data=json.dumps(post_req) , timeout=10)
 
-    if r.status_code == 200:            
+    if r.status_code == 200:
         return jsonify( {} ), 201
     else:
         return jsonify( {'error' : r.reason }), r.status_code
@@ -75,23 +74,23 @@ def process_annotation(begin_dt,end_dt,annotation_text,ref_def,annotation_id=Non
 #@auth.login_required
 #@scope_required('annotate')
 def create_annotation():
-    try:        
-        data = json.loads(request.data)           
+    try:
+        data = json.loads(request.data)
 
-        if ('referenceDesignator'in data and 
-            'annotation' in data and 
-            'beginDT' in data and 
-            'endDT' in data):            
+        if ('referenceDesignator'in data and
+            'annotation' in data and
+            'beginDT' in data and
+            'endDT' in data):
 
             new_st_date = data['beginDT']
             new_ed_date = data['endDT']
-            new_annotation = data['annotation']           
-            ref_des = data['referenceDesignator']                
+            new_annotation = data['annotation']
+            ref_des = data['referenceDesignator']
 
             return process_annotation(new_st_date,new_ed_date,new_annotation,ref_des,None)
 
         else:
-            return jsonify( {'error' : "required information not specified" }), 500        
+            return jsonify( {'error' : "required information not specified" }), 500
     except Exception, e:
         return jsonify( {'error' : "could not obtain annotation(s): "+str(e) }), 500
 
@@ -100,21 +99,21 @@ def create_annotation():
 #@auth.login_required
 #@scope_required('annotate')
 def edit_annotation(annotation_id):
-    try:        
-        data = json.loads(request.data)           
-        if ('referenceDesignator'in data and 
-            'annotation' in data and 
-            'beginDT' in data and 
-            'endDT' in data):            
+    try:
+        data = json.loads(request.data)
+        if ('referenceDesignator'in data and
+            'annotation' in data and
+            'beginDT' in data and
+            'endDT' in data):
 
             new_st_date = data['beginDT']
             new_ed_date = data['endDT']
-            new_annotation = data['annotation']           
-            ref_des = data['referenceDesignator']    
+            new_annotation = data['annotation']
+            ref_des = data['referenceDesignator']
 
             return process_annotation(new_st_date,new_ed_date,new_annotation,ref_des,annotation_id)
 
         else:
-            return jsonify( {'error' : "required information not specified" }), 500        
+            return jsonify( {'error' : "required information not specified" }), 500
     except Exception, e:
         return jsonify( {'error' : "could not obtain annotation(s): "+str(e) }), 500

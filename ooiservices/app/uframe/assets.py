@@ -17,7 +17,7 @@ CACHE_TIMEOUT = 172800
 
 
 @api.route('/assets', methods=['GET'])
-def get_assets(use_min=False, normal_data=False):
+def get_assets(use_min=False, normal_data=False, reset=False):
     '''
     Listing GET request of all assets.  This method is cached for 1 hour.
     add in helped params to bypass the json response and minification
@@ -25,7 +25,7 @@ def get_assets(use_min=False, normal_data=False):
     try:
         cached = cache.get('asset_list')
 
-        if cached:
+        if cached and reset is not True:
             data = cached
         else:
 
@@ -81,7 +81,7 @@ def get_assets(use_min=False, normal_data=False):
                 if 'metaData' in obj:
                     del obj['metaData']
                 if 'events' in obj:
-                    if showDeployments:
+                    if showDeployments and obj['events'] is not None:
                         for event in obj['events']:
                             if event['eventClass'] == '.DeploymentEvent':
                                 deploymentEvents.append(event)
@@ -135,6 +135,9 @@ def get_assets(use_min=False, normal_data=False):
                     elif subset.lower() in\
                             str(item['metaData']).lower():
                         ven_subset.append(item)
+                    elif subset.lower() in\
+                            str(item['tense']).lower():
+                        ven_subset.append(item)
                 data = ven_subset
             else:
                 for item in data:
@@ -158,6 +161,9 @@ def get_assets(use_min=False, normal_data=False):
                         return_list.append(item)
                     elif subset.lower() in\
                             str(item['metaData']).lower():
+                        return_list.append(item)
+                    elif subset.lower() in\
+                            str(item['tense']).lower():
                         return_list.append(item)
                 data = return_list
 
@@ -246,6 +252,7 @@ def create_asset():
         if response.status_code == 201:
             json_response = json.loads(response.text)
             data['id'] = json_response['id']
+            data['tense'] = 'NEW'
             data_list = []
             data_list.append(data)
             data = _compile_assets(data_list)

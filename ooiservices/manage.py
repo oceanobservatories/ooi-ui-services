@@ -144,11 +144,11 @@ def test(coverage=False, testmodule=None):
     if retval.failures:
         sys.exit(1)
 
-@manager.option('-bl', '--bulkload', default=False)
+
 @manager.option('--production', default=False)
 @manager.option('-p', '--password', required=True)
 @manager.option('-u', '--psqluser', default='postgres')
-def deploy(password, bulkload, production, psqluser):
+def deploy(password, production, psqluser):
     from flask.ext.migrate import upgrade
     from ooiservices.app.models import User, UserScope, UserScopeLink, Array, Organization
     from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameterLink
@@ -163,6 +163,10 @@ def deploy(password, bulkload, production, psqluser):
         psql('ooiuiprod', '-c', 'create schema ooiui', '-U', psqluser)
         psql('ooiuiprod', '-c', 'create extension postgis', '-U', psqluser)
     else:
+        try:
+            psql('-c', 'CREATE ROLE postgres LOGIN SUPERUSER')
+        except:
+            pass
         #Create the local database
         app.logger.info('Creating DEV and TEST Databases')
         psql('-c', 'create database ooiuidev;', '-U', psqluser)
@@ -177,13 +181,20 @@ def deploy(password, bulkload, production, psqluser):
     configure_mappers()
     db.create_all()
 
-    if bulkload:
-        app.logger.info('Populating Database . . .')
+    if production:
+        app.logger.info('Populating Production Database . . .')
         with open('db/ooiui_schema_data.sql') as f:
             psql('-U', psqluser, 'ooiuiprod', _in=f)
         with open('db/ooiui_params_streams_data.sql') as h:
             psql('-U', psqluser, 'ooiuiprod', _in=h)
-        app.logger.info('Database loaded.')
+        app.logger.info('Production Database loaded.')
+    else:
+        app.logger.info('Populating Dev Database . . .')
+        with open('db/ooiui_schema_data.sql') as f:
+            psql('-U', psqluser, 'ooiuidev', _in=f)
+        with open('db/ooiui_params_streams_data.sql') as h:
+            psql('-U', psqluser, 'ooiuidev', _in=h)
+        app.logger.info('Dev Database loaded.')
 
     # migrate database to latest revision
     #upgrade()
