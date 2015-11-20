@@ -3,8 +3,7 @@ from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.decorators import scope_required
 from ooiservices.app.uframe.assetController import get_events_by_ref_des
-from ooiservices.app.uframe.assetController import _uframe_headers,\
-    _compile_events
+from ooiservices.app.uframe.assetController import _uframe_headers
 from ooiservices.app import cache
 from copy import deepcopy
 
@@ -46,7 +45,12 @@ def get_events():
             if payload.status_code != 200:
                 return jsonify({"events": payload.json()}), payload.status_code
 
-            data = _compile_events(data)
+            try:
+                for row in data:
+                    row['id'] = row.pop('eventId')
+                    row['eventClass'] = row.pop('@class')
+            except (KeyError, TypeError, AttributeError):
+                pass
 
             if "error" not in data:
                 cache.set('event_list', data, timeout=CACHE_TIMEOUT)

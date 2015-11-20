@@ -83,4 +83,3 @@ PRODUCTION: &production
     SQLALCHEMY_DATABASE_URI: 'postgres://postgres:postgres@localhost/ooiuiprod'
     SSL_DISABLE: False
     WTF_CSRF_ENABLED: True
-    TOEMAIL: 'name@email.com'
