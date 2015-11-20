@@ -50,7 +50,7 @@ def dfs_streams():
     streams = []
 
     try:
-        payload = requests.get(TOC, timeout=(timeout, timeout_read))
+        payload = requests.get(TOC)
     except requests.exceptions.ConnectionError as e:
         error = "Error: Cannot connect to uframe.  %s" % e
         print error
@@ -63,7 +63,44 @@ def dfs_streams():
         parameters_dict = parameters_in_instrument(instrument)
         streams = data_streams_in_instrument(instrument, parameters_dict, streams)
 
-    return streams
+    if type(streams) is Response and  streams.status_code != 200:
+        return make_response("Error in streams, please make sure uframe connection is open.", streams.status_code)
+
+    retval = []
+
+    # try to use the event list cache first, if not loaded...load the event cache.
+    cached = cache.get('event_list')
+    event_list = []
+    if cached:
+        event_list = cached
+    else:
+        get_events()
+        event_list = cache.get('event_list')
+
+    for stream in streams:
+        try:
+            data_dict = dict_from_stream(*stream)
+        except Exception as e:
+            current_app.logger.exception('\n**** (3) exception: ' + e.message)
+            continue
+        if request.args.get('reference_designator'):
+            if request.args.get('reference_designator') != data_dict['reference_designator']:
+                continue
+
+        retval.append(data_dict)
+
+    for stream in retval:
+        response = get_events_by_ref_des(event_list, stream['reference_designator'])
+        events = json.loads(response.data)
+
+        for event in events['events']:
+            if event['eventClass'] == '.DeploymentEvent' and event['tense'] == 'PRESENT':
+                stream['depth'] = event['depth']
+                stream['lat_lon'] = event['lat_lon']
+                stream['cruise_number'] = event['cruise_number']
+                stream['deployment_number'] = event['deployment_number']
+
+    return retval
 
 
 def parameters_in_instrument(instrument):
@@ -181,6 +218,82 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
     data_dict['parameter_display_name'] = display_names
     return data_dict
 
+def _compile_glider_tracks():
+    # we will always want the telemetered data, and the engineering stream
+    glider_ids = []
+    glider_locations = []
+
+    base_url, timeout, timeout_read = get_uframe_info()
+    #get the list of mobile assets
+    r = requests.get(base_url)
+    all_platforms = r.json()
+
+    for p in all_platforms:
+        if "MOAS" in p:
+            r_p = requests.get(base_url+"/"+p)
+            try:
+                p_p = r_p.json()
+                for gl in p_p:
+                    glider_location = "/"+p+"/"+gl+"/00-ENG000000/"
+                    glider_locations.append(base_url+glider_location)
+                    glider_name =  glider_location + 'telemetered/glider_eng_telemetered'
+                    url = base_url+glider_name
+                    glider_ids.append(url)
+            except:
+                print "error:", p, r_p.content
+
+    #params for position and depth info
+    params = "?parameters=PD1335,PD1336,PD1276&limit=1000"
+    data = []
+    for i,gl_id in enumerate(glider_ids):
+        try:
+            #print glider_locations[i]+'metadata'
+            r_units = requests.get(glider_locations[i]+'metadata')
+            d_units = r_units.json()
+            d_units = d_units['parameters']
+
+            #create the units
+            glider_depth_units = "m"
+
+            for row in d_units:
+                if row['particleKey'] == 'm_depth':
+                    #override them in case something different
+                    glider_depth_units = row['particleKey']
+
+            data_url = gl_id + params
+            #print data_url
+            r = requests.get(data_url)
+            metadata = r.json()
+
+            coors = []
+            dt = []
+            depths = []
+            for row in metadata:
+
+                has_lon   = not np.isnan(row['m_gps_lon'])
+                has_lat   = not np.isnan(row['m_gps_lat'])
+                has_depth = not np.isnan(row['m_depth'])
+                #only add the glider information if deoth is available
+                if has_lat and has_lon and has_depth and (float(row['m_depth']) != -999):
+                    #add position
+                    coors.append([row['m_gps_lon'], row['m_gps_lat']])
+                    dt.append(row['pk']['time'])
+                    #add depth
+                    depths.append(row['m_depth'])
+
+            #add glider info to dict
+            data_item = {"name":row['pk']['subsite']+"-"+row['pk']['node'],
+                         "reference_designator": row['pk']['subsite']+"-"+row['pk']['node']+"-"+row['pk']['sensor'],
+                         "type": "LineString",
+                         "coordinates" : coors,
+                         "times": dt,
+                         "units": glider_depth_units,
+                         "depths": depths}
+        except:
+            continue
+        data.append(data_item)
+
+    return data
 
 @api.route('/stream')
 #@auth.login_required
@@ -188,14 +301,6 @@ def streams_list():
     '''
     Accepts stream_name or reference_designator as a URL argument
     '''
-
-    cached = cache.get('event_list')
-    event_list = []
-    if cached:
-        event_list = cached
-    else:
-        get_events()
-        event_list = cache.get('event_list')
 
     if request.args.get('stream_name'):
         dict_from_stream(request.args.get('stream_name'))
@@ -206,34 +311,8 @@ def streams_list():
         retval = cached
     else:
         streams = dfs_streams()
-        if type(streams) is Response and  streams.status_code != 200:
-            return make_response("Error in streams, please make sure uframe connection is open.", streams.status_code)
 
-        retval = []
-        for stream in streams:
-            try:
-                data_dict = dict_from_stream(*stream)
-            except Exception as e:
-                current_app.logger.exception('\n**** (3) exception: ' + e.message)
-                continue
-            if request.args.get('reference_designator'):
-                if request.args.get('reference_designator') != data_dict['reference_designator']:
-                    continue
-
-            retval.append(data_dict)
-
-        for stream in retval:
-            response = get_events_by_ref_des(event_list, stream['reference_designator'])
-            events = json.loads(response.data)
-
-            for event in events['events']:
-                if event['eventClass'] == '.DeploymentEvent' and event['tense'] == 'PRESENT':
-                    stream['depth'] = event['depth']
-                    stream['lat_lon'] = event['lat_lon']
-                    stream['cruise_number'] = event['cruise_number']
-                    stream['deployment_number'] = event['deployment_number']
-
-        cache.set('stream_list', retval, timeout=CACHE_TIMEOUT)
+        cache.set('stream_list', streams, timeout=CACHE_TIMEOUT)
 
     try:
         is_reverse = True
@@ -383,80 +462,8 @@ def get_uframe_glider_track():
         if cached and not(will_reset_cache):
             data = cached
         else:
-            # we will always want the telemetered data, and the engineering stream
-            glider_ids = []
-            glider_locations = []
+            data = _compile_glider_tracks()
 
-            base_url, timeout, timeout_read = get_uframe_info()
-            #get the list of mobile assets
-            r = requests.get(base_url)
-            all_platforms = r.json()
-
-            for p in all_platforms:
-                if "MOAS" in p:
-                    r_p = requests.get(base_url+"/"+p)
-                    try:
-                        p_p = r_p.json()
-                        for gl in p_p:
-                            glider_location = "/"+p+"/"+gl+"/00-ENG000000/"
-                            glider_locations.append(base_url+glider_location)
-                            glider_name =  glider_location + 'telemetered/glider_eng_telemetered'
-                            url = base_url+glider_name
-                            glider_ids.append(url)
-                    except:
-                        print "error:", p, r_p.content
-
-            #params for position and depth info
-            params = "?parameters=PD1335,PD1336,PD1276&limit=1000"
-            data = []
-            print len(glider_ids)," gliders..."
-            for i,gl_id in enumerate(glider_ids):
-                try:
-                    #print glider_locations[i]+'metadata'
-                    r_units = requests.get(glider_locations[i]+'metadata')
-                    d_units = r_units.json()
-                    d_units = d_units['parameters']
-
-                    #create the units
-                    glider_depth_units = "m"
-
-                    for row in d_units:
-                        if row['particleKey'] == 'm_depth':
-                            #override them in case something different
-                            glider_depth_units = row['particleKey']
-
-                    data_url = gl_id + params
-                    #print data_url
-                    r = requests.get(data_url)
-                    metadata = r.json()
-
-                    coors = []
-                    dt = []
-                    depths = []
-                    for row in metadata:
-
-                        has_lon   = not np.isnan(row['m_gps_lon'])
-                        has_lat   = not np.isnan(row['m_gps_lat'])
-                        has_depth = not np.isnan(row['m_depth'])
-                        #only add the glider information if deoth is available
-                        if has_lat and has_lon and has_depth and (float(row['m_depth']) != -999):
-                            #add position
-                            coors.append([row['m_gps_lon'], row['m_gps_lat']])
-                            dt.append(row['pk']['time'])
-                            #add depth
-                            depths.append(row['m_depth'])
-
-                    #add glider info to dict
-                    data_item = {"name":row['pk']['subsite']+"-"+row['pk']['node'],
-                                 "reference_designator": row['pk']['subsite']+"-"+row['pk']['node']+"-"+row['pk']['sensor'],
-                                 "type": "LineString",
-                                 "coordinates" : coors,
-                                 "times": dt,
-                                 "units": glider_depth_units,
-                                 "depths": depths}
-                except:
-                    continue
-                data.append(data_item)
             if "error" not in data:
                 cache.set('glider_tracks', data, timeout=CACHE_TIMEOUT)
 

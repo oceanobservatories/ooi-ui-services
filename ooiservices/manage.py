@@ -33,6 +33,7 @@ migrate = Migrate(app,db)
 app.config['WHOOSH_BASE'] = 'ooiservices/whoosh_index'
 whooshalchemy.whoosh_index(app, PlatformDeployment)
 
+
 ##------------------------------------------------------------------
 ## M@Campbell 02/10/2015
 ##
@@ -144,11 +145,10 @@ def test(coverage=False, testmodule=None):
     if retval.failures:
         sys.exit(1)
 
-@manager.option('-bl', '--bulkload', default=False)
 @manager.option('--production', default=False)
 @manager.option('-p', '--password', required=True)
 @manager.option('-u', '--psqluser', default='postgres')
-def deploy(password, bulkload, production, psqluser):
+def deploy(password, production, psqluser):
     from flask.ext.migrate import upgrade
     from ooiservices.app.models import User, UserScope, UserScopeLink, Array, Organization
     from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameterLink
@@ -162,6 +162,10 @@ def deploy(password, bulkload, production, psqluser):
         psql('-c', 'create database ooiuiprod;', '-U', psqluser)
         psql('ooiuiprod', '-c', 'create schema ooiui', '-U', psqluser)
         psql('ooiuiprod', '-c', 'create extension postgis', '-U', psqluser)
+        #Create the local test database
+        psql('-c', 'create database ooiuitest;', '-U', psqluser)
+        psql('ooiuitest', '-c', 'create schema ooiui', '-U', psqluser)
+        psql('ooiuitest', '-c', 'create extension postgis', '-U', psqluser)
     else:
         #Create the local database
         app.logger.info('Creating DEV and TEST Databases')
@@ -177,12 +181,22 @@ def deploy(password, bulkload, production, psqluser):
     configure_mappers()
     db.create_all()
 
-    if bulkload:
-        app.logger.info('Populating Database . . .')
-        with open('db/ooiui_schema_data.sql') as f:
-            psql('-U', psqluser, 'ooiuiprod', _in=f)
-        with open('db/ooiui_params_streams_data.sql') as h:
-            psql('-U', psqluser, 'ooiuiprod', _in=h)
+    if production:
+        app.logger.info('Populating Production Database . . .')
+        with open('db/ooiui_schema_data.sql') as ps:
+            psql('-U', psqluser, 'ooiuiprod', _in=ps)
+
+        with open('db/ooiui_params_streams_data.sql') as ps:
+            psql('-U', psqluser, 'ooiuiprod', _in=ps)
+
+    else:
+        app.logger.info('Populating Dev Database . . .')
+        with open('db/ooiui_schema_data.sql') as dd:
+            psql('-U', psqluser, 'ooiuidev', _in=dd)
+
+        with open('db/ooiui_params_streams_data.sql') as ds:
+            psql('-U', psqluser, 'ooiuidev', _in=ds)
+
         app.logger.info('Database loaded.')
 
     # migrate database to latest revision

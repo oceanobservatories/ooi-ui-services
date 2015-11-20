@@ -1,4 +1,4 @@
-ENV_NAME: 'LOCAL_DEVELOPMENT'
+ENV_NAME: 'PRODUCTION'
 
 COMMON: &common
     # Logging
