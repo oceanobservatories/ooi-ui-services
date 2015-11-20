@@ -72,12 +72,22 @@ Make sure you have the environment variables defiend:
 
     PYTHONPATH=.
     
-Setup the Database:
+### Setup the Database:
 
-    #Note, you may bulk load the database with the -bl option
-    python ooiservices/manage.py deploy --password <admin-password> -bl=True
+```
+python ooiservices/manage.py deploy --password <admin-password> --psqluser <postgres authorized user --production
+```
 
+    --password is required
+    --psqluser is optional, default is postgres
+    --production will create the ooiuiprod database instead of ooiuidev and ooiuitest
 
+    Note: Only works on *nix systems.  Windows users must create the desired database manually
+    and use rebuild_schema to deploy
+    
+    Note: On all systems, rebuild_schema rebuilds the target schema within the active database connection 
+    (in config.yml or config_local.yml) with the option to save the existing users, 
+    add more admin user information, choose the target schema and schema owner.
 
 
 ### Debugging Database Problems
