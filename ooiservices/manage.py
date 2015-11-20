@@ -145,11 +145,10 @@ def test(coverage=False, testmodule=None):
     if retval.failures:
         sys.exit(1)
 
-@manager.option('-bl', '--bulkload', default=False)
 @manager.option('--production', default=False)
 @manager.option('-p', '--password', required=True)
 @manager.option('-u', '--psqluser', default='postgres')
-def deploy(password, bulkload, production, psqluser):
+def deploy(password, production, psqluser):
     from flask.ext.migrate import upgrade
     from ooiservices.app.models import User, UserScope, UserScopeLink, Array, Organization
     from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameterLink
@@ -163,15 +162,6 @@ def deploy(password, bulkload, production, psqluser):
         psql('-c', 'create database ooiuiprod;', '-U', psqluser)
         psql('ooiuiprod', '-c', 'create schema ooiui', '-U', psqluser)
         psql('ooiuiprod', '-c', 'create extension postgis', '-U', psqluser)
-        #Create the local database
-        app.logger.info('Creating DEV and TEST Databases')
-        psql('-c', 'create database ooiuidev;', '-U', psqluser)
-        psql('ooiuidev', '-c', 'create schema ooiui', '-U', psqluser)
-        psql('ooiuidev', '-c', 'create extension postgis', '-U', psqluser)
-        #Create the local test database
-        psql('-c', 'create database ooiuitest;', '-U', psqluser)
-        psql('ooiuitest', '-c', 'create schema ooiui', '-U', psqluser)
-        psql('ooiuitest', '-c', 'create extension postgis', '-U', psqluser)
     else:
         #Create the local database
         app.logger.info('Creating DEV and TEST Databases')
@@ -187,14 +177,6 @@ def deploy(password, bulkload, production, psqluser):
     configure_mappers()
     db.create_all()
 
-    if bulkload:
-        app.logger.info('Populating Dev Database . . .')
-        with open('db/ooiui_schema_data.sql') as f:
-            psql('-U', psqluser, 'ooiuidev', _in=f)
-        with open('db/ooiui_params_streams_data.sql') as h:
-            psql('-U', psqluser, 'ooiuidev', _in=h)
-        app.logger.info('Database loaded.')
-
     if production:
         app.logger.info('Populating Production Database . . .')
         with open('db/ooiui_schema_data.sql') as ps:
@@ -203,6 +185,7 @@ def deploy(password, bulkload, production, psqluser):
         with open('db/ooiui_params_streams_data.sql') as ps:
             psql('-U', psqluser, 'ooiuiprod', _in=ps)
 
+    else:
         app.logger.info('Populating Dev Database . . .')
         with open('db/ooiui_schema_data.sql') as dd:
             psql('-U', psqluser, 'ooiuidev', _in=dd)
