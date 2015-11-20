@@ -162,6 +162,10 @@ def deploy(password, production, psqluser):
         psql('-c', 'create database ooiuiprod;', '-U', psqluser)
         psql('ooiuiprod', '-c', 'create schema ooiui', '-U', psqluser)
         psql('ooiuiprod', '-c', 'create extension postgis', '-U', psqluser)
+        #Create the local test database
+        psql('-c', 'create database ooiuitest;', '-U', psqluser)
+        psql('ooiuitest', '-c', 'create schema ooiui', '-U', psqluser)
+        psql('ooiuitest', '-c', 'create extension postgis', '-U', psqluser)
     else:
         #Create the local database
         app.logger.info('Creating DEV and TEST Databases')
