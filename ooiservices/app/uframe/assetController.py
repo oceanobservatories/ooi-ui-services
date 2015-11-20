@@ -6,7 +6,7 @@ uframe assets and events endpoint and class definition.
 '''
 __author__ = 'M@Campbell'
 
-from flask import jsonify, current_app, request
+from flask import jsonify, current_app, request, url_for
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.routes import\
     get_display_name_by_rd as get_dn_by_rd,\
@@ -18,17 +18,10 @@ import math
 from netCDF4 import num2date
 from operator import itemgetter
 from ooiservices.app import cache
+import datetime
 
 requests.adapters.DEFAULT_RETRIES = 2
 CACHE_TIMEOUT = 86400
-
-
-def _compile_events(data):
-    for row in data:
-        row['id'] = row.pop('eventId')
-        row['eventClass'] = row.pop('@class')
-
-    return data
 
 
 def _compile_assets(data):
@@ -43,9 +36,6 @@ def _compile_assets(data):
             row['id'] = row.pop('assetId')
             row['asset_class'] = row.pop('@class')
             row['events'] = associate_events(row['id'])
-            if len(row['events']) == 0:
-                row['events'] = []
-            row['tense'] = None
             if row['metaData'] is not None:
                 for meta_data in row['metaData']:
                     if meta_data['key'] == 'Latitude':
@@ -72,10 +62,6 @@ def _compile_assets(data):
                 for events in row['events']:
                     if events['eventClass'] == '.DeploymentEvent':
                         has_deployment_event = True
-                        if events['tense'] == 'PRESENT':
-                            row['tense'] = events['tense']
-                        else:
-                            row['tense'] = 'PAST'
                     if latest_deployment is None and\
                             events['locationLonLat'] is not None and\
                             len(events['locationLonLat']) == 2:
@@ -288,8 +274,8 @@ def associate_events(id):
     json_data = payload.json()
     for row in json_data:
         try:
-
-            d = {}
+            d = {'url': url_for('uframe.get_event', id=row['eventId']),
+                    'uframe_url': current_app.config['UFRAME_ASSETS_URL'] + '/events/%s' % row['eventId']}
             # set up some static keys
             d['locationLonLat'] = []
 
@@ -298,7 +284,7 @@ def associate_events(id):
             d['notes'] = len(row['notes'])
             d['startDate'] = row['startDate']
             d['endDate'] = row['endDate']
-            d['tense'] = row['tense']
+            d['tense'] = row['tense'] or ""
             if d['eventClass'] == '.CalibrationEvent':
                 d['calibrationCoefficient'] = row['calibrationCoefficient']
                 lon = 0.0

@@ -1,100 +1,51 @@
+'''
+Celery needs to have it's own Flask application in order to work correctly.
+
+Create the new flask app, and use it to carry out the async tasks.
+Other tasks that are added here may also need to initialize any
+dependencies that it may need.
+
+We cannot use the same config file for celery, as that would create a
+circular import when trying to work with the main apps application
+context.  All configuration should be placed here, so it does not
+get confused with the main apps configuration.
+
+This file should also maintain any cron tasks that may be needed.
+
+In order to get results, access celery's result backend database using
+the task id.
+
+'''
 
 __author__ = 'M@Campbell'
 
-from ooiservices.app import create_celery_app
-from flask.globals import current_app
-import requests
-from flask.ext.cache import Cache
-
-
-CACHE_TIMEOUT = 172800
+import os
+from flask import Flask
+from celery import Celery
 
 '''
 Create the celery app, and configure it to talk to the redis broker.
 Then intialize it.
 '''
+celery_app = Flask(__name__)
 
-celery = create_celery_app('PRODUCTION')
-celery.config_from_object('ooiservices.app.celeryconfig')
+# Celery configuration
+celery_app.config['CELERY_BROKER_URL'] = os.environ.get('REDISCLOUD_URL') or \
+    'redis://localhost:6379/0'
+celery_app.config['CELERY_RESULT_BACKEND'] = os.environ.get('REDISCLOUD_URL') or \
+    'redis://localhost:6379/0'
+
+# Initialize Celery
+celery = Celery(celery_app.name, broker=celery_app.config['CELERY_BROKER_URL'])
+celery.conf.update(celery_app.config)
+
 
 '''
 Define the list of processes to run either on a heartbeat or simply waiting for
 
 '''
 
-from ooiservices.app.uframe.assetController import _compile_assets
-from ooiservices.app.uframe.assetController import _compile_events
-from ooiservices.app.uframe.controller import dfs_streams
-from ooiservices.app.uframe.controller import _compile_glider_tracks
-
-
-@celery.task(name='tasks.compile_assets')
-def compile_assets():
-    with current_app.test_request_context():
-        print "[+] Starting asset cache reset..."
-        cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
-        cache.init_app(current_app)
-        url = current_app.config['UFRAME_ASSETS_URL']\
-            + '/%s' % ('assets')
-        payload = requests.get(url)
-        if payload.status_code is 200:
-            data = payload.json()
-            assets = _compile_assets(data)
-            if "error" not in assets:
-                cache.set('asset_list', assets, timeout=CACHE_TIMEOUT)
-                print "[+] Asset cache reset"
-            else:
-                print "[-] Error in cache update"
-
-
-@celery.task(name='tasks.compile_streams')
-def compile_streams():
-    with current_app.test_request_context():
-        print "[+] Starting stream cache reset..."
-        cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
-        cache.init_app(current_app)
-
-        streams = dfs_streams()
-
-        if "error" not in streams:
-            cache.set('stream_list', streams, timeout=CACHE_TIMEOUT)
-            print "[+] Streams cache reset."
-        else:
-            print "[-] Error in cache update"
-
-
-@celery.task(name='tasks.compile_events')
-def compile_events():
-    with current_app.test_request_context():
-        print "[+] Starting events cache reset..."
-        cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
-        cache.init_app(current_app)
-
-        url = current_app.config['UFRAME_ASSETS_URL']\
-            + '/%s' % ('events')
-        payload = requests.get(url)
-        if payload.status_code is 200:
-            data = payload.json()
-            events = _compile_events(data)
-
-            if "error" not in events:
-                cache.set('event_list', events, timeout=CACHE_TIMEOUT)
-                print "[+] Events cache reset."
-            else:
-                print "[-] Error in cache update"
-
-
-@celery.task(name='tasks.compile_glider_tracks')
-def compile_glider_tracks():
-    with current_app.test_request_context():
-        print "[+] Starting glider tracks cache reset..."
-        cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
-        cache.init_app(current_app)
-
-        glider_tracks = _compile_glider_tracks()
-
-        if "error" not in glider_tracks:
-            cache.set('glider_tracks', glider_tracks, timeout=CACHE_TIMEOUT)
-            print "[+] Glider tracks cache reset."
-        else:
-            print "[-] Error in cache update"
+'''
+#TODO:  Set definitions here that should be run either
+        periodically or simply on another process.
+'''
