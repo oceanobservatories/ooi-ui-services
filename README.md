@@ -101,8 +101,25 @@ psql postgres
 CREATE ROLE postgres LOGIN SUPERUSER;
 ```
 
+### Run Redis
+
+Ensure redis-server is installed, running and that the python env works
+
+```
+python
+import redis
+rs = redis.Redis("localhost")
+rs.ping()
+```
+
+Should yield a 'True' response
+
+
 ### Running the services instance
     python ooiservices/manage.py runserver
+    celery worker -A ooiservices.app.tasks -B
+    
+    Note: celery workers must be lauched in order to refresh the redis cache.
 
 ### To run the project using uWSGI (Production)
 Remember to modify WSGI.py and app.ini to your specific installation environment
