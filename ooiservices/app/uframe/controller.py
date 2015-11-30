@@ -310,9 +310,9 @@ def streams_list():
     if cached:
         retval = cached
     else:
-        streams = dfs_streams()
+        retval = dfs_streams()
 
-        cache.set('stream_list', streams, timeout=CACHE_TIMEOUT)
+        cache.set('stream_list', retval, timeout=CACHE_TIMEOUT)
 
     try:
         is_reverse = True
