@@ -699,17 +699,21 @@ def multistream_api(stream1, stream2, instrument1, instrument2, var1, var2):
     except Exception as err:
         return jsonify(error='%s' % str(err.message)), 400
 
-    header1 = '-'.join([stream1, instrument1.replace('_', '-', 1)])
-    header2 = '-'.join([stream2, instrument2.replace('_', '-', 1)])
+    header1 = '-'.join([stream1.replace('_', '-'), instrument1.split('_')[0].replace('-', '_'), instrument1.split('_')[1].replace('-', '_')])
+    header2 = '-'.join([stream2.replace('_', '-'), instrument2.split('_')[0].replace('-', '_'), instrument2.split('_')[1].replace('-', '_')])
 
     # Need to reformat the data a bit
     try:
         for ind, data in enumerate(resp_data[header2]):
             resp_data[header1][ind][var2] = data[var2]
+        title = PlatformDeployment._get_display_name(stream1)
+        subtitle = PlatformDeployment._get_display_name(stream2)
     except IndexError:
         return internal_server_error('UFrame array length error')
+    except KeyError as e:
+        return internal_server_error('Key Error: ' + str(e))
 
-    return jsonify(data=resp_data[header1], units=units)
+    return jsonify(data=resp_data[header1], units=units, title=title, subtitle=subtitle)
 
 
 def get_uframe_multi_stream_contents(stream1_dict, stream2_dict, start_time, end_time):
@@ -819,7 +823,7 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
     except Exception, e:
         #return json.loads(dataBlock), 200
         print str(e)
-        return 'uframe connection unstable. '+str(e),500
+        return str(e), 500
 
 def get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag):
     '''

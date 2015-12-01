@@ -99,7 +99,7 @@ def get_multistream_data(stream1, stream2, instrument1, instrument2, var1, var2)
             else:
                 return data, units
         else:
-            message = 'Failed to make interpolated data plot: Need to include startdata and enddate'
+            message = 'Failed to make interpolated data plot: Need to include startdate and enddate'
             current_app.logger.exception(message)
             raise Exception(message)
 
