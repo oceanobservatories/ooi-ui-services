@@ -71,8 +71,8 @@ def process_annotation(begin_dt,end_dt,annotation_text,ref_def,annotation_id=Non
 
 #Update an existing annotation.
 @api.route('/annotation', methods=['POST'])
-#@auth.login_required
-#@scope_required('annotate')
+@auth.login_required
+@scope_required('annotate')
 def create_annotation():
     try:
         data = json.loads(request.data)
@@ -96,8 +96,8 @@ def create_annotation():
 
 #Update an existing annotation.
 @api.route('/annotation/<string:annotation_id>', methods=['PUT'])
-#@auth.login_required
-#@scope_required('annotate')
+@auth.login_required
+@scope_required('annotate')
 def edit_annotation(annotation_id):
     try:
         data = json.loads(request.data)

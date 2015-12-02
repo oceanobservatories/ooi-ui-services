@@ -123,8 +123,8 @@ def get_event(id):
         return make_response(error, 500)
 
 
-@scope_required('asset_manager')
 @api.route('/events', methods=['POST'])
+@scope_required('asset_manager')
 @auth.login_required
 def create_event():
     '''
@@ -149,8 +149,8 @@ def create_event():
         return make_response(error, 500)
 
 
-@scope_required('asset_manager')
 @api.route('/events/<int:id>', methods=['PUT'])
+@scope_required('asset_manager')
 @auth.login_required
 def update_event(id):
     try:
@@ -170,8 +170,8 @@ def update_event(id):
         return make_response(error, 500)
 
 
-@scope_required('asset_manager')
 @api.route('/events/<int:id>', methods=['DELETE'])
+@scope_required('asset_manager')
 @auth.login_required
 def delete_event(id):
     '''
