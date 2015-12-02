@@ -226,8 +226,8 @@ def get_asset_events(id):
 
 
 @api.route('/assets', methods=['POST'])
-@scope_required('asset_manager')
 @auth.login_required
+@scope_required(u'asset_manager')
 def create_asset():
     '''
     Create a new asset, the return will be right from uframe if all goes well.
@@ -271,8 +271,8 @@ def create_asset():
 
 
 @api.route('/assets/<int:id>', methods=['PUT'])
-@scope_required('asset_manager')
 @auth.login_required
+@scope_required(u'asset_manager')
 def update_asset(id):
     try:
         data = json.loads(request.data)
@@ -304,8 +304,8 @@ def update_asset(id):
 
 
 @api.route('/assets/<int:id>', methods=['DELETE'])
-@scope_required('asset_manager')
 @auth.login_required
+@scope_required(u'asset_manager')
 def delete_asset(id):
     '''
     Delete an asset by providing the id
