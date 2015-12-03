@@ -124,8 +124,6 @@ def get_event(id):
 
 
 @api.route('/events', methods=['POST'])
-@auth.login_required
-@scope_required(u'asset_manager')
 def create_event():
     '''
     Create a new event, the return will be right from uframe if all goes well.
@@ -150,8 +148,6 @@ def create_event():
 
 
 @api.route('/events/<int:id>', methods=['PUT'])
-@auth.login_required
-@scope_required(u'asset_manager')
 def update_event(id):
     try:
         data = json.loads(request.data)
@@ -171,8 +167,6 @@ def update_event(id):
 
 
 @api.route('/events/<int:id>', methods=['DELETE'])
-@auth.login_required
-@scope_required(u'asset_manager')
 def delete_event(id):
     '''
     Delete an existing event
