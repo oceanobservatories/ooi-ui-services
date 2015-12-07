@@ -18,7 +18,7 @@ CELERYBEAT_SCHEDULE = {
         },
     'get-glider-traks-every': {
         'task': 'tasks.compile_glider_tracks',
-        'schedule': crontab(minute='*/4'),
+        'schedule': crontab(hour='*/8'),
         'args': (),
         },
     }
