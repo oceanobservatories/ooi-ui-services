@@ -26,8 +26,8 @@ def verify_auth(email_or_token, password):
         g.current_user = User.verify_auth_token(email_or_token)
         g.token_used = True
         return g.current_user is not None
-    user = User.query.filter(User.user_name is email_or_token,
-                             User.active is True).first()
+    user = User.query.filter(User.user_name == email_or_token,
+                             User.active == True).first()
     if not user:
         return False
     g.current_user = user
@@ -99,5 +99,5 @@ def oauth_callback(provider):
     g.token_used = False
 
     print 'Leaving oauth_callback'
-    return jsonify({'token': g.current_user.generate_auth_token(
-        expiration=86400), 'expiration': 86400})  # 24 hours
+    token = get_token()
+    return token
