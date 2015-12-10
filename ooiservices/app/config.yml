@@ -55,7 +55,9 @@ COMMON: &common
     ALFRESCO_REPO_ID:   'c161bc66-4f7e-4a4f-b5f2-aac9fbf1d3cd'
     ALFRESCO_USERNAME:  'admin'
     ALFRESCO_PASSWORD:  'admin'
-
+    # cilogon
+    CILOGON_ID: 'myproxy:oa4mp,2012:/client_id/84e7951a567243a62ae8bc3e13c12c8'
+    CILOGON_SECRECT: 'BK2CDBn-FTbYheNs7dz5neKrYKLVcLmd7Ea-ut1Mgzf8c4Bc4NJ2jIi0H6y4vdur17P-4_Hm50d74CyUdXwcDsOF7ds3I9fKjuwVIdYzc37Olu_oCU0xdWW2nJS36WGYiMZ59LtMueVriL4kyUh34YX34g7a8RVu_rPK8Db_vPkN5uIJ_APHbIxTBS6ASoK3N8aRFtkDfxX27Sl2QIQx2RHrd5A8vRh8TLP7rfAlyq6ttjy8Qibqmx35XgWb-ngKy3NyLZM2y8XdiTEBY88r1heFY9ap2A4I6w3IRfoLc4oTjf5weXK9h6yDOthKjBoiR067Ae0GgJXQDyTjbqA4SUee'
 
 DEVELOPMENT: &development
     <<: *common
