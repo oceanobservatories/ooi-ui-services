@@ -40,7 +40,8 @@ def _compile_assets(data):
         has_deployment_event = False
         deployment_number = ""
         try:
-            row['id'] = row.pop('assetId')
+            if 'assetId' in row:
+                row['id'] = row.pop('assetId')
             row['asset_class'] = row.pop('@class')
             row['events'] = associate_events(row['id'])
             if len(row['events']) == 0:
@@ -64,7 +65,9 @@ def _compile_assets(data):
 
                 if len(row['ref_des']) == 27:
                     row['asset_class'] = '.InstrumentAssetRecord'
-                if len(row['ref_des']) < 27:
+                if len(row['ref_des']) == 14:
+                    row['asset_class'] = '.NodeAssetRecord'
+                if len(row['ref_des']) == 8:
                     row['asset_class'] = '.AssetRecord'
 
                 if deployment_number is not None:
@@ -115,7 +118,6 @@ def _compile_assets(data):
             row['assetInfo']['assembly'] = get_assembly_by_rd(ref_des)
 
         except Exception as e:
-            print e
             continue
 
     return data
@@ -123,8 +125,9 @@ def _compile_assets(data):
 
 def _uframe_collection(uframe_url):
     '''
-    After a url is determined, this method will do the heavy lifting of contacting
-    uframe and either getting the json back, or returning a 500 error.
+    After a url is determined, this method will do
+    the heavy lifting of contacting uframe and either
+    getting the json back, or returning a 500 error.
     '''
     data = requests.get(uframe_url)
 
@@ -132,6 +135,7 @@ def _uframe_collection(uframe_url):
         return data
     else:
         return data.message, data.status_code
+
 
 def _uframe_headers():
     '''
@@ -143,6 +147,8 @@ def _uframe_headers():
         'Accept': 'application/json',
         'Content-Type': 'application/json'
     }
+
+
 def _normalize_whitespace(string):
     '''
     Requires re
@@ -152,6 +158,7 @@ def _normalize_whitespace(string):
     string = string.strip()
     string = re.sub(r'\s+', ' ', string)
     return string
+
 
 def _remove_duplicates(values):
     '''
@@ -168,15 +175,16 @@ def _remove_duplicates(values):
             seen.add(value)
     return output
 
+
 def _normalize(to_translate, translate_to=u' '):
     '''
-    Some of the strings from uframe contain special, non ascii characters, these
-    need to be removed.
-    This method is primarily used to normalize the Lat/Lon values so it can be
-    later converted to decimal degrees.
+    Some of the strings from uframe contain special,
+    non ascii characters, these need to be removed.
+    This method is primarily used to normalize the Lat/Lon
+    values so it can be later converted to decimal degrees.
     '''
     try:
-        ascii =  ''.join([i if ord(i) < 128 else ' ' for i in to_translate])
+        ascii = ''.join([i if ord(i) < 128 else ' ' for i in to_translate])
         scrub = u'\'\"'
         translate_table = dict((ord(char), translate_to) for char in scrub)
         normalized = _normalize_whitespace(ascii.translate(translate_table))
@@ -184,13 +192,15 @@ def _normalize(to_translate, translate_to=u' '):
     except Exception as e:
         return "%s" % e
 
+
 def convert_lat_lon(lat, lon):
     '''
-    This is a wrapper method for _get_latlon, and basically just handles packaging
-    and returning a Lat/Lon pair.
+    This is a wrapper method for _get_latlon, and basically
+    just handles packaging and returning a Lat/Lon pair.
 
-    A update to this def will assign the directional value if needed (neg).  This
-    is a result of an obscure bug found in testing.
+    A update to this def will assign the directional value
+    if needed (neg).  This is a result of an obscure bug
+    found in testing.
     '''
     try:
 
@@ -201,11 +211,12 @@ def convert_lat_lon(lat, lon):
                 _lat = _lat*-1.0
             if "W" in lon:
                 _lon = _lon*-1.0
-        coords = (round(_lat, 4), round(_lon,4))
+        coords = (round(_lat, 4), round(_lon, 4))
         return coords
     except Exception as e:
         coords = (0.0, 0.0)
         return coords
+
 
 def _get_latlon(item):
     '''
@@ -230,9 +241,9 @@ def _get_latlon(item):
         minutes = float(ds[1])
         if len(ds) == 4:
             seconds = float(ds[2])
-        val = degrees +  ((minutes + (seconds/60.00000))/60.00000)
+        val = degrees + ((minutes + (seconds/60.00000))/60.00000)
         # round to _decimal_places
-        tmp = str(round(val,_decimal_places))
+        tmp = str(round(val, _decimal_places))
         result = float(tmp)
         if math.isnan(result):
             return 0.0
@@ -241,6 +252,7 @@ def _get_latlon(item):
         if item == "":
             return 0.0
         return float(item)
+
 
 def convert_date_time(date, time=None):
     '''
@@ -251,6 +263,7 @@ def convert_date_time(date, time=None):
     else:
         return "%s %s" % (date, time)
 
+
 def convert_water_depth(depth):
     '''
     uframe returns the value and units in one string, this method splits out
@@ -258,7 +271,7 @@ def convert_water_depth(depth):
     '''
     d = {}
     try:
-        if len(depth.split( )) == 2:
+        if len(depth.split()) == 2:
             value = depth.split()[0]
             unit = depth.split()[1]
             d['value'] = float(value)
@@ -270,8 +283,9 @@ def convert_water_depth(depth):
             d['unit'] = "m"
             return d
     except ValueError as ve:
-        return {'message': 'Conversion Error!',
+        return {'message': 'Conversion Error! %s' % ve,
                 'input': depth}
+
 
 def associate_events(id):
     '''
@@ -279,11 +293,13 @@ def associate_events(id):
     asset need to be associated.  This is represented in a list of URIs, one
     for it's services endpoint and one for it's direct endpoint in uframe.
     '''
-    uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/assets/%s/events' % (id)
+    uframe_url = current_app.config['UFRAME_ASSETS_URL'] + \
+        '/assets/%s/events' % (id)
     result = []
     payload = requests.get(uframe_url)
     if payload.status_code != 200:
-        return [{ "error": "server responded with error code: %s" % payload.status_code }]
+        return [{"error": "server responded with error code: %s" %
+                payload.status_code}]
 
     json_data = payload.json()
     for row in json_data:
@@ -313,7 +329,9 @@ def associate_events(id):
             if d['evetClass'] == '.DeploymentEvent':
                 d['deploymentDepth'] = row['deploymentDepth']
                 if row['locationLonLat']:
-                    d['locationLonLat'] = convert_lat_lon(row['locationLonLat'][1], row['locationLonLat'][0])
+                    d['locationLonLat'] = convert_lat_lon(
+                        row['locationLonLat'][1],
+                        row['locationLonLat'][0])
                 d['deploymentNumber'] = row['deploymentNumber']
         except KeyError:
             pass
@@ -329,6 +347,7 @@ def associate_events(id):
         raise
 
     return result
+
 
 def get_events_by_ref_des(data, ref_des):
     # Create the container for the processed response
@@ -373,6 +392,7 @@ def get_events_by_ref_des(data, ref_des):
             raise
     result = jsonify({ 'events' : result })
     return result
+
 
 ### ---------------------------------------------------------------------------
 ### The following routes are for generating drop down lists, used in filtering view.

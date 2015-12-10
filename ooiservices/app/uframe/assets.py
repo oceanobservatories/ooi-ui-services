@@ -109,63 +109,66 @@ def get_assets(use_min=False, normal_data=False, reset=False):
         return_list = []
         search_term = str(request.args.get('search')).split()
         search_set = set(search_term)
-        for subset in search_set:
-            if len(return_list) > 0:
-                ven_subset = []
-                return_list = deepcopy(data)
-                for item in return_list:
-                    if subset.lower() in\
-                            str(item['assetInfo']['name']).lower():
-                        ven_subset.append(item)
-                    elif subset.lower() in\
-                            str(item['assetInfo']['longName']).lower():
-                        ven_subset.append(item)
-                    elif subset.lower() in\
-                            str(item['ref_des']).lower():
-                        ven_subset.append(item)
-                    elif subset.lower() in\
-                            str(item['assetInfo']['type']).lower():
-                        ven_subset.append(item)
-                    elif subset.lower() in\
-                            str(item['assetInfo']['array']).lower():
-                        ven_subset.append(item)
-                    elif subset.lower() in\
-                            str(item['events']).lower():
-                        ven_subset.append(item)
-                    elif subset.lower() in\
-                            str(item['metaData']).lower():
-                        ven_subset.append(item)
-                    elif subset.lower() in\
-                            str(item['tense']).lower():
-                        ven_subset.append(item)
-                data = ven_subset
-            else:
-                for item in data:
-                    if subset.lower() in\
-                            str(item['assetInfo']['name']).lower():
-                        return_list.append(item)
-                    elif subset.lower() in\
-                            str(item['assetInfo']['longName']).lower():
-                        return_list.append(item)
-                    elif subset.lower() in\
-                            str(item['ref_des']).lower():
-                        return_list.append(item)
-                    elif subset.lower() in\
-                            str(item['assetInfo']['type']).lower():
-                        return_list.append(item)
-                    elif subset.lower() in\
-                            str(item['assetInfo']['array']).lower():
-                        return_list.append(item)
-                    elif subset.lower() in\
-                            str(item['events']).lower():
-                        return_list.append(item)
-                    elif subset.lower() in\
-                            str(item['metaData']).lower():
-                        return_list.append(item)
-                    elif subset.lower() in\
-                            str(item['tense']).lower():
-                        return_list.append(item)
-                data = return_list
+        try:
+            for subset in search_set:
+                if len(return_list) > 0:
+                    ven_subset = []
+                    return_list = deepcopy(data)
+                    for item in return_list:
+                        if subset.lower() in\
+                                str(item['assetInfo']['name']).lower():
+                            ven_subset.append(item)
+                        elif subset.lower() in\
+                                str(item['assetInfo']['longName']).lower():
+                            ven_subset.append(item)
+                        elif subset.lower() in\
+                                str(item['ref_des']).lower():
+                            ven_subset.append(item)
+                        elif subset.lower() in\
+                                str(item['assetInfo']['type']).lower():
+                            ven_subset.append(item)
+                        elif subset.lower() in\
+                                str(item['assetInfo']['array']).lower():
+                            ven_subset.append(item)
+                        elif subset.lower() in\
+                                str(item['events']).lower():
+                            ven_subset.append(item)
+                        elif subset.lower() in\
+                                str(item['metaData']).lower():
+                            ven_subset.append(item)
+                        elif subset.lower() in\
+                                str(item['tense']).lower():
+                            ven_subset.append(item)
+                    data = ven_subset
+                else:
+                    for item in data:
+                        if subset.lower() in\
+                                str(item['assetInfo']['name']).lower():
+                            return_list.append(item)
+                        elif subset.lower() in\
+                                str(item['assetInfo']['longName']).lower():
+                            return_list.append(item)
+                        elif subset.lower() in\
+                                str(item['ref_des']).lower():
+                            return_list.append(item)
+                        elif subset.lower() in\
+                                str(item['assetInfo']['type']).lower():
+                            return_list.append(item)
+                        elif subset.lower() in\
+                                str(item['assetInfo']['array']).lower():
+                            return_list.append(item)
+                        elif subset.lower() in\
+                                str(item['events']).lower():
+                            return_list.append(item)
+                        elif subset.lower() in\
+                                str(item['metaData']).lower():
+                            return_list.append(item)
+                        elif subset.lower() in\
+                                str(item['tense']).lower():
+                            return_list.append(item)
+                    data = return_list
+        except KeyError as e:
+            pass
 
     if request.args.get('startAt'):
         start_at = int(request.args.get('startAt'))
