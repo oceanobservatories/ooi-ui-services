@@ -2723,7 +2723,7 @@ insert into stream_parameters (stream_parameter_name, short_name, long_name, sta
 insert into stream_parameters (stream_parameter_name, short_name, long_name, standard_name, units, data_type) values( 'massp_inlet_temp_status', NULL, NULL, 'status of the external temperature microLAN', '1', NULL);
 insert into stream_parameters (stream_parameter_name, short_name, long_name, standard_name, units, data_type) values( 'massp_power_relay_turbo', NULL, NULL, 'Turbo pump power relay status', '1', NULL);
 insert into stream_parameters (stream_parameter_name, short_name, long_name, standard_name, units, data_type) values( 'massp_power_relay_rga', NULL, NULL, 'RGA power relay status', '1', NULL);
-insert into stream_parameters (stream_parameter_name, short_name, long_name, standard_name, units, data_type) values( 'massp_power_relay_main_rough', NULL, NULL, 'Main roughing ï»¿pump power relay status', '1', NULL);
+insert into stream_parameters (stream_parameter_name, short_name, long_name, standard_name, units, data_type) values( 'massp_power_relay_main_rough', NULL, NULL, 'Main roughing pump power relay status', '1', NULL);
 insert into stream_parameters (stream_parameter_name, short_name, long_name, standard_name, units, data_type) values( 'massp_power_relay_sec_rough', NULL, NULL, 'Secondary roughing pump power relay status', '1', NULL);
 insert into stream_parameters (stream_parameter_name, short_name, long_name, standard_name, units, data_type) values( 'massp_power_relay_fan1', NULL, NULL, 'Fan1 power relay status', '1', NULL);
 insert into stream_parameters (stream_parameter_name, short_name, long_name, standard_name, units, data_type) values( 'massp_power_relay_fan2', NULL, NULL, 'Fan2 power relay status', '1', NULL);
