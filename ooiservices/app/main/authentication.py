@@ -99,5 +99,5 @@ def oauth_callback(provider):
     g.token_used = False
 
     print 'Leaving oauth_callback'
-    token = get_token()
-    return token
+    return jsonify({'token': g.current_user.generate_auth_token(
+        expiration=86400), 'expiration': 86400})  # 24 hours
