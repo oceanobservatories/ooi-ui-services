@@ -21,4 +21,9 @@ CELERYBEAT_SCHEDULE = {
         'schedule': crontab(hour='*/8'),
         'args': (),
         },
+    'get-cam-images-every': {
+        'task': 'tasks.compile_cam_images',
+        'schedule': crontab(hour='*/12'),
+        'args': (),
+        },
     }
