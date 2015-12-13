@@ -3,16 +3,18 @@
 API Authentication
 '''
 
-from flask import g, jsonify, request
+from flask import g, jsonify, request, redirect, url_for
 from flask.ext.httpauth import HTTPBasicAuth
 from ooiservices.app import db
 from ooiservices.app.models import User
 from ooiservices.app.main import api
 from ooiservices.app.main.errors import unauthorized
 from oauth import OAuthSignIn
+import requests
 
 auth = HTTPBasicAuth()
 
+import uuid; str(uuid.uuid4().get_hex().upper()[0:6])
 
 @auth.verify_password
 def verify_password(email_or_token, password):
@@ -43,6 +45,7 @@ def auth_error():
 @api.route('/token')
 @auth.login_required
 def get_token():
+    print 'getting token'
     if g.current_user.is_anonymous() or g.token_used:
         return unauthorized('Invalid credentials')
     return jsonify({'token': g.current_user.generate_auth_token(
@@ -73,31 +76,34 @@ def oauth_authorize(provider):
 @api.route('/callback/<provider>')
 def oauth_callback(provider):
     print 'Entering oauth_callback'
-    # if not current_user.is_anonymous:
-    #     return redirect(url_for('index'))
+    # rand_pass will be a new password every time a user logs in
+    # with oauth.
+    temp_pass = str(uuid.uuid4())
+
+    # lets create the oauth object that will issue the request.
     oauth = OAuthSignIn.get_provider(provider)
-    # print oauth
-    # print oauth.callback()
+
+    # assign the response
     email, first_name, last_name = oauth.callback()
-    # user = User(user_id=username, user_name=username, email=email)
+
     if email is None:
         return unauthorized('Invalid credentials')
-    user = User.query.filter_by(email=email).first()
-    if not user:
-        user = User(user_id=email,
-                    user_name=email,
-                    email=email,
-                    first_name=first_name,
-                    last_name=last_name,
-                    organization_id=1,
-                    email_opt_in=True,
-                    active=True)
-        db.session.add(user)
-        db.session.commit()
 
-    g.current_user = user
-    g.token_used = False
+    # see if this user already exists, and
+    # and give the user a brand new password.
+    user = User.query.filter_by(email=email).first()
+    if user:
+        user.password = temp_pass
+
+    # if there is no user, create a new one and setup
+    # it's defaults and give it a new password.
+    if not user:
+        user = User.insert_user(password=temp_pass,
+                         user_name=email,
+                         email=email,
+                         first_name=first_name,
+                         last_name=last_name)
 
     print 'Leaving oauth_callback'
-    return jsonify({'token': g.current_user.generate_auth_token(
-        expiration=86400), 'expiration': 86400})  # 24 hours
+    print temp_pass
+    return jsonify({'uuid': temp_pass, 'username': email})
