@@ -75,7 +75,6 @@ def oauth_authorize(provider):
 
 @api.route('/callback/<provider>')
 def oauth_callback(provider):
-    print 'Entering oauth_callback'
     # rand_pass will be a new password every time a user logs in
     # with oauth.
     temp_pass = str(uuid.uuid4())
@@ -104,6 +103,4 @@ def oauth_callback(provider):
                          first_name=first_name,
                          last_name=last_name)
 
-    print 'Leaving oauth_callback'
-    print temp_pass
     return jsonify({'uuid': temp_pass, 'username': email})
