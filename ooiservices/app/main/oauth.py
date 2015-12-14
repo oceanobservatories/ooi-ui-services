@@ -37,9 +37,9 @@ class CILogonSignIn(OAuthSignIn):
             name='cilogon',
             client_id=self.consumer_id,
             client_secret=self.consumer_secret,
-            authorize_url='https://test.cilogon.org/authorize',
-            access_token_url='https://test.cilogon.org/oauth2/token',
-            base_url='https://test.cilogon.org/'
+            authorize_url = current_app.config['CILOGON_BASE_URL'] + '/authorize',
+            access_token_url = current_app.config['CILOGON_BASE_URL'] + '/oauth2/token',
+            base_url = current_app.config['CILOGON_BASE_URL']
         )
 
     def authorize(self):
@@ -75,7 +75,7 @@ class CILogonSignIn(OAuthSignIn):
         )
 
         # return oauth_session.client_id
-        ci_logon_url = 'https://test.cilogon.org/oauth2/userinfo'
+        ci_logon_url = current_app.config['CILOGON_BASE_URL'] + '/oauth2/userinfo'
         me_profile = oauth_session.get(ci_logon_url,
                                        params={'format': 'json'}).json()
         print 'End callback'
