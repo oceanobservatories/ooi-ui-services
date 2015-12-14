@@ -15,6 +15,7 @@ COMMON: &common
     SQLALCHEMY_COMMIT_ON_TEARDOWN: True
     SQLALCHEMY_RECORD_QUERIES: True
     OOI_SLOW_DB_QUERY_TIME: 0.5
+    UI_URL: 'http://localhost:5000'
     WHOOSH_BASE: 'ooiservices/whoosh_index'
     SERVER_DNS: 'localhost'
     HOST: localhost
@@ -55,7 +56,10 @@ COMMON: &common
     ALFRESCO_REPO_ID:   'c161bc66-4f7e-4a4f-b5f2-aac9fbf1d3cd'
     ALFRESCO_USERNAME:  'admin'
     ALFRESCO_PASSWORD:  'admin'
-
+    # cilogon
+    CILOGON_ID: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    CILOGON_SECRECT:  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    CILOGON_BASE_URL: 'https://test.cilogon.org'
 
 DEVELOPMENT: &development
     <<: *common

@@ -1197,6 +1197,7 @@ class User(UserMixin, db.Model):
         user.organization_id = org.id
         db.session.add(user)
         db.session.commit()
+        return user
 
     @property
     def password(self):
