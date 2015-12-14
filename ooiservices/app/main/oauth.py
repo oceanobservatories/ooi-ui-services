@@ -37,7 +37,7 @@ class CILogonSignIn(OAuthSignIn):
             name='cilogon',
             client_id=self.consumer_id,
             client_secret=self.consumer_secret,
-            authorize_url = current_app.config['CILOGON_BASE_URL'] + '/authorize',
+            authorize_url = current_app.config['CILOGON_BASE_URL'] + '/authorize/',
             access_token_url = current_app.config['CILOGON_BASE_URL'] + '/oauth2/token',
             base_url = current_app.config['CILOGON_BASE_URL']
         )
@@ -49,7 +49,7 @@ class CILogonSignIn(OAuthSignIn):
         return redirect(self.service.get_authorize_url(
             scope='openid profile email',
             response_type='code',
-            redirect_uri=self.get_callback_url())
+            redirect_uri=self.get_callback_url())+'&vo=ooi'
         )
 
     def custom_decoder(self, x):
