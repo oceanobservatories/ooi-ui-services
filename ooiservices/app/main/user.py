@@ -68,7 +68,6 @@ def send_activate_email(to):
 
 @api.route('/user_scopes')
 @auth.login_required
-@scope_required(u'user_admin')
 def get_user_scopes():
     user_scopes = UserScope.query.all()
     return jsonify( {'user_scopes' : [user_scope.to_json() for user_scope in user_scopes] })
