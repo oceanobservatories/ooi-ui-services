@@ -37,7 +37,7 @@ class CILogonSignIn(OAuthSignIn):
             name='cilogon',
             client_id=self.consumer_id,
             client_secret=self.consumer_secret,
-            authorize_url = current_app.config['CILOGON_BASE_URL'] + '/authorize/',
+            authorize_url = current_app.config['CILOGON_BASE_URL'] + '/authorize',
             access_token_url = current_app.config['CILOGON_BASE_URL'] + '/oauth2/token',
             base_url = current_app.config['CILOGON_BASE_URL']
         )
