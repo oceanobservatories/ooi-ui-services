@@ -23,7 +23,7 @@ html5lib==1.0b3
 itsdangerous==0.24
 six==1.8.0
 ipython==2.3.0
-numpy==1.9.0
+numpy>=1.9.0
 netCDF4==1.1.1
 psycopg2==2.5.4
 py==1.4.25
