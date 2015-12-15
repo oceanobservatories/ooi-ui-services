@@ -1156,7 +1156,6 @@ class User(UserMixin, db.Model):
         password = json.get('password')
         password2 = json.get('repeatPassword')
         phone_primary = json.get('primary_phone')
-        user_name = json.get('username')
         first_name = json.get('first_name')
         last_name = json.get('last_name')
         role = json.get('role_name')
@@ -1167,15 +1166,14 @@ class User(UserMixin, db.Model):
 
         new_user = User()
         new_user.validate_email(email)
-        new_user.validate_username(user_name)
         new_user.validate_password(password, password2)
         pass_hash = generate_password_hash(password)
         #All passes, return the User object ready to be stored.
         return User(email=email,
                     pass_hash=pass_hash,
                     phone_primary=phone_primary,
-                    user_name=user_name,
-                    user_id=user_name,
+                    user_name=email,
+                    user_id=email,
                     first_name=first_name,
                     last_name=last_name,
                     organization_id=organization_id,
