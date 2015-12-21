@@ -22,6 +22,7 @@ from ooiservices.app.uframe.events import get_events
 
 from urllib import urlencode
 from datetime import datetime
+from datetime import timedelta
 from dateutil.parser import parse as parse_date
 import requests
 import json
@@ -386,6 +387,26 @@ def streams_list():
                     elif subset.lower() in str(item['long_display_name']).lower():
                         return_list.append(item)
                 retval = return_list
+
+    if request.args.get('startDate') or request.args.get('endDate'):
+
+        #This deals with some issues when working with dates before 1970.
+        if request.args.get('startDate'): 
+            startDate = (datetime(1970, 1, 1) + timedelta(milliseconds=int(request.args.get('startDate')))).isoformat()
+        else:
+            startDate = False
+        if request.args.get('endDate'):
+            endDate = (datetime(1970, 1, 1) + timedelta(milliseconds=int(request.args.get('endDate')))).isoformat()
+        else:
+            endDate = False
+        
+        return_value = []
+        for single_value in retval:
+            #Make sure that the stream comes within the range if the range has been provided.
+            if (startDate == False or single_value['start'] >= startDate) and (endDate == False or single_value['end'] <= endDate):
+                return_value.append(single_value)
+                
+        retval = return_value
 
     if request.args.get('startAt'):
         start_at = int(request.args.get('startAt'))
