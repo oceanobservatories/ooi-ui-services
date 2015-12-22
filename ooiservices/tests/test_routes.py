@@ -156,7 +156,7 @@ class UserTestCase(unittest.TestCase):
         content_type = 'application/json'
 
         # Create a sample data set.
-        platform_ref = VocabNames(reference_designator='CE01ISSM', level_one='Endurance', leve_two='OR Inshore Surface Mooring')
+        platform_ref = VocabNames(reference_designator='CE01ISSM', level_one='Endurance', level_two='OR Inshore Surface Mooring')
         db.session.add(platform_ref)
         db.session.commit()
 
