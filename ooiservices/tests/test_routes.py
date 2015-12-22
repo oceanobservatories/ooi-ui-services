@@ -176,30 +176,3 @@ class UserTestCase(unittest.TestCase):
 
         response = self.client.get(url_for('main.get_display_name', reference_designator='GS03FLMA-RIXXX-BAD'), content_type=content_type)
         self.assertEquals(response.status_code, 204)
-
-        # Create platform deployment for foreign key constraints when creating
-        # instrument_deployment (note: using platform_deployment with actual id=203)
-        GS05MOAS_PG002_rd = 'GS05MOAS-PG002'
-        GS05MOAS_PG002 = PlatformDeployment(reference_designator=GS05MOAS_PG002_rd)
-        db.session.add(GS05MOAS_PG002)
-        db.session.commit()
-        GS05MOAS_PG002_id = GS05MOAS_PG002.id
-        number_of_platform_deployments = 1
-
-        # Create instrument(s) for previously created platform deployment; required for
-        # foreign keys - otherwise foreign key violation received.
-        number_of_instruments = 1
-        FLORDM000_rd = 'GS05MOAS-PG002-02-FLORDM000'
-        FLORDM000 = InstrumentDeployment(reference_designator=FLORDM000_rd)
-        FLORDM000.depth = 1000.0
-        FLORDM000.display_name = '2-Wavelength Fluorometer'
-        FLORDM000.end_date = dt.datetime.now()
-        FLORDM000.geo_location = 'POINT(-70 40)'
-        FLORDM000.platform_deployment_id = GS05MOAS_PG002_id                # actual 754
-        FLORDM000.reference_designator = FLORDM000_rd
-        FLORDM000.start_date = dt.datetime.now()
-        db.session.add(FLORDM000)
-        db.session.commit()
-        response = self.client.get(url_for('main.get_display_name', reference_designator='GS05MOAS-PG002-02-FLORDM000'),
-                                   content_type=content_type)
-        self.assertEquals(response.status_code, 200)
