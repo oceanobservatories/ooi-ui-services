@@ -187,6 +187,8 @@ def deploy(password, production, psqluser):
             psql('-U', psqluser, 'ooiuiprod', _in=f)
         with open('db/ooiui_params_streams_data.sql') as h:
             psql('-U', psqluser, 'ooiuiprod', _in=h)
+        with open('db/ooiui_vocab.sql') as i:
+            psql('-U', psqluser, 'ooiuiprod', _in=i)
         app.logger.info('Production Database loaded.')
     else:
         app.logger.info('Populating Dev Database . . .')
@@ -194,6 +196,8 @@ def deploy(password, production, psqluser):
             psql('-U', psqluser, 'ooiuidev', _in=f)
         with open('db/ooiui_params_streams_data.sql') as h:
             psql('-U', psqluser, 'ooiuidev', _in=h)
+        with open('db/ooiui_vocab.sql') as i:
+            psql('-U', psqluser, 'ooiuidev', _in=i)
         app.logger.info('Dev Database loaded.')
 
     # migrate database to latest revision
@@ -251,6 +255,10 @@ def rebuild_schema(schema, schema_owner, save_users, admin_username, admin_passw
 
     app.logger.info('Loading params data into database')
     load_data(sql_file='ooiui_params_streams_data.sql')
+    db.session.commit()
+
+    app.logger.info('Loading new vocab data into database')
+    load_data(sql_file='ooiui_vocab.sql')
     db.session.commit()
 
     if save_users == 'True':

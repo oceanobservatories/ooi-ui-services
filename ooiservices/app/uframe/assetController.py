@@ -10,8 +10,7 @@ from flask import jsonify, current_app, request
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.routes import\
     get_display_name_by_rd as get_dn_by_rd,\
-    get_long_display_name_by_rd as get_ldn_by_rd,\
-    get_assembly_by_rd
+    get_long_display_name_by_rd as get_ldn_by_rd
 import requests
 import re
 import math
@@ -115,7 +114,7 @@ def _compile_assets(data):
                 row['assetInfo']['name'] = ""
                 row['assetInfo']['longName'] = ""
             row['assetInfo']['array'] = get_dn_by_rd(ref_des[:2])
-            row['assetInfo']['assembly'] = get_assembly_by_rd(ref_des)
+            row['assetInfo']['assembly'] = get_dn_by_rd(ref_des[:14])
 
         except Exception as e:
             continue

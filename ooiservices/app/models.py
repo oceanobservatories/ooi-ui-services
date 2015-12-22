@@ -1247,7 +1247,6 @@ class User(UserMixin, db.Model):
         return '<User: %r, ID: %r>' % (self.user_name, self.id)
 
 
-
 class Watch(db.Model, DictSerializableMixin):
     __tablename__ = 'watches'
     __table_args__ = {u'schema' : __schema__}
@@ -1270,7 +1269,6 @@ class Watch(db.Model, DictSerializableMixin):
         }
         return data
 
-
     @staticmethod
     def from_json(json_post):
         id = json_post.get('id')
@@ -1278,3 +1276,38 @@ class Watch(db.Model, DictSerializableMixin):
         end_time = json_post.get('end_time')
         user_id = json_post.get('user_id')
         return Watch(id=id, start_time=start_time, end_time=end_time, user_id=user_id)
+
+
+class VocabNames(db.Model):
+    ''' M@Campbell - 12/21/2015 '''
+
+    __tablename__ = 'vocabnames'
+    __table_args__ = {u'schema': __schema__}
+
+    id = db.Column(db.Integer, primary_key=True)
+    reference_designator = db.Column(db.Text, unique=True, nullable=False)
+    level_one = db.Column(db.Text)
+    level_two = db.Column(db.Text)
+    level_three = db.Column(db.Text)
+    level_four = db.Column(db.Text)
+
+    def to_json(self):
+        json_vocab_names = {
+                'referenceDesignator': self.referenceDesignator,
+                'levelOne': self.level_one,
+                'levelTwo': self.level_two,
+                'levelThree': self.level_three,
+                'levelFour': self.level_four
+                }
+        return json_vocab_names
+
+    @staticmethod
+    def from_json(json_post):
+        reference_designator = json_post.get('referenceDesignator')
+        level_one = json_post.get('levelOne')
+        level_two = json_post.get('levelTwo')
+        level_three = json_post.get('levelThree')
+        level_four = json_post.get('level_four')
+        return VocabNames(ref_des=ref_des, level_one=level_one,
+                          level_two=level_two, level_three=level_three,
+                          level_four=level_four)

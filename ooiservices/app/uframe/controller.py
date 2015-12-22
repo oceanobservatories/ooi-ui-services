@@ -9,7 +9,6 @@ from ooiservices.app.uframe import uframe as api
 from ooiservices.app.models import PlatformDeployment
 from ooiservices.app.main.routes import get_display_name_by_rd, get_long_display_name_by_rd,\
     get_platform_display_name_by_rd, get_parameter_name_by_parameter as get_param_names,\
-    get_assembly_by_rd, get_site_display_name_by_rd as get_site_name,\
     get_stream_name_by_stream as get_stream_name
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.main.errors import internal_server_error
@@ -194,11 +193,11 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
     data_dict['units'] = {}
     data_dict['variables_shape'] = {}
     data_dict['array_name'] = get_display_name_by_rd(ref[:2])
-    data_dict['assembly_name'] = get_assembly_by_rd(ref)
-    data_dict['site_name'] = get_site_name(ref)
+    data_dict['assembly_name'] = get_display_name_by_rd(ref[:14])
+    data_dict['site_name'] = get_display_name_by_rd(ref[:8])
     data_dict['display_name'] = get_display_name_by_rd(ref)
     data_dict['long_display_name'] = get_long_display_name_by_rd(ref)
-    data_dict['platform_name'] = get_platform_display_name_by_rd(ref)
+    data_dict['platform_name'] = get_display_name_by_rd(ref[:8])
     data_dict['download'] = {
                              "csv":"/".join(['api/uframe/get_csv', stream_name, ref]),
                              "json":"/".join(['api/uframe/get_json', stream_name, ref]),
