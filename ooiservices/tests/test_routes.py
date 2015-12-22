@@ -10,7 +10,7 @@ import json
 from base64 import b64encode
 from flask import url_for
 from ooiservices.app import create_app, db
-from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameter
+from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameter, VocabNames
 from ooiservices.app.models import Organization, User, UserScope
 import flask.ext.whooshalchemy as whooshalchemy
 import datetime as dt
@@ -156,13 +156,12 @@ class UserTestCase(unittest.TestCase):
         content_type = 'application/json'
 
         # Create a sample data set.
-        platform_ref = PlatformDeployment(reference_designator='CE01ISSM')
-        platform_ref.geo_location = 'POINT(-70 40)'
+        platform_ref = VocabNames(reference_designator='CE01ISSM', level_one='Endurance', leve_two='OR Inshore Surface Mooring')
         db.session.add(platform_ref)
         db.session.commit()
 
-        platform_ref2 = PlatformDeployment(reference_designator='GS03FLMA-RIS02')
-        platform_ref2.geo_location = 'POINT(-70 40)'
+        platform_ref2 = VocabNames(reference_designator='CE01ISSM-MFC31', level_one='Endurance', level_two='OR Inshore Surface Mooring',
+                                   level_three='Multi-Function Node')
         db.session.add(platform_ref2)
         db.session.commit()
 
