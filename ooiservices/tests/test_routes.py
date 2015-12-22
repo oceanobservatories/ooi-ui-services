@@ -149,60 +149,6 @@ class UserTestCase(unittest.TestCase):
         response = self.client.get('/organization/999', content_type=content_type)
         self.assertEquals(response.status_code, 204)
 
-    # Test [GET] /platformlocation - 'main.get_platform_deployment_geojson_single'
-    def test_route_get_platform_deployment_geojson_single(self):
-
-        content_type = 'application/json'
-
-        # Issue requests when no data available
-        response = self.client.get(url_for('main.get_platform_deployment_geojson_single'), content_type=content_type)
-        self.assertEquals(response.status_code, 204)
-
-        # Create a sample data set.
-        platform_ref = PlatformDeployment(reference_designator='CE01ISSM')
-        platform_ref.geo_location = 'POINT(-70 40)'
-        db.session.add(platform_ref)
-        db.session.commit()
-
-        platform_ref2 = PlatformDeployment(reference_designator='GS05MOAS-PG002')
-        platform_ref2.geo_location = 'POINT(-70 40)'
-        db.session.add(platform_ref2)
-        db.session.commit()
-
-        # Get platform_deployment
-        response = self.client.get(url_for('main.get_platform_deployment', id='CE01ISSM'), content_type=content_type)
-        self.assertTrue(response.status_code == 200)
-
-        '''
-        curl -X GET 'http://localhost:4000/platform_deployments/GS05MOAS-PG002'
-        {
-          "array_id": 6,
-          "display_name": "Global Southern Ocean Mobile (Open Ocean) - Profiler",
-          "end_date": null,
-          "geo_location": {
-            "coordinates": [
-              -89.6652,
-              -54.0814
-            ],
-            "type": "Point"
-          },
-          "id": 203,
-          "reference_designator": "GS05MOAS-PG002",
-          "start_date": null
-        }
-        '''
-
-        # Request all
-        response = self.client.get(url_for('main.get_platform_deployment_geojson_single'), content_type=content_type)
-        self.assertEquals(response.status_code, 200)
-
-        # Request single reference_designator
-        response = self.client.get(url_for('main.get_platform_deployment_geojson_single', reference_designator='CE01ISSM'), content_type=content_type)
-        self.assertEquals(response.status_code, 200)
-
-        # Request single reference_designator
-        response = self.client.get(url_for('main.get_platform_deployment_geojson_single', reference_designator='NO-GOOD'), content_type=content_type)
-        self.assertEquals(response.status_code, 204)
 
     # Test [GET] /display_name - 'main.get_display_name'
     def test_get_display_name(self):
@@ -220,7 +166,7 @@ class UserTestCase(unittest.TestCase):
         db.session.add(platform_ref2)
         db.session.commit()
 
-        response = self.client.get(url_for('main.get_display_name', reference_designator='GS03FLMA-RIS02'), content_type=content_type)
+        response = self.client.get(url_for('main.get_display_name', reference_designator='CE01ISSM-MFC31'), content_type=content_type)
         self.assertEquals(response.status_code, 200)
 
         response = self.client.get(url_for('main.get_display_name'), content_type=content_type)
