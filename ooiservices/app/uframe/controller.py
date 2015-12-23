@@ -310,7 +310,7 @@ def streams_list():
         retval = cached
     else:
         retval = dfs_streams()
-        if error not in retval:
+        if 'error' not in retval:
             cache.set('stream_list', retval, timeout=CACHE_TIMEOUT)
 
     try:
