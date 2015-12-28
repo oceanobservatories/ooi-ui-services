@@ -1125,8 +1125,7 @@ def get_uframe_info():
 def validate_date_time(start_time, end_time):
     '''
     uframe_data_request_limit = int(current_app.config['UFRAME_DATA_REQUEST_LIMIT'])/1440
-    new_end_time_strp = datetime.datetime.strptime(start_time, "
-                                                   ") + datetime.timedelta(days=uframe_data_request_limit)
+    new_end_time_strp = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ") + datetime.timedelta(days=uframe_data_request_limit)
     old_end_time_strp = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ")
     new_end_time = datetime.datetime.strftime(new_end_time_strp, "%Y-%m-%dT%H:%M:%S.%fZ")
     if old_end_time_strp > new_end_time_strp:
