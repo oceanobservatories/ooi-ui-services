@@ -33,7 +33,7 @@ def get_alerts_alarms():
     List output for each alert_alarm which includes system_event_definition content based request.args 'filters'.
     """
     try:
-        result = get_alerts_alarms_object()                
+        result = get_alerts_alarms_object()
         return jsonify( {'alert_alarm': result})
     except Exception as err:
         message = 'Insufficient data, or bad data format. (%s)' % str(err.message)
@@ -69,15 +69,18 @@ def get_alert_alarm(id):
     return jsonify(alert_alarm.to_json())
 
 
-def get_asset_list():   
+def get_asset_list():
     data = get_assets(True, True)
     ref_list = []
     name_list = []
     for d in data:
-        split_ref = d['ref_des'].split('-')
-        if d['ref_des'] not in name_list and len(split_ref) > 1:
-            ref_list.append(d)
-            name_list.append(d['ref_des'])
+        if ('ref_des' in d) and (len(d['ref_des']) > 2) and ("-" in d['ref_des']):
+            split_ref = d['ref_des'].split('-')
+            if d['ref_des'] not in name_list and len(split_ref) > 1:
+                ref_list.append(d)
+                name_list.append(d['ref_des'])
+        else:
+            current_app.logger.info("Ref-Des not in asset")
     return ref_list, name_list
 
 @api.route('/alert_alarm/status', methods=['GET'])
@@ -85,18 +88,18 @@ def get_alert_alarm_status():
     """ Gets the alert alarm status for all available assets.
     """
     #the actual alert alarms
-    data = get_alerts_alarms_object()      
+    data = get_alerts_alarms_object()
     status_info = []
     status_outline = {}
 
-    for d in data:        
+    for d in data:
         if d["acknowledged"] == False:
             ref_des = d['alert_alarm_definition']['reference_designator']
             if ref_des not in status_outline:
                 status_outline[ref_des] = d
                 status_outline[ref_des]['count'] = 0
             else:
-                count = status_outline[ref_des]['count']                
+                count = status_outline[ref_des]['count']
                 #figure out which one is higher
                 if d["event_type"] == "alarm":
                     status_outline[ref_des] = d
@@ -108,21 +111,21 @@ def get_alert_alarm_status():
     assets_dict, assets_names = get_asset_list()
 
     #get the list of alert/alarm definitions
-    aa_def = get_alerts_alarms_def_object()    
+    aa_def = get_alerts_alarms_def_object()
     aa_def_list = []
 
     #alerts and alarms
 
-    for aa_item in aa_def:        
+    for aa_item in aa_def:
         if 'reference_designator' in aa_item:
             #get the A/A definitions
             if aa_item['reference_designator'] not in aa_def_list:
-                #used to identify halth sensors            
+                #used to identify halth sensors
                 aa_def_list.append(aa_item['reference_designator'])
             if aa_item['reference_designator'] not in assets_names:
-                #means an asset was in the A/A definition, that was not in the asset list returned  
-                #create and add it so we can see the status, the TOC may not reflect this          
-                print "Ref-Des not in asset name list: ERROR: appending", aa_item['reference_designator']            
+                #means an asset was in the A/A definition, that was not in the asset list returned
+                #create and add it so we can see the status, the TOC may not reflect this
+                print "Ref-Des not in asset name list: ERROR: appending", aa_item['reference_designator']
 
                 new_asset = {'ref_des':aa_item['reference_designator'],
                              'hasDeploymentEvent' : True,
@@ -133,8 +136,8 @@ def get_alert_alarm_status():
                                            "name":aa_item['reference_designator'],
                                            "owner":"N/A",
                                            "description":"N/A"
-                              },                             
-                            }            
+                              },
+                            }
 
                 #append the dict to
                 assets_dict.append(new_asset)
@@ -149,10 +152,10 @@ def get_alert_alarm_status():
         d = asset['ref_des']
 
         if 'hasDeploymentEvent' in asset and asset['hasDeploymentEvent']:
-            #create inital entry   
+            #create inital entry
             if 'manufactureInfo' in asset:
                 entry = {'reference_designator':d, "count":0,
-                        "event_type":'unknown', 
+                        "event_type":'unknown',
                         'coordinates':asset['coordinates'],
                         'asset_type':asset['assetInfo']['type'],
                         'longName':asset['assetInfo']['longName'],
@@ -165,7 +168,7 @@ def get_alert_alarm_status():
                         'description': asset['assetInfo']['description']}
             else:
                 entry = {'reference_designator':d, "count":0,
-                        "event_type":'unknown', 
+                        "event_type":'unknown',
                         'coordinates':asset['coordinates'],
                         'asset_type':asset['assetInfo']['type'],
                         'longName':asset['assetInfo']['longName'],
@@ -176,13 +179,13 @@ def get_alert_alarm_status():
                         'serialNumber': 'N/A',
                         'owner': asset['assetInfo']['owner'],
                         'description': asset['assetInfo']['description']}
-              
-            
+
+
             #use alert alarms status (alarm or alert)
             if d in status_outline.keys():
                 entry["count"] = status_outline[d]['count']
                 entry["event_type"] = status_outline[d]["event_type"]
-            #healthly 
+            #healthly
             elif d in aa_def_list:
                 #used to identify health sensors
                 entry["event_type"] = 'inactive'
