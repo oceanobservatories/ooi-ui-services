@@ -9,7 +9,7 @@ SET standard_conforming_strings = on;
 SET check_function_bodies = false;
 SET client_min_messages = warning;
 
-SET search_path = ooiui, public, pg_catalog;
+SET search_path = ooiui, pg_catalog;
 
 --
 -- Data for Name: vocabnames; Type: TABLE DATA; Schema: ooiui; Owner: postgres
@@ -1257,3 +1257,8 @@ INSERT INTO vocabnames (id, reference_designator, level_one, level_two, level_th
 --
 
 SELECT pg_catalog.setval('vocabnames_id_seq', 1, false);
+
+--
+-- PostgreSQL database dump complete
+--
+
