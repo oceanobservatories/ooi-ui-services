@@ -91,7 +91,7 @@ def compile_glider_tracks():
         cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
         cache.init_app(current_app)
 
-        glider_tracks = _compile_glider_tracks()
+        glider_tracks = _compile_glider_tracks(True)
 
         if "error" not in glider_tracks:
             cache.set('glider_tracks', glider_tracks, timeout=CACHE_TIMEOUT)
