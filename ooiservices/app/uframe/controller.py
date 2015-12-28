@@ -8,8 +8,7 @@ from ooiservices.app import cache
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.models import PlatformDeployment
 from ooiservices.app.main.routes import get_display_name_by_rd, get_long_display_name_by_rd,\
-    get_platform_display_name_by_rd, get_parameter_name_by_parameter as get_param_names,\
-    get_assembly_by_rd, get_site_display_name_by_rd as get_site_name,\
+    get_parameter_name_by_parameter as get_param_names,\
     get_stream_name_by_stream as get_stream_name
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.main.errors import internal_server_error
@@ -194,11 +193,11 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
     data_dict['units'] = {}
     data_dict['variables_shape'] = {}
     data_dict['array_name'] = get_display_name_by_rd(ref[:2])
-    data_dict['assembly_name'] = get_assembly_by_rd(ref)
-    data_dict['site_name'] = get_site_name(ref)
+    data_dict['assembly_name'] = get_display_name_by_rd(ref[:14])
+    data_dict['site_name'] = get_display_name_by_rd(ref[:8])
     data_dict['display_name'] = get_display_name_by_rd(ref)
     data_dict['long_display_name'] = get_long_display_name_by_rd(ref)
-    data_dict['platform_name'] = get_platform_display_name_by_rd(ref)
+    data_dict['platform_name'] = get_display_name_by_rd(ref[:8])
     data_dict['download'] = {
                              "csv":"/".join(['api/uframe/get_csv', stream_name, ref]),
                              "json":"/".join(['api/uframe/get_json', stream_name, ref]),
@@ -311,8 +310,8 @@ def streams_list():
         retval = cached
     else:
         retval = dfs_streams()
-
-        cache.set('stream_list', retval, timeout=CACHE_TIMEOUT)
+        if 'error' not in retval:
+            cache.set('stream_list', retval, timeout=CACHE_TIMEOUT)
 
     try:
         is_reverse = True
@@ -326,7 +325,8 @@ def streams_list():
             sort_by = 'end'
         retval = sorted(retval, key=itemgetter(sort_by), reverse=is_reverse)
     except (TypeError, KeyError) as e:
-        raise
+        return retval
+
 
     if request.args.get('min') == 'True':
         for obj in retval:
@@ -338,8 +338,8 @@ def streams_list():
                 del obj['download']
                 del obj['variables']
                 del obj['variables_shape']
-            except KeyError:
-                raise
+            except KeyError as e:
+                print e
 
     if request.args.get('search') and request.args.get('search') != "":
         return_list = []
@@ -1017,7 +1017,7 @@ def get_data_api(stream, instrument, yvar, xvar):
         yvar = yvar.split(',')
         resp_data, units = get_simple_data(stream, instrument, yvar, xvar)
         instrument = instrument.split(',')
-        title = PlatformDeployment._get_display_name(instrument[0])
+        title = get_display_name_by_rd(instrument[0])
     except Exception as err:
         return jsonify(error='%s' % str(err.message)), 400
     return jsonify(data=resp_data, units=units, title=title)
@@ -1110,7 +1110,7 @@ def get_svg_plot(instrument, stream):
         return jsonify(error='tuple data returned for %s' % plot_layout), 400
     if isinstance(data, dict):
         # get title
-        title = PlatformDeployment._get_display_name(instrument[0])
+        title = get_display_name_by_rd(instrument[0])
         if len(title) > 50:
             title = ''.join(title.split('-')[0:-1]) + '\n' + title.split('-')[-1]
 
@@ -1119,7 +1119,7 @@ def get_svg_plot(instrument, stream):
         data['width'] = width_in
     else:
         for idx, streamx in enumerate(stream):
-            title = PlatformDeployment._get_display_name(instrument[idx])
+            title = get_display_name_by_rd(instrument[idx])
             if len(title) > 50:
                 title = ''.join(title.split('-')[0:-1]) + '\n' + title.split('-')[-1]
             data[idx]['title'] = title

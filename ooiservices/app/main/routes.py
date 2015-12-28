@@ -8,6 +8,7 @@ __author__ = 'M@Campbell'
 from flask import jsonify, request
 from ooiservices.app.main import api
 from ooiservices.app.models import Array, PlatformDeployment, Platformname
+from ooiservices.app.models import VocabNames
 from ooiservices.app.models import Stream, StreamParameter, \
     Organization, Instrumentname
 # from netCDF4 import num2date, date2index
@@ -76,124 +77,91 @@ def get_organization_by_id(id):
     return jsonify(**response)
 
 
-@api.route('/platformlocation', methods=['GET'])
-def get_platform_deployment_geojson_single():
-    geo_locations = {}
-    if ('reference_designator' in request.args):
-        reference_designator = request.args['reference_designator']
-        geo_locations = PlatformDeployment.query.\
-            filter(PlatformDeployment.reference_designator == reference_designator).all()
-    else:
-        geo_locations = PlatformDeployment.query.all()
-    if len(geo_locations) == 0:
-        return '{}', 204
-    return jsonify({'geo_locations':
-                    [{'id': geo_location.id,
-                        'reference_designator': geo_location.reference_designator,
-                        'geojson': geo_location.geojson}
-                        for geo_location in geo_locations]})
-
-
-def get_assembly_by_rd(ref_des):
-    '''
-    M@Campbell 10/14/2015
-    '''
-    # only need the platform designator
-    platform_des = ref_des[:14]
-    assembly = None
+def _array_name(ref_des):
+    ''' M@Campbell 12/21/2015 '''
+    array_des = ref_des[:2]
     try:
-        platform = Platformname.query.\
-            filter_by(reference_designator=platform_des).first()
-        if platform is not None:
-            assembly = platform.assembly
+        array = VocabNames.query.with_entities(VocabNames.level_one).\
+            filter_by(reference_designator=array_des).first()
+        if array is not None:
+            return array.level_one
     except Exception as e:
         print 'Unhandled exception in:'\
-            'ooiuiserivces.main.routes.get_assembly_by_rd: %s."' % e
-    return assembly
+            'ooiuiserivces.main.routes._array_name: %s.' % e
+
+
+def _platform_name(ref_des):
+    ''' M@Campbell 12/21/2015 '''
+    platform_des = ref_des[:8]
+    try:
+        platform = VocabNames.query.with_entities(VocabNames.level_two).\
+            filter_by(reference_designator=platform_des).first()
+        if platform is not None:
+            return platform.level_two
+    except Exception as e:
+        print 'Unhandled exception in:'\
+            'ooiuiserivces.main.routes._platform_name: %s.' % e
+
+
+def _assembly_name(ref_des):
+    ''' M@Campbell 12/21/2015 '''
+    assembly_des = ref_des[:14]
+    try:
+        assembly = VocabNames.query.with_entities(VocabNames.level_three).\
+            filter_by(reference_designator=assembly_des).first()
+        if assembly is not None:
+            return assembly.level_three
+    except Exception as e:
+        print 'Unhandled exception in:'\
+            'ooiuiserivces.main.routes._assembly_name: %s.' % e
+
+
+def _instrument_name(ref_des):
+    ''' M@Campbell 12/21/2015 '''
+    instrument_des = ref_des[:27]
+    try:
+        instrument = VocabNames.query.with_entities(VocabNames.level_four).\
+            filter_by(reference_designator=instrument_des).first()
+        if instrument is not None:
+            return instrument.level_four
+    except Exception as e:
+        print 'Unhandled exception in:'\
+            'ooiuiserivces.main.routes._instrument_name: %s.' % e
 
 
 def get_display_name_by_rd(reference_designator):
-    glider_hack = False
-    number = ""
-    if "MOAS-GL" in reference_designator:
-        splits = reference_designator.split("MOAS-GL")
-        number = splits[-1]
-        reference_designator = splits[0]+"MOAS-GL"+"001"
-        glider_hack = True
-
     if len(reference_designator) == 2:
-        array = Array.query.filter_by(array_code=reference_designator).first()
-        if array is not None:
-            return array.display_name
-        else:
-            return None
-    else:
-        array_name = ""
-        array = Array.query.filter_by(array_code=reference_designator[:2]).first()
-        if array is not None:
-            array_name = array.display_name
+        array = _array_name(reference_designator)
+        return array
 
-    if len(reference_designator) <= 14:
-        platform_deployment_filtered = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first()
-        if platform_deployment_filtered is None:
-            return None
-        display_name = platform_deployment_filtered.proper_display_name
-    elif len(reference_designator) == 27:
-        instrument_class = reference_designator[18:18+5]
-        instrument_name = Instrumentname.query.filter_by(instrument_class=instrument_class).first()
-        if 'ENG' in instrument_class or instrument_class == '00000':
-            instrument_name = 'Engineering'
-        elif instrument_name is None:
-            instrument_name = reference_designator[18:]
-        else:
-            instrument_name = instrument_name.display_name
+    if len(reference_designator) == 8:
+        platform = _platform_name(reference_designator)
+        return platform
 
-        display_name = instrument_name
-    else:
-        return None
+    if len(reference_designator) == 14:
+        assembly = _assembly_name(reference_designator)
+        return assembly
 
-    if glider_hack:
-        display_name = display_name.replace('001', number)
-
-    return display_name.replace('Mobile', '').replace(array_name+' ', '')
+    if len(reference_designator) == 27:
+        instrument = _instrument_name(reference_designator)
+        return instrument
 
 
 def get_long_display_name_by_rd(reference_designator):
-    if len(reference_designator) == 2:
-        array = Array.query.filter_by(array_code=reference_designator).first()
-        if array is not None:
-            return array.display_name
-        else:
-            return None
-    else:
-        array_name = ""
-        array = Array.query.filter_by(array_code=reference_designator[:2]).first()
-        if array is not None:
-            array_name = array.display_name
+    try:
+        display_name = VocabNames.query.\
+            filter_by(reference_designator=reference_designator).first()
 
-    if len(reference_designator) <= 14:
-        platform_deployment_filtered = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first()
-        if platform_deployment_filtered is None:
-            return None
-        display_name = platform_deployment_filtered.proper_display_name
-    elif len(reference_designator) == 27:
-        platform_deployment = PlatformDeployment.query.filter_by(reference_designator=reference_designator[:14]).first()
-        if platform_deployment is None:
-            return None
-        platform_display_name = platform_deployment.proper_display_name
-        instrument_class = reference_designator[18:18+5]
-        instrument_name = Instrumentname.query.filter_by(instrument_class=instrument_class).first()
-        if 'ENG' in instrument_class or instrument_class == '00000':
-            instrument_name = 'Engineering'
-        elif instrument_name is None:
-            instrument_name = reference_designator[18:]
-        else:
-            instrument_name = instrument_name.display_name
+        if display_name is not None:
+            display_name = ' '.join((display_name.level_one or "",
+                                     display_name.level_two or "",
+                                     display_name.level_three or "",
+                                     display_name.level_four or ""))
+        return display_name
+    except Exception as e:
+        print 'Unhandled exception in:'\
+                'ooiservices.main.routes.get_long_display_name_by_rd: %s' % e
 
-        display_name = ' - '.join([platform_display_name, instrument_name])
-    else:
-        return None
-    return display_name
 
 
 def get_platform_display_name_by_rd(reference_designator):
@@ -205,14 +173,6 @@ def get_platform_display_name_by_rd(reference_designator):
     return platform_display_name
 
 
-def get_site_display_name_by_rd(reference_designator):
-    site = Platformname.query.filter_by(reference_designator=reference_designator[:8]).first()
-    if site is None:
-        return None
-    site_display_name = site.site
-
-    return site_display_name
-
 def get_parameter_name_by_parameter(stream_parameter_name):
     streamParameter = StreamParameter.query.filter_by(stream_parameter_name = stream_parameter_name).first()
     if streamParameter is None or streamParameter is []:
@@ -221,6 +181,7 @@ def get_parameter_name_by_parameter(stream_parameter_name):
     stream_display_name = streamParameter.standard_name
 
     return stream_display_name
+
 
 def get_stream_name_by_stream(stream):
     stream = Stream.query.filter_by(stream=stream).first()

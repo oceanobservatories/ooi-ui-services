@@ -10,7 +10,7 @@ import json
 from base64 import b64encode
 from flask import url_for
 from ooiservices.app import create_app, db
-from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameter
+from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameter, VocabNames
 from ooiservices.app.models import Organization, User, UserScope
 import flask.ext.whooshalchemy as whooshalchemy
 import datetime as dt
@@ -149,60 +149,6 @@ class UserTestCase(unittest.TestCase):
         response = self.client.get('/organization/999', content_type=content_type)
         self.assertEquals(response.status_code, 204)
 
-    # Test [GET] /platformlocation - 'main.get_platform_deployment_geojson_single'
-    def test_route_get_platform_deployment_geojson_single(self):
-
-        content_type = 'application/json'
-
-        # Issue requests when no data available
-        response = self.client.get(url_for('main.get_platform_deployment_geojson_single'), content_type=content_type)
-        self.assertEquals(response.status_code, 204)
-
-        # Create a sample data set.
-        platform_ref = PlatformDeployment(reference_designator='CE01ISSM')
-        platform_ref.geo_location = 'POINT(-70 40)'
-        db.session.add(platform_ref)
-        db.session.commit()
-
-        platform_ref2 = PlatformDeployment(reference_designator='GS05MOAS-PG002')
-        platform_ref2.geo_location = 'POINT(-70 40)'
-        db.session.add(platform_ref2)
-        db.session.commit()
-
-        # Get platform_deployment
-        response = self.client.get(url_for('main.get_platform_deployment', id='CE01ISSM'), content_type=content_type)
-        self.assertTrue(response.status_code == 200)
-
-        '''
-        curl -X GET 'http://localhost:4000/platform_deployments/GS05MOAS-PG002'
-        {
-          "array_id": 6,
-          "display_name": "Global Southern Ocean Mobile (Open Ocean) - Profiler",
-          "end_date": null,
-          "geo_location": {
-            "coordinates": [
-              -89.6652,
-              -54.0814
-            ],
-            "type": "Point"
-          },
-          "id": 203,
-          "reference_designator": "GS05MOAS-PG002",
-          "start_date": null
-        }
-        '''
-
-        # Request all
-        response = self.client.get(url_for('main.get_platform_deployment_geojson_single'), content_type=content_type)
-        self.assertEquals(response.status_code, 200)
-
-        # Request single reference_designator
-        response = self.client.get(url_for('main.get_platform_deployment_geojson_single', reference_designator='CE01ISSM'), content_type=content_type)
-        self.assertEquals(response.status_code, 200)
-
-        # Request single reference_designator
-        response = self.client.get(url_for('main.get_platform_deployment_geojson_single', reference_designator='NO-GOOD'), content_type=content_type)
-        self.assertEquals(response.status_code, 204)
 
     # Test [GET] /display_name - 'main.get_display_name'
     def test_get_display_name(self):
@@ -210,17 +156,16 @@ class UserTestCase(unittest.TestCase):
         content_type = 'application/json'
 
         # Create a sample data set.
-        platform_ref = PlatformDeployment(reference_designator='CE01ISSM')
-        platform_ref.geo_location = 'POINT(-70 40)'
+        platform_ref = VocabNames(reference_designator='CE01ISSM', level_one='Endurance', level_two='OR Inshore Surface Mooring')
         db.session.add(platform_ref)
         db.session.commit()
 
-        platform_ref2 = PlatformDeployment(reference_designator='GS03FLMA-RIS02')
-        platform_ref2.geo_location = 'POINT(-70 40)'
+        platform_ref2 = VocabNames(reference_designator='CE01ISSM-MFC31', level_one='Endurance', level_two='OR Inshore Surface Mooring',
+                                   level_three='Multi-Function Node')
         db.session.add(platform_ref2)
         db.session.commit()
 
-        response = self.client.get(url_for('main.get_display_name', reference_designator='GS03FLMA-RIS02'), content_type=content_type)
+        response = self.client.get(url_for('main.get_display_name', reference_designator='CE01ISSM-MFC31'), content_type=content_type)
         self.assertEquals(response.status_code, 200)
 
         response = self.client.get(url_for('main.get_display_name'), content_type=content_type)
@@ -229,36 +174,5 @@ class UserTestCase(unittest.TestCase):
         response = self.client.get(url_for('main.get_display_name', reference_designator='GS03FLMA-RIXXX'), content_type=content_type)
         self.assertEquals(response.status_code, 204)
 
-        response = self.client.get(url_for('main.get_display_name', reference_designator='GS03FLMA-RIXXX-99-ABCDEF000'),
-                                   content_type=content_type)
-        self.assertEquals(response.status_code, 200)
-
         response = self.client.get(url_for('main.get_display_name', reference_designator='GS03FLMA-RIXXX-BAD'), content_type=content_type)
         self.assertEquals(response.status_code, 204)
-
-        # Create platform deployment for foreign key constraints when creating
-        # instrument_deployment (note: using platform_deployment with actual id=203)
-        GS05MOAS_PG002_rd = 'GS05MOAS-PG002'
-        GS05MOAS_PG002 = PlatformDeployment(reference_designator=GS05MOAS_PG002_rd)
-        db.session.add(GS05MOAS_PG002)
-        db.session.commit()
-        GS05MOAS_PG002_id = GS05MOAS_PG002.id
-        number_of_platform_deployments = 1
-
-        # Create instrument(s) for previously created platform deployment; required for
-        # foreign keys - otherwise foreign key violation received.
-        number_of_instruments = 1
-        FLORDM000_rd = 'GS05MOAS-PG002-02-FLORDM000'
-        FLORDM000 = InstrumentDeployment(reference_designator=FLORDM000_rd)
-        FLORDM000.depth = 1000.0
-        FLORDM000.display_name = '2-Wavelength Fluorometer'
-        FLORDM000.end_date = dt.datetime.now()
-        FLORDM000.geo_location = 'POINT(-70 40)'
-        FLORDM000.platform_deployment_id = GS05MOAS_PG002_id                # actual 754
-        FLORDM000.reference_designator = FLORDM000_rd
-        FLORDM000.start_date = dt.datetime.now()
-        db.session.add(FLORDM000)
-        db.session.commit()
-        response = self.client.get(url_for('main.get_display_name', reference_designator='GS05MOAS-PG002-02-FLORDM000'),
-                                   content_type=content_type)
-        self.assertEquals(response.status_code, 200)
