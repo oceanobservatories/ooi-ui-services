@@ -321,11 +321,11 @@ def _compile_cam_images():
 @api.route('/get_cam_image/<string:image_id>.png', methods=['GET'])
 def get_uframe_cam_image(image_id):
     try:
-        filename = current_app.config['IMAGE_STORE']+image_id+'_thumbnail.png'
+        filename = os.getcwd()+"/"+current_app.config['IMAGE_STORE']+"/"+image_id+'_thumbnail.png'
         filename = filename.replace(',','%2C')
-
+        print filename
         if not os.path.isfile(filename):
-            filename = current_app.config['IMAGE_STORE']+'imageNotFound404.png'
+            filename = current_app.config['IMAGE_STORE']+'/imageNotFound404.png'
         return send_file(filename,
                          attachment_filename='cam_image.png',
                          mimetype='image/png')
