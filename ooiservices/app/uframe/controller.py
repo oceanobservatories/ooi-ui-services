@@ -262,7 +262,6 @@ def _compile_cam_images():
     '''
     Loop over a directory list to get the images available (url>ref>year>month>day>image)
     '''
-    ##TODO MOVE TO CONFIG
     url = current_app.config['IMAGE_CAMERA_STORE']
     r = requests.get(url)
 
