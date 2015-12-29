@@ -397,8 +397,9 @@ def streams_list():
         for obj in retval:
             obj_end_date = iso_to_timestamp(obj['end'])
             # add to the return_val if the obj has a end date
-            # greater than 'startDate' and an end date less than 'endDate'
-            # ** we are only filtering by END dat **e
+            # greater than or equal to 'startDate' and an end date
+            # less than or equal to 'endDate'
+            # ** we are only filtering by END date **
             if obj_end_date >= search_start_date and obj_end_date <= search_end_date:
                 return_val.append(obj)
 
