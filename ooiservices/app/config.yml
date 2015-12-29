@@ -60,6 +60,9 @@ COMMON: &common
     CILOGON_ID: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     CILOGON_SECRECT:  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     CILOGON_BASE_URL: 'https://test.cilogon.org'
+    # camera store
+    IMAGE_STORE : 'ooiservices/cam_images'
+    IMAGE_CAMERA_STORE : 'http://opendap-devel.ooi.rutgers.edu:8080/opendap/hyrax/large_format/'
 
 DEVELOPMENT: &development
     <<: *common

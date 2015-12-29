@@ -34,14 +34,17 @@ from operator import itemgetter
 from bs4 import BeautifulSoup
 import urllib
 import os.path
+#for image processing
+import PIL
+from PIL import Image
+from StringIO import StringIO
 
 __author__ = 'Andy Bird'
 
 
 requests.adapters.DEFAULT_RETRIES = 2
 CACHE_TIMEOUT = 172800
-IMAGE_STORE = "...some image store"
-IMAGE_CAMERA_STORE = '...some cam store'
+
 
 def dfs_streams():
 
@@ -260,7 +263,7 @@ def _compile_cam_images():
     Loop over a directory list to get the images available (url>ref>year>month>day>image)
     '''
     ##TODO MOVE TO CONFIG
-    url = IMAGE_CAMERA_STORE
+    url = current_app.config['IMAGE_CAMERA_STORE']
     r = requests.get(url)
 
     soup = BeautifulSoup(r.content, "html.parser")
@@ -270,7 +273,7 @@ def _compile_cam_images():
     for s in ss:
         if 'href' in s.attrs:
             if '-CAMDS' in s.attrs['href']:
-                print s.attrs['href']
+                #print s.attrs['href']
                 d_url = url+s.attrs['href']
                 url_list = _get_folder_list(d_url,'contents.html')
                 #year
@@ -283,32 +286,34 @@ def _compile_cam_images():
                         for d_url2 in url_list2:
                             #image
                             url_list3 = _get_folder_list(d_url2,'.png')
-                            print "\t",len(url_list3)," images..."
+                            #print "\t",len(url_list3)," images..."
                             for im_url in url_list3:
                                 data_image_list.append(im_url)
 
-    print "---\n",len(data_image_list)
+    print len(data_image_list),"images"
 
     image_dict = []
     for data_image_url in data_image_list:
         image_dict.append(_create_image_entry(data_image_url))
 
-    ''' TODO ADD THE IMAGE CACHE IN LIVE
+    completed= []
+    #ADD THE IMAGES to the folder CACHE
     for image_item in image_dict:
         try:
-            if image_item['url'] not in completed:
+            new_filename = image_item['filename'].split('.')[0]+"_thumbnail.png"
+            new_filepath = current_app.config['IMAGE_STORE']+"/"+new_filename
+            #check its not already added and doesnt already exist, if so download it.
+            if image_item['url'] not in completed and not os.path.isfile(new_filepath) :
                 response = requests.get(image_item['url'])
                 img = Image.open(StringIO(response.content))
                 thumb = img.copy()
                 maxsize = (200, 200)
                 thumb.thumbnail(maxsize, PIL.Image.ANTIALIAS)
-                new_filename = image_item['filename'].split('.')[0]+"_thumbnail.png"
-                thumb.save(IMAGE_STORE+new_filename)
+                thumb.save(new_filepath)
                 completed.append(image_item['url'])
         except Exception,e:
-            print str(e)
+            print "Error:",str(e)
             continue
-    '''
 
     #return dict
     return image_dict
@@ -317,11 +322,11 @@ def _compile_cam_images():
 @api.route('/get_cam_image/<string:image_id>.png', methods=['GET'])
 def get_uframe_cam_image(image_id):
     try:
-        filename = IMAGE_STORE+image_id+'_thumbnail.png'
+        filename = current_app.config['IMAGE_STORE']+image_id+'_thumbnail.png'
         filename = filename.replace(',','%2C')
 
         if not os.path.isfile(filename):
-            filename = IMAGE_STORE+'imageNotFound404.png'
+            filename = current_app.config['IMAGE_STORE']+'imageNotFound404.png'
         return send_file(filename,
                          attachment_filename='cam_image.png',
                          mimetype='image/png')

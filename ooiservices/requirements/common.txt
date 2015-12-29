@@ -48,3 +48,4 @@ SQLAlchemy-Searchable==0.9.2
 cmislib==0.5.1
 rauth==0.7.2
 BeautifulSoup4==4.3.2
+Pillow==3.0.0
