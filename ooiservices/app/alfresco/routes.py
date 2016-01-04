@@ -6,6 +6,7 @@ __author__ = 'M@Campbell'
 
 from flask import jsonify, make_response, request
 import json
+import cmislib
 
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.alfresco import alfresco as api
@@ -83,6 +84,12 @@ def get_doc():
         results,cruise = alf.make_alfresco_cruise_query(array,cruise)
 
         #results = alf.make_alfresco_query(query)
+    except cmislib.exceptions.ObjectNotFoundException as e:
+        print e
+        error_response = {'error': 'Document not found,' +
+            ' cannot create download link.', 'status_code': 404}
+        response = make_response(jsonify(error_response), 404)
+        return response, response.status_code
     except Exception as e:
         print e
         error_response = {'error': 'Alfresco configuration invalid,' +
