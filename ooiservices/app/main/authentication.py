@@ -96,7 +96,7 @@ def oauth_callback(provider):
 
     # if there is no user, create a new one and setup
     # it's defaults and give it a new password.
-    if not user:
+    else:
         user = User.insert_user(password=temp_pass,
                          username=email,
                          email=email,
