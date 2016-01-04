@@ -1196,13 +1196,13 @@ class User(UserMixin, db.Model):
             user.organization_id = org.id
             db.session.add(user)
             db.session.commit()
+            current_app.logger.info('[+] New user created: %s' % user.email)
             return user
-        except:
+        except Exception as e:
+            current_app.logger.info('[!] Error inserting user!')
+            current_app.logger.info('[!] %s' % e)
             db.session.rollback()
             raise
-        finally:
-            db.session.close()
-
 
     @property
     def password(self):
