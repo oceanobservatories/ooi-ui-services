@@ -3,22 +3,22 @@ from celery.schedules import crontab
 CELERYBEAT_SCHEDULE = {
     'get-assets': {
         'task': 'tasks.compile_assets',
-        'schedule': crontab(minute='*/10'),
+        'schedule': crontab(minute=0, hour='*/2'),
         'args': (),
         },
     'get-streams': {
         'task': 'tasks.compile_streams',
-        'schedule': crontab(minute='*/3'),
+        'schedule': crontab(minute=0, hour='*/1'),
         'args': (),
         },
     'get-events': {
         'task': 'tasks.compile_events',
-        'schedule': crontab(minute='*/5'),
+        'schedule': crontab(minute=0, hour='*/1'),
         'args': (),
         },
     'get-glider-traks-every': {
         'task': 'tasks.compile_glider_tracks',
-        'schedule': crontab(hour='*/8'),
+        'schedule': crontab(minute=0, hour='*/8'),
         'args': (),
         },
     }
