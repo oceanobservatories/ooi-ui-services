@@ -23,7 +23,7 @@ CELERYBEAT_SCHEDULE = {
         },
     'get-cam-images-every': {
         'task': 'tasks.compile_cam_images',
-        'schedule': crontab(hour='*/12'),
+        'schedule': crontab(minute=0, hour='*/12'),
         'args': (),
         },
     }
