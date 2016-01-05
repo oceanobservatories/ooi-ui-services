@@ -76,3 +76,6 @@ celerybeat-schedule
 
 #redis
 *.rdb
+
+#images
+ooiservices/cam_images/*.png

@@ -3,7 +3,7 @@
 uframe endpoints
 '''
 # base
-from flask import jsonify, request, current_app, make_response, Response
+from flask import jsonify, request, current_app, make_response, Response, send_file
 from ooiservices.app import cache
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.models import PlatformDeployment
@@ -31,7 +31,13 @@ import time
 import urllib2
 from copy import deepcopy
 from operator import itemgetter
-
+from bs4 import BeautifulSoup
+import urllib
+import os.path
+#for image processing
+import PIL
+from PIL import Image
+from StringIO import StringIO
 
 __author__ = 'Andy Bird'
 
@@ -216,6 +222,145 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
 
     data_dict['parameter_display_name'] = display_names
     return data_dict
+
+def _create_image_entry(url):
+    '''
+    decode a url in to its metadata
+    '''
+    #get the filename and other metadata
+    filename = url.split('/')[-1]
+    ref_date = filename.split('.png')[0].split('_')
+
+    dt=urllib.unquote(ref_date[1]).decode('utf8')
+    dt = dt.replace(',','.')
+
+    thumbnail = filename.replace('.png',"_thumbnail.png")
+
+    item = {"url":url,
+            "filename":filename,
+            "reference_designator": str(ref_date[0]),
+            "datetime": dt,
+            "thumbnail": thumbnail
+           }
+    return item
+
+def _get_folder_list(url,search_filter):
+    '''
+    get url folder link list
+    '''
+    r = requests.get(url)
+    soup = BeautifulSoup(r.content, "html.parser")
+    ss = soup.findAll('a')
+    url_list = []
+    for s in ss:
+        if 'href' in s.attrs:
+            if search_filter in s.attrs['href']:
+                url_list.append(url.split('contents.html')[0]+s.attrs['href'])
+    return url_list
+
+def _compile_cam_images():
+    '''
+    Loop over a directory list to get the images available (url>ref>year>month>day>image)
+    '''
+    url = current_app.config['IMAGE_CAMERA_STORE']
+    r = requests.get(url)
+
+    soup = BeautifulSoup(r.content, "html.parser")
+    ss = soup.findAll('a')
+    data_image_list = []
+
+    for s in ss:
+        if 'href' in s.attrs:
+            if '-CAMDS' in s.attrs['href']:
+                #print s.attrs['href']
+                d_url = url+s.attrs['href']
+                url_list = _get_folder_list(d_url,'contents.html')
+                #year
+                for d_url in url_list:
+                    url_list1 = _get_folder_list(d_url,'contents.html')
+                    #month
+                    for d_url1 in url_list1:
+                        #day
+                        url_list2 = _get_folder_list(d_url1,'contents.html')
+                        for d_url2 in url_list2:
+                            #image
+                            url_list3 = _get_folder_list(d_url2,'.png')
+                            #print "\t",len(url_list3)," images..."
+                            for im_url in url_list3:
+                                data_image_list.append(im_url)
+
+    print len(data_image_list),"images"
+
+    image_dict = []
+    for data_image_url in data_image_list:
+        image_dict.append(_create_image_entry(data_image_url))
+
+    completed= []
+    #ADD THE IMAGES to the folder CACHE
+    for image_item in image_dict:
+        try:
+            new_filename = image_item['filename'].split('.')[0]+"_thumbnail.png"
+            new_filepath = current_app.config['IMAGE_STORE']+"/"+new_filename
+            #check its not already added and doesnt already exist, if so download it.
+            if image_item['url'] not in completed and not os.path.isfile(new_filepath) :
+                response = requests.get(image_item['url'])
+                img = Image.open(StringIO(response.content))
+                thumb = img.copy()
+                maxsize = (200, 200)
+                thumb.thumbnail(maxsize, PIL.Image.ANTIALIAS)
+                thumb.save(new_filepath)
+                completed.append(image_item['url'])
+        except Exception,e:
+            print "Error:",str(e)
+            continue
+
+    #return dict
+    return image_dict
+
+# @auth.login_required
+@api.route('/get_cam_image/<string:image_id>.png', methods=['GET'])
+def get_uframe_cam_image(image_id):
+    try:
+        filename = os.getcwd()+"/"+current_app.config['IMAGE_STORE']+"/"+image_id+'_thumbnail.png'
+        filename = filename.replace(',','%2C')
+        print filename
+        if not os.path.isfile(filename):
+            filename = current_app.config['IMAGE_STORE']+'/imageNotFound404.png'
+        return send_file(filename,
+                         attachment_filename='cam_image.png',
+                         mimetype='image/png')
+    except Exception, e:
+        return jsonify(error="image not found"), 404
+
+
+
+# @auth.login_required
+@api.route('/get_cam_images')
+def get_uframe_cam_images():
+    '''
+    get cam images
+    '''
+    try:
+        cached = cache.get('cam_images')
+        will_reset_cache = False
+        if request.args.get('reset') == 'true':
+            will_reset_cache = True
+
+        will_reset = request.args.get('reset')
+        if cached and not(will_reset_cache):
+            data = cached
+        else:
+            data = _compile_cam_images()
+
+            if "error" not in data:
+                cache.set('cam_images', data, timeout=CACHE_TIMEOUT)
+
+        return jsonify({"cam_images":data})
+    except requests.exceptions.ConnectionError as e:
+        error = "Error: Cannot connect to uframe.  %s" % e
+        print error
+        return make_response(error, 500)
+
 
 def _compile_glider_tracks():
     # we will always want the telemetered data, and the engineering stream

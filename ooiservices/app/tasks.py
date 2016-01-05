@@ -98,3 +98,21 @@ def compile_glider_tracks():
             print "[+] Glider tracks cache reset."
         else:
             print "[-] Error in cache update"
+
+
+@celery.task(name='tasks.compile_cam_images')
+def compile_cam_images():
+    with current_app.test_request_context():
+        print "[+] Starting cam images cache reset..."
+        cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
+        cache.init_app(current_app)
+
+        cam_images = []   #some imported function
+
+        if "error" not in cam_images:
+            cache.set('cam_images', cam_images, timeout=CACHE_TIMEOUT)
+            print "[+] cam images cache reset."
+        else:
+            print "[-] Error in cache update"
+
+
