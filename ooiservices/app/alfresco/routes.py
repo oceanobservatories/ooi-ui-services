@@ -4,7 +4,7 @@
 '''
 __author__ = 'M@Campbell'
 
-from flask import jsonify, make_response, request
+from flask import jsonify, make_response, request, current_app
 import json
 import cmislib
 
@@ -25,7 +25,7 @@ def get_alfresco_connection():
         alf = ACMIS()
         repo = alf.make_alfresco_conn()
     except Exception as e:
-        print e
+        current_app.logger.info(e)
         error_response = \
             {'error': 'Alfresco configuration not set or incorrect',
             'status_code': 500}
@@ -52,7 +52,7 @@ def get_alfresco_ticket():
         alf = ACMIS()
         ticket = alf.make_alfresco_ticket()
     except Exception as e:
-        print e
+        current_app.logger.info(e)
         error_response = {'error': 'Alfresco configuration invalid,' +
             ' cannot create ticket.', 'status_code': 500}
         response = make_response(jsonify(error_response), 500)
@@ -85,13 +85,13 @@ def get_doc():
 
         #results = alf.make_alfresco_query(query)
     except cmislib.exceptions.ObjectNotFoundException as e:
-        print e
+        current_app.logger.info(e)
         error_response = {'error': 'Document not found,' +
             ' cannot create download link.', 'status_code': 404}
         response = make_response(jsonify(error_response), 404)
         return response, response.status_code
     except Exception as e:
-        print e
+        current_app.logger.info(e)
         error_response = {'error': 'Alfresco configuration invalid,' +
             ' cannot create download link.', 'status_code': 500}
         response = make_response(jsonify(error_response), 500)
