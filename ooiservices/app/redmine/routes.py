@@ -62,7 +62,12 @@ def create_redmine_ticket():
 
         # Create new issue
         issue = redmine.issue.new()
-        issue.tracker_id = 3  # support
+        # Get the list of ticker Trackers
+        trackers = list(redmine.tracker.all())
+        # Find the REDMINE_TRACKER (like 'Support') and get the id
+        # This make a difference for field validation and proper tracker assignment
+        tracker_id = [tracker.id for tracker in trackers if tracker.name == current_app.config['REDMINE_TRACKER']][0]
+        issue.tracker_id = tracker_id
         for key, value in fields.iteritems():
             if value is not None:
                 setattr(issue, key, value)
@@ -224,7 +229,12 @@ def create_redmine_ticket_for_notification(project_id, subject, description, pri
         # Log into Redmine
         redmine = redmine_login()
         issue = redmine.issue.new()
-        issue.tracker_id = 3 # support
+        # Get the list of ticker Trackers
+        trackers = list(redmine.tracker.all())
+        # Find the REDMINE_TRACKER (like 'Support') and get the id
+        # This make a difference for field validation and proper tracker assignment
+        tracker_id = [tracker.id for tracker in trackers if tracker.name == current_app.config['REDMINE_TRACKER']][0]
+        issue.tracker_id = tracker_id # support
         for key, value in fields.iteritems():
             setattr(issue, key, value)
 
