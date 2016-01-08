@@ -128,7 +128,8 @@ def create_user():
         trackers = list(redmine.tracker.all())
         # Find the REDMINE_TRACKER (like 'Support') and get the id
         # This make a difference for field validation and proper tracker assignment
-        tracker_id = [tracker.id for tracker in trackers if tracker.name == current_app.config['REDMINE_TRACKER']][0]
+        config_redmine_tracker = current_app.config['REDMINE_TRACKER']
+        tracker_id = [tracker.id for tracker in trackers if tracker.name == config_redmine_tracker][0]
         issue.tracker_id = tracker_id
         issue.save()
     except Exception as e:
