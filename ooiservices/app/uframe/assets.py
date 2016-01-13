@@ -275,8 +275,13 @@ def create_asset():
 def update_asset(id):
     try:
         data = json.loads(request.data)
+
+        if 'asset_class' in data:
+            data['@class'] = data.pop('asset_class')
+
         url = current_app.config['UFRAME_ASSETS_URL']\
             + '/%s/%s' % ('assets', id)
+
         response = requests.put(url,
                                 data=json.dumps(data),
                                 headers=_uframe_headers())
