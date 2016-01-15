@@ -286,7 +286,7 @@ def _compile_cam_images():
                             #print "\t",len(url_list3)," images..."
                             for im_url in url_list3:
                                 data_image_list.append(im_url)
-                                
+
     print len(data_image_list),"images"
 
     image_dict = []
