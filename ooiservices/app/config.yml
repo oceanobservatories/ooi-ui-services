@@ -44,6 +44,7 @@ COMMON: &common
     REDMINE_KEY: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     REDMINE_URL: 'https://redmine-asa.ooi.rutgers.edu' #'https://uframe-cm.ooi.rutgers.edu'
     REDMINE_PROJECT_ID: 'ocean-observatory' #'ooi-ui-api-testing'
+    REDMINE_TRACKER: 'Support'
     # redis
     REDIS_URL: 'redis://localhost:6379'
     # google

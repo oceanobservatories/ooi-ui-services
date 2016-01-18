@@ -32,7 +32,7 @@ class UserTestCaseRedmine(unittest.TestCase):
         test_password = 'test'
         Organization.insert_org()
         UserScope.insert_scopes()
-        User.insert_user(password=test_password)
+        User.insert_user(password=test_password, email='test@localhost')
 
         self.client = self.app.test_client(use_cookies=False)
 
@@ -126,7 +126,7 @@ class UserTestCaseRedmine(unittest.TestCase):
         self.assertTrue(len(user_list) == 2)
 
         # 5. Update new user's scopes, add scopes = ['asset_manager']
-        expected_data = {'active': True, 'scopes': ['asset_manager'], 'role_id': 1}
+        expected_data = {'active': True, 'scopes': ['asset_manager'], 'role_id': 1, 'email': 'test@localhost'}
         data = json.dumps(expected_data)
         response = self.client.put(url_for('main.put_user', id=2), headers=headers, data=data)
         self.assertTrue(response.status_code == 201)
@@ -154,7 +154,7 @@ class UserTestCase(unittest.TestCase):
         db.create_all()
         test_password = 'test'
         Organization.insert_org()
-        User.insert_user(password=test_password)
+        User.insert_user(password=test_password, email='test@localhost')
 
         self.client = self.app.test_client(use_cookies=False)
 
