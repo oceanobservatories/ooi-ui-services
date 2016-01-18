@@ -29,8 +29,8 @@ def find_parameter_ids(mooring, platform, instrument, y_parameters, x_parameters
 
     UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
     url = "/".join([UFRAME_DATA, mooring, platform, instrument, "metadata/parameters"])
-
     parameter_list = requests.get(url).json()
+
     parameter_dict = {}
     parameter_ids = []
     all_units = {}
@@ -61,30 +61,30 @@ def get_multistream_data(stream1, stream2, instrument1, instrument2, var1, var2)
     '''
     get data from uframe
     '''
-    mooring1, platform1, instrument1, stream_type1, stream1 = split_stream_name('_'.join([instrument1, stream1]))
-    mooring2, platform2, instrument2, stream_type2, stream2 = split_stream_name('_'.join([instrument2, stream2]))
-
-    parameter_ids1, y_units1, _, units_mapping1 = find_parameter_ids(mooring1, platform1, instrument1, [var1], [])
-    parameter_ids2, y_units2, _, units_mapping2 = find_parameter_ids(mooring2, platform2, instrument2, [var2], [])
-
-    units = units_mapping1.copy()
-    units.update(units_mapping2)
-
-    stream1_dict = {}
-    stream2_dict = {}
-    stream1_dict['refdes'] = '-'.join([mooring1, platform1, instrument1])  # 'CP05MOAS-GL340-03-CTDGVM000'
-    stream2_dict['refdes'] = '-'.join([mooring2, platform2, instrument2])  # 'CP05MOAS-GL340-02-FLORTM000'
-
-    stream1_dict['method'] = stream_type1
-    stream2_dict['method'] = stream_type2
-
-    stream1_dict['stream'] = stream1
-    stream2_dict['stream'] = stream2
-
-    stream1_dict['params'] = parameter_ids1[0]
-    stream2_dict['params'] = parameter_ids2[0]
-
     try:
+        mooring1, platform1, instrument1, stream_type1, stream1 = split_stream_name('_'.join([instrument1, stream1]))
+        mooring2, platform2, instrument2, stream_type2, stream2 = split_stream_name('_'.join([instrument2, stream2]))
+
+        parameter_ids1, y_units1, _, units_mapping1 = find_parameter_ids(mooring1, platform1, instrument1, [var1], [])
+        parameter_ids2, y_units2, _, units_mapping2 = find_parameter_ids(mooring2, platform2, instrument2, [var2], [])
+
+        units = units_mapping1.copy()
+        units.update(units_mapping2)
+
+        stream1_dict = {}
+        stream2_dict = {}
+        stream1_dict['refdes'] = '-'.join([mooring1, platform1, instrument1])  # 'CP05MOAS-GL340-03-CTDGVM000'
+        stream2_dict['refdes'] = '-'.join([mooring2, platform2, instrument2])  # 'CP05MOAS-GL340-02-FLORTM000'
+
+        stream1_dict['method'] = stream_type1
+        stream2_dict['method'] = stream_type2
+
+        stream1_dict['stream'] = stream1
+        stream2_dict['stream'] = stream2
+
+        stream1_dict['params'] = parameter_ids1[0]
+        stream2_dict['params'] = parameter_ids2[0]
+
         if 'startdate' in request.args and 'enddate' in request.args:
             st_date = request.args['startdate']
             ed_date = request.args['enddate']
@@ -99,12 +99,12 @@ def get_multistream_data(stream1, stream2, instrument1, instrument2, var1, var2)
             else:
                 return data, units
         else:
-            message = 'Failed to make interpolated data plot: Need to include startdate and enddate'
+            message = 'Please Define Start and End Dates'
             current_app.logger.exception(message)
             raise Exception(message)
 
     except Exception as e:
-        message = 'Failed to make interpolated data plot. Error: ' + str(e.message)
+        message = str(e.message)
         current_app.logger.exception(message)
         raise Exception(message)
 
@@ -112,8 +112,8 @@ def get_multistream_data(stream1, stream2, instrument1, instrument2, var1, var2)
 def get_simple_data(stream, instrument, yfields, xfields, include_time=True):
     from ooiservices.app.uframe.controller import split_stream_name, get_uframe_plot_contents_chunked, validate_date_time, to_bool_str
     '''
-    get data from uframe    
-    '''    
+    get data from uframe
+    '''
     mooring, platform, instrument, stream_type, stream = split_stream_name('_'.join([instrument, stream]))
     parameter_ids, y_units, x_units,units_mapping = find_parameter_ids(mooring, platform, instrument, yfields, xfields)
 
@@ -137,7 +137,7 @@ def get_simple_data(stream, instrument, yfields, xfields, include_time=True):
                 return data, units_mapping
 
     except Exception as e:
-        message = 'Failed to make plot - received error on uframe request. Error: ' + str(e.message)
+        message = str(e.message)
         current_app.logger.exception(message)
         raise Exception(message)
 
@@ -170,48 +170,47 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
             # data, status_code = get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag)
             data, status_code = get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag, parameter_ids)
             if status_code != 200:
-                # return {'error': 'could not get data'}
-                # return {'error': '(%s) could not get_uframe_stream_contents' % str(response.status_code)}
+                current_app.logger.exception(data)
                 raise Exception(data)
         else:
-            message = 'Failed to make plot - start end dates not applied.'
+            message = 'Please Define Start and End Dates'
             current_app.logger.exception(message)
             raise Exception(message)
 
     except Exception as e:
-        message = 'Failed to make plot - received error on uframe request. error: ' + str(e.message)
+        message = str(e.message)
         current_app.logger.exception(message)
         raise Exception(message)
 
     if len(data) == 0:
-        raise Exception('no data available')
+        raise Exception('No Data Available')
 
     if "pk" not in data[0]:
-        message = 'primary information not available'
+        message = 'Primary Information Not Available'
         current_app.logger.exception(message)
         raise Exception(message)
 
     for xfield in xfields:
         if xfield == 'time':
             if "time" not in data[0]['pk']:
-                message = 'time information not available'
+                message = 'Time Variable Not Available'
                 current_app.logger.exception(message)
                 raise Exception(message)
         else:
             if xfield not in data[0]:
-                message = 'requested data xfield (%s) not available' % xfield
+                message = 'Requested Data (%s) Not Available' % xfield
                 current_app.logger.exception(message)
                 raise Exception(message)
 
     for yfield in yfields:
         if yfield == 'time':
             if "time" not in data[0]['pk']:
-                message = 'time information not available'
+                message = 'Time Variable Not Available'
                 current_app.logger.exception(message)
                 raise Exception(message)
         else:
             if yfield not in data[0]:
-                message = 'requested data yfield (%s) not available' % yfield
+                message = 'Requested Data (%s) Not Available' % yfield
                 current_app.logger.exception(message)
                 raise Exception(message)
 

@@ -58,7 +58,6 @@ def dfs_streams():
         payload = requests.get(TOC)
     except requests.exceptions.ConnectionError as e:
         error = "Error: Cannot connect to uframe.  %s" % e
-        print error
         return make_response(error, 500)
 
     toc = payload.json()
@@ -157,7 +156,6 @@ def split_stream_name(ui_stream_name):
     (mooring, platform, instrument, stream_type, stream)
     '''
 
-    print ui_stream_name
     mooring, platform, instrument = ui_stream_name.split('-', 2)
     instrument, stream_type, stream = instrument.split('_', 2)
 
@@ -854,9 +852,9 @@ def multistream_api(stream1, stream2, instrument1, instrument2, var1, var2):
         title = PlatformDeployment._get_display_name(stream1)
         subtitle = PlatformDeployment._get_display_name(stream2)
     except IndexError:
-        return internal_server_error('UFrame array length error')
-    except KeyError as e:
-        return internal_server_error('Key Error: ' + str(e))
+        return jsonify(error='Data Array Length Error'), 500
+    except KeyError:
+        return jsonify(error='Missing Data in Data Repository'), 500
 
     return jsonify(data=resp_data[header1], units=units, title=title, subtitle=subtitle)
 
@@ -873,37 +871,43 @@ def get_uframe_multi_stream_contents(stream1_dict, stream2_dict, start_time, end
         r2.refdes=CP05MOAS-GL340-02-FLORTM000&r1.method=telemetered&r2.method=telemetered&r1.stream=ctdgv_m_glider_instrument&
         r2.stream=flort_m_glider_instrument&r1.params=PD1527&r2.params=PD1485&limit=1000&startDT=2015-05-07T02:49:22.745Z&endDT=2015-06-28T04:00:41.282Z
     '''
+    try:
+        # Get the parts of the request from the input stream dicts
+        refdes1 = stream1_dict['refdes']
+        refdes2 = stream2_dict['refdes']
 
-    # Get the parts of the request from the input stream dicts
-    refdes1 = stream1_dict['refdes']
-    refdes2 = stream2_dict['refdes']
+        method1 = stream1_dict['method']
+        method2 = stream2_dict['method']
 
-    method1 = stream1_dict['method']
-    method2 = stream2_dict['method']
+        stream1 = stream1_dict['stream']
+        stream2 = stream2_dict['stream']
 
-    stream1 = stream1_dict['stream']
-    stream2 = stream2_dict['stream']
+        params1 = stream1_dict['params']
+        params2 = stream2_dict['params']
 
-    params1 = stream1_dict['params']
-    params2 = stream2_dict['params']
+        limit = current_app.config['DATA_POINTS']
 
-    limit = current_app.config['DATA_POINTS']
+        GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=multistreamdata&ea=%s&el=%s' % ('-'.join([refdes1+stream1, refdes1+stream2]), '-'.join([start_time, end_time]))
 
-    GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=multistreamdata&ea=%s&el=%s' % ('-'.join([refdes1+stream1, refdes1+stream2]), '-'.join([start_time, end_time]))
+        query = ('sensor?r=r1&r=r2&r1.refdes=%s&r2.refdes=%s&r1.method=%s&r2.method=%s'
+                 '&r1.stream=%s&r2.stream=%s&r1.params=%s&r2.params=%s&limit=%s&startDT=%s&endDT=%s'
+                 % (refdes1, refdes2, method1, method2, stream1, stream2,
+                    params1, params2, limit, start_time, end_time))
 
-    query = ('sensor?r=r1&r=r2&r1.refdes=%s&r2.refdes=%s&r1.method=%s&r2.method=%s'
-             '&r1.stream=%s&r2.stream=%s&r1.params=%s&r2.params=%s&limit=%s&startDT=%s&endDT=%s'
-             % (refdes1, refdes2, method1, method2, stream1, stream2,
-                params1, params2, limit, start_time, end_time))
+        url = "/".join([current_app.config['UFRAME_URL'], query])
 
-    url = "/".join([current_app.config['UFRAME_URL'], query])
+        current_app.logger.debug("***:" + url)
 
-    current_app.logger.debug("***:" + url)
+        _, timeout, timeout_read = get_uframe_info()
+        response = requests.get(url, timeout=(timeout, timeout_read))
 
-    _, timeout, timeout_read = get_uframe_info()
-    response = requests.get(url, timeout=(timeout, timeout_read))
-
-    return response.json(), response.status_code
+        if response.status_code != 200:
+            msg = map_common_error_message(response.text, response.text)
+            return msg, 500
+        else:
+            return response.json(), response.status_code
+    except Exception as e:
+        return str(e), 500
 
 
 def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag, parameter_ids):
@@ -911,16 +915,16 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
     Gets the bounded stream contents, start_time and end_time need to be datetime objects
     '''
     try:
-        if dpa_flag == '0' and len(parameter_ids)<1:
+        if dpa_flag == '0' and len(parameter_ids) < 1:
             query = '?beginDT=%s&endDT=%s&limit=%s' % (start_time, end_time, current_app.config['DATA_POINTS'])
-        elif dpa_flag == '1' and len(parameter_ids)<1:
+        elif dpa_flag == '1' and len(parameter_ids) < 1:
             query = '?beginDT=%s&endDT=%s&limit=%s&execDPA=true' % (start_time, end_time, current_app.config['DATA_POINTS'])
-        elif dpa_flag == '0' and len(parameter_ids)>0:
+        elif dpa_flag == '0' and len(parameter_ids) > 0:
             query = '?beginDT=%s&endDT=%s&limit=%s&parameters=%s' % (start_time, end_time, current_app.config['DATA_POINTS'], ','.join(parameter_ids))
-        elif dpa_flag == '1' and len(parameter_ids)>0:
+        elif dpa_flag == '1' and len(parameter_ids) > 0:
             query = '?beginDT=%s&endDT=%s&limit=%s&execDPA=true&parameters=%s' % (start_time, end_time, current_app.config['DATA_POINTS'], ','.join(map(str, parameter_ids)))
 
-        GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=plot&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream_type ,stream]), '-'.join([start_time, end_time]))
+        GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=plot&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream_type, stream]), '-'.join([start_time, end_time]))
 
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
         url = "/".join([UFRAME_DATA, mooring, platform, instrument, stream_type, stream + query])
@@ -951,24 +955,32 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
                     return 'Data request time out', 500
 
                 dataBlock += chunk
-            #print "transfer complete",content_length/(1024 * 1024),total
 
-            #if str(dataBlock[-3:-1]) != '} ]':
-            #    idx_c = dataBlock.rfind('}')
-            #    dataBlock = dataBlock[:idx_c]
-            #    dataBlock+="} ]"
-            #    print 'uFrame appended Error Message to Stream',"\n",dataBlock[-3:-1]
             idx_c = dataBlock.rfind('}\n]')
-            # print idx_c
-            if idx_c == -1:
-                dataBlock+="]"
-            urllib2.urlopen(GA_URL)
-            return json.loads(dataBlock),200
 
-    except Exception, e:
-        #return json.loads(dataBlock), 200
-        print str(e)
-        return str(e), 500
+            if idx_c == -1:
+                dataBlock += "]"
+            urllib2.urlopen(GA_URL)
+            return json.loads(dataBlock), 200
+
+    except Exception as e:
+        msg = map_common_error_message(dataBlock, str(e))
+        return msg, 500
+
+
+def map_common_error_message(response, default):
+    '''
+    This function parses the error response from uFrame into a meaningful
+    message for the UI
+    '''
+    message = default
+    if 'requestUUID' in response:
+        message = 'Error Occurred During Product Creation'
+    elif 'Failed to respond' in response:
+        message = 'Internal System Error in Data Repository'
+
+    return message
+
 
 def get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag):
     '''
@@ -980,9 +992,9 @@ def get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_typ
         else:
             query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        url = "/".join([UFRAME_DATA,mooring, platform, instrument, stream_type, stream + query])
 
-        print "***:",url
+        url = "/".join([UFRAME_DATA, mooring, platform, instrument, stream_type, stream + query])
+        current_app.logger.debug("***:%s" % url)
 
         TOO_BIG = 1024 * 1024 * 15 # 15MB
         CHUNK_SIZE = 1024 * 32   #...KB
@@ -1164,7 +1176,7 @@ def get_data_api(stream, instrument, yvar, xvar):
         instrument = instrument.split(',')
         title = get_display_name_by_rd(instrument[0])
     except Exception as err:
-        return jsonify(error='%s' % str(err.message)), 400
+        return jsonify(error='%s' % str(err.message)), 500
     return jsonify(data=resp_data, units=units, title=title)
 
 @auth.login_required
