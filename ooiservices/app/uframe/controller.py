@@ -224,7 +224,6 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
     data_dict['parameter_display_name'] = display_names
     return data_dict
 
-<<<<<<< HEAD
 def _create_image_entry(url):
     '''
     decode a url in to its metadata
@@ -363,6 +362,7 @@ def get_uframe_cam_images():
         print error
         return make_response(error, 500)
 
+<<<<<<< HEAD
 
 <<<<<<< HEAD
 def _create_entry(url, ext):
@@ -1329,7 +1329,8 @@ def get_uframe_info():
 def validate_date_time(start_time, end_time):
     '''
     uframe_data_request_limit = int(current_app.config['UFRAME_DATA_REQUEST_LIMIT'])/1440
-    new_end_time_strp = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ") + datetime.timedelta(days=uframe_data_request_limit)
+    new_end_time_strp = datetime.datetime.strptime(start_time, "
+                                                   ") + datetime.timedelta(days=uframe_data_request_limit)
     old_end_time_strp = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ")
     new_end_time = datetime.datetime.strftime(new_end_time_strp, "%Y-%m-%dT%H:%M:%S.%fZ")
     if old_end_time_strp > new_end_time_strp:
