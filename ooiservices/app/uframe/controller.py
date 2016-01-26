@@ -935,6 +935,7 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
         CHUNK_SIZE = 1024 * 32   #...KB
         TOTAL_SECONDS = current_app.config['UFRAME_PLOT_TIMEOUT']
         dataBlock = ""
+        response = ""
         idx = 0
 
         # counter
@@ -975,7 +976,8 @@ def map_common_error_message(response, default):
     '''
     message = default
     if 'requestUUID' in response:
-        message = 'Error Occurred During Product Creation'
+        UUID = response.split('requestUUID":')[1].split('"')[1]
+        message = 'Error Occurred During Product Creation<br>UUID for reference: ' + UUID
     elif 'Failed to respond' in response:
         message = 'Internal System Error in Data Repository'
 
