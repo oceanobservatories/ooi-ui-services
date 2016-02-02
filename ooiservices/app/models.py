@@ -1124,6 +1124,9 @@ class User(UserMixin, db.Model):
     organization = db.relationship(u'Organization')
     watches = db.relationship(u'Watch')
     other_organization = db.Column(db.Text)
+    vocation = db.Column(db.Text)
+    country = db.Column(db.Text)
+    state = db.Column(db.Text)
 
    # def __init__(self, **kwargs):
    #     super(User, self).__init__(**kwargs)
@@ -1146,7 +1149,10 @@ class User(UserMixin, db.Model):
             'scopes' : [s.scope_name for s in self.scopes],
             'user_name' : self.user_name,
             'email_opt_in' : self.email_opt_in,
-            'other_organization' : self.other_organization
+            'other_organization' : self.other_organization,
+            'vocation' : self.vocation,
+            'country' : self.country,
+            'state' : self.state
         }
         if self.organization:
             json_user['organization'] = self.organization.organization_name
@@ -1164,6 +1170,9 @@ class User(UserMixin, db.Model):
         organization_id = json.get('organization_id')
         email_opt_in = json.get('email_opt_in')
         other_organization = json.get('other_organization')
+        vocation = json.get('vocation')
+        country = json.get('country')
+        state = json.get('state')
 
         #Validate some of the field.
 
@@ -1182,7 +1191,10 @@ class User(UserMixin, db.Model):
                     organization_id=organization_id,
                     role=role,
                     email_opt_in=email_opt_in,
-                    other_organization=other_organization)
+                    other_organization=other_organization,
+                    vocation=vocation,
+                    country=country,
+                    state=state)
 
 
     @staticmethod

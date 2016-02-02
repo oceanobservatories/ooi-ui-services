@@ -33,9 +33,21 @@ def put_user(id):
     email_opt_in = data.get('email_opt_in')
     activating= User.query.get(id).active is False and active is True
     other_organization = data.get('other_organization')
+    vocation = data.get('vocation')
+    country = data.get('country')
+    state = data.get('state')
     changed = False
     if other_organization is not None:
         user_account.other_organization = other_organization
+        changed = True
+    if vocation is not None:
+        user_account.vocation = vocation
+        changed = True
+    if country is not None:
+        user_account.country = country
+        changed = True
+    if state is not None:
+        user_account.state = state
         changed = True
     if scopes is not None:
         valid_scopes = UserScope.query.filter(UserScope.scope_name.in_(scopes)).all()
