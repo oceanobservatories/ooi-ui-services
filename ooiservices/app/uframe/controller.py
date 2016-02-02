@@ -362,9 +362,6 @@ def get_uframe_cam_images():
         print error
         return make_response(error, 500)
 
-<<<<<<< HEAD
-
-<<<<<<< HEAD
 def _create_entry(url, ext):
     '''
     Create the JSON object for this file
