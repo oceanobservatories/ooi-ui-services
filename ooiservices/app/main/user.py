@@ -14,6 +14,7 @@ from ooiservices.app.decorators import scope_required
 from ooiservices.app.redmine.routes import redmine_login
 import json, smtplib, string
 import datetime as dt
+import pycountry
 
 @api.route('/user/<int:id>', methods=['GET'])
 @auth.login_required
@@ -31,7 +32,23 @@ def put_user(id):
     active = data.get('active')
     email_opt_in = data.get('email_opt_in')
     activating= User.query.get(id).active is False and active is True
+    other_organization = data.get('other_organization')
+    vocation = data.get('vocation')
+    country = data.get('country')
+    state = data.get('state')
     changed = False
+    if other_organization is not None:
+        user_account.other_organization = other_organization
+        changed = True
+    if vocation is not None:
+        user_account.vocation = vocation
+        changed = True
+    if country is not None:
+        user_account.country = country
+        changed = True
+    if state is not None:
+        user_account.state = state
+        changed = True
     if scopes is not None:
         valid_scopes = UserScope.query.filter(UserScope.scope_name.in_(scopes)).all()
         user_account.scopes = valid_scopes
@@ -149,3 +166,17 @@ def get_user_roles():
 def get_users():
     users = [u.to_json() for u in User.query.all()]
     return jsonify(users=users)
+
+
+@api.route('/countries')
+def get_countries():
+    countries = [{"country_code" : country.alpha2.encode('utf8'), "country_name" : country.name.encode('utf8')} for country in pycountry.countries]
+    return json.dumps(countries)
+
+
+@api.route('/states/<string:country_code>')
+def get_states(country_code):
+    states = pycountry.subdivisions.get(country_code=country_code)
+    states_json = [{"state_code" : state.code.encode('utf8'), "state_name" : state.name.encode('utf8')} for state in states]
+    return json.dumps(states_json)
+

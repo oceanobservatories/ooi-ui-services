@@ -91,7 +91,12 @@ class ModelTestCase(unittest.TestCase):
             'scopes' : [],
             'role' : None,
             'user_name': None,
-            'email_opt_in': None})
+            'email_opt_in': None,
+            'other_organization' : None,
+            'vocation' : None,
+            'country' : None,
+            'state' : None
+            })
 
     def test_operator_event_type(self):
         #Test the json in the object

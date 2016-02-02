@@ -23,6 +23,7 @@ INSERT INTO organizations VALUES (5, 'COL', 'Consortium of Ocean Leadership', NU
 INSERT INTO organizations VALUES (6, 'NSF', 'National Science Foundation', NULL);
 INSERT INTO organizations VALUES (7, 'SIO', 'Scripps Institution of Oceanography', NULL);
 INSERT INTO organizations VALUES (8, 'UW', 'Univeristy of Washington', NULL);
+INSERT INTO organizations VALUES (9, 'Other', 'Other', NULL);
 
 
 --
@@ -3131,7 +3132,7 @@ SELECT pg_catalog.setval('operator_events_id_seq', 1, false);
 -- Name: organizations_id_seq; Type: SEQUENCE SET; Schema: ooiui; Owner: postgres
 --
 
-SELECT pg_catalog.setval('organizations_id_seq', 8, true);
+SELECT pg_catalog.setval('organizations_id_seq', 9, true);
 
 
 --

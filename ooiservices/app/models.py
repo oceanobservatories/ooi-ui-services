@@ -1123,6 +1123,10 @@ class User(UserMixin, db.Model):
     scopes = db.relationship(u'UserScope', secondary=UserScopeLink.__table__)
     organization = db.relationship(u'Organization')
     watches = db.relationship(u'Watch')
+    other_organization = db.Column(db.Text)
+    vocation = db.Column(db.Text)
+    country = db.Column(db.Text)
+    state = db.Column(db.Text)
 
    # def __init__(self, **kwargs):
    #     super(User, self).__init__(**kwargs)
@@ -1144,7 +1148,11 @@ class User(UserMixin, db.Model):
             'organization_id' : self.organization_id,
             'scopes' : [s.scope_name for s in self.scopes],
             'user_name' : self.user_name,
-            'email_opt_in' : self.email_opt_in
+            'email_opt_in' : self.email_opt_in,
+            'other_organization' : self.other_organization,
+            'vocation' : self.vocation,
+            'country' : self.country,
+            'state' : self.state
         }
         if self.organization:
             json_user['organization'] = self.organization.organization_name
@@ -1161,6 +1169,10 @@ class User(UserMixin, db.Model):
         role = json.get('role_name')
         organization_id = json.get('organization_id')
         email_opt_in = json.get('email_opt_in')
+        other_organization = json.get('other_organization')
+        vocation = json.get('vocation')
+        country = json.get('country')
+        state = json.get('state')
 
         #Validate some of the field.
 
@@ -1178,11 +1190,22 @@ class User(UserMixin, db.Model):
                     last_name=last_name,
                     organization_id=organization_id,
                     role=role,
-                    email_opt_in=email_opt_in)
+                    email_opt_in=email_opt_in,
+                    other_organization=other_organization,
+                    vocation=vocation,
+                    country=country,
+                    state=state)
 
 
     @staticmethod
-    def insert_user(username='admin', password=None, first_name='First', last_name='Last', email='FirstLast@somedomain.com', org_name='RPS ASA', phone_primary='8001234567'):
+    def insert_user(username='admin',
+                    password=None,
+                    first_name='First',
+                    last_name='Last',
+                    email='FirstLast@somedomain.com',
+                    org_name='RPS ASA',
+                    phone_primary='8001234567',
+                    other_organization=None):
         try:
             user = User(password=password, first_name=first_name, active=True, email_opt_in=True)
             user.validate_username(username)
@@ -1194,6 +1217,8 @@ class User(UserMixin, db.Model):
             user.phone_primary = phone_primary
             org = Organization.query.filter(Organization.organization_name == org_name).first()
             user.organization_id = org.id
+            if org.id == 9:
+                user.other_organization = other_organization
             db.session.add(user)
             db.session.commit()
             current_app.logger.info('[+] New user created: %s' % user.email)
