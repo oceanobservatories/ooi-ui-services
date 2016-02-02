@@ -1310,6 +1310,13 @@ INSERT INTO vocabnames VALUES (1292, 'RS03INT2-MJ03D', 'Cabled', 'Axial Seamount
 INSERT INTO vocabnames VALUES (1293, 'RS03INT2-MJ03D-05-OBSSPA305', 'Cabled', 'Axial Seamount International Disctrict 2', 'Medium-Power Jbox', 'Short-Period Ocean Bottom Seismometer');
 INSERT INTO vocabnames VALUES (1294, 'RS03INT2-MJ03D-06-BOTPTA303', 'Cabled', 'Axial Seamount International Disctrict 2', 'Medium-Power Jbox', 'Bottom Pressure and Tilt');
 INSERT INTO vocabnames VALUES (1295, 'RS03INT2-MJ03D-12-VEL3DB304', 'Cabled', 'Axial Seamount International Disctrict 2', 'Medium-Power Jbox', '3-D Single Point Velocity Meter');
+INSERT INTO vocabnames VALUES (1296, 'CE', 'Endurance', NULL, NULL, NULL);
+INSERT INTO vocabnames VALUES (1297, 'GP', 'Station Papa', NULL, NULL, NULL);
+INSERT INTO vocabnames VALUES (1298, 'CP', 'Pioneer', NULL, NULL, NULL);
+INSERT INTO vocabnames VALUES (1299, 'GA', 'Argentine Basin', NULL, NULL, NULL);
+INSERT INTO vocabnames VALUES (1300, 'GI', 'Irminger Sea', NULL, NULL, NULL);
+INSERT INTO vocabnames VALUES (1301, 'GS', 'Southern Ocean', NULL, NULL, NULL);
+INSERT INTO vocabnames VALUES (1302, 'RS', 'Cabled', NULL, NULL, NULL);
 
 --
 -- Name: vocabnames_id_seq; Type: SEQUENCE SET; Schema: ooiui; Owner: postgres
