@@ -44,6 +44,7 @@ __author__ = 'Andy Bird'
 
 requests.adapters.DEFAULT_RETRIES = 2
 CACHE_TIMEOUT = 172800
+LARGE_FILE_FORMAT_JSON = 'ooiservices/app/json/largeFormatProcessedFiles.json'
 
 
 def dfs_streams():
@@ -287,7 +288,7 @@ def _compile_cam_images():
                             for im_url in url_list3:
                                 data_image_list.append(im_url)
 
-    print len(data_image_list),"images"
+    current_app.logger.debug("Found" + str(len(data_image_list)) + " images")
 
     image_dict = []
     for data_image_url in data_image_list:
@@ -357,6 +358,177 @@ def get_uframe_cam_images():
     except requests.exceptions.ConnectionError as e:
         error = "Error: Cannot connect to uframe.  %s" % e
         print error
+        return make_response(error, 500)
+
+
+def _create_entry(url, ext):
+    '''
+    Create the JSON object for this file
+    '''
+    # get the filename and other metadata
+    #  ZPL .raw = CE02SHBP-MJ01C-07-ZPLSCB101_OOI-D20150802-T230543.raw
+    #  HYD .mseed = OO-HYEA2--YDH.2015-09-03T23:55:06.365250.mseed
+    #  CAMDS .png = CE02SHBP-MJ01C-08-CAMDSB107_20150818T214937,543Z.png
+    #  OBS .mseed = OO-HYSB1--BHE.2015-09-03T23:54:37.100000.mseed
+    #  CAMHD .mov = CAMHDA301-20151119T210000Z.mov
+    #  CAMHS .mp4 = CAMHDA301-20151119T210000Z.mp4
+    
+    filename = url.split('/')[-1]
+    if ext == '.png':
+        ref = filename.split(ext)[0].split('_')
+        dt = urllib.unquote(ref[1]).decode('utf8')
+        dt = dt.replace(',','.')
+
+    elif ext == '.raw':
+        ref = filename.split(ext)[0].split('_OOI-D')
+        date = ref[1] + 'Z'
+        dt = urllib.unquote(date).decode('utf8')
+
+    elif ext == '.mseed':
+        ref = filename.split(ext)[0].split('.')
+        if len(ref) == 3:
+            date = ref[1] + 'Z'
+            dt = urllib.unquote(date).decode('utf8')
+        else:
+            split = ref[0].split('-')
+            date = '-'.join([split[-3], split[-2], split[-1]]) + 'Z'
+            dt = urllib.unquote(date).decode('utf8')
+    elif ext == '.mov' or ext == '.mp4':
+        ref = filename.split(ext)[0].split('-')
+        date = ref[1]
+        dt = urllib.unquote(date).decode('utf8')
+
+    item = {"url": url,
+            "filename": urllib.unquote(filename).decode('utf8'),
+            "datetime": dt.replace("-", "").replace(":", ""),
+           }
+    return item
+
+
+def update_large_file_json(data):
+    ''' Update the large file format json listing'''
+
+    with open(LARGE_FILE_FORMAT_JSON, 'w') as f:
+        json.dump(data, f)
+
+
+def get_large_file_json():
+    ''' Get the contents of the large file format json listing'''
+    processed_data = {}
+    if os.path.isfile(LARGE_FILE_FORMAT_JSON):
+        with open(LARGE_FILE_FORMAT_JSON, 'r') as f:
+            processed_data = json.load(f)
+
+    return processed_data
+
+
+def _compile_large_format_files():
+    '''
+    Loop over a directory list to get the files available (url>ref>year>month>day>image)
+    '''
+    url = current_app.config['IMAGE_CAMERA_STORE']
+    r = requests.get(url)
+
+    soup = BeautifulSoup(r.content, "html.parser")
+    ss = soup.findAll('a')
+
+    filetypes_to_check = ['-HYD', '-OBS', '-CAMDS', '-CAMHD', '-ZPL']
+    extensions_to_check = ['.mseed', '.png', '.mp4', '.mov', '.raw']
+
+    data_dict = get_large_file_json()
+    current_year = datetime.utcnow().strftime('%Y')
+    current_month = datetime.utcnow().strftime('%m')
+    current_day = datetime.utcnow().strftime('%d')
+    # Ok let's walk the directory structure for all these ref-des
+    for s in ss:
+        if 'href' in s.attrs:
+            # REF DES
+            if any(filetype in s.attrs['href'] for filetype in filetypes_to_check):
+                current_app.logger.debug(s.attrs['href'])
+                ref_des = s.attrs['href'].split('/')[0]
+                if ref_des not in data_dict:
+                    data_dict[ref_des] = {}
+                d_url = url+s.attrs['href']
+                url_list = _get_folder_list(d_url, 'contents.html')
+                # YEAR
+                for d_url in url_list:
+                    year = d_url.split('/contents.html')[0].split('/')[-1]
+                    if year not in data_dict[ref_des]:
+                        data_dict[ref_des][year] = {}
+                    elif year != current_year:  # Move onto next year, this one's old!
+                        continue
+                    url_list1 = _get_folder_list(d_url, 'contents.html')
+                    # MONTH
+                    for d_url1 in url_list1:
+                        month = d_url1.split('/contents.html')[0].split('/')[-1]
+                        if month not in data_dict[ref_des][year]:
+                            data_dict[ref_des][year][month] = {}
+                        elif month != current_month:  # Move onto next month, this one's old!
+                            continue
+                        # DAY
+                        url_list2 = _get_folder_list(d_url1, 'contents.html')
+                        for d_url2 in url_list2:
+                            day = d_url2.split('/contents.html')[0].split('/')[-1]
+                            if day not in data_dict[ref_des][year][month]:
+                                data_dict[ref_des][year][month][day] = []
+                            elif day != current_day:  # Move onto next day, this one's old!
+                                continue
+
+                            for ext in extensions_to_check:
+                                # file
+                                url_list3 = _get_folder_list(d_url2, ext)
+                                for im_url in url_list3:
+                                    entry = _create_entry(im_url, ext)
+                                    data_dict[ref_des][year][month][day].append(entry)
+                current_app.logger.debug(ref_des + " found " + str(len(data_dict[ref_des])) + " files")
+
+    # Update the json file
+    update_large_file_json(data_dict)
+
+    return data_dict
+
+
+@api.route('/get_large_format_files_by_ref/<string:ref_des>')
+def get_uframe_large_format_files_by_ref(ref_des):
+    '''
+    Walk the Hyrax server and parse out all available large format files
+    '''
+    try:
+        cached = get_large_file_json()
+
+        if cached:
+            data = cached
+            if ref_des in data:
+                return jsonify(data[ref_des])
+            else:
+                error = "Error: %s data not available." % (ref_des)
+                return make_response(error, 500)
+        else:
+            # Throw an error because it takes too long
+            error = "Error: Data not available."
+            return make_response(error, 500)
+
+    except requests.exceptions.ConnectionError as e:
+        error = "Error: Cannot connect to uframe.  %s" % e
+        return make_response(error, 500)
+
+
+@api.route('/get_large_format_files')
+def get_uframe_large_format_files():
+    '''
+    Get all available large format files (from cache if necessary)
+    '''
+    try:
+        cached = get_large_file_json()
+
+        if cached:
+            data = cached
+        else:
+            data = _compile_large_format_files()
+
+        return jsonify(data)
+    except requests.exceptions.ConnectionError as e:
+        error = "Error: Cannot connect to uframe.  %s" % e
         return make_response(error, 500)
 
 

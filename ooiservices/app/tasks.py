@@ -26,6 +26,8 @@ from ooiservices.app.uframe.assetController import _compile_assets
 from ooiservices.app.uframe.assetController import _compile_events
 from ooiservices.app.uframe.controller import dfs_streams
 from ooiservices.app.uframe.controller import _compile_glider_tracks
+from ooiservices.app.uframe.controller import _compile_cam_images
+from ooiservices.app.uframe.controller import _compile_large_format_files
 
 
 @celery.task(name='tasks.compile_assets')
@@ -107,7 +109,7 @@ def compile_cam_images():
         cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
         cache.init_app(current_app)
 
-        cam_images = []   #some imported function
+        cam_images = __compile_cam_images()
 
         if "error" not in cam_images:
             cache.set('cam_images', cam_images, timeout=CACHE_TIMEOUT)
@@ -115,4 +117,17 @@ def compile_cam_images():
         else:
             print "[-] Error in cache update"
 
+@celery.task(name='tasks.compile_large_format_files')
+def compile_cam_images():
+    with current_app.test_request_context():
+        print "[+] Starting large format file cache reset..."
+        cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
+        cache.init_app(current_app)
 
+        data = _compile_large_format_files()
+
+        if "error" not in data:
+            # cache.set('large_format', data, timeout=CACHE_TIMEOUT)
+            print "[+] large format files updated."
+        else:
+            print "[-] Error in large file format update"

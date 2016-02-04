@@ -26,4 +26,9 @@ CELERYBEAT_SCHEDULE = {
         'schedule': crontab(minute=0, hour='*/12'),
         'args': (),
         },
+    'get-large-format-files-every': {
+        'task': 'tasks.compile_large_format_files',
+        'schedule': crontab(minute=0, hour='*/12'),
+        'args': (),
+        },
     }
