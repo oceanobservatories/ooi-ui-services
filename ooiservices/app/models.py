@@ -1274,7 +1274,7 @@ class User(UserMixin, db.Model):
             raise ValidationError('User name already taken.')
 
     def validate_password(self, password, password2):
-        temp_hash = User(password=password)
+        temp_hash = User(password=encrypt_password(password))
         if not temp_hash.verify_password(password2):
             raise ValidationError('Passwords do not match')
 
