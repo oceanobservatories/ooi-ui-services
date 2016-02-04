@@ -270,7 +270,7 @@ def rebuild_schema(schema, schema_owner, save_users, admin_username, admin_passw
             new_user = User()
             new_user.id = sresult.id
             new_user.user_id = sresult.user_id
-            new_user.pass_hash = sresult.pass_hash
+            new_user.password = sresult.password
             new_user.email = sresult.email
             new_user.user_name = sresult.user_name
             new_user.active = sresult.active
@@ -304,7 +304,7 @@ def rebuild_schema(schema, schema_owner, save_users, admin_username, admin_passw
         app.logger.info('Adding the default admin user')
         if admin_username is None:
             app.logger.info('Admin username set to: admin')
-            admin_username = 'admin'
+            admin_username = 'admin@ooi.rutgers.edu'
         if admin_password is None:
             app.logger.info('Admin password set to: password')
             admin_password = 'password'
@@ -316,7 +316,7 @@ def rebuild_schema(schema, schema_owner, save_users, admin_username, admin_passw
             last_name = 'Admin'
         if email is None:
             app.logger.info('Admin email set to: defaultadmin@ooi.rutgers.edu')
-            email = 'defaultadmin@ooi.rutgers.edu'
+            email = 'admin@ooi.rutgers.edu'
         if org_name is None:
             app.logger.info('Admin org_name set to: Rutgers')
             org_name = 'Rutgers'

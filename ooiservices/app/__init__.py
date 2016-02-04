@@ -10,6 +10,7 @@ from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.login import LoginManager
 from flask_environments import Environments
 from flask.ext.cache import Cache
+from flask.ext.security import Security, SQLAlchemyUserDatastore
 from flask_wtf.csrf import CsrfProtect
 from sqlalchemy_searchable import make_searchable
 from flask_redis import Redis
@@ -79,6 +80,12 @@ def create_app(config_name):
     csrf.init_app(app)
     redis_store.init_app(app)
     cors.init_app(app)
+
+    # Flask-Security Init
+    from ooiservices.app.models import User, Role
+    user_datastore = SQLAlchemyUserDatastore(db, User, Role)
+    security = Security(app, user_datastore)
+    security.init_app(app, register_blueprint=False)
 
     from ooiservices.app.main import api as main_blueprint
     app.register_blueprint(main_blueprint)
