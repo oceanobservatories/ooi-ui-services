@@ -1130,7 +1130,7 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Text, unique=True, nullable=False)
     email = db.Column(db.Text, unique=True, nullable=False)
-    password = db.Column(db.String(255), nullable=False)
+    _password = db.Column(db.String(255), nullable=False)
     user_name = db.Column(db.Text, unique=True, nullable=False)
     active = db.Column(db.Boolean())
     confirmed_at = db.Column(db.DateTime())
@@ -1152,7 +1152,7 @@ class User(UserMixin, db.Model):
 
     @hybrid_property
     def pass_hash(self):
-        return self.password
+        return self._password
 
     def to_json(self):
         json_user = {
@@ -1228,7 +1228,7 @@ class User(UserMixin, db.Model):
                     other_organization=None):
         try:
             user = User()
-            user.password = encrypt_password(password)
+            user.password = password
             user.validate_username(username)
             user.validate_email(email)
             user.user_name = username
@@ -1253,17 +1253,26 @@ class User(UserMixin, db.Model):
             db.session.rollback()
             raise
 
+    # TODO: Revisit security concerns regarding the return of password
+    @hybrid_property
+    def password(self):
+        return self._password
+
+    @password.setter
+    def password(self, plaintext):
+        self._password = encrypt_password(plaintext)
+
     # @property
     # def password(self):
     #     raise AttributeError('password is not a readable attribute')
-
+    #
     # #Store the hashed password.
     # @password.setter
     # def password(self, password):
     #     self.password = encrypt_password(password)
 
     def verify_password(self, password):
-        return fs_verify_password(password, self.password)
+        return fs_verify_password(password, self._password)
 
     def validate_email(self, field):
         if User.query.filter_by(email=field).first():
@@ -1274,7 +1283,7 @@ class User(UserMixin, db.Model):
             raise ValidationError('User name already taken.')
 
     def validate_password(self, password, password2):
-        temp_hash = User(password=encrypt_password(password))
+        temp_hash = User(password=password)
         if not temp_hash.verify_password(password2):
             raise ValidationError('Passwords do not match')
 
