@@ -44,7 +44,7 @@ __author__ = 'Andy Bird'
 
 requests.adapters.DEFAULT_RETRIES = 2
 CACHE_TIMEOUT = 172800
-
+COSMO_CONSTANT = 2208988800
 
 def dfs_streams():
 
@@ -130,23 +130,22 @@ def parameters_in_instrument(instrument):
 
 def data_streams_in_instrument(instrument, parameters_dict, streams):
     for data_stream in instrument['streams']:
-       stream = (
-           instrument['platform_code'],
-           instrument['mooring_code'],
-           instrument['instrument_code'],
-           data_stream['method'].replace("_","-"),
-           data_stream['stream'].replace("_","-"),
-           instrument['reference_designator'],
-           data_stream['beginTime'],
-           data_stream['endTime'],
-           parameters_dict[data_stream['stream']],
-           parameters_dict[data_stream['stream']+'_variable_type'],
-           parameters_dict[data_stream['stream']+'_units'],
-           parameters_dict[data_stream['stream']+'_variables_shape'],
-           parameters_dict[data_stream['stream']+'_pdId']
-           )
-       #current_app.logger.info("GET %s", each['reference_designator'])
-       streams.append(stream)
+        stream = (
+                instrument['platform_code'],
+                instrument['mooring_code'],
+                instrument['instrument_code'],
+                data_stream['method'].replace("_","-"),
+                data_stream['stream'].replace("_","-"),
+                instrument['reference_designator'],
+                data_stream['beginTime'],
+                data_stream['endTime'],
+                parameters_dict[data_stream['stream']],
+                parameters_dict[data_stream['stream']+'_variable_type'],
+                parameters_dict[data_stream['stream']+'_units'],
+                parameters_dict[data_stream['stream']+'_variables_shape'],
+                parameters_dict[data_stream['stream']+'_pdId']
+            )
+        streams.append(stream)
 
     return streams
 
@@ -359,11 +358,209 @@ def get_uframe_cam_images():
         print error
         return make_response(error, 500)
 
+def _check_for_gps_position_stream(glider_url,glider_stream,glider_method):
+    '''
+        used to chck if a desired stream is available
+    '''
+    url = glider_url+"/metadata"
+    req_gps_info_list = requests.get(url)
+    metadata = req_gps_info_list.json()
+    time_list = metadata['times']
+    param_list = metadata['parameters']
 
-def _compile_glider_tracks():
-    # we will always want the telemetered data, and the engineering stream
+    selected_method = None
+    selected_stream = None
+    selected_times = None
+    selected_depth = None
+
+    for t in time_list:
+        #explicitly set the stream and method if available, and override with the gps info
+        if t['stream'] == 'glider_gps_position' and t['method'] == 'telemetered':
+            selected_method = t['method'],t['stream']
+            selected_stream = t['stream']
+            selected_times = {'begin_time':t['beginTime'],"end_time":t['endTime'],"last_updated":None,"last_requested":None}
+            break
+
+        #use the selected one when found
+        if glider_method == t['method'] and glider_stream == t['stream']:
+            selected_method = t['method'],t['stream']
+            selected_stream = t['stream']
+            selected_times = {'begin_time':t['beginTime'],"end_time":t['endTime'],"last_updated":None,"last_requested":None}
+
+
+    for p in param_list:
+        if p['stream'] == selected_stream:
+            #identify depth
+             #depth_field =
+            available_depth_list = ['sci_water_pressure','m_pressure','m_depth','int_ctd_pressure']
+            if p['particleKey'] in available_depth_list:
+                selected_depth = p
+                break
+
+
+    return selected_method,selected_stream,selected_times,selected_depth
+
+def _select_glider_method(available_glider_methods):
+    if "recovered_host" in available_glider_methods:
+        return "recovered_host",True
+    elif "telemetered" in available_glider_methods:
+        return "telemetered",False
+    return None,None
+
+def _get_glider_track_data(glider_outline,glider_cache=None):
+    '''
+        get the glider track information from uframe
+
+        glider_outline: is the currently obtained gliders from uframe
+        glider_cache  : are the cached gliders we already have in the store!
+    '''
+    gliders_to_update = []
+    glider_skips = []
+    data_limit  = 10
+
+    if glider_cache is not None:
+        #gets the gliders to skip and update. Updated gliders will use the last updated time to update the track from
+        glider_skips, gliders_to_update = _get_existing_glider_ids_to_skip(glider_cache)
+
+
+    t0 = time.time()
+    for glider_track in glider_outline:
+        #if the glider is not in the skips and has depth information
+        if glider_track['depth'] is not None:
+            data_request_str =  "?limit="+ str(data_limit) + '&parameters='+glider_track['depth']['pdId']
+        else:
+            data_request_str =  "?limit="+ str(data_limit) #+ '&parameters=PD1276'
+
+        if glider_track['location'] not in glider_skips:
+            if glider_track['location'] not in gliders_to_update:
+                #if the glider is not in the update list get as much as we can
+                r = requests.get(glider_track['url']+data_request_str)
+                #loop through the returned data
+                track_data = _extract_glider_track_from_data(r.json(),glider_track['depth'])
+                glider_track['track'] = track_data
+                #when was the track updated
+                glider_track['times']['last_updated'] = str(datetime.utcnow())
+                #that last time of the track
+                glider_track['times']['last_requested'] = glider_track['track']['times'][-1] - COSMO_CONSTANT
+            else:
+                print "...exists already..update..."
+                #get the existing
+                existing_data = None
+                for gl in glider_cache:
+                    if glider_track['location'] == gl['location']:
+                        existing_data = gl
+                        break
+
+                dt_old = datetime.strptime(existing_data['times']['end_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+                dt_new = datetime.strptime(glider_track['times']['end_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+                print "old:",dt_old,"\t","new:",dt_new
+                #if the existing data, has the same stream metadata info just use the cache
+                if dt_old != dt_new: #and existing_data['track']['time'][-1] == glider_track['track']['time'][-1]:
+                    #if they dont match, get the new data using the: old end, and the new end
+                    start_req = "&startdt=" + existing_data['times']['end_time']
+                    end_req = "&enddt="   + glider_track['times']['end_time']
+
+                    r = requests.get(glider_track['url']+data_request_str+start_req+end_req)
+                    track_data = _extract_glider_track_from_data(r.json(),glider_track['depth'])
+
+                    #set, the track data to be the cache and add the new data in
+                    glider_track['track'] = existing_data['track']
+                    print "####### adding data......"
+
+                    data_keys = ['depths','coordinates','times']
+
+                    for key in glider_track['track'].keys():
+                        if key in data_keys:
+                            try:
+                                glider_track['track'][key].extend(track_data[key])
+                            except Exception,e:
+                                raise KeyError('Error adding new track data to ('+key+')')
+                else:
+                    #dont update the track use the cache
+                    glider_track['track'] = existing_data['track']
+                    glider_track['times']['last_updated'] = existing_data['times']['last_updated']
+                    glider_track['times']['last_requested'] = glider_track['track']['times'][-1] - COSMO_CONSTANT
+
+
+    t1 = time.time()
+    print t1-t0," secs to complete..."
+    return glider_outline
+
+def _get_existing_glider_ids_to_skip(glider_cache):
+    '''
+        quick pass to identify glider entries that we can skip due to it being recovered
+        also identfies gliders we wish we update, i.e telemetered gliders
+    '''
+    locations_to_skip = []
+    locations_to_update = []
+    for g in glider_cache:
+        #if its recovered we can skip it as
+        #if not we should add the most up todate date for the track
+        if g['is_recovered']:
+            #add to the skip list and move on, as its recovered
+            locations_to_skip.append(g['location'])
+            continue
+
+        #if there is no track or length (0) try and get it "all", using the default limit
+        if 'track' not in g or g['track'] is None or len(g['track']) == 0:
+            #if there was no data, dont do anything as we want another chance to get the data
+            pass
+        else:
+            locations_to_update.append(g['location'])
+
+    print "cache:",len(locations_to_update),len(locations_to_skip),len(glider_cache)
+    return locations_to_skip,locations_to_update,
+
+def _extract_glider_track_from_data(track_data,glider_depth=None):
+    '''
+        loop through the response and create the line track
+    '''
+    lat_field   = "latitude"
+    lon_field   = "longitude"
+    bar_to_m    = 0.09804139432
+
+    coors = []
+    dt = []
+    depths = []
+    glider_depth_units = None
+    has_depth = False
+
+    for row in track_data:
+        has_lon   = not np.isnan(row[lon_field])
+        has_lat   = not np.isnan(row[lat_field])
+        if glider_depth is not None:
+            has_depth = not np.isnan(row[glider_depth['particleKey']])
+
+        if has_lat and has_lon: #and has_depth and (float(row[depth_field]) != -999):
+            #add position
+            coors.append([row[lon_field], row[lat_field]])
+            dt.append(row['pk']['time'])
+            #add depth if available and not nan
+            if (has_depth and
+                (float(row[glider_depth['particleKey']])) != -999 and
+                 (float(row[glider_depth['particleKey']])) != float(glider_depth['fillValue'])):
+
+                if glider_depth['units'] == "bar":
+                    depths.append(row[glider_depth['particleKey']] * bar_to_m)
+                    glider_depth_units = "m"
+                elif glider_depth_units == "m":
+                    depths.append(row[glider_depth['particleKey']])
+            else:
+                depths.append(-999)
+
+    return {"name":row['pk']['subsite']+"-"+row['pk']['node'],
+                             "reference_designator": row['pk']['subsite']+"-"+row['pk']['node']+"-"+row['pk']['sensor'],
+                             "type": "LineString",
+                             "coordinates" : coors,
+                             "times": dt,
+                             "units": glider_depth_units,
+                             "depths": depths}
+
+def _compile_glider_tracks(update_tracks):
+    # we will always want the telemetered data, and the engineering stream if possible
     glider_ids = []
     glider_locations = []
+    glider_info = []
 
     base_url, timeout, timeout_read = get_uframe_info()
     #get the list of mobile assets
@@ -372,70 +569,90 @@ def _compile_glider_tracks():
 
     for p in all_platforms:
         if "MOAS" in p:
+            print p
             r_p = requests.get(base_url+"/"+p)
             try:
                 p_p = r_p.json()
                 for gl in p_p:
-                    glider_location = "/"+p+"/"+gl+"/00-ENG000000/"
-                    glider_locations.append(base_url+glider_location)
-                    glider_name =  glider_location + 'telemetered/glider_eng_telemetered'
-                    url = base_url+glider_name
-                    glider_ids.append(url)
-            except:
-                print "error:", p, r_p.content
+                    glider_location = "/"+p+"/"+gl
+                    glider_url = base_url+glider_location
+                    #get the slider streams to see whats available
+                    req_instrument_list = requests.get(glider_url)
+                    available_instruments = req_instrument_list.json()
+                    #set some defaults, that will be overridden
+                    glider_instrument = None
+                    glider_stream = None
+                    glider_method = None
+                    glider_dates = None
+                    #assume its not recovered until we check the methods
+                    is_recovered = False
+                    #check for eng instrument
+                    if "00-ENG000000" in available_instruments:
+                        glider_instrument = "00-ENG000000"
+                    else:
+                        #use the first available insturment
+                        glider_instrument = available_instruments[0]
 
-    #params for position and depth info
-    params = "?parameters=PD1335,PD1336,PD1276&limit=1000"
-    data = []
-    for i,gl_id in enumerate(glider_ids):
-        try:
-            #print glider_locations[i]+'metadata'
-            r_units = requests.get(glider_locations[i]+'metadata')
-            d_units = r_units.json()
-            d_units = d_units['parameters']
 
-            #create the units
-            glider_depth_units = "m"
+                    #use the selected instrument to create the link, list the others to make them available
+                    glider_location+="/"+glider_instrument
+                    #update the url
+                    glider_url = base_url+glider_location
+                    #store the location to the metadata url
+                    glider_metadata_url = glider_url
+                    #get a list of the methods
+                    req_method_list = requests.get(glider_url)
+                    available_methods = req_method_list.json()
+                    #if its not done get the best selected
+                    if glider_method is None:
+                        glider_method,is_recovered = _select_glider_method(available_methods)
 
-            for row in d_units:
-                if row['particleKey'] == 'm_depth':
-                    #override them in case something different
-                    glider_depth_units = row['particleKey']
+                    #update the location and the url
+                    glider_location+="/"+glider_method
+                    glider_url = base_url+glider_location
 
-            data_url = gl_id + params
-            #print data_url
-            r = requests.get(data_url)
-            metadata = r.json()
+                    req_stream_list = requests.get(glider_url)
+                    available_streams = req_stream_list.json()
+                    if glider_stream is None:
+                        glider_stream = available_streams[0]
+                    else:
+                        available_streams.append(glider_stream)
 
-            coors = []
-            dt = []
-            depths = []
-            for row in metadata:
+                    #used to obtain the date metadata, also used to override the stream and method for glider info
+                    glider_method, glider_stream,glider_dates,glider_depth = _check_for_gps_position_stream(glider_metadata_url,glider_stream,glider_method)
 
-                has_lon   = not np.isnan(row['m_gps_lon'])
-                has_lat   = not np.isnan(row['m_gps_lat'])
-                has_depth = not np.isnan(row['m_depth'])
-                #only add the glider information if deoth is available
-                if has_lat and has_lon and has_depth and (float(row['m_depth']) != -999):
-                    #add position
-                    coors.append([row['m_gps_lon'], row['m_gps_lat']])
-                    dt.append(row['pk']['time'])
-                    #add depth
-                    depths.append(row['m_depth'])
+                    #update the location and the url with the stream
+                    glider_location+="/"+glider_stream
+                    glider_url = base_url+glider_location
 
-            #add glider info to dict
-            data_item = {"name":row['pk']['subsite']+"-"+row['pk']['node'],
-                         "reference_designator": row['pk']['subsite']+"-"+row['pk']['node']+"-"+row['pk']['sensor'],
-                         "type": "LineString",
-                         "coordinates" : coors,
-                         "times": dt,
-                         "units": glider_depth_units,
-                         "depths": depths}
-        except:
-            continue
-        data.append(data_item)
+                    #update the content
+                    glider_info.append({"times": glider_dates,
+                                       "url":glider_url,
+                                       "location":glider_location,
+                                       'instrument':glider_instrument,
+                                       "method":glider_method,
+                                       "stream":glider_stream,
+                                       "depth":glider_depth,
+                                       "available_instruments":available_instruments,
+                                       "available_methods":available_methods,
+                                       "available_streams":available_streams,
+                                       "is_recovered": is_recovered})
 
-    return data
+            except Exception,e:
+                print "error:",e, p, r_p.content
+
+    #glider_info is the glider outline
+    #check for the update flag, will try and update only those available
+    if update_tracks:
+        _get_glider_track_data(glider_info,cache.get('glider_tracks'))
+    else:
+        _get_glider_track_data(glider_info)
+
+    #if weve come this far, update the cache with any changes
+    cache.set('glider_tracks',glider_info)
+
+    #return it so we can see it
+    return glider_info
 
 @api.route('/stream')
 #@auth.login_required
@@ -554,7 +771,6 @@ def get_acoustic_datalist():
     r = requests.get(antelope_url)
     data = r.json()
 
-    COSMO_CONSTANT = 2208988800
     for ind, record in enumerate(data):
         data[ind]['filename'] = record['downloadUrl'].split("/")[-1]
         data[ind]['startTime'] = data[ind]['startTime'] - COSMO_CONSTANT
@@ -598,14 +814,19 @@ def get_uframe_glider_track():
     try:
         cached = cache.get('glider_tracks')
         will_reset_cache = False
+        will_update_using_cache = False
+
+        if request.args.get('update') == 'true':
+            #i.e "update only"
+            will_update_using_cache = True
         if request.args.get('reset') == 'true':
             will_reset_cache = True
+            will_update_using_cache = False
 
-        will_reset = request.args.get('reset')
-        if cached and not(will_reset_cache):
+        if cached and not(will_reset_cache) and not (will_update_using_cache):
             data = cached
         else:
-            data = _compile_glider_tracks()
+            data = _compile_glider_tracks(will_update_using_cache)
 
             if "error" not in data:
                 cache.set('glider_tracks', data, timeout=CACHE_TIMEOUT)
@@ -1059,7 +1280,8 @@ def get_uframe_info():
 def validate_date_time(start_time, end_time):
     '''
     uframe_data_request_limit = int(current_app.config['UFRAME_DATA_REQUEST_LIMIT'])/1440
-    new_end_time_strp = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ") + datetime.timedelta(days=uframe_data_request_limit)
+    new_end_time_strp = datetime.datetime.strptime(start_time, "
+                                                   ") + datetime.timedelta(days=uframe_data_request_limit)
     old_end_time_strp = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ")
     new_end_time = datetime.datetime.strftime(new_end_time_strp, "%Y-%m-%dT%H:%M:%S.%fZ")
     if old_end_time_strp > new_end_time_strp:
