@@ -5,13 +5,14 @@ OOI Models
 
 __author__ = 'M@Campbell'
 
-from werkzeug.security import generate_password_hash, check_password_hash
+# from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.sql import expression
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app
 from flask.ext.sqlalchemy import BaseQuery
 from ooiservices.app import db, login_manager
-from flask.ext.login import UserMixin
+from flask.ext.security import UserMixin, RoleMixin
+from flask_security.utils import encrypt_password, verify_password as fs_verify_password
 from wtforms import ValidationError
 from geoalchemy2.types import Geometry
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -1101,6 +1102,26 @@ class UserScope(db.Model, DictSerializableMixin):
     def __repr__(self):
         return '<Scope ID: %r, Scope Name: %s>' % (self.id, self.scope_name)
 
+class RolesUsers(db.Model):
+    __tablename__ = 'roles_users'
+    __table_args__ = {u'schema': __schema__}
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.ForeignKey(u'' + __schema__ + '.users.id'), nullable=False)
+    role_id = db.Column(db.ForeignKey(u'' + __schema__ + '.roles.id'), nullable=False)
+
+    roles = db.relationship(u'Role')
+    users = db.relationship(u'User')
+
+class Role(db.Model, RoleMixin):
+    __tablename__ = 'roles'
+    __table_args__ = {u'schema': __schema__}
+
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(80), unique=True)
+    description = db.Column(db.String(255))
+
+    # roles_users = db.relationship(u'RolesUsers')
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -1108,11 +1129,11 @@ class User(UserMixin, db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Text, unique=True, nullable=False)
-    pass_hash = db.Column(db.Text)
     email = db.Column(db.Text, unique=True, nullable=False)
+    _password = db.Column(db.String(255), nullable=False)
     user_name = db.Column(db.Text, unique=True, nullable=False)
-    active = db.Column(db.Boolean, nullable=False, server_default=db.text("false"))
-    confirmed_at = db.Column(db.Date)
+    active = db.Column(db.Boolean())
+    confirmed_at = db.Column(db.DateTime())
     first_name = db.Column(db.Text)
     last_name = db.Column(db.Text)
     phone_primary = db.Column(db.Text)
@@ -1127,12 +1148,11 @@ class User(UserMixin, db.Model):
     vocation = db.Column(db.Text)
     country = db.Column(db.Text)
     state = db.Column(db.Text)
+    roles = db.relationship(u'Role', secondary=RolesUsers.__table__, backref=db.backref('users', lazy='dynamic'))
 
-   # def __init__(self, **kwargs):
-   #     super(User, self).__init__(**kwargs)
-   #         self.scope = Scope.query.filter_by(scope_name='user_admin').first()
-   #         if self.scope is None:
-   #             self.scope = Role.query.filter_by(default=True).first()
+    @hybrid_property
+    def pass_hash(self):
+        return self._password
 
     def to_json(self):
         json_user = {
@@ -1179,10 +1199,10 @@ class User(UserMixin, db.Model):
         new_user = User()
         new_user.validate_email(email)
         new_user.validate_password(password, password2)
-        pass_hash = generate_password_hash(password)
+        pass_hash = encrypt_password(password)
         #All passes, return the User object ready to be stored.
         return User(email=email,
-                    pass_hash=pass_hash,
+                    password=pass_hash,
                     phone_primary=phone_primary,
                     user_name=email,
                     user_id=email,
@@ -1207,14 +1227,18 @@ class User(UserMixin, db.Model):
                     phone_primary='8001234567',
                     other_organization=None):
         try:
-            user = User(password=password, first_name=first_name, active=True, email_opt_in=True)
+            user = User()
+            user.password = password
             user.validate_username(username)
             user.validate_email(email)
             user.user_name = username
             user.email = email
             user.user_id = username
+            user.first_name = first_name
             user.last_name = last_name
             user.phone_primary = phone_primary
+            user.active = True
+            user.email_opt_in = True
             org = Organization.query.filter(Organization.organization_name == org_name).first()
             user.organization_id = org.id
             if org.id == 9:
@@ -1229,17 +1253,26 @@ class User(UserMixin, db.Model):
             db.session.rollback()
             raise
 
-    @property
+    # TODO: Revisit security concerns regarding the return of password
+    @hybrid_property
     def password(self):
-        raise AttributeError('password is not a readable attribute')
+        return self._password
 
-    #Store the hashed password.
     @password.setter
-    def password(self, password):
-        self.pass_hash = generate_password_hash(password)
+    def password(self, plaintext):
+        self._password = encrypt_password(plaintext)
+
+    # @property
+    # def password(self):
+    #     raise AttributeError('password is not a readable attribute')
+    #
+    # #Store the hashed password.
+    # @password.setter
+    # def password(self, password):
+    #     self.password = encrypt_password(password)
 
     def verify_password(self, password):
-        return check_password_hash(self.pass_hash, password)
+        return fs_verify_password(password, self._password)
 
     def validate_email(self, field):
         if User.query.filter_by(email=field).first():
