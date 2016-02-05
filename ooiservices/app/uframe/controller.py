@@ -130,23 +130,22 @@ def parameters_in_instrument(instrument):
 
 def data_streams_in_instrument(instrument, parameters_dict, streams):
     for data_stream in instrument['streams']:
-        if "glider_gps_position" not in data_stream['stream']:
-            stream = (
-               instrument['platform_code'],
-               instrument['mooring_code'],
-               instrument['instrument_code'],
-               data_stream['method'].replace("_","-"),
-               data_stream['stream'].replace("_","-"),
-               instrument['reference_designator'],
-               data_stream['beginTime'],
-               data_stream['endTime'],
-               parameters_dict[data_stream['stream']],
-               parameters_dict[data_stream['stream']+'_variable_type'],
-               parameters_dict[data_stream['stream']+'_units'],
-               parameters_dict[data_stream['stream']+'_variables_shape'],
-               parameters_dict[data_stream['stream']+'_pdId']
-               )
-            streams.append(stream)
+        stream = (
+                instrument['platform_code'],
+                instrument['mooring_code'],
+                instrument['instrument_code'],
+                data_stream['method'].replace("_","-"),
+                data_stream['stream'].replace("_","-"),
+                instrument['reference_designator'],
+                data_stream['beginTime'],
+                data_stream['endTime'],
+                parameters_dict[data_stream['stream']],
+                parameters_dict[data_stream['stream']+'_variable_type'],
+                parameters_dict[data_stream['stream']+'_units'],
+                parameters_dict[data_stream['stream']+'_variables_shape'],
+                parameters_dict[data_stream['stream']+'_pdId']
+            )
+        streams.append(stream)
 
     return streams
 
