@@ -1150,10 +1150,6 @@ class User(UserMixin, db.Model):
     state = db.Column(db.Text)
     roles = db.relationship(u'Role', secondary=RolesUsers.__table__, backref=db.backref('users', lazy='dynamic'))
 
-    @hybrid_property
-    def pass_hash(self):
-        return self._password
-
     def to_json(self):
         json_user = {
             'id' : self.id,
@@ -1199,10 +1195,10 @@ class User(UserMixin, db.Model):
         new_user = User()
         new_user.validate_email(email)
         new_user.validate_password(password, password2)
-        pass_hash = encrypt_password(password)
+
         #All passes, return the User object ready to be stored.
         return User(email=email,
-                    password=pass_hash,
+                    password=password,
                     phone_primary=phone_primary,
                     user_name=email,
                     user_id=email,
@@ -1253,23 +1249,13 @@ class User(UserMixin, db.Model):
             db.session.rollback()
             raise
 
-    # TODO: Revisit security concerns regarding the return of password
-    @hybrid_property
+    @property
     def password(self):
-        return self._password
+        raise AttributeError('password is not a readable attribute')
 
     @password.setter
     def password(self, plaintext):
         self._password = encrypt_password(plaintext)
-
-    # @property
-    # def password(self):
-    #     raise AttributeError('password is not a readable attribute')
-    #
-    # #Store the hashed password.
-    # @password.setter
-    # def password(self, password):
-    #     self.password = encrypt_password(password)
 
     def verify_password(self, password):
         return fs_verify_password(password, self._password)

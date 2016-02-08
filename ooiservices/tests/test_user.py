@@ -182,15 +182,14 @@ class UserTestCase(unittest.TestCase):
         user_name = User.query.filter_by(user_name='admin').first()
         self.assertTrue(user_name.user_name == 'admin')
 
-    # TODO: Revisit security concerns regarding the return of password
-    # def test_password_tampering(self):
-    #     u = User(password='cat')
-    #     with self.assertRaises(AttributeError):
-    #         u.password
+    def test_password_tampering(self):
+        u = User(password='cat')
+        with self.assertRaises(AttributeError):
+            u.password
 
     def test_password_hashing(self):
         u = User(password='dog')
-        self.assertTrue(u.pass_hash is not None)
+        self.assertTrue(u._password is not None)
 
     def test_password_verification(self):
         u = User(password='dog')
@@ -200,7 +199,7 @@ class UserTestCase(unittest.TestCase):
     def test_password_salts(self):
         u = User(password='dog')
         u2 = User(password='dog')
-        self.assertTrue(u.pass_hash != u2.pass_hash)
+        self.assertTrue(u._password != u2._password)
 
     #Test user API routes
     #For route: /user/<string:id>
