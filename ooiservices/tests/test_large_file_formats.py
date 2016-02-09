@@ -14,7 +14,6 @@ class UframeLargeDataTestCase(unittest.TestCase):
         self.app = create_app('TESTING_CONFIG')
         self.app_context = self.app.app_context()
         self.app_context.push()
-        # db.create_all()
         self.client = self.app.test_client(use_cookies=False)
 
         # Set up the test case ref_des and date
@@ -23,6 +22,9 @@ class UframeLargeDataTestCase(unittest.TestCase):
         self.month = '11'
         self.day = '30'
         self.date_str = '-'.join([self.year, self.month, self.day])
+
+    def tearDown(self):
+        self.app_context.pop()
 
     def test_compile_large_format_files(self):
         '''
