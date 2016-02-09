@@ -131,23 +131,24 @@ def parameters_in_instrument(instrument):
 
 def data_streams_in_instrument(instrument, parameters_dict, streams):
     for data_stream in instrument['streams']:
-       stream = (
-           instrument['platform_code'],
-           instrument['mooring_code'],
-           instrument['instrument_code'],
-           data_stream['method'].replace("_","-"),
-           data_stream['stream'].replace("_","-"),
-           instrument['reference_designator'],
-           data_stream['beginTime'],
-           data_stream['endTime'],
-           parameters_dict[data_stream['stream']],
-           parameters_dict[data_stream['stream']+'_variable_type'],
-           parameters_dict[data_stream['stream']+'_units'],
-           parameters_dict[data_stream['stream']+'_variables_shape'],
-           parameters_dict[data_stream['stream']+'_pdId']
-           )
-       #current_app.logger.info("GET %s", each['reference_designator'])
-       streams.append(stream)
+        if "glider_gps_position" not in data_stream['stream']:
+            stream = (
+               instrument['platform_code'],
+               instrument['mooring_code'],
+               instrument['instrument_code'],
+               data_stream['method'].replace("_","-"),
+               data_stream['stream'].replace("_","-"),
+               instrument['reference_designator'],
+               data_stream['beginTime'],
+               data_stream['endTime'],
+               parameters_dict[data_stream['stream']],
+               parameters_dict[data_stream['stream']+'_variable_type'],
+               parameters_dict[data_stream['stream']+'_units'],
+               parameters_dict[data_stream['stream']+'_variables_shape'],
+               parameters_dict[data_stream['stream']+'_pdId']
+               )
+            #current_app.logger.info("GET %s", each['reference_designator'])
+            streams.append(stream)
 
     return streams
 
@@ -372,12 +373,12 @@ def _create_entry(url, ext):
     #  OBS .mseed = OO-HYSB1--BHE.2015-09-03T23:54:37.100000.mseed
     #  CAMHD .mov = CAMHDA301-20151119T210000Z.mov
     #  CAMHS .mp4 = CAMHDA301-20151119T210000Z.mp4
-    
+
     filename = url.split('/')[-1]
     if ext == '.png':
         ref = filename.split(ext)[0].split('_')
         dt = urllib.unquote(ref[1]).decode('utf8')
-        dt = dt.replace(',','.')
+        dt = dt.replace(',', '.')
 
     elif ext == '.raw':
         ref = filename.split(ext)[0].split('_OOI-D')
@@ -435,11 +436,15 @@ def _compile_large_format_files():
     filetypes_to_check = ['-HYD', '-OBS', '-CAMDS', '-CAMHD', '-ZPL']
     extensions_to_check = ['.mseed', '.png', '.mp4', '.mov', '.raw']
 
+    # Go fetch whatever data has already been saved to the json file
     data_dict = get_large_file_json()
+
+    # Get the current date to use to check against the data on HYRAX server
     current_year = datetime.utcnow().strftime('%Y')
     current_month = datetime.utcnow().strftime('%m')
     current_day = datetime.utcnow().strftime('%d')
-    # Ok let's walk the directory structure for all these ref-des
+
+    # Ok let's walk the HYRAX server directory structure {ref-des > year > month > day}
     for s in ss:
         if 'href' in s.attrs:
             # REF DES
@@ -448,27 +453,30 @@ def _compile_large_format_files():
                 ref_des = s.attrs['href'].split('/')[0]
                 if ref_des not in data_dict:
                     data_dict[ref_des] = {}
-                d_url = url+s.attrs['href']
-                url_list = _get_folder_list(d_url, 'contents.html')
+                ref_url = url+s.attrs['href']
+                url_list = _get_folder_list(ref_url, 'contents.html')
+
                 # YEAR
-                for d_url in url_list:
-                    year = d_url.split('/contents.html')[0].split('/')[-1]
+                for year_url in url_list:
+                    year = year_url.split('/contents.html')[0].split('/')[-1]
                     if year not in data_dict[ref_des]:
                         data_dict[ref_des][year] = {}
                     elif year != current_year:  # Move onto next year, this one's old!
                         continue
-                    url_list1 = _get_folder_list(d_url, 'contents.html')
+                    url_list1 = _get_folder_list(year_url, 'contents.html')
+
                     # MONTH
-                    for d_url1 in url_list1:
-                        month = d_url1.split('/contents.html')[0].split('/')[-1]
+                    for month_url in url_list1:
+                        month = month_url.split('/contents.html')[0].split('/')[-1]
                         if month not in data_dict[ref_des][year]:
                             data_dict[ref_des][year][month] = {}
                         elif month != current_month:  # Move onto next month, this one's old!
                             continue
+                        url_list2 = _get_folder_list(month_url, 'contents.html')
+
                         # DAY
-                        url_list2 = _get_folder_list(d_url1, 'contents.html')
-                        for d_url2 in url_list2:
-                            day = d_url2.split('/contents.html')[0].split('/')[-1]
+                        for day_url in url_list2:
+                            day = day_url.split('/contents.html')[0].split('/')[-1]
                             if day not in data_dict[ref_des][year][month]:
                                 data_dict[ref_des][year][month][day] = []
                             elif day != current_day:  # Move onto next day, this one's old!
@@ -476,10 +484,11 @@ def _compile_large_format_files():
 
                             for ext in extensions_to_check:
                                 # file
-                                url_list3 = _get_folder_list(d_url2, ext)
+                                url_list3 = _get_folder_list(day_url, ext)
                                 for im_url in url_list3:
                                     entry = _create_entry(im_url, ext)
                                     data_dict[ref_des][year][month][day].append(entry)
+
                 current_app.logger.debug(ref_des + " found " + str(len(data_dict[ref_des])) + " files")
 
     # Update the json file
@@ -488,8 +497,8 @@ def _compile_large_format_files():
     return data_dict
 
 
-@api.route('/get_large_format_files_by_ref/<string:ref_des>')
-def get_uframe_large_format_files_by_ref(ref_des):
+@api.route('/get_large_format_files_by_ref/<string:ref_des>/<string:date_str>')
+def get_uframe_large_format_files_by_ref(ref_des, date_str):
     '''
     Walk the Hyrax server and parse out all available large format files
     '''
@@ -498,14 +507,23 @@ def get_uframe_large_format_files_by_ref(ref_des):
 
         if cached:
             data = cached
-            if ref_des in data:
-                return jsonify(data[ref_des])
-            else:
-                error = "Error: %s data not available." % (ref_des)
+            # Get the date we're looking for
+            date = date_str.split('-')
+            if len(date) < 3:
+                error = 'Date format not compliant, expecting ISO8601 (yyyy-mm-dd)'
+                return make_response(error, 500)
+            year = date[0]
+            month = date[1]
+            day = date[2]
+            try:
+                response = {'data': data[ref_des][year][month][day]}
+                return jsonify(response)
+            except Exception:
+                error = "Error: %s data not available for this date." % (ref_des)
                 return make_response(error, 500)
         else:
             # Throw an error because it takes too long
-            error = "Error: Data not available."
+            error = "Error: Data not available for this date."
             return make_response(error, 500)
 
     except requests.exceptions.ConnectionError as e:
@@ -516,7 +534,7 @@ def get_uframe_large_format_files_by_ref(ref_des):
 @api.route('/get_large_format_files')
 def get_uframe_large_format_files():
     '''
-    Get all available large format files (from cache if necessary)
+    Get all available large format files
     '''
     try:
         cached = get_large_file_json()
