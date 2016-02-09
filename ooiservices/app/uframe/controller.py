@@ -423,10 +423,23 @@ def get_large_file_json():
     return processed_data
 
 
-def _compile_large_format_files():
+def _compile_large_format_files(test_ref_des=None, test_date_str=None):
     '''
     Loop over a directory list to get the files available (url>ref>year>month>day>image)
+
+    Optional arguments are for testing ONLY:
+        ref_des: Pass in a reference designator to only retrieve those results
+        date_str: Pass in a date string (yyyy-mm-dd) to only get data from a specific day
     '''
+    testing = False
+    if test_ref_des is not None and test_date_str is not None:
+        testing = True
+        # Get the date we're looking for
+        date = test_date_str.split('-')
+        test_year = date[0]
+        test_month = date[1]
+        test_day = date[2]
+
     url = current_app.config['IMAGE_CAMERA_STORE']
     r = requests.get(url)
 
@@ -449,8 +462,10 @@ def _compile_large_format_files():
         if 'href' in s.attrs:
             # REF DES
             if any(filetype in s.attrs['href'] for filetype in filetypes_to_check):
-                current_app.logger.debug(s.attrs['href'])
                 ref_des = s.attrs['href'].split('/')[0]
+                if (testing and test_ref_des != ref_des):
+                    continue
+                current_app.logger.debug(ref_des)
                 if ref_des not in data_dict:
                     data_dict[ref_des] = {}
                 ref_url = url+s.attrs['href']
@@ -459,6 +474,8 @@ def _compile_large_format_files():
                 # YEAR
                 for year_url in url_list:
                     year = year_url.split('/contents.html')[0].split('/')[-1]
+                    if (testing and test_year != year):
+                        continue
                     if year not in data_dict[ref_des]:
                         data_dict[ref_des][year] = {}
                     elif year != current_year:  # Move onto next year, this one's old!
@@ -468,6 +485,8 @@ def _compile_large_format_files():
                     # MONTH
                     for month_url in url_list1:
                         month = month_url.split('/contents.html')[0].split('/')[-1]
+                        if (testing and test_month != month):
+                            continue
                         if month not in data_dict[ref_des][year]:
                             data_dict[ref_des][year][month] = {}
                         elif month != current_month:  # Move onto next month, this one's old!
@@ -477,6 +496,8 @@ def _compile_large_format_files():
                         # DAY
                         for day_url in url_list2:
                             day = day_url.split('/contents.html')[0].split('/')[-1]
+                            if (testing and test_day != day):
+                                continue
                             if day not in data_dict[ref_des][year][month]:
                                 data_dict[ref_des][year][month][day] = []
                             elif day != current_day:  # Move onto next day, this one's old!
