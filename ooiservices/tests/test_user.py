@@ -189,7 +189,7 @@ class UserTestCase(unittest.TestCase):
 
     def test_password_hashing(self):
         u = User(password='dog')
-        self.assertTrue(u.pass_hash is not None)
+        self.assertTrue(u._password is not None)
 
     def test_password_verification(self):
         u = User(password='dog')
@@ -199,7 +199,7 @@ class UserTestCase(unittest.TestCase):
     def test_password_salts(self):
         u = User(password='dog')
         u2 = User(password='dog')
-        self.assertTrue(u.pass_hash != u2.pass_hash)
+        self.assertTrue(u._password != u2._password)
 
     #Test user API routes
     #For route: /user/<string:id>
