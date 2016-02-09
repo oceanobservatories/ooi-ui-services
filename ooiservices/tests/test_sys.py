@@ -15,6 +15,7 @@ from ooiservices.app.models import User, UserScope, Organization
 test_username = 'admin'
 test_password = 'test'
 
+
 class SystemTestCase(unittest.TestCase):
     def setUp(self):
         self.app = create_app('TESTING_CONFIG')
@@ -41,8 +42,37 @@ class SystemTestCase(unittest.TestCase):
 
     def test_list_routes(self):
         # Get routes
-        response = self.client.get(url_for('main.list_routes'), content_type = 'application/json')
+        response = self.client.get(url_for('main.list_routes'),
+                                   content_type='application/json')
         self.assertTrue(response.status_code == 200)
 
         data = json.loads(response.data)
         self.assertIn('routes', data)
+
+    '''
+    The redis cache clear route is defined by:
+    '''
+    def test_clear_redis(self):
+
+        '''
+        It should require administrative privileges.
+        '''
+        # setup the credentials
+        headers = self.get_api_headers('admin', 'test')
+
+        '''
+        It should accept JSON as the method for determining what needs
+            to be deleted
+        '''
+        data = {'delete': ['flask_cache_event_list']}
+
+        # issue the request
+        response = self.client.post(url_for('main.del_cache'),
+                                    headers=headers,
+                                    data=data,
+                                    content_type='application/json')
+
+        '''
+        It should respond back with a 200 status code.
+        '''
+        self.assertTrue(response.status_code == 200)
