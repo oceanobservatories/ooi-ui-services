@@ -44,7 +44,6 @@ __author__ = 'Andy Bird'
 
 requests.adapters.DEFAULT_RETRIES = 2
 CACHE_TIMEOUT = 172800
-LARGE_FILE_FORMAT_JSON = 'ooiservices/app/json/largeFormatProcessedFiles.json'
 
 
 def dfs_streams():
@@ -406,23 +405,6 @@ def _create_entry(url, ext):
     return item
 
 
-def update_large_file_json(data):
-    ''' Update the large file format json listing'''
-
-    with open(LARGE_FILE_FORMAT_JSON, 'w') as f:
-        json.dump(data, f)
-
-
-def get_large_file_json():
-    ''' Get the contents of the large file format json listing'''
-    processed_data = {}
-    if os.path.isfile(LARGE_FILE_FORMAT_JSON):
-        with open(LARGE_FILE_FORMAT_JSON, 'r') as f:
-            processed_data = json.load(f)
-
-    return processed_data
-
-
 def _compile_large_format_files(test_ref_des=None, test_date_str=None):
     '''
     Loop over a directory list to get the files available (url>ref>year>month>day>image)
@@ -449,8 +431,8 @@ def _compile_large_format_files(test_ref_des=None, test_date_str=None):
     filetypes_to_check = ['-HYD', '-OBS', '-CAMDS', '-CAMHD', '-ZPL']
     extensions_to_check = ['.mseed', '.png', '.mp4', '.mov', '.raw']
 
-    # Go fetch whatever data has already been saved to the json file
-    data_dict = get_large_file_json()
+    # Go fetch whatever data has already been cached
+    data_dict = {} if cache.get('large_format') is None else cache.get('large_format')
 
     # Get the current date to use to check against the data on HYRAX server
     current_year = datetime.utcnow().strftime('%Y')
@@ -510,10 +492,8 @@ def _compile_large_format_files(test_ref_des=None, test_date_str=None):
                                     entry = _create_entry(im_url, ext)
                                     data_dict[ref_des][year][month][day].append(entry)
 
-                current_app.logger.debug(ref_des + " found " + str(len(data_dict[ref_des])) + " files")
-
-    # Update the json file
-    update_large_file_json(data_dict)
+                # Update the cache in case the connection gets reset you don't want to lose anything
+                cache.set('large_format', data_dict, timeout=CACHE_TIMEOUT)
 
     return data_dict
 
@@ -524,7 +504,7 @@ def get_uframe_large_format_files_by_ref(ref_des, date_str):
     Walk the Hyrax server and parse out all available large format files
     '''
     try:
-        cached = get_large_file_json()
+        cached = cache.get('large_format')
 
         if cached:
             data = cached
@@ -558,12 +538,13 @@ def get_uframe_large_format_files():
     Get all available large format files
     '''
     try:
-        cached = get_large_file_json()
-
+        cached = cache.get('large_format')
         if cached:
             data = cached
         else:
             data = _compile_large_format_files()
+            if "error" not in data:
+                cache.set('large_format', data, timeout=CACHE_TIMEOUT)
 
         return jsonify(data)
     except requests.exceptions.ConnectionError as e:

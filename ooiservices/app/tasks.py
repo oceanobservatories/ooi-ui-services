@@ -127,7 +127,7 @@ def compile_cam_images():
         data = _compile_large_format_files()
 
         if "error" not in data:
-            # cache.set('large_format', data, timeout=CACHE_TIMEOUT)
+            cache.set('large_format', data, timeout=CACHE_TIMEOUT)
             print "[+] large format files updated."
         else:
             print "[-] Error in large file format update"
