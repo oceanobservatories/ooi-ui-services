@@ -7,11 +7,7 @@ __author__ = 'M@Campbell'
 
 from flask import jsonify, current_app, request
 from ooiservices.app.main import api
-from ooiservices.app.tasks import compile_glider_tracks
-from ooiservices.app.tasks import compile_events
-from ooiservices.app.tasks import compile_cam_images
-from ooiservices.app.tasks import compile_assets
-from ooiservices.app.tasks import compile_streams
+from celery.task.control import discard_all
 import urllib
 import subprocess
 
@@ -97,11 +93,7 @@ def cache_list(key=None):
 
             # for now, lets just call all the celery functions to repopulate
             if output == 1:
-                compile_glider_tracks()
-                compile_cam_images()
-                compile_assets()
-                compile_streams()
-                compile_events()
+                discard_all()
 
             return jsonify({'results': int(output)}), 200
 
