@@ -9,7 +9,6 @@ from flask import jsonify, current_app, request
 from ooiservices.app.main import api
 import urllib
 import subprocess
-import json
 
 
 @api.route('/list_routes', methods=['GET'])
@@ -31,14 +30,14 @@ def list_routes():
     return jsonify({'routes': routes})
 
 
-@api.route('/cache_keys', methods=['GET', 'POST'])
-def cache_list():
+@api.route('/cache_keys', methods=['GET'])
+@api.route('/cache_keys/<string:key>', methods=['DELETE'])
+def cache_list(key=None):
     '''
     @method GET: returns this list of flask cache keys and their
                  time to live (TTL)
-    @method POST: Submitting a post request with a list of keys
-                  will delete each key in the list
-                  Example: {delete: [<cache_item_1>, <cache_item_2>, ...]}
+    @method DELETE: Send a delete request passing in the name of the
+                    cache key that needs to be deleted.
     '''
     if request.method == 'GET':
         # setup the container for the list of current cache items
@@ -50,7 +49,7 @@ def cache_list():
         output, err = pipe_output.communicate()
 
         # the output is a string, so lets load it into the array based
-        # in it's delimiter
+        # on it's delimiter
         flask_cache = output.split('\n')
 
         # we don't want to provide system level redis keys, so iterate
@@ -76,27 +75,19 @@ def cache_list():
         # clear out this for garbage collection of flask_cache ref
         temp_list = None
 
-        return jsonify({'cache_list': flask_cache}), 200
+        return jsonify({'results': flask_cache})
 
-    elif request.method == 'POST':
-        redis_response = 1
-
+    elif request.method == 'DELETE':
         try:
             # grab the json and load the payload
-            redis_list = json.loads(request.data)
+            redis_key = key
 
             # for each item in the list, delete the cache
-            for cache_key in redis_list['delete']:
-                pipe_output = subprocess.Popen(['redis-cli', 'del', cache_key],
-                                               stdout=subprocess.PIPE)
-                output, err = pipe_output.communicate()
+            pipe_output = subprocess.Popen(['redis-cli', 'del', redis_key],
+                                           stdout=subprocess.PIPE)
+            output, err = pipe_output.communicate()
 
-                # figure out if the response is a great success
-                # by multiplying the redis_response by the output
-                # which will be a 1 for success and a 0 otherwise
-                redis_response = redis_response*output
-
-            return jsonify({'response': int(redis_response)}), 200
+            return jsonify({'results': int(output)}), 200
 
         except Exception as e:
             return jsonify({'error': 'Exception in cache delete. %s' % e}), 500
