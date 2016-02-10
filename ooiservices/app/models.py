@@ -1049,9 +1049,8 @@ class UserScopeLink(db.Model):
     @staticmethod
     def insert_scope_link():
         usl = UserScopeLink(user_id='1')
-        for x in range(1, 7):
-            usl.scope_id = x
-            db.session.add(usl)
+        usl.scope_id = '1'
+        db.session.add(usl)
         db.session.commit()
 
     def to_json(self):

@@ -31,8 +31,7 @@ def list_routes():
     return jsonify({'routes': routes})
 
 
-@api.route('/get_cache_list', methods=['GET'])
-# TODO: @scope_required('sys_admin')
+@api.route('/cache_keys', methods=['GET'])
 def get_cache_list():
     # setup the container for the list of current cache items
     flask_cache = []
@@ -52,24 +51,31 @@ def get_cache_list():
     temp_list = []
     for cache_key in flask_cache:
         if 'flask_cache' in cache_key:
-            temp_list.append(cache_key)
+            temp_list.append({'key': cache_key})
 
+    # assign the list to the main bin
     flask_cache = temp_list
-    temp_list = None  # clear out this for garbage collection
 
-    return jsonify({'response': flask_cache}), 200
+    # lets get the TTL of each of the keys so we can see how long ago
+    # they were created.
+    for cache_key in flask_cache:
+        pipe_output = subprocess.Popen(['redis-cli', 'TTL', cache_key['key']],
+                                       stdout=subprocess.PIPE)
+        output, err = pipe_output.communicate()
+        cache_key['TTL'] = output.split('\n')[0]
+
+    # clear out this for garbage collection of flask_cache ref
+    temp_list = None
+
+    return jsonify({'cache_list': flask_cache}), 200
 
 
 @api.route('/delete_cache', methods=['POST'])
-# TODO: @scope_required('sys_admin')
 def delete_cache():
     '''
     Example Post:
-        {delete: [<cache_item_1>, <cache_item_2>, ...]}
+    {delete: [<cache_item_1>, <cache_item_2>, ...]}
 
-    Response Codes:
-        1 = success
-        0 = not success
     '''
 
     redis_response = 1
@@ -92,4 +98,4 @@ def delete_cache():
         return jsonify({'response': int(redis_response)}), 200
 
     except Exception as e:
-        return jsonify({'error': 'Exception in cache deletion: %s' % e}), 500
+        return jsonify({'error': 'Exception in cache deletion. %s' % e}), 500
