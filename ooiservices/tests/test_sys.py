@@ -56,14 +56,16 @@ class SystemTestCase(unittest.TestCase):
         # setup a test cache list
         cache.set('test_list', [{'something': 'something'}, {'dark': 'side'}])
 
+        # it should be able to read from the redis cache
         # test GET
         response = self.client.get(url_for('main.cache_list'),
                                    content_type='application/json')
+        self.assertTrue('test_list' in response.data)
 
-        self.assertTrue('test_list' in response)
-
+        # it should be able to delete a cache item provided a name
         # test DELETE
-        response = self.client.delete(url_for('main.cache_list')+'/test_list',
+        cache_key = 'flask_cache_test_list'
+        response = self.client.delete(url_for('main.cache_list')+'/'+cache_key,
                                       content_type='application/json')
 
-        self.assertTrue(1 in response)
+        self.assertTrue("1" in response.data)
