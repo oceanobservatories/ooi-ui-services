@@ -9,7 +9,7 @@ import unittest
 import json
 from base64 import b64encode
 from flask import url_for
-from ooiservices.app import create_app, db
+from ooiservices.app import create_app, db, cache
 from ooiservices.app.models import User, UserScope, Organization
 
 test_username = 'admin'
@@ -53,26 +53,17 @@ class SystemTestCase(unittest.TestCase):
     The redis cache clear route is defined by:
     '''
     def test_clear_redis(self):
+        # setup a test cache list
+        cache.set('test_list', [{'something': 'something'}, {'dark': 'side'}])
 
-        '''
-        It should require administrative privileges.
-        '''
-        # setup the credentials
-        headers = self.get_api_headers('admin', 'test')
+        # test GET
+        response = self.client.get(url_for('main.cache_list'),
+                                   content_type='application/json')
 
-        '''
-        It should accept JSON as the method for determining what needs
-            to be deleted
-        '''
-        data = {'delete': ['flask_cache_event_list']}
+        self.assertTrue('test_list' in response)
 
-        # issue the request
-        response = self.client.post(url_for('main.del_cache'),
-                                    headers=headers,
-                                    data=data,
-                                    content_type='application/json')
+        # test DELETE
+        response = self.client.delete(url_for('main.cache_list')+'/test_list',
+                                      content_type='application/json')
 
-        '''
-        It should respond back with a 200 status code.
-        '''
-        self.assertTrue(response.status_code == 200)
+        self.assertTrue(1 in response)

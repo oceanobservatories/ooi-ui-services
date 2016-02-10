@@ -34,10 +34,15 @@ def list_routes():
 @api.route('/cache_keys/<string:key>', methods=['DELETE'])
 def cache_list(key=None):
     '''
-    @method GET: returns this list of flask cache keys and their
-                 time to live (TTL)
-    @method DELETE: Send a delete request passing in the name of the
-                    cache key that needs to be deleted.
+    @method GET:
+        Returns this list of flask cache keys and their
+        time to live (TTL)
+        :return: JSON
+
+    @method DELETE:
+        Send a delete request passing in the name of the
+        cache key that needs to be deleted.
+        :return: JSON
     '''
     if request.method == 'GET':
         # setup the container for the list of current cache items
@@ -48,23 +53,21 @@ def cache_list(key=None):
                                        stdout=subprocess.PIPE)
         output, err = pipe_output.communicate()
 
-        # the output is a string, so lets load it into the array based
-        # on it's delimiter
+        # the output is a string, so lets load it into the array
         flask_cache = output.split('\n')
 
-        # we don't want to provide system level redis keys, so iterate
-        # over the list and only provide those that are prefixed
-        # by 'flask_cache'
+        # we don't want to provide system keys, remove non "flask_cache"
         temp_list = []
         for cache_key in flask_cache:
             if 'flask_cache' in cache_key:
-                temp_list.append({'key': cache_key})
+                temp_list.append({'key': cache_key,
+                                  'name': cache_key.split('_')[2]
+                                  })
 
         # assign the list to the main bin
         flask_cache = temp_list
 
-        # lets get the TTL of each of the keys so we can see how long ago
-        # they were created.
+        # lets get the TTL of each of the keys
         for cache_key in flask_cache:
             pipe_output = subprocess.Popen(['redis-cli', 'TTL',
                                             cache_key['key']],
