@@ -236,40 +236,50 @@ class UserTestCase(unittest.TestCase):
 
         # Expected user_scopes
         user_scopes_data = \
+            {
+            "user_scopes": [
                 {
-                        "user_scopes": [
-                            {
-                                "id": 1,
-                                "scope_description": None,
-                                "scope_name": "user_admin"
-                                },
-                            {
-                                "id": 2,
-                                "scope_description": None,
-                                "scope_name": "annotate"
-                                },
-                            {
-                                "id": 3,
-                                "scope_description": None,
-                                "scope_name": "asset_manager"
-                                },
-                            {
-                                "id": 4,
-                                "scope_description": None,
-                                "scope_name": "command_control"
-                                },
-                            {
-                                "id": 5,
-                                "scope_description": None,
-                                "scope_name": "redmine"
-                                },
-                            {
-                                "id": 6,
-                                "scope_description": None,
-                                "scope_name": "organization"
-                                }
-                            ]
-                        }
+                    "id": 1,
+                    "scope_description": null,
+                    "scope_name": "user_admin"
+                    },
+                {
+                    "id": 2,
+                    "scope_description": null,
+                    "scope_name": "command_control"
+                    },
+                {
+                    "id": 3,
+                    "scope_description": null,
+                    "scope_name": "annotate"
+                    },
+                {
+                    "id": 4,
+                    "scope_description": null,
+                    "scope_name": "asset_manager"
+                    },
+                {
+                    "id": 5,
+                    "scope_description": null,
+                    "scope_name": "sys_admin"
+                    },
+                {
+                    "id": 6,
+                    "scope_description": null,
+                    "scope_name": "redmine"
+                    },
+                {
+                    "id": 7,
+                    "scope_description": null,
+                    "scope_name": "data_manager"
+                    },
+                {
+                    "id": 8,
+                    "scope_description": null,
+                    "scope_name": "organization"
+                    }
+                ]
+            }
 
         # assert: (1) response.data is string, (2) greater than 0 in length and (3) contains 'user roles'
         response_data = response.data[:]
