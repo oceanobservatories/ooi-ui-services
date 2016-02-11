@@ -83,15 +83,17 @@ def cache_list(key=None):
 
     elif request.method == 'DELETE':
         try:
-            # grab the json and load the payload
+            # grab the key, lets give it a more readable reference
             redis_key = key
 
-            # for each item in the list, delete the cache
+            # perform the delete operation on the target host's redis server
             pipe_output = subprocess.Popen(['redis-cli', 'del', redis_key],
                                            stdout=subprocess.PIPE)
             output, err = pipe_output.communicate()
 
-            # for now, lets just call all the celery functions to repopulate
+            # we'll discard all previous celery jobs, so new ones can be queued up.
+            # Note, this does NOT issue a cache reload.  It simply removes any
+            # backloged tasks.  Keep it tight, like a tiger.
             if output == 1:
                 discard_all()
 
