@@ -5,6 +5,7 @@ virtualenv:
   system_site_packages: true
 services:
   - memcached
+  - redis-server
 env:
   - PYTHONPATH=.
 before_install:
