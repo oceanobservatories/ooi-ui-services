@@ -130,7 +130,7 @@ def parameters_in_instrument(instrument):
 
 def data_streams_in_instrument(instrument, parameters_dict, streams):
     for data_stream in instrument['streams']:
-       stream = (
+        stream = (
            instrument['platform_code'],
            instrument['mooring_code'],
            instrument['instrument_code'],
@@ -145,8 +145,8 @@ def data_streams_in_instrument(instrument, parameters_dict, streams):
            parameters_dict[data_stream['stream']+'_variables_shape'],
            parameters_dict[data_stream['stream']+'_pdId']
            )
-       #current_app.logger.info("GET %s", each['reference_designator'])
-       streams.append(stream)
+        #current_app.logger.info("GET %s", each['reference_designator'])
+        streams.append(stream)
 
     return streams
 
@@ -287,7 +287,7 @@ def _compile_cam_images():
                             for im_url in url_list3:
                                 data_image_list.append(im_url)
 
-    print len(data_image_list),"images"
+    current_app.logger.debug("Found" + str(len(data_image_list)) + " images")
 
     image_dict = []
     for data_image_url in data_image_list:
@@ -357,6 +357,197 @@ def get_uframe_cam_images():
     except requests.exceptions.ConnectionError as e:
         error = "Error: Cannot connect to uframe.  %s" % e
         print error
+        return make_response(error, 500)
+
+
+def _create_entry(url, ext):
+    '''
+    Create the JSON object for this file
+    '''
+    # get the filename and other metadata
+    #  ZPL .raw = CE02SHBP-MJ01C-07-ZPLSCB101_OOI-D20150802-T230543.raw
+    #  HYD .mseed = OO-HYEA2--YDH.2015-09-03T23:55:06.365250.mseed
+    #  CAMDS .png = CE02SHBP-MJ01C-08-CAMDSB107_20150818T214937,543Z.png
+    #  OBS .mseed = OO-HYSB1--BHE.2015-09-03T23:54:37.100000.mseed
+    #  CAMHD .mov = CAMHDA301-20151119T210000Z.mov
+    #  CAMHS .mp4 = CAMHDA301-20151119T210000Z.mp4
+
+    filename = url.split('/')[-1]
+    if ext == '.png':
+        ref = filename.split(ext)[0].split('_')
+        dt = urllib.unquote(ref[1]).decode('utf8')
+        dt = dt.replace(',', '.')
+
+    elif ext == '.raw':
+        ref = filename.split(ext)[0].split('_OOI-D')
+        date = ref[1] + 'Z'
+        dt = urllib.unquote(date).decode('utf8')
+
+    elif ext == '.mseed':
+        ref = filename.split(ext)[0].split('.')
+        if len(ref) == 3:
+            date = ref[1] + 'Z'
+            dt = urllib.unquote(date).decode('utf8')
+        else:
+            split = ref[0].split('-')
+            date = '-'.join([split[-3], split[-2], split[-1]]) + 'Z'
+            dt = urllib.unquote(date).decode('utf8')
+    elif ext == '.mov' or ext == '.mp4':
+        ref = filename.split(ext)[0].split('-')
+        date = ref[1]
+        dt = urllib.unquote(date).decode('utf8')
+
+    item = {"url": url,
+            "filename": urllib.unquote(filename).decode('utf8'),
+            "datetime": dt.replace("-", "").replace(":", ""),
+           }
+    return item
+
+
+def _compile_large_format_files(test_ref_des=None, test_date_str=None):
+    '''
+    Loop over a directory list to get the files available (url>ref>year>month>day>image)
+
+    Optional arguments are for testing ONLY:
+        ref_des: Pass in a reference designator to only retrieve those results
+        date_str: Pass in a date string (yyyy-mm-dd) to only get data from a specific day
+    '''
+    testing = False
+    if test_ref_des is not None and test_date_str is not None:
+        testing = True
+        # Get the date we're looking for
+        date = test_date_str.split('-')
+        test_year = date[0]
+        test_month = date[1]
+        test_day = date[2]
+
+    url = current_app.config['IMAGE_CAMERA_STORE']
+    r = requests.get(url)
+
+    soup = BeautifulSoup(r.content, "html.parser")
+    ss = soup.findAll('a')
+
+    filetypes_to_check = ['-HYD', '-OBS', '-CAMDS', '-CAMHD', '-ZPL']
+    extensions_to_check = ['.mseed', '.png', '.mp4', '.mov', '.raw']
+
+    # Go fetch whatever data has already been cached
+    data_dict = {} if cache.get('large_format') is None else cache.get('large_format')
+
+    # Get the current date to use to check against the data on HYRAX server
+    current_year = datetime.utcnow().strftime('%Y')
+    current_month = datetime.utcnow().strftime('%m')
+    current_day = datetime.utcnow().strftime('%d')
+
+    # Ok let's walk the HYRAX server directory structure {ref-des > year > month > day}
+    for s in ss:
+        if 'href' in s.attrs:
+            # REF DES
+            if any(filetype in s.attrs['href'] for filetype in filetypes_to_check):
+                ref_des = s.attrs['href'].split('/')[0]
+                if (testing and test_ref_des != ref_des):
+                    continue
+                current_app.logger.debug(ref_des)
+                if ref_des not in data_dict:
+                    data_dict[ref_des] = {}
+                ref_url = url+s.attrs['href']
+                url_list = _get_folder_list(ref_url, 'contents.html')
+
+                # YEAR
+                for year_url in url_list:
+                    year = year_url.split('/contents.html')[0].split('/')[-1]
+                    if (testing and test_year != year):
+                        continue
+                    if year not in data_dict[ref_des]:
+                        data_dict[ref_des][year] = {}
+                    elif year != current_year:  # Move onto next year, this one's old!
+                        continue
+                    url_list1 = _get_folder_list(year_url, 'contents.html')
+
+                    # MONTH
+                    for month_url in url_list1:
+                        month = month_url.split('/contents.html')[0].split('/')[-1]
+                        if (testing and test_month != month):
+                            continue
+                        if month not in data_dict[ref_des][year]:
+                            data_dict[ref_des][year][month] = {}
+                        elif month != current_month:  # Move onto next month, this one's old!
+                            continue
+                        url_list2 = _get_folder_list(month_url, 'contents.html')
+
+                        # DAY
+                        for day_url in url_list2:
+                            day = day_url.split('/contents.html')[0].split('/')[-1]
+                            if (testing and test_day != day):
+                                continue
+                            if day not in data_dict[ref_des][year][month]:
+                                data_dict[ref_des][year][month][day] = []
+                            elif day != current_day:  # Move onto next day, this one's old!
+                                continue
+
+                            for ext in extensions_to_check:
+                                # file
+                                url_list3 = _get_folder_list(day_url, ext)
+                                for im_url in url_list3:
+                                    entry = _create_entry(im_url, ext)
+                                    data_dict[ref_des][year][month][day].append(entry)
+
+                # Update the cache in case the connection gets reset you don't want to lose anything
+                cache.set('large_format', data_dict, timeout=CACHE_TIMEOUT)
+
+    return data_dict
+
+
+@api.route('/get_large_format_files_by_ref/<string:ref_des>/<string:date_str>')
+def get_uframe_large_format_files_by_ref(ref_des, date_str):
+    '''
+    Walk the Hyrax server and parse out all available large format files
+    '''
+    try:
+        cached = cache.get('large_format')
+
+        if cached:
+            data = cached
+            # Get the date we're looking for
+            date = date_str.split('-')
+            if len(date) < 3:
+                error = 'Date format not compliant, expecting ISO8601 (yyyy-mm-dd)'
+                return make_response(error, 500)
+            year = date[0]
+            month = date[1]
+            day = date[2]
+            try:
+                response = {'data': data[ref_des][year][month][day]}
+                return jsonify(response)
+            except Exception:
+                error = "Error: %s data not available for this date." % (ref_des)
+                return make_response(error, 500)
+        else:
+            # Throw an error because it takes too long
+            error = "Error: Data not available for this date."
+            return make_response(error, 500)
+
+    except requests.exceptions.ConnectionError as e:
+        error = "Error: Cannot connect to uframe.  %s" % e
+        return make_response(error, 500)
+
+
+@api.route('/get_large_format_files')
+def get_uframe_large_format_files():
+    '''
+    Get all available large format files
+    '''
+    try:
+        cached = cache.get('large_format')
+        if cached:
+            data = cached
+        else:
+            data = _compile_large_format_files()
+            if "error" not in data:
+                cache.set('large_format', data, timeout=CACHE_TIMEOUT)
+
+        return jsonify(data)
+    except requests.exceptions.ConnectionError as e:
+        error = "Error: Cannot connect to uframe.  %s" % e
         return make_response(error, 500)
 
 
