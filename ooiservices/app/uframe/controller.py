@@ -678,6 +678,16 @@ def streams_list():
             except KeyError as e:
                 print e
 
+    if request.args.get('concepts') and request.args.get('concepts') != "":
+        return_list = []
+        search_term = str(request.args.get('concepts')).split()
+        search_set = set(search_term)
+        for subset in search_set:
+            for item in retval:
+                if subset.lower() in str(item['reference_designator']).lower():
+                    return_list.append(item)
+        retval = return_list
+
     if request.args.get('search') and request.args.get('search') != "":
         return_list = []
         search_term = str(request.args.get('search')).split()

@@ -1,7 +1,5 @@
-from flask import request, jsonify, make_response, current_app, g
+from flask import request, jsonify, make_response, current_app
 from ooiservices.app.uframe import uframe as api
-from ooiservices.app.main.authentication import auth
-from ooiservices.app.decorators import scope_required
 from ooiservices.app.uframe.assetController import _compile_assets
 from ooiservices.app.uframe.assetController import _uframe_headers
 from ooiservices.app import cache
@@ -104,6 +102,17 @@ def get_assets(use_min=False, normal_data=False, reset=False):
                     del obj['lastModifiedTimestamp']
             except Exception:
                 raise
+
+    if request.args.get('concepts') and request.args.get('concepts') != "":
+        return_list = []
+        search_term = str(request.args.get('concepts')).split()
+        search_set = set(search_term)
+        for subset in search_set:
+            for item in data:
+                print item['ref_des']
+                if subset.lower() in str(item['ref_des']).lower():
+                    return_list.append(item)
+        data = return_list
 
     if request.args.get('search') and request.args.get('search') != "":
         return_list = []
