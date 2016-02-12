@@ -209,6 +209,7 @@ def deploy(password, production, psqluser):
         admin = User.query.first()
         admin.scopes.append(UserScope.query.filter_by(scope_name='user_admin').first())
         admin.scopes.append(UserScope.query.filter_by(scope_name='sys_admin').first())
+        admin.scopes.append(UserScope.query.filter_by(scope_name='data_manager').first())
         admin.scopes.append(UserScope.query.filter_by(scope_name='redmine').first())
         db.session.add(admin)
         db.session.commit()
