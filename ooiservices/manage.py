@@ -341,6 +341,7 @@ def add_admin_user(username, password, first_name, last_name, email, org_name):
     User.insert_user(username=username, password=password, first_name=first_name, last_name=last_name, email=email, org_name=org_name)
     admin = User.query.filter_by(user_name=username).first()
     admin.scopes.append(UserScope.query.filter_by(scope_name='user_admin').first())
+    admin.scopes.append(UserScope.query.filter_by(scope_name='sys_admin').first())
     admin.scopes.append(UserScope.query.filter_by(scope_name='redmine').first())
     db.session.add(admin)
     db.session.commit()
