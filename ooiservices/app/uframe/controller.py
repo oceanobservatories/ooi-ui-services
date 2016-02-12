@@ -150,7 +150,6 @@ def data_streams_in_instrument(instrument, parameters_dict, streams):
             streams.append(stream)
         except KeyError as e:
             print 'Error parsing stream on key: %s' % e
-
     return streams
 
 def split_stream_name(ui_stream_name):
