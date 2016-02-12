@@ -46,7 +46,7 @@ def auth_error():
 @auth.login_required
 def get_token():
     print 'getting token'
-    if g.current_user.is_anonymous() or g.token_used:
+    if g.current_user.is_anonymous or g.token_used:
         return unauthorized('Invalid credentials')
     return jsonify({'token': g.current_user.generate_auth_token(
         expiration=86400), 'expiration': 86400})  # 24 hours
