@@ -9,11 +9,12 @@ import unittest
 import json
 from base64 import b64encode
 from flask import url_for
-from ooiservices.app import create_app, db
+from ooiservices.app import create_app, db, cache
 from ooiservices.app.models import User, UserScope, Organization
 
 test_username = 'admin'
 test_password = 'test'
+
 
 class SystemTestCase(unittest.TestCase):
     def setUp(self):
@@ -41,8 +42,30 @@ class SystemTestCase(unittest.TestCase):
 
     def test_list_routes(self):
         # Get routes
-        response = self.client.get(url_for('main.list_routes'), content_type = 'application/json')
+        response = self.client.get(url_for('main.list_routes'),
+                                   content_type='application/json')
         self.assertTrue(response.status_code == 200)
 
         data = json.loads(response.data)
         self.assertIn('routes', data)
+
+    '''
+    The redis cache clear route is defined by:
+    '''
+    def test_clear_redis(self):
+        # setup a test cache list
+        cache.set('test_list', [{'something': 'something'}, {'dark': 'side'}])
+
+        # it should be able to read from the redis cache
+        # test GET
+        response = self.client.get(url_for('main.cache_list'),
+                                   content_type='application/json')
+        self.assertTrue('test_list' in response.data)
+
+        # it should be able to delete a cache item provided a name
+        # test DELETE
+        cache_key = 'flask_cache_test_list'
+        response = self.client.delete(url_for('main.cache_list')+'/'+cache_key,
+                                      content_type='application/json')
+
+        self.assertTrue("1" in response.data)

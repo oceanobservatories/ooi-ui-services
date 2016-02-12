@@ -1049,7 +1049,7 @@ class UserScopeLink(db.Model):
     @staticmethod
     def insert_scope_link():
         usl = UserScopeLink(user_id='1')
-        usl.scope_id='1'
+        usl.scope_id = '1'
         db.session.add(usl)
         db.session.commit()
 
@@ -1082,7 +1082,9 @@ class UserScope(db.Model, DictSerializableMixin):
             'user_admin',
             'annotate',
             'command_control',
-            'organization'
+            'organization',
+            'sys_admin',
+            'data_manager'
             }
         for s in scopes:
             scope = UserScope.query.filter_by(scope_name=s).first()
