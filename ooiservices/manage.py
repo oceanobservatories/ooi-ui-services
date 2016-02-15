@@ -272,7 +272,7 @@ def rebuild_schema(schema, schema_owner, save_users, admin_username, admin_passw
             new_user = User()
             new_user.id = sresult.id
             new_user.user_id = sresult.user_id
-            new_user.password = sresult.password
+            new_user._password = sresult._password
             new_user.email = sresult.email
             new_user.user_name = sresult.user_name
             new_user.active = sresult.active
@@ -282,7 +282,12 @@ def rebuild_schema(schema, schema_owner, save_users, admin_username, admin_passw
             new_user.phone_primary = sresult.phone_primary
             new_user.phone_alternate = sresult.phone_alternate
             new_user.role = sresult.role
+            new_user.email_opt_in = sresult.email_opt_in
             new_user.organization_id = sresult.organization_id
+            new_user.other_organization = sresult.other_organization
+            new_user.vocation = sresult.vocation
+            new_user.country = sresult.country
+            new_user.state = sresult.state
             db.session.add(new_user)
             db.engine.execute("SELECT nextval('ooiui.users_id_seq')")
             db.session.commit()
