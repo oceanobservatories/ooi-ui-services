@@ -602,7 +602,10 @@ def _get_additional_data(glider_track):
         param_request = '?limit=2'
         for p in param_list:
             if p['stream'] == search_stream:
-                if 'battery' in p['particleKey']:
+                if p['particleKey'] == 'm_battery':
+                    metadata_field.append(p)
+                    parameters.append(p['pdId'])
+                if p['particleKey'] == 'm_lithium_battery_relative_charge':
                     metadata_field.append(p)
                     parameters.append(p['pdId'])
                 if p['particleKey'] == 'm_speed':
