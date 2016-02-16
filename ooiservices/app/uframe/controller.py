@@ -224,6 +224,7 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
     data_dict['parameter_display_name'] = display_names
     return data_dict
 
+<<<<<<< HEAD
 def _create_image_entry(url):
     '''
     decode a url in to its metadata
@@ -363,6 +364,7 @@ def get_uframe_cam_images():
         return make_response(error, 500)
 
 
+<<<<<<< HEAD
 def _create_entry(url, ext):
     '''
     Create the JSON object for this file
@@ -553,8 +555,7 @@ def get_uframe_large_format_files():
         error = "Error: Cannot connect to uframe.  %s" % e
         return make_response(error, 500)
 
-
-def _compile_glider_tracks():
+def _compile_glider_tracks(update_tracks):
     # we will always want the telemetered data, and the engineering stream
     glider_ids = []
     glider_locations = []
@@ -570,64 +571,124 @@ def _compile_glider_tracks():
             try:
                 p_p = r_p.json()
                 for gl in p_p:
-                    glider_location = "/"+p+"/"+gl+"/00-ENG000000/"
+                    glider_location = "/"+p+"/"+gl+"/04-DOSTAM000/"
                     glider_locations.append(base_url+glider_location)
-                    glider_name =  glider_location + 'telemetered/glider_eng_telemetered'
+                    glider_name =  glider_location + 'telemetered/dosta_abcdjm_glider_instrument'
                     url = base_url+glider_name
                     glider_ids.append(url)
             except:
                 print "error:", p, r_p.content
 
+    #check for the update flag, will try and update only those available
+    if update_tracks:
+        glider_cache = cache.get('glider_tracks')
+
+
+    lat_field   = "latitude"
+    lon_field   = "longitude"
+    depth_field = 'int_ctd_pressure'
+    bar_to_m    = 0.09804139432
+
     #params for position and depth info
-    params = "?parameters=PD1335,PD1336,PD1276&limit=1000"
+    #only request "depth" as nominal lat,lon are passed anyway
+    params = "?parameters=PD7&limit=10"
     data = []
+
     for i,gl_id in enumerate(glider_ids):
         try:
-            #print glider_locations[i]+'metadata'
             r_units = requests.get(glider_locations[i]+'metadata')
             d_units = r_units.json()
-            d_units = d_units['parameters']
+            glider_times = d_units['times']
+            #get the extracted glider start and end times
+            glider_data_times = None
+            ref_des = None
 
-            #create the units
-            glider_depth_units = "m"
+            #the flag for updating the data, based on if new data is available
+            if update_tracks:
+                update_the_data = False
+                for gl_time in glider_times:
+                    #filter only those telemetered
+                    if (gl_time['method'] == "telemetered") and (gl_time['stream'] == "dosta_abcdjm_glider_instrument"):
+                        ref_des = gl_time['sensor']
+                        glider_data_times = {"beginTime":gl_time['beginTime'],"endTime":gl_time['endTime']}
 
-            for row in d_units:
-                if row['particleKey'] == 'm_depth':
-                    #override them in case something different
-                    glider_depth_units = row['particleKey']
+                #make sure all the flags are valid
+                if (ref_des is not None) and (glider_data_times is not None):
+                    #loop over the cached gliders
+                    for existing_glider_data in glider_cache:
+                        #get the ref_des
+                        ex_data = None
+                        if ref_des == existing_glider_data['reference_designator']:
+                            #compare the end times to see if an update is in order
+                            ex_end = datetime.strptime(existing_glider_data['dates']['endTime'], '%Y-%m-%dT%H:%M:%S.%fZ')
+                            new_end = datetime.strptime(glider_data_times['endTime'], '%Y-%m-%dT%H:%M:%S.%fZ')
+                            print new_end,ex_end
+                            if new_end > ex_end:
+                                #the glider information needs to be updated
+                                #print "i need to be updated....."
+                                update_the_data = True
+                            else:
+                                #i dont need to be updated just returned
+                                data.append(existing_glider_data)
+                            #break once the correct one is found
+                            break
+            else:
+                update_the_data = True
 
-            data_url = gl_id + params
-            #print data_url
-            r = requests.get(data_url)
-            metadata = r.json()
+            #only go here if the data needs to be updated
+            if update_the_data:
+                d_units = d_units['parameters']
 
-            coors = []
-            dt = []
-            depths = []
-            for row in metadata:
+                #create the units
+                glider_depth_units = "m"
 
-                has_lon   = not np.isnan(row['m_gps_lon'])
-                has_lat   = not np.isnan(row['m_gps_lat'])
-                has_depth = not np.isnan(row['m_depth'])
-                #only add the glider information if deoth is available
-                if has_lat and has_lon and has_depth and (float(row['m_depth']) != -999):
-                    #add position
-                    coors.append([row['m_gps_lon'], row['m_gps_lat']])
-                    dt.append(row['pk']['time'])
-                    #add depth
-                    depths.append(row['m_depth'])
+                for row in d_units:
+                    if row['particleKey'] == 'sci_water_pressure':
+                        #override them in case something different
+                        glider_depth_units = row['units']
 
-            #add glider info to dict
-            data_item = {"name":row['pk']['subsite']+"-"+row['pk']['node'],
-                         "reference_designator": row['pk']['subsite']+"-"+row['pk']['node']+"-"+row['pk']['sensor'],
-                         "type": "LineString",
-                         "coordinates" : coors,
-                         "times": dt,
-                         "units": glider_depth_units,
-                         "depths": depths}
-        except:
-            continue
-        data.append(data_item)
+                data_url = gl_id + params
+                t2 = time.time()
+                r = requests.get(data_url)
+                metadata = r.json()
+                t3 = time.time()
+                print t3-t2," glider req secs..."
+
+                coors = []
+                dt = []
+                depths = []
+                #loop through the returned data
+                for row in metadata:
+                    has_lon   = not np.isnan(row[lon_field])
+                    has_lat   = not np.isnan(row[lat_field])
+                    has_depth = not np.isnan(row[depth_field])
+                    #only add the glider information if deoth is available
+                    if has_lat and has_lon and has_depth and (float(row[depth_field]) != -999):
+                        #add position
+                        coors.append([row[lon_field], row[lat_field]])
+                        dt.append(row['pk']['time'])
+                        #add depth
+                        if glider_depth_units == "bar":
+                            depths.append(row[depth_field] * bar_to_m)
+                            glider_depth_units = "m"
+                        elif glider_depth_units == "m":
+                            depths.append(row[depth_field])
+                        else:
+                            depths.append('-999')
+
+                #add glider info to dict
+                data_item = {"name":row['pk']['subsite']+"-"+row['pk']['node'],
+                             "reference_designator": row['pk']['subsite']+"-"+row['pk']['node']+"-"+row['pk']['sensor'],
+                             "type": "LineString",
+                             "coordinates" : coors,
+                             "times": dt,
+                             "units": glider_depth_units,
+                             "depths": depths,
+                             "dates": glider_data_times}
+
+                data.append(data_item)
+        except Exception, e:
+            print "ERROR:",str(e)
 
     return data
 
@@ -802,14 +863,19 @@ def get_uframe_glider_track():
     try:
         cached = cache.get('glider_tracks')
         will_reset_cache = False
+        will_update_using_cache = False
+
+        if request.args.get('update') == 'true':
+            #i.e "update only"
+            will_update_using_cache = True
         if request.args.get('reset') == 'true':
             will_reset_cache = True
+            will_update_using_cache = False
 
-        will_reset = request.args.get('reset')
-        if cached and not(will_reset_cache):
+        if cached and not(will_reset_cache) and not (will_update_using_cache):
             data = cached
         else:
-            data = _compile_glider_tracks()
+            data = _compile_glider_tracks(will_update_using_cache)
 
             if "error" not in data:
                 cache.set('glider_tracks', data, timeout=CACHE_TIMEOUT)
@@ -1263,7 +1329,8 @@ def get_uframe_info():
 def validate_date_time(start_time, end_time):
     '''
     uframe_data_request_limit = int(current_app.config['UFRAME_DATA_REQUEST_LIMIT'])/1440
-    new_end_time_strp = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S.%fZ") + datetime.timedelta(days=uframe_data_request_limit)
+    new_end_time_strp = datetime.datetime.strptime(start_time, "
+                                                   ") + datetime.timedelta(days=uframe_data_request_limit)
     old_end_time_strp = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ")
     new_end_time = datetime.datetime.strftime(new_end_time_strp, "%Y-%m-%dT%H:%M:%S.%fZ")
     if old_end_time_strp > new_end_time_strp:
