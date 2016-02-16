@@ -410,7 +410,7 @@ def _get_glider_track_data(glider_outline,glider_cache=None):
     '''
     gliders_to_update = []
     glider_skips = []
-    data_limit  = 10
+    data_limit  = 1000
 
     if glider_cache is not None:
         #gets the gliders to skip and update. Updated gliders will use the last updated time to update the track from
