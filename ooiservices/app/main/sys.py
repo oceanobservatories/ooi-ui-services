@@ -50,7 +50,7 @@ def cache_list(key=None):
         flask_cache = []
 
         # issue the command to get the list from redis
-        pipe_output = subprocess.Popen(['redis-cli', 'scan', '0'],
+        pipe_output = subprocess.Popen(['redis-cli', 'keys', '*'],
                                        stdout=subprocess.PIPE)
         output, err = pipe_output.communicate()
 
