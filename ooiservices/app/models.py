@@ -1346,12 +1346,12 @@ class VocabNames(db.Model):
 
     def to_json(self):
         json_vocab_names = {
-                'referenceDesignator': self.referenceDesignator,
-                'levelOne': self.level_one,
-                'levelTwo': self.level_two,
-                'levelThree': self.level_three,
-                'levelFour': self.level_four
-                }
+            'referenceDesignator': self.referenceDesignator,
+            'levelOne': self.level_one,
+            'levelTwo': self.level_two,
+            'levelThree': self.level_three,
+            'levelFour': self.level_four
+            }
         return json_vocab_names
 
     @staticmethod
@@ -1361,6 +1361,37 @@ class VocabNames(db.Model):
         level_two = json_post.get('levelTwo')
         level_three = json_post.get('levelThree')
         level_four = json_post.get('level_four')
-        return VocabNames(ref_des=ref_des, level_one=level_one,
+        return VocabNames(reference_designator=reference_designator, level_one=level_one,
                           level_two=level_two, level_three=level_three,
                           level_four=level_four)
+
+
+class DisabledStreams(db.Model):
+    ''' M@Campbell - 12/21/2015 '''
+
+    __tablename__ = 'disabledstreams'
+    __table_args__ = {u'schema': __schema__}
+
+    id = db.Column(db.Integer, primary_key=True)
+    ref_des = db.Column(db.Text, unique=True, nullable=False)
+    stream_name = db.Column(db.Text)
+    disabled_by = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime(True))
+
+    def to_json(self):
+        json_disabled_streams = {
+            'id': self.id,
+            'refDes': self.ref_des,
+            'streamName': self.stream_name,
+            'disabledBy': self.disabled_by,
+            'timestamp': self.timestamp
+            }
+        return json_disabled_streams
+
+    @staticmethod
+    def from_json(json_post):
+        ref_des = json_post.get('refDes')
+        stream_name = json_post.get('streamName')
+        disabled_by = json_post.get('disabledBy')
+        return DisabledStreams(ref_des=ref_des, stream_name=stream_name,
+                               disabled_by=disabled_by)
