@@ -15,7 +15,7 @@ from ooiservices.app import create_app, db
 from flask.ext.script import Manager, Shell, Server, prompt_bool
 from flask.ext.migrate import Migrate, MigrateCommand
 import flask.ext.whooshalchemy as whooshalchemy
-from ooiservices.app.models import PlatformDeployment, User, UserScope, UserScopeLink
+from ooiservices.app.models import PlatformDeployment, User, UserScope, UserScopeLink, DisabledStreams
 from datetime import datetime
 
 import yaml
@@ -218,16 +218,17 @@ def deploy(password, production, psqluser):
 @manager.option('-s', '--schema', required=True)
 @manager.option('-o', '--schema_owner', required=True)
 @manager.option('-u', '--save_users', required=True)
+@manager.option('-ds', '--save_disabled_streams', required=False)
 @manager.option('-au', '--admin_username', required=False)
 @manager.option('-ap', '--admin_password', required=False)
 @manager.option('-af', '--first_name', required=False)
 @manager.option('-al', '--last_name', required=False)
 @manager.option('-ae', '--email', required=False)
 @manager.option('-ao', '--org_name', required=False)
-def rebuild_schema(schema, schema_owner, save_users, admin_username, admin_password, first_name, last_name, email, org_name):
+def rebuild_schema(schema, schema_owner, save_users, save_disabled_streams, admin_username, admin_password, first_name, last_name, email, org_name):
     """
     Creates the OOI UI Services schema based on models.py
-    :usage: python manage.py rebuild_schema --schema ooiui --schema_owner postgres --save_users False --admin_username admin --admin_password password --first_name Default --last_name Admin --email defaultadmin@ooi.rutgers.edu --org_name Rutgers
+    :usage: python manage.py rebuild_schema --schema ooiui --schema_owner postgres --save_users False --save_disabled_streams True --admin_username admin --admin_password password --first_name Default --last_name Admin --email defaultadmin@ooi.rutgers.edu --org_name Rutgers
     :param schema:
     :param schema_owner:
     :return:
@@ -262,6 +263,22 @@ def rebuild_schema(schema, schema_owner, save_users, admin_username, admin_passw
     app.logger.info('Loading new vocab data into database')
     load_data(sql_file='ooiui_vocab.sql')
     db.session.commit()
+
+    if save_disabled_streams == 'True':
+        app.logger.info('Re-populating disabledstreams table from backup schema')
+        ds_sql = 'SELECT * FROM {0}_{1}.disabledstreams'.format(schema, timestamp)
+        sql_result = db.engine.execute(ds_sql)
+        fa = sql_result.fetchall()
+        for sresult in fa:
+            ds_record = DisabledStreams()
+            ds_record.id = sresult.id
+            ds_record.ref_des = sresult.ref_des
+            ds_record.stream_name = sresult.stream_name
+            ds_record.disabled_by = sresult.disabled_by
+            ds_record.timestamp = sresult.timestamp
+            db.session.add(ds_record)
+            db.engine.execute("SELECT nextval('ooiui.disabledstreams_id_seq')")
+            db.session.commit()
 
     if save_users == 'True':
         app.logger.info('Re-populating users from backup schema')
