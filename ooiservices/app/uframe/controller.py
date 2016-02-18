@@ -4,9 +4,9 @@ uframe endpoints
 '''
 # base
 from flask import jsonify, request, current_app, make_response, Response, send_file
-from ooiservices.app import cache
+from ooiservices.app import cache, db
 from ooiservices.app.uframe import uframe as api
-from ooiservices.app.models import PlatformDeployment
+from ooiservices.app.models import PlatformDeployment, DisabledStreams
 from ooiservices.app.main.routes import get_display_name_by_rd, get_long_display_name_by_rd,\
     get_parameter_name_by_parameter as get_param_names,\
     get_stream_name_by_stream as get_stream_name
@@ -970,6 +970,78 @@ def streams_list():
     except (TypeError, KeyError) as e:
         return retval
 
+    # lets create a container to work with
+    temp_list = []
+
+    # instantiate a disabled streams model cursor
+    disabled_streams = DisabledStreams().query.all()
+
+    # grab the json from the instance of all it's data
+    disabled_streams = [disabled_stream.to_json() \
+                        for disabled_stream in disabled_streams]
+
+    # look over each of the items in the disabled streams
+    '''
+    @param search_terms:
+        the list of strings that will be searched against
+    @param data_set:
+        the main data being parsed
+    '''
+    def _parse_lists(search_terms, data_set):
+        included_streams = []
+
+        '''
+        @param term:
+            The search term that will be checking aginst
+        @param subset:
+            The data being searched
+        @param length:
+            A very specific argument for choosing what part of the reference
+            designator to use
+        '''
+        def _gen(term, subset, length):
+            result = []
+            for obj in subset:
+                if obj['reference_designator'][:length] not in term:
+                    result.append(obj)
+            return result
+
+        for stream in search_terms:
+
+            # establish a match criteria, so we know at what level to delete
+            match_on = len(stream['refDes'])
+
+            # TODO: Refactor this to use a method
+            if match_on == 2:
+                if len(included_streams) is 0:
+                    included_streams = _gen(stream['refDes'], data_set, match_on)
+                else:
+                    included_streams = _gen(stream['refDes'], included_streams, match_on)
+
+            elif match_on == 8:
+                if len(included_streams) is 0:
+                    included_streams = _gen(stream['refDes'], data_set, match_on)
+                else:
+                    included_streams = _gen(stream['refDes'], included_streams, match_on)
+
+            elif match_on == 11:
+                if len(included_streams) is 0:
+                    included_streams = _gen(stream['refDes'], data_set, match_on)
+                else:
+                    included_streams = _gen(stream['refDes'], included_streams, match_on)
+
+            elif match_on == 27:
+                if len(included_streams) is 0:
+                    included_streams = _gen(stream['refDes'], data_set, match_on)
+                else:
+                    included_streams = _gen(stream['refDes'], included_streams, match_on)
+
+        if len(included_streams) is 0:
+            return data_set
+
+        return included_streams
+
+    retval = _parse_lists(disabled_streams, retval)
 
     if request.args.get('min') == 'True':
         for obj in retval:
@@ -1053,6 +1125,62 @@ def streams_list():
 
     else:
         return jsonify(streams=retval)
+
+@api.route('/disabled_streams', methods=['GET', 'POST'])
+@api.route('/disabled_streams/<int:id>', methods=['DELETE'])
+def disabled_streams(id=None):
+    '''
+    @method GET:
+        Returns the list of all the disabled streams from our database.
+
+    @method POST:
+        @params: ID
+        Create a new 'disabled streams' in our local database.
+
+    @method DELETE:
+        @params: ID
+        Delete a disabled streams identifier from our local database.
+    '''
+
+    if request.method == 'GET':
+        disabled_streams = DisabledStreams.query.all()
+        return jsonify({'disabled_streams':
+                        [disabled_stream.to_json() \
+                         for disabled_stream in disabled_streams]})
+
+    elif request.method == 'POST':
+        try:
+            # grab the json payload
+            payload = json.loads(request.data)
+
+            # create a new instance of the disabled streams with the data
+            disabled_stream = DisabledStreams.from_json(payload)
+
+            # add to the databse
+            db.session.add(disabled_stream)
+            db.session.commit()
+            return jsonify({ 'disabled_streams': 'Stream Disabled!'}), 200
+        except Exception as e:
+            print type(e)
+            # roll it back if there is a problem.
+            db.session.rollback()
+            db.session.commit()
+            return make_response(e.message), 409
+
+    elif request.method == 'DELETE':
+        try:
+            # get the item to delete
+            disabled_stream = DisabledStreams.query.get_or_404(id)
+
+            # obliterate it form the db
+            db.session.delete(disabled_stream)
+            db.session.commit()
+            return jsonify({'message': 'Stream Enabled!'}), 200
+        except Exception as e:
+            # roll it back if there is a problem.
+            db.session.rollback()
+            db.session.commit()
+            return jsonify({'message': 'Problem activating stream: %s'%e}), 409
 
 
 @api.route('/antelope_acoustic/list', methods=['GET'])
