@@ -1367,7 +1367,7 @@ class VocabNames(db.Model):
 
 
 class DisabledStreams(db.Model):
-    ''' M@Campbell - 12/21/2015 '''
+    ''' M@Campbell - 01/17/2016 '''
 
     __tablename__ = 'disabledstreams'
     __table_args__ = {u'schema': __schema__}
