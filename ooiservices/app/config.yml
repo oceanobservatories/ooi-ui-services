@@ -5,7 +5,7 @@ COMMON: &common
     LOGGING: True
     LOG_FILE_PTAH: '/logs/'
     LOG_FILE: 'ooiservices.log'
-    # Server config
+    # Server config.  The UI_API_KEY matches the UI side config file. Deployment Scenario should be production for prod
     DEPLOYMENT_SCENARIO: LOCAL_DEVELOPMENT
     SECRET_KEY: 'ccdf5de08ac74855bda3e7e309d871e5'
     UI_API_KEY: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -20,7 +20,7 @@ COMMON: &common
     SERVER_DNS: 'localhost'
     HOST: localhost
     PORT: 4000
-    # UFrame config
+      # UFrame config - This section shold be pointed at the uFrame instance that is being used to populate the UI.
     UFRAME_URL:             'http://localhost:12576'
     UFRAME_ASSETS_URL:      'http://localhost:12573'
     UFRAME_ANNOTATION_URL : 'http://localhost:12580'
@@ -35,21 +35,22 @@ COMMON: &common
     UFRAME_TOC:             '/sensor/inv/toc'
     UFRAME_INST_BASE:       '/instrument/api'
     UFRAME_PLAT_BASE:       '/platform/api'
+      #Values may be changed to work with uFrame performance. increase Data_Points for higher resolution plotting
     UFRAME_TIMEOUT_CONNECT: 5
     UFRAME_TIMEOUT_READ: 30
     UFRAME_DATA_REQUEST_LIMIT: 2880
     UFRAME_PLOT_TIMEOUT: 60
     DATA_POINTS: 1000
-    # redmine
+      #Red Mine values should be left alone on test servers and set to the production settings on the production server 
     REDMINE_KEY: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     REDMINE_URL: 'https://redmine-asa.ooi.rutgers.edu' #'https://uframe-cm.ooi.rutgers.edu'
     REDMINE_PROJECT_ID: 'ocean-observatory' #'ooi-ui-api-testing'
     REDMINE_TRACKER: 'Support'
-    # redis
+    #Only change this if you change the Redis Port
     REDIS_URL: 'redis://localhost:6379'
-    # google
+    #This is a default value.   The tid value must be set to the production value on the production system
     GOOGLE_ANALYTICS_URL: 'https://www.google-analytics.com/collect?v=1&tid=UA-50606390-3&cid=1&t=event'
-    # alfresco
+    #The Alfresco Username and Password must be set to the production values for this to work
     ALFRESCO_CMIS_URL:  'https://alfresco.oceanobservatories.org/alfresco/s/api/cmis'
     ALFRESCO_DL_URL:    'https://alfresco.oceanobservatories.org/alfresco/s/api/node/content/workspace/SpacesStore'
     ALFRESCO_TICKET_URL: 'https://alfresco.oceanobservatories.org/alfresco/s/api/login'
@@ -57,21 +58,21 @@ COMMON: &common
     ALFRESCO_REPO_ID:   'c161bc66-4f7e-4a4f-b5f2-aac9fbf1d3cd'
     ALFRESCO_USERNAME:  'admin'
     ALFRESCO_PASSWORD:  'admin'
-    # cilogon
+    #The CILogon ID and Secret Key msut be set to the proper values for this to work
     CILOGON_ID: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     CILOGON_SECRECT:  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     CILOGON_BASE_URL: 'https://test.cilogon.org'
-    # camera store
+      #Camera Store might change if OOI goes away from the Hyrax Server. If so the Camera Store must change accordingly
     IMAGE_STORE : 'ooiservices/cam_images'
     IMAGE_CAMERA_STORE : 'http://opendap-devel.ooi.rutgers.edu:8080/opendap/hyrax/large_format/'
-    # flask security - email parameters
+    # flask security - email parameters.  make sure this is set for your email server.
     SECURITY_EMAIL_SENDER : 'no-reply@ooi.rutgers.edu'
     MAIL_SERVER : 'localhost'
     MAIL_PORT : 465
     MAIL_USE_SSL : True
     MAIL_USERNAME : 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
     MAIL_PASSWORD : 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
-    # flask security - main parameters
+    # flask security - main parameters.  Change salt per your deployment.  Hash is constant.
     SECURITY_CONFIRMABLE : False
     SECURITY_REGISTERABLE : False
     SECURITY_RECOVERABLE : True
@@ -99,7 +100,7 @@ TESTING_CONFIG: &testing
     TESTING: True
     SQLALCHEMY_DATABASE_URI: 'postgres://postgres:postgres@localhost/ooiuitest'
     WTF_CSRF_ENABLED: False
-
+  #Make sure TOEMAIL is set to be the recipient of new user registartion
 PRODUCTION: &production
     <<: *common
     SQLALCHEMY_DATABASE_URI: 'postgres://postgres:postgres@localhost/ooiuiprod'
