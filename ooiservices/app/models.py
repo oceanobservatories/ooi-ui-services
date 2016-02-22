@@ -13,6 +13,7 @@ from flask.ext.sqlalchemy import BaseQuery
 from ooiservices.app import db, login_manager
 from flask.ext.security import UserMixin, RoleMixin
 from flask_security.utils import encrypt_password, verify_password as fs_verify_password
+from werkzeug.security import check_password_hash
 from wtforms import ValidationError
 from geoalchemy2.types import Geometry
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -1260,7 +1261,10 @@ class User(UserMixin, db.Model):
         self._password = encrypt_password(plaintext)
 
     def verify_password(self, password):
-        return fs_verify_password(password, self._password)
+        if check_password_hash(self._password, password):
+            return True
+        else:
+            return fs_verify_password(password, self._password)
 
     def validate_email(self, field):
         if User.query.filter_by(email=field).first():
