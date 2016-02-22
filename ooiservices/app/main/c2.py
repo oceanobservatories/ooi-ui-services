@@ -1803,7 +1803,7 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
         if payload['resource'] is None or not payload['resource']:
             message = 'The payload [resource] element is None or empty.'
             if debug: print '\n debug -- message: ', message
-            current_app.logger.info(message)
+            #current_app.logger.info(message)
             raise Exception(message)
 
         parameter_dict, key_dict_ranges = get_range_dictionary(payload['resource'], _status, reference_designator)
@@ -1827,7 +1827,7 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
         elif new_result is None or not new_result:
             message = 'Unable to process resource payload (new_result is None or empty).'
             if debug: print '\n debug -- message: ', message
-            current_app.logger.info(message)
+            #current_app.logger.info(message)
             raise Exception(message)
         if debug: print '\n debug --  (from new scrub) result(%d): %s' % (len(new_result), new_result)
 
@@ -1852,7 +1852,7 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
             print '\n debug -- message: ', message
             #if response.content:
             #    message = '(%s) %s' % (str(response.status_code), str(response.content))
-            current_app.logger.info(message)
+            #current_app.logger.info(message)
             raise Exception(message)
 
         if response.content:
@@ -1883,14 +1883,13 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
             key_dict_ranges = {}
         new_result['ranges'] = key_dict_ranges
 
-        streams = {}
-        try:
-            streams = get_streams_dictionary(reference_designator)
-        except Exception as err:
-            print'\n debug -- exception: ', err.message
-
-        new_result['streams'] = streams
-        print '\n -- debug result: ', json.dumps(new_result, indent=4, sort_keys=True)
+        #streams = {}
+        #try:
+        #    streams = get_streams_dictionary(reference_designator)
+        #except Exception as err:
+        #    print'\n debug -- exception: ', err.message
+        #new_result['streams'] = streams
+        #print '\n -- debug result: ', json.dumps(new_result, indent=4, sort_keys=True)
         return new_result
 
     except Exception as err:
@@ -2023,7 +2022,7 @@ def _c2_get_last_particle(rd, _method, _name):
 
     """
     result = None
-    debug = False
+    debug = True
     particle = None
     metadata = None
     try:
@@ -2059,6 +2058,12 @@ def _c2_get_last_particle(rd, _method, _name):
         stream_name = time_set['stream']
         formatted_end_time = time_set['endTime']
         formatted_start_time = time_set['beginTime']
+
+        # When metadata indicates endTime and beginTime are equal, log and raise error
+        if formatted_start_time == formatted_end_time:
+            message = 'uFrame indicates beginTime and endTime are equal; no data to retrieve for stream (%s).' % \
+                      stream_name
+            raise Exception(message)
 
         dpa_flag = '0'
         response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream_name,
@@ -2107,7 +2112,7 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
         url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
         response = requests.get(url, timeout=(timeout, timeout_read))
         if not response or response is None:
-            message = 'No data available from uFrame for this request.\rInstrument: %s, Method: %s, Stream: %s' % \
+            message = 'No data available from uFrame for this request. Instrument: %s, Method: %s, Stream: %s' % \
                             (instrument, stream_type, stream)
             current_app.logger.info('C2 Failed request: ' + url)
             raise Exception(message)
@@ -2117,7 +2122,7 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
         return response
     except Exception as err:
         message = str(err.message)
-        current_app.logger.info(message)
+        #current_app.logger.info(message)
         raise
 
 
@@ -2299,28 +2304,19 @@ def get_streams_dictionary(reference_designator):
 
 
     {
-
-    "streams": {
-
-        "streamed": [
-
-            "nutnr_a_dark_sample",
-
-            "nutnr_a_sample",
-
-            "nutnr_a_status"
-
-        ]
-
+        "streams": {
+            "streamed": [
+                "nutnr_a_dark_sample",
+                "nutnr_a_sample",
+                "nutnr_a_status"
+            ]
     },
 
 
     """
     streams = {}
-    new_streams = {}
     debug = False
     try:
-        # Get methods for streams
         # Get request info: stream types
         stream_types = None
         mooring, platform, instrument = reference_designator.split('-', 2)
@@ -2328,63 +2324,47 @@ def get_streams_dictionary(reference_designator):
         if response.status_code != 200:
             message = 'Failed to retrieve stream types for reference designator: %s' % reference_designator
             if debug: print '\n debug -- exception: ', message
-            #current_app.logger.info(message)
             raise Exception(message)
         try:
             stream_types = response.json()
         except:
             message = 'Failed to process stream types to json for reference designator: %s' % reference_designator
             if debug: print '\n debug -- exception: ', message
-            #current_app.logger.info(message)
             raise Exception(message)
 
         if debug: print '\n stream_types: ', stream_types
 
         # For each method, get stream names
-
-        stream_names = None
         for stream_type in stream_types:
             # for stream_type, fetch stream names
             response = get_uframe_streams(mooring, platform, instrument, stream_type)
             if response.status_code != 200:
                 message = 'Failed to retrieve stream names for stream method: %s.', stream_type
-                if debug: print '\n debug -- exception: ', message
-                #current_app.logger.info(message)
                 raise Exception(message)
             try:
                 stream_names = response.json()
                 if stream_names:
-                    print '\n stream method %s has stream names: %s' % (stream_type, stream_names)
-                    streams[stream_type] = stream_names
-                else:
-                    streams[stream_type] = []
-
-                if stream_names:
                     for stream_name in stream_names:
-                        if stream_name not in new_streams:
-                            new_streams[stream_name] = stream_type
+                        if stream_name not in streams:
+                            streams[stream_name] = stream_type
             except:
                 message = 'Failed to process stream names to json for stream method: %s.', stream_type
-                if debug: print '\n debug -- exception: ', message
-                #current_app.logger.info(message)
                 raise Exception(message)
 
-        #if debug: print '\n stream_names: ', stream_names
-        print '\n debug ***** streams(%d): %s' % (len(streams), json.dumps(streams, indent=4, sort_keys=True))
+        if debug:
+            print '\n debug *** streams(%d): %s' % (len(streams), json.dumps(streams, indent=4, sort_keys=True))
 
-        #return streams
-        return new_streams
+        #return streams dictionary, keyed by stream_name(s); value is stream method
+        return streams
 
     except Exception as err:
         message = str(err.message)
-        print '\n debug -- (get_streams_dictionary) exception - message: ', message
         current_app.logger.info(message)
         raise
 
 
 def get_uframe_stream_types(mooring, platform, instrument):
-    """
-    Lists all the stream types
+    """ Lists all the stream types
     """
     debug = False
     try:
@@ -2399,8 +2379,7 @@ def get_uframe_stream_types(mooring, platform, instrument):
         raise
 
 def get_uframe_streams(mooring, platform, instrument, stream_type):
-    """
-    Lists all the streams
+    """ Lists all the stream names
     """
     try:
         uframe_url, timeout, timeout_read = get_uframe_data_info()
@@ -2503,6 +2482,55 @@ def _c2_instrument_driver_execute(reference_designator, data):
             ]
           }
         }
+
+    Sample response value attribute portion, using value[1] dictionary and parsing for name value pairs.
+    (FLORD bench instrument)
+    "value": [
+        null,
+        [
+            {
+                "driver_timestamp": 3665151633.544963,
+                "internal_timestamp": 3665151502.0,
+                "pkt_format_id": "JSON_Data",
+                "pkt_version": 1,
+                "port_timestamp": 3665151633.4370704,
+                "preferred_timestamp": "port_timestamp",
+                "quality_flag": "ok",
+                "stream_name": "flort_d_status",
+                "values": [
+                    {
+                        "value": "BBFL2W-1028",
+                        "value_id": "serial_number"
+                    },
+                    {
+                        "value": "Triplet5.20",
+                        "value_id": "firmware_version"
+                    },
+
+
+    BOTPT Bench Instrument:
+    "value": [
+        null,
+        {
+            "driver_timestamp": 3665151802.462715,
+            "internal_timestamp": 2209500967.0,
+            "pkt_format_id": "JSON_Data",
+            "pkt_version": 1,
+            "port_timestamp": 3665151794.73597,
+            "preferred_timestamp": "internal_timestamp",
+            "quality_flag": "ok",
+            "stream_name": "botpt_status",
+            "values": [
+                {
+                    "value": "IRIS,1970/01/06 22:16:11,*APPLIED GEOMECHANICS Model MD900-T Firmware V5.2 SN-N8643 ID01\nIRIS,1970/01/06 22:16:11,*01: Vbias= 0.0000 0.0000 0.0000 0.0000\nIRIS,1970/01/06 22:16:11,*01: Vgain= 0.0000 0.0000 0.0000 0.0000\nIRIS,1970/01/06 22:16:11,*01: Vmin:  -2.50  -2.50   2.50   2.50\nIRIS,1970/01/06 22:16:11,*01: Vmax:   2.50   2.50   2.50   2.50\nIRIS,1970/01/06 22:16:11,*01: a0=    0.00000    0.00000    0.00000    0.00000    0.00000    0.00000\nIRIS,1970/01/06 22:16:11,*01: a1=    0.00000    0.00000    0.00000    0.00000    0.00000    0.00000\nIRIS,1970/01/06 22:16:11,*01: a2=    0.00000    0.00000    0.00000    0.00000    0.00000    0.00000\nIRIS,1970/01/06 22:16:11,*01: a3=    0.00000    0.00000    0.00000    0.00000    0.00000    0.00000\nIRIS,1970/01/06 22:16:11,*01: Tcoef 0: Ks=           0 Kz=           0 Tcal=           0\nIRIS,1970/01/06 22:16:11,*01: Tcoef 1: Ks=           0 Kz=           0 Tcal=           0\nIRIS,1970/01/06 22:16:12,*01: N_SAMP= 460 Xzero=  0.00 Yzero=  0.00\nIRIS,1970/01/06 22:16:12,*01: TR-PASH-OFF E99-ON  SO-NMEA-SIM XY-EP  9600 baud FV-   \nIRIS,1970/01/06 22:16:12,*9900XY-DUMP-SETTINGS",
+                    "value_id": "botpt_iris_status_01"
+                },
+                {
+                    "value": "IRIS,1970/01/06 22:16:13,*01: TBias: 9.76 \nIRIS,1970/01/06 22:16:13,*Above 0.00(KZMinTemp): kz[0]=           0, kz[1]=           0\nIRIS,1970/01/06 22:16:13,*Below 0.00(KZMinTemp): kz[2]=           0, kz[3]=           0\nIRIS,1970/01/06 22:16:13,*01: ADCDelay:  310 \nIRIS,1970/01/06 22:16:13,*01: PCA Model: 90009-01\nIRIS,1970/01/06 22:16:13,*01: Firmware Version: 5.2 Rev N\nIRIS,1970/01/06 22:16:13,*01: X Ch Gain= 1.0000, Y Ch Gain= 1.0000, Temperature Gain= 1.0000\nIRIS,1970/01/06 22:16:13,*01: Output Mode: Degrees\nIRIS,1970/01/06 22:16:13,*01: Calibration performed in Degrees\nIRIS,1970/01/06 22:16:13,*01: Control: Off\nIRIS,1970/01/06 22:16:13,*01: Using RS232\nIRIS,1970/01/06 22:16:13,*01: Real Time Clock: Not Installed\nIRIS,1970/01/06 22:16:13,*01: Use RTC for Timing: No\nIRIS,1970/01/06 22:16:13,*01: External Flash Capacity: 0 Bytes(Not Installed)\nIRIS,1970/01/06 22:16:13,*01: Relay Thresholds:\nIRIS,1970/01/06 22:16:13,*01:   Xpositive= 1.0000   Xnegative=-1.0000\nIRIS,1970/01/06 22:16:13,*01:   Ypositive= 1.0000   Ynegative=-1.0000\nIRIS,1970/01/06 22:16:13,*01: Relay Hysteresis:\nIRIS,1970/01/06 22:16:13,*01:   Hysteresis= 0.0000\nIRIS,1970/01/06 22:16:13,*01: Calibration method: Dynamic \nIRIS,1970/01/06 22:16:13,*01: Positive Limit=26.25   Negative Limit=-26.25 \nIRIS,1970/01/06 22:16:14,*01: Calibration Points:025  X: Disabled  Y: Disabled\nIRIS,1970/01/06 22:16:14,*01: Biaxial Sensor Type (0)\nIRIS,1970/01/06 22:16:14,*01: ADC: 12-bit (internal)\nIRIS,1970/01/06 22:16:14,*01: DAC Output Scale Factor: 0.10 Volts/Degree\nIRIS,1970/01/06 22:16:14,*01: Total Sample Storage Capacity: 372\nIRIS,1970/01/06 22:16:14,*01: BAE Scale Factor:  2.88388 (arcseconds/bit)\nIRIS,1970/01/06 22:16:14,*9900XY-DUMP2",
+                    "value_id": "botpt_iris_status_02"
+                },
+
+
     """
     debug = False
     result = {}
@@ -2527,7 +2555,7 @@ def _c2_instrument_driver_execute(reference_designator, data):
         if _status is None:
             message = 'Failed to retrieve instrument (%s) status.' % reference_designator
             if debug: print '\n debug -- message: ', message
-            current_app.logger.info(message)
+            #current_app.logger.info(message)
             raise Exception(message)
 
         #if debug: print '\n ********** debug -- _status: ', json.dumps(_status, indent=4, sort_keys=True)
@@ -2574,7 +2602,7 @@ def _c2_instrument_driver_execute(reference_designator, data):
         if command_name not in _commands:
             message = 'Failed to retrieve command (%s) timeout from status.' % command_name
             if debug: print '\n debug -- message: ', message
-            current_app.logger.info(message)
+            #current_app.logger.info(message)
             raise Exception(message)
 
         # Get timeout from command dictionary and convert to milliseconds; default 60 seconds.
@@ -2583,7 +2611,7 @@ def _c2_instrument_driver_execute(reference_designator, data):
             _timeout = _timeout * 1000
         else:
             _timeout = 60000
-        if debug: print '\n debug ------------------------------- _timeout: ', _timeout
+        if debug: print '\n debug ------- (_c2_instrument_driver_execute) _timeout: ', _timeout
 
         # Add driver timeout to suffix for execute
         suffix += '&timeout=' + str(_timeout)
@@ -2616,23 +2644,26 @@ def _c2_instrument_driver_execute(reference_designator, data):
         if response.content:
             try:
                 response_data = json.loads(response.content)
-                #print '\n response_data: ', json.dumps(response_data, indent=4, sort_keys=True)
-            except Exception as err:
-                #print '\n ***** error after execute: ', err.message
+                #print '\n Have response_data(%d): %s' % (len(response_data),
+                #    json.dumps(response_data, indent=4, sort_keys=True))
+            except Exception:
                 raise Exception('Malformed data; not in valid json format.')
+
             # Evaluate response content for error (review 'value' list in response_data )
             if response_data:
                 status_code, status_type, status_message = _eval_POST_response_data(response_data, message)
                 response_status['status_code'] = status_code
                 response_status['message'] = status_message
 
+
         # Add response attribute information to result
         result['response'] = response_status
+        #print '\n debug ---- response_status: ', response_status
 
         # If command executed successfully, and command is type ACQUIRE, fetch stream contents
         if result['response']['status_code'] == 200:
-            # If ACQUIRE command, retrieve status or data contents based on ACQUIRE command type; return in acquire_result
-            # attribute of response.
+            # If ACQUIRE command, retrieve status or data contents based on ACQUIRE command type;
+            # return in 'acquire_result' attribute of response.
             acquire_result = None
             if executing_acquire_command:
                 if not response_data:
@@ -2645,42 +2676,119 @@ def _c2_instrument_driver_execute(reference_designator, data):
                         response_status['message'] = message
                 else:
                     try:
-                        #print '\n ***** executing_acquire_command *****'
+                        if debug: print '\n ***** executing_acquire_command *****'
+                        #print '\n response_data(%d): %s' % (len(response_data),
+                        #                           json.dumps(response_data, indent=4, sort_keys=True))
                         #print '\n ***** response_data[value][1](%d): %s' % \
                         #      (len(response_data['value'][1]), response_data['value'][1])
 
-                        acquire_result = deepcopy(response_data['value'][1][0])
-                        #print '\n acquire_result(%d): %s' % (len(acquire_result), acquire_result)
-                        #print '\n acquire_result.keys(): ', acquire_result.keys()
+                        if debug: print '\n ***** checking response_data contents...'
 
-                        """
-                        If values provided, process the list of (dict) values into acquire_result.
-                        Format of value dictionary item:
-                            {"value": 0.0909, "value_id": "measurement_3_slope_value"}
-                        """
-                        if 'values' in acquire_result:
-                            #print '\n values in acquire_result....'
-                            values = deepcopy(acquire_result['values'])
-                            #print '\n ---------- values: ', values
+                        # Malformed response - no attribute 'value'
+                        if 'value' not in response_data:
+                            if debug: print '\n ***** step 1...'
+                            message = '(%s) Error is response data: Attribute \'value\' not provided in response data.' % command_name
+                            current_app.logger.info(message)
+                            response_status['status_code'] = 400
+                            response_status['message'] = message
+                        else:
+                            if debug: print '\n debug -- value in response_data'
 
-                            # If executing ACQUIRE_SAMPLE and no values, return empty list [] as result.
-                            if not values:
-                                if fetch_data:
-                                    acquire_result = []
-                            else:
-                                for item in values:
-                                    id = item['value_id']
-                                    value = item['value']
-                                    acquire_result[id] = value
-                                    #print '\n\t*** %s: %r' % (id, value)
+                        # Bad response - attribute 'value' is empty
+                        if not response_data['value']:
+                            if debug: print '\n ***** step 2...'
+                            message = '(%s) Error is response data: Attribute \'value\' is empty.' % command_name
+                            current_app.logger.info(message)
+                            response_status['status_code'] = 400
+                            response_status['message'] = message
+                        else:
+                            if debug: print '\n debug -- response_data[value] is not empty'
 
-                                del acquire_result['values']
-                            #print '\n * acquire_result(%d): %s' % (len(acquire_result), acquire_result)
+                        # If acquire command returns something other than a list...
+                        if not isinstance(response_data['value'], list):
+                            if debug: print '\n ***** step 3...'
+                            message = '(%s) Error is response data: Attribute \'value\' returned %s' % (command_name, response_data['value'])
+                            current_app.logger.info(message)
+                            response_status['status_code'] = 400
+                            response_status['message'] = message
+                        else:
+                            if debug: print '\n debug -- response_data[value] is a list...'
 
-                            acquire_result = [acquire_result]
+                        # If acquire command returns response_data['value'][1] == None...
+                        if len(response_data['value']) < 2:
+                            if debug: print '\n ***** step 3a...'
+                            message = '(%s) Error is response data: Attribute \'value\' less than 2 items in list.' % command_name
+                            current_app.logger.info(message)
+                            response_status['status_code'] = 400
+                            response_status['message'] = message
+                        else:
+                            if debug: print '\n debug -- len(response_data[value]) >= 2'
+
+                        # If acquire command returns response_data['value'][1] == None...
+                        if response_data['value'][1] is None:
+                            if debug: print '\n ***** step 4...'
+                            message = '(%s) Error is response data: Attribute values list is None; should be a list of name:value pairs.' % \
+                                      command_name
+                            current_app.logger.info(message)
+                            response_status['status_code'] = 400
+                            response_status['message'] = message
+                        else:
+                            if debug: print '\n debug -- response_data[value][1] is not None'
+
+                        if debug:
+                            print '\n debug **************************'
+                            print '\n debug -- response_data[value][1]: ', response_data['value'][1]
+                            print '\n debug -- type(response_data[value][1]): ', type(response_data['value'][1])
+                            print '\n debug **************************'
+                        if not isinstance(response_data['value'][1], list):
+                            if response_data['value'][1] is not None:
+                                if debug: print '\n debug -- response_data[value][1] is not a list....'
+                                acquire_result = deepcopy(response_data['value'][1])
+                        else:
+                            if response_data['value'][1][0] is not None:
+                                if debug: print '\n ***** step 5...'
+                                acquire_result = deepcopy(response_data['value'][1][0])
+
+                        if acquire_result is None:
+                            message = '(%s) Error is response data: No results no to process.' % command_name
+                            current_app.logger.info(message)
+                            response_status['status_code'] = 400
+                            response_status['message'] = message
+                        else:
+                            if debug:
+                                print '\n acquire_result(%d): %s' % (len(acquire_result), acquire_result)
+                                print '\n acquire_result.keys(): ', acquire_result.keys()
+
+                            """
+                            If values provided, process the list of (dict) values into acquire_result.
+                            Format of value dictionary item:
+                                {"value": 0.0909, "value_id": "measurement_3_slope_value"}
+                            """
+                            if 'values' in acquire_result:
+                                if debug: print '\n debug -- values in acquire_result....'
+                                values = deepcopy(acquire_result['values'])
+                                #print '\n ---------- values: ', values
+
+                                # If executing ACQUIRE_SAMPLE and no values, return empty list [] as result.
+                                if not values:
+                                    if fetch_data:
+                                        acquire_result = []
+                                else:
+                                    for item in values:
+                                        #print '\n debug -- id: ', item['value_id']
+                                        id = item['value_id']
+                                        value = item['value']
+                                        acquire_result[id] = value
+                                        #print '\n\t*** %s: %r' % (id, value)
+
+                                    del acquire_result['values']
+                                #print '\n * acquire_result(%d): %s' % (len(acquire_result), acquire_result)
+
+                                acquire_result = [acquire_result]
 
                         #print '\n acquire_result(%d): %s' % (len(acquire_result),
-                        #                               json.dumps(acquire_result, indent=4, sort_keys=True))
+                        #                              json.dumps(acquire_result, indent=4, sort_keys=True))
+
 
                     except Exception as err:
                         message = str(err.message)
@@ -2688,26 +2796,29 @@ def _c2_instrument_driver_execute(reference_designator, data):
                         response_status['status_code'] = 400
                         response_status['message'] = message
 
-                # Populate return status due to failure to obtain particle; response_data already populated.
-                if acquire_result is None:
-                    result['response'] = response_status
-                    result['acquire_result'] = []
-                else:
-                    result['acquire_result'] = acquire_result
+                    # Populate return status due to failure to obtain particle; response_data already populated.
+                    if acquire_result is None:
+                        if debug: print '\n debug -- acquire_result is None, response_status: ', response_status
+                        result['response'] = response_status
+                        result['acquire_result'] = []
+                    else:
+                        if debug: print '\n debug -- acquire_result is not None: ', acquire_result
+                        result['acquire_result'] = acquire_result
+                        if debug: print '\n debug -- acquire_result is not None...result[response]: ', result['response']
 
         # Get over_all state, return in status attribute of result
+        if debug: print '\n debug -- Get over_all state, return in status attribute of result...'
         try:
             status = _c2_get_instrument_driver_status(reference_designator)
         except Exception:
             status = {}
         result['status'] = status
 
-        #print '\n ***\n result: ', json.dumps(result, indent=4, sort_keys=True)
+        if debug: print '\n ***\n result: ', json.dumps(result, indent=4, sort_keys=True)
         return result
+
     except Exception as err:
         message = str(err.message)
-        #print '\n exit exception message: ', message
-        #print '\n debug - this is where raise only is used...'
         current_app.logger.info(message)
         raise
 
@@ -2740,7 +2851,7 @@ def uframe_post_instrument_driver_command(reference_designator, command, suffix)
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, reference_designator, command])
         url = "?".join([url, suffix])
-        print '\n -- (uframe_post_instrument_driver_command) url: ', url
+        #print '\n -- (uframe_post_instrument_driver_command) url: ', url
         response = requests.post(url, timeout=(timeout, timeout_read), headers=_post_headers())
         return response
     except Exception as err:
