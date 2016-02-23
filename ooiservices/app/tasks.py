@@ -2,6 +2,7 @@
 __author__ = 'M@Campbell'
 
 from ooiservices.app import create_celery_app
+from ooiservices.app.main.c2 import compile_c2_toc
 from flask.globals import current_app
 import requests
 from flask.ext.cache import Cache
@@ -117,6 +118,7 @@ def compile_cam_images():
         else:
             print "[-] Error in cache update"
 
+
 @celery.task(name='tasks.compile_large_format_files')
 def compile_cam_images():
     with current_app.test_request_context():
@@ -131,3 +133,29 @@ def compile_cam_images():
             print "[+] large format files updated."
         else:
             print "[-] Error in large file format update"
+
+
+@celery.task(name='tasks.compile_c2_toc')
+def compile_c2_toc():
+    try:
+        c2_toc = {}
+        with current_app.test_request_context():
+            print "[+] Starting c2 toc cache reset..."
+
+            cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
+            cache.init_app(current_app)
+            try:
+                c2_toc = _compile_c2_toc()
+            except Exception as err:
+                message = 'Error processing compile_c2_toc: ', err.message
+                current_app.logger.warning(message)
+
+            if c2_toc is not None:
+                cache.set('c2_toc', c2_toc, timeout=CACHE_TIMEOUT)
+                print "[+] C2 toc cache reset..."
+            else:
+                print "[-] Error in cache update"
+
+    except Exception as err:
+        message = 'compile_c2_toc exception: ', err.message
+        current_app.logger.warning(message)

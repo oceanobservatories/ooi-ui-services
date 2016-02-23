@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-'''
+"""
 API v1.0 Command and Control (C2) routes
-
-'''
+"""
 __author__ = 'Edna Donoughe'
 
-from flask import jsonify, current_app, make_response, request, g
+from flask import jsonify, current_app, make_response, request
 from ooiservices.app.main import api
 from ooiservices.app.models import Array
 from ooiservices.app.main.routes import get_display_name_by_rd
@@ -17,17 +16,15 @@ from ooiservices.app.main.authentication import auth
 from ooiservices.app.decorators import scope_required
 from datetime import datetime as dt
 from copy import deepcopy
-#import time
-#import calendar
-#from datetime import timedelta
 import datetime as dt
 import calendar
-import pytz    # $ pip install pytz
-import tzlocal # $ pip install tzlocal
+import pytz
+import tzlocal
 from operator import itemgetter
-#import collections
+from ooiservices.app import cache
+import math
 
-
+CACHE_TIMEOUT = 86400
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - -
@@ -100,7 +97,13 @@ def c2_get_array_current_status_display(array_code):
                 else:
                     row['display_name'] = rd
                 row['reference_designator'] = rd
-                row['operational_status'] = 'Online'
+
+                # Get instruments for this platform; if no instrument mark status 'Unknown'
+                instruments, oinstruments = _get_instruments(rd)
+                if not instruments:
+                    row['operational_status'] = 'Unknown'
+                else:
+                    row['operational_status'] = 'Online'
                 array_info[rd] = row
 
     # create list of dictionaries representing data row(s), ordered by reference_designator
@@ -198,7 +201,7 @@ def c2_get_platform_history(reference_designator):
 @auth.login_required
 @scope_required(u'command_control')
 def c2_get_platform_ports_display(reference_designator):
-    '''
+    """
     Get C2 platform Ports tab contents, return ports_display ([{},{},...]
     where dicts for each instrument_deployment in platform_deployment:
     For example:
@@ -216,8 +219,9 @@ def c2_get_platform_ports_display(reference_designator):
                             },
                             ...
                        ]}
-    '''
+    """
     contents = []
+    '''
     platform_info = {}
     if not reference_designator:
         return bad_request('reference_designator parameter empty.')
@@ -259,6 +263,7 @@ def c2_get_platform_ports_display(reference_designator):
         for instrument_reference_designator in oinstruments:
             if instrument_reference_designator in platform_info:
                 contents.append(platform_info[instrument_reference_designator])
+    '''
     return jsonify(ports_display=contents)
 
 #TODO complete with commands from uframe when platform/api available (post R5)
@@ -1984,7 +1989,7 @@ def c2_get_last_particle(reference_designator, _method, _stream):
         return jsonify(particle)
     except Exception as err:
         current_app.logger.info(err.message)
-        return bad_request(err.message)
+        return bad_request(str(err.message))
 
 
 def _c2_get_last_particle(rd, _method, _name):
@@ -2022,7 +2027,7 @@ def _c2_get_last_particle(rd, _method, _name):
 
     """
     result = None
-    debug = True
+    debug = False
     particle = None
     metadata = None
     try:
@@ -2090,11 +2095,18 @@ def _c2_get_last_particle(rd, _method, _name):
             if data:
                 particle = data[0]
 
+                if particle:
+                    if isinstance(particle, dict):
+                        for k,v in particle.iteritems():
+                            if is_nan(v):
+                                #print '\n debug -- %s is Nan: %r' % (k,v)
+                                particle[k] = 'NaN'
+                                #print '\n debug -- %s fix: %r' % (k,particle[k])
+
         return particle
 
     except Exception as err:
         message = str(err.message)
-        print '\n debug -- (_c2_get_last_particle) exception - message: ', message
         current_app.logger.info(message)
         raise
 
@@ -2120,11 +2132,10 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
             message = '(%s) Failed to retrieve stream contents from uFrame.', response.status_code
             raise Exception(message)
         return response
-    except Exception as err:
-        message = str(err.message)
+    except Exception: # as err:
+        #message = str(err.message)
         #current_app.logger.info(message)
         raise
-
 
 
 def _c2_get_instrument_metadata(reference_designator):
@@ -2299,19 +2310,6 @@ def get_streams_dictionary(reference_designator):
         "nutnr_a_sample": "streamed",
         "nutnr_a_status": "streamed"
     },
-
-
-
-
-    {
-        "streams": {
-            "streamed": [
-                "nutnr_a_dark_sample",
-                "nutnr_a_sample",
-                "nutnr_a_status"
-            ]
-    },
-
 
     """
     streams = {}
@@ -2602,7 +2600,6 @@ def _c2_instrument_driver_execute(reference_designator, data):
         if command_name not in _commands:
             message = 'Failed to retrieve command (%s) timeout from status.' % command_name
             if debug: print '\n debug -- message: ', message
-            #current_app.logger.info(message)
             raise Exception(message)
 
         # Get timeout from command dictionary and convert to milliseconds; default 60 seconds.
@@ -2630,16 +2627,12 @@ def _c2_instrument_driver_execute(reference_designator, data):
 
         if debug: print '\n ******* execute suffix: ', suffix
         response = uframe_post_instrument_driver_command(reference_designator, 'execute', suffix)
-        #print '\n ********* uframe_post_instrument_driver_command: status_code: ', response.status_code
-
         if response.status_code != 200:
             message = '(%s) execute %s failed.' % (str(response.status_code), command_name)
-            if debug: print '\n ********* uframe_post_instrument_driver_command: status_code: '
             if response.content:
                 message = '(%s) %s' % (str(response.status_code), str(response.content))
             raise Exception(message)
 
-        #print '\n ******* execute status code: 200 ***************'
         response_data = None
         if response.content:
             try:
@@ -2662,93 +2655,81 @@ def _c2_instrument_driver_execute(reference_designator, data):
 
         # If command executed successfully, and command is type ACQUIRE, fetch stream contents
         if result['response']['status_code'] == 200:
+
             # If ACQUIRE command, retrieve status or data contents based on ACQUIRE command type;
             # return in 'acquire_result' attribute of response.
             acquire_result = None
             if executing_acquire_command:
+
+                # If failed to retrieve particle, populate response_status
                 if not response_data:
-                    if debug: print '\n ******************* No response data....'
-                    # If failure to retrieve particle, populate response_status
+
                     if acquire_result is None:
                         message = '(%s) Failed to retrieve particle. ' % command_name
                         current_app.logger.info(message)
                         response_status['status_code'] = 400
                         response_status['message'] = message
+
+                # Process particle retrieved
                 else:
                     try:
-                        if debug: print '\n ***** executing_acquire_command *****'
-                        #print '\n response_data(%d): %s' % (len(response_data),
-                        #                           json.dumps(response_data, indent=4, sort_keys=True))
-                        #print '\n ***** response_data[value][1](%d): %s' % \
-                        #      (len(response_data['value'][1]), response_data['value'][1])
-
-                        if debug: print '\n ***** checking response_data contents...'
 
                         # Malformed response - no attribute 'value'
                         if 'value' not in response_data:
-                            if debug: print '\n ***** step 1...'
                             message = '(%s) Error is response data: Attribute \'value\' not provided in response data.' % command_name
                             current_app.logger.info(message)
                             response_status['status_code'] = 400
                             response_status['message'] = message
-                        else:
-                            if debug: print '\n debug -- value in response_data'
 
                         # Bad response - attribute 'value' is empty
                         if not response_data['value']:
-                            if debug: print '\n ***** step 2...'
-                            message = '(%s) Error is response data: Attribute \'value\' is empty.' % command_name
+                            message = '(%s) Error is response data: ' % command_name
+                            message += ' Attribute \'value\' is empty.'
                             current_app.logger.info(message)
                             response_status['status_code'] = 400
                             response_status['message'] = message
-                        else:
-                            if debug: print '\n debug -- response_data[value] is not empty'
 
                         # If acquire command returns something other than a list...
                         if not isinstance(response_data['value'], list):
-                            if debug: print '\n ***** step 3...'
-                            message = '(%s) Error is response data: Attribute \'value\' returned %s' % (command_name, response_data['value'])
+                            message = '(%s) Error is response data: ' % command_name
+                            message += ' Attribute \'value\' returned %s' % response_data['value']
                             current_app.logger.info(message)
                             response_status['status_code'] = 400
                             response_status['message'] = message
-                        else:
-                            if debug: print '\n debug -- response_data[value] is a list...'
 
                         # If acquire command returns response_data['value'][1] == None...
                         if len(response_data['value']) < 2:
-                            if debug: print '\n ***** step 3a...'
-                            message = '(%s) Error is response data: Attribute \'value\' less than 2 items in list.' % command_name
+                            message = '(%s) Error is response data: ' % command_name
+                            message += ' Attribute \'value\' less than 2 items in list.'
                             current_app.logger.info(message)
                             response_status['status_code'] = 400
                             response_status['message'] = message
-                        else:
-                            if debug: print '\n debug -- len(response_data[value]) >= 2'
 
                         # If acquire command returns response_data['value'][1] == None...
                         if response_data['value'][1] is None:
-                            if debug: print '\n ***** step 4...'
-                            message = '(%s) Error is response data: Attribute values list is None; should be a list of name:value pairs.' % \
-                                      command_name
+                            message = '(%s) Error is response data: ' % command_name
+                            message += ' Attribute values list is None; should be a list of name:value pairs.'
                             current_app.logger.info(message)
                             response_status['status_code'] = 400
                             response_status['message'] = message
-                        else:
-                            if debug: print '\n debug -- response_data[value][1] is not None'
 
                         if debug:
                             print '\n debug **************************'
                             print '\n debug -- response_data[value][1]: ', response_data['value'][1]
                             print '\n debug -- type(response_data[value][1]): ', type(response_data['value'][1])
                             print '\n debug **************************'
+
+                        # Get acquire_result...Driver code should always return a list; under development so check type
                         if not isinstance(response_data['value'][1], list):
                             if response_data['value'][1] is not None:
-                                if debug: print '\n debug -- response_data[value][1] is not a list....'
                                 acquire_result = deepcopy(response_data['value'][1])
+
+                        # Work around until BOTPT driver code is checked in at Raytheon (handles dict)
                         else:
                             if response_data['value'][1][0] is not None:
-                                if debug: print '\n ***** step 5...'
                                 acquire_result = deepcopy(response_data['value'][1][0])
 
+                        # If acquire_result is None, set response_status
                         if acquire_result is None:
                             message = '(%s) Error is response data: No results no to process.' % command_name
                             current_app.logger.info(message)
@@ -2769,11 +2750,15 @@ def _c2_instrument_driver_execute(reference_designator, data):
                                 values = deepcopy(acquire_result['values'])
                                 #print '\n ---------- values: ', values
 
-                                # If executing ACQUIRE_SAMPLE and no values, return empty list [] as result.
+                                # If executing ACQUIRE_SAMPLE (fetch_data == True) and no values,
+                                # return acquire_result as [].
                                 if not values:
                                     if fetch_data:
                                         acquire_result = []
+
+                                # If values, loop and process values into acquire_result
                                 else:
+
                                     for item in values:
                                         #print '\n debug -- id: ', item['value_id']
                                         id = item['value_id']
@@ -2796,18 +2781,16 @@ def _c2_instrument_driver_execute(reference_designator, data):
                         response_status['status_code'] = 400
                         response_status['message'] = message
 
-                    # Populate return status due to failure to obtain particle; response_data already populated.
+
                     if acquire_result is None:
-                        if debug: print '\n debug -- acquire_result is None, response_status: ', response_status
+                        # Populate return status due to failure to obtain particle;
                         result['response'] = response_status
                         result['acquire_result'] = []
                     else:
-                        if debug: print '\n debug -- acquire_result is not None: ', acquire_result
+                        # Set acquire_result value
                         result['acquire_result'] = acquire_result
-                        if debug: print '\n debug -- acquire_result is not None...result[response]: ', result['response']
 
         # Get over_all state, return in status attribute of result
-        if debug: print '\n debug -- Get over_all state, return in status attribute of result...'
         try:
             status = _c2_get_instrument_driver_status(reference_designator)
         except Exception:
@@ -2822,6 +2805,8 @@ def _c2_instrument_driver_execute(reference_designator, data):
         current_app.logger.info(message)
         raise
 
+def is_nan(x):
+    return isinstance(x, float) and math.isnan(x)
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2952,6 +2937,31 @@ def _get_toc():
     :return: json
     """
     #UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+    try:
+        cached = cache.get('c2_toc')
+        if cached:
+            toc = cached
+        else:
+            toc = _compile_c2_toc()
+            if toc is not None:
+                cache.set('c2_toc', toc, timeout=CACHE_TIMEOUT)
+                print "[+] C2 toc cache reset..."
+            else:
+                print "[-] Error in cache update"
+
+        return toc
+
+    except Exception as err:
+        message = str(err.message)
+        current_app.logger.info(message)
+        return None
+
+def _compile_c2_toc():
+    """
+    Returns a dictionary of arrays, moorings, platforms and instruments from uframe.
+    Augmented by the UI database for vocabulary and arrays. Returns json
+    """
+    #UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     #print '\n debug --- (_get_toc) Using modified uft21 url for toc on C2 display [TESTING ONLY]'
@@ -2993,13 +3003,16 @@ def _get_toc():
                     if response.status_code == 200:
                         instruments = response.json()
                         for instrument in instruments:
-                            reference_designator = "-".join([mooring, platform, instrument])
-                            instrument_list.append({'mooring_code': mooring,
-                                                    'platform_code': platform,
-                                                    'instrument_code': instrument,
-                                                    'reference_designator': reference_designator,
-                                                    'display_name': get_display_name_by_rd(reference_designator=reference_designator)
-                                                    })
+                            # Verify valid reference designator, if not skip
+                            #reference_designator = "-".join([mooring, platform, instrument])
+                            reference_designator = _get_validate_instrument_rd(mooring, platform, instrument)
+                            if reference_designator is not None:
+                                instrument_list.append({'mooring_code': mooring,
+                                                        'platform_code': platform,
+                                                        'instrument_code': instrument,
+                                                        'reference_designator': reference_designator,
+                                                        'display_name': get_display_name_by_rd(reference_designator=reference_designator)
+                                                        })
                 arrays = Array.query.all()
                 toc['arrays'] = [array.to_json() for array in arrays]
                 toc['moorings'] = mooring_list
@@ -3007,8 +3020,37 @@ def _get_toc():
                 toc['instruments'] = instrument_list
 
         return toc
-    except Exception as e:
+
+    except Exception as err:
+        message = str(err.message)
+        current_app.logger.info(message)
         return None
+
+def _get_validate_instrument_rd(mooring, platform, instrument):
+    """ Verify an instrument reference designator is not malformed; if malformed, return None.
+    """
+    if mooring is None:
+        return None
+    if len(mooring) != 8:
+        return None
+
+    if platform is None:
+        return None
+    if len(platform) != 5:
+        return None
+
+    if instrument is None:
+        return None
+    if len(instrument) != 12:
+        return None
+    if '-' not in instrument:
+        return None
+
+    rd = "-".join([mooring, platform, instrument])
+    if rd:
+        if len(rd) != 27:
+            return None
+        return rd
 
 
 def _get_platforms(array):
@@ -3032,7 +3074,6 @@ def _get_platform(reference_designator):
     # Returns requested platform information from uframe.
     try:
         dataset = _get_toc()
-        #dataset = get_structured_toc()
         if dataset:
             platforms = dataset['platforms']
             platform_deployment = None
@@ -3049,7 +3090,6 @@ def _get_instrument(reference_designator):
     # Returns requested instrument information from uframe.
     try:
         dataset = _get_toc()
-        #dataset = get_structured_toc()
         if dataset:
             instruments = dataset['instruments']
             _instrument = None
@@ -3061,13 +3101,12 @@ def _get_instrument(reference_designator):
     except:
         return None
 
-
+# todo verify if valid reference_designator
 def _get_instruments(platform):
     # Returns list of all instruments (dict) for specified platform (reference_designator).
     instruments = []        # list of dictionaries
     oinstruments = []       # list of reference_designators
     dataset = _get_toc()
-    #dataset = get_structured_toc()
     _instruments = dataset['instruments']
     for instrument in _instruments:
         if platform in instrument['reference_designator']:
