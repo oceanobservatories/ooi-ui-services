@@ -1261,9 +1261,9 @@ class User(UserMixin, db.Model):
         self._password = encrypt_password(plaintext)
 
     def verify_password(self, password):
-        if check_password_hash(self._password, password):
-            return True
-        else:
+        try:
+            return check_password_hash(self._password, password)
+        except TypeError:
             return fs_verify_password(password, self._password)
 
     def validate_email(self, field):
