@@ -17,6 +17,8 @@ from flask.ext.migrate import Migrate, MigrateCommand
 import flask.ext.whooshalchemy as whooshalchemy
 from ooiservices.app.models import PlatformDeployment, User, UserScope, UserScopeLink, DisabledStreams
 from datetime import datetime
+import sqlalchemy.exc
+import codecs
 
 import yaml
 if os.path.exists(os.path.join(basedir, '/app/config_local.yml')):
@@ -272,10 +274,10 @@ def rebuild_schema(schema, schema_owner, save_users, save_disabled_streams, admi
         for sresult in fa:
             ds_record = DisabledStreams()
             ds_record.id = sresult.id
-            ds_record.ref_des = sresult.ref_des
-            ds_record.stream_name = sresult.stream_name
-            ds_record.disabled_by = sresult.disabled_by
-            ds_record.timestamp = sresult.timestamp
+            ds_record.ref_des = getattr(sresult, 'ref_des', '')
+            ds_record.stream_name = getattr(sresult, 'stream_name', '')
+            ds_record.disabled_by = getattr(sresult, 'disabled_by', '')
+            ds_record.timestamp = getattr(sresult, 'timestamp', '')
             db.session.add(ds_record)
             db.engine.execute("SELECT nextval('ooiui.disabledstreams_id_seq')")
             db.session.commit()
@@ -286,40 +288,62 @@ def rebuild_schema(schema, schema_owner, save_users, save_disabled_streams, admi
         sql_result = db.engine.execute(users_sql)
         fa = sql_result.fetchall()
         for sresult in fa:
-            new_user = User()
-            new_user.id = sresult.id
-            new_user.user_id = sresult.user_id
-            new_user._password = sresult._password
-            new_user.email = sresult.email
-            new_user.user_name = sresult.user_name
-            new_user.active = sresult.active
-            new_user.confirmed_at = sresult.confirmed_at
-            new_user.first_name = sresult.first_name
-            new_user.last_name = sresult.last_name
-            new_user.phone_primary = sresult.phone_primary
-            new_user.phone_alternate = sresult.phone_alternate
-            new_user.role = sresult.role
-            new_user.email_opt_in = sresult.email_opt_in
-            new_user.organization_id = sresult.organization_id
-            new_user.other_organization = sresult.other_organization
-            new_user.vocation = sresult.vocation
-            new_user.country = sresult.country
-            new_user.state = sresult.state
-            db.session.add(new_user)
-            db.engine.execute("SELECT nextval('ooiui.users_id_seq')")
-            db.session.commit()
+            try:
+                new_user = User()
+                new_user.id = sresult.id
+                new_user.user_id = getattr(sresult, 'user_id', '')
+                if hasattr(sresult, 'pass_hash'):
+                    new_user._password = getattr(sresult, 'pass_hash', '')
+                else:
+                    new_user._password = getattr(sresult, '_password', '')
+                new_user.email = getattr(sresult, 'email', '')
+                new_user.user_name = getattr(sresult, 'user_name', '')
+                new_user.active = getattr(sresult, 'active', '')
+                new_user.confirmed_at = getattr(sresult, 'confirmed_at', '')
+                new_user.first_name = getattr(sresult, 'first_name', '')
+                new_user.last_name = getattr(sresult, 'last_name', '')
+                new_user.phone_primary = getattr(sresult, 'phone_primary', '')
+                new_user.phone_alternate = getattr(sresult, 'phone_alternate', '')
+                new_user.role = getattr(sresult, 'role', '')
+                new_user.email_opt_in = getattr(sresult, 'email_opt_in', '')
+                new_user.organization_id = getattr(sresult, 'organization_id', '')
+                new_user.other_organization = getattr(sresult, 'other_organization', '')
+                new_user.vocation = getattr(sresult, 'vocation', '')
+                new_user.country = getattr(sresult, 'country', '')
+                new_user.state = getattr(sresult, 'state', '')
+                db.session.add(new_user)
+                db.engine.execute("SELECT nextval('ooiui.users_id_seq')")
+                db.session.commit()
+            except sqlalchemy.exc.IntegrityError, exc:
+                app.logger.info('Failure: rebuild_schema failed: ')
+                reason = exc.message
+                app.logger.info('Cause: ' + reason)
+                app.logger.info('Restoring to previous version')
+                app.logger.info('Restoring schema container {0}_{1} to {0}'.format(schema, timestamp))
+                db.engine.execute('ALTER SCHEMA {0} RENAME TO {0}_{1}_failed'.format(schema, timestamp))
+                db.engine.execute('ALTER SCHEMA {0}_{1} RENAME TO {0}'.format(schema, timestamp))
+
 
         user_scope_link_sql = 'SELECT * FROM {0}_{1}.user_scope_link'.format(schema, timestamp)
         sql_resultc = db.engine.execute(user_scope_link_sql)
         fac = sql_resultc.fetchall()
         for scresult in fac:
-            new_user_scope_link = UserScopeLink()
-            new_user_scope_link.id = scresult.id
-            new_user_scope_link.user_id = scresult.user_id
-            new_user_scope_link.scope_id = scresult.scope_id
-            db.session.add(new_user_scope_link)
-            db.engine.execute("SELECT nextval('ooiui.user_scope_link_id_seq')")
-            db.session.commit()
+            try:
+                new_user_scope_link = UserScopeLink()
+                new_user_scope_link.id = scresult.id
+                new_user_scope_link.user_id = scresult.user_id
+                new_user_scope_link.scope_id = scresult.scope_id
+                db.session.add(new_user_scope_link)
+                db.engine.execute("SELECT nextval('ooiui.user_scope_link_id_seq')")
+                db.session.commit()
+            except sqlalchemy.exc.IntegrityError, exc:
+                app.logger.info('Failure: rebuild_schema failed: ')
+                reason = exc.message
+                app.logger.info('Cause: ' + reason)
+                app.logger.info('Restoring to previous version')
+                app.logger.info('Restoring schema container {0}_{1} to {0}'.format(schema, timestamp))
+                db.engine.execute('ALTER SCHEMA {0} RENAME TO {0}_{1}_failed'.format(schema, timestamp))
+                db.engine.execute('ALTER SCHEMA {0}_{1} RENAME TO {0}'.format(schema, timestamp))
 
         # db.engine.execute('INSERT INTO {0}.users SELECT * FROM {0}_{1}.users'.format(schema, timestamp))
         # db.engine.execute('INSERT INTO {0}.user_scope_link SELECT * FROM {0}_{1}.user_scope_link'.format(schema, timestamp))
@@ -376,8 +400,6 @@ def load_data(sql_file):
     Bulk loads the OOI UI data
     :return:
     '''
-    import sqlalchemy.exc
-    import codecs
     APP_ROOT = os.path.dirname(os.path.abspath(__file__))   # refers to application_top
     APP_DB = os.path.join(APP_ROOT, '..', 'db')
     with codecs.open(os.path.join(APP_DB, sql_file), "r", "utf-8") as f:
