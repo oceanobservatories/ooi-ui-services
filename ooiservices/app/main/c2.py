@@ -2090,18 +2090,30 @@ def _c2_get_last_particle(rd, _method, _name):
                 raise Exception(message)
 
         # If stream contents provided sort and retrieve first item in list as particle.
+        offset = 2208988800
         if result:
             data = sorted(result, key=itemgetter('driver_timestamp'), reverse=True)
             if data:
                 particle = data[0]
-
                 if particle:
                     if isinstance(particle, dict):
                         for k,v in particle.iteritems():
                             if is_nan(v):
-                                #print '\n debug -- %s is Nan: %r' % (k,v)
                                 particle[k] = 'NaN'
-                                #print '\n debug -- %s fix: %r' % (k,particle[k])
+                            elif 'timestamp' in k:
+                                if isinstance(v, float):
+                                    ts_event_time = convert_from_utc(v - offset)
+                                    value = dt.datetime.strftime(ts_event_time, "%Y-%m-%dT%H:%M:%S")
+                                    particle[k] = value
+                            elif k == 'pk':
+                                if isinstance(v, dict):
+                                    if 'time' in particle['pk']:
+                                        time_float = particle['pk']['time']
+                                        if isinstance(time_float, float):
+                                            ts_event_time = convert_from_utc(time_float - offset)
+                                            value = dt.datetime.strftime(ts_event_time, "%Y-%m-%dT%H:%M:%S")
+                                            particle['pk']['time'] = value
+
 
         return particle
 
