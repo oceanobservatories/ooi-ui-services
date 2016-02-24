@@ -2,7 +2,7 @@
 __author__ = 'M@Campbell'
 
 from ooiservices.app import create_celery_app
-from ooiservices.app.main.c2 import compile_c2_toc
+from ooiservices.app.main.c2 import _compile_c2_toc
 from flask.globals import current_app
 import requests
 from flask.ext.cache import Cache
@@ -110,7 +110,7 @@ def compile_cam_images():
         cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
         cache.init_app(current_app)
 
-        cam_images = __compile_cam_images()
+        cam_images = _compile_cam_images()
 
         if "error" not in cam_images:
             cache.set('cam_images', cam_images, timeout=CACHE_TIMEOUT)

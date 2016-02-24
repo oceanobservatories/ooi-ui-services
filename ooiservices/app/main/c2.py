@@ -2053,7 +2053,7 @@ def _c2_get_last_particle(rd, _method, _name):
 
         time_set = process_stream_metadata_for_timeset(metadata, _method, _name)
         if time_set is None:
-            message = 'Failed to obtain a time_set from metadata for reference_designator %s', rd
+            message = 'Failed to obtain metadata times for reference_designator %s' % rd
             raise Exception(message)
 
         if debug: print '\n time_set: ', json.dumps(time_set, indent=4, sort_keys=True)
@@ -2100,7 +2100,7 @@ def _c2_get_last_particle(rd, _method, _name):
                         for k,v in particle.iteritems():
                             if is_nan(v):
                                 particle[k] = 'NaN'
-                            elif 'timestamp' in k:
+                            elif 'timestamp' in k or 'time' == k:
                                 if isinstance(v, float):
                                     ts_event_time = convert_from_utc(v - offset)
                                     value = dt.datetime.strftime(ts_event_time, "%Y-%m-%dT%H:%M:%S")
@@ -2688,38 +2688,38 @@ def _c2_instrument_driver_execute(reference_designator, data):
 
                         # Malformed response - no attribute 'value'
                         if 'value' not in response_data:
-                            message = '(%s) Error is response data: Attribute \'value\' not provided in response data.' % command_name
+                            message = '(%s) Error in response data: Attribute \'value\' not provided in response data.' % command_name
                             current_app.logger.info(message)
                             response_status['status_code'] = 400
                             response_status['message'] = message
 
                         # Bad response - attribute 'value' is empty
-                        if not response_data['value']:
-                            message = '(%s) Error is response data: ' % command_name
+                        elif not response_data['value']:
+                            message = '(%s) Error in response data: ' % command_name
                             message += ' Attribute \'value\' is empty.'
                             current_app.logger.info(message)
                             response_status['status_code'] = 400
                             response_status['message'] = message
 
                         # If acquire command returns something other than a list...
-                        if not isinstance(response_data['value'], list):
-                            message = '(%s) Error is response data: ' % command_name
+                        elif not isinstance(response_data['value'], list):
+                            message = '(%s) Error in response data: ' % command_name
                             message += ' Attribute \'value\' returned %s' % response_data['value']
                             current_app.logger.info(message)
                             response_status['status_code'] = 400
                             response_status['message'] = message
 
                         # If acquire command returns response_data['value'][1] == None...
-                        if len(response_data['value']) < 2:
-                            message = '(%s) Error is response data: ' % command_name
+                        elif len(response_data['value']) < 2:
+                            message = '(%s) Error in response data: ' % command_name
                             message += ' Attribute \'value\' less than 2 items in list.'
                             current_app.logger.info(message)
                             response_status['status_code'] = 400
                             response_status['message'] = message
 
                         # If acquire command returns response_data['value'][1] == None...
-                        if response_data['value'][1] is None:
-                            message = '(%s) Error is response data: ' % command_name
+                        elif response_data['value'][1] is None:
+                            message = '(%s) Error in response data: ' % command_name
                             message += ' Attribute values list is None; should be a list of name:value pairs.'
                             current_app.logger.info(message)
                             response_status['status_code'] = 400
@@ -2743,7 +2743,7 @@ def _c2_instrument_driver_execute(reference_designator, data):
 
                         # If acquire_result is None, set response_status
                         if acquire_result is None:
-                            message = '(%s) Error is response data: No results no to process.' % command_name
+                            message = '(%s) Error in response data: No results no to process.' % command_name
                             current_app.logger.info(message)
                             response_status['status_code'] = 400
                             response_status['message'] = message
