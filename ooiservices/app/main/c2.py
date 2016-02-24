@@ -549,7 +549,7 @@ def json_get_uframe_platform_operational_status(platform):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 @api.route('/c2/instruments/status', methods=['GET'])
 @auth.login_required
-@scope_required(u'user_admin')
+@scope_required(u'command_control')
 def c2_get_instruments_status():
     """
     # get status of all instrument agents, return json.
@@ -567,7 +567,7 @@ def c2_get_instruments_status():
 @api.route('/c2/instrument/<string:reference_designator>/commands', methods=['GET'])
 @api.route('/c2/instrument/<string:reference_designator>/status', methods=['GET'])
 @auth.login_required
-@scope_required(u'user_admin')
+@scope_required(u'command_control')
 def c2_get_instrument_driver_status(reference_designator):
     """
     Get the current overall state of the specified instrument (id is the reference designator of the instrument).
@@ -586,7 +586,7 @@ def c2_get_instrument_driver_status(reference_designator):
 
 @api.route('/c2/instrument/<string:reference_designator>/state', methods=['GET'])
 @auth.login_required
-@scope_required(u'user_admin')
+@scope_required(u'command_control')
 def c2_get_instrument_driver_state(reference_designator):
     """
     Return the instrument driver state. Returns json.
@@ -603,7 +603,7 @@ def c2_get_instrument_driver_state(reference_designator):
 
 @api.route('/c2/instrument/<string:reference_designator>/parameters', methods=['POST'])
 @auth.login_required
-@scope_required(u'user_admin')
+@scope_required(u'command_control')
 def c2_set_instrument_driver_parameters(reference_designator):
     """
     Set one or more instrument driver parameters. Returns json.
@@ -650,7 +650,7 @@ def c2_set_instrument_driver_parameters(reference_designator):
 
 @api.route('/c2/instrument/<string:reference_designator>/execute', methods=['POST'])
 @auth.login_required
-@scope_required(u'user_admin')
+@scope_required(u'command_control')
 def c2_instrument_driver_execute(reference_designator):
     """
     Command the driver to execute a capability. Returns json.
@@ -1974,7 +1974,7 @@ def get_range_dictionary(resource, _status, reference_designator):
 
 @api.route('/c2/instrument/<string:reference_designator>/get_last_particle/<string:_method>/<string:_stream>', methods=['GET'])
 @auth.login_required
-@scope_required(u'user_admin')
+@scope_required(u'command_control')
 def c2_get_last_particle(reference_designator, _method, _stream):
     """
     Get the last particle for this reference designator with method and stream name provided. If error, return error.
@@ -3135,7 +3135,7 @@ def _get_instruments(platform):
 '''
 #@api.route('/c2/instrument/<string:reference_designator>/start', methods=['POST'])
 #@auth.login_required
-#@scope_required(u'user_admin')
+#@scope_required(u'command_control')
 def c2_instrument_driver_start(reference_designator):
     """
     Start an instrument agent and the corresponding driver. return json
@@ -3163,7 +3163,7 @@ def c2_instrument_driver_start(reference_designator):
 
 #@api.route('/c2/instrument/<string:reference_designator>/stop', methods=['DELETE'])
 #@auth.login_required
-#@scope_required(u'user_admin')
+#@scope_required(u'command_control')
 def c2_instrument_driver_stop(reference_designator):
     """
     Stop the specified driver and corresponding agent. Return json.
@@ -3181,7 +3181,7 @@ def c2_instrument_driver_stop(reference_designator):
 
 @api.route('/c2/instrument/<string:reference_designator>/ping', methods=['GET'])
 #@auth.login_required
-#@scope_required(u'user_admin')
+#@scope_required(u'command_control')
 def c2_get_instrument_driver_ping(reference_designator):
     """
     Get instrument driver status ('ping'). Returns json.
@@ -3207,7 +3207,7 @@ def c2_get_instrument_driver_ping(reference_designator):
 '''
 #@api.route('/c2/instrument/<string:reference_designator>/initialize', methods=['POST'])
 #@auth.login_required
-#@scope_required(u'user_admin')
+#@scope_required(u'command_control')
 def c2_instrument_driver_initialize(reference_designator):
     """
     Initialize the instrument driver. Valid only from the disconnected state,
@@ -3225,7 +3225,7 @@ def c2_instrument_driver_initialize(reference_designator):
 
 #@api.route('/c2/instrument/<string:reference_designator>/configure', methods=['POST'])
 #@auth.login_required
-#@scope_required(u'user_admin')
+#@scope_required(u'command_control')
 def c2_instrument_driver_configure(reference_designator):
     """
     Configure the instrument driver. Return json.
@@ -3247,7 +3247,7 @@ def c2_instrument_driver_configure(reference_designator):
 
 #@api.route('/c2/instrument/<string:reference_designator>/initparams', methods=['POST'])
 #@auth.login_required
-#@scope_required(u'user_admin')
+#@scope_required(u'command_control')
 def c2_instrument_driver_initparams(reference_designator):
     """
     # Configure the instrument driver startup parameters. Returns json.
@@ -3269,7 +3269,7 @@ def c2_instrument_driver_initparams(reference_designator):
 
 #@api.route('/c2/instrument/<string:reference_designator>/connect', methods=['POST'])
 #@auth.login_required
-#@scope_required(u'user_admin')
+#@scope_required(u'command_control')
 def c2_instrument_driver_connect(reference_designator):
     """
     Command the driver to connect to the instrument. Returns json.
@@ -3290,7 +3290,7 @@ def c2_instrument_driver_connect(reference_designator):
 
 #@api.route('/c2/instrument/<string:reference_designator>/disconnect', methods=['POST'])
 #@auth.login_required
-#@scope_required(u'user_admin')
+#@scope_required(u'command_control')
 def c2_instrument_driver_disconnect(reference_designator):
     """
     Command the driver to disconnect to the instrument. Returns json.
@@ -3311,7 +3311,7 @@ def c2_instrument_driver_disconnect(reference_designator):
 
 #@api.route('/c2/instrument/<string:reference_designator>/discover', methods=['POST'])
 #@auth.login_required
-#@scope_required(u'user_admin')
+#@scope_required(u'command_control')
 def c2_instrument_driver_discover(reference_designator):
     """
     Command the driver to discover the current instrument state. returns json
@@ -3332,7 +3332,7 @@ def c2_instrument_driver_discover(reference_designator):
 '''
 @api.route('/c2/instrument/<string:reference_designator>/metadata', methods=['GET'])
 @auth.login_required
-@scope_required(u'user_admin')
+@scope_required(u'command_control')
 def c2_get_instrument_driver_metadata(reference_designator):
     """
     Returns the instrument driver metadata. Returns json.
@@ -3349,7 +3349,7 @@ def c2_get_instrument_driver_metadata(reference_designator):
 '''
 @api.route('/c2/instrument/<string:reference_designator>/capabilities', methods=['GET'])
 @auth.login_required
-@scope_required(u'user_admin')
+@scope_required(u'command_control')
 def c2_get_instrument_driver_capabilities(reference_designator):
     """
     Return the instrument driver capabilities available in the current state. Returns json.
@@ -3367,7 +3367,7 @@ def c2_get_instrument_driver_capabilities(reference_designator):
 
 @api.route('/c2/instrument/<string:reference_designator>/parameters', methods=['GET'])
 #@auth.login_required
-#@scope_required(u'user_admin')
+#@scope_required(u'command_control')
 def c2_get_instrument_driver_parameters(reference_designator):
     """
     Return the instrument driver parameters and current values for all parameters.
@@ -3452,7 +3452,7 @@ def c2_get_instrument_driver_parameters(reference_designator):
 
 #@api.route('/c2/instrument/<string:reference_designator>/parameter_values', methods=['GET'])
 #@auth.login_required
-#@scope_required(u'user_admin')
+#@scope_required(u'command_control')
 def c2_get_instrument_driver_parameter_values(reference_designator):
     """
     Return the instrument driver parameter values.
