@@ -1305,11 +1305,11 @@ INSERT INTO vocabnames VALUES (1287, 'RS03INT1-MJ03C-07-D1000A301', 'Cabled', 'A
 INSERT INTO vocabnames VALUES (1288, 'RS03INT1-MJ03C-09-THSPHA301', 'Cabled', 'Axial Seamount International District 1', 'Medium-Power Jbox', 'Hydrothermal Vent Fluid In-situ Chemistry');
 INSERT INTO vocabnames VALUES (1289, 'RS03INT1-MJ03C-09-TRHPHA301', 'Cabled', 'Axial Seamount International District 1', 'Medium-Power Jbox', 'Hydrothermal Vent Fluid Temperature and Resistivity');
 INSERT INTO vocabnames VALUES (1290, 'RS03INT1-MJ03C-10-TRHPHA301', 'Cabled', 'Axial Seamount International District 1', 'Medium-Power Jbox', 'Hydrothermal Vent Fluid Temperature and Resistivity');
-INSERT INTO vocabnames VALUES (1291, 'RS03INT2', 'Cabled', 'Axial Seamount International Disctrict 2', NULL, NULL);
-INSERT INTO vocabnames VALUES (1292, 'RS03INT2-MJ03D', 'Cabled', 'Axial Seamount International Disctrict 2', 'Medium-Power Jbox', NULL);
-INSERT INTO vocabnames VALUES (1293, 'RS03INT2-MJ03D-05-OBSSPA305', 'Cabled', 'Axial Seamount International Disctrict 2', 'Medium-Power Jbox', 'Short-Period Ocean Bottom Seismometer');
-INSERT INTO vocabnames VALUES (1294, 'RS03INT2-MJ03D-06-BOTPTA303', 'Cabled', 'Axial Seamount International Disctrict 2', 'Medium-Power Jbox', 'Bottom Pressure and Tilt');
-INSERT INTO vocabnames VALUES (1295, 'RS03INT2-MJ03D-12-VEL3DB304', 'Cabled', 'Axial Seamount International Disctrict 2', 'Medium-Power Jbox', '3-D Single Point Velocity Meter');
+INSERT INTO vocabnames VALUES (1291, 'RS03INT2', 'Cabled', 'Axial Seamount International District 2', NULL, NULL);
+INSERT INTO vocabnames VALUES (1292, 'RS03INT2-MJ03D', 'Cabled', 'Axial Seamount International District 2', 'Medium-Power Jbox', NULL);
+INSERT INTO vocabnames VALUES (1293, 'RS03INT2-MJ03D-05-OBSSPA305', 'Cabled', 'Axial Seamount International District 2', 'Medium-Power Jbox', 'Short-Period Ocean Bottom Seismometer');
+INSERT INTO vocabnames VALUES (1294, 'RS03INT2-MJ03D-06-BOTPTA303', 'Cabled', 'Axial Seamount International District 2', 'Medium-Power Jbox', 'Bottom Pressure and Tilt');
+INSERT INTO vocabnames VALUES (1295, 'RS03INT2-MJ03D-12-VEL3DB304', 'Cabled', 'Axial Seamount International District 2', 'Medium-Power Jbox', '3-D Single Point Velocity Meter');
 INSERT INTO vocabnames VALUES (1296, 'CE', 'Endurance', NULL, NULL, NULL);
 INSERT INTO vocabnames VALUES (1297, 'GP', 'Station Papa', NULL, NULL, NULL);
 INSERT INTO vocabnames VALUES (1298, 'CP', 'Pioneer', NULL, NULL, NULL);
