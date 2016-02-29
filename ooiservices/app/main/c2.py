@@ -1757,7 +1757,7 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
             raise Exception(message)
 
         #if debug:
-        print '\n ********** debug -- _status: ', json.dumps(_status, indent=4, sort_keys=True)
+        #print '\n ********** debug -- _status: ', json.dumps(_status, indent=4, sort_keys=True)
 
         # Verify payload['resource'] is not empty or None
         if payload['resource'] is None or not payload['resource']:
@@ -1944,6 +1944,8 @@ def _c2_get_last_particle(rd, _method, _name):
     """ Using the reference designator, stream method and name, fetch last particle.
     Get reference designator metadata to determine time span for last particle.
 
+    If an attribute in particle contains 0.0 as value for 'timestamp', it is converted to "1900-01-01T00:00:00".
+
     metadata: {
         "times": [
             {
@@ -1976,9 +1978,7 @@ def _c2_get_last_particle(rd, _method, _name):
     """
     result = None
     debug = False
-    particle = None
     metadata = None
-    value = None
     try:
         try:
             data = _c2_get_instrument_metadata(rd)
@@ -2035,40 +2035,80 @@ def _c2_get_last_particle(rd, _method, _name):
                 message = 'Failed to process stream (%s) contents to json.' % stream_name
                 raise Exception(message)
 
-        # If stream contents provided sort and retrieve first item in list as particle.
+        # Process result returned for most recent particle
         particle_metadata = {}
         particle_values = {}
         if result:
+            # If stream contents provided, sort in reverse
             data = sorted(result, key=itemgetter('driver_timestamp'), reverse=True)
             if data:
+
+                # Retrieve first item in list as particle.
                 particle = data[0]
+                #print '\n debug -- (data) get_last_particle: ', json.dumps(particle, indent=4, sort_keys=True)
+
                 if particle:
+                    # Add each name-value pair to response dict attribute 'particle_metadata' or 'particle_values'
                     if isinstance(particle, dict):
-                        for k,v in particle.iteritems():
+
+                        #print '\n debug -- process metadata...'
+                        # Process 'particle_metadata'; format 'time' attribute, return
+                        if 'pk' in particle:
+                            temp = particle['pk']
+                            if temp:
+                                if isinstance(temp, dict):
+                                    if 'time' in temp:
+                                        time_float = temp['time']
+                                        temp['time'] = get_timestamp_value(time_float)
+                                particle_metadata = temp
+                            del particle['pk']
+
+                        #print '\n debug -- (no pk) get_last_particle: ', json.dumps(particle, indent=4, sort_keys=True)
+
+                        # Process values
+                        #print '\n debug -- process values...'
+                        for k, v in particle.iteritems():
+
+                            # if value if Nan, convert to str; add to response attribute 'particle_values'
                             if is_nan(v):
                                 particle_values[k] = 'NaN'
+
+                            # if k contains 'timestamp' or 'time', process
                             elif 'timestamp' in k or 'time' == k:
-                                value = timestamp_to_string(v)
-                                particle_values[k] = value
-                            elif k == 'pk':
-                                if isinstance(v, dict):
-                                    if 'time' in particle['pk']:
-                                        time_float = particle['pk']['time']
-                                        value = timestamp_to_string(time_float)
-                                        particle['pk']['time'] = value
-                                particle_metadata = particle['pk']
+                                particle_values[k] = get_timestamp_value(v)
+
+                            # regular key-value pair, add to response attribute 'particle_values'
                             else:
-                                particle_values[k] = value
+                                particle_values[k] = v
 
         particle = {}
         particle['particle_metadata'] = particle_metadata
         particle['particle_values'] = particle_values
+
+        #print '\n debug --  (response) get_last_particle: ', json.dumps(particle, indent=4, sort_keys=True)
+
         return particle
 
     except Exception as err:
         message = str(err.message)
         current_app.logger.info(message)
         raise
+
+
+def get_timestamp_value(value):
+    result = value
+
+    try:
+        formatted_value = timestamp_to_string(value)
+        if formatted_value is not None:
+            result = formatted_value
+
+        return result
+    except Exception as err:
+        message = str(err.message)
+        current_app.logger.info(message)
+        return result
+
 
 def get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag):
     """
@@ -2721,12 +2761,16 @@ def _c2_instrument_driver_execute(reference_designator, data):
                                 print '\n debug -- type(response_data[value][1]): ', type(response_data['value'][1])
                                 print '\n debug **************************'
 
-                            # Get acquire_result...Driver code should always return a list; under development so check type
+                            # Get acquire_result...
                             acquire_result_list = []
+
+                            # Driver code should always return a list; if not error.
                             if not isinstance(response_data['value'][1], list):
-                                if response_data['value'][1] is not None:
-                                    if debug: print '\n debug -- (1) have acquire_result....Not a list!!'
-                                    acquire_result = deepcopy(response_data['value'][1])
+                                message = '(%s) Error in response data: ' % command_name
+                                message += 'Result returned from driver is not of type list.'
+                                current_app.logger.info(message)
+                                response_status['status_code'] = 400
+                                response_status['message'] = message
 
                             # Work around until BOTPT driver code is checked in at Raytheon (handles dict)
                             else:
@@ -2739,7 +2783,9 @@ def _c2_instrument_driver_execute(reference_designator, data):
                                     if debug: print '\n debug -- check_state_change = True '
                                     check_state_change = True
 
+                            # process all particles in acquire_result_list
                             for acquire_result in acquire_result_list:
+
                                 # If acquire_result is None, set response_status
                                 if acquire_result is None and not check_state_change:
                                     message = '(%s) Error in response data: No results to process.' % command_name
@@ -2747,6 +2793,7 @@ def _c2_instrument_driver_execute(reference_designator, data):
                                     response_status['status_code'] = 400
                                     response_status['message'] = message
 
+                                # Process particle
                                 if acquire_result is not None:
                                     if debug:
                                         print '\n acquire_result(%d): %s' % (len(acquire_result), acquire_result)
@@ -2758,7 +2805,7 @@ def _c2_instrument_driver_execute(reference_designator, data):
                                         {"value": 0.0909, "value_id": "measurement_3_slope_value"}
                                     """
 
-                                    # -- Process information not in 'values'
+                                    # -- Get particle_metadata information
                                     keys = acquire_result.keys()
                                     if debug:
                                         print '\n debug -- Process keys in acquire_result....'
@@ -2772,16 +2819,14 @@ def _c2_instrument_driver_execute(reference_designator, data):
                                             if is_nan(value):
                                                 particle_metadata[id] = 'NaN'
                                             elif 'timestamp' in id or 'time' == id:
-                                                if isinstance(value, float):
-                                                    time_value = timestamp_to_string(value)
-                                                    particle_metadata[id] = time_value
+                                                particle_metadata[id] = get_timestamp_value(value)
                                             else:
                                                 particle_metadata[id] = value
 
                                     acquire_result['particle_metadata'] = particle_metadata
-
                                     particle_values = {}
-                                    # -- Process information in 'values'
+
+                                    # -- Get particle_values information (i.e. process information in 'values')
                                     if 'values' in acquire_result:
                                         if debug:
                                             print '\n debug -- Process values in acquire_result....'
@@ -2805,16 +2850,13 @@ def _c2_instrument_driver_execute(reference_designator, data):
                                                     particle_values[id] = 'NaN'
                                                 elif 'timestamp' in id or 'time' == id:
                                                     if debug: print '\n debug -- timestamp in ', id
-                                                    time_value = timestamp_to_string(value)
-                                                    particle_values[id] = time_value
+                                                    particle_values[id] = get_timestamp_value(value)
                                                 else:
                                                     particle_values[id] = value
 
                                             acquire_result['particle_values'] = particle_values
-
                                             del acquire_result['values']
 
-                                        #acquire_result = [acquire_result]
                                     if acquire_result:
                                         acquire_result = {}
                                         acquire_result['particle_metadata'] = particle_metadata
@@ -2877,9 +2919,11 @@ def timestamp_to_string(time_float):
     offset = 2208988800
     formatted_time = None
     try:
-        if isinstance(time_float, float):
-            ts_time = convert_from_utc(time_float - offset)
-            formatted_time = dt.datetime.strftime(ts_time, "%Y-%m-%dT%H:%M:%S")
+        if not isinstance(time_float, float):
+            return None
+        #if isinstance(time_float, float):
+        ts_time = convert_from_utc(time_float - offset)
+        formatted_time = dt.datetime.strftime(ts_time, "%Y-%m-%dT%H:%M:%S")
         return formatted_time
     except Exception as err:
         current_app.logger.info(str(err.message))
