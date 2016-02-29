@@ -1978,6 +1978,7 @@ def _c2_get_last_particle(rd, _method, _name):
     debug = False
     particle = None
     metadata = None
+    value = None
     try:
         try:
             data = _c2_get_instrument_metadata(rd)
