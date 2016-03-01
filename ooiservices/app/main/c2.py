@@ -700,13 +700,18 @@ def uframe_get_instruments_status():
         current_app.logger.info(message)
         raise
 
-# todo re: blocking
+
 def _c2_get_instrument_driver_status(reference_designator):
     """
     Get the current overall state of the specified instrument (id is the reference designator of the instrument).
+
+    Sample: http://host:12572/instrument/api/reference_designator
+            http://host:12572/instrument/api/RS10ENGC-XX00X-00-NUTNRA001
+
+    Will NOT be doing any blocking:
     If the query option "blocking" is specified as true, then this call will block until a state change,
     allowing for a push-like interface for web clients.
-    Sample: http://host:12572/instrument/api/reference_designator
+
     """
     try:
         # Get status
@@ -721,7 +726,7 @@ def _c2_get_instrument_driver_status(reference_designator):
                 return None
                 #raise Exception('Malformed data; not in valid json format.')
 
-        #print '\n -- debug data: ', json.dumps(data, indent=4, sort_keys=True)
+        #print '\n -- debug instrument/api data: ', json.dumps(data, indent=4, sort_keys=True)
 
         # Get all parameter values for instruments
         status = data
@@ -746,7 +751,7 @@ def _c2_get_instrument_driver_status(reference_designator):
                             if isinstance(result['value'], dict):
                                 status['value']['parameters'] = result['value']
 
-        # This add processing time, todo consider separating/status from /commands (review)
+        # This add processing time, todo consider separating /status from /commands (review)
         if data:
             streams = {}
             try:
@@ -762,7 +767,6 @@ def _c2_get_instrument_driver_status(reference_designator):
         print'\n debug -- (_c2_get_instrument_driver_status) exception: ', err.message  # new
         raise
 
-# todo re: blocking
 def uframe_get_instrument_driver_status(reference_designator):
     """ Returns the uframe response for status of single instrument agent
     Sample: http://host:12572/instrument/api/reference_designator
@@ -1037,6 +1041,8 @@ def convert(data):
             test[k] = result
     return test
 
+
+'''
 def populate_range_values(data, key_dict):
     """ Process key_dict to populate attributes 'min', 'max' and 'set' for each int and float parameter.
     For int and float parameters, parse 'description' attribute for 'min', 'max' and 'set';
@@ -1122,13 +1128,13 @@ def populate_range_values(data, key_dict):
             except Exception as err:
                 if debug: print '\n debug ************ message: ', err.message
                 continue
-            '''
+            """
             result[k] = {}
             result[k]['min'] = min
             result[k]['max'] = max
             result[k]['set'] = set
             result[k]['display_name'] = display_name
-            '''
+            """
 
 
         if debug: print '\n debug --- populate_range_values exit.....'
@@ -1136,11 +1142,13 @@ def populate_range_values(data, key_dict):
     except Exception as err:
         print '\n debug -- (populate_range_values) exception: ', err.message
         raise
+'''
 
-
+'''
 def populate_and_check_range_values(data, key_dict):
-    """ Process key_dict to populate attributes 'min', 'max' and 'set' for each int and float parameter.
-    For int and float parameters, parse 'description' attribute for 'min', 'max' and 'set';
+    """ Process key_dict to populate attributes 'min', 'max' and 'set' for each read_write parameter.
+
+    old: For int and float parameters, parse 'description' attribute for 'min', 'max' and 'set';
     return dict with updated values.
 
     - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1222,6 +1230,142 @@ def populate_and_check_range_values(data, key_dict):
             except Exception as err:
                 if debug: print '\n debug ************ message: ', err.message
                 continue
+            """
+            result[k] = {}
+            result[k]['min'] = min
+            result[k]['max'] = max
+            result[k]['set'] = set
+            result[k]['display_name'] = display_name
+            """
+
+
+        if debug: print '\n debug --- populate_range_values exit.....'
+        return result
+    except Exception as err:
+        print '\n debug -- (populate_range_values) exception: ', err.message
+        raise
+'''
+
+
+def new_populate_and_check_range_values(data, key_dict):
+    """ Process key_dict to populate attributes 'min', 'max' and 'set' for each read_write parameter.
+
+    old: For int and float parameters, parse 'description' attribute for 'min', 'max' and 'set';
+    return dict with updated values.
+
+    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    Input dictionary (key: parameter name):
+    key_dict:  {
+        "ave": {
+            "desc": "Number of measurements for each reported value: (1 - 255)",
+            "max": null,
+            "min": null,
+            "set": null,
+            "type": "int"
+        }
+    }
+    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    Proposed output dictionary:
+    key_dict:  {
+        "ave": {
+            "desc": "Number of measurements for each reported value: (1 - 255)",
+            "max": 255,
+            "min": 1,
+            "set": null,
+            "type": "int"
+        }
+    }
+    """
+    debug = False
+    if debug: print '\n debug --- new_populate_range_values entered.....'
+    valid_parameter_types = ['int', 'float', 'bool', 'string']
+    try:
+        result = {}
+        for k,v in data.iteritems():
+            if k not in key_dict:
+                print '\n ******************* %s not in key_dict!!'
+            if debug: print '\n ---------- %s: %r (%s)' % (k,v, key_dict[k])
+            #description = key_dict[k]['desc']
+            display_name = key_dict[k]['display_name']
+            uframe_range = key_dict[k]['range']
+            if uframe_range is None:
+                result[k] = {}
+                result[k]['min'] = None
+                result[k]['max'] = None
+                result[k]['set'] = []
+                result[k]['display_name'] = display_name
+                continue
+
+            parameter_type = key_dict[k]['type']
+            display_name = key_dict[k]['display_name']
+            if parameter_type not in valid_parameter_types:
+                message = 'Unknown parameter type (%s), valid types: %s' % (parameter_type, valid_parameter_types)
+                current_app.logger.info(message)
+                result[k] = {'min': None, 'max': None, 'set': None, 'display_name': display_name}
+                continue
+            try:
+                if debug: print '\n debug -- %s processing' % key_dict[k]['type']
+                result[k] = {}
+                result[k]['min'] = None
+                result[k]['max'] = None
+                result[k]['set'] = []
+                result[k]['display_name'] = display_name
+
+                # process uframe _range - if list, then min and max; if dict then set
+                if isinstance(uframe_range, list):
+
+                    # If list, requires exactly 2 value - one for min and one for max
+                    if len(uframe_range) != 2:
+                        message = '(%s) Invalid attribute \'range\' from uframe, require exactly two (2) values.' % k
+                        current_app.logger.info(message)
+                        result[k] = {'min': None, 'max': None, 'set': None, 'display_name': display_name}
+                        continue
+
+                    min = uframe_range[0]
+                    max = uframe_range[1]
+                    set = []
+
+                elif isinstance(uframe_range, dict):
+
+                    min = None
+                    max = None
+                    set = []
+                    #for x, y in uframe_range.iteritems()
+                    if uframe_range:
+                        keys = uframe_range.keys()
+                        keys.sort()
+                        set = keys
+                else:
+
+                    message = '(%s) Unsupported \'range\' type from uframe, must be list or dict.' % k
+                    current_app.logger.info(message)
+                    result[k] = {'min': None, 'max': None, 'set': None, 'display_name': display_name}
+                    continue
+
+
+                #min, max, set = parse_description(description, parameter_type)
+                if debug: print '\n debug --- after parse_description...'
+                result[k]['display_name'] = display_name
+                if min is None:
+                    if debug: print '\n debug ************ min is None, continue...'
+                else:
+                    result[k]['min'] = min
+                    #continue
+                if max is None:
+                    if debug: print '\n debug ************ max is None, continue...'
+                    #continue
+                else:
+                    result[k]['max'] = max
+
+                if not set:
+                    if debug: print '\n debug ************ set is empty, continue...'
+                    #continue
+                else:
+                    result[k]['set'] = set
+                    #continue
+            except Exception as err:
+                if debug: print '\n debug ************ message: ', err.message
+                continue
             '''
             result[k] = {}
             result[k]['min'] = min
@@ -1230,11 +1374,10 @@ def populate_and_check_range_values(data, key_dict):
             result[k]['display_name'] = display_name
             '''
 
-
-        if debug: print '\n debug --- populate_range_values exit.....'
+        if debug: print '\n debug --- new_populate_range_values exit.....'
         return result
     except Exception as err:
-        print '\n debug -- (populate_range_values) exception: ', err.message
+        print '\n debug -- (new_populate_range_values) exception: ', err.message
         raise
 
 
@@ -1276,7 +1419,6 @@ def new_scrub_ui_request_data(data, parameter_types, ranges):
                     display_name = 'unknown'
                     if k in ranges:
                         display_name = ranges[k]['display_name']
-                    #message = 'Failed to convert parameter \'%s\' (%s) value (%r) to float.' % (display_name, k, v)
                     message = 'Failed to convert parameter (%s) value (%r) to float.' % (k, v)
                     error_result[display_name] = message
                     continue
@@ -1302,10 +1444,6 @@ def new_scrub_ui_request_data(data, parameter_types, ranges):
                     if range_min is not None:
                         if float_value < range_min:
                             min_error = True
-                            '''
-                            msg = 'Parameter \'%s\' (%s) value of (%r) is less than range minimum value of (%r).' % \
-                                  (display_name, k, float_value, range_min)
-                            '''
                             msg = 'Parameter (%s) value of (%r) is less than range minimum value of (%r).' % \
                                   (k, float_value, range_min)
                             error_result[display_name] = msg
@@ -1315,10 +1453,6 @@ def new_scrub_ui_request_data(data, parameter_types, ranges):
                     if range_max is not None:
                         if float_value > range_max:
                             max_error = True
-                            '''
-                            msg = 'Parameter \'%s\' (%s) value of (%r) is greater than range maximum value of (%r).' % \
-                                  (display_name, k, float_value, range_max)
-                            '''
                             msg = 'Parameter (%s) value of (%r) is greater than range maximum value of (%r).' % \
                                   (k, float_value, range_max)
                             error_result[display_name] = msg
@@ -1345,7 +1479,6 @@ def new_scrub_ui_request_data(data, parameter_types, ranges):
                         display_name = ranges[k]['display_name']
                     else:
                         print '\n debug -- display_name for %s not found in ranges.' % k
-                    #message = 'Failed to convert parameter \'%s\' (%s) value (%r) to int.' % (display_name, k, v)
                     message = 'Failed to convert parameter (%s) value (%r) to int.' % (k, v)
                     error_result[display_name] = message
                     if debug: print '\n ****** ', message
@@ -1375,10 +1508,6 @@ def new_scrub_ui_request_data(data, parameter_types, ranges):
                             result[k] = int_value
                             if debug: print '\n\tupdate result[%s]: %r' % (k, int_value)
                         else:
-                            '''
-                            message = 'Parameter \'%s\' (%s) has invalid int value \'%s\', not one of %s.' % \
-                                      (display_name, k, int_value, range_set)
-                            '''
                             message = 'Parameter (%s) has invalid int value \'%s\', not one of %s.' % \
                                       (k, int_value, range_set)
                             error_result[display_name] = message
@@ -1390,10 +1519,6 @@ def new_scrub_ui_request_data(data, parameter_types, ranges):
                         if debug: print '\n\tdebug --- processing int range min...'
                         if int_value < range_min:
                             min_error = True
-                            '''
-                            msg = 'Parameter \'%s\' (%s) value of (%r) is less than range minimum value of (%r).' % \
-                                  (display_name, k, int_value, range_min)
-                            '''
                             msg = 'Parameter (%s) value of (%r) is less than range minimum value of (%r).' % \
                                   (k, int_value, range_min)
                             error_result[display_name] = msg
@@ -1404,10 +1529,6 @@ def new_scrub_ui_request_data(data, parameter_types, ranges):
                         if debug: print '\n\tdebug --- processing int range max...'
                         if int_value > range_max:
                             max_error = True
-                            '''
-                            msg = 'Parameter \'%s\' (%s) value of (%r) is greater than range maximum value of (%r).' % \
-                                  (display_name, k, int_value, range_max)
-                            '''
                             msg = 'Parameter (%s) value of (%r) is greater than range maximum value of (%r).' % \
                                   (k, int_value, range_max)
                             error_result[display_name] = msg
@@ -1433,7 +1554,6 @@ def new_scrub_ui_request_data(data, parameter_types, ranges):
                     tmp = str(bool_value)
                     result[k] = tmp.lower()
                 except:
-                    #message = 'Failed to convert parameter \'%s\' (%s) value (%r) to boolean.' % (display_name, k, v)
                     message = 'Failed to convert parameter (%s) value (%r) to boolean.' % (k, v)
                     error_result[display_name] = message
                     if debug: print '\n ****** ', message
@@ -1451,7 +1571,6 @@ def new_scrub_ui_request_data(data, parameter_types, ranges):
                         display_name = ranges[k]['display_name']
                     str_value = str(v)
                 except:
-                    #message = 'Failed to convert parameter \'%s\' value (%r) to string.' % (k, v)
                     message = 'Failed to convert parameter (%s) value (%r) to string.' % (k, v)
                     error_result[display_name] = message
                     if debug: print '\n ****** ', message
@@ -1477,10 +1596,6 @@ def new_scrub_ui_request_data(data, parameter_types, ranges):
                         result[k] = str_value
                         if debug: print '\n\tupdate result[%s]: %r' % (k, str_value)
                     else:
-                        '''
-                        message = 'Parameter \'%s\' (%s) has invalid string value \'%s\', not one of %s.' % \
-                                  (display_name, k, str_value, range_set)
-                        '''
                         message = 'Parameter (%s) has invalid string value \'%s\', not one of %s.' % \
                                   (k, str_value, range_set)
                         error_result[display_name] = message
@@ -1508,7 +1623,7 @@ def new_scrub_ui_request_data(data, parameter_types, ranges):
         current_app.logger.info(str(err.message))
         raise
 
-
+'''
 def parse_description(description, parameter_type):
     """ Parse parameter str description for range value attributes - 'min', 'max', and 'set'.
     Currently processes into return values of str for 'min', 'max' and 'set'.
@@ -1636,8 +1751,8 @@ def parse_description(description, parameter_type):
         #print '\n debug -- parse_description: error: ', err.message
         current_app.logger.info(str(err.message))
         raise #Exception(err.message)
-
-
+'''
+'''
 def convert_to_parameter_type(token, parameter_type):
     """ Convert token value to parameter_type; if failure return None. Exceptions are logged and None returned.
     """
@@ -1693,7 +1808,7 @@ def convert_to_parameter_type(token, parameter_type):
         if debug: print '\n convert_token (%s) exception: %s' % (parameter_type, err.message)
         current_app.logger.info(err.message)
         raise
-
+'''
 
 def to_bool(value):
     """ Converts 'something' to boolean. Raises exception for invalid formats.
@@ -1765,8 +1880,13 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
             if debug: print '\n debug -- message: ', message
             raise Exception(message)
 
+        # Get dict of range values
         parameter_dict, key_dict_ranges = get_range_dictionary(payload['resource'], _status, reference_designator)
+
+        # Scrub data and determine if range errors
         new_result, error_result = new_scrub_ui_request_data(payload['resource'], parameter_dict, key_dict_ranges)
+
+        # If range error messages, return error dictionary
         if error_result:
             if debug: print '\n debug ***** range error_result(%d): %s' % \
               (len(error_result), json.dumps(error_result, indent=4, sort_keys=True))
@@ -1774,12 +1894,14 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
             # Create dictionary with response data and return.
             # todo - this will require status to be returned also !!!!!!!!!!! FIX *****************
             new_result = {}
+            response_status['message'] = 'Range Error(s)'
             response_status['range_errors'] = error_result
             response_status['status_code'] = 400
             new_result['response'] = response_status
-            print '\n -- debug result: ', json.dumps(new_result, indent=4, sort_keys=True)
+            print '\n -- debug RANGE ERROR result: ', json.dumps(new_result, indent=4, sort_keys=True)
             return new_result
 
+        # If no errors and result is empty or None, raise exception
         elif new_result is None or not new_result:
             message = 'Unable to process resource payload.'
             if debug: print '\n debug -- message: ', message
@@ -1797,6 +1919,9 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
         print '\n debug -- result (from scrub): ', result
         '''
 
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Process parameter set request in uframe
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Update value of resource in payload.
         payload['resource'] = new_result
 
@@ -1880,6 +2005,12 @@ def get_range_dictionary(resource, _status, reference_designator):
 
             key_dict[parameter]['desc'] = str(tmp['description'])
             key_dict[parameter]['display_name'] = str(tmp['display_name'])
+
+            # uframe range value
+            key_dict[parameter]['range'] = None
+            if 'range' in tmp:
+                key_dict[parameter]['range'] = tmp['range']
+
             '''
             if 'description' in tmp:
                 key_dict[parameter]['desc'] = str(tmp['description'])
@@ -1906,7 +2037,8 @@ def get_range_dictionary(resource, _status, reference_designator):
         # TODO Move (into new scrub_ui_request_data) to only populate range values for items modified.
         # TODO remove when 'min', 'max', 'set' values are provided in parameter 'value' dictionary.
         if debug: print '\n debug --- resource: ', json.dumps(resource, indent=4, sort_keys=True)
-        key_dict_ranges = populate_range_values(resource, key_dict)
+        #key_dict_ranges = populate_range_values(resource, key_dict)
+        key_dict_ranges = new_populate_and_check_range_values(resource, key_dict)
         if debug:
             print '\n debug ***** key_dict_ranges(%d): %s' % \
               (len(key_dict_ranges), json.dumps(key_dict_ranges, indent=4, sort_keys=True))
@@ -1999,7 +2131,7 @@ def _c2_get_last_particle(rd, _method, _name):
 
         time_set = process_stream_metadata_for_timeset(metadata, _method, _name)
         if time_set is None:
-            message = 'Failed to obtain metadata times for reference_designator %s' % rd
+            message = 'Failed to obtain metadata times for reference_designator %s.' % rd
             raise Exception(message)
 
         if debug: print '\n time_set: ', json.dumps(time_set, indent=4, sort_keys=True)
@@ -2586,6 +2718,7 @@ def _c2_instrument_driver_execute(reference_designator, data):
     #valid_args = ['command', 'kwargs', 'timeout']   # r4.x?
     #valid_args = ['command', 'timeout']             # r3.x?
     valid_args = ['command']
+    _command_timeout_default = 30000
     try:
         if not reference_designator:
             raise Exception(insufficient_data)
@@ -2619,8 +2752,7 @@ def _c2_instrument_driver_execute(reference_designator, data):
         #if debug: print '\n debug -- _commands: ', json.dumps(_commands, indent=4, sort_keys=True)
         if debug: print '\n debug -------------- _status: ', json.dumps(_status, indent=4, sort_keys=True)
 
-
-        # Prepare url suffix for post (todo revisit this)
+        # Prepare url suffix for post
         suffix = ''
         command_name = None
         executing_acquire_command = False
@@ -2636,7 +2768,6 @@ def _c2_instrument_driver_execute(reference_designator, data):
         suffix = suffix.strip('&')
         if debug: print '\n debug -- suffix: ', suffix
 
-
         # Get driver command timeout from status
         if command_name not in _commands:
             message = 'Failed to retrieve command (%s) timeout from status.' % command_name
@@ -2648,12 +2779,13 @@ def _c2_instrument_driver_execute(reference_designator, data):
         if _timeout:
             _timeout = _timeout * 1000
         else:
-            _timeout = 30000
+            _timeout = _command_timeout_default
         if debug: print '\n debug ------- (_c2_instrument_driver_execute) _timeout: ', _timeout
 
         # Add driver timeout to suffix for execute
         suffix += '&timeout=' + str(_timeout)
 
+        # Determine if this is an ACQUIRE_STATUS or ACQUIRE_SAMPLE command; prep for post processing
         fetch_data = False
         if 'ACQUIRE' in command_name:
             executing_acquire_command = True
@@ -2666,6 +2798,7 @@ def _c2_instrument_driver_execute(reference_designator, data):
                 executing_acquire_command = False
                 message = 'unknown ACQUIRE command: %s; return None: ' % command_name
 
+        # Execute driver command
         response = uframe_post_instrument_driver_command(reference_designator, 'execute', suffix)
         if response.status_code != 200:
             message = '(%s) execute %s failed.' % (str(response.status_code), command_name)
@@ -2673,6 +2806,7 @@ def _c2_instrument_driver_execute(reference_designator, data):
                 message = '(%s) %s' % (str(response.status_code), str(response.content))
             raise Exception(message)
 
+        # If response_data, review error information returned
         response_data = None
         if response.content:
             try:
@@ -2680,13 +2814,18 @@ def _c2_instrument_driver_execute(reference_designator, data):
             except Exception:
                 raise Exception('Malformed data; not in valid json format.')
 
-            # Evaluate response content for error (review 'value' list in response_data )
+            # Evaluate response content for error (review 'value' list info in response_data )
             if response_data:
-                if debug:
-                    print '\n debug -- response_data: ', json.dumps(response_data, indent=4, sort_keys=True)
+                #if debug:
+                #print '\n debug -- (%s) driver data: %s' % (command_name,
+                #                                            json.dumps(response_data, indent=4, sort_keys=True))
                 status_code, status_type, status_message = _eval_POST_response_data(response_data, message)
                 response_status['status_code'] = status_code
                 response_status['message'] = status_message
+
+                #if debug:
+                #print '\n debug -- (%s) response_status: %s ' % (command_name,
+                #                                               json.dumps(response_status, indent=4, sort_keys=True))
 
         # Add response attribute information to result
         result['response'] = response_status
@@ -2701,7 +2840,7 @@ def _c2_instrument_driver_execute(reference_designator, data):
             acquire_result = None
             if executing_acquire_command:
 
-                # If failed to retrieve particle, populate response_status
+                # If failed to retrieve particle(s), populate response_status
                 if not response_data:
 
                     if acquire_result is None:
@@ -2881,30 +3020,33 @@ def _c2_instrument_driver_execute(reference_designator, data):
 
         #print '\n ***\n result: ', json.dumps(result, indent=4, sort_keys=True)
 
+        '''
         # Get over_all state, return in status attribute of result
-        #if response_status['status_code'] == 200:
-        try:
-            status = _c2_get_instrument_driver_status(reference_designator)
-            #print '\n ***\n status: ', json.dumps(status, indent=4, sort_keys=True)
+        if response_status['status_code'] == 200:
+            try:
+                status = _c2_get_instrument_driver_status(reference_designator)
+                #print '\n ***\n status: ', json.dumps(status, indent=4, sort_keys=True)
 
-            if check_state_change:
-                # verify no longer in DRIVER_STATE_COMMAND
-                if debug:
-                    print '\n debug -- check_state_change ......'
-                    print '\n debug -- (2) status[status][value][state]: ',  status['value']['state']
-                if status['value']['state'] == 'DRIVER_STATE_COMMAND':
-                    message = '(%s) Error in response data:' % command_name
-                    message += ' No results to process and no state change.'
-                    current_app.logger.info(message)
-                    response_status['status_code'] = 400
-                    response_status['message'] = message
+                if check_state_change:
+                    # verify no longer in DRIVER_STATE_COMMAND
+                    if debug:
+                        print '\n debug -- check_state_change ......'
+                        print '\n debug -- (2) status[status][value][state]: ',  status['value']['state']
+                    if status['value']['state'] == 'DRIVER_STATE_COMMAND':
+                        message = '(%s) Error in response data:' % command_name
+                        message += ' No results to process and no state change.'
+                        current_app.logger.info(message)
+                        response_status['status_code'] = 400
+                        response_status['message'] = message
+                        result['response'] = response_status
 
-        except Exception as err:
-            if debug: print '\n debug -- exception: ', err.message
-            status = {}
-        result['status'] = status
+            except Exception as err:
+                if debug: print '\n debug -- exception: ', err.message
+                status = {}
+            result['status'] = status
+        '''
 
-        #print '\n ***\n result: ', json.dumps(result, indent=4, sort_keys=True)
+        #print '\n ******\n (%s) result: %s' % (command_name, json.dumps(result, indent=4, sort_keys=True) )
 
         return result
 
@@ -2921,7 +3063,6 @@ def timestamp_to_string(time_float):
     try:
         if not isinstance(time_float, float):
             return None
-        #if isinstance(time_float, float):
         ts_time = convert_from_utc(time_float - offset)
         formatted_time = dt.datetime.strftime(ts_time, "%Y-%m-%dT%H:%M:%S")
         return formatted_time
@@ -3098,7 +3239,7 @@ def _get_toc():
 
 def _compile_c2_toc():
     """ Returns a dictionary of arrays, moorings, platforms and instruments from uframe.
-    Augmented by the UI database for vocabulary and arrays, returns json
+    Augmented by the UI database for vocabulary and arrays, returns json.
     """
 
     # Use instrument/api server for toc info
@@ -3421,7 +3562,6 @@ def c2_get_instrument_driver_ping(reference_designator):
         return bad_request(err.message)
 
 
-# TODO uframe does not return a response (/id/ping)
 def _c2_get_instrument_driver_ping(reference_designator):
     """
     Get instrument driver status ('ping'). This initiates a simple callback into
