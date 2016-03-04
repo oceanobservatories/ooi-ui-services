@@ -4,17 +4,19 @@ API v1.0 Command and Control (C2) routes
 """
 __author__ = 'Edna Donoughe'
 
-from flask import jsonify, current_app, make_response, request
+from flask import jsonify, current_app, request
+from ooiservices.app import cache
+from ooiservices.app.decorators import scope_required
 from ooiservices.app.main import api
-from ooiservices.app.models import Array
-from ooiservices.app.main.routes import get_display_name_by_rd
-import json, os
-from requests.exceptions import ConnectionError, ReadTimeout
-import requests
-from urllib import urlencode
 from ooiservices.app.main.errors import bad_request
 from ooiservices.app.main.authentication import auth
-from ooiservices.app.decorators import scope_required
+from ooiservices.app.main.routes import get_display_name_by_rd
+from ooiservices.app.models import Array
+import json, os
+import requests
+import requests.exceptions
+from requests.exceptions import ConnectionError, Timeout
+from urllib import urlencode
 from datetime import datetime as dt
 from copy import deepcopy
 import datetime as dt
@@ -22,7 +24,6 @@ import calendar
 import pytz
 import tzlocal
 from operator import itemgetter
-from ooiservices.app import cache
 import math
 
 CACHE_TIMEOUT = 86400
@@ -44,6 +45,7 @@ def c2_get_arrays():
             list_of_arrays.append(item)
     return jsonify(arrays=list_of_arrays)
 
+
 @api.route('/c2/array/<string:array_code>/abstract', methods=['GET'])
 @auth.login_required
 @scope_required(u'command_control')
@@ -57,6 +59,7 @@ def c2_get_array_abstract(array_code):
     response_dict = get_array_abstract(array_code)
     return jsonify(abstract=response_dict)
 
+
 def get_array_abstract(array_code):
     # get array abstract using valid array_code; CHECK array_code before calling
     array = Array.query.filter_by(array_code=array_code).first()
@@ -68,6 +71,7 @@ def get_array_abstract(array_code):
     response_dict['mission_enabled'] = 'False'
 
     return response_dict
+
 
 #TODO get operational status from uframe
 @api.route('/c2/array/<string:array_code>/current_status_display', methods=['GET'])
@@ -116,6 +120,7 @@ def c2_get_array_current_status_display(array_code):
             contents.append(array_info[r])
     return jsonify(current_status_display=contents)
 
+
 @api.route('/c2/array/<string:array_code>/history', methods=['GET'])
 @auth.login_required
 @scope_required(u'command_control')
@@ -151,6 +156,7 @@ def c2_get_platform_abstract(reference_designator):
         response_dict['operational_status'] = 'Online' #c2_get_platform_operational_status(reference_designator)
     return jsonify(abstract=response_dict)
 
+
 @api.route('/c2/platform/<string:reference_designator>/current_status_display', methods=['GET'])
 @auth.login_required
 @scope_required(u'command_control')
@@ -185,6 +191,7 @@ def c2_get_platform_current_status_display(reference_designator):
                 contents.append(platform_info[instrument_reference_designator])
     return jsonify(current_status_display=contents)
 
+
 @api.route('/c2/platform/<string:reference_designator>/history', methods=['GET'])
 @auth.login_required
 @scope_required(u'command_control')
@@ -200,6 +207,7 @@ def c2_get_platform_history(reference_designator):
     if platform:
         history = get_history(reference_designator)
     return jsonify(history=history)
+
 
 # todo put content processing back in.
 @api.route('/c2/platform/<string:reference_designator>/ports_display', methods=['GET'])
@@ -318,6 +326,7 @@ def c2_get_instrument_abstract(reference_designator):
     except Exception, err:
         return bad_request(err.message)
     return jsonify(abstract=response_dict)
+
 
 @api.route('/c2/instrument/<string:reference_designator>/history', methods=['GET'])
 @auth.login_required
@@ -489,7 +498,6 @@ def read_store(filename):
     return data
 
 
-
 def read_store2(filename):
     """
     open filename, read data, close file and return data
@@ -539,6 +547,7 @@ def c2_get_instruments_status():
     except Exception as err:
         return bad_request(err.message)
 
+
 @api.route('/c2/instrument/<string:reference_designator>/commands', methods=['GET'])
 @api.route('/c2/instrument/<string:reference_designator>/status', methods=['GET'])
 @auth.login_required
@@ -551,28 +560,16 @@ def c2_get_instrument_driver_status(reference_designator):
     Sample: localhost:12572/instrument/api/reference_designator/status
     """
     status = []
-    response_status = {}
-    response_status['status_code'] = 200
-    response_status['message'] = ""
     try:
         data = _c2_get_instrument_driver_status(reference_designator)
         if data:
             status = data
         return jsonify(status)
     except Exception as err:
-        message = str(err.message)          # new
-        current_app.logger.info(message)    # new
-        #print '\n debug --- returning exception /commands'
-        #response_status['status_code'] = 400
-        #response_status['message'] = message
+        message = str(err.message)
+        current_app.logger.info(message)
         return bad_request(message)
-        '''
-        response = {}
-        response['response'] = response_status
-        #return jsonify(response=response_status)
-        return bad_request(response)
-        #return jsonify(response)
-        '''
+
 
 @api.route('/c2/instrument/<string:reference_designator>/state', methods=['GET'])
 @auth.login_required
@@ -590,6 +587,7 @@ def c2_get_instrument_driver_state(reference_designator):
         return jsonify(state)
     except Exception as err:
         return bad_request(err.message)
+
 
 @api.route('/c2/instrument/<string:reference_designator>/parameters', methods=['POST'])
 @auth.login_required
@@ -686,6 +684,7 @@ def _c2_get_instruments_status():
     except:
         raise
 
+
 def uframe_get_instruments_status():
     """
     Returns the uframe response for status of all instrument agents.
@@ -716,17 +715,35 @@ def _c2_get_instrument_driver_status(reference_designator):
     try:
         # Get status
         data = None
-        response = uframe_get_instrument_driver_status(reference_designator)
+        try:
+            response = uframe_get_instrument_driver_status(reference_designator)
+        except Exception as err:
+            message = 'Error retrieving instrument overall state from uframe. Error: %s' % str(err)
+            raise Exception(message)
+
+        # No response
+        if response is None:
+            message = 'Error retrieving instrument overall state from uframe.'
+            raise Exception(message)
+
+        # Bad response
         if response.status_code != 200:
-            raise Exception('Error retrieving instrument overall state from uframe.')
+            message = 'Error retrieving instrument overall state from uframe.'
+            raise Exception(message)
+
+        # Have a response, parse response content
         if response.content:
             try:
                 data = json.loads(response.content)
             except:
+                message = 'Malformed data; not in valid json format.'
+                current_app.logger.info(message)
                 return None
-                #raise Exception('Malformed data; not in valid json format.')
 
-        #print '\n -- debug instrument/api data: ', json.dumps(data, indent=4, sort_keys=True)
+        # If data received in response, process.
+        if data is None:
+            message = 'No response content returned from instrument/api/%s.' % reference_designator
+            raise Exception(message)
 
         # Get all parameter values for instruments
         status = data
@@ -745,27 +762,48 @@ def _c2_get_instrument_driver_status(reference_designator):
                     except Exception as err:
                         result = None
                         message = str(err.message)
+                        current_app.logger.info(message)
                         # should we be raising here....review
                     if result:
                         if 'value' in result:
                             if isinstance(result['value'], dict):
                                 status['value']['parameters'] = result['value']
 
-        # This add processing time, todo consider separating /status from /commands (review)
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Add attribute streams and display_parameters, both dictionaries.
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         if data:
+            # - - - - - - - - - - - - - - - - - - - - - -
+            # Get streams
+            # - - - - - - - - - - - - - - - - - - - - - -
             streams = {}
             try:
                 streams = get_streams_dictionary(reference_designator)
             except Exception as err:
-                print'\n debug -- exception: ', err.message
-
+                message = 'Exception from get_streams_dictionary: ', str(err)
+                current_app.logger.info(message)
+                pass
             data['streams'] = streams
-            #print '\n -- debug data[streams]: ', json.dumps(data, indent=4, sort_keys=True)
+
+            # - - - - - - - - - - - - - - - - - - - - - -
+            # Get display_parameters
+            # - - - - - - - - - - - - - - - - - - - - - -
+            try:
+                _params = data['value']['metadata']['parameters']
+                temp = {}
+                if _params:
+                    temp = get_parameter_display_values(_params)
+                data['parameter_display_values'] = temp
+            except Exception as err:
+                message = 'Exception from get_parameter_display_values: ', str(err)
+                current_app.logger.info(message)
+                data['parameter_display_values'] = {}
+                pass
 
         return data
-    except Exception as err:
-        print'\n debug -- (_c2_get_instrument_driver_status) exception: ', err.message  # new
+    except Exception:
         raise
+
 
 def uframe_get_instrument_driver_status(reference_designator):
     """ Returns the uframe response for status of single instrument agent
@@ -774,21 +812,28 @@ def uframe_get_instrument_driver_status(reference_designator):
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, reference_designator])
-        #print '\n debug -- uframe_get_instrument_driver_status: url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read))
+
+        if response is None:
+            message = 'instrument driver status returned None.'
+            current_app.logger.info(message)
+            raise Exception(message)
         return response
     except ConnectionError:
-        message = 'ConnectionError (uframe) for get instrument driver status.'
+        message = 'ConnectionError for get instrument driver status, reference designator: %s.' % reference_designator
         current_app.logger.info(message)
         raise Exception(message)
-    except ReadTimeout:
-        message = 'ReadTimeout (uframe) for get instrument driver status.'
+    except Timeout:
+        message = 'Timeout for get instrument driver status, reference designator: %s.' % reference_designator
         current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
-        message = str(err.message)
+        if err is None:
+            message = 'uframe_get_instrument_driver_status failed, response of None'
+        else:
+            message = '[uframe_get_instrument_driver_status]' + str(err.message)
         current_app.logger.info(message)
-        raise
+        raise Exception(message)
 
 
 def _c2_get_instrument_driver_state(reference_designator):
@@ -808,6 +853,7 @@ def _c2_get_instrument_driver_state(reference_designator):
         return data
     except:
         raise
+
 
 def _c2_get_instrument_driver_parameters(reference_designator):
     """ Return the instrument driver response, state, parameters and parameter values.
@@ -925,7 +971,7 @@ def _c2_get_instrument_driver_parameters(reference_designator):
                 data['state'] = ""
                 return data
 
-        # Error: instrument state not defined; retry
+        # Error: No instrument state (not defined); retry
         if state is None:
             response_status['status_code'] = 400
             response_status['message'] = "unable to determine instrument state; retry."
@@ -964,6 +1010,7 @@ def _c2_get_instrument_driver_parameters(reference_designator):
 
     except:
         raise
+
 
 def _c2_get_instrument_driver_parameter_values(reference_designator):
     """
@@ -1019,6 +1066,7 @@ def _c2_get_instrument_driver_parameter_values(reference_designator):
     except:
         raise
 
+
 def uframe_get_instrument_driver_parameter_values(reference_designator, command):
     """ Return the uframe response of instrument command resource with payload provided for GET
     """
@@ -1033,6 +1081,7 @@ def uframe_get_instrument_driver_parameter_values(reference_designator, command)
         current_app.logger.info(message)
         raise
 
+
 def convert(data):
     test = dict([(str(k), v) for k, v in data.items()])
     for k,v in test.items():
@@ -1042,115 +1091,335 @@ def convert(data):
     return test
 
 
-'''
-def populate_range_values(data, key_dict):
-    """ Process key_dict to populate attributes 'min', 'max' and 'set' for each int and float parameter.
-    For int and float parameters, parse 'description' attribute for 'min', 'max' and 'set';
-    return dict with updated values.
+def parse_description(description, parameter_type):
+    """ Parse parameter str description for range value attributes - 'min', 'max', and 'set'.
+    Modify to return actual values, based on parameter type, for 'min', 'max' and 'set'.
 
-    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    Input dictionary (key: parameter name):
-    key_dict:  {
-        "ave": {
-            "desc": "Number of measurements for each reported value: (1 - 255)",
-            "max": null,
-            "min": null,
-            "set": null,
-            "type": "int"
-        }
-    }
-    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    Proposed output dictionary:
-    key_dict:  {
-        "ave": {
-            "desc": "Number of measurements for each reported value: (1 - 255)",
-            "max": 255,
-            "min": 1,
-            "set": null,
-            "type": "int"
-        }
-    }
+    Workaround: Used to parse description for range values when instrument parameter does not supply range attribute.
+
     """
     debug = False
-    if debug: print '\n debug --- populate_range_values entered.....'
-    valid_parameter_types = ['int', 'float', 'bool', 'string']
+    valid_token_separators = ['|', ',']
+    min = None
+    max = None
+    set = []
     try:
-        result = {}
-        for k,v in data.iteritems():
-            if k not in key_dict:
-                print '\n ******************* %s not in key_dict!!'
-            if debug: print '\n ---------- %s: %r (%s)' % (k,v, key_dict[k])
-            description = key_dict[k]['desc']
-            display_name = key_dict[k]['display_name']
-            if description is None:
-                result[k] = {}
-                result[k]['min'] = None
-                result[k]['max'] = None
-                result[k]['set'] = []
-                result[k]['display_name'] = display_name
-                continue
+        if not description:
+            return min, max, set
+        if not parameter_type:
+            return min, max, set
 
-            parameter_type = key_dict[k]['type']
-            display_name = key_dict[k]['display_name']
-            if parameter_type not in valid_parameter_types:
-                message = 'Unknown parameter type (%s), valid types: %s' % (parameter_type, valid_parameter_types)
-                if debug: print '\n\tdebug -- message: ', message
-                current_app.logger.info(message)
-                result[k] = {'min': None, 'max': None, 'set': None, 'display_name': display_name}
-                continue
-            try:
-                if debug: print '\n debug -- %s processing' % key_dict[k]['type']
-                result[k] = {}
-                result[k]['min'] = None
-                result[k]['max'] = None
-                result[k]['set'] = []
-                result[k]['display_name'] = display_name
-                min, max, set = parse_description(description, parameter_type)
-                if debug: print '\n debug --- after parse_description...'
+        if debug:
+            print '\n debug -- description: ', description
+            print '\n debug -- parameter_type: ', parameter_type
 
-                if min is None:
-                    if debug: print '\n debug ************ min is None, continue...'
-                else:
-                    result[k]['min'] = min
-                    #continue
-                if max is None:
-                    if debug: print '\n debug ************ max is None, continue...'
-                    #continue
-                else:
-                    result[k]['max'] = max
+        # -- Get indices of right and left parentheses
+        token_end_index = description.rfind(')')
+        token_start_index = description.find('(')
 
-                if not set:
-                    if debug: print '\n debug ************ set is empty, continue...'
-                    #continue
-                else:
-                    result[k]['set'] = set
-                    #continue
-            except Exception as err:
-                if debug: print '\n debug ************ message: ', err.message
-                continue
-            """
-            result[k] = {}
-            result[k]['min'] = min
-            result[k]['max'] = max
-            result[k]['set'] = set
-            result[k]['display_name'] = display_name
-            """
+        # -- Some instruments may not have a range constraint. In this case, return (do not raise error).
+        if token_end_index == -1 or token_start_index == -1:
+            message = 'No range values provided in description. Parentheses required to bound range information.'
+            current_app.logger.info(message)
+            return None, None, []
 
+        # -- Verify indices are valid, otherwise raise exception.
+        if token_end_index <= token_start_index:
+            message = 'Malformed description string; located right paren in description before left paren.'
+            raise Exception(message)
 
-        if debug: print '\n debug --- populate_range_values exit.....'
-        return result
+        # -- Get number of parentheses in description
+        left_paren_count = description.count('(')
+        right_paren_count = description.count(')')
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # More than one left and more than one right parenthesis in description.
+        # Sample: "Maximum sampling rate (0 (Auto) | 0.125 | 0.5 | 1 | 2 | 4 | 8 | 10 | 12)"
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if left_paren_count > 1 and right_paren_count > 1:
+            if left_paren_count == right_paren_count:
+                if debug: print '\n\tdebug -- Processing multiple matching paren counts...'
+                start_position = token_start_index+1
+                end_position = token_end_index-1
+                if end_position <= start_position:
+                    # Description does not have sufficient content to justify further parsing...
+                    message = 'Description does not have sufficient content to justify further parsing.'
+                    current_app.logger.info(message)
+                    return None, None, []
+
+                # -- Get range portion of description without starting and ending parens.
+                token = description[start_position:end_position]
+
+                # -- Remove beginning and trailing spaces (' ') from token.
+                token = token.strip(' ')
+                if debug: print '\n\tdebug -- token (w/o starting and ending parens: ', token
+
+                # -- Determine which valid separator, if any, is used to spearate token units.
+                selected_separator = None
+                for sep in valid_token_separators:
+                    if sep in token:
+                        selected_separator = sep
+                        break
+                if selected_separator is None:
+                    message = 'description token does not contain a valid separator; unable to process further.'
+                    current_app.logger.info(message)
+                    return None, None, []
+
+                # -- Split token on a valid separator...(precedence '|', ',')
+                if debug: print '\n\tdebug -- processing enumerated values (found \'|\' in token)...'
+                subtokens = token.split(selected_separator)
+                list_toks = []
+                for tok in subtokens:
+                    if not tok:
+                        if debug: print '\n\tdebug (%r) -- tok is empty...' % selected_separator
+                        continue
+
+                    tok = tok.strip(' ')
+                    if debug: print '\n\t debug -- tok: *%s*' % tok
+                    tok = scrub_tok(tok, parameter_type)
+                    if debug: print '\n\t debug -- scrubbed tok: *%s*' % tok
+                    converted_tok = convert_to_parameter_type(tok, parameter_type)
+                    if debug: print '\n\t debug -- converted tok: *%s*' % tok
+                    if converted_tok is not None:
+                        list_toks.append(converted_tok)
+
+                # If there is a set value (list), sort; define min and max values (not needed?)
+                if list_toks:
+                    if len(list_toks) > 1:
+                        list_toks.sort()
+                        min = list_toks[0]
+                        max = (list_toks[::-1])[0]
+                        set = list_toks
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # One left and one right parenthesis in description.
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        elif description.count('(') == 1 and description.count(')') == 1:
+            token = description[token_start_index:token_end_index]
+
+            # -- Remove '(' and ')' from token, strip beginning and trailing whitespace.
+            token = token.replace('(', '')
+            token = token.replace(')', '')
+            token = token.strip(' ')
+
+            # -- Process range format (xx - xxx)
+            if '-' in token:
+                tokens = token.split('-')
+                if len(tokens) > 2:
+                    message = 'Malformed range token, multiple hyphen characters between parentheses. token: %s' % token
+                    raise Exception(message)
+
+                min_token = (tokens[0]).strip(' ')
+                max_token = (tokens[1]).strip(' ')
+                min = convert_to_parameter_type(min_token, parameter_type)
+                max = convert_to_parameter_type(max_token, parameter_type)
+
+            # -- Process range format (xx, xxx) into set value
+            elif ',' in token:
+                if debug: print '\n\tdebug -- processing set...(found \',\' in token)'
+                subtokens = token.split(',')
+                list_toks = []
+                for tok in subtokens:
+                    if not tok:
+                        if debug: print '\n\tdebug (comma) -- tok is empty...'
+                        continue
+
+                    tok = tok.strip(' ')
+                    if debug: print '\n\t debug -- tok: *%s*' % tok
+                    tok = scrub_tok(tok, parameter_type)
+                    if debug: print '\n\t debug -- scrubbed tok: *%s*' % tok
+                    converted_tok = convert_to_parameter_type(tok, parameter_type)
+                    if debug: print '\n\t debug -- converted tok: *%s*' % tok
+                    if converted_tok is not None:
+                        list_toks.append(converted_tok)
+
+                if list_toks:
+                    if len(list_toks) > 1:
+                        list_toks.sort()
+                        min = list_toks[0]
+                        max = (list_toks[::-1])[0]
+                        set = list_toks
+
+                # Process range format (xx=abc, xxx=defgh) Review this.
+                if '=' in token:
+                    if debug: print '\n\tdebug -- processing enumerated values in set (found \'=\' in token)...'
+
+            # -- Process range format (xx | xxx)
+            elif '|' in token:
+                if debug: print '\n\tdebug -- processing enumerated values (found \'|\' in token)...'
+                subtokens = token.split('|')
+                list_toks = []
+                for tok in subtokens:
+                    if not tok:
+                        if debug: print '\n\tdebug (vertical bar) -- tok is empty...'
+                        continue
+
+                    tok = tok.strip(' ')
+                    if debug: print '\n\t debug -- tok: *%s*' % tok
+                    tok = scrub_tok(tok, parameter_type)
+                    if debug: print '\n\t debug -- scrubbed tok: *%s*' % tok
+                    converted_tok = convert_to_parameter_type(tok, parameter_type)
+                    if debug: print '\n\t debug -- converted tok: *%s*' % tok
+                    if converted_tok is not None:
+                        list_toks.append(converted_tok)
+
+                if list_toks:
+                    if len(list_toks) > 1:
+                        list_toks.sort()
+                        min = list_toks[0]
+                        max = (list_toks[::-1])[0]
+                        set = list_toks
+
+            else:
+                message = 'Unable to locate hyphen or comma in range token: %s' % token
+                raise Exception(message)
+
+        return min, max, set
+
     except Exception as err:
-        print '\n debug -- (populate_range_values) exception: ', err.message
+        current_app.logger.info(str(err.message))
         raise
-'''
 
-'''
+
+def scrub_tok(tok, parameter_type):
+    """
+    Remove certain subsets from tok. Examples:
+    RS10ENGC-XX00X-00-PARADA001: '(xxx)';       for example: '(0 (Auto) | 0.125 | 0.5 | 1 | 2 | 4 | 8 | 10 | 12)'
+    RS10ENGC-XX00X-00-SPKIRA001: '=XXX'         for example: '(0=auto | 0.125 | 0.25 | 0.5 | 1 | 2 | 4 | 8 | 10 | 12)'
+    RS10ENGC-XX00X-00-PRESTA001: ':lithium';    for example: '(0:lithium | 1:alkaline)'
+    """
+    debug = False
+    result = None
+    try:
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Remove pattern '(xxx)' from tok
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if '(' in tok and ')' in tok:
+            if debug: print '\n\t ***** debug -- Remove pattern \'(xxx)\' from tok...'
+            tok_end_index = tok.rfind(')')
+            tok_start_index = tok.find('(')
+            if debug:
+                print '\n\t debug -- tok start and end indices located...'
+                print '\n\t debug -- tok_start_index: ', tok_start_index
+                print '\n\t debug -- tok_end_index: ', tok_end_index
+
+            if tok_start_index < tok_end_index:
+                if debug:
+                    print '\n\t debug -- tok start < tok end...'
+                    print '\n debug -- tok[tok_start_index:tok_end_index]: *%s*' % \
+                        tok[tok_start_index:tok_end_index+1]
+                test = tok.replace(tok[tok_start_index:tok_end_index+1],'')
+                if debug: print '\n\t debug -- test: *%s*' % test
+                test.strip(' ')
+                if debug: print '\n debug -- test: *%s*' % test
+                result = test
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Remove '=XXX' from tok
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        elif '=' in tok:
+            if debug: print '\n\t ***** debug -- Remove pattern \'(xxx)\' from tok...'
+            toks = tok.split('=')
+            if len(toks) > 0:
+                if toks[0] or toks[0] is not None:
+                    result = toks[0].strip(' ')
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Remove ':XXX' from tok
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        elif ':' in tok:
+            if debug: print '\n\t ***** debug -- Remove pattern \':XXX\' from tok...'
+            toks = tok.split(':')
+            if len(toks) > 0:
+                if toks[0] or toks[0] is not None:
+                    result = toks[0].strip(' ')
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Convert tok without additional processing
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        else:
+            if debug: print '\n\t ***** debug -- else...'
+            result = convert_to_parameter_type(tok, parameter_type)
+
+        return result
+
+    except Exception as err:
+        current_app.logger.info(str(err))
+        return None
+
+
+def convert_to_parameter_type(token, parameter_type):
+    """ Convert token value to parameter_type; if failure return None. Exceptions are logged and None returned.
+
+    Workaround: When instrument parameter does not supply range attribute, parse description for range values.
+    """
+    result = None
+    if not token:
+        return None
+    if not parameter_type:
+        return None
+
+    # Verify parameter_type is one of valid_parameter_types; or raise exception.
+    valid_parameter_types = ['int', 'float', 'bool', 'string']
+    if parameter_type not in valid_parameter_types:
+        message = 'Unknown parameter_type (%s), unable to convert token.' % parameter_type
+        raise Exception(message)
+
+    try:
+        # - - - - - - - - - - - - - - - - - - - - -
+        # -- Convert integer
+        # - - - - - - - - - - - - - - - - - - - - -
+        if parameter_type == 'int':
+            try:
+                int_value = int(token)
+                result = int_value
+            except:
+                message = 'Failed to convert value (%r) to int.' % token
+                raise Exception(message)
+
+        # - - - - - - - - - - - - - - - - - - - - -
+        # -- Convert float
+        # - - - - - - - - - - - - - - - - - - - - -
+        elif parameter_type == 'float':
+            try:
+                float_value = float(token)
+                result = float_value
+            except:
+                message = 'Failed to convert value (%r) to float.' % token
+                raise Exception(message)
+
+        # - - - - - - - - - - - - - - - - - - - - -
+        # -- Convert boolean
+        # - - - - - - - - - - - - - - - - - - - - -
+        elif parameter_type == 'bool':
+            try:
+                bool_value = to_bool(token)
+                tmp = str(bool_value)
+                result = tmp.lower()
+            except:
+                message = 'Failed to convert value (%r) to boolean; enter \'true\' or \'false\'' % token
+                raise Exception(message)
+
+        # - - - - - - - - - - - - - - - - - - - - -
+        # -- Convert string
+        # - - - - - - - - - - - - - - - - - - - - -
+        elif parameter_type == 'string':
+            try:
+                result = str(token)
+            except:
+                message = 'Failed to convert value (%r) to string.' % (token)
+                raise Exception(message)
+
+        return result
+
+    except Exception as err:
+        current_app.logger.info(err.message)
+        raise
+
+
 def populate_and_check_range_values(data, key_dict):
     """ Process key_dict to populate attributes 'min', 'max' and 'set' for each read_write parameter.
 
-    old: For int and float parameters, parse 'description' attribute for 'min', 'max' and 'set';
-    return dict with updated values.
-
     - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Input dictionary (key: parameter name):
     key_dict:  {
@@ -1175,215 +1444,178 @@ def populate_and_check_range_values(data, key_dict):
     }
     """
     debug = False
-    if debug: print '\n debug --- populate_range_values entered.....'
     valid_parameter_types = ['int', 'float', 'bool', 'string']
     try:
         result = {}
-        for k,v in data.iteritems():
-            if k not in key_dict:
-                print '\n ******************* %s not in key_dict!!'
-            if debug: print '\n ---------- %s: %r (%s)' % (k,v, key_dict[k])
-            description = key_dict[k]['desc']
-            display_name = key_dict[k]['display_name']
-            if description is None:
-                result[k] = {}
-                result[k]['min'] = None
-                result[k]['max'] = None
-                result[k]['set'] = []
-                result[k]['display_name'] = display_name
-                continue
+        for k, v in data.iteritems():
 
+            display_name = key_dict[k]['display_name']
+            range = key_dict[k]['range']
             parameter_type = key_dict[k]['type']
-            display_name = key_dict[k]['display_name']
-            if parameter_type not in valid_parameter_types:
-                message = 'Unknown parameter type (%s), valid types: %s' % (parameter_type, valid_parameter_types)
-                if debug: print '\n\tdebug -- message: ', message
-                current_app.logger.info(message)
-                result[k] = {'min': None, 'max': None, 'set': None, 'display_name': display_name}
-                continue
-            try:
-                if debug: print '\n debug -- %s processing' % key_dict[k]['type']
-                result[k] = {}
-                result[k]['min'] = None
-                result[k]['max'] = None
-                result[k]['set'] = []
-                result[k]['display_name'] = display_name
-                min, max, set = parse_description(description, parameter_type)
-                if debug: print '\n debug --- after parse_description...'
-                if min is None:
-                    if debug: print '\n debug ************ min is None, continue...'
-                else:
-                    result[k]['min'] = min
-                    #continue
-                if max is None:
-                    if debug: print '\n debug ************ max is None, continue...'
-                    #continue
-                else:
-                    result[k]['max'] = max
-
-                if not set:
-                    if debug: print '\n debug ************ set is empty, continue...'
-                    #continue
-                else:
-                    result[k]['set'] = set
-                    #continue
-            except Exception as err:
-                if debug: print '\n debug ************ message: ', err.message
-                continue
-            """
-            result[k] = {}
-            result[k]['min'] = min
-            result[k]['max'] = max
-            result[k]['set'] = set
-            result[k]['display_name'] = display_name
-            """
-
-
-        if debug: print '\n debug --- populate_range_values exit.....'
-        return result
-    except Exception as err:
-        print '\n debug -- (populate_range_values) exception: ', err.message
-        raise
-'''
-
-
-def new_populate_and_check_range_values(data, key_dict):
-    """ Process key_dict to populate attributes 'min', 'max' and 'set' for each read_write parameter.
-
-    old: For int and float parameters, parse 'description' attribute for 'min', 'max' and 'set';
-    return dict with updated values.
-
-    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    Input dictionary (key: parameter name):
-    key_dict:  {
-        "ave": {
-            "desc": "Number of measurements for each reported value: (1 - 255)",
-            "max": null,
-            "min": null,
-            "set": null,
-            "type": "int"
-        }
-    }
-    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    Proposed output dictionary:
-    key_dict:  {
-        "ave": {
-            "desc": "Number of measurements for each reported value: (1 - 255)",
-            "max": 255,
-            "min": 1,
-            "set": null,
-            "type": "int"
-        }
-    }
-    """
-    debug = False
-    if debug: print '\n debug --- new_populate_range_values entered.....'
-    valid_parameter_types = ['int', 'float', 'bool', 'string']
-    try:
-        result = {}
-        for k,v in data.iteritems():
-            if k not in key_dict:
-                print '\n ******************* %s not in key_dict!!'
-            if debug: print '\n ---------- %s: %r (%s)' % (k,v, key_dict[k])
-            #description = key_dict[k]['desc']
-            display_name = key_dict[k]['display_name']
-            uframe_range = key_dict[k]['range']
-            if uframe_range is None:
-                result[k] = {}
-                result[k]['min'] = None
-                result[k]['max'] = None
-                result[k]['set'] = []
-                result[k]['display_name'] = display_name
-                continue
-
-            parameter_type = key_dict[k]['type']
-            display_name = key_dict[k]['display_name']
             if parameter_type not in valid_parameter_types:
                 message = 'Unknown parameter type (%s), valid types: %s' % (parameter_type, valid_parameter_types)
                 current_app.logger.info(message)
                 result[k] = {'min': None, 'max': None, 'set': None, 'display_name': display_name}
                 continue
-            try:
-                if debug: print '\n debug -- %s processing' % key_dict[k]['type']
+
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            # If range is None (not provided in parameter dictionary)
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            if range is None:
                 result[k] = {}
                 result[k]['min'] = None
                 result[k]['max'] = None
                 result[k]['set'] = []
                 result[k]['display_name'] = display_name
 
-                # process uframe _range - if list, then min and max; if dict then set
-                if isinstance(uframe_range, list):
+                if debug:
+                    message = '(%s) range not provided.' % k
+                    current_app.logger.info(message)
+                continue
 
-                    # If list, requires exactly 2 value - one for min and one for max
-                    if len(uframe_range) != 2:
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            # Range provided in parameter dictionary
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            try:
+                if debug:
+                    print '\n debug -- %s processing' % parameter_type
+                    print '\n debug -- (%s) not using description...' % k
+                result[k] = {}
+                result[k]['min'] = None
+                result[k]['max'] = None
+                result[k]['set'] = []
+                result[k]['display_name'] = display_name
+
+                # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                # Process range - type list
+                # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                if isinstance(range, list):
+
+                    # If list, requires exactly 2 values - one for min and one for max
+                    if len(range) != 2:
                         message = '(%s) Invalid attribute \'range\' from uframe, require exactly two (2) values.' % k
                         current_app.logger.info(message)
                         result[k] = {'min': None, 'max': None, 'set': None, 'display_name': display_name}
                         continue
 
-                    min = uframe_range[0]
-                    max = uframe_range[1]
+                    min = range[0]
+                    max = range[1]
                     set = []
 
-                elif isinstance(uframe_range, dict):
+                # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                # Process range - type dict
+                # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                elif isinstance(range, dict):
 
                     min = None
                     max = None
                     set = []
-                    #for x, y in uframe_range.iteritems()
-                    if uframe_range:
-                        keys = uframe_range.keys()
+                    if range:
+                        keys = range.keys()
                         keys.sort()
                         set = keys
-                else:
 
-                    message = '(%s) Unsupported \'range\' type from uframe, must be list or dict.' % k
-                    current_app.logger.info(message)
+                # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                # Process range - type unknown
+                # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                else:
                     result[k] = {'min': None, 'max': None, 'set': None, 'display_name': display_name}
                     continue
 
-
-                #min, max, set = parse_description(description, parameter_type)
-                if debug: print '\n debug --- after parse_description...'
                 result[k]['display_name'] = display_name
-                if min is None:
-                    if debug: print '\n debug ************ min is None, continue...'
-                else:
-                    result[k]['min'] = min
-                    #continue
-                if max is None:
-                    if debug: print '\n debug ************ max is None, continue...'
-                    #continue
-                else:
-                    result[k]['max'] = max
+                result[k]['min'] = min
+                result[k]['max'] = max
+                result[k]['set'] = set
+                result[k]['display_name'] = display_name
 
-                if not set:
-                    if debug: print '\n debug ************ set is empty, continue...'
-                    #continue
-                else:
-                    result[k]['set'] = set
-                    #continue
             except Exception as err:
-                if debug: print '\n debug ************ message: ', err.message
+                current_app.logger.info(str(err.message))
                 continue
-            '''
+
+        return result
+
+    except Exception as err:
+        current_app.logger.info(err.message)
+        raise
+
+
+def workaround_populate_and_check_range_values(data, key_dict):
+    """ Process key_dict to populate attributes 'min', 'max' and 'set' for each read_write parameter.
+
+    Workaround: Parsing description when range attribute not provided for parameter.
+
+    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    Input dictionary (key: parameter name):
+    key_dict:  {
+        "ave": {
+            "desc": "Number of measurements for each reported value: (1 - 255)",
+            "max": null,
+            "min": null,
+            "set": null,
+            "type": "int"
+        }
+    }
+    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    Proposed output dictionary:
+    key_dict:  {
+        "ave": {
+            "desc": "Number of measurements for each reported value: (1 - 255)",
+            "max": 255,
+            "min": 1,
+            "set": null,
+            "type": "int"
+        }
+    }
+    """
+    debug = False
+    valid_parameter_types = ['int', 'float', 'bool', 'string']
+    try:
+        result = {}
+        for k, v in data.iteritems():
+
+            if debug: print '\n ---------- %s: %r (%s)' % (k,v, key_dict[k])
+            description = key_dict[k]['desc']
+            display_name = key_dict[k]['display_name']
+            parameter_type = key_dict[k]['type']
+            if parameter_type not in valid_parameter_types:
+                message = 'Unknown parameter type (%s), valid types: %s' % (parameter_type, valid_parameter_types)
+                current_app.logger.info(message)
+                result[k] = {'min': None, 'max': None, 'set': None, 'display_name': display_name}
+                continue
+
+            # Workaround using description...
+            if description is None:
+                result[k] = {}
+                result[k]['min'] = None
+                result[k]['max'] = None
+                result[k]['set'] = []
+                result[k]['display_name'] = display_name
+
+                if debug:
+                    message = '(%s) range not provided.' % k
+                    current_app.logger.info(message)
+                continue
+
+            # todo - review and add try-except for parse description
+            min, max, set = parse_description(description, parameter_type)
             result[k] = {}
             result[k]['min'] = min
             result[k]['max'] = max
             result[k]['set'] = set
             result[k]['display_name'] = display_name
-            '''
 
-        if debug: print '\n debug --- new_populate_range_values exit.....'
+        #print '\n debug -- result: ', result
+
         return result
+
     except Exception as err:
-        print '\n debug -- (new_populate_range_values) exception: ', err.message
         raise
 
 
-def new_scrub_ui_request_data(data, parameter_types, ranges):
+def old_scrub_ui_request_data(data, parameter_types, ranges):
     """ Modify format of float, int and bool data values provided by ooi-ui.
-    Validate specific values against ranges, if ranges provided.
+
+    Workaround: Added back in for workaround where driver does not provide parameter range values.
     """
     debug = False
     result = {}
@@ -1396,25 +1628,12 @@ def new_scrub_ui_request_data(data, parameter_types, ranges):
             message = 'Parameter parameter_types is empty or null.'
             raise Exception(message)
 
-        if debug:
-            print '\n debug -- new_scrub_ui_request_data....entered.........................'
-            print '\n debug -- data: ', json.dumps(data, indent=4, sort_keys=True), ' .........'
-            print '\n - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - \n\n'
-            print '\n debug -- ranges: ', json.dumps(ranges, indent=4, sort_keys=True), '.........'
-            print '\n - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - '
-
-        #raise Exception('this is a test error message')
         for k,v in data.iteritems():
-            if debug: print '\n %s: %r (%s)' % (k,v, parameter_types[k])
-
-            # - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-            # Process float value
-            # - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            if debug: print '\n debug -------- %s: %r (%s)' % (k,v, parameter_types[k])
             if parameter_types[k] == 'float':
-
-                # Convert value provided; on error, record error.
                 try:
                     float_value = float(v)
+                    result[k] = float_value
                 except:
                     display_name = 'unknown'
                     if k in ranges:
@@ -1423,9 +1642,116 @@ def new_scrub_ui_request_data(data, parameter_types, ranges):
                     error_result[display_name] = message
                     continue
 
-                if debug: print '\n debug --- float_value: ', float_value
+            elif parameter_types[k] == 'int':
+                try:
+                    int_value = int(v)
+                    result[k] = int_value
+                except:
+                    display_name = 'unknown'
+                    if k in ranges:
+                        display_name = ranges[k]['display_name']
+                    message = 'Failed to convert parameter (%s) value (%r) to int.' % (k, v)
+                    error_result[display_name] = message
+                    continue
+            elif parameter_types[k] == 'bool':
+                try:
+                    bool_value = bool(v)
+                    tmp = str(bool_value)
+                    result[k] = tmp.lower()
+                except:
+                    display_name = 'unknown'
+                    if k in ranges:
+                        display_name = ranges[k]['display_name']
+                    message = 'Failed to convert parameter (%s) value (%r) to boolean.' % (k, v)
+                    error_result[display_name] = message
+                    continue
+
+            elif parameter_types[k] == 'string':
+                try:
+                    result[k] = str(v)
+                except:
+                    display_name = 'unknown'
+                    if k in ranges:
+                        display_name = ranges[k]['display_name']
+                    message = 'Failed to convert parameter (%s) value (%r) to int.' % (k, v)
+                    error_result[display_name] = message
+                    continue
+            else:
+                message = 'Unknown parameter type: %s' % parameter_types[k]
+                current_app.logger.info(message)
+                result[k] = v
+
+        return result, error_result
+
+    except Exception:
+        raise
+
+
+def scrub_ui_request_data(data, parameter_types, ranges):
+    """ Modify format of float, int and bool data values provided by ooi-ui.
+    Validate specific values against ranges, if ranges provided.
+
+    Inputs:
+    data                dict    Represents the payload['resource'], or values for READ_WRITE parameters sent from UI.
+    parameter_types     dict    Parameter type values used for type validation and conversion.
+    ranges              dict    Dictionary (keyed by parameter code) where dict contains parameter min, max, set.
+
+    Outputs:
+    result              dict    Converted payload parameter and values after range checking has been applied.
+    error_result        dict    Dictionary of error messages to be reported in UI.
+
+    Ranges errors reported in error_result; format of error_result dict, key is parameter code:
+        . . .
+        "range_errors": {
+                "a_cutoff": {
+                    "display_name": "Absorbance Cutoff",
+                    "message": "Parameter (a_cutoff) value 0.0001 must be between 0.01 and 10.0."
+                },
+                "brmtrace": {
+                    "display_name": "Bromide Tracing",
+                    "message": "Failed to convert parameter (brmtrace) value (u'trueblah') to boolean."
+                },
+                "countdwn": {
+                    "display_name": "Countdown",
+                    "message": "Parameter (countdwn) value 15000 must be between 0 and 3600."
+                },
+                "intadmax": {
+                    "display_name": "Integration Time Max",
+                    "message": "Parameter (intadmax) value 0 must be between 1 and 20."
+                }
+            },
+        . . .
+
+    """
+    debug = False
+    result = {}
+    error_result = {}
+    try:
+        if not data:
+            message = 'Parameter data is empty.'
+            raise Exception(message)
+        if not parameter_types:
+            message = 'Parameter parameter_types is empty.'
+            raise Exception(message)
+
+        for k,v in data.iteritems():
+            if debug: print '\n %s: %r (%s)' % (k,v, parameter_types[k])
+
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            # Process float value; Convert value provided; on error, record error.
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            if parameter_types[k] == 'float':
+                try:
+                    float_value = float(v)
+                except:
+                    display_name = 'unknown'
+                    if k in ranges:
+                        display_name = ranges[k]['display_name']
+                    message = 'Failed to convert parameter (%s) value (%r) to float.' % (k, v)
+                    error_result[k] = {'display_name': display_name, 'message': message}
+                    continue
+
                 if k in ranges:
-                    if debug: print '\n ------------ %s in ranges dictionary...' % k
                     min_error = False
                     max_error = False
 
@@ -1435,28 +1761,33 @@ def new_scrub_ui_request_data(data, parameter_types, ranges):
                     range_set = ranges[k]['set']
                     display_name = ranges[k]['display_name']
 
-                    if debug:
-                        print '\n\tdebug -- range_min: ', range_min
-                        print '\n\tdebug -- range_max: ', range_max
-                        print '\n\tdebug -- range_set: ', range_set
+                    # Range check data value entered against list of valid floats
+                    if range_set:
+                        if float_value in range_set:
+                            result[k] = float_value
+                        else:
+                            message = 'Parameter (%s) has invalid float value %r, not one of %s.' % \
+                                      (k, float_value, range_set)
+                            error_result[k] = {'display_name': display_name, 'message': message}
+                            continue
 
                     # Range check data value entered against min range value
                     if range_min is not None:
                         if float_value < range_min:
                             min_error = True
-                            msg = 'Parameter (%s) value of (%r) is less than range minimum value of (%r).' % \
-                                  (k, float_value, range_min)
-                            error_result[display_name] = msg
-                            if debug: print '\n ', msg
+                            message = 'Parameter (%s) value %r must be between %r and %r.' % \
+                                    (k, float_value, range_min, range_max)
+                            error_result[k] = {'display_name': display_name, 'message': message}
+                            if debug: print '\n ', message
 
                     # Range check data value entered against min range value
                     if range_max is not None:
                         if float_value > range_max:
                             max_error = True
-                            msg = 'Parameter (%s) value of (%r) is greater than range maximum value of (%r).' % \
-                                  (k, float_value, range_max)
-                            error_result[display_name] = msg
-                            if debug: print '\n ', msg
+                            message = 'Parameter (%s) value %r must be between %r and %r.' % \
+                                  (k, float_value, range_min, range_max)
+                            error_result[k] = {'display_name': display_name, 'message': message}
+                            if debug: print '\n ', message
 
                     if min_error or max_error:
                         continue
@@ -1465,30 +1796,21 @@ def new_scrub_ui_request_data(data, parameter_types, ranges):
                     result[k] = float_value
 
             # - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-            # Process int value
+            # Process int value; Convert value provided; on error, record error.
             # - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             elif parameter_types[k] == 'int':
-
-                # Convert value provided; on error, record error.
                 try:
-                    if debug: print '\n\tdebug --- int value to convert: ', v
                     int_value = int(v)
                 except:
                     display_name = 'unknown'
                     if k in ranges:
                         display_name = ranges[k]['display_name']
-                    else:
-                        print '\n debug -- display_name for %s not found in ranges.' % k
                     message = 'Failed to convert parameter (%s) value (%r) to int.' % (k, v)
-                    error_result[display_name] = message
-                    if debug: print '\n ****** ', message
+                    error_result[k] = {'display_name': display_name, 'message': message}
                     continue
-
-                if debug: print '\n\tdebug --- int_value: ', int_value
 
                 # If there are range values for this parameter, then perform range checking.
                 if k in ranges:
-                    if debug: print '\n(int) %s in ranges dictionary...' % k
                     min_error = False
                     max_error = False
 
@@ -1497,42 +1819,33 @@ def new_scrub_ui_request_data(data, parameter_types, ranges):
                     range_max = ranges[k]['max']
                     range_set = ranges[k]['set']
                     display_name = ranges[k]['display_name']
-                    if debug:
-                        print '\n\tdebug -- range_min: ', range_min
-                        print '\n\tdebug -- range_max: ', range_max
-                        print '\n\tdebug -- range_set: ', range_set
-                        print '\n\tdebug -- display_name: ', display_name
 
                     if range_set:
                         if int_value in range_set:
                             result[k] = int_value
                             if debug: print '\n\tupdate result[%s]: %r' % (k, int_value)
                         else:
-                            message = 'Parameter (%s) has invalid int value \'%s\', not one of %s.' % \
+                            message = 'Parameter (%s) has invalid int value \'%r\', not one of %s.' % \
                                       (k, int_value, range_set)
-                            error_result[display_name] = message
-                            if debug: print '\n ****** ', message
+                            error_result[k] = {'display_name': display_name, 'message': message}
                             continue
+
 
                     # Range check data value entered against min range value
                     if range_min is not None:
-                        if debug: print '\n\tdebug --- processing int range min...'
                         if int_value < range_min:
                             min_error = True
-                            msg = 'Parameter (%s) value of (%r) is less than range minimum value of (%r).' % \
-                                  (k, int_value, range_min)
-                            error_result[display_name] = msg
-                            if debug: print '\n ', msg
+                            message = 'Parameter (%s) value %r must be between %r and %r.' % \
+                                  (k, int_value, range_min, range_max)
+                            error_result[k] = {'display_name': display_name, 'message': message}
 
                     # Range check data value entered against max range value
                     if range_max is not None:
-                        if debug: print '\n\tdebug --- processing int range max...'
                         if int_value > range_max:
                             max_error = True
-                            msg = 'Parameter (%s) value of (%r) is greater than range maximum value of (%r).' % \
-                                  (k, int_value, range_max)
-                            error_result[display_name] = msg
-                            if debug: print '\n ', msg
+                            message = 'Parameter (%s) value %r must be between %r and %r.' % \
+                                  (k, int_value, range_min, range_max)
+                            error_result[k] = {'display_name': display_name, 'message': message}
 
                     if min_error or max_error:
                         continue
@@ -1541,30 +1854,25 @@ def new_scrub_ui_request_data(data, parameter_types, ranges):
                     result[k] = int_value
 
             # - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-            # Process boolean value; on error record error.
+            # Process boolean value; Convert value provided, on error raise exception.
             # - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             elif parameter_types[k] == 'bool':
-                # Convert value provided, on error raise exception.
                 display_name = 'unknown'
                 if k in ranges:
                     display_name = ranges[k]['display_name']
                 try:
-                    if debug: print '\n(bool) %s in ranges dictionary...' % k
                     bool_value = to_bool(v)
                     tmp = str(bool_value)
                     result[k] = tmp.lower()
                 except:
                     message = 'Failed to convert parameter (%s) value (%r) to boolean.' % (k, v)
-                    error_result[display_name] = message
-                    if debug: print '\n ****** ', message
+                    error_result[k] = {'display_name': display_name, 'message': message}
                     continue
 
             # - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-            # Process string value
+            # Process string value; Convert str value provided, on error, record error.
             # - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             elif parameter_types[k] == 'string':
-
-                # Convert str value provided, on error, record error..
                 display_name = k
                 try:
                     if k in ranges:
@@ -1572,34 +1880,28 @@ def new_scrub_ui_request_data(data, parameter_types, ranges):
                     str_value = str(v)
                 except:
                     message = 'Failed to convert parameter (%s) value (%r) to string.' % (k, v)
-                    error_result[display_name] = message
-                    if debug: print '\n ****** ', message
+                    error_result[k] = {'display_name': display_name, 'message': message}
                     continue
-
-                if debug: print '\n debug --- str_value: ', str_value
 
                 # If there are range values for this parameter, then perform range checking.
                 if k in ranges:
-                    if debug: print '\n(string) %s in ranges dictionary...' % k
                     # Determine min and max for ranges
                     range_min = ranges[k]['min']
                     range_max = ranges[k]['max']
                     range_set = ranges[k]['set']
                     display_name = ranges[k]['display_name']
-                    if debug:
-                        print '\n\tdebug -- range_min: ', range_min
-                        print '\n\tdebug -- range_max: ', range_max
-                        print '\n\tdebug -- range_set: ', range_set
-                        print '\n\tdebug -- range_set: ', display_name
 
+                    if not range_set:
+                        continue
+
+                    range_set.sort()
                     if str_value in range_set:
                         result[k] = str_value
                         if debug: print '\n\tupdate result[%s]: %r' % (k, str_value)
                     else:
-                        message = 'Parameter (%s) has invalid string value \'%s\', not one of %s.' % \
+                        message = 'Parameter (%s) has invalid string value %r, not one of %s.' % \
                                   (k, str_value, range_set)
-                        error_result[display_name] = message
-                        if debug: print '\n ****** ', message
+                        error_result[k] = {'display_name': display_name, 'message': message}
                         continue
 
             # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1613,9 +1915,6 @@ def new_scrub_ui_request_data(data, parameter_types, ranges):
                           (display_name, k, parameter_types[k])
                 current_app.logger.info(message)
                 result[k] = v
-        if debug:
-            print '\n debug ------------ result: ', result
-            print '\n debug ------------ error_result: ', error_result
 
         return result, error_result
 
@@ -1623,192 +1922,6 @@ def new_scrub_ui_request_data(data, parameter_types, ranges):
         current_app.logger.info(str(err.message))
         raise
 
-'''
-def parse_description(description, parameter_type):
-    """ Parse parameter str description for range value attributes - 'min', 'max', and 'set'.
-    Currently processes into return values of str for 'min', 'max' and 'set'.
-
-    Modify to return actual values, based on parameter type, for 'min', 'max' and 'set'.
-    """
-    debug = False
-    min = None
-    max = None
-    set = []
-    try:
-        if not description:
-            return min, max, set
-        if not parameter_type:
-            return min, max, set
-
-        # Get indices of right and left parentheses
-        token_end_index = description.rfind(')')
-        token_start_index = description.rfind('(')
-
-        # Some instruments may not have a range constraint. In this case, return (do not raise error).
-        if token_end_index == -1 or token_start_index == -1:
-            message = 'No range values provided in description. No parentheses.'
-            current_app.logger.info(message)
-            return None, None, []
-            #raise Exception(message)
-
-        if debug: print '\n\tdebug -- description: ', description
-        if token_end_index <= token_start_index:
-            raise Exception('Malformed description string; located right paren in description before left paren.')
-
-        # Get substring of format (xxx - xxxxx). Not processing sets yet.
-        if description.count('(') == 1 and description.count(')') == 1:
-            token = description[token_start_index:token_end_index]
-
-            # Remove '(' and ')' from token, strip beginning and trailing whitespace.
-            token = token.replace('(', '')
-            token = token.replace(')', '')
-            token = token.strip(' ')
-            #print '\n debug -- token: ', token
-
-            # Process range format (xx - xxx)
-            if '-' in token:
-                #message = 'Unable to locate \'-\' in range token: %s' % token
-                #raise Exception(message)
-                #print '\n debug -- token stripped: ', token
-                tokens = token.split('-')
-                if len(tokens) > 2:
-                    message = 'Malformed range token, multiple hyphen characters between parentheses. token: %s' % token
-                    raise Exception(message)
-
-                min_token = (tokens[0]).strip(' ')
-                max_token = (tokens[1]).strip(' ')
-                min = convert_to_parameter_type(min_token, parameter_type)
-                max = convert_to_parameter_type(max_token, parameter_type)
-
-            # Process range format (xx, xxx) into set value
-            elif ',' in token:
-                if debug: print '\n\tdebug -- processing set...(found \',\' in token)'
-                subtokens = token.split(',')
-                list_toks = []
-                for tok in subtokens:
-                    if not tok:
-                        print '\n\tdebug (comma) -- tok is empty...'
-                        continue
-                    tok = tok.strip(' ')
-                    converted_tok = convert_to_parameter_type(tok, parameter_type)
-                    if converted_tok is not None:
-                        list_toks.append(converted_tok)
-                if list_toks:
-                    if len(list_toks) > 1:
-                        list_toks.sort()
-                        min = list_toks[0]
-                        max = (list_toks[::-1])[0]
-                        set = list_toks
-                        if debug:
-                            print '\n\t\t parameter ----------',
-                            print '\n\t\tmin: ', min
-                            print '\n\t\tmax: ', max
-                            print '\n\t\tset: ', set
-
-                if debug: print '\n\tdebug -- (processing commas) len(subtokens): ', len(subtokens)
-
-                # Process range format (xx=abc, xxx=defgh)
-                if '=' in token:
-                    print '\n\tdebug -- processing enumerated values in set (found \'=\' in token)...'
-
-
-            # Process range format (xx | xxx)
-            elif '|' in token:
-                if debug: print '\n\tdebug -- processing enumerated values (found \'|\' in token)...'
-                subtokens = token.split('|')
-                list_toks = []
-                for tok in subtokens:
-                    if not tok:
-                        if debug: print '\n\tdebug (vertical bar) -- tok is empty...'
-                        continue
-                    tok = tok.strip(' ')
-                    converted_tok = convert_to_parameter_type(tok, parameter_type)
-                    if converted_tok is not None:
-                        list_toks.append(converted_tok)
-                if list_toks:
-                    if len(list_toks) > 1:
-                        list_toks.sort()
-                        min = list_toks[0]
-                        max = (list_toks[::-1])[0]
-                        set = list_toks
-                        if debug:
-                            print '\n\t\t parameter ----------',
-                            print '\n\t\tmin: ', min
-                            print '\n\t\tmax: ', max
-                            print '\n\t\tset: ', set
-
-                if debug: print '\n\tdebug -- len(subtokens): ', len(subtokens)
-
-            else:
-                message = 'Unable to locate hyphen or comma in range token: %s' % token
-                if debug: print '\n\t message: ', message
-                raise Exception(message)
-
-        #print '\n returning min, max and set: %r, %r, %r' % (min, max, set)
-        return min, max, set
-
-    except Exception as err:
-        #print '\n debug -- parse_description: error: ', err.message
-        current_app.logger.info(str(err.message))
-        raise #Exception(err.message)
-'''
-'''
-def convert_to_parameter_type(token, parameter_type):
-    """ Convert token value to parameter_type; if failure return None. Exceptions are logged and None returned.
-    """
-    debug = False
-    result = None
-    if not token:
-        return None
-    if not parameter_type:
-        return None
-
-    valid_parameter_types = ['int', 'float', 'bool', 'string']
-    if parameter_type not in valid_parameter_types:
-        message = 'Unknown parameter_type (%s), unable to convert token.' % parameter_type
-        if debug: print '\n\tdebug -- ', message
-        raise Exception(message)
-    try:
-        if debug: print '\n\t debug -- convert parameter_type %s' % parameter_type
-        if parameter_type == 'int':
-            try:
-                int_value = int(token)
-                result = int_value
-            except:
-                message = 'Failed to convert value (%r) to int.' % token
-                raise Exception(message)
-        elif parameter_type == 'float':
-            try:
-                float_value = float(token)
-                result = float_value
-            except:
-                message = 'Failed to convert value (%r) to float.' % token
-                raise Exception(message)
-        elif parameter_type == 'bool':
-            try:
-                if debug: print '\n\t debug -- boolean token to convert: ', token
-                bool_value = to_bool(token)
-                tmp = str(bool_value)
-                result = tmp.lower()
-                if debug: print '\n\t debug -- resulting boolean value: ', result
-            except:
-                message = 'Failed to convert value (%r) to boolean; enter \'true\' or \'false\'' % token
-                raise Exception(message)
-
-        elif parameter_type == 'string':
-            try:
-                result = str(token)
-            except:
-                message = 'Failed to convert value (%r) to string.' % (token)
-                raise Exception(message)
-
-        return result
-
-    except Exception as err:
-        if debug: print '\n convert_token (%s) exception: %s' % (parameter_type, err.message)
-        current_app.logger.info(err.message)
-        raise
-'''
 
 def to_bool(value):
     """ Converts 'something' to boolean. Raises exception for invalid formats.
@@ -1822,7 +1935,6 @@ def to_bool(value):
     raise Exception('Invalid value for boolean conversion: ' + str(value))
 
 
-# TODO UI If an instrument has no READ_WRITE parameters, the 'Apply Settings' button should be disabled.
 def _c2_set_instrument_driver_parameters(reference_designator, data):
     """
     Set one or more instrument driver parameters.
@@ -1832,15 +1944,14 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
     Sample: localhost:12572/instrument/api/reference_designator/resource [POST]
 
     The UI sends all READ_WRITE parameters in data; so data should never be empty.
-
     """
     debug = False
     response_status = {}
     response_status['status_code'] = 200
     response_status['message'] = ""
     response_status['range_errors'] = ""
+    response_status['display_parameters'] = {}
     insufficient_data = 'Insufficient data, or bad data format.'
-    message = 'uframe error reported in _c2_set_instrument_driver_parameters'
     valid_args = [ 'resource', 'timeout']
     try:
 
@@ -1863,120 +1974,207 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
                 raise Exception(insufficient_data)
 
         # Get instrument status.
-        if debug: print '\n debug -- get instrument status....'
-
         _status = get_instrument_status(reference_designator)
         if _status is None:
             message = 'Failed to retrieve instrument (%s) status.' % reference_designator
-            if debug: print '\n debug -- message: ', message
             raise Exception(message)
-
-        #if debug:
-        #print '\n ********** debug -- _status: ', json.dumps(_status, indent=4, sort_keys=True)
 
         # Verify payload['resource'] is not empty or None
         if payload['resource'] is None or not payload['resource']:
             message = 'The payload [resource] element is None or empty.'
-            if debug: print '\n debug -- message: ', message
             raise Exception(message)
 
-        # Get dict of range values
+        # Get dict of parameters and range values
+        if debug: print '\n debug -- calling get_range_dictionary..............'
         parameter_dict, key_dict_ranges = get_range_dictionary(payload['resource'], _status, reference_designator)
 
         # Scrub data and determine if range errors
-        new_result, error_result = new_scrub_ui_request_data(payload['resource'], parameter_dict, key_dict_ranges)
+        if debug: print '\n debug -- calling scrub_ui_request_data..............'
+        result, error_result = scrub_ui_request_data(payload['resource'], parameter_dict, key_dict_ranges)
 
         # If range error messages, return error dictionary
         if error_result:
-            if debug: print '\n debug ***** range error_result(%d): %s' % \
-              (len(error_result), json.dumps(error_result, indent=4, sort_keys=True))
+            if debug:
+                print '\n debug -- processing error_result..............'
+                print '\n debug ***** range error_result(%d): %s' % \
+                        (len(error_result), json.dumps(error_result, indent=4, sort_keys=True))
 
             # Create dictionary with response data and return.
-            # todo - this will require status to be returned also !!!!!!!!!!! FIX *****************
-            new_result = {}
+            result = {}
             response_status['message'] = 'Range Error(s)'
             response_status['range_errors'] = error_result
             response_status['status_code'] = 400
-            new_result['response'] = response_status
-            print '\n -- debug RANGE ERROR result: ', json.dumps(new_result, indent=4, sort_keys=True)
-            return new_result
+            result['response'] = response_status
+            #print '\n debug ***** RANGE Error(s): %s' % json.dumps(result, indent=4, sort_keys=True)
+            return result
 
         # If no errors and result is empty or None, raise exception
-        elif new_result is None or not new_result:
-            message = 'Unable to process resource payload.'
-            if debug: print '\n debug -- message: ', message
-            raise Exception(message)
-        if debug: print '\n debug --  (from new scrub) result(%d): %s' % (len(new_result), new_result)
+        elif result is None or not result:
 
-        '''
-        # Original
-        # Scrub payload resource value using parameter type dictionary.
-        result = scrub_ui_request_data(payload['resource'], parameter_dict)
-        if result is None or not result:
-            message = 'Unable to process resource payload (result is None or empty).'
-            print '\n debug -- message: ', message
-            raise Exception(message)
-        print '\n debug -- result (from scrub): ', result
-        '''
+            tmp_payload = convert(data)
+
+            # Scrub payload resource value using parameter type dictionary.
+            try:
+                result, error_result = old_scrub_ui_request_data(tmp_payload['resource'],
+                                                                 parameter_dict, key_dict_ranges)
+                # Create dictionary with response data and return.
+                if error_result:
+                    result = {}
+                    response_status['message'] = 'Range Error(s)'
+                    response_status['range_errors'] = error_result
+                    response_status['status_code'] = 400
+                    result['response'] = response_status
+                    #print '\n debug ***** RANGE Error(s): %s' % json.dumps(result, indent=4, sort_keys=True)
+                    return result
+
+            except Exception as err:
+                current_app.logger.info(str(err))
+                result = None
+
+            if result is None or not result:
+                message = 'Unable to process resource payload (result is None or empty).'
+                raise Exception(message)
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Process parameter set request in uframe
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Update value of resource in payload.
-        payload['resource'] = new_result
+        payload['resource'] = result
 
-        # Send request and payload to uframe; process result
-        response = _uframe_post_instrument_driver_set(reference_designator, 'resource', payload)
+        # Send request and payload to instrument/api and process result
+        if debug: print '\n debug -- Post driver set parameters....'
+        try:
+            response = _uframe_post_instrument_driver_set(reference_designator, 'resource', payload)
+        except Exception as err:
+            message = str(err.message)
+            raise Exception(message)
+
+        if debug: print '\n debug -- after Post driver set - check status_code....'
         if response.status_code != 200:
             message = '(%s) Failed to execute instrument driver set.' % str(response.status_code)
-            print '\n debug -- message: ', message
             raise Exception(message)
 
         if response.content:
             try:
                 response_data = json.loads(response.content)
-                if debug: print '\n debug -- response_data: ', json.dumps(response_data, indent=4, sort_keys=True)
             except:
                 message = 'Malformed data; not in valid json format. (C2 instrument driver set)'
                 raise Exception(message)
 
-            # Evaluate response content for error (review 'value' list in response_data )
+            # Evaluate response content for error (review 'value' list in response_data)
             if response_data:
-                status_code, status_type, status_message = _eval_POST_response_data(response_data, message)
+                if debug:
+                    print '\n debug -- evaluate response_data....'
+                    print '\n -- debug response_data: ', json.dumps(response_data, indent=4, sort_keys=True)
+                status_code, status_type, status_message = _eval_POST_response_data(response_data, None)
                 response_status['status_code'] = status_code
                 response_status['message'] = status_message
 
         # Add response attribute information to result
-        new_result['response'] = response_status
+        result['response'] = response_status
 
-        # Get current over_all state, return in status attribute of result
+        # Get current over_all status, return in attribute 'status' of result
         try:
             status = _c2_get_instrument_driver_status(reference_designator)
         except Exception:
             status = {}
-        new_result['status'] = status
+        result['status'] = status
 
-        if key_dict_ranges is None:
-            key_dict_ranges = {}
-        new_result['ranges'] = key_dict_ranges
+        #print '\n -- debug result: ', json.dumps(result, indent=4, sort_keys=True)
 
-        #streams = {}
-        #try:
-        #    streams = get_streams_dictionary(reference_designator)
-        #except Exception as err:
-        #    print'\n debug -- exception: ', err.message
-        #new_result['streams'] = streams
-        #print '\n -- debug result: ', json.dumps(new_result, indent=4, sort_keys=True)
-        return new_result
+        return result
+
+    except Exception:
+        raise
+
+
+def get_parameter_display_values(parameters):
+    """ Get display values for UI from instrument 'parameters' dictionary.
+
+    Sample Input:
+    "parameters": {
+        "a_cutoff": {
+            "description": "Cutoff value to exclude channel from processing: (0.01 - 10.0)",
+            "direct_access": true,
+            "display_name": "Absorbance Cutoff",
+            "get_timeout": 10,
+            "range": [
+                0.01,
+                10.0
+            ],
+            "set_timeout": 10,
+            "startup": true,
+            "value": {
+                "default": 1.3,
+                "description": null,
+                "type": "float"
+            },
+            "visibility": "READ_WRITE"
+        },
+        . . .
+
+    Sample Output:
+    "parameter_display_values": {
+        "Bromide Tracing": {
+          "false": "false",
+          "true": "true"
+        },
+        "Dark Correction Method": {
+          "SWAverage": "SWAverage",
+          "SpecAverage": "SpecAverage"
+        },
+        . . .
+
+    """
+    result = {}
+    read_write = 'READ_WRITE'
+    try:
+        # If no parameters, then return empty dict.
+        if not parameters:
+            return result
+
+        # Process each READ_WRITE parameter - if range attribute is provided (and not null)
+        keys = parameters.keys()
+        for key in keys:
+            param = parameters[key]
+
+            # If parameter is READ_WRITE, process parameter
+            if param['visibility'] == read_write:
+
+                # If parameter has a 'range' attribute, process 'range' value information
+                if 'range' in param:
+                    range = param['range']
+
+                    # if parameter attribute 'range' is available, process and add to result dict.
+                    if range:
+                        parameter_type = param['value']['type']
+                        if isinstance(range, dict):
+                            flip_uframe_range = {}
+                            for name, value in range.iteritems():
+                                if parameter_type == 'bool':
+                                    #print '\n type(value): ', type(value)
+                                    tmp_value = str(value)
+                                    if isinstance(tmp_value, str):
+                                        if tmp_value.lower() == 'true':
+                                            value = True
+                                        else:
+                                            value = False
+
+                                    flip_uframe_range[value] = value
+                                else:
+                                    flip_uframe_range[value] = name
+                            result[key] = flip_uframe_range
+
+        return result
 
     except Exception as err:
-        message = str(err.message)
-        #print '\n (_c2_set_instrument_driver_parameters) exception - message: ', message
-        current_app.logger.info(message)
+        current_app.logger.info(err.message)
         raise
 
 
 def get_range_dictionary(resource, _status, reference_designator):
+    """
+    """
     key_dict = {}
     parameter_dict = {}
     debug = False
@@ -1986,78 +2184,86 @@ def get_range_dictionary(resource, _status, reference_designator):
         _parameters = get_instrument_parameters(_status)
         if _parameters is None:
             message = 'Failed to retrieve instrument (%s) parameters from status.' % reference_designator
-            if debug: print '\n debug -- message: ', message
-            current_app.logger.info(message)
             raise Exception(message)
 
         # Create parameter type dictionary.
         if debug: print '\n debug -- create parameter dictionary....'
         _parameters_list = _parameters.keys()
+        using_workaround = False
         for parameter in _parameters_list:
 
+            # Process READ_WRITE_parameters
             tmp = _parameters[parameter]
-            #if debug: print '\n debug -- tmp[value]: ', tmp['value']
-            parameter_dict[parameter] = str(tmp['value']['type'])
+            if tmp['visibility'] == 'READ_WRITE':
+                parameter_dict[parameter] = str(tmp['value']['type'])
 
-            # Create range value checking dictionary
-            key_dict[parameter] = {}
-            key_dict[parameter]['type'] = str(tmp['value']['type'])
-
-            key_dict[parameter]['desc'] = str(tmp['description'])
-            key_dict[parameter]['display_name'] = str(tmp['display_name'])
-
-            # uframe range value
-            key_dict[parameter]['range'] = None
-            if 'range' in tmp:
-                key_dict[parameter]['range'] = tmp['range']
-
-            '''
-            if 'description' in tmp:
-                key_dict[parameter]['desc'] = str(tmp['description'])
-            else:
-                key_dict[parameter]['desc'] = None
-            if 'display_name' in tmp:
+                # Create range value checking dictionary
+                key_dict[parameter] = {}
+                key_dict[parameter]['type'] = str(tmp['value']['type'])
                 key_dict[parameter]['display_name'] = str(tmp['display_name'])
-                #print '\n debug -- display_name: ', str(tmp['display_name'])
-            else:
-                key_dict[parameter]['display_name'] = None
-            '''
-            key_dict[parameter]['min'] = None
-            key_dict[parameter]['max'] = None
-            key_dict[parameter]['set'] = []
+                if 'description' in tmp:
+                    key_dict[parameter]['desc'] = str(tmp['description'])
+                else:
+                    key_dict[parameter]['desc'] = None
 
-        if debug: print '\n debug -- verify resource and parameter_dict have been provided....'
+                # Prepare for instrument parameters without 'range' attribute
+                key_dict[parameter]['range'] = None
+                if 'range' in tmp:
+                    if tmp['range'] is None or not tmp['range']:
+                        key_dict[parameter]['range'] = None
+                        using_workaround = True
+                    else:
+                        key_dict[parameter]['range'] = tmp['range']
+                        using_workaround = False
+                else:
+                    using_workaround = True
+
+                key_dict[parameter]['min'] = None
+                key_dict[parameter]['max'] = None
+                key_dict[parameter]['set'] = []
+
+        if debug:
+            print '\n debug -- using_workaround: ', using_workaround
+            print '\n debug -- verify resource and parameter_dict have been provided....'
+
         if resource is None or not parameter_dict:
             message = 'The payload [resource] element is None or parameters dictionary is empty.'
-            if debug: print '\n debug -- message: ', message
-            current_app.logger.info(message)
             raise Exception(message)
 
+        if debug:
+            print '\n debug --- resource: ', json.dumps(resource, indent=4, sort_keys=True)
+            print '\n debug ***** key_dict(%d): %s' % \
+                        (len(key_dict), json.dumps(key_dict, indent=4, sort_keys=True))
+
+        # Utilize parameter 'range' attribute
+        if not using_workaround:
+            if debug: print '\n debug -- ranges provided in instrument parameter...'
+            key_dict_ranges = populate_and_check_range_values(resource, key_dict)
+
         # Parse description to populate min, max and set attributes.
-        # TODO Move (into new scrub_ui_request_data) to only populate range values for items modified.
-        # TODO remove when 'min', 'max', 'set' values are provided in parameter 'value' dictionary.
-        if debug: print '\n debug --- resource: ', json.dumps(resource, indent=4, sort_keys=True)
-        #key_dict_ranges = populate_range_values(resource, key_dict)
-        key_dict_ranges = new_populate_and_check_range_values(resource, key_dict)
+        else:
+            if debug: print '\n debug -- ranges NOT provided in instrument parameter...using description...'
+            key_dict_ranges = workaround_populate_and_check_range_values(resource, key_dict)
+
         if debug:
             print '\n debug ***** key_dict_ranges(%d): %s' % \
-              (len(key_dict_ranges), json.dumps(key_dict_ranges, indent=4, sort_keys=True))
+                (len(key_dict_ranges), json.dumps(key_dict_ranges, indent=4, sort_keys=True))
 
         return parameter_dict, key_dict_ranges
 
     except Exception as err:
         message = str(err.message)
-        print '\n debug -- (get_range_dictionary) exception - message: ', message
         current_app.logger.info(message)
         raise
 
 
-@api.route('/c2/instrument/<string:reference_designator>/get_last_particle/<string:_method>/<string:_stream>', methods=['GET'])
+@api.route('/c2/instrument/<string:reference_designator>/get_last_particle/<string:_method>/<string:_stream>',
+           methods=['GET'])
 @auth.login_required
 @scope_required(u'command_control')
 def c2_get_last_particle(reference_designator, _method, _stream):
     """
-    Get the last particle for this reference designator with method and stream name provided. If error, return error.
+    Get the last particle for this reference designator; method and stream name provided. If error, return error.
     Sample:
         http://localhost:4000/c2/instrument/RS10ENGC-XX00X-00-NUTNRA001/get_last_particle/streamed/nutnr_a_sample
     """
@@ -2228,13 +2434,13 @@ def _c2_get_last_particle(rd, _method, _name):
 
 
 def get_timestamp_value(value):
+    """ Convert float value into formatted string.
+    """
     result = value
-
     try:
         formatted_value = timestamp_to_string(value)
         if formatted_value is not None:
             result = formatted_value
-
         return result
     except Exception as err:
         message = str(err.message)
@@ -2247,6 +2453,7 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
     Gets the bounded stream contents; returns Response object.
     Note: start_time and end_time need to be datetime objects.
     """
+    rd = None
     try:
         if dpa_flag == '0':
             query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
@@ -2254,6 +2461,7 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
             query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
         query += '&limit=100'
         uframe_url, timeout, timeout_read = get_uframe_data_info()
+        rd = '-'.join([mooring, platform, instrument])
         url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
         response = requests.get(url, timeout=(timeout, timeout_read))
         if not response or response is None:
@@ -2266,11 +2474,11 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
             raise Exception(message)
         return response
     except ConnectionError:
-        message = 'ConnectionError (uframe) for get stream contents.'
+        message = 'ConnectionError for get stream contents, reference designator: %s.' % rd
         current_app.logger.info(message)
         raise Exception(message)
-    except ReadTimeout:
-        message = 'ReadTimeout (uframe) for get stream contents.'
+    except Timeout:
+        message = 'Timeout for get stream contents, reference designator: %s.' % rd
         current_app.logger.info(message)
         raise Exception(message)
     except Exception:
@@ -2280,7 +2488,7 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
 def _c2_get_instrument_metadata(reference_designator):
     """ Get metadata for reference designator.
 
-    Sample uframe qery to be made:
+    Sample uframe query to be made:
     http://uframe-2-test.ooi.rutgers.edu:12576/sensor/inv/CP02PMCO/WFP01/01-VEL3DK000/metadata
 
     Receive:
@@ -2321,11 +2529,11 @@ def _c2_get_instrument_metadata(reference_designator):
         response = requests.get(url, timeout=(timeout, timeout_read))
         return response
     except ConnectionError:
-        message = 'ConnectionError (uframe) for get instrument (%s) metadata.' % reference_designator
+        message = 'ConnectionError for get instrument metadata (%s).' % reference_designator
         current_app.logger.info(message)
         raise Exception(message)
-    except ReadTimeout:
-        message = 'ReadTimeout (uframe) for get instrument (%s) metadata.' % reference_designator
+    except Timeout:
+        message = 'Timeout for get instrument metadata (%s).' % reference_designator
         current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
@@ -2494,7 +2702,6 @@ def get_streams_dictionary(reference_designator):
 
         #print '\n debug *** streams(%d): %s' % (len(streams), json.dumps(streams, indent=4, sort_keys=True))
 
-        #return streams dictionary, keyed by stream_name(s); value is stream method
         return streams
 
     except Exception as err:
@@ -2504,7 +2711,7 @@ def get_streams_dictionary(reference_designator):
 
 
 def get_uframe_stream_types(mooring, platform, instrument):
-    """ Lists all the stream types
+    """ Lists all the stream types.
     """
     rd = None
     try:
@@ -2514,11 +2721,11 @@ def get_uframe_stream_types(mooring, platform, instrument):
         response = requests.get(url, timeout=(timeout, timeout_read))
         return response
     except ConnectionError:
-        message = 'ConnectionError (uframe) for get stream methods, reference designator: %s.' % rd
+        message = 'ConnectionError for get stream methods, reference designator: %s.' % rd
         current_app.logger.info(message)
         raise Exception(message)
-    except ReadTimeout:
-        message = 'ReadTimeout (uframe) for get stream methods, reference designator: %s.' % rd
+    except Timeout:
+        message = 'Timeout for get stream methods, reference designator: %s.' % rd
         current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
@@ -2535,11 +2742,11 @@ def get_uframe_streams(mooring, platform, instrument, stream_type):
         response = requests.get(url, timeout=(timeout, timeout_read))
         return response
     except ConnectionError:
-        message = 'ConnectionError (uframe) for get stream names for method %s.' % stream_type
+        message = 'ConnectionError for get stream names for stream method %s.' % stream_type
         current_app.logger.info(message)
         raise Exception(message)
-    except ReadTimeout:
-        message = 'ReadTimeout (uframe) for get stream names for method %s.' % stream_type
+    except Timeout:
+        message = 'Timeout for get stream names for stream method %s.' % stream_type
         current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
@@ -2592,16 +2799,13 @@ def _uframe_post_instrument_driver_set(reference_designator, command, data):
         return response
 
     except ConnectionError:
-        message = 'ConnectionError (uframe) for get instrument driver command.'
-        current_app.logger.info(message)
+        message = 'ConnectionError for instrument driver set command.'
         raise Exception(message)
-    except ReadTimeout:
-        message = 'ReadTimeout (uframe) for get instrument driver command.'
-        current_app.logger.info(message)
+    except Timeout:
+        message = 'Timeout for instrument driver set command.'
         raise Exception(message)
-    except Exception as err:
-        message = str(err.message)
-        current_app.logger.info(message)
+    except Exception:#  as err:
+        #message = str(err.message)
         raise
 
 
@@ -2731,7 +2935,7 @@ def _c2_instrument_driver_execute(reference_designator, data):
             message = 'Failed to retrieve instrument (%s) status.' % reference_designator
             raise Exception(message)
 
-        '''
+        """
         "metadata": {
             "commands": {
                 "DRIVER_EVENT_ACQUIRE_SAMPLE": {
@@ -2747,10 +2951,11 @@ def _c2_instrument_driver_execute(reference_designator, data):
                     "timeout": 10
                 },
 
-        '''
+        """
         _commands = _status['value']['metadata']['commands']
-        #if debug: print '\n debug -- _commands: ', json.dumps(_commands, indent=4, sort_keys=True)
-        if debug: print '\n debug -------------- _status: ', json.dumps(_status, indent=4, sort_keys=True)
+        if debug:
+            print '\n debug -- _commands: ', json.dumps(_commands, indent=4, sort_keys=True)
+            #print '\n debug -------------- _status: ', json.dumps(_status, indent=4, sort_keys=True)
 
         # Prepare url suffix for post
         suffix = ''
@@ -2768,10 +2973,14 @@ def _c2_instrument_driver_execute(reference_designator, data):
         suffix = suffix.strip('&')
         if debug: print '\n debug -- suffix: ', suffix
 
+        if command_name is None:
+            message = 'Malformed execute request, failed to retrieve command name from request data,'
+            raise Exception(message)
+
         # Get driver command timeout from status
+        if debug: print '\n debug -- command_name: ', command_name
         if command_name not in _commands:
             message = 'Failed to retrieve command (%s) timeout from status.' % command_name
-            if debug: print '\n debug -- message: ', message
             raise Exception(message)
 
         # Get timeout from command dictionary and convert to milliseconds; default 60 seconds.
@@ -2816,16 +3025,9 @@ def _c2_instrument_driver_execute(reference_designator, data):
 
             # Evaluate response content for error (review 'value' list info in response_data )
             if response_data:
-                #if debug:
-                #print '\n debug -- (%s) driver data: %s' % (command_name,
-                #                                            json.dumps(response_data, indent=4, sort_keys=True))
                 status_code, status_type, status_message = _eval_POST_response_data(response_data, message)
                 response_status['status_code'] = status_code
                 response_status['message'] = status_message
-
-                #if debug:
-                #print '\n debug -- (%s) response_status: %s ' % (command_name,
-                #                                               json.dumps(response_status, indent=4, sort_keys=True))
 
         # Add response attribute information to result
         result['response'] = response_status
@@ -2853,46 +3055,9 @@ def _c2_instrument_driver_execute(reference_designator, data):
                 else:
                     try:
 
-                        # Malformed response - no attribute 'value'
-                        if 'value' not in response_data:
-                            message = '(%s) Error in response data: ' % command_name
-                            message += ' Attribute \'value\' not provided in response data.'
-                            current_app.logger.info(message)
-                            response_status['status_code'] = 400
-                            response_status['message'] = message
-
-                        # Bad response - attribute 'value' is empty
-                        elif not response_data['value']:
-                            message = '(%s) Error in response data: ' % command_name
-                            message += ' Attribute \'value\' is empty.'
-                            current_app.logger.info(message)
-                            response_status['status_code'] = 400
-                            response_status['message'] = message
-
-                        # If acquire command returns something other than a list...
-                        elif not isinstance(response_data['value'], list):
-                            message = '(%s) Error in response data: ' % command_name
-                            message += ' Attribute \'value\' returned %s' % response_data['value']
-                            current_app.logger.info(message)
-                            response_status['status_code'] = 400
-                            response_status['message'] = message
-
-                        # If acquire command returns response_data['value'][1] == None...
-                        elif len(response_data['value']) < 2:
-                            message = '(%s) Error in response data: ' % command_name
-                            message += ' Attribute \'value\' less than 2 items in list.'
-                            current_app.logger.info(message)
-                            response_status['status_code'] = 400
-                            response_status['message'] = message
-
-                        # If acquire command returns response_data['value'][1] == None...
-                        elif response_data['value'][1] is None:
-                            message = '(%s) Error in response data: ' % command_name
-                            message += ' Attribute values list is None; should be a list of name:value pairs.'
-                            current_app.logger.info(message)
-                            response_status['status_code'] = 400
-                            response_status['message'] = message
-
+                        if not check_response_data_contents(response_data, command_name, response_status):
+                            if debug:
+                                print '\n debug -- check_response_data_contents failed, should have response message.'
                         else:
                             if debug:
                                 print '\n debug **************************'
@@ -2922,7 +3087,7 @@ def _c2_instrument_driver_execute(reference_designator, data):
                                     if debug: print '\n debug -- check_state_change = True '
                                     check_state_change = True
 
-                            # process all particles in acquire_result_list
+                            # Process all particles in acquire_result_list
                             for acquire_result in acquire_result_list:
 
                                 # If acquire_result is None, set response_status
@@ -2938,19 +3103,15 @@ def _c2_instrument_driver_execute(reference_designator, data):
                                         print '\n acquire_result(%d): %s' % (len(acquire_result), acquire_result)
                                         print '\n acquire_result.keys(): ', acquire_result.keys()
 
-                                    """
-                                    If values provided, process the list of (dict) values into acquire_result.
-                                    Format of value dictionary item:
-                                        {"value": 0.0909, "value_id": "measurement_3_slope_value"}
-                                    """
-
                                     # -- Get particle_metadata information
+                                    #print '\n debug acquire_result.keys(): ', acquire_result.keys
                                     keys = acquire_result.keys()
                                     if debug:
                                         print '\n debug -- Process keys in acquire_result....'
                                         print '\n debug -- keys: ', keys
                                     particle_metadata = {}
                                     for key in keys:
+                                        #print '\n debug -- processing metadata'
                                         if key != 'values':
                                             id = key
                                             value = acquire_result[id]
@@ -3008,44 +3169,15 @@ def _c2_instrument_driver_execute(reference_designator, data):
                         response_status['status_code'] = 400
                         response_status['message'] = message
 
-                    #if acquire_result is None:
                     if not acquire_results:
                         # Populate return status due to failure to obtain particle;
                         result['response'] = response_status
                         result['acquire_result'] = []
                     else:
                         # Set acquire_result value
-                        #result['acquire_result'] = acquire_result
                         result['acquire_result'] = acquire_results
 
         #print '\n ***\n result: ', json.dumps(result, indent=4, sort_keys=True)
-
-        '''
-        # Get over_all state, return in status attribute of result
-        if response_status['status_code'] == 200:
-            try:
-                status = _c2_get_instrument_driver_status(reference_designator)
-                #print '\n ***\n status: ', json.dumps(status, indent=4, sort_keys=True)
-
-                if check_state_change:
-                    # verify no longer in DRIVER_STATE_COMMAND
-                    if debug:
-                        print '\n debug -- check_state_change ......'
-                        print '\n debug -- (2) status[status][value][state]: ',  status['value']['state']
-                    if status['value']['state'] == 'DRIVER_STATE_COMMAND':
-                        message = '(%s) Error in response data:' % command_name
-                        message += ' No results to process and no state change.'
-                        current_app.logger.info(message)
-                        response_status['status_code'] = 400
-                        response_status['message'] = message
-                        result['response'] = response_status
-
-            except Exception as err:
-                if debug: print '\n debug -- exception: ', err.message
-                status = {}
-            result['status'] = status
-        '''
-
         #print '\n ******\n (%s) result: %s' % (command_name, json.dumps(result, indent=4, sort_keys=True) )
 
         return result
@@ -3054,6 +3186,55 @@ def _c2_instrument_driver_execute(reference_designator, data):
         message = str(err.message)
         current_app.logger.info(message)
         raise
+
+def check_response_data_contents(response_data, command_name, response_status):
+
+    result = False
+
+    # Malformed response - no attribute 'value'
+    if 'value' not in response_data:
+        message = '(%s) Error in response data: ' % command_name
+        message += ' Attribute \'value\' not provided in response data.'
+        current_app.logger.info(message)
+        response_status['status_code'] = 400
+        response_status['message'] = message
+
+    # Bad response - attribute 'value' is empty
+    elif not response_data['value']:
+        message = '(%s) Error in response data: ' % command_name
+        message += ' Attribute \'value\' is empty.'
+        current_app.logger.info(message)
+        response_status['status_code'] = 400
+        response_status['message'] = message
+
+    # If acquire command returns something other than a list...
+    elif not isinstance(response_data['value'], list):
+        message = '(%s) Error in response data: ' % command_name
+        message += ' Attribute \'value\' returned %s' % response_data['value']
+        current_app.logger.info(message)
+        response_status['status_code'] = 400
+        response_status['message'] = message
+
+    # If acquire command returns response_data['value'][1] == None...
+    elif len(response_data['value']) < 2:
+        message = '(%s) Error in response data: ' % command_name
+        message += ' Attribute \'value\' less than 2 items in list.'
+        current_app.logger.info(message)
+        response_status['status_code'] = 400
+        response_status['message'] = message
+
+    # If acquire command returns response_data['value'][1] == None...
+    elif response_data['value'][1] is None:
+        message = '(%s) Error in response data: ' % command_name
+        message += ' Attribute values list is None; should be a list of name:value pairs.'
+        current_app.logger.info(message)
+        response_status['status_code'] = 400
+        response_status['message'] = message
+    else:
+        result = True
+
+    return result
+
 
 def timestamp_to_string(time_float):
     """ Convert float to formatted time string. If failure to convert, return None.
@@ -3070,13 +3251,13 @@ def timestamp_to_string(time_float):
         current_app.logger.info(str(err.message))
         return None
 
+
 def is_nan(x):
     return isinstance(x, float) and math.isnan(x)
 
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # private helper methods for instrument agent driver (instrument/api)
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def uframe_get_instrument_driver_command(reference_designator, command):
     """ Return the uframe response of instrument command provided for GET
@@ -3092,11 +3273,11 @@ def uframe_get_instrument_driver_command(reference_designator, command):
         return response
 
     except ConnectionError:
-        message = 'ConnectionError (uframe) for get instrument driver command.'
+        message = 'ConnectionError for get instrument driver command, reference designator: %s.' % reference_designator
         current_app.logger.info(message)
         raise Exception(message)
-    except ReadTimeout:
-        message = 'ReadTimeout (uframe) for get instrument driver command.'
+    except Timeout:
+        message = 'Timeout for get instrument driver command, reference designator: %s.' % reference_designator
         current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
@@ -3116,15 +3297,16 @@ def uframe_post_instrument_driver_command(reference_designator, command, suffix)
         response = requests.post(url, timeout=(timeout, timeout_read), headers=_post_headers())
         return response
     except ConnectionError:
-        message = 'ConnectionError (uframe) for post instrument driver command.'
+        message = 'ConnectionError for post instrument driver command.'
         current_app.logger.info(message)
         raise Exception(message)
-    except ReadTimeout:
-        message = 'ReadTimeout (uframe) for post instrument driver command.'
+    except Timeout:
+        message = 'Timeout for post instrument driver command.'
         current_app.logger.info(message)
         raise Exception(message)
     except Exception:
         raise
+
 
 def get_uframe_info(type='instrument'):
     """ returns uframe instrument/api specific configuration information. (port 12572)
@@ -3138,15 +3320,16 @@ def get_uframe_info(type='instrument'):
         timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
         return uframe_url, timeout, timeout_read
     except ConnectionError:
-        message = 'ConnectionError (uframe) for instrument/api.'
+        message = 'ConnectionError for instrument/api configuration values.'
         current_app.logger.info(message)
         raise Exception(message)
-    except ReadTimeout:
-        message = 'ReadTimeout (uframe) for for instrument/api.'
+    except Timeout:
+        message = 'Timeout for instrument/api configuration values.'
         current_app.logger.info(message)
         raise Exception(message)
     except Exception:
         raise
+
 
 def get_uframe_data_info():
     """ returns uframe data configuration information. (port 12576)
@@ -3160,11 +3343,11 @@ def get_uframe_data_info():
         timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
         return uframe_url, timeout, timeout_read
     except ConnectionError:
-        message = 'ConnectionError (uframe) for command and control sensor/inv.'
+        message = 'ConnectionError for command and control sensor/inv.'
         current_app.logger.info(message)
         raise Exception(message)
-    except ReadTimeout:
-        message = 'ReadTimeout (uframe) for for command and control sensor/inv.'
+    except Timeout:
+        message = 'Timeout for command and control sensor/inv.'
         current_app.logger.info(message)
         raise Exception(message)
     except Exception:
@@ -3195,10 +3378,34 @@ def _eval_POST_response_data(response_data, msg=None):
             type = response_data['type']
         if 'value' in response_data:
             value = response_data['value']
+
+            if not isinstance(value, list):
+                """
+                Sample:
+                {
+                    "cmd": {
+                        "args": [
+                            {
+                                "ave": 2
+                            }
+                        ],
+                        "cmd": "set_resource",
+                        "kwargs": {}
+                    },
+                    "time": 1456961624.485942,
+                    "type": "DRIVER_ASYNC_RESULT",
+                    "value": null
+                }
+                """
+                if value is None:
+                    return 200, type, ''
+                else:
+                    return 400, None, 'Error occurred while instrument/api was processing payload '
+
             # if value[0] contains int, then there was an error for command issued (verify uframe syntax)
             # if no uframe error, then int conversion will force return to continue processing
             try:
-                get_int = int(  str(value[0]).decode("utf-8")  )
+                get_int = int(str(value[0]).decode("utf-8"))
             except:
                 return 200, type, ''
 
@@ -3210,7 +3417,7 @@ def _eval_POST_response_data(response_data, msg=None):
                     message = '(%s) %s' % (str(value[0]), value[1])
                 return value[0], type, message
         else:
-            if not msg:
+            if not msg or msg is None:
                 msg = 'value attribute not available in response data from uframe.'
             return 500, None, msg
     except:
@@ -3218,7 +3425,7 @@ def _eval_POST_response_data(response_data, msg=None):
 
 
 def _get_toc():
-    """ Returns a dictionary of arrays, moorings, platforms and instruments from uframe.
+    """ Returns a toc dictionary of arrays, moorings, platforms and instruments from uframe.
     Augmented by the UI database for vocabulary and arrays.
     """
     try:
@@ -3238,7 +3445,7 @@ def _get_toc():
 
 
 def _compile_c2_toc():
-    """ Returns a dictionary of arrays, moorings, platforms and instruments from uframe.
+    """ Returns a toc dictionary of arrays, moorings, platforms and instruments from uframe.
     Augmented by the UI database for vocabulary and arrays, returns json.
     """
 
@@ -3295,6 +3502,14 @@ def _compile_c2_toc():
 
         return toc
 
+    except ConnectionError:
+        message = 'ConnectionError for _compile_c2_toc.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Timeout for _compile_c2_toc.'
+        current_app.logger.info(message)
+        raise Exception(message)
     except Exception as err:
         message = str(err.message)
         current_app.logger.info(message)
@@ -3634,68 +3849,9 @@ def _c2_get_instrument_driver_metadata(reference_designator):
     except:
         raise
 
-'''
-#original
-def scrub_ui_request_data(data, parameter_types):
-    """ Modify format of float, int and bool data values provided by ooi-ui.
-    """
-    result = {}
-    try:
-        if not data:
-            message = 'Parameter data is empty or null.'
-            raise Exception(message)
-        if not parameter_types:
-            message = 'Parameter parameter_types is empty or null.'
-            raise Exception(message)
-
-        for k,v in data.iteritems():
-            #print '\n %s: %r (%s)' % (k,v, parameter_types[k])
-            if parameter_types[k] == 'float':
-                try:
-                    float_value = float(v)
-                    result[k] = float_value
-                except:
-                    message = 'Failed to convert parameter \'%s\' value of %r to float.' % (k, v)
-                    current_app.logger.info(message)
-                    raise Exception(message)
-            elif parameter_types[k] == 'int':
-                try:
-                    int_value = int(v)
-                    result[k] = int_value
-                except:
-                    message = 'Failed to convert parameter \'%s\' value of %r to int.' % (k, v)
-                    current_app.logger.info(message)
-                    raise Exception(message)
-            elif parameter_types[k] == 'bool':
-                try:
-                    bool_value = bool(v)
-                    tmp = str(bool_value)
-                    result[k] = tmp.lower()
-                except:
-                    message = 'Failed to convert parameter \'%s\' value of %r to boolean.' % (k, v)
-                    current_app.logger.info(message)
-                    raise Exception(message)
-
-            elif parameter_types[k] == 'string':
-                try:
-                    result[k] = str(v)
-                except:
-                    message = 'Failed to convert parameter \'%s\' value of %r to string.' % (k, v)
-                    current_app.logger.info(message)
-                    raise Exception(message)
-            else:
-                message = 'Unknown parameter type: %s' % parameter_types[k]
-                current_app.logger.info(message)
-                result[k] = v
-
-        return result
-
-    except:
-        raise
-'''
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Disabled instrument/api routes and supporting methods
+# Disabled instrument/api routes and supporting methods (Keep in reserve.)
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Disabled instrument/api routes
 '''
