@@ -611,84 +611,88 @@ def _get_glider_track_data(glider_outline,glider_cache=None):
 
     t0 = time.time()
     for glider_track in glider_outline:
+        try:
 
-        if glider_track['depth'] is not None:
-            data_request_str = "?limit="+ str(data_limit) + '&parameters='+glider_track['depth']['pdId']
-        else:
-            data_request_str = "?limit="+ str(data_limit)
-
-        if glider_track['location'] in glider_skips:
-            #get the historic data, and add it to the glider info
-            for gl in glider_cache:
-                if glider_track['location'] == gl['location']:
-                    existing_data = gl
-                    if 'track' in existing_data:
-                        glider_track['track'] = existing_data['track']
-                    if 'metadata' in existing_data:
-                        glider_track['metadata'] = existing_data['metadata']
-                    if 'times' in existing_data:
-                        glider_track['times'] = existing_data['times']
-                    break
-
-        else:
-            #if dont skip it, i.e not recovered then try processing it
-            #try and get some additional engineering data for the glider
-            glider_track = _get_additional_data(glider_track)
-
-            if glider_track['location'] not in gliders_to_update:
-                #if the glider is not in the update list get as much as we can
-                r = requests.get(glider_track['url']+data_request_str)
-                #loop through the returned data
-                track_data = _extract_glider_track_from_data(r.json(),glider_track['depth'])
-                glider_track['track'] = track_data
-                #when was the track updated
-                glider_track['times']['last_updated'] = str(datetime.utcnow())
-                #that last time of the track
-                glider_track['times']['last_requested'] = glider_track['track']['times'][-1] - COSMO_CONSTANT
+            if glider_track['depth'] is not None:
+                data_request_str = "?limit="+ str(data_limit) + '&parameters='+glider_track['depth']['pdId']
             else:
-                print "...exists already..update..."
-                #get the existing
-                existing_data = None
-                for gl in glider_cache:
-                    if glider_track['location'] == gl['location']:
-                        existing_data = gl
-                        break
+                data_request_str = "?limit="+ str(data_limit)
 
-                dt_old = datetime.strptime(existing_data['times']['end_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
-                dt_new = datetime.strptime(glider_track['times']['end_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
-                print "old:",dt_old,"\t","new:",dt_new
-                #if the existing data, has the same stream metadata info just use the cache
-                if dt_old != dt_new: #and existing_data['track']['time'][-1] == glider_track['track']['time'][-1]:
-                    #if they dont match, get the new data using the: old end, and the new end
-                    start_req = "&startdt=" + existing_data['times']['end_time']
-                    end_req = "&enddt="   + glider_track['times']['end_time']
+                if glider_track['location'] in glider_skips:
+                    #get the historic data, and add it to the glider info
+                    for gl in glider_cache:
+                        if glider_track['location'] == gl['location']:
+                            existing_data = gl
+                            if 'track' in existing_data:
+                                glider_track['track'] = existing_data['track']
+                            if 'metadata' in existing_data:
+                                glider_track['metadata'] = existing_data['metadata']
+                            if 'times' in existing_data:
+                                glider_track['times'] = existing_data['times']
+                            break
 
-                    r = requests.get(glider_track['url']+data_request_str+start_req+end_req)
-                    track_data = _extract_glider_track_from_data(r.json(),glider_track['depth'])
-
-                    #set, the track data to be the cache and add the new data in
-                    glider_track['track'] = existing_data['track']
-                    print "####### adding data......"
-
-                    data_keys = ['depths','coordinates','times']
-
-                    for key in glider_track['track'].keys():
-                        if key in data_keys:
-                            try:
-                                glider_track['track'][key].extend(track_data[key])
-                            except Exception,e:
-                                raise KeyError('Error adding new track data to ('+key+')')
                 else:
-                    #dont update the track use the cache
-                    glider_track['track'] = existing_data['track']
-                    glider_track['metadata'] = existing_data['metadata']
-                    glider_track['times']['last_updated'] = existing_data['times']['last_updated']
-                    glider_track['times']['last_requested'] = glider_track['track']['times'][-1] - COSMO_CONSTANT
+                    #if dont skip it, i.e not recovered then try processing it
+                    #try and get some additional engineering data for the glider
+                    glider_track = _get_additional_data(glider_track)
+
+                    if glider_track['location'] not in gliders_to_update:
+                        #if the glider is not in the update list get as much as we can
+                        r = requests.get(glider_track['url']+data_request_str)
+                        #loop through the returned data
+                        track_data = _extract_glider_track_from_data(r.json(),glider_track['depth'])
+                        glider_track['track'] = track_data
+                        #when was the track updated
+                        glider_track['times']['last_updated'] = str(datetime.utcnow())
+                        #that last time of the track
+                        glider_track['times']['last_requested'] = glider_track['track']['times'][-1] - COSMO_CONSTANT
+                    else:
+                        print "...exists already..update..."
+                        #get the existing
+                        existing_data = None
+                        for gl in glider_cache:
+                            if glider_track['location'] == gl['location']:
+                                existing_data = gl
+                                break
+
+                        dt_old = datetime.strptime(existing_data['times']['end_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+                        dt_new = datetime.strptime(glider_track['times']['end_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+                        print "old:",dt_old,"\t","new:",dt_new
+                        #if the existing data, has the same stream metadata info just use the cache
+                        if dt_old != dt_new: #and existing_data['track']['time'][-1] == glider_track['track']['time'][-1]:
+                            #if they dont match, get the new data using the: old end, and the new end
+                            start_req = "&startdt=" + existing_data['times']['end_time']
+                            end_req = "&enddt="   + glider_track['times']['end_time']
+
+                            r = requests.get(glider_track['url']+data_request_str+start_req+end_req)
+                            track_data = _extract_glider_track_from_data(r.json(),glider_track['depth'])
+
+                            #set, the track data to be the cache and add the new data in
+                            glider_track['track'] = existing_data['track']
+                            print "####### adding data......"
+
+                            data_keys = ['depths','coordinates','times']
+
+                            for key in glider_track['track'].keys():
+                                if key in data_keys:
+                                    try:
+                                        glider_track['track'][key].extend(track_data[key])
+                                    except Exception,e:
+                                        raise KeyError('Error adding new track data to ('+key+')')
+                        else:
+                            #dont update the track use the cache
+                            glider_track['track'] = existing_data['track']
+                            glider_track['metadata'] = existing_data['metadata']
+                            glider_track['times']['last_updated'] = existing_data['times']['last_updated']
+                            glider_track['times']['last_requested'] = glider_track['track']['times'][-1] - COSMO_CONSTANT
 
 
-    t1 = time.time()
-    print t1-t0," secs to complete..."
-    return glider_outline
+            t1 = time.time()
+            print t1-t0," secs to complete..."
+            return glider_outline
+        except Exception as e:
+            print e
+            pass
 
 def _get_existing_glider_ids_to_skip(glider_cache):
     '''
@@ -730,42 +734,46 @@ def _extract_glider_track_from_data(track_data,glider_depth=None):
     has_depth = False
 
     for row in track_data:
-        has_lon   = not np.isnan(row[lon_field])
-        if row[lon_field] >= 180 or row[lon_field] <= -180 :
-            has_lon = False
+        try:
+            has_lon   = not np.isnan(row[lon_field])
+            if row[lon_field] >= 180 or row[lon_field] <= -180 :
+                has_lon = False
 
-        has_lat   = not np.isnan(row[lat_field])
-        if row[lat_field] >= 90 or row[lat_field] <= -90:
-            has_lon = False
+            has_lat   = not np.isnan(row[lat_field])
+            if row[lat_field] >= 90 or row[lat_field] <= -90:
+                has_lon = False
 
-        if glider_depth is not None:
-            has_depth = not np.isnan(row[glider_depth['particleKey']])
+            if glider_depth is not None:
+                has_depth = not np.isnan(row[glider_depth['particleKey']])
 
-        if has_lat and has_lon: #and has_depth and (float(row[depth_field]) != -999):
-            #add position
+            if has_lat and has_lon: #and has_depth and (float(row[depth_field]) != -999):
+                #add position
 
-            coors.append([row[lon_field], row[lat_field]])
-            dt.append(row['pk']['time'])
-            #add depth if available and not nan
-            if (has_depth and
-                (float(row[glider_depth['particleKey']])) != -999 and
-                 (float(row[glider_depth['particleKey']])) != float(glider_depth['fillValue'])):
+                coors.append([row[lon_field], row[lat_field]])
+                dt.append(row['pk']['time'])
+                #add depth if available and not nan
+                if (has_depth and
+                    (float(row[glider_depth['particleKey']])) != -999 and
+                     (float(row[glider_depth['particleKey']])) != float(glider_depth['fillValue'])):
 
-                if glider_depth['units'] == "bar":
-                    depths.append(row[glider_depth['particleKey']] * bar_to_m)
-                    glider_depth_units = "m"
-                elif glider_depth_units == "m":
-                    depths.append(row[glider_depth['particleKey']])
-            else:
-                depths.append(-999)
+                    if glider_depth['units'] == "bar":
+                        depths.append(row[glider_depth['particleKey']] * bar_to_m)
+                        glider_depth_units = "m"
+                    elif glider_depth_units == "m":
+                        depths.append(row[glider_depth['particleKey']])
+                else:
+                    depths.append(-999)
 
-    return {"name":row['pk']['subsite']+"-"+row['pk']['node'],
-                             "reference_designator": row['pk']['subsite']+"-"+row['pk']['node']+"-"+row['pk']['sensor'],
-                             "type": "LineString",
-                             "coordinates" : coors,
-                             "times": dt,
-                             "units": glider_depth_units,
-                             "depths": depths}
+            return {"name":row['pk']['subsite']+"-"+row['pk']['node'],
+                                     "reference_designator": row['pk']['subsite']+"-"+row['pk']['node']+"-"+row['pk']['sensor'],
+                                     "type": "LineString",
+                                     "coordinates" : coors,
+                                     "times": dt,
+                                     "units": glider_depth_units,
+                                     "depths": depths}
+        except Exception as e:
+            print e
+            pass
 
 def _get_additional_data(glider_track):
     '''
@@ -843,7 +851,6 @@ def _compile_glider_tracks(update_tracks):
     #glider discovery
     for p in all_platforms:
         if "MOAS" in p:
-            print p
             r_p = requests.get(base_url+"/"+p)
             try:
                 p_p = r_p.json()
