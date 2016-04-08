@@ -10,7 +10,7 @@ from ooiservices.app.decorators import scope_required
 from ooiservices.app.main import api
 from ooiservices.app.main.errors import bad_request
 from ooiservices.app.main.authentication import auth
-from ooiservices.app.main.routes import get_display_name_by_rd
+from ooiservices.app.main.routes import get_display_name_by_rd, get_long_display_name_by_rd
 from ooiservices.app.models import Array
 import json, os
 import requests
@@ -793,6 +793,7 @@ def _c2_get_instrument_driver_status(reference_designator):
                 temp = {}
                 if _params:
                     temp = get_parameter_display_values(_params)
+
                 data['parameter_display_values'] = temp
             except Exception as err:
                 message = 'Exception from get_parameter_display_values: ', str(err)
@@ -1110,6 +1111,7 @@ def parse_description(description, parameter_type):
             return min, max, set
 
         if debug:
+            print '\n debug -- parse_description...'
             print '\n debug -- description: ', description
             print '\n debug -- parameter_type: ', parameter_type
 
@@ -1140,7 +1142,7 @@ def parse_description(description, parameter_type):
             if left_paren_count == right_paren_count:
                 if debug: print '\n\tdebug -- Processing multiple matching paren counts...'
                 start_position = token_start_index+1
-                end_position = token_end_index-1
+                end_position = token_end_index #-1
                 if end_position <= start_position:
                     # Description does not have sufficient content to justify further parsing...
                     message = 'Description does not have sufficient content to justify further parsing.'
@@ -1154,7 +1156,7 @@ def parse_description(description, parameter_type):
                 token = token.strip(' ')
                 if debug: print '\n\tdebug -- token (w/o starting and ending parens: ', token
 
-                # -- Determine which valid separator, if any, is used to spearate token units.
+                # -- Determine which valid separator, if any, is used to separate token units.
                 selected_separator = None
                 for sep in valid_token_separators:
                     if sep in token:
@@ -1169,6 +1171,8 @@ def parse_description(description, parameter_type):
                 if debug: print '\n\tdebug -- processing enumerated values (found \'|\' in token)...'
                 subtokens = token.split(selected_separator)
                 list_toks = []
+
+                if debug: print '\n\tdebug -- subtokens: ', subtokens
                 for tok in subtokens:
                     if not tok:
                         if debug: print '\n\tdebug (%r) -- tok is empty...' % selected_separator
@@ -1511,7 +1515,8 @@ def populate_and_check_range_values(data, key_dict):
                     max = None
                     set = []
                     if range:
-                        keys = range.keys()
+                        #keys = range.keys()
+                        keys = range.values()
                         keys.sort()
                         set = keys
 
@@ -1573,7 +1578,7 @@ def workaround_populate_and_check_range_values(data, key_dict):
         result = {}
         for k, v in data.iteritems():
 
-            if debug: print '\n ---------- %s: %r (%s)' % (k,v, key_dict[k])
+            if debug: print '\n ----- USING DESCRIPTION ----- %s: %r (%s)' % (k,v, key_dict[k])
             description = key_dict[k]['desc']
             display_name = key_dict[k]['display_name']
             parameter_type = key_dict[k]['type']
@@ -1597,6 +1602,7 @@ def workaround_populate_and_check_range_values(data, key_dict):
                 continue
 
             # todo - review and add try-except for parse description
+            if debug: print '\n debug -- ************************** parameter: ', k
             min, max, set = parse_description(description, parameter_type)
             result[k] = {}
             result[k]['min'] = min
@@ -1873,25 +1879,44 @@ def scrub_ui_request_data(data, parameter_types, ranges):
             # Process string value; Convert str value provided, on error, record error.
             # - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             elif parameter_types[k] == 'string':
+
+                if debug:
+                    print '\n debug ***** processing string...k: ', k
+                    print '\n debug ***** processing string...ranges: ', ranges
                 display_name = k
                 try:
+
                     if k in ranges:
                         display_name = ranges[k]['display_name']
                     str_value = str(v)
                 except:
                     message = 'Failed to convert parameter (%s) value (%r) to string.' % (k, v)
+                    if debug: print '\n debug -- message: ', message
                     error_result[k] = {'display_name': display_name, 'message': message}
                     continue
 
+                '''
+                if k not in ranges:
+                    if debug:
+                        print '\n debug ******************* %s not in ranges' % k
+                        print '\n debug ******************* str_value: %s ' % str_value
+                    result[k] = str_value
+                    continue
+                '''
+
                 # If there are range values for this parameter, then perform range checking.
                 if k in ranges:
+                    if debug:
+                        print '\n debug ******************* %s in ranges' % k
                     # Determine min and max for ranges
                     range_min = ranges[k]['min']
                     range_max = ranges[k]['max']
                     range_set = ranges[k]['set']
                     display_name = ranges[k]['display_name']
 
+                    # If range_set not provided, send value on to instrument as provided.
                     if not range_set:
+                        result[k] = str_value
                         continue
 
                     range_set.sort()
@@ -1915,6 +1940,10 @@ def scrub_ui_request_data(data, parameter_types, ranges):
                           (display_name, k, parameter_types[k])
                 current_app.logger.info(message)
                 result[k] = v
+
+        if debug:
+            print '\n debug --- result: ', result
+            print '\n debug --- error_result: ', error_result
 
         return result, error_result
 
@@ -2043,6 +2072,7 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
 
         # Send request and payload to instrument/api and process result
         if debug: print '\n debug -- Post driver set parameters....'
+        if debug: print '\n debug -- Post payload: ', payload
         try:
             response = _uframe_post_instrument_driver_set(reference_designator, 'resource', payload)
         except Exception as err:
@@ -2147,6 +2177,9 @@ def get_parameter_display_values(parameters):
 
                     # if parameter attribute 'range' is available, process and add to result dict.
                     if range:
+                        if isinstance(range, dict):
+                            result[key] = range
+                        '''
                         parameter_type = param['value']['type']
                         if isinstance(range, dict):
                             flip_uframe_range = {}
@@ -2164,6 +2197,7 @@ def get_parameter_display_values(parameters):
                                 else:
                                     flip_uframe_range[value] = name
                             result[key] = flip_uframe_range
+                        '''
 
         return result
 
@@ -2192,9 +2226,18 @@ def get_range_dictionary(resource, _status, reference_designator):
         using_workaround = False
         for parameter in _parameters_list:
 
+
             # Process READ_WRITE_parameters
             tmp = _parameters[parameter]
+
             if tmp['visibility'] == 'READ_WRITE':
+
+                '''
+                if debug:
+                    print '\n debug -- processing parameter: ', parameter
+                    if parameter == 'AcquireStatusInterval':
+                        print '\n\t debug -- processing parameter AcquireStatusInterval tmp: ', tmp
+                '''
                 parameter_dict[parameter] = str(tmp['value']['type'])
 
                 # Create range value checking dictionary
@@ -2207,16 +2250,42 @@ def get_range_dictionary(resource, _status, reference_designator):
                     key_dict[parameter]['desc'] = None
 
                 # Prepare for instrument parameters without 'range' attribute
-                key_dict[parameter]['range'] = None
+                #key_dict[parameter]['range'] = None
                 if 'range' in tmp:
+                    #if debug: print '\n\t debug -- range in tmp...'
                     if tmp['range'] is None or not tmp['range']:
-                        key_dict[parameter]['range'] = None
-                        using_workaround = True
+                        if debug: print '\n\t debug ----- [A] range in tmp...but None or empty...'
+
+                        # No range provided, check 'value' attribute 'units'
+                        if 'value' in tmp:
+                            if debug: print '\n\t debug ----- value in tmp...'
+                            if 'units' in tmp['value']:
+                                if debug: print '\n\t debug ----- units in value in tmp...'
+                                units = tmp['value']['units']
+                                if units != 'HH:MM:SS':
+                                    key_dict[parameter]['range'] = None
+                                    using_workaround = True
+                                else:
+                                    key_dict[parameter]['range'] = None
+                                    using_workaround = False
+                            else:
+                                if debug: print '\n\t debug ----- NO units in value in tmp...'
+                                key_dict[parameter]['range'] = None
+                                using_workaround = True
+
+                        else:
+                            if debug: print '\n\t debug ----- value NOT in tmp...'
+                            key_dict[parameter]['range'] = None
+                            using_workaround = True
+
                     else:
+                        if debug: print '\n\t debug ----- [B] range in tmp...tmp[range]: ', tmp['range']
                         key_dict[parameter]['range'] = tmp['range']
                         using_workaround = False
                 else:
+                    if debug: print '\n\t debug ----- range NOT in tmp...'
                     using_workaround = True
+                    key_dict[parameter]['range'] = None
 
                 key_dict[parameter]['min'] = None
                 key_dict[parameter]['max'] = None
@@ -2974,6 +3043,9 @@ def _c2_instrument_driver_execute(reference_designator, data):
         if debug: print '\n debug -- suffix: ', suffix
 
         if command_name is None:
+            message = 'Malformed execute request, failed to retrieve command name from request data,'
+            raise Exception(message)
+        if not command_name:
             message = 'Malformed execute request, failed to retrieve command name from request data,'
             raise Exception(message)
 
@@ -4498,3 +4570,5 @@ def _response_internal_server_error(msg=None):
     response.headers["Content-Type"] = "application/json"
     return response
 '''
+
+
