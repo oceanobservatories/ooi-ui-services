@@ -647,7 +647,6 @@ def _get_glider_track_data(glider_outline,glider_cache=None):
                         #loop through the returned data
                         track_data = _extract_glider_track_from_data(r.json(),glider_track['depth'])
                         glider_track['track'] = track_data
-                        print glider_track['track']
                         #when was the track updated
                         glider_track['times']['last_updated'] = str(datetime.utcnow())
                         #that last time of the track
