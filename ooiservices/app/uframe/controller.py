@@ -3,7 +3,8 @@
 uframe endpoints
 '''
 # base
-from flask import jsonify, request, current_app, make_response, Response, send_file
+from flask import jsonify, request, current_app,\
+    make_response, Response, send_file
 from ooiservices.app import cache, db
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.models import PlatformDeployment, DisabledStreams
@@ -34,7 +35,7 @@ from operator import itemgetter
 from bs4 import BeautifulSoup
 import urllib
 import os.path
-#for image processing
+# for image processing
 import PIL
 from PIL import Image
 from StringIO import StringIO
@@ -45,6 +46,7 @@ __author__ = 'Andy Bird'
 requests.adapters.DEFAULT_RETRIES = 2
 CACHE_TIMEOUT = 172800
 COSMO_CONSTANT = 2208988800
+
 
 def dfs_streams():
 
@@ -65,7 +67,9 @@ def dfs_streams():
     for instrument in toc:
 
         parameters_dict = parameters_in_instrument(instrument)
-        streams = data_streams_in_instrument(instrument, parameters_dict, streams)
+        streams = data_streams_in_instrument(instrument,
+                                             parameters_dict,
+                                             streams)
 
     if type(streams) is Response and  streams.status_code != 200:
         return make_response("Error in streams, please make sure uframe connection is open.", streams.status_code)
@@ -610,6 +614,7 @@ def _get_glider_track_data(glider_outline,glider_cache=None):
         glider_skips, gliders_to_update = _get_existing_glider_ids_to_skip(glider_cache)
 
     t0 = time.time()
+
     for glider_track in glider_outline:
         try:
 
@@ -691,8 +696,7 @@ def _get_glider_track_data(glider_outline,glider_cache=None):
             print t1-t0," secs to complete..."
             return glider_outline
         except Exception as e:
-            print e
-            pass
+            raise
 
 def _get_existing_glider_ids_to_skip(glider_cache):
     '''
@@ -723,8 +727,8 @@ def _extract_glider_track_from_data(track_data,glider_depth=None):
     '''
         loop through the response and create the line track
     '''
-    lat_field   = "latitude"
-    lon_field   = "longitude"
+    lat_field   = "m_gps_lat"
+    lon_field   = "m_gps_lon"
     bar_to_m    = 0.09804139432
 
     coors = []
@@ -764,16 +768,16 @@ def _extract_glider_track_from_data(track_data,glider_depth=None):
                 else:
                     depths.append(-999)
 
-            return {"name":row['pk']['subsite']+"-"+row['pk']['node'],
-                                     "reference_designator": row['pk']['subsite']+"-"+row['pk']['node']+"-"+row['pk']['sensor'],
-                                     "type": "LineString",
-                                     "coordinates" : coors,
-                                     "times": dt,
-                                     "units": glider_depth_units,
-                                     "depths": depths}
         except Exception as e:
-            print e
-            pass
+            raise
+
+    return {"name":row['pk']['subsite']+"-"+row['pk']['node'],
+            "reference_designator": row['pk']['subsite']+"-"+row['pk']['node']+"-"+row['pk']['sensor'],
+            "type": "LineString",
+            "coordinates" : coors,
+            "times": dt,
+            "units": glider_depth_units,
+            "depths": depths}
 
 def _get_additional_data(glider_track):
     '''
