@@ -2026,7 +2026,7 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
             if debug:
                 print '\n debug -- processing error_result..............'
                 print '\n debug ***** range error_result(%d): %s' % \
-                        (len(error_result), json.dumps(error_result, indent=4, sort_keys=True))
+                            (len(error_result), json.dumps(error_result, indent=4, sort_keys=True))
 
             # Create dictionary with response data and return.
             result = {}
@@ -2068,11 +2068,12 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
         # Process parameter set request in uframe
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Update value of resource in payload.
-        payload['resource'] = result
+        payload['resource'] = json.dumps(result)
 
         # Send request and payload to instrument/api and process result
-        if debug: print '\n debug -- Post driver set parameters....'
-        if debug: print '\n debug -- Post payload: ', payload
+        if debug:
+            print '\n debug -- Post driver set parameters....'
+            print '\n debug -- Post payload: ', payload
         try:
             response = _uframe_post_instrument_driver_set(reference_designator, 'resource', payload)
         except Exception as err:
@@ -2226,18 +2227,11 @@ def get_range_dictionary(resource, _status, reference_designator):
         using_workaround = False
         for parameter in _parameters_list:
 
-
             # Process READ_WRITE_parameters
             tmp = _parameters[parameter]
 
             if tmp['visibility'] == 'READ_WRITE':
 
-                '''
-                if debug:
-                    print '\n debug -- processing parameter: ', parameter
-                    if parameter == 'AcquireStatusInterval':
-                        print '\n\t debug -- processing parameter AcquireStatusInterval tmp: ', tmp
-                '''
                 parameter_dict[parameter] = str(tmp['value']['type'])
 
                 # Create range value checking dictionary
@@ -2305,14 +2299,16 @@ def get_range_dictionary(resource, _status, reference_designator):
                         (len(key_dict), json.dumps(key_dict, indent=4, sort_keys=True))
 
         # Utilize parameter 'range' attribute
-        if not using_workaround:
-            if debug: print '\n debug -- ranges provided in instrument parameter...'
-            key_dict_ranges = populate_and_check_range_values(resource, key_dict)
+        #if not using_workaround:
+        if debug: print '\n debug -- ranges provided in instrument parameter...'
+        key_dict_ranges = populate_and_check_range_values(resource, key_dict)
 
+        '''
         # Parse description to populate min, max and set attributes.
         else:
             if debug: print '\n debug -- ranges NOT provided in instrument parameter...using description...'
             key_dict_ranges = workaround_populate_and_check_range_values(resource, key_dict)
+        '''
 
         if debug:
             print '\n debug ***** key_dict_ranges(%d): %s' % \
@@ -2845,26 +2841,12 @@ def get_instrument_parameters(status):
 
 def _uframe_post_instrument_driver_set(reference_designator, command, data):
     """
-    Return the uframe response of instrument driver command and suffix provided for POST.
-    example of suffix = '?command=%22DRIVER_EVENT_STOP_AUTOSAMPLE%22&timeout=60000'
-    info: resource=%7B%22ave%22%3A+20%7D&timeout=6000
-
-    Added exception processing. Was:
-    except Exception as err:
-        message = str(err.message)
-        print '\n debug -- (_uframe_post_instrument_driver_set) err: ', str(err)
-        #return _response_internal_server_error(message)
-        current_app.logger.info(message)
-        raise
-
+    Return the uframe response of instrument driver command and data provided for POST.
     """
     try:
-        suffix = urlencode(data)
-        suffix = suffix.replace('%27', '%22')
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, reference_designator, command])
-        url = "?".join([url, suffix])
-        response = requests.post(url, timeout=(timeout, timeout_read), headers=_post_headers())
+        response = requests.post(url, data=data, timeout=(timeout, timeout_read), headers=_post_headers())
         return response
 
     except ConnectionError:
@@ -3448,8 +3430,12 @@ def _eval_POST_response_data(response_data, msg=None):
         type = None
         if 'type' in response_data:
             type = response_data['type']
+
+        #print '\n debug -- (_eval_POST_response_data) response_data: ', \
+        #                    json.dumps(response_data, indent=4, sort_keys=True)
         if 'value' in response_data:
             value = response_data['value']
+
 
             if not isinstance(value, list):
                 """
