@@ -166,7 +166,6 @@ def c2_get_platform_current_status_display(reference_designator):
     """
     start = dt.datetime.now()
     timing = False
-    debug = False
     contents = []
     platform_info = {}
     platform_deployment = _get_platform(reference_designator)
@@ -212,9 +211,8 @@ def c2_get_platform_current_status_display(reference_designator):
 @auth.login_required
 @scope_required(u'command_control')
 def c2_get_platform_history(reference_designator):
-    '''
-    C2 get platform history
-    '''
+    """ C2 get platform history
+    """
     history = {}
     if not reference_designator:
         return bad_request('reference_designator parameter empty.')
@@ -318,12 +316,11 @@ def c2_get_platform_commands(reference_designator):
 @auth.login_required
 @scope_required(u'command_control')
 def c2_get_instrument_abstract(reference_designator):
-    '''
-    C2 get instrument abstract
+    """ C2 get instrument abstract
     Modified to support migration to uframe
     Sample: http://localhost:4000/c2/instrument/reference_designator/abstract
     Was: status = _c2_get_instrument_driver_status(instrument_deployment['reference_designator'])
-    '''
+    """
     try:
         response_dict = {}
         if not reference_designator:
@@ -426,7 +423,8 @@ def c2_get_instrument_ports_display(reference_designator):
 # private general helpers
 #----------------------------------------------------
 def get_history(reference_designator):
-    # C2 make fake history for event, command and configuration
+    """ C2 make fake history for event, command and configuration
+    """
     #TODO get history from proper source
     history = { 'event': [], 'command': [], 'configuration':[] }
     history['event'] = []
@@ -691,6 +689,7 @@ def c2_instrument_driver_execute(reference_designator):
         current_app.logger.info(message)
         return bad_request(str(err.message))
 
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # private worker methods for instrument/api
@@ -740,7 +739,6 @@ def _c2_get_instrument_driver_status(reference_designator):
     Will NOT be doing any blocking:
     If the query option "blocking" is specified as true, then this call will block until a state change,
     allowing for a push-like interface for web clients.
-
     """
     try:
         # Get status
@@ -772,9 +770,8 @@ def _c2_get_instrument_driver_status(reference_designator):
 
         # If data received in response, process.
         if data is None:
-            message = 'No response content returned from instrument/api/%s.' % reference_designator
+            message = 'No response content returned for status (from instrument/api/%s).' % reference_designator
             raise Exception(message)
-
 
         """
         # Get all parameter values for instruments
@@ -827,7 +824,7 @@ def _c2_get_instrument_driver_status(reference_designator):
             data['streams'] = streams
 
             # - - - - - - - - - - - - - - - - - - - - - -
-            # Get display_parameters
+            # Get READ_WRITE display_parameters for pull downs
             # - - - - - - - - - - - - - - - - - - - - - -
             try:
                 _params = data['value']['metadata']['parameters']
@@ -839,6 +836,21 @@ def _c2_get_instrument_driver_status(reference_designator):
                 message = 'Exception from get_parameter_display_values: %s' % str(err)
                 current_app.logger.info(message)
                 data['parameter_display_values'] = {}
+                pass
+
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            # Get READ_ONLY and IMMUTABLE display_parameters for pull downs
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            try:
+                _params = data['value']['metadata']['parameters']
+                temp = {}
+                if _params:
+                    temp = get_ro_parameter_display_values(_params)
+                data['ro_parameter_display_values'] = temp
+            except Exception as err:
+                message = 'Exception from get_ro_parameter_display_values: %s' % str(err)
+                current_app.logger.info(message)
+                data['ro_parameter_display_values'] = {}
                 pass
 
         return data
@@ -1190,7 +1202,7 @@ def populate_and_check_range_values(data, key_dict):
                 result[k]['display_name'] = display_name
 
                 message = '(%s) range not provided.' % k
-                current_app.logger.info(message)
+                #current_app.logger.info(message)
                 continue
 
             # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1421,8 +1433,7 @@ def scrub_ui_request_data(data, parameter_types, ranges):
                     display_name = ranges[k]['display_name']
                 try:
                     bool_value = to_bool(v)
-                    tmp = str(bool_value)
-                    result[k] = tmp.lower()
+                    result[k] = bool_value
                 except:
                     message = 'Failed to convert parameter (%s) value (%r) to boolean.' % (k, v)
                     error_result[k] = {'display_name': display_name, 'message': message}
@@ -1479,9 +1490,6 @@ def scrub_ui_request_data(data, parameter_types, ranges):
                 current_app.logger.info(message)
                 result[k] = v
 
-        #print '\n debug --- result: ', result
-        #print '\n debug --- error_result: ', error_result
-
         return result, error_result
 
     except Exception as err:
@@ -1492,10 +1500,10 @@ def scrub_ui_request_data(data, parameter_types, ranges):
 def to_bool(value):
     """ Converts value to boolean. Raises exception for invalid formats.
     """
-    if str(value).lower() == "true":
-        return 'true'
-    if str(value).lower() == "false":
-        return 'false'
+    if str(value).lower() == 'true':
+        return True
+    if str(value).lower() == 'false':
+        return False
     raise Exception('Invalid value for boolean conversion: ' + str(value))
 
 
@@ -1563,37 +1571,11 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
             response_status['range_errors'] = error_result
             response_status['status_code'] = 400
             result['response'] = response_status
-            #print '\n debug ***** RANGE Error(s): %s' % json.dumps(result, indent=4, sort_keys=True)
+            if debug: print '\n debug ***** RANGE Error(s): %s' % json.dumps(result, indent=4, sort_keys=True)
             return result
 
         # If no errors and result is empty or None, raise exception
         elif result is None or not result:
-            # todo - determine whether this is required; if not remove!
-            """
-            tmp_payload = convert(data)
-
-            # Scrub payload resource value using parameter type dictionary.
-            try:
-                result, error_result = old_scrub_ui_request_data(tmp_payload['resource'],
-                                                                 parameter_dict, key_dict_ranges)
-                # Create dictionary with response data and return.
-                if error_result:
-                    result = {}
-                    response_status['message'] = 'Range Error(s)'
-                    response_status['range_errors'] = error_result
-                    response_status['status_code'] = 400
-                    result['response'] = response_status
-                    #print '\n debug ***** RANGE Error(s): %s' % json.dumps(result, indent=4, sort_keys=True)
-                    return result
-
-            except Exception as err:
-                current_app.logger.info(str(err))
-                result = None
-
-            if result is None or not result:
-                message = 'Unable to process resource payload (result is None or empty).'
-                raise Exception(message)
-            """
             message = 'Unable to process resource payload (result is None or empty).'
             raise Exception(message)
 
@@ -1608,10 +1590,12 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
             response = _uframe_post_instrument_driver_set(reference_designator, 'resource', payload)
         except Exception as err:
             message = str(err.message)
+            if debug: print '\n debug --- message: ', message
             raise Exception(message)
 
         if response.status_code != 200:
             message = '(%s) Failed to execute instrument driver set.' % str(response.status_code)
+            if debug: print '\n debug --- message: ', message
             raise Exception(message)
 
         if response.content:
@@ -1619,6 +1603,7 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
                 response_data = json.loads(response.content)
             except:
                 message = 'Malformed data; not in valid json format. (C2 instrument driver set)'
+                if debug: print '\n debug --- message: ', message
                 raise Exception(message)
 
             # Evaluate response content for error (review 'value' list in response_data)
@@ -1626,6 +1611,10 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
                 status_code, status_type, status_message = _eval_POST_response_data(response_data, None)
                 response_status['status_code'] = status_code
                 response_status['message'] = status_message
+        else:
+            message = 'No response.content returned from _uframe_post_instrument_driver_set.'
+            if debug: print '\n debug --- message: ', message
+            raise Exception(message)
 
         # Add response attribute information to result
         result['response'] = response_status
@@ -1636,7 +1625,7 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
         except Exception:
             status = {}
         result['status'] = status
-        print '\n -- debug result: ', json.dumps(result, indent=4, sort_keys=True)
+        #if debug: print '\n -- debug result: ', json.dumps(result, indent=4, sort_keys=True)
 
         return result
 
@@ -1645,40 +1634,62 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
 
 
 def get_parameter_display_values(parameters):
-    """ Get display values for UI from instrument 'parameters' dictionary.
+    """ Get READ_WRITE display values for UI from instrument 'parameters' dictionary.
 
     Sample Input:
     "parameters": {
-        "a_cutoff": {
-            "description": "Cutoff value to exclude channel from processing: (0.01 - 10.0)",
-            "direct_access": true,
-            "display_name": "Absorbance Cutoff",
-            "get_timeout": 10,
-            "range": [
-                0.01,
-                10.0
-            ],
-            "set_timeout": 10,
-            "startup": true,
-            "value": {
-                "default": 1.3,
-                "description": null,
-                "type": "float"
-            },
-            "visibility": "READ_WRITE"
-        },
+        . . .
+        "brmtrace": {
+                      "description": "Enable bromide tracing: (true | false)",
+                      "direct_access": true,
+                      "display_name": "Bromide Tracing",
+                      "get_timeout": 10,
+                      "range": {
+                        "False": false,
+                        "True": true
+                      },
+                      "set_timeout": 10,
+                      "startup": true,
+                      "value": {
+                        "default": false,
+                        "description": null,
+                        "type": "bool"
+                      },
+                      "visibility": "READ_WRITE"
+                    },
         . . .
 
     Sample Output:
     "parameter_display_values": {
-        "Bromide Tracing": {
-          "false": "false",
-          "true": "true"
-        },
-        "Dark Correction Method": {
-          "SWAverage": "SWAverage",
-          "SpecAverage": "SpecAverage"
-        },
+                "brmtrace": {
+                  "False": false,
+                  "True": true
+                },
+                "drkcormt": {
+                  "SWAverage": "SWAverage",
+                  "SpecAverage": "SpecAverage"
+                },
+                "intpradj": {
+                  "False": false,
+                  "True": true
+                },
+                "operctrl": {
+                  "Duration": "Duration",
+                  "Samples": "Samples"
+                },
+                "opermode": {
+                  "Continuous": "Continuous",
+                  "Polled": "Polled"
+                },
+                "salinfit": {
+                  "False": false,
+                  "True": true
+                },
+                "tempcomp": {
+                  "False": false,
+                  "True": true
+                }
+              },
         . . .
 
     """
@@ -1711,6 +1722,88 @@ def get_parameter_display_values(parameters):
     except Exception as err:
         current_app.logger.info(err.message)
         raise
+
+def get_ro_parameter_display_values(parameters):
+    """ Get READ_ONLY and IMMUTABLE display values for UI from instrument 'parameters' dictionary.
+
+    Sample Input:
+    "parameters": {
+            "rat": {
+              "description": "Baud rate for instrument communications: (2400 to 230400)",
+              "direct_access": false,
+              "display_name": "Baud Rate",
+              "get_timeout": 10,
+              "range": {
+                "115200": 115200,
+                "14400": 14400,
+                "19200": 19200,
+                "19201": 19201,
+                "230400": 230400,
+                "2400": 2400,
+                "28800": 28800,
+                "38400": 38400,
+                "4800": 4800,
+                "57600": 57600,
+                "9600": 9600
+              },
+              "set_timeout": 10,
+              "startup": false,
+              "value": {
+                "description": null,
+                "type": "int"
+              },
+              "visibility": "READ_ONLY"
+            },
+        . . .
+
+    Sample Output:
+    "parameter_display_values": {
+                "rat": {
+              "115200": 115200,
+              "14400": 14400,
+              "19200": 19200,
+              "19201": 19201,
+              "230400": 230400,
+              "2400": 2400,
+              "28800": 28800,
+              "38400": 38400,
+              "4800": 4800,
+              "57600": 57600,
+              "9600": 9600
+            },
+        . . .
+
+    """
+    result = {}
+    valid_visibility = ['READ_ONLY', 'IMMUTABLE']
+    try:
+        # If no parameters, then return empty dict.
+        if not parameters:
+            return result
+
+        # Process each READ_WRITE parameter - if range attribute is provided (and not null)
+        keys = parameters.keys()
+        for key in keys:
+            param = parameters[key]
+
+            # If parameter is READ_WRITE, process parameter
+            if param['visibility'] in valid_visibility:
+
+                # If parameter has a 'range' attribute, process 'range' value information
+                if 'range' in param:
+                    range = param['range']
+
+                    # if parameter attribute 'range' is available, process and add to result dict.
+                    if range:
+                        if isinstance(range, dict):
+                            result[key] = range
+
+        return result
+
+    except Exception as err:
+        current_app.logger.info(err.message)
+        raise
+
 
 
 def get_range_dictionary(resource, _status, reference_designator):
@@ -1749,39 +1842,13 @@ def get_range_dictionary(resource, _status, reference_designator):
 
                 # Prepare for instrument parameters without 'range' attribute
                 if 'range' in tmp:
-
                     if tmp['range'] is None or not tmp['range']:
-                        #if debug: print '\n\t debug ----- [A] range in tmp...but None or empty...'
-
-                        # No range provided, check 'value' attribute 'units'
-                        if 'value' in tmp:
-                            #if debug: print '\n\t debug ----- value in tmp...'
-                            if 'units' in tmp['value']:
-                                #if debug: print '\n\t debug ----- units in value in tmp...'
-                                units = tmp['value']['units']
-                                if units != 'HH:MM:SS':
-                                    key_dict[parameter]['range'] = None
-                                    #using_workaround = True
-                                else:
-                                    key_dict[parameter]['range'] = None
-                                    #using_workaround = False
-                            else:
-                                #if debug: print '\n\t debug ----- NO units in value in tmp...'
-                                key_dict[parameter]['range'] = None
-                                #using_workaround = True
-
-                        else:
-                            #if debug: print '\n\t debug ----- value NOT in tmp...'
-                            key_dict[parameter]['range'] = None
-                            #using_workaround = True
-
+                        key_dict[parameter]['range'] = None
                     else:
                         #if debug: print '\n\t debug ----- [B] range in tmp...tmp[range]: ', tmp['range']
                         key_dict[parameter]['range'] = tmp['range']
-                        #using_workaround = False
                 else:
                     #if debug: print '\n\t debug ----- range NOT in tmp...'
-                    #using_workaround = True
                     key_dict[parameter]['range'] = None
 
                 key_dict[parameter]['min'] = None
@@ -2905,6 +2972,23 @@ def _eval_POST_response_data(response_data, msg=None):
     except:
         raise
 
+# todo development only (exercise _get_toc)
+@api.route('/c2/toc', methods=['GET'])
+@auth.login_required
+@scope_required(u'command_control')
+def c2_get_toc():
+    """ Returns the C2 toc.
+    Sample: http://host:4000/c2/toc
+    """
+    toc = []
+    try:
+        data = _compile_c2_toc()
+        if data:
+            toc = data
+        return jsonify(toc)
+    except Exception as err:
+        return bad_request(err.message)
+
 
 def _get_toc():
     """ Returns a toc dictionary of arrays, moorings, platforms and instruments from uframe.
@@ -2930,7 +3014,6 @@ def _compile_c2_toc():
     """ Returns a toc dictionary of arrays, moorings, platforms and instruments from uframe.
     Augmented by the UI database for vocabulary and arrays, returns json.
     """
-
     # Use instrument/api server for toc info
     tmp_uframe_base = current_app.config['UFRAME_INST_URL']
     uframe_base = tmp_uframe_base.replace('12572', '12576')
@@ -3271,11 +3354,12 @@ def _c2_get_instrument_driver_ping(reference_designator):
         data = None
         response = uframe_get_instrument_driver_command(reference_designator, 'ping')
         if response.status_code != 200:
-            raise Exception('Error retrieving instrument %s driver ping from uframe.' % reference_designator)
+            raise Exception('Error retrieving %s instrument driver ping from uframe.' % reference_designator)
         if response.content:
             try:
                 data = json.loads(response.content)
             except:
+
                 raise Exception('Malformed data; not in valid json format.')
         return data
     except:
