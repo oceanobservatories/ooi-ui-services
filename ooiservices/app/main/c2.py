@@ -86,6 +86,14 @@ def c2_get_array_current_status_display(array_code):
     array = Array.query.filter_by(array_code=array_code).first()
     if not array:
         return bad_request('Unknown array (array_code: \'%s\')' % array_code)
+
+    toc = _compile_c2_toc()
+    if toc is not None:
+        cache.set('c2_toc', toc, timeout=CACHE_TIMEOUT)
+        print "[+] C2 toc cache reset..."
+    else:
+        print "[-] Error in C2 toc cache update"
+
     # Get data, add to output
     # get ordered set of platform_deployments for array.id
     platforms = []
@@ -1895,6 +1903,54 @@ def _c2_get_last_particle(rd, _method, _name):
     """ Using the reference designator, stream method and name, fetch last particle.
     Get reference designator metadata to determine time span for last particle.
 
+    Sample query:
+    http://localhost:4000/c2/instrument/RS10ENGC-XX00X-00-FLORDD001/get_last_particle/streamed/flord_d_status
+    generates request url to http://host:12576:
+    /sensor/inv/RS10ENGC/XX00X/00-FLORDD001/streamed/flord_d_status?beginDT=2016-02-09T23:43:53.884Z&limit=1
+
+    Returns:
+        {
+          "particle_metadata": {
+            "deployment": 0,
+            "method": "streamed",
+            "node": "XX00X",
+            "sensor": "00-FLORDD001",
+            "stream": "flord_d_status",
+            "subsite": "RS10ENGC",
+            "time": "2016-02-09T23:43:53"
+          },
+          "particle_values": {
+            "baud_rate": 19200,
+            "clock": "23:41:51",
+            "date": "02/09/16",
+            "driver_timestamp": "2016-02-09T23:43:53",
+            "firmware_version": "Triplet5.20",
+            "ingestion_timestamp": "2016-02-09T23:43:56",
+            "internal_memory": 4095,
+            "internal_timestamp": "2016-02-09T23:41:51",
+            "latitude": 90.0,
+            "longitude": -180.0,
+            "manual_mode": 0,
+            "manual_start_time": "17:55:00",
+            "measurement_1_dark_count_value": 55,
+            "measurement_1_slope_value": 2.100000074278796e-06,
+            "measurement_2_dark_count_value": 52,
+            "measurement_2_slope_value": 0.012129999697208405,
+            "number_measurements_per_reported_value": 1,
+            "number_of_packets_per_set": 0,
+            "number_of_reported_values_per_packet": 0,
+            "port_timestamp": "2016-02-09T23:43:53",
+            "predefined_output_sequence": 0,
+            "preferred_timestamp": "port_timestamp",
+            "provenance": "",
+            "recording_mode": 0,
+            "sampling_interval": "00:30:00",
+            "serial_number": "BBFL2W-1028",
+            "time": "2016-02-09T23:43:53"
+          }
+        }
+
+
     If an attribute in particle contains 0.0 as value for 'timestamp', it is converted to "1900-01-01T00:00:00".
 
     metadata: {
@@ -1927,6 +1983,7 @@ def _c2_get_last_particle(rd, _method, _name):
     }
 
     """
+    debug = False
     result = None
     metadata = None
     try:
@@ -1959,22 +2016,31 @@ def _c2_get_last_particle(rd, _method, _name):
         formatted_end_time = time_set['endTime']
         formatted_start_time = time_set['beginTime']
 
+        """
         # When metadata indicates endTime and beginTime are equal, log and raise error
         if formatted_start_time == formatted_end_time:
             message = 'uFrame indicates beginTime and endTime are equal; no data to retrieve for stream (%s).' % \
                       stream_name
             raise Exception(message)
+        """
 
+        # Get single particle using endTime for beginTime and limit=1 (dpa=0 does this for you)
         dpa_flag = '0'
+        """
         response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream_name,
                                    formatted_start_time, formatted_end_time, dpa_flag)
+        """
+        response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream_name,
+                                   formatted_end_time, formatted_end_time, dpa_flag)
 
         if response is None:
             message = 'Get stream contents failed for stream (%s).' % stream_name
+            if debug: print '\n debug -- message: ', message
             raise Exception(message)
 
         if response.status_code != 200:
             message = '(%s) Failed to retrieve stream (%s) contents.' % (str(response.status_code), stream_name)
+            if debug: print '\n debug -- message: ', message
             raise Exception(message)
 
         if response.content:
@@ -1982,6 +2048,7 @@ def _c2_get_last_particle(rd, _method, _name):
                 result = response.json()
             except:
                 message = 'Failed to process stream (%s) contents to json.' % stream_name
+                if debug: print '\n debug -- message: ', message
                 raise Exception(message)
 
         # Process result returned for most recent particle
@@ -2027,7 +2094,7 @@ def _c2_get_last_particle(rd, _method, _name):
         particle = {}
         particle['particle_metadata'] = particle_metadata
         particle['particle_values'] = particle_values
-        #print '\n debug --  (response) get_last_particle: ', json.dumps(particle, indent=4, sort_keys=True)
+        if debug: print '\n debug --  (response) get_last_particle: ', json.dumps(particle, indent=4, sort_keys=True)
         return particle
 
     except Exception as err:
@@ -2052,19 +2119,26 @@ def get_timestamp_value(value):
 
 
 def get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag):
-    """ Gets the bounded stream contents; returns Response object.
+    """ Gets the bounded stream contents (specifically for C2 get last particle); returns Response object.
     Note: start_time and end_time need to be datetime objects.
+
+    Sample url:
+    12576/sensor/inv/RS10ENGC/XX00X/00-FLORDD001/streamed/flord_d_status?limit=1&beginDT=2016-02-09T23:43:53.884Z
     """
     rd = None
     try:
         if dpa_flag == '0':
-            query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
+            #query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
+            # For get last particle, use endTime and limit of 1
+            query = '?beginDT=%s' % end_time
         else:
             query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
-        query += '&limit=100'
+        #query += '&limit=100'
+        query += '&limit=1'
         uframe_url, timeout, timeout_read = get_uframe_data_info()
         rd = '-'.join([mooring, platform, instrument])
         url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
+        #print '\n debug --- (get_uframe_stream_contents) url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read))
         if not response or response is None:
             message = 'No data available from uFrame for this request. Instrument: %s, Method: %s, Stream: %s' % \
@@ -2312,8 +2386,9 @@ def get_streams_dictionary(rd):
                 end = item['endTime']
                 stream = item['stream']
                 method = item['method']
-                if begin == end:
-                    continue
+                # ticket # 10031
+                #if begin == end:
+                #    continue
                 streams[stream] = method
 
         #print '\n debug ***(NEW)*** streams(%d): %s' % (len(streams), json.dumps(streams, indent=4, sort_keys=True))
@@ -2424,7 +2499,7 @@ def _c2_instrument_driver_execute(reference_designator, data):
         }
 
     In the case of ACQUIRE commands (DRIVER_EVENT_ACQUIRE_STATUS, DRIVER_EVENT_ACQUIRE_SAMPLE),
-    the status block in the response contains execution results in ['status']['cmd']value[1].
+    the status block in the response contains execution results in ['status']['cmd']['value'][1].
         {
           "response": {
             "message": "",
@@ -2475,7 +2550,7 @@ def _c2_instrument_driver_execute(reference_designator, data):
                     },
 
 
-    BOTPT Bench Instrument:
+    BOTPT Bench Instrument (was dict as shown below; should be list):
     "value": [
         null,
         {
@@ -2972,29 +3047,13 @@ def _eval_POST_response_data(response_data, msg=None):
     except:
         raise
 
-# todo development only (exercise _get_toc)
-@api.route('/c2/toc', methods=['GET'])
-@auth.login_required
-@scope_required(u'command_control')
-def c2_get_toc():
-    """ Returns the C2 toc.
-    Sample: http://host:4000/c2/toc
-    """
-    toc = []
-    try:
-        data = _compile_c2_toc()
-        if data:
-            toc = data
-        return jsonify(toc)
-    except Exception as err:
-        return bad_request(err.message)
-
 
 def _get_toc():
     """ Returns a toc dictionary of arrays, moorings, platforms and instruments from uframe.
     Augmented by the UI database for vocabulary and arrays.
     """
     try:
+
         cached = cache.get('c2_toc')
         if cached:
             toc = cached
@@ -3009,9 +3068,10 @@ def _get_toc():
         current_app.logger.info(message)
         return None
 
-
-def _compile_c2_toc():
-    """ Returns a toc dictionary of arrays, moorings, platforms and instruments from uframe.
+# was named _compile_c2_toc, but changed when we went with C2 toc from
+# #instruments (instrument/api) and not data on 12576
+def _compile_c2_toc_standard():
+    """ Returns a toc dictionary of arrays, moorings, platforms and instruments from uframe data (port 12576).
     Augmented by the UI database for vocabulary and arrays, returns json.
     """
     # Use instrument/api server for toc info
@@ -3039,16 +3099,18 @@ def _compile_c2_toc():
             response = requests.get(url, timeout=(timeout, timeout_read))
             if response.status_code == 200:
                 platforms = response.json()
+                print '\n debug -------- platforms: ', json.dumps(platforms, indent=4, sort_keys=True)
                 for platform in platforms:
                     platform_list.append({'reference_designator': "-".join([mooring, platform]),
                                           'mooring_code': mooring,
                                           'platform_code': platform,
-                                          'display_name': get_display_name_by_rd("-".join([mooring, platform]))
+                                          'display_name': get_long_display_name_by_rd("-".join([mooring, platform]))
                                           })
                     url = "/".join([UFRAME_DATA, mooring, platform])
                     response = requests.get(url, timeout=(timeout, timeout_read))
                     if response.status_code == 200:
                         instruments = response.json()
+                        print '\n debug -------- instruments: ', json.dumps(instruments, indent=4, sort_keys=True)
                         for instrument in instruments:
                             # Verify valid reference designator, if not skip
                             reference_designator = _get_validate_instrument_rd(mooring, platform, instrument)
@@ -3068,11 +3130,11 @@ def _compile_c2_toc():
         return toc
 
     except ConnectionError:
-        message = 'ConnectionError for _compile_c2_toc.'
+        message = 'ConnectionError for _compile_c2_toc_standard.'
         current_app.logger.info(message)
         raise Exception(message)
     except Timeout:
-        message = 'Timeout for _compile_c2_toc.'
+        message = 'Timeout for _compile_c2_toc_standard.'
         current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
@@ -3414,3 +3476,155 @@ def _c2_get_instrument_driver_metadata(reference_designator):
         return data
     except:
         raise
+
+
+# todo development only (exercise _get_toc)
+@api.route('/c2/toc', methods=['GET'])
+@auth.login_required
+@scope_required(u'command_control')
+def c2_get_toc():
+    """ Returns the C2 toc.
+    Sample: http://host:4000/c2/toc
+    """
+    toc = []
+    try:
+        data = _compile_c2_toc()
+        if data:
+            toc = data
+        return jsonify(toc)
+    except Exception as err:
+        return bad_request(err.message)
+
+
+def _compile_c2_toc():
+    """ Get C2 instrument information from host:12573/instrument/api; process as input to C2 toc.
+    Return lists for moorings, platforms and instruments.
+
+    Moorings -
+    [
+        "RS03ASHS",
+        "SSRSPACC",
+        "RS01SHBP",
+        . . .
+    ]
+    platforms:  [
+            "MJ03C"
+        ]
+
+    Instruments:
+        [
+            "09-TRHPHA301",
+            "06-MASSPA301-MCU",
+            "05-CAMDSB303",
+            "09-IP5",
+            "00-ENG",
+            "06-IP2",
+            "09-THSPHA301",
+            "10-IP6",
+            "10-TRHPHA301",
+            "07-IP3",
+            "05-IP1",
+            "07-D1000A301"
+        ]
+
+    Current toc instrument is a list of dictionaries:
+        [
+            {'reference_designator': u'RS03ASHS-MJ03B-06-OBSSPA301',
+            'instrument_code': u'06-OBSSPA301',
+            'display_name': u'Short-Period Ocean Bottom Seismometer',
+            'platform_code': u'MJ03B',
+            'mooring_code': u'RS03ASHS'
+            },
+            . . .
+        ]
+    """
+    moorings = []
+    platforms = []
+    instruments = []
+    try:
+        toc = {}
+        mooring_list = []
+        platform_list = []
+        instrument_list = []
+
+        # Get list of instruments from instrument/api
+        uframe_url, timeout, timeout_read = get_uframe_info()
+        response = requests.get(uframe_url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = '(%d) Failed to get instrument/api list of instruments.' % response.status_code
+            raise Exception(message)
+
+        arrays = Array.query.all()
+        array_display_names = {}
+        for array in arrays:
+            array_display_names[array.array_code] = array.display_name
+
+        # Process response.content for moorings, platforms and instruments
+        _instruments = response.json()
+        for rd in _instruments:
+
+            # Calculate values to be used in toc
+            _mooring, _platform, _instrument = rd.split('-', 2)
+            array_code = _mooring[:2]
+            array_name = array_display_names[array_code]
+            mooring_name = get_display_name_by_rd(_mooring)
+            if mooring_name is None:
+                mooring_name = _mooring
+            platform_name = get_display_name_by_rd("-".join([_mooring, _platform]))
+            if platform_name is None:
+                platform_name = "-".join([_mooring, _platform])
+            instrument_name = get_display_name_by_rd(reference_designator=rd)
+            if instrument_name is None:
+                instrument_name = rd
+
+            # Determine display names - mooring, platform
+            mooring_display_name = ' '.join([array_name, mooring_name])
+            if platform_name == 'RS10ENGC-XX00X':
+                platform_display_name = 'Bench Instruments'
+            else:
+                platform_display_name = ' '.join([mooring_name, platform_name])
+
+            # Add entries for moorings, platforms and instruments dictionaries
+            if _mooring not in moorings:
+                moorings.append(_mooring)
+                mooring_list.append({'reference_designator': _mooring,
+                                 'array_code': array_code,
+                                 'display_name': mooring_display_name
+                                 })
+            if _platform not in platforms:
+                platforms.append(_platform)
+                platform_list.append({'reference_designator': "-".join([_mooring, _platform]),
+                              'mooring_code': _mooring,
+                              'platform_code': _platform,
+                              'display_name': platform_display_name
+                              })
+            if _instrument not in instruments:
+                instruments.append(_instrument)
+                instrument_list.append({'mooring_code': _mooring,
+                                'platform_code': _platform,
+                                'instrument_code': _instrument,
+                                'reference_designator': rd,
+                                'display_name': instrument_name
+                                })
+
+        # Assemble toc for response
+        arrays = Array.query.all()
+        toc['arrays'] = [array.to_json() for array in arrays]
+        toc['moorings'] = mooring_list
+        toc['platforms'] = platform_list
+        toc['instruments'] = instrument_list
+
+        return toc
+
+    except ConnectionError:
+        message = 'ConnectionError for get_C2_instruments.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Timeout for get_C2_instruments.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Exception as err:
+        message = str(err.message)
+        current_app.logger.info(message)
+        return {}
