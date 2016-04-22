@@ -1474,7 +1474,7 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
 
     The UI sends all READ_WRITE parameters in data; so data should never be empty.
     """
-    debug = False
+    debug = True
     response_status = {}
     response_status['status_code'] = 200
     response_status['message'] = ""
@@ -2914,7 +2914,7 @@ def _eval_POST_response_data(response_data, msg=None):
     """ Evaluate the value dictionary from uframe POST response data.
     Return error code, type and message.
     """
-    debug = False
+    debug = True
     try:
         value = None
         type = None
