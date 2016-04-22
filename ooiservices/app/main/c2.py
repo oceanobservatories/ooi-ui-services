@@ -16,7 +16,6 @@ import json, os
 import requests
 import requests.exceptions
 from requests.exceptions import ConnectionError, Timeout
-from urllib import urlencode
 from datetime import datetime as dt
 from copy import deepcopy
 import datetime as dt
@@ -90,9 +89,11 @@ def c2_get_array_current_status_display(array_code):
     toc = _compile_c2_toc()
     if toc is not None:
         cache.set('c2_toc', toc, timeout=CACHE_TIMEOUT)
+    """
         print "[+] C2 toc cache reset..."
     else:
         print "[-] Error in C2 toc cache update"
+    """
 
     # Get data, add to output
     # get ordered set of platform_deployments for array.id
@@ -150,7 +151,8 @@ def c2_get_array_history(array_code):
 @auth.login_required
 @scope_required(u'command_control')
 def c2_get_platform_abstract(reference_designator):
-    #Get C2 platform abstract, return abstract
+    """ C2 get platform abstract, return abstract.
+    """
     response_dict = {}
     platform_deployment = _get_platform(reference_designator)
     if platform_deployment:
@@ -189,12 +191,10 @@ def c2_get_platform_current_status_display(reference_designator):
             else:
                 row['display_name'] = instrument['display_name']
             row['reference_designator'] = instrument['reference_designator']
-            try:
-                temp = _c2_get_instrument_driver_ping(instrument['reference_designator'])
-                status = 'Online'
-            except Exception as err:
-                current_app.logger.warning(err.message)
-                status = 'Offline'
+
+            # Get instrument operational status based on instrument driver and agent status
+            status = _get_instrument_operational_status(instrument['reference_designator'])
+
             row['operational_status'] = status
             platform_info[instrument['reference_designator']] = row
             if timing:
@@ -212,8 +212,39 @@ def c2_get_platform_current_status_display(reference_designator):
         execution_time = str(end-start)
         message = '\t debug --- Total Execution time:  %s ' % execution_time
         print '\n', message
+
     return jsonify(current_status_display=contents)
 
+
+def _get_instrument_operational_status(rd):
+    """ Get instrument operational status.
+    """
+    status = 'Unknown'
+    try:
+        # If ping result is empty, instrument driver offline; otherwise instrument driver online - but
+        # not sure of
+        temp = _c2_get_instrument_driver_ping(rd)
+        if not temp:
+            status = 'Offline'
+        else:
+            # instrument driver is running, check instrument agent
+            _status = get_instrument_status(rd)
+            if _status:
+                if 'value' in _status:
+                    if 'state' in _status['value']:
+                        if _status['value']['state'] == 'DRIVER_STATE_UNCONFIGURED':
+                            status = 'Offline'
+                        else:
+                            status = 'Online'
+            else:
+                status = 'Offline'
+                message = 'Instrument driver running; instrument status returned empty state.'
+                current_app.logger.warning(message)
+
+        return status
+    except Exception as err:
+        current_app.logger.warning(err.message)
+        return 'Offline'
 
 @api.route('/c2/platform/<string:reference_designator>/history', methods=['GET'])
 @auth.login_required
@@ -236,8 +267,7 @@ def c2_get_platform_history(reference_designator):
 @auth.login_required
 @scope_required(u'command_control')
 def c2_get_platform_ports_display(reference_designator):
-    """
-    Get C2 platform Ports tab contents, return ports_display ([{},{},...]
+    """ Get C2 platform Ports tab contents, return ports_display ([{},{},...]
     where dicts for each instrument_deployment in platform_deployment:
     For example:
         http://localhost:4000/c2/platform/CP02PMCO-WFP01/ports_display
@@ -306,7 +336,8 @@ def c2_get_platform_ports_display(reference_designator):
 @auth.login_required
 @scope_required(u'command_control')
 def c2_get_platform_commands(reference_designator):
-    #Get C2 platform commands return commands [{},{},...]
+    """ Get C2 platform commands return commands [{},{},...]
+    """
     commands = []
     if not reference_designator:
         return bad_request('empty reference_designator parameter.')
@@ -324,11 +355,12 @@ def c2_get_platform_commands(reference_designator):
 @auth.login_required
 @scope_required(u'command_control')
 def c2_get_instrument_abstract(reference_designator):
-    """ C2 get instrument abstract
+    """ C2 get instrument abstract.
     Modified to support migration to uframe
     Sample: http://localhost:4000/c2/instrument/reference_designator/abstract
     Was: status = _c2_get_instrument_driver_status(instrument_deployment['reference_designator'])
     """
+    debug = False
     try:
         response_dict = {}
         if not reference_designator:
@@ -340,12 +372,7 @@ def c2_get_instrument_abstract(reference_designator):
             else:
                 response_dict['display_name'] = instrument_deployment['reference_designator']
             response_dict['reference_designator'] = instrument_deployment['reference_designator']
-            try:
-                temp = _c2_get_instrument_driver_ping(instrument_deployment['reference_designator'])
-                status = 'Online'
-            except Exception as err:
-                current_app.logger.warning(err.message)
-                status = 'Offline'
+            status = _get_instrument_operational_status(instrument_deployment['reference_designator'])
             response_dict['operational_status'] = status
     except Exception, err:
         return bad_request(err.message)
@@ -388,21 +415,9 @@ def c2_get_instrument_ports_display(reference_designator):
         iseq    = reference_designator[24:24+3]
         row = {}
         row['port'] = port
-        '''
-        row['port_status'] = 'Unknown'
-        port_status = 'Online' #c2_get_platform_operational_status(reference_designator) # same as platform for now
-        if port_status in ['Online', 'Offline', 'Unknown']:
-            row['port_status'] = port_status
-        row['port_available'] = str(True)
-        if row['port_status'] == 'Online' or row['port_status'] == 'Unknown':
-            row['port_available'] = str(False)
-        '''
-        try:
-            temp = _c2_get_instrument_driver_ping(instrument_deployment['reference_designator'])
-            row['port_status'] = 'Online'
-        except Exception as err:
-            current_app.logger.warning(err.message)
-            row['port_status'] = 'Offline'
+
+        status = _get_instrument_operational_status(instrument_deployment['reference_designator'])
+        row['port_status'] = status
 
         row['port_available'] = str(True)
         if row['port_status'] == 'Online' or row['port_status'] == 'Unknown':
@@ -570,9 +585,8 @@ def json_get_uframe_platform_commands(platform):
 @auth.login_required
 @scope_required(u'command_control')
 def c2_get_instruments_status():
-    """
-    # get status of all instrument agents, return json.
-    # sample: localhost:12572/instrument/api
+    """ Get status of all instrument agents, return json.
+    Sample: localhost:12572/instrument/api
     """
     statuses = []
     try:
@@ -589,8 +603,7 @@ def c2_get_instruments_status():
 @auth.login_required
 @scope_required(u'command_control')
 def c2_get_instrument_driver_status(reference_designator):
-    """
-    Get the current overall state of the specified instrument (id is the reference designator of the instrument).
+    """ Get the current overall state of the specified instrument (id is the instrument reference designator).
     If the query option "blocking" is specified as true, then this call will block until a state change,
     allowing for a push-like interface for web clients.
     Sample: localhost:12572/instrument/api/reference_designator/status
@@ -611,8 +624,7 @@ def c2_get_instrument_driver_status(reference_designator):
 @auth.login_required
 @scope_required(u'command_control')
 def c2_get_instrument_driver_state(reference_designator):
-    """
-    Return the instrument driver state. Returns json.
+    """ Return the instrument driver state. Returns json.
     Sample: http://host:12572/instrument/api/reference_designator/state
     """
     state = []
@@ -629,8 +641,7 @@ def c2_get_instrument_driver_state(reference_designator):
 @auth.login_required
 @scope_required(u'command_control')
 def c2_set_instrument_driver_parameters(reference_designator):
-    """
-    Set one or more instrument driver parameters. Returns json.
+    """ Set one or more instrument driver parameters. Returns json.
     Accepts the following urlencoded parameters:
         resource:   JSON-encoded dictionary of parameter:value pairs
         timeout:    in milliseconds, default value is 60000
@@ -676,8 +687,7 @@ def c2_set_instrument_driver_parameters(reference_designator):
 @auth.login_required
 @scope_required(u'command_control')
 def c2_instrument_driver_execute(reference_designator):
-    """
-    Command the driver to execute a capability. Returns json.
+    """ Command the driver to execute a capability. Returns json.
     Accepts the following urlencoded parameters:
         command:    capability to execute
         kwargs:     JSON-encoded dictionary specifying any necessary keyword arguments for the command
@@ -723,8 +733,7 @@ def _c2_get_instruments_status():
 
 
 def uframe_get_instruments_status():
-    """
-    Returns the uframe response for status of all instrument agents.
+    """ Returns the uframe response for status of all instrument agents.
     Sample: http://host:12572/instrument/api
     """
     try:
@@ -738,8 +747,7 @@ def uframe_get_instruments_status():
 
 
 def _c2_get_instrument_driver_status(reference_designator):
-    """
-    Get the current overall state of the specified instrument (id is the reference designator of the instrument).
+    """ Get the current overall state of the specified instrument (id is the instrument reference designator).
 
     Sample: http://host:12572/instrument/api/reference_designator
             http://host:12572/instrument/api/RS10ENGC-XX00X-00-NUTNRA001
@@ -781,37 +789,6 @@ def _c2_get_instrument_driver_status(reference_designator):
             message = 'No response content returned for status (from instrument/api/%s).' % reference_designator
             raise Exception(message)
 
-        """
-        # Get all parameter values for instruments
-        status = data
-        state = None
-        # verify parameters and state are in status
-        if 'state' in status['value']:
-            state = status['value']['state']
-
-        # Update status to reflect parameter values for all instruments
-        # Have instrument state and state not in states_to_avoid, continue.
-        states_to_avoid = ['DRIVER_BUSY_EVENT', 'DRIVER_STATE_DISCOVER']
-        other_states_to_avoid = ['Unknown', 'UNKNOWN', 'DISCONNECTED']
-        if state is not None:
-            # if state not in states_to_avoid:
-            if state != 'DRIVER_BUSY_EVENT':
-
-                # if state not in other_states_to_avoid:
-                if state != 'Unknown' and state != 'UNKNOWN' and 'DISCONNECTED' not in state:
-                    try:
-                        result = _c2_get_instrument_driver_parameter_values(reference_designator)
-                    except Exception as err:
-                        result = None
-                        message = str(err.message)
-                        current_app.logger.info(message)
-                        # should we be raising here....review
-                    if result:
-                        if 'value' in result:
-                            if isinstance(result['value'], dict):
-                                status['value']['parameters'] = result['value']
-        """
-
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Add attribute streams and display_parameters, both dictionaries.
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -822,9 +799,6 @@ def _c2_get_instrument_driver_status(reference_designator):
             streams = {}
             try:
                 streams = get_streams_dictionary(reference_designator)
-                #print '\n debug ***(NEW)*** streams(%d): %s' % (len(streams),
-                #                                                 json.dumps(streams, indent=4, sort_keys=True))
-
             except Exception as err:
                 message = 'Exception from get_streams_dictionary: %s' % str(err)
                 current_app.logger.info(message)
@@ -835,7 +809,10 @@ def _c2_get_instrument_driver_status(reference_designator):
             # Get READ_WRITE display_parameters for pull downs
             # - - - - - - - - - - - - - - - - - - - - - -
             try:
-                _params = data['value']['metadata']['parameters']
+                _params = None
+                if data['value']['metadata']:
+                    _params = data['value']['metadata']['parameters']
+                #print '\n debug -- (1) params: ', _params
                 temp = {}
                 if _params:
                     temp = get_parameter_display_values(_params)
@@ -850,7 +827,10 @@ def _c2_get_instrument_driver_status(reference_designator):
             # Get READ_ONLY and IMMUTABLE display_parameters for pull downs
             # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             try:
-                _params = data['value']['metadata']['parameters']
+                _params = None
+                if data['value']['metadata']:
+                    _params = data['value']['metadata']['parameters']
+                #print '\n debug -- (2) params: ', _params
                 temp = {}
                 if _params:
                     temp = get_ro_parameter_display_values(_params)
@@ -867,7 +847,7 @@ def _c2_get_instrument_driver_status(reference_designator):
 
 
 def uframe_get_instrument_driver_status(reference_designator):
-    """ Returns the uframe response for status of single instrument agent
+    """ Returns the uframe response for status of single instrument agent.
     Sample: http://host:12572/instrument/api/reference_designator
     """
     try:
@@ -1043,36 +1023,6 @@ def _c2_get_instrument_driver_parameters(reference_designator):
             data['value'] = {}
             return data
 
-        # todo - do not update parameters, use what was provided from status
-        """
-        # Have instrument state, continue
-        else:
-            if state == "DRIVER_STATE_COMMAND":
-                try:
-                    result = _c2_get_instrument_driver_parameter_values(reference_designator)
-                    if result is None:
-                        raise Exception('unable to retrieve instrument driver parameter values')
-                except Exception as err:
-                    message = str(err.message)
-                if result:
-                    if 'value' in result:
-                        if isinstance(result['value'], dict):
-                            data['value'] = result['value']
-                        else:
-                            response_status['status_code'] = 400
-                            response_status['message'] = "unable to obtain instrument parameter values; retry."
-                            data['response'] = response_status
-                            data['value'] = {}
-                            return data
-            # Error: Not able to retrieve parameter values at this time due to instrument state
-            else:
-                response_status['status_code'] = 400
-                response_status['message'] = "instrument state (%s); unable to obtain parameter values; retry." % state
-                data['response'] = response_status
-                data['value'] = {}
-                return data
-        """
-
         data['response'] = response_status
         return data
 
@@ -1081,8 +1031,7 @@ def _c2_get_instrument_driver_parameters(reference_designator):
 
 
 def _c2_get_instrument_driver_parameter_values(reference_designator):
-    """
-    Return the instrument driver parameter values.
+    """ Return the instrument driver parameter values.
     Sample: localhost:12572/instrument/api/reference_designator/resource with data dictionary.
         {
         u'cmd': {   u'args': [u'DRIVER_PARAMETER_ALL'],
@@ -1516,8 +1465,7 @@ def to_bool(value):
 
 
 def _c2_set_instrument_driver_parameters(reference_designator, data):
-    """
-    Set one or more instrument driver parameters, return status.
+    """ Set one or more instrument driver parameters, return status.
     Accepts the following urlencoded parameters:
       resource: JSON-encoded dictionary of parameter:value pairs
       timeout:  in milliseconds, default value is 60000
@@ -1525,7 +1473,6 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
 
     The UI sends all READ_WRITE parameters in data; so data should never be empty.
     """
-    debug = False
     response_status = {}
     response_status['status_code'] = 200
     response_status['message'] = ""
@@ -1579,7 +1526,7 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
             response_status['range_errors'] = error_result
             response_status['status_code'] = 400
             result['response'] = response_status
-            if debug: print '\n debug ***** RANGE Error(s): %s' % json.dumps(result, indent=4, sort_keys=True)
+            #print '\n debug ***** RANGE Error(s): %s' % json.dumps(result, indent=4, sort_keys=True)
             return result
 
         # If no errors and result is empty or None, raise exception
@@ -1598,12 +1545,10 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
             response = _uframe_post_instrument_driver_set(reference_designator, 'resource', payload)
         except Exception as err:
             message = str(err.message)
-            if debug: print '\n debug --- message: ', message
             raise Exception(message)
 
         if response.status_code != 200:
             message = '(%s) Failed to execute instrument driver set.' % str(response.status_code)
-            if debug: print '\n debug --- message: ', message
             raise Exception(message)
 
         if response.content:
@@ -1611,7 +1556,6 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
                 response_data = json.loads(response.content)
             except:
                 message = 'Malformed data; not in valid json format. (C2 instrument driver set)'
-                if debug: print '\n debug --- message: ', message
                 raise Exception(message)
 
             # Evaluate response content for error (review 'value' list in response_data)
@@ -1621,7 +1565,6 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
                 response_status['message'] = status_message
         else:
             message = 'No response.content returned from _uframe_post_instrument_driver_set.'
-            if debug: print '\n debug --- message: ', message
             raise Exception(message)
 
         # Add response attribute information to result
@@ -1633,8 +1576,6 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
         except Exception:
             status = {}
         result['status'] = status
-        #if debug: print '\n -- debug result: ', json.dumps(result, indent=4, sort_keys=True)
-
         return result
 
     except Exception:
@@ -1819,7 +1760,6 @@ def get_range_dictionary(resource, _status, reference_designator):
     """
     key_dict = {}
     parameter_dict = {}
-    debug = False
     try:
         # Get parameters from status.
         _parameters = get_instrument_parameters(_status)
@@ -1829,7 +1769,6 @@ def get_range_dictionary(resource, _status, reference_designator):
 
         # Create parameter type dictionary.
         _parameters_list = _parameters.keys()
-        #using_workaround = False
         for parameter in _parameters_list:
 
             # Process READ_WRITE_parameters
@@ -1853,10 +1792,8 @@ def get_range_dictionary(resource, _status, reference_designator):
                     if tmp['range'] is None or not tmp['range']:
                         key_dict[parameter]['range'] = None
                     else:
-                        #if debug: print '\n\t debug ----- [B] range in tmp...tmp[range]: ', tmp['range']
                         key_dict[parameter]['range'] = tmp['range']
                 else:
-                    #if debug: print '\n\t debug ----- range NOT in tmp...'
                     key_dict[parameter]['range'] = None
 
                 key_dict[parameter]['min'] = None
@@ -1983,7 +1920,6 @@ def _c2_get_last_particle(rd, _method, _name):
     }
 
     """
-    debug = False
     result = None
     metadata = None
     try:
@@ -2014,33 +1950,19 @@ def _c2_get_last_particle(rd, _method, _name):
         stream_type = time_set['method']
         stream_name = time_set['stream']
         formatted_end_time = time_set['endTime']
-        formatted_start_time = time_set['beginTime']
-
-        """
-        # When metadata indicates endTime and beginTime are equal, log and raise error
-        if formatted_start_time == formatted_end_time:
-            message = 'uFrame indicates beginTime and endTime are equal; no data to retrieve for stream (%s).' % \
-                      stream_name
-            raise Exception(message)
-        """
+        #formatted_start_time = time_set['beginTime']
 
         # Get single particle using endTime for beginTime and limit=1 (dpa=0 does this for you)
         dpa_flag = '0'
-        """
-        response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream_name,
-                                   formatted_start_time, formatted_end_time, dpa_flag)
-        """
         response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream_name,
                                    formatted_end_time, formatted_end_time, dpa_flag)
 
         if response is None:
             message = 'Get stream contents failed for stream (%s).' % stream_name
-            if debug: print '\n debug -- message: ', message
             raise Exception(message)
 
         if response.status_code != 200:
             message = '(%s) Failed to retrieve stream (%s) contents.' % (str(response.status_code), stream_name)
-            if debug: print '\n debug -- message: ', message
             raise Exception(message)
 
         if response.content:
@@ -2048,7 +1970,6 @@ def _c2_get_last_particle(rd, _method, _name):
                 result = response.json()
             except:
                 message = 'Failed to process stream (%s) contents to json.' % stream_name
-                if debug: print '\n debug -- message: ', message
                 raise Exception(message)
 
         # Process result returned for most recent particle
@@ -2094,7 +2015,6 @@ def _c2_get_last_particle(rd, _method, _name):
         particle = {}
         particle['particle_metadata'] = particle_metadata
         particle['particle_values'] = particle_values
-        if debug: print '\n debug --  (response) get_last_particle: ', json.dumps(particle, indent=4, sort_keys=True)
         return particle
 
     except Exception as err:
@@ -2138,7 +2058,6 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
         uframe_url, timeout, timeout_read = get_uframe_data_info()
         rd = '-'.join([mooring, platform, instrument])
         url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
-        #print '\n debug --- (get_uframe_stream_contents) url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read))
         if not response or response is None:
             message = 'No data available from uFrame for this request. Instrument: %s, Method: %s, Stream: %s' % \
@@ -2353,10 +2272,11 @@ def get_streams_dictionary(rd):
                     "stream" : "flort_d_status"
                   } ],
 
-    Dictionary returned (notice flord_d_status not returned since start and end times are equal. #10031:
+    Dictionary returned:
     {
     "flort_d_data_record": "streamed",
-    "flort_d_status": "streamed"
+    "flort_d_status": "streamed",
+    "flord_d_status": "streamed"
     },
 
     Helper urls:
@@ -2382,16 +2302,10 @@ def get_streams_dictionary(rd):
         # Process 'times' elements to create streams dictionary
         if times:
             for item in times:
-                begin = item['beginTime']
-                end = item['endTime']
                 stream = item['stream']
                 method = item['method']
-                # ticket # 10031
-                #if begin == end:
-                #    continue
                 streams[stream] = method
 
-        #print '\n debug ***(NEW)*** streams(%d): %s' % (len(streams), json.dumps(streams, indent=4, sort_keys=True))
         return streams
 
     except Exception as err:
@@ -2403,18 +2317,15 @@ def get_streams_dictionary(rd):
 def get_instrument_metadata(rd):
     """ Get metadata for reference designator. If error, raise error
     """
-    debug = False
     metadata = None
     try:
         try:
             data = _c2_get_instrument_metadata(rd)
         except Exception as err:
-            if debug: print '\n debug -- ', err.message
             raise Exception(err.message)
 
         if data.status_code != 200:
             message = '(%d) Failed to get %s metadata.' % (data.status_code, rd)
-            if debug: print '\n debug -- ', message
             raise Exception(message)
 
         if data.status_code == 200:
@@ -2423,7 +2334,6 @@ def get_instrument_metadata(rd):
 
         if metadata is None:
             message = 'Failed to get metadata contents from uframe for reference designator (%s).' % rd
-            if debug: print '\n debug -- ', message
             raise Exception(message)
 
         return metadata
@@ -2550,7 +2460,7 @@ def _c2_instrument_driver_execute(reference_designator, data):
                     },
 
 
-    BOTPT Bench Instrument (was dict as shown below; should be list):
+    BOTPT Bench Instrument (WAS dict as shown below; should be list):
     "value": [
         null,
         {
@@ -2805,8 +2715,6 @@ def _c2_instrument_driver_execute(reference_designator, data):
                         # Set acquire_result value
                         result['acquire_result'] = acquire_results
 
-        #print '\n ******\n (%s) result: %s' % (command_name, json.dumps(result, indent=4, sort_keys=True) )
-
         return result
 
     except Exception as err:
@@ -3049,7 +2957,7 @@ def _eval_POST_response_data(response_data, msg=None):
 
 
 def _get_toc():
-    """ Returns a toc dictionary of arrays, moorings, platforms and instruments from uframe.
+    """ Returns a toc dictionary of arrays, moorings, platforms and instruments.
     Augmented by the UI database for vocabulary and arrays.
     """
     try:
@@ -3068,11 +2976,14 @@ def _get_toc():
         current_app.logger.info(message)
         return None
 
-# was named _compile_c2_toc, but changed when we went with C2 toc from
-# #instruments (instrument/api) and not data on 12576
+# Retain: deprecated, now using instruments (instrument/api) as toc data source rather than /sensor/inv port 12576.
 def _compile_c2_toc_standard():
     """ Returns a toc dictionary of arrays, moorings, platforms and instruments from uframe data (port 12576).
     Augmented by the UI database for vocabulary and arrays, returns json.
+
+    Note: was named _compile_c2_toc, but changed when we went with C2 toc
+    from instruments (instrument/api) and not data on 12576.
+    To retrieve C2 toc from data port (12576) use this function.
     """
     # Use instrument/api server for toc info
     tmp_uframe_base = current_app.config['UFRAME_INST_URL']
@@ -3099,7 +3010,6 @@ def _compile_c2_toc_standard():
             response = requests.get(url, timeout=(timeout, timeout_read))
             if response.status_code == 200:
                 platforms = response.json()
-                print '\n debug -------- platforms: ', json.dumps(platforms, indent=4, sort_keys=True)
                 for platform in platforms:
                     platform_list.append({'reference_designator': "-".join([mooring, platform]),
                                           'mooring_code': mooring,
@@ -3110,7 +3020,6 @@ def _compile_c2_toc_standard():
                     response = requests.get(url, timeout=(timeout, timeout_read))
                     if response.status_code == 200:
                         instruments = response.json()
-                        print '\n debug -------- instruments: ', json.dumps(instruments, indent=4, sort_keys=True)
                         for instrument in instruments:
                             # Verify valid reference designator, if not skip
                             reference_designator = _get_validate_instrument_rd(mooring, platform, instrument)
@@ -3395,7 +3304,7 @@ def c2_get_instrument_driver_ping(reference_designator):
     "value": "driver_ping: <mi.instrument.noaa.botpt.ooicore.driver.InstrumentDriver object at 0x7fe42207af10> PONG",
     "time": 1455057480.654446}
     """
-    ping = []
+    ping = {}
     try:
         data = _c2_get_instrument_driver_ping(reference_designator)
         if data:
@@ -3413,15 +3322,18 @@ def _c2_get_instrument_driver_ping(reference_designator):
     Sample: localhost:12572/instrument/api/reference_designator/ping
     """
     try:
-        data = None
+        data = {}
         response = uframe_get_instrument_driver_command(reference_designator, 'ping')
+        if not response.content:
+            return {}
+
         if response.status_code != 200:
             raise Exception('Error retrieving %s instrument driver ping from uframe.' % reference_designator)
+
         if response.content:
             try:
                 data = json.loads(response.content)
             except:
-
                 raise Exception('Malformed data; not in valid json format.')
         return data
     except:
@@ -3483,8 +3395,7 @@ def _c2_get_instrument_driver_metadata(reference_designator):
 @auth.login_required
 @scope_required(u'command_control')
 def c2_get_toc():
-    """ Returns the C2 toc.
-    Sample: http://host:4000/c2/toc
+    """ Returns the C2 toc dictionary. (Sample: http://host:4000/c2/toc)
     """
     toc = []
     try:
@@ -3497,21 +3408,19 @@ def c2_get_toc():
 
 
 def _compile_c2_toc():
-    """ Get C2 instrument information from host:12573/instrument/api; process as input to C2 toc.
-    Return lists for moorings, platforms and instruments.
+    """ Returns a C2 toc dictionary of arrays, moorings, platforms and instruments from instruments/api (port 12572).
 
-    Moorings -
+    Sample Moorings:
     [
         "RS03ASHS",
         "SSRSPACC",
         "RS01SHBP",
         . . .
     ]
-    platforms:  [
+    Sample Platforms:  [
             "MJ03C"
         ]
-
-    Instruments:
+    Sample Instruments:
         [
             "09-TRHPHA301",
             "06-MASSPA301-MCU",
