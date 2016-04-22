@@ -219,15 +219,15 @@ def c2_get_platform_current_status_display(reference_designator):
 def _get_instrument_operational_status(rd):
     """ Get instrument operational status.
     """
+    debug = False
     status = 'Unknown'
     try:
-        # If ping result is empty, instrument driver offline; otherwise instrument driver online - but
-        # not sure of
+        # If ping result is empty, instrument driver offline; otherwise instrument driver online
         temp = _c2_get_instrument_driver_ping(rd)
         if not temp:
             status = 'Offline'
         else:
-            # instrument driver is running, check instrument agent
+            # instrument driver is running, check instrument agent...
             _status = get_instrument_status(rd)
             if _status:
                 if 'value' in _status:
@@ -241,10 +241,12 @@ def _get_instrument_operational_status(rd):
                 message = 'Instrument driver running; instrument status returned empty state.'
                 current_app.logger.warning(message)
 
+        if debug: print '\n debug --- operational status: ', status
         return status
     except Exception as err:
+        if debug: print '\n debug --- Exception - operational status: ', 'Unknown'
         current_app.logger.warning(err.message)
-        return 'Offline'
+        return 'Unknown'
 
 @api.route('/c2/platform/<string:reference_designator>/history', methods=['GET'])
 @auth.login_required
@@ -360,7 +362,6 @@ def c2_get_instrument_abstract(reference_designator):
     Sample: http://localhost:4000/c2/instrument/reference_designator/abstract
     Was: status = _c2_get_instrument_driver_status(instrument_deployment['reference_designator'])
     """
-    debug = False
     try:
         response_dict = {}
         if not reference_designator:
@@ -1473,6 +1474,7 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
 
     The UI sends all READ_WRITE parameters in data; so data should never be empty.
     """
+    debug = False
     response_status = {}
     response_status['status_code'] = 200
     response_status['message'] = ""
@@ -1494,6 +1496,8 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
         except Exception as err:
             message = 'Failed to process request data; %s' % str(err.message)
             raise Exception(message)
+
+        if debug: print '\n debug --- Original payload: ', json.dumps(payload, indent=4, sort_keys=True)
 
         # Validate arguments required for uframe are provided.
         for arg in valid_args:
@@ -1526,7 +1530,7 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
             response_status['range_errors'] = error_result
             response_status['status_code'] = 400
             result['response'] = response_status
-            #print '\n debug ***** RANGE Error(s): %s' % json.dumps(result, indent=4, sort_keys=True)
+            if debug: print '\n debug ***** RANGE Error(s): %s' % json.dumps(result, indent=4, sort_keys=True)
             return result
 
         # If no errors and result is empty or None, raise exception
@@ -1539,7 +1543,10 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Update value of resource in payload.
         payload['resource'] = json.dumps(result)
+        if 'CAMDS' in reference_designator:
+            payload['timeout'] = 200000 # 200 millisecs
 
+        if debug: print '\n debug --- payload: ', json.dumps(payload, indent=4, sort_keys=True)
         # Send request and payload to instrument/api and process result
         try:
             response = _uframe_post_instrument_driver_set(reference_designator, 'resource', payload)
@@ -2364,9 +2371,14 @@ def get_instrument_parameters(status):
 def _uframe_post_instrument_driver_set(reference_designator, command, data):
     """ Execute set parameters for instrument driver using command and data; return uframe response. (POST)
     """
+    debug = False
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
+        if 'CAMDS' in reference_designator:
+            timeout = 10
+            timeout_read = 200
         url = "/".join([uframe_url, reference_designator, command])
+        if debug: print '\n debug -- (_uframe_post_instrument_driver_set) url: ', url
         response = requests.post(url, data=data, timeout=(timeout, timeout_read), headers=_post_headers())
         return response
 
@@ -2902,9 +2914,13 @@ def _eval_POST_response_data(response_data, msg=None):
     """ Evaluate the value dictionary from uframe POST response data.
     Return error code, type and message.
     """
+    debug = False
     try:
         value = None
         type = None
+        if debug:
+            print '\n _eval_POST_response_data response_data: ', response_data
+            print '\n _eval_POST_response_data response_data: ', json.dumps(response_data, indent=4, sort_keys=True)
         if 'type' in response_data:
             type = response_data['type']
 
@@ -2932,6 +2948,7 @@ def _eval_POST_response_data(response_data, msg=None):
                 if value is None:
                     return 200, type, ''
                 else:
+                    if debug: print '\n debug --- instr exception error: ', value
                     return 400, None, 'Error occurred while instrument/api was processing payload.'
 
             # if value[0] contains int, then there was an error for command issued (verify uframe syntax)
