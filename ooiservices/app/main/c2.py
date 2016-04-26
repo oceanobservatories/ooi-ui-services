@@ -217,10 +217,11 @@ def c2_get_platform_current_status_display(reference_designator):
 
 
 def _get_instrument_operational_status(rd):
-    """ Get instrument operational status.
+    """ Get instrument operational status, using ping and instrument/api/rd.
     """
     debug = False
     status = 'Unknown'
+    offline_driver_states = ['DRIVER_STATE_UNCONFIGURED', 'DRIVER_STATE_DISCONNECTED', 'DRIVER_STATE_INST_DISCONNECTED']
     try:
         # If ping result is empty, instrument driver offline; otherwise instrument driver online
         temp = _c2_get_instrument_driver_ping(rd)
@@ -232,10 +233,14 @@ def _get_instrument_operational_status(rd):
             if _status:
                 if 'value' in _status:
                     if 'state' in _status['value']:
-                        if _status['value']['state'] == 'DRIVER_STATE_UNCONFIGURED':
-                            status = 'Offline'
+                        if _status['value']['state']:
+                            current_driver_state = _status['value']['state']
+                            if current_driver_state in offline_driver_states:
+                                status = 'Offline'
+                            else:
+                                status = 'Online'
                         else:
-                            status = 'Online'
+                            status = 'Unknown'
             else:
                 status = 'Offline'
                 message = 'Instrument driver running; instrument status returned empty state.'
@@ -757,6 +762,7 @@ def _c2_get_instrument_driver_status(reference_designator):
     If the query option "blocking" is specified as true, then this call will block until a state change,
     allowing for a push-like interface for web clients.
     """
+    debug = False
     try:
         # Get status
         data = None
@@ -785,10 +791,14 @@ def _c2_get_instrument_driver_status(reference_designator):
                 current_app.logger.info(message)
                 return None
 
+
+
         # If data received in response, process.
         if data is None:
             message = 'No response content returned for status (from instrument/api/%s).' % reference_designator
             raise Exception(message)
+
+        if debug: print '\n /commands execute data: ', json.dumps(data, indent=4, sort_keys=True)
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Add attribute streams and display_parameters, both dictionaries.
@@ -851,9 +861,11 @@ def uframe_get_instrument_driver_status(reference_designator):
     """ Returns the uframe response for status of single instrument agent.
     Sample: http://host:12572/instrument/api/reference_designator
     """
+    debug = False
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, reference_designator])
+        if debug: print '\n debug --- url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read))
 
         if response is None:
@@ -1474,7 +1486,7 @@ def _c2_set_instrument_driver_parameters(reference_designator, data):
 
     The UI sends all READ_WRITE parameters in data; so data should never be empty.
     """
-    debug = True
+    debug = False
     response_status = {}
     response_status['status_code'] = 200
     response_status['message'] = ""
@@ -1957,12 +1969,16 @@ def _c2_get_last_particle(rd, _method, _name):
         stream_type = time_set['method']
         stream_name = time_set['stream']
         formatted_end_time = time_set['endTime']
-        #formatted_start_time = time_set['beginTime']
+        formatted_start_time = time_set['beginTime']
+
+        times_equal = False
+        if formatted_start_time == formatted_end_time:
+            times_equal = True
 
         # Get single particle using endTime for beginTime and limit=1 (dpa=0 does this for you)
         dpa_flag = '0'
         response = get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream_name,
-                                   formatted_end_time, formatted_end_time, dpa_flag)
+                                   formatted_start_time, formatted_end_time, dpa_flag, times_equal)
 
         if response is None:
             message = 'Get stream contents failed for stream (%s).' % stream_name
@@ -2045,7 +2061,8 @@ def get_timestamp_value(value):
         return result
 
 
-def get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time, dpa_flag):
+def get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream, start_time, end_time,
+                               dpa_flag, times_equal=False):
     """ Gets the bounded stream contents (specifically for C2 get last particle); returns Response object.
     Note: start_time and end_time need to be datetime objects.
 
@@ -2053,15 +2070,23 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
     12576/sensor/inv/RS10ENGC/XX00X/00-FLORDD001/streamed/flord_d_status?limit=1&beginDT=2016-02-09T23:43:53.884Z
     """
     rd = None
+    equal_times = times_equal
     try:
         if dpa_flag == '0':
-            #query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
             # For get last particle, use endTime and limit of 1
-            query = '?beginDT=%s' % end_time
+            if times_equal:
+                query = '?beginDT=%s' % end_time
+
+            # For get_last_particle when times are not equal
+            else:
+                query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
+
         else:
             query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
-        #query += '&limit=100'
-        query += '&limit=1'
+
+        # Always add a limit to query...
+        query += '&limit=10'
+
         uframe_url, timeout, timeout_read = get_uframe_data_info()
         rd = '-'.join([mooring, platform, instrument])
         url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
@@ -2914,7 +2939,7 @@ def _eval_POST_response_data(response_data, msg=None):
     """ Evaluate the value dictionary from uframe POST response data.
     Return error code, type and message.
     """
-    debug = True
+    debug = False
     try:
         value = None
         type = None
