@@ -221,7 +221,8 @@ def _get_instrument_operational_status(rd):
     """
     debug = False
     status = 'Unknown'
-    offline_driver_states = ['DRIVER_STATE_UNCONFIGURED', 'DRIVER_STATE_DISCONNECTED', 'DRIVER_STATE_INST_DISCONNECTED']
+    offline_driver_states = ['DRIVER_STATE_UNCONFIGURED', 'DRIVER_STATE_DISCONNECTED',
+                             'DRIVER_STATE_INSTRUMENT_DISCONNECTED']
     try:
         # If ping result is empty, instrument driver offline; otherwise instrument driver online
         temp = _c2_get_instrument_driver_ping(rd)
@@ -614,13 +615,16 @@ def c2_get_instrument_driver_status(reference_designator):
     allowing for a push-like interface for web clients.
     Sample: localhost:12572/instrument/api/reference_designator/status
     """
-    status = []
+    debug = False
+    status = {}
     try:
         data = _c2_get_instrument_driver_status(reference_designator)
         if data:
             status = data
         return jsonify(status)
+
     except Exception as err:
+        if debug: print '\n debug --- (c2_get_instrument_driver_status) exception: ', str(err.message)
         message = str(err.message)
         current_app.logger.info(message)
         return bad_request(message)
@@ -791,8 +795,6 @@ def _c2_get_instrument_driver_status(reference_designator):
                 current_app.logger.info(message)
                 return None
 
-
-
         # If data received in response, process.
         if data is None:
             message = 'No response content returned for status (from instrument/api/%s).' % reference_designator
@@ -823,7 +825,6 @@ def _c2_get_instrument_driver_status(reference_designator):
                 _params = None
                 if data['value']['metadata']:
                     _params = data['value']['metadata']['parameters']
-                #print '\n debug -- (1) params: ', _params
                 temp = {}
                 if _params:
                     temp = get_parameter_display_values(_params)
@@ -841,7 +842,6 @@ def _c2_get_instrument_driver_status(reference_designator):
                 _params = None
                 if data['value']['metadata']:
                     _params = data['value']['metadata']['parameters']
-                #print '\n debug -- (2) params: ', _params
                 temp = {}
                 if _params:
                     temp = get_ro_parameter_display_values(_params)
@@ -851,6 +851,25 @@ def _c2_get_instrument_driver_status(reference_designator):
                 current_app.logger.info(message)
                 data['ro_parameter_display_values'] = {}
                 pass
+
+            """
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            # Get 'direct_access_buttons' (list of button names for direct access)
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            try:
+                direct_config = None
+                if data['value']['direct_config']:
+                    direct_config = data['value']['direct_config']
+                temp = {}
+                if direct_config:
+                    temp = get_direct_access_buttons(direct_config)
+                data['direct_access_buttons'] = temp
+            except Exception as err:
+                #message = 'Exception from get_direct_access_buttons: %s' % str(err)
+                #current_app.logger.info(message)
+                data['direct_access_buttons'] = {}
+                pass
+            """
 
         return data
     except Exception:
@@ -1691,6 +1710,7 @@ def get_parameter_display_values(parameters):
         current_app.logger.info(err.message)
         raise
 
+
 def get_ro_parameter_display_values(parameters):
     """ Get READ_ONLY and IMMUTABLE display values for UI from instrument 'parameters' dictionary.
 
@@ -1772,6 +1792,73 @@ def get_ro_parameter_display_values(parameters):
         current_app.logger.info(err.message)
         raise
 
+
+def get_direct_access_buttons(direct_config):
+    """ Get READ_ONLY and IMMUTABLE display values for UI from instrument 'parameters' dictionary.
+
+    Sample Input:
+    "direct_config": [
+      {
+        "character_delay": 0.0,
+        "data": 40291,
+        "eol": "\r\n",
+        "input_dict": {
+          "Interrupt": "!!!!!",
+          "Print Menu": "$mnu\r\n",
+          "Print Metadata": "$met\r\n",
+          "Read Data": "$get\r\n",
+          "Restore Factory Defaults": "$rfd\r\n",
+          "Restore Settings": "$rls\r\n",
+          "Run Settings": "$run\r\n",
+          "Run Wiper": "$mvs\r\n",
+          "Save Settings": "$sto\r\n",
+          "Set Clock>": "$clk ",
+          "Set Date>": "$date \r\n",
+          "Set>": "set "
+        },
+        "ip": "uft20",
+        "sniffer": 60641,
+        "title": "FLOR"
+      }
+    ],
+        . . .
+
+    Sample Output:
+    ['Interrupt', 'Print Menu', 'Print Metadata', 'Read Data', 'Restore Factory Defaults',
+        'Restore Settings', 'Run Settings', 'Run Wiper', 'Save Settings', 'Set Clock>', 'Set Date>', 'Set>']
+        . . .
+
+    """
+    result = []
+    try:
+        #print '\n debug -- [get_direct_access_buttons] direct_config: ', \
+        #    json.dumps(direct_config, indent=4, sort_keys=True)
+
+        # If no direct_config, then return empty dict.
+        if not direct_config:
+            return result
+
+        # If direct_config does not have attribute 'input_dict', raise error.
+        if 'input_dict' not in direct_config[0]:
+            #message = 'Dictionary direct_config does not contain attribute input_dict.'
+            #current_app.logger.info(message)
+            return result
+
+        # If direct_config attribute 'input_dict' is empty, raise error.
+        if not direct_config[0]['input_dict']:
+            #message = 'Dictionary direct_config attribute input_dict is empty.'
+            #current_app.logger.info(message)
+            return result
+
+        # Create list of direct access buttons
+        input_dict = direct_config[0]['input_dict']
+        result = input_dict.keys()
+        result.sort()
+        return result
+
+    except Exception as err:
+        current_app.logger.info(err.message)
+        raise
 
 
 def get_range_dictionary(resource, _status, reference_designator):
