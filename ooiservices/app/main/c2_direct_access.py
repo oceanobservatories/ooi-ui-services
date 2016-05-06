@@ -13,12 +13,20 @@ from ooiservices.app.decorators import scope_required
 from ooiservices.app.main import api
 from ooiservices.app.main.errors import bad_request
 from ooiservices.app.main.authentication import auth
-from ooiservices.app.main.c2 import _c2_get_instrument_driver_status
+from ooiservices.app.main.c2 import _c2_get_instrument_driver_status, uframe_post_instrument_driver_command
 import json
+
+import socket
+import time
+import ast
+
+import requests
+import requests.exceptions
+from requests.exceptions import ConnectionError, Timeout
 
 
 # Direct Access start.
-# todo deprecate 'GET' and remove fake_data
+# todo deprecate 'GET'?
 @api.route('/c2/instrument/<string:reference_designator>/direct_access/start', methods=['POST', 'GET'])
 @auth.login_required
 @scope_required(u'command_control')
@@ -26,9 +34,14 @@ def c2_direct_access_start(reference_designator):
     """ Start direct access. (when button 'Start Direct' is selected.)
 
     (Transition from 'DRIVER_STATE_COMMAND' to 'DRIVER_STATE_DIRECT_ACCESS'.)
+
+    POST Sample:
+    http://uft21.ooi.rutgers.edu:12572/instrument/api/RS10ENGC-XX00X-00-FLORDD001/start
+    Command: "DRIVER_EVENT_START_DIRECT"
+
     """
+    debug = False
     log = False
-    fake_data = True
     rd = reference_designator
 
     NOT_NONE = 'NOT_NONE'
@@ -45,7 +58,11 @@ def c2_direct_access_start(reference_designator):
             current_app.logger.info(message)
 
         # Validate reference_designator
-        _state, _capabilities, fake_response = direct_access_get_state_and_capabilities(rd)
+        _state, _capabilities, result = direct_access_get_state_and_capabilities(rd)
+        if _state == target_state:
+            if debug: print '\n debug -- Already in target_state: %s' % target_state
+            return jsonify(result)
+
         if log:
             message = '----- (%s) Instrument state (%s) and capabilities (%s)' % (rd, _state, _capabilities)
             current_app.logger.info(message)
@@ -61,20 +78,38 @@ def c2_direct_access_start(reference_designator):
             current_app.logger.info(message)
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Execute - direct access command
+        # Execute driver command 'DRIVER_EVENT_START_DIRECT' on upstream server
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Log current state, capability and action
         if log:
             message = '----- (%s) Instrument state (%s) and capabilities (%s)' % (rd, _state, _capabilities)
             current_app.logger.info(message)
 
-        if fake_data:
-            _state = target_state
-            result = direct_access_start_update_response(fake_response, target_state)
+        # Execute driver command
+        suffix = 'command=%22DRIVER_EVENT_START_DIRECT%22&timeout=60000'
+        response = uframe_post_instrument_driver_command(reference_designator, 'execute', suffix)
+        if response.status_code != 200:
+            message = '(%s) execute %s failed.' % (str(response.status_code), capability_DRIVER_EVENT_START_DIRECT)
+            if response.content:
+                message = '(%s) %s' % (str(response.status_code), str(response.content))
+            raise Exception(message)
 
-        else:
-            # todo EXECUTE DIRECT ACCESS EXECUTE COMMAND with command_request (using upstream server)
-            result = None
+        # If response_data, review error information returned. todo review here.
+        if response.content:
+            try:
+                response_data = json.loads(response.content)
+            except Exception:
+                raise Exception('Malformed data; not in valid json format.')
+
+            # Evaluate response content for error (review 'value' list info in response_data )
+            if response_data:
+                if debug: print '\n START response_data: ', json.dumps(response_data, indent=4, sort_keys=True)
+
+        # Validate reference_designator
+        _state, _capabilities, result = direct_access_get_state_and_capabilities(rd)
+        if log:
+            message = '----- (%s) Instrument state (%s) and capabilities (%s)' % (rd, _state, _capabilities)
+            current_app.logger.info(message)
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Final - direct access response final checks for success or failure
@@ -87,14 +122,13 @@ def c2_direct_access_start(reference_designator):
         return jsonify(result)
 
     except Exception as err:
-        message = '(%s) exception: %s' % (rd, err.message)
-        current_app.logger.info(message)
+        #message = '(%s) exception: %s' % (rd, err.message)
+        #current_app.logger.info(message)
         return bad_request(err.message)
 
 
 # Direct Access execute command.
-# todo deprecate 'GET' and remove fake_data
-@api.route('/c2/instrument/<string:reference_designator>/direct_access/execute', methods=['POST', 'GET'])
+@api.route('/c2/instrument/<string:reference_designator>/direct_access/execute', methods=['POST'])
 @auth.login_required
 @scope_required(u'command_control')
 def c2_direct_access_execute(reference_designator):
@@ -104,127 +138,304 @@ def c2_direct_access_execute(reference_designator):
 
     Process direct access terminal commands:
         Receive content, send to instrument driver.
-        Upon receipt of response from instrument, forward response to UI.
+        [Upon receipt of response from instrument, forward response to UI.] Use sniffer.
 
-    POST request.data shall provide attribute 'command_request':
-    {
-    'command_request': 'some direct access command text to process...'
-    }
+    Note valid commands in direct_access_buttons list:
+        "direct_access_buttons": [
+            "Interrupt",
+            "Print Menu",
+            "Print Metadata",
+            "Read Data",
+            "Restore Factory Defaults",
+            "Restore Settings",
+            "Run Settings",
+            "Run Wiper",
+            "Save Settings",
+            "Set Clock>",
+            "Set Date>",
+            "Set>"
+            ],
 
+        "input_dict": {
+          "Interrupt": "!!!!!",
+          "Print Menu": "$mnu\r\n",
+          "Print Metadata": "$met\r\n",
+          "Read Data": "$get\r\n",
+          "Restore Factory Defaults": "$rfd\r\n",
+          "Restore Settings": "$rls\r\n",
+          "Run Settings": "$run\r\n",
+          "Run Wiper": "$mvs\r\n",
+          "Save Settings": "$sto\r\n",
+          "Set Clock>": "$clk ",
+          "Set Date>": "$date \r\n",
+          "Set>": "set "
+        },
+
+    POST request.data shall provide attribute 'command' or 'command_text':
+        {
+            "command": "Print Metadata"
+            "title": "FLOR"
+        }
+        where valid command value is one of items in direct_access_buttons dictionary (key for input_config).
+
+     OR
+        {
+           "command_text": "$mnu\r\n"
+           "title": "FLOR"
+        }
     """
-    log = False
-    fake_data = True
+    print 'did I get here at all?'
+    debug = False
     rd = reference_designator
-    command_request = None
-    command_response = None
-    embedded_command_response = 'Received direct access command request; this is your response!!'
-
+    TRIPS = '"""'
     NOT_NONE = 'NOT_NONE'
     state_DRIVER_STATE_DIRECT_ACCESS = 'DRIVER_STATE_DIRECT_ACCESS'
-    capability_DRIVER_EVENT_EXIT_DIRECT = 'DRIVER_EVENT_EXIT_DIRECT'   # todo verify capability name
     target_state = state_DRIVER_STATE_DIRECT_ACCESS
-
+    ip_suffix = '.ooi.rutgers.edu'                      # TODO Discuss what to do about this.
     try:
-        # Get request data
-        request_data = None
-        if request.data:
+        title = None
+        command_request = None
+        command_text = None
+        command_request_value = None
+        using_command_request = True
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Get request data, process required items.
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        #print '\n debug -- request.data: ', request.data
+        if not request.data:
+            message = 'Direct access execute command requires request.data for POST.'
+            raise Exception(message)
 
-            # Get request data
-            request_data = json.loads(request.data)
+        # Get request data and process
+        print request.data
+        print is_json(request.data)
+        request_data = json.loads(request.data)
 
-            # Process request_data
-            if request_data is None:
-                message = 'Direct access execute command did not receive request data for instrument %s.' % rd
-                current_app.logger.info(message)
+        if request_data is None:
+            message = 'Direct access execute command did not receive request data (%s).' % rd
+            raise Exception(message)
+
+        if 'title' not in request_data:
+            message = 'Malformed direct access execute command, missing title (%s).' % rd
+            raise Exception(message)
+
+        if ('command' not in request_data) and ('command_text' not in request_data):
+            message = 'Malformed direct access execute command, missing command or command text (%s).' % rd
+            raise Exception(message)
+
+        # Get title, and command_request or command_text.
+        title = request_data['title']
+        if 'command' in request_data:
+            command_request = request_data['command']
+            command_text = None
+        elif 'command_text' in request_data:
+            command_text = request_data['command_text']
+            print command_text
+            command_request = None
+            using_command_request = False
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Verify required fields are not None.
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if title is None:
+            message = 'No direct access title data provided for instrument %s.' % rd
+            raise Exception(message)
+        if using_command_request:
+            if command_request is None:
+                message = 'No direct access command data provided for instrument %s.' % rd
                 raise Exception(message)
-
-            if 'command_request' not in request_data:
-                message = 'Malformed direct access execute command, no command_request (instrument %s).' % rd
-                current_app.logger.info(message)
-                raise Exception(message)
-
-            command_request = request_data['command_request']
-
-        if command_request is None:
-            message = 'No direct access command data provided for instrument %s.' % rd
-            current_app.logger.info(message)
-            if not fake_data: raise Exception(message)
-
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Prepare to execute - direct access start command
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if log:
-            message = 'Log -- (%s) Get instrument state and capabilities.' % rd
-            current_app.logger.info(message)
-
-        # Validate reference_designator
-        _state, _capabilities, fake_response = direct_access_get_state_and_capabilities(rd)
-        if log:
-            message = '----- (%s) Instrument state (%s) and capabilities (%s)' % (rd, _state, _capabilities)
-            current_app.logger.info(message)
-
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Execute - direct access command
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if fake_data:
-            _state = target_state
-            result = direct_access_start_update_response(fake_response, target_state,
-                                                         command_response=embedded_command_response)
         else:
-            # Verify current _state and _capabilities match expected state and capabilities
-            verify_state_and_capabilities(rd, _state, _capabilities,
-                                          expected_state=state_DRIVER_STATE_DIRECT_ACCESS,
-                                          expected_capability=NOT_NONE)
-            if log:
-                message = 'Instrument %s in %s state and has %s capability. Start direct access.' % \
-                          (rd, _state, capability_DRIVER_EVENT_EXIT_DIRECT)
-                current_app.logger.info(message)
+            if command_text is None:
+                message = 'No direct access command_text data provided for instrument %s.' % rd
+                raise Exception(message)
 
-            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-            # Execute - direct access command
-            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-            # todo EXECUTE DIRECT ACCESS EXECUTE COMMAND with command_request (using upstream server)
-            result = None
+        if debug:
+            print '\n debug --- title: %r' % title
+            if using_command_request:
+                print '\n debug --- command_request: %r' % command_request
+            else:
+                print '\n debug --- command_text: %r' % command_request
 
-        # Log current state, capability and action
-        if log:
-            message = '----- (%s) Instrument state (%s) and capabilities (%s)' % (rd, _state, _capabilities)
-            current_app.logger.info(message)
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Prepare to execute - get state, capabilities and status.
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        _state, _capabilities, result = direct_access_get_state_and_capabilities(rd)
 
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Final - direct access response final checks for success or failure
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Verify _state and _capabilities match expected state and capabilities
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Verify current _state and _capabilities match expected state and capabilities
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        verify_state_and_capabilities(rd, _state, _capabilities,
+                                      expected_state=state_DRIVER_STATE_DIRECT_ACCESS,
+                                      expected_capability=NOT_NONE)
+
+        if using_command_request:
+            #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            # Get valid direct access commands from direct_access_buttons
+            #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            valid_commands = []
+            if result:
+                if 'direct_access_buttons' in result:
+                    valid_commands = result['direct_access_buttons']
+                else:
+                    message = 'Instrument %s missing direct_access_buttons dictionary.' % rd
+                    raise Exception(message)
+
+            #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            # Verify there are valid commands; otherwise error.
+            #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            if not valid_commands:
+                message = 'Instrument %s direct_access_buttons list is empty.' % rd
+                raise Exception(message)
+
+            #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            # Verify command_request from request data is a valid command; otherwise error.
+            #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            if command_request not in valid_commands:
+                message = 'Instrument %s command received \'%s\' not in list of available commands.' % \
+                          (rd, command_request)
+                raise Exception(message)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Verify direct_config available; otherwise error.
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if 'direct_config' not in result['value']:
+            message = 'Instrument %s has missing direct access direct_config list.' % rd
+            raise Exception(message)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Verify direct_config is not empty; otherwise error.
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if not result['value']['direct_config']:
+            message = 'Instrument %s has empty direct access direct_config list.' % rd
+            raise Exception(message)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # If direct_config has contents, process list of dictionaries
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        ip = None
+        data = None
+        eol = None
+        located_requested_item = False
+        for direct_config in result['value']['direct_config']:
+
+            # Get and check title; if title in dictionary does not match requested title; go to next item.
+            _title = None
+            if 'title' in direct_config:
+                _title = direct_config['title']
+            if _title != title:
+                continue
+
+            # Identified item in direct_config; process item
+            located_requested_item = True
+
+            # Get and check ip from direct_config dictionary
+            ip = None
+            if 'ip' in direct_config:
+                ip = direct_config['ip']
+                if ip is None or not ip:
+                    message = 'Instrument %s has invalid ip: \'%r\'.' % (rd, ip)
+                    raise Exception(message)
+                ip += ip_suffix
+
+            # Get and check data from direct_config dictionary
+            data = None
+            if 'data' in direct_config:
+                data = direct_config['data']
+                if data is None or not data:
+                    message = 'Instrument %s has invalid data: \'%r\'.' % (rd, data)
+                    raise Exception(message)
+
+            # Get and check eol from direct_config dictionary
+            eol = None
+            if 'eol' in direct_config:
+                eol = direct_config['eol']
+                if eol is None or not eol:
+                    message = 'Instrument %s has invalid or empty eol: \'%r\'.' % (rd, eol)
+                    raise Exception(message)
+
+            #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            # If processing a command_request, get remaining items for processing
+            #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            if using_command_request:
+
+                # Verify input_dict is in direct_config
+                if 'input_dict' not in direct_config:
+                    message = 'Instrument %s has missing direct access input_dict dictionary.' % rd
+                    raise Exception(message)
+
+                # Get command_request_values; verify command_request in list and therefore valid.
+                command_request_values = direct_config['input_dict']
+                if command_request not in command_request_values:
+                    message = 'Instrument %s direct access command %s not found in direct_config.' % rd
+                    raise Exception(message)
+
+                # Get command_request_value from input_dict provided.
+                command_request_value = command_request_values[command_request]
+
+        # Was the requested title located in the direct_config? If not, error.
+        if not located_requested_item:
+            message = 'Instrument %s did not have a matching title \'%s\' in direct access direct_config.' % (rd, title)
+            raise Exception(message)
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Prepare command value to send to instrument.
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if using_command_request:
+            # Using command button value
+            command_value = command_request_value
+            if debug: print '\n direct access - (command:value) %s: %r' % (command_request, command_value)
+        else:
+            # Using command_text, prepare command_value
+            try:
+                #command_value = command_text
+                command_value = ast.literal_eval(TRIPS + command_text + TRIPS)
+                if eol:
+                    command_value += eol
+                print '\n direct access - command_text: *%r*' % command_value
+            except Exception as err:
+                message = 'Exception processing command value (literal_eval): %s' % str(err)
+                raise Exception(message)
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Execute - direct access command.
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        try:
+            send_command(rd, command_value, ip, data)
+        except Exception as err:
+            message = 'Exception processing command: %s' % str(err)
+            raise Exception(message)
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Final - Verify _state and _capabilities match expected state and capabilities.
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         verify_state_and_capabilities(rd, _state, _capabilities,
                                       expected_state=target_state,
                                       expected_capability=NOT_NONE)
 
         return jsonify(result)
     except Exception as err:
-        message = '(%s) exception: %s' % (reference_designator, err.message)
+        message = '(%s) exception: %s' % (rd, err.message)
         current_app.logger.info(message)
         return bad_request(err.message)
 
 
 # Direct Access exit
-# todo deprecate 'GET' and remove fake_data
+# todo Consider deprecate 'POST'?
 @api.route('/c2/instrument/<string:reference_designator>/direct_access/exit', methods=['POST', 'GET'])
 @auth.login_required
 @scope_required(u'command_control')
 def c2_direct_access_exit(reference_designator):
     """ Exit direct access. (when button 'Exit Direct' is selected.)
 
-    Transition from 'DRIVER_STATE_DIRECT_ACCESS' to 'DRIVER_EVENT_EXIT_DIRECT'
+    Transition from 'DRIVER_STATE_DIRECT_ACCESS' to 'DRIVER_STATE_COMMAND' (execute 'DRIVER_EVENT_STOP_DIRECT')
     """
+    debug = False
     log = False
-    fake_data = True
     rd = reference_designator
-
     NOT_NONE = 'NOT_NONE'
     state_DRIVER_STATE_DIRECT_ACCESS = 'DRIVER_STATE_DIRECT_ACCESS'
-    capability_DRIVER_EVENT_EXIT_DIRECT = 'DRIVER_EVENT_EXIT_DIRECT'   # todo verify capability
+    capability_DRIVER_EVENT_STOP_DIRECT = 'DRIVER_EVENT_STOP_DIRECT'
     target_state = 'DRIVER_STATE_COMMAND'
-
     try:
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Prepare to execute - direct access start command
@@ -234,39 +445,55 @@ def c2_direct_access_exit(reference_designator):
             current_app.logger.info(message)
 
         # Validate reference_designator
-        _state, _capabilities, fake_response = direct_access_get_state_and_capabilities(rd)
+        _state, _capabilities, result = direct_access_get_state_and_capabilities(rd)
+        if _state == target_state:
+            if debug: print '\n debug -- Already in target_state: %s' % target_state
+            return jsonify(result)
+
         if log:
             message = '----- (%s) Instrument state (%s) and capabilities (%s)' % (rd, _state, _capabilities)
             current_app.logger.info(message)
 
-        if fake_data:
-            # Log current state, capability and action
-            if log:
-                message = '----- (%s) Instrument state (%s) and capabilities (%s)' % (rd, _state, _capabilities)
-                current_app.logger.info(message)
+        # Verify current _state and _capabilities match expected state and capabilities
+        verify_state_and_capabilities(rd, _state, _capabilities,
+                                      expected_state=state_DRIVER_STATE_DIRECT_ACCESS,
+                                      expected_capability=capability_DRIVER_EVENT_STOP_DIRECT)
 
-        else:
-            # Verify current _state and _capabilities match expected state and capabilities
-            verify_state_and_capabilities(rd, _state, _capabilities,
-                                          expected_state=state_DRIVER_STATE_DIRECT_ACCESS,
-                                          expected_capability=capability_DRIVER_EVENT_EXIT_DIRECT)
-
-            if log:
-                message = 'Instrument %s in %s state and has %s capability. Start direct access.' % \
-                          (rd, _state, capability_DRIVER_EVENT_EXIT_DIRECT)
-                current_app.logger.info(message)
+        if log:
+            message = 'Instrument %s in %s state and has %s capability. Start direct access.' % \
+                      (rd, _state, capability_DRIVER_EVENT_STOP_DIRECT)
+            current_app.logger.info(message)
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Execute - direct access command
+        # Execute driver command 'DRIVER_EVENT_STOP_DIRECT' on upstream server
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if fake_data:
-            # direct access simulated response (fake_response) with target state
-            _state = target_state
-            result = direct_access_start_update_response(fake_response, target_state)
-        else:
-            # todo EXECUTE DIRECT ACCESS EXIT COMMAND (using upstream server)
-            print '\n direct access: issue command exit to upstream server'
-            result = None
+        if debug: print '\n direct access: issue command exit to upstream server'
+        suffix = 'command=%22DRIVER_EVENT_STOP_DIRECT%22&timeout=60000'
+
+        # Execute driver command
+        response = uframe_post_instrument_driver_command(reference_designator, 'execute', suffix)
+        if response.status_code != 200:
+            message = '(%s) execute %s failed.' % (str(response.status_code), capability_DRIVER_EVENT_STOP_DIRECT)
+            if response.content:
+                message = '(%s) %s' % (str(response.status_code), str(response.content))
+            raise Exception(message)
+
+        # If response_data, review error information returned
+        if response.content:
+            try:
+                response_data = json.loads(response.content)
+            except Exception:
+                raise Exception('Malformed data; not in valid json format.')
+
+            # Evaluate response content for error (review 'value' list info in response_data )
+            if response_data:
+                if debug: print '\n STOP response_data: ', json.dumps(response_data, indent=4, sort_keys=True)
+
+        # Validate reference_designator
+        _state, _capabilities, result = direct_access_get_state_and_capabilities(rd)
+        if log:
+            message = '----- (%s) Instrument state (%s) and capabilities (%s)' % (rd, _state, _capabilities)
+            current_app.logger.info(message)
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Final - direct access response final checks for success or failure
@@ -279,33 +506,28 @@ def c2_direct_access_exit(reference_designator):
         return jsonify(result)
 
     except Exception as err:
-        message = '(%s) exception: %s' % (reference_designator, err.message)
-        current_app.logger.info(message)
+        #message = '(%s) exception: %s' % (reference_designator, err.message)
+        #current_app.logger.info(message)
         return bad_request(err.message)
 
 #==================================================================
 # SUPPORTING FUNCTIONS...
 #==================================================================
-# todo remove return _status (for fake_response)
 def direct_access_get_state_and_capabilities(reference_designator):
     """ Get current state and capabilities information for an instrument.
     Overview:
         Get instrument status
         Get state rom resulting status
         Get capabilities from resulting status
-        Return state, capabilities and (for now) _status to be used for fake_response
+        Add 'direct_access_buttons' dict to _status
+        Return state, capabilities and  _status
     """
-    debug = False
     state = None
     capabilities = []
     try:
         # Get instrument status.
         try:
             _status = _c2_get_instrument_driver_status(reference_designator)
-            if debug:
-                #print '\n debug ***** status: %s' % json.dumps(_status, indent=4, sort_keys=True)
-                print '\n debug -- _status[value][state]: ', _status['value']['state']
-                print '\n debug -- _status[value][capabilities]: ', _status['value']['capabilities'][0]
         except Exception as err:
             message = err.message
             raise Exception(message)
@@ -323,6 +545,23 @@ def direct_access_get_state_and_capabilities(reference_designator):
         if 'value' in _status:
             if 'capabilities' in _status['value']:
                 capabilities = _status['value']['capabilities'][0]
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Get 'direct_access_buttons' (list of button names for direct access)
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        try:
+            direct_config = None
+            if _status['value']['direct_config']:
+                direct_config = _status['value']['direct_config']
+            temp = {}
+            if direct_config:
+                temp = get_direct_access_buttons(direct_config)
+            _status['direct_access_buttons'] = temp
+        except Exception as err:
+            #message = 'Exception from get_direct_access_buttons: %s' % str(err)
+            #current_app.logger.info(message)
+            _status['direct_access_buttons'] = {}
+            pass
 
         return state, capabilities, _status
 
@@ -377,81 +616,138 @@ def verify_state_and_capabilities(reference_designator, state, capabilities, exp
         raise
 
 
-# todo remove when up stream services are available.
-def direct_access_start_update_response(fake_response, target_state, command_response=None):
-    """ Update response status 'state' attribute to target state.
-    Modify capabilities and commands iff processing execute state
+def send_command(rd, command, ip, data):
+    """ Send command to rd using ip and data [port].
+    Command example: '$met\r\n'
     """
-    execute_state = 'DRIVER_STATE_DIRECT_ACCESS'
-    #start_state = 'DRIVER_STATE_COMMAND'
-    target_capabilities = [
-          "DRIVER_EVENT_EXIT_DIRECT",
-          "DRIVER_EVENT_DIRECT_ACTION_1",
-          "DRIVER_EVENT_DIRECT_ACTION_2"]
-    target_commands = {
-            "DRIVER_EVENT_EXIT_DIRECT": {
-            "arguments": {},
-            "display_name": "Exit",
-            "return": {},
-            "timeout": 20
-          },
-            "DRIVER_EVENT_DIRECT_ACTION_1": {
-            "arguments": {},
-            "display_name": "Action 1",
-            "return": {},
-            "timeout": 10
-          },
-            "DRIVER_EVENT_DIRECT_ACTION_2": {
-            "arguments": {},
-            "display_name": "Action 2",
-            "return": {},
-            "timeout": 10
-          },
-        }
-
+    print '\n debug -- send_command: rd: %s,command: %r, ip: %s, data: %d' % (rd, command, ip, data)
     try:
-        # Update result with content provided from instrument/driver
-        result = fake_response
+        while 1:
+            c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            c.connect((ip, data))
+            content = command
+            c.sendall(content)
+            c.shutdown(socket.SHUT_WR)
+            c.close()
+            time.sleep(5)
+            break
 
-        # Always update target state to what we expect
-        result['value']['state'] = target_state
-
-        # Modify capabilities and commands iff processing execute state
-        #if target_state != execute_state:
-        if target_state == execute_state:
-            result['value']['metadata']['commands'] = target_commands
-            result['value']['capabilities'][0] = target_capabilities
-            if command_response is not None:
-                result['direct_access_response'] = command_response
-
-        return result
-
-    except:
-        raise
-
-
-#==================================================================
-# CONSTRUCTION ZONE...
-#==================================================================
-'''
-def uframe_post_instrument_driver_command(reference_designator, command, suffix):
-    """ Return the uframe response of instrument driver command and suffix provided for POST.
-    Example of suffix = '?command=%22DRIVER_EVENT_STOP_AUTOSAMPLE%22&timeout=60000'
-    """
-    try:
-        uframe_url, timeout, timeout_read = get_uframe_info()
-        url = "/".join([uframe_url, reference_designator, command])
-        url = "?".join([url, suffix])
-        response = requests.post(url, timeout=(timeout, timeout_read), headers=_post_headers())
-        return response
+        return
     except ConnectionError:
-        message = 'ConnectionError for post instrument driver command.'
+        message = 'ConnectionError for direct access during send_command.'
         current_app.logger.info(message)
         raise Exception(message)
     except Timeout:
-        message = 'Timeout for post instrument driver command.'
+        message = 'Timeout for direct access during send_command.'
         current_app.logger.info(message)
         raise Exception(message)
-    except Exception:
+    except Exception as err:
+        message = 'Instrument %s exception during send command %s. Error: %s' % (rd, command, str(err))
+        current_app.logger.info(message)
         raise
-'''
+
+
+#===================================================================================
+#TODO remove and use same function in c2.py; here until C2 direct access demo completed.
+def get_direct_access_buttons(direct_config):
+    """ Get READ_ONLY and IMMUTABLE display values for UI from instrument 'parameters' dictionary.
+
+    Sample Input:
+    "direct_config": [
+      {
+        "character_delay": 0.0,
+        "data": 40291,
+        "eol": "\r\n",
+        "input_dict": {
+          "Interrupt": "!!!!!",
+          "Print Menu": "$mnu\r\n",
+          "Print Metadata": "$met\r\n",
+          "Read Data": "$get\r\n",
+          "Restore Factory Defaults": "$rfd\r\n",
+          "Restore Settings": "$rls\r\n",
+          "Run Settings": "$run\r\n",
+          "Run Wiper": "$mvs\r\n",
+          "Save Settings": "$sto\r\n",
+          "Set Clock>": "$clk ",
+          "Set Date>": "$date \r\n",
+          "Set>": "set "
+        },
+        "ip": "uft20",
+        "sniffer": 60641,
+        "title": "FLOR"
+      }
+    ],
+        . . .
+
+    Sample Output:
+    ['Interrupt', 'Print Menu', 'Print Metadata', 'Read Data', 'Restore Factory Defaults',
+        'Restore Settings', 'Run Settings', 'Run Wiper', 'Save Settings', 'Set Clock>', 'Set Date>', 'Set>']
+        . . .
+
+    """
+    result = []
+    try:
+        print '\n debug -- [get_direct_access_buttons] direct_config: ', \
+            json.dumps(direct_config, indent=4, sort_keys=True)
+
+        # If no direct_config, then return empty dict.
+        if not direct_config:
+            return result
+
+        # If direct_config does not have attribute 'input_dict', raise error.
+        if 'input_dict' not in direct_config[0]:
+            return result
+
+        # If direct_config attribute 'input_dict' is empty, raise error.
+        if not direct_config[0]['input_dict']:
+            return result
+
+        # Create list of direct access buttons
+        input_dict = direct_config[0]['input_dict']
+        result = input_dict.keys()
+        result.sort()
+        return result
+
+    except Exception as err:
+        current_app.logger.info(err.message)
+        raise
+
+
+"""
+nc uft20 60641
+goconda
+source activate instruments
+
+(threaded socket server for UI)
+
+# "character_delay": 0.0, what are units?
+if character_delay >0 split and loop using delay
+
+import socket
+from urllib import urlencode
+import time
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.connect(("uft20", 60641))
+while 1:
+    c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    c.connect(("uft20", 40291))
+    content = '$met\r\n' #.encode('utf-8')
+    c.sendall(content)
+    c.shutdown(socket.SHUT_WR)
+    c.close()
+    time.sleep(1)
+    data = s.recv(1024)
+    if data == "":
+        break
+    print "Received:", repr(data)
+print "Connection closed."
+s.close()
+"""
+
+def is_json(input_json):
+  try:
+    json_object = json.loads(input_json)
+  except ValueError, e:
+    return False
+  return True
