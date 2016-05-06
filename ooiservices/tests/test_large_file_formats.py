@@ -2,6 +2,8 @@
 import unittest
 from ooiservices.app import create_app
 from ooiservices.app.uframe.controller import _compile_large_format_files
+from unittest import skipIf
+import os
 
 '''
 Unit testing for Large File Format data
@@ -9,6 +11,7 @@ These tests are used to validate and test parsing of large format data
 '''
 
 
+@skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
 class UframeLargeDataTestCase(unittest.TestCase):
     def setUp(self):
         self.app = create_app('TESTING_CONFIG')
