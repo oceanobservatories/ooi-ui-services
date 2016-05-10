@@ -8,22 +8,28 @@ API v1.0 Command and Control (C2) direct access routes:
 """
 __author__ = 'Edna Donoughe'
 
+
 from flask import jsonify, current_app, request
 from ooiservices.app.decorators import scope_required
 from ooiservices.app.main import api
 from ooiservices.app.main.errors import bad_request
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.main.c2 import _c2_get_instrument_driver_status, uframe_post_instrument_driver_command
-import json
 
-import socket
+
 import time
 import ast
-
-import requests
-import requests.exceptions
 from requests.exceptions import ConnectionError, Timeout
 
+#from ooiservices.app import sio
+#from threading import Thread
+#from flask_socketio import SocketIO
+#from flask_socketio import emit, join_room, leave_room, close_room, rooms, disconnect
+import socket as sock
+import json
+#thread = None
+
+#namespace = '/c2_direct_access'
 
 # Direct Access start.
 # todo deprecate 'GET'?
@@ -41,50 +47,29 @@ def c2_direct_access_start(reference_designator):
 
     """
     debug = False
-    log = False
     rd = reference_designator
-
     NOT_NONE = 'NOT_NONE'
     state_DRIVER_STATE_COMMAND = 'DRIVER_STATE_COMMAND'
     capability_DRIVER_EVENT_START_DIRECT = 'DRIVER_EVENT_START_DIRECT'
     target_state = 'DRIVER_STATE_DIRECT_ACCESS'
-
     try:
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Prepare to execute - direct access start command
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if log:
-            message = 'Log -- (%s) Get instrument state and capabilities.' % rd
-            current_app.logger.info(message)
-
         # Validate reference_designator
         _state, _capabilities, result = direct_access_get_state_and_capabilities(rd)
         if _state == target_state:
             if debug: print '\n debug -- Already in target_state: %s' % target_state
             return jsonify(result)
 
-        if log:
-            message = '----- (%s) Instrument state (%s) and capabilities (%s)' % (rd, _state, _capabilities)
-            current_app.logger.info(message)
-
         # Verify _state and _capabilities match expected state and capabilities
         verify_state_and_capabilities(rd, _state, _capabilities,
                                       expected_state=state_DRIVER_STATE_COMMAND,
                                       expected_capability=capability_DRIVER_EVENT_START_DIRECT)
 
-        if log:
-            message = 'Instrument %s in %s state and has %s capability. Start direct access.' % \
-                      (rd, _state, capability_DRIVER_EVENT_START_DIRECT)
-            current_app.logger.info(message)
-
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Execute driver command 'DRIVER_EVENT_START_DIRECT' on upstream server
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Log current state, capability and action
-        if log:
-            message = '----- (%s) Instrument state (%s) and capabilities (%s)' % (rd, _state, _capabilities)
-            current_app.logger.info(message)
-
         # Execute driver command
         suffix = 'command=%22DRIVER_EVENT_START_DIRECT%22&timeout=60000'
         response = uframe_post_instrument_driver_command(reference_designator, 'execute', suffix)
@@ -94,11 +79,12 @@ def c2_direct_access_start(reference_designator):
                 message = '(%s) %s' % (str(response.status_code), str(response.content))
             raise Exception(message)
 
-        # If response_data, review error information returned. todo review here.
+        # If response_data, review error information returned.
         if response.content:
             try:
                 response_data = json.loads(response.content)
             except Exception:
+                print '\n testing Exception ....'
                 raise Exception('Malformed data; not in valid json format.')
 
             # Evaluate response content for error (review 'value' list info in response_data )
@@ -107,9 +93,6 @@ def c2_direct_access_start(reference_designator):
 
         # Validate reference_designator
         _state, _capabilities, result = direct_access_get_state_and_capabilities(rd)
-        if log:
-            message = '----- (%s) Instrument state (%s) and capabilities (%s)' % (rd, _state, _capabilities)
-            current_app.logger.info(message)
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Final - direct access response final checks for success or failure
@@ -122,8 +105,8 @@ def c2_direct_access_start(reference_designator):
         return jsonify(result)
 
     except Exception as err:
-        #message = '(%s) exception: %s' % (rd, err.message)
-        #current_app.logger.info(message)
+        message = '(%s) exception: %s' % (rd, err.message)
+        current_app.logger.info(message)
         return bad_request(err.message)
 
 
@@ -184,14 +167,12 @@ def c2_direct_access_execute(reference_designator):
            "title": "FLOR"
         }
     """
-    print 'did I get here at all?'
     debug = False
     rd = reference_designator
     TRIPS = '"""'
     NOT_NONE = 'NOT_NONE'
     state_DRIVER_STATE_DIRECT_ACCESS = 'DRIVER_STATE_DIRECT_ACCESS'
     target_state = state_DRIVER_STATE_DIRECT_ACCESS
-    ip_suffix = '.ooi.rutgers.edu'                      # TODO Discuss what to do about this.
     try:
         title = None
         command_request = None
@@ -201,16 +182,12 @@ def c2_direct_access_execute(reference_designator):
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Get request data, process required items.
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        #print '\n debug -- request.data: ', request.data
         if not request.data:
             message = 'Direct access execute command requires request.data for POST.'
             raise Exception(message)
 
         # Get request data and process
-        print request.data
-        print is_json(request.data)
         request_data = json.loads(request.data)
-
         if request_data is None:
             message = 'Direct access execute command did not receive request data (%s).' % rd
             raise Exception(message)
@@ -230,7 +207,6 @@ def c2_direct_access_execute(reference_designator):
             command_text = None
         elif 'command_text' in request_data:
             command_text = request_data['command_text']
-            print command_text
             command_request = None
             using_command_request = False
 
@@ -335,7 +311,6 @@ def c2_direct_access_execute(reference_designator):
                 if ip is None or not ip:
                     message = 'Instrument %s has invalid ip: \'%r\'.' % (rd, ip)
                     raise Exception(message)
-                ip += ip_suffix
 
             # Get and check data from direct_config dictionary
             data = None
@@ -413,6 +388,7 @@ def c2_direct_access_execute(reference_designator):
                                       expected_capability=NOT_NONE)
 
         return jsonify(result)
+
     except Exception as err:
         message = '(%s) exception: %s' % (rd, err.message)
         current_app.logger.info(message)
@@ -430,7 +406,6 @@ def c2_direct_access_exit(reference_designator):
     Transition from 'DRIVER_STATE_DIRECT_ACCESS' to 'DRIVER_STATE_COMMAND' (execute 'DRIVER_EVENT_STOP_DIRECT')
     """
     debug = False
-    log = False
     rd = reference_designator
     NOT_NONE = 'NOT_NONE'
     state_DRIVER_STATE_DIRECT_ACCESS = 'DRIVER_STATE_DIRECT_ACCESS'
@@ -440,29 +415,16 @@ def c2_direct_access_exit(reference_designator):
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Prepare to execute - direct access start command
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if log:
-            message = 'Log -- (%s) Get instrument state and capabilities.' % rd
-            current_app.logger.info(message)
-
         # Validate reference_designator
         _state, _capabilities, result = direct_access_get_state_and_capabilities(rd)
         if _state == target_state:
             if debug: print '\n debug -- Already in target_state: %s' % target_state
             return jsonify(result)
 
-        if log:
-            message = '----- (%s) Instrument state (%s) and capabilities (%s)' % (rd, _state, _capabilities)
-            current_app.logger.info(message)
-
         # Verify current _state and _capabilities match expected state and capabilities
         verify_state_and_capabilities(rd, _state, _capabilities,
                                       expected_state=state_DRIVER_STATE_DIRECT_ACCESS,
                                       expected_capability=capability_DRIVER_EVENT_STOP_DIRECT)
-
-        if log:
-            message = 'Instrument %s in %s state and has %s capability. Start direct access.' % \
-                      (rd, _state, capability_DRIVER_EVENT_STOP_DIRECT)
-            current_app.logger.info(message)
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Execute driver command 'DRIVER_EVENT_STOP_DIRECT' on upstream server
@@ -491,9 +453,6 @@ def c2_direct_access_exit(reference_designator):
 
         # Validate reference_designator
         _state, _capabilities, result = direct_access_get_state_and_capabilities(rd)
-        if log:
-            message = '----- (%s) Instrument state (%s) and capabilities (%s)' % (rd, _state, _capabilities)
-            current_app.logger.info(message)
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Final - direct access response final checks for success or failure
@@ -506,9 +465,305 @@ def c2_direct_access_exit(reference_designator):
         return jsonify(result)
 
     except Exception as err:
-        #message = '(%s) exception: %s' % (reference_designator, err.message)
-        #current_app.logger.info(message)
+        message = '(%s) exception: %s' % (rd, err.message)
+        current_app.logger.info(message)
         return bad_request(err.message)
+
+# Direct Access sniffer
+# todo Under Development; enable auth and scope
+@api.route('/c2/instrument/<string:reference_designator>/direct_access/sniffer', methods=['POST', 'GET'])
+#@auth.login_required
+#@scope_required(u'command_control')
+def c2_direct_access_sniffer(reference_designator):
+    """ Sniff port/ip/title for data, return data
+    Sample request:
+    http://localhost:4000/c2/instrument/RS10ENGC-XX00X-00-FLORDD001/direct_access/sniffer
+        (using hardcoded message: message = '{"ip": "128.6.240.37", "port": 54366}' )
+
+    Sample response:
+    {
+      "msg": "3671820966.2507 :    PA_HEARTBEAT :  CRC OK : 'HB'\n"
+    }
+
+    curl -H "Content-Type: application/json" -X POST --upload-file post_sniff_flord.txt http://localhost:4000/c2/instrument/RS10ENGC-XX00X-00-FLORDD001/direct_access/sniffer
+    curl -H "Content-Type: application/json" -X POST --upload-file post_sniff_vadcp_1.txt http://localhost:4000/c2/instrument/RS10ENGC-XX00X-00-VADCPA011/direct_access/sniffer
+
+    """
+    # VADCP
+    #message = '{"ip": "128.6.240.37", "port": 34868, "title": "Beams 1-4"}'
+    #message = '{"ip": "128.6.240.37", "port": 48989, "title": "5th Beam"}'
+    # FLORD
+    #message = '{"ip": "128.6.240.37", "port": 54366, "title": "FLOR"}'
+    #message = '{"ip": "128.6.240.37", "port": 54366}'
+    # {"ip": "128.6.240.37", "port": 54366}
+
+    debug = False
+    _data = None
+    rd = reference_designator
+    required_variables = ['ip', 'port', 'title']
+    try:
+        if debug: print '\n sniffer...', request.data
+        #namespace = get_c2_sniffer_namespace()
+        #if debug: print '\n namespace: ', namespace
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Get request data, process required items.
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if not request.data:
+            message = 'Direct access sniffer requires request.data for POST.'
+            raise Exception(message)
+
+        # Get request data and process
+        request_data = json.loads(request.data)
+        if request_data is None:
+            message = 'Direct access sniffer request data is None. (%s).' % rd
+            raise Exception(message)
+
+        # Verify required items are provided in request.data and not empty
+        for item in required_variables:
+            if item not in request_data:
+                message = 'Malformed direct access sniffer request, missing %s (%s).' % (item, rd)
+                raise Exception(message)
+            else:
+                if not request_data[item] or request_data[item] is None:
+                    message = 'Malformed direct access sniffer request, %s is empty (%s).' % (item, rd)
+                    raise Exception(message)
+
+        # Get ip, port and title
+        """
+        msg = {}
+        msg['ip'] = request_data['ip']
+        msg['port'] = request_data['port']
+        msg['title'] = request_data['title']
+
+        #msg = '{"ip": "128.6.240.37", "port": 54366}'                           # TESTING
+        #msg = '{"ip": "128.6.240.37", "port": 54366, "title": "FLOR"}'          # TESTING
+        #print '\n (sniffer) msg: ', msg
+        """
+
+        ip = request_data['ip']
+        port = request_data['port']
+        title = request_data['title']
+        title = title.replace(' ', '')
+
+        # Issue request to sniffer process
+        s = None
+        '''
+        result = start_thread()
+        if result is None:
+            print '\n ***** error: thread was not set (None)...'
+            message = 'Unable to start_thread (%s).' % rd
+            raise Exception(message)
+        '''
+
+        if debug:
+            #print '\n (sniffer) sio: ', sio
+            print '-- rd: ', rd
+            print '-- data[ip]: ', ip
+            print '-- data[port]: ', port
+
+        try:
+            message = '-- Get data'
+            print message
+            s = sock.socket(sock.AF_INET, sock.SOCK_STREAM)
+            s.connect((ip, port))
+            _data = None
+            try:
+                _data = s.recv(4096)
+            except Exception:
+                pass
+            if s is not None:
+                s.close()
+
+            if _data:
+                if debug: print 'Received: ', repr(_data)
+                #do_emmit(namespace, repr(_data), title)
+
+        except Exception as errb:
+            err_message = str(errb)
+            #sio.emit('my result', {'data': err_message}, broadcast=False, namespace=namespace)
+            if s is not None:
+                s.close()
+            pass
+
+        #return jsonify(msg=repr(_data))
+        #return jsonify(msg=[repr(_data)])
+        return jsonify(msg=_data)
+
+    except Exception as err:
+        message = '(%s) exception: %s' % (reference_designator, err.message)
+        if debug: print '\n exception: ', message
+        current_app.logger.info(message)
+        return bad_request(err.message)
+
+'''
+def start_thread():
+    global thread
+    if thread is None:
+        print '\n Started thread...'
+        thread = Thread() #target=background_thread)
+        thread.daemon = True
+        thread.start()
+    else:
+        print '\n already have thread....'
+    return thread
+
+
+def get_c2_sniffer_namespace():
+    """ get namespace for direct access emmit
+    """
+    try:
+        print '\n (get_c2_sniffer_namespace) entered'
+        namespace = current_app.config['C2_DIRECT_ACCESS_NAMESPACE']
+        if not namespace:
+            raise Exception('Namespace is not defined in configuration file.')
+
+        print '\n (get_c2_sniffer_namespace) namespace: ', namespace
+        return namespace
+    except Exception as err:
+        current_app.logger.info(str(err.message))
+        print '\n (get_c2_sniffer_namespace) exception: ', str(err.message)
+        raise Exception(str(err))
+
+
+def do_emmit(namespace, data, room=None):
+    """ emit to client, no broadcast, and, if room is provided then send it also. room is title (minus spaces).
+    """
+    debug = True
+    try:
+        if room is None:
+            if namespace is not None:
+                sio.emit('my result', {'data': data}, namespace=namespace, broadcast=False)
+            else:
+                sio.emit('my result', {'data': data}, broadcast=False)
+        else:
+            if debug: print '\n send to room: ', room
+            if namespace is not None:
+                sio.emit('my result', {'data': data}, room=room, namespace=namespace, broadcast=False)
+            else:
+                sio.emit('my result', {'data': data}, room=room, broadcast=False)
+
+    except Exception as err:
+        if debug: print '\n exception in do_emmit: %s' % str(err)
+        pass
+
+#================================================================== START
+@sio.on('get sniffer', namespace=namespace)
+def test_get_sniffer(message):
+    """
+    references for disconnect:
+    http://stackoverflow.com/questions/27159198/socket-io-with-flask-socketio-python-how-to-set-socket-keepalive-timeout
+    http://stackoverflow.com/questions/12815231/controlling-the-heartbeat-timeout-from-the-client-in-socket-io
+    """
+    #
+    # VADCP
+    # message = '{"ip": "128.6.240.37", "port": 34868, "title": "Beams 1-4"}'
+    # message = '{"ip": "128.6.240.37", "port": 48989, "title": "5th Beam"}'
+
+    # FLORD
+    # message = '{"ip": "128.6.240.37", "port": 54366, "title": "FLOR"}'
+
+    # Send this in:
+    # {"ip": "128.6.240.37", "port": 54366, "title": "FLOR"}    # SEND THIS IN TEXTBOX
+
+    debug = False
+    s = None
+    try:
+        if message is not None:
+            data = json.loads(message)
+            if isinstance(data, dict) and len(data) >= 2:
+                if len(data) < 2:
+                    pass
+                else:
+                    title = None
+                    if 'ip' in data and 'port' in data:
+                        ip = data['ip']
+                        port = data['port']
+                        if 'title' in data:
+                            title = data['title']
+                            if title:
+                                title = title.replace(' ','')
+                            else:
+                                title = None
+                            print '\n title (modified): ', title
+                        if debug:
+                            print '-- data[ip]: ', ip
+                            print '-- data[port]: ', port
+
+                        if ip is not None and port is not None:
+                            try:
+
+                                message = '-- Get data'
+                                print message
+
+                                s = sock.socket(sock.AF_INET, sock.SOCK_STREAM)
+                                s.connect((ip, port))
+                                _data = None
+                                try:
+                                    _data = s.recv(4096)
+                                except Exception:
+                                    pass
+                                if s is not None:
+                                    s.close()
+
+                                if _data:
+                                    if debug: print 'Received: ', repr(_data)
+                                    do_emmit(namespace, repr(_data), title)
+
+
+                            except Exception as errb:
+                                err_message = str(errb)
+                                sio.emit('my result', {'data': err_message}, broadcast=False, namespace=namespace)
+                                if s is not None:
+                                    s.close()
+                                    s = None
+                                pass
+
+    except Exception as err:
+        if s is not None:
+            s.close()
+        err_message = str(err)
+        sio.emit('my result', {'data': err_message}, broadcast=False, namespace=namespace)
+
+
+@sio.on('join', namespace=namespace)
+def join(message):
+    debug = True
+    if debug:
+        print '\n join: namespace: ', namespace
+        print '\n joining room: ', message['room']
+
+    sio.join_room(message['room'])
+    if debug: print '\n join: ', sio.rooms()
+    data = 'In rooms: ' + ', '.join(sio.rooms())
+    if debug: print '\n join data: ', data
+    sio.emit('my result', {'data': data}, namespace=namespace)
+
+
+@sio.on('leave', namespace=namespace)
+def leave(message):
+    debug = True
+    if debug:
+        print '\n join: namespace: ', namespace
+        print '\n leaving room: ', message['room']
+    sio.leave_room(message['room'])
+    data = 'Now in rooms: ' + ', '.join(sio.rooms())
+    if debug: print '\n leave data: ', data
+    sio.emit('my result', {'data': data}, namespace=namespace)
+
+
+@sio.on('close room', namespace=namespace)
+def close(message):
+    debug = True
+    if debug:
+        print '\n join: namespace: ', namespace
+        print '\n closing room: ', message['room']
+    data = 'Room ' + message['room'] + ' is closing.'
+    if debug: print '\n close data: ', data
+    sio.emit('my result', {'data': data}, room=message['room'], namespace=namespace)
+    sio.close_room(message['room'])
+#================================================================== END
+'''
+
 
 #==================================================================
 # SUPPORTING FUNCTIONS...
@@ -620,17 +875,16 @@ def send_command(rd, command, ip, data):
     """ Send command to rd using ip and data [port].
     Command example: '$met\r\n'
     """
-    print '\n debug -- send_command: rd: %s,command: %r, ip: %s, data: %d' % (rd, command, ip, data)
+    #print '\n debug -- send_command: rd: %s,command: %r, ip: %s, data: %d' % (rd, command, ip, data)
     try:
-        while 1:
-            c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            c.connect((ip, data))
-            content = command
-            c.sendall(content)
-            c.shutdown(socket.SHUT_WR)
-            c.close()
-            time.sleep(5)
-            break
+
+        c = sock.socket(sock.AF_INET, sock.SOCK_STREAM)
+        c.connect((ip, data))
+        content = command
+        c.sendall(content)
+        c.shutdown(sock.SHUT_WR)
+        c.close()
+        # time.sleep(5)
 
         return
     except ConnectionError:
@@ -687,8 +941,8 @@ def get_direct_access_buttons(direct_config):
     """
     result = []
     try:
-        print '\n debug -- [get_direct_access_buttons] direct_config: ', \
-            json.dumps(direct_config, indent=4, sort_keys=True)
+        #print '\n debug -- [get_direct_access_buttons] direct_config: ', \
+        #    json.dumps(direct_config, indent=4, sort_keys=True)
 
         # If no direct_config, then return empty dict.
         if not direct_config:
@@ -744,10 +998,3 @@ while 1:
 print "Connection closed."
 s.close()
 """
-
-def is_json(input_json):
-  try:
-    json_object = json.loads(input_json)
-  except ValueError, e:
-    return False
-  return True

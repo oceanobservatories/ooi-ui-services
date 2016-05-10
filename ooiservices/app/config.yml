@@ -79,6 +79,7 @@ COMMON: &common
     SECURITY_TRACKABLE : False
     SECURITY_PASSWORD_HASH : 'pbkdf2_sha512'
     SECURITY_PASSWORD_SALT : 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+    C2_DIRECT_ACCESS_NAMESPACE: '/c2_direct_access'
 
 DEVELOPMENT: &development
     <<: *common
