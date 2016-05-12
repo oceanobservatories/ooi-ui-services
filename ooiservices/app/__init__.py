@@ -4,6 +4,22 @@ ooiservices
 
 Initializes the application and necessary application logic
 '''
+
+async_mode = None
+
+if async_mode is None:
+    try:
+        from gevent import monkey
+        async_mode = 'gevent'
+    except ImportError:
+        pass
+
+    if async_mode is None:
+        async_mode = 'threading'
+
+    # print('\n ***** async_mode is: ' + async_mode)
+
+
 import os
 from flask import Flask, jsonify, url_for
 from flask.ext.sqlalchemy import SQLAlchemy
@@ -15,6 +31,7 @@ from flask_wtf.csrf import CsrfProtect
 from sqlalchemy_searchable import make_searchable
 from flask_redis import Redis
 from flask_cors import CORS
+from flask_socketio import SocketIO
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -27,7 +44,8 @@ make_searchable()
 csrf = CsrfProtect()
 redis_store = Redis()
 cors = CORS()
-
+sio = None
+thread = None
 
 def create_app(config_name):
     app = Flask(__name__)
@@ -80,6 +98,9 @@ def create_app(config_name):
     csrf.init_app(app)
     redis_store.init_app(app)
     cors.init_app(app)
+    global sio
+    sio = SocketIO(app, async_mode=async_mode)
+    # sio.emit('my result', {'data': 'initializing in __init__'}, broadcast=True, namespace='/test')
 
     # Flask-Security Init
     from ooiservices.app.models import User, Role
@@ -108,9 +129,7 @@ def create_app(config_name):
 
     return app
 
-
 from celery import Celery
-
 
 def create_celery_app(env, app=None):
     app = app or create_app(env)
