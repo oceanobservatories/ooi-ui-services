@@ -11,7 +11,7 @@ from ooiservices.app.main.routes import get_display_name_by_rd, get_long_display
     get_parameter_name_by_parameter as get_param_names,\
     get_stream_name_by_stream as get_stream_name
 from ooiservices.app.main.authentication import auth
-from ooiservices.app.main.errors import internal_server_error
+from ooiservices.app.main.errors import internal_server_error, bad_request
 # data imports
 from ooiservices.app.uframe.data import get_data, get_simple_data,\
     find_parameter_ids, get_multistream_data
@@ -983,7 +983,12 @@ def streams_list():
     if cached:
         retval = cached
     else:
-        retval = dfs_streams()
+        try:
+            retval = dfs_streams()
+        except Exception as err:
+            message = err.message
+            return bad_request(message)
+
         if 'error' not in retval:
             cache.set('stream_list', retval, timeout=CACHE_TIMEOUT)
 

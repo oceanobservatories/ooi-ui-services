@@ -3539,7 +3539,49 @@ def c2_get_toc():
 def _compile_c2_toc():
     """ Returns a C2 toc dictionary of arrays, moorings, platforms and instruments from instruments/api (port 12572).
 
-    Sample Moorings:
+    Sample input:
+    ["RS01SUM1-LJ01B-09-PRESTB102", "RS03INT1-MJ03C-09-THSPHA301", "CE04OSBP-LJ01C-07-VEL3DC107",
+    "CE04OSPS-SF01B-4F-PCO2WA102", "RS03AXBS-MJ03A-12-VEL3DB301", "RS03INT1-MJ03C-06-MASSPA301",
+    "RS03AXPS-SF03A-3A-FLORTD301", "RS03AXBS-LJ03A-11-OPTAAC303", "RS03AXPS-SF03A-4A-NUTNRA301",
+    "CE04OSBP-LV01C-06-CAMDSB106", "CE04OSBP-LJ01C-09-PCO2WB104", "RS01SBPS-PC01A-07-CAMDSC102",
+    "RS03ECAL-MJ03E-06-BOTPTA302", "RS03AXPS-SF03A-2A-CTDPFA302", "CE04OSPS-SF01B-3D-SPKIRA102",
+    "RS01SBPS-SF01A-3A-FLORTD101", "RS03AXBS-MJ03A-06-PRESTA301", "RS01SBPS-SF01A-2A-CTDPFA102",
+    "CE02SHBP-LJ01D-09-PCO2WB103", "CE04OSBP-LJ01C-08-OPTAAC104", "RS01SLBS-LJ01A-05-HPIESA101",
+    "RS03AXPS-PC03A-07-CAMDSC302", "CE02SHBP-MJ01C-08-CAMDSB107", "RS01SBPS-SF01A-2D-PHSENA101",
+    "RS03AXPS-SF03A-3D-SPKIRA301", "RS01SBPS-SF01A-4A-NUTNRA101", "CE02SHBP-LJ01D-10-PHSEND103",
+    "RS01SBPS-SF01A-4F-PCO2WA101", "RS01SLBS-MJ01A-12-VEL3DB101", "RS03AXBS-LJ03A-05-HPIESA301",
+    "RS03AXPS-SF03A-2D-PHSENA301", "RS03AXPS-SF03A-3B-OPTAAD301", "CE04OSPS-SF01B-3B-OPTAAD105",
+    "RS01SBPS-SF01A-3D-SPKIRA101", "RS01SLBS-LJ01A-11-OPTAAC103", "RS01SLBS-LJ01A-10-ADCPTE101",
+    "CE04OSBP-LJ01C-10-PHSEND107", "CE02SHBP-LJ01D-05-ADCPTB104", "CE04OSPS-PC01B-4B-PHSENA106",
+    "RS03INT1-MJ03C-10-TRHPHA301", "RS01SUM2-MJ01B-05-CAMDSB103", "RS03AXPS-PC03A-05-ADCPTD302",
+    "RS03INT2-MJ03D-12-VEL3DB304", "RS01SBPS-PC01A-4A-CTDPFA103", "CE02SHBP-LJ01D-08-OPTAAD106",
+    "RS03INT2-MJ03D-06-BOTPTA303", "CE04OSPS-SF01B-3A-FLORTD104", "RS03AXBS-LJ03A-12-CTDPFB301",
+    "CE04OSPS-PC01B-4C-PCO2WA105", "RS03ASHS-MJ03B-07-TMPSFA301", "RS03AXPS-SF03A-4B-VELPTD302",
+    "RS01SBPS-PC01A-05-ADCPTD102", "RS01SBPS-PC01A-4C-FLORDD103", "CE04OSBP-LJ01C-06-CTDBPO108",
+    "RS01SBPS-PC01A-4B-PHSENA102", "RS01SBPS-SF01A-4B-VELPTD102", "RS01SBPS-PC01A-06-VADCPA101",
+    "RS03INT1-MJ03C-07-D1000A301", "RS03AXPS-SF03A-3C-PARADA301", "RS01SUM2-MJ01B-06-MASSPA101",
+    "RS01SBPS-SF01A-3B-OPTAAD101", "RS03AXPS-PC03A-4A-CTDPFA303", "CE04OSPS-SF01B-3C-PARADA102",
+    "CE04OSPS-SF01B-2A-CTDPFA107", "RS01SUM2-MJ01B-12-ADCPSK101", "CE04OSPS-PC01B-05-ZPLSCB102",
+    "RS03AXPS-PC03A-06-VADCPA301", "CE02SHBP-LJ01D-07-VEL3DC108", "CE02SHBP-MJ01C-07-ZPLSCB101",
+    "CE04OSPS-SF01B-4A-NUTNRA102", "CE04OSPS-SF01B-4B-VELPTD106", "RS03AXPS-SF03A-4F-PCO2WA301",
+    "CE04OSPS-SF01B-2B-PHSENA108", "RS03INT1-MJ03C-05-CAMDSB303", "CE04OSPS-PC01B-4A-CTDPFA109",
+    "RS03AXPS-PC03A-4C-FLORDD303", "RS01SLBS-MJ01A-06-PRESTA101", "RS01SUM1-LJ01B-12-VEL3DB104",
+    "CE02SHBP-LJ01D-06-CTDBPN106", "RS03AXBS-LJ03A-10-ADCPTE301", "CE04OSBP-LJ01C-05-ADCPSI103",
+    "RS03CCAL-MJ03F-05-BOTPTA301", "RS01SLBS-LJ01A-12-CTDPFB101", "RS03AXPS-PC03A-4B-PHSENA302",
+    "RS03AXBS-LJ03A-10-ADCPTE303", "RS01SBPS-SF01A-3C-PARADA101",
+    "RS01OSBP-PN01C", "SSRSPACC-OTNNA", "SSRSPACC-PFE00", "CE04OSBP-LJ01C", "RS03AXBS-LJ03A",
+    "RS01SHDR-PN01B", "SSRSPACC-F10SA", "RS03ECAL-MJ03E", "RS03AXBS-MJ03A", "RS01SUM1-LV01B",
+    "RS03CCAL-MJ03F", "CE02SHBP-LJ01D", "SSRSPACC-TS00N", "SSRSPACC-TS00S", "RS01SBPS-LV01A",
+    "RS01OSBP-SC01B", "RS03ASHS-MJ03B", "CE04OSBP-LV01C", "RS03AXPS-SF03A", "RS03AXPS-SC03A",
+    "SSRSPACC-F10NA", "RS01SBPS-SF01A", "RS01SLBS-PN01A", "RS03AXSM-PN03B", "RS03INT1-MJ03C",
+    "RS01SLBS-MJ01A", "RS01SLBS-LJ01A", "RS03INT2-MJ03D", "RS03AXPS-LV03A", "CE02SHBP-MJ01C",
+    "SSRSPACC-UPS0A", "SSRSPACC-UPS0B", "RS01OSBP-PC01B", "SSRSPACC-OTNSA", "RS01SLBS-PD01A",
+    "RS01SUM1-MJ01B", "RS03AXBS-PN03A", "RS01SBPS-SC01A", "RS03AXBS-PD03A", "RS01SHBP-PN01D",
+    "RS03AXPS-PC03A", "RS01SUM1-LJ01B", "RS01SHDR-PD01B", "RS01OSBP-SF01B", "RS01SBPS-PC01A"]
+
+    - - - - - - - - - - - - - - - - - - - - - - - - - -
+    Samples during processing:
+    Moorings:
     [
         "RS03ASHS",
         "SSRSPACC",
@@ -3564,8 +3606,8 @@ def _compile_c2_toc():
             "05-IP1",
             "07-D1000A301"
         ]
-
-    Current toc instrument is a list of dictionaries:
+    - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    Response 'instruments' is a list of dictionaries:
         [
             {'reference_designator': u'RS03ASHS-MJ03B-06-OBSSPA301',
             'instrument_code': u'06-OBSSPA301',
@@ -3585,6 +3627,11 @@ def _compile_c2_toc():
         platform_list = []
         instrument_list = []
 
+        arrays = Array.query.all()
+        array_display_names = {}
+        for array in arrays:
+            array_display_names[array.array_code] = array.display_name
+
         # Get list of instruments from instrument/api
         uframe_url, timeout, timeout_read = get_uframe_info()
         response = requests.get(uframe_url, timeout=(timeout, timeout_read))
@@ -3592,18 +3639,29 @@ def _compile_c2_toc():
             message = '(%d) Failed to get instrument/api list of instruments.' % response.status_code
             raise Exception(message)
 
-        arrays = Array.query.all()
-        array_display_names = {}
-        for array in arrays:
-            array_display_names[array.array_code] = array.display_name
-
         # Process response.content for moorings, platforms and instruments
         _instruments = response.json()
         for rd in _instruments:
 
             # Calculate values to be used in toc
-            _mooring, _platform, _instrument = rd.split('-', 2)
+            if len(rd) == 14:                   # platform
+                _mooring, _platform = rd.split('-')
+                _instrument = None
+            elif len(rd) == 27:                 # instrument
+                _mooring, _platform, _instrument = rd.split('-', 2)
+            else:
+                # The rd is not a platform (14) or instrument (27), log issue and continue
+                message = 'The reference designator (%s) provided is not a platform or instrument.' % rd
+                current_app.logger.info(message)
+                continue
+
             array_code = _mooring[:2]
+            if array_code not in array_display_names:
+                # The array_code has not been qualified for processing; log issue and continue.
+                message = 'The reference designator (%s) uses an unknown array code \'%s\'.' % (rd, array_code)
+                current_app.logger.info(message)
+                continue
+
             array_name = array_display_names[array_code]
             mooring_name = get_display_name_by_rd(_mooring)
             if mooring_name is None:
@@ -3611,9 +3669,6 @@ def _compile_c2_toc():
             platform_name = get_display_name_by_rd("-".join([_mooring, _platform]))
             if platform_name is None:
                 platform_name = "-".join([_mooring, _platform])
-            instrument_name = get_display_name_by_rd(reference_designator=rd)
-            if instrument_name is None:
-                instrument_name = rd
 
             # Determine display names - mooring, platform
             mooring_display_name = ' '.join([array_name, mooring_name])
@@ -3626,24 +3681,28 @@ def _compile_c2_toc():
             if _mooring not in moorings:
                 moorings.append(_mooring)
                 mooring_list.append({'reference_designator': _mooring,
-                                 'array_code': array_code,
-                                 'display_name': mooring_display_name
-                                 })
+                                     'array_code': array_code,
+                                     'display_name': mooring_display_name
+                                     })
             if _platform not in platforms:
                 platforms.append(_platform)
                 platform_list.append({'reference_designator': "-".join([_mooring, _platform]),
-                              'mooring_code': _mooring,
-                              'platform_code': _platform,
-                              'display_name': platform_display_name
-                              })
-            if _instrument not in instruments:
-                instruments.append(_instrument)
-                instrument_list.append({'mooring_code': _mooring,
-                                'platform_code': _platform,
-                                'instrument_code': _instrument,
-                                'reference_designator': rd,
-                                'display_name': instrument_name
-                                })
+                                      'mooring_code': _mooring,
+                                      'platform_code': _platform,
+                                      'display_name': platform_display_name
+                                      })
+            if _instrument is not None:
+                instrument_name = get_display_name_by_rd(reference_designator=rd)
+                if instrument_name is None:
+                    instrument_name = rd
+                if _instrument not in instruments:
+                    instruments.append(_instrument)
+                    instrument_list.append({'mooring_code': _mooring,
+                                            'platform_code': _platform,
+                                            'instrument_code': _instrument,
+                                            'reference_designator': rd,
+                                            'display_name': instrument_name
+                                            })
 
         # Assemble toc for response
         arrays = Array.query.all()
