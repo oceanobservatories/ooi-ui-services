@@ -9,7 +9,6 @@ from copy import deepcopy
 import json
 import requests
 import sys
-import random
 
 requests.adapters.DEFAULT_RETRIES = 2
 CACHE_TIMEOUT = 172800
@@ -109,13 +108,12 @@ def get_assets(use_min=False, normal_data=False, reset=False):
         unique = set()
         for obj in data:
             asset = {}
-            random_num = random.random() * 0.005
 
             if (len(obj['ref_des']) <= 14 and
-                'coordinates' in obj and
-                obj['ref_des'] != "" and
-                obj['assetInfo']['longName'] != "" and
-                obj['assetInfo']['longName'] is not None):
+                    'coordinates' in obj and
+                    obj['ref_des'] != "" and
+                    obj['assetInfo']['longName'] != "" and
+                    obj['assetInfo']['longName'] is not None):
                 if (obj['ref_des'] not in unique):
                     unique.add(obj['ref_des'])
 
@@ -131,8 +129,8 @@ def get_assets(use_min=False, normal_data=False, reset=False):
                         'display_name': asset['assetInfo']['longName'],
                         'geo_location': {
                             'coordinates': [
-                                round(asset['coordinates'][0] - random_num, 4),
-                                round(asset['coordinates'][1] + random_num, 4)
+                                round(asset['coordinates'][0], 4),
+                                round(asset['coordinates'][1], 4)
                             ],
                             'depth': asset['assetInfo']['depth'] or None
                         },
