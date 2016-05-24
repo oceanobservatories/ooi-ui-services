@@ -9,6 +9,7 @@ from copy import deepcopy
 import json
 import requests
 import sys
+import random
 
 requests.adapters.DEFAULT_RETRIES = 2
 CACHE_TIMEOUT = 172800
@@ -102,6 +103,44 @@ def get_assets(use_min=False, normal_data=False, reset=False):
                     del obj['lastModifiedTimestamp']
             except Exception:
                 raise
+
+    if request.args.get('geoJSON') and request.args.get('geoJSON') != "":
+        return_list = []
+        unique = set()
+        for obj in data:
+            asset = {}
+            random_num = random.random() * 0.005
+
+            if (len(obj['ref_des']) <= 14 and
+                'coordinates' in obj and
+                obj['ref_des'] != "" and
+                obj['assetInfo']['longName'] != "" and
+                obj['assetInfo']['longName'] is not None):
+                if (obj['ref_des'] not in unique):
+                    unique.add(obj['ref_des'])
+
+                    asset['assetInfo'] = obj.pop('assetInfo')
+                    asset['assetInfo']['refDes'] = obj.pop('ref_des')
+                    asset['coordinates'] = obj.pop('coordinates')
+
+                    if 'depth' in obj:
+                        asset['assetInfo']['depth'] = obj.pop('depth')
+
+                    json = {
+                        'array_id': asset['assetInfo']['refDes'][:2],
+                        'display_name': asset['assetInfo']['longName'],
+                        'geo_location': {
+                            'coordinates': [
+                                round(asset['coordinates'][0] - random_num, 4),
+                                round(asset['coordinates'][1] + random_num, 4)
+                            ],
+                            'depth': asset['assetInfo']['depth'] or None
+                        },
+                        'reference_designator': asset['assetInfo']['refDes']
+                    }
+                    return_list.append(json)
+
+        data = return_list
 
     if request.args.get('concepts') and request.args.get('concepts') != "":
         return_list = []

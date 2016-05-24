@@ -60,6 +60,8 @@ def _compile_assets(data):
                         ref_des = meta_data['value']
                     if meta_data['key'] == 'Deployment Number':
                         deployment_number = meta_data['value']
+                    if meta_data['key'] == 'Water Depth':
+                        depth = meta_data['value']
                 row['ref_des'] = ref_des
 
                 if len(row['ref_des']) == 27:
@@ -69,6 +71,8 @@ def _compile_assets(data):
                 if len(row['ref_des']) == 8:
                     row['asset_class'] = '.AssetRecord'
 
+                if depth is not None:
+                    row['depth'] = depth
                 if deployment_number is not None:
                     row['deployment_number'] = deployment_number
                 for events in row['events']:
