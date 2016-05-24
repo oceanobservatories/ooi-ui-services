@@ -48,6 +48,7 @@ __author__ = 'Andy Bird'
 requests.adapters.DEFAULT_RETRIES = 2
 CACHE_TIMEOUT = 172800
 COSMO_CONSTANT = 2208988800
+#BAD_DEPTH = 999999.999999
 
 
 def dfs_streams():
@@ -84,7 +85,8 @@ def dfs_streams():
             if request.args.get('reference_designator'):
                 if request.args.get('reference_designator') != data_dict['reference_designator']:
                     continue
-            retval.append(data_dict)
+            if data_dict:
+                retval.append(data_dict)
 
         # Populate event information in response dictionaries
         for stream in retval:
@@ -92,10 +94,24 @@ def dfs_streams():
             events = json.loads(response.data)
             for event in events['events']:
                 if event['eventClass'] == '.DeploymentEvent' and event['tense'] == 'PRESENT':
+                    """
+                    if isinstance(event['depth'], float):
+                        stream['depth'] = event['depth']
+                    else:
+                        stream['depth'] = BAD_DEPTH
+                    """
                     stream['depth'] = event['depth']
                     stream['lat_lon'] = event['lat_lon']
                     stream['cruise_number'] = event['cruise_number']
                     stream['deployment_number'] = event['deployment_number']
+
+                    """
+                    # Instead of None for lat_lon and cruise_number, provide [] and '' respectively.
+                    if stream['lat_lon'] is None:
+                        stream['lat_lon'] = []
+                    if stream['cruise_number'] is None:
+                        stream['cruise_number'] = ''
+                    """
 
         return retval
     except Exception as err:
@@ -188,6 +204,22 @@ def iso_to_timestamp(iso8601):
 def dict_from_stream(mooring, platform, instrument, stream_type, stream, reference_designator,
                      beginTime, endTime, variables, variable_type, units, variables_shape, parameter_id):
     """ Prepare a data dictionary from input data, where input data is constructed in data_streams_in_instrument.
+
+    stream = (
+            instrument['mooring_code'],
+            instrument['platform_code'],
+            instrument['instrument_code'],
+            data_stream['method'].replace("_","-"),
+            data_stream['stream'].replace("_","-"),
+            instrument['reference_designator'],
+            data_stream['beginTime'],
+            data_stream['endTime'],
+            parameters_dict[tmp_stream],
+            parameters_dict[tmp_stream+'_variable_type'],
+            parameters_dict[tmp_stream+'_units'],
+            parameters_dict[tmp_stream+'_variables_shape'],
+            parameters_dict[tmp_stream+'_pdId']
+            )
     """
     try:
         stream_name = '_'.join([stream_type, stream])
@@ -196,6 +228,7 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
         data_dict['start'] = beginTime
         data_dict['end'] = endTime
         data_dict['reference_designator'] = reference_designator
+        data_dict['stream_type'] = stream_type
         data_dict['stream_name'] = stream_name
         data_dict['stream_display_name'] = get_stream_name(stream_name)
         data_dict['variables'] = []
@@ -225,6 +258,8 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
             display_names.append(get_param_names(variable))
 
         data_dict['parameter_display_name'] = display_names
+        if data_dict['display_name'] is None:
+            data_dict['display_name'] = reference_designator
         return data_dict
 
     except Exception as err:
@@ -562,9 +597,8 @@ def get_uframe_large_format_files():
 
 
 def _check_for_gps_position_stream(glider_url,glider_stream,glider_method):
-    '''
-        used to chck if a desired stream is available
-    '''
+    """ Used to check if a desired stream is available.
+    """
     url = glider_url+"/metadata"
     req_gps_info_list = requests.get(url)
     metadata = req_gps_info_list.json()
@@ -581,7 +615,10 @@ def _check_for_gps_position_stream(glider_url,glider_stream,glider_method):
         if glider_method == t['method'] and glider_stream == t['stream']:
             selected_method = t['method']
             selected_stream = t['stream']
-            selected_times = {'begin_time':t['beginTime'],"end_time":t['endTime'],"last_updated":None,"last_requested":None}
+            selected_times = {"begin_time": t["beginTime"],
+                              "end_time": t["endTime"],
+                              "last_updated": None,
+                              "last_requested": None}
             break
 
     #WE ALWAYS NEED M_DEPTH - as its an ENG instrument
@@ -705,6 +742,7 @@ def _get_glider_track_data(glider_outline,glider_cache=None):
             print e
             pass
 
+
 def _get_existing_glider_ids_to_skip(glider_cache):
     '''
         quick pass to identify glider entries that we can skip due to it being recovered
@@ -734,9 +772,6 @@ def _get_existing_glider_ids_to_skip(glider_cache):
 def _extract_glider_track_from_data(track_data, glider_depth=None):
     """   loop through the response and create the line track
     """
-    debug = False
-    if debug: print '\n debug *** (_extract_glider_track_from_data) entered...'
-
     lat_field = "latitude"
     lon_field = "longitude"
     bar_to_m = 0.09804139432
@@ -749,13 +784,6 @@ def _extract_glider_track_from_data(track_data, glider_depth=None):
 
     for row in track_data:
         try:
-            """
-            if debug:
-                if lon_field not in row:
-                    print '\n debug *** lon_field not in row'
-                if lat_field not in row:
-                    print '\n debug *** lat_field not in row'
-            """
 
             has_lon   = not np.isnan(row[lon_field])
             if row[lon_field] >= 180 or row[lon_field] <= -180 :
@@ -794,8 +822,9 @@ def _extract_glider_track_from_data(track_data, glider_depth=None):
                                      "units": glider_depth_units,
                                      "depths": depths}
         except Exception as e:
-            #print e
+            print e
             pass
+
 
 def _get_additional_data(glider_track):
     """ Get additional data for a glider stream, [battery,vacuum,m_speed[] information.
@@ -864,7 +893,6 @@ def _compile_glider_tracks(update_tracks):
     base_url, timeout, timeout_read = get_uframe_info()
     # Get the list of mobile assets
     try:
-
         r = requests.get(base_url)
     except Exception as err:
         message = 'Failed to retrieve glider data from uframe:\n\tUrl:\t%s\n\tError:\t%s' % (base_url, err.message)
@@ -905,7 +933,8 @@ def _compile_glider_tracks(update_tracks):
                         #ONLY USE ENGINEERING STREAMS
                         continue
                         #use the first available insturment
-                        glider_instrument = available_instruments[0]
+
+                    glider_instrument = available_instruments[0]
 
                     # use the selected instrument to create the link, list the others to make them available
                     glider_location+="/"+glider_instrument
@@ -955,14 +984,16 @@ def _compile_glider_tracks(update_tracks):
                     # update the content
                     glider_info.append(glider_item)
             except Exception,e:
-                print "error:",e, p, r_p.content
+                print "error:",str(e), p, r_p.content
 
     # The glider_info is the glider outline
     # Check for the update flag, will try and update only those available
     print "number of gliders:",len(glider_info)," skipped due to non ENG:",skipped_glider
     if update_tracks:
-        _get_glider_track_data(glider_info,cache.get('glider_tracks'))
+        print '\n glider_tracks: update_tracks is True'
+        _get_glider_track_data(glider_info, cache.get('glider_tracks'))
     else:
+        print '\n glider_tracks: update_tracks is False'
         _get_glider_track_data(glider_info)
 
     #if weve come this far, update the cache with any changes
@@ -971,14 +1002,13 @@ def _compile_glider_tracks(update_tracks):
     # return it so we can see it
     return glider_info
 
+
 @api.route('/stream')
 #@auth.login_required
 def streams_list():
     """ Accepts stream_name or reference_designator as a URL argument
     """
-    if request.args.get('stream_name'):
-        dict_from_stream(request.args.get('stream_name'))
-
+    # Get cached stream_list; if available continue, if not fetch.
     cached = cache.get('stream_list')
     if cached:
         retval = cached
@@ -2109,6 +2139,7 @@ def to_bool_str(value):
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # TOC routes and supporting functions
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# TODO If development only, deprecate or mark as such.
 @api.route('/get_structured_toc')
 @cache.memoize(timeout=1600)
 def get_structured_toc():
@@ -2218,7 +2249,7 @@ def _uframe_toc():
 
 
 def _process_uframe_toc():
-    """ Get toc content from uframe; if error raise.
+    """ Get toc content from uframe; if error raise. Continue processing based on toc content.
     """
     result = None
     try:
@@ -2226,6 +2257,7 @@ def _process_uframe_toc():
         if d is not None:
             if isinstance(d, dict):
                 result = new_get_uframe_toc(d)
+            # TODO Deprecate once transition to new toc format has been completed.
             else:
                 result = get_uframe_toc(d)
         return result
@@ -2234,6 +2266,7 @@ def _process_uframe_toc():
 
 
 # [OLD FORMAT]
+# TODO Deprecate once transition to new toc format has been completed.
 @cache.memoize(timeout=1600)
 def get_uframe_toc(d):
     """ Process uframe response from /sensor/inv/toc' for use in UI.
@@ -2356,12 +2389,13 @@ def new_get_uframe_toc(data):
                 result['instrument_parameters'] = instrument_parameters
                 results.append(result)
 
-            # Determine if error_messages received during processing
+            # Determine if error_messages received during processing; if so, write to log
             if error_debug:
                 if error_messages:
-                    current_app.logger.info('Error messages in uframe toc content:')
+                    error_message = 'Error messages in uframe toc content:\n'
                     for message in error_messages:
-                        current_app.logger.info(message)
+                        error_message += message + '\n'
+                    current_app.logger.info(error_message)
 
             return results
         else:
@@ -2491,30 +2525,3 @@ def get_stream_names(streams):
             if stream['stream'] not in stream_names:
                 stream_names.append(stream['stream'])
     return stream_names
-
-'''
-#@cache.memoize(timeout=3600)
-#DEPRECATED
-def get_uframe_stream_contents(mooring, platform, instrument, stream_type, stream,
-                               start_time, end_time, dpa_flag, provenance='false', annotations='false'):
-    """ Gets the bounded stream contents, start_time and end_time need to be datetime objects; returns Response object.
-    """
-    try:
-        if dpa_flag == '0':
-            query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s' % \
-                    (start_time, end_time, provenance, annotations)
-        else:
-            query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s&execDPA=true' % \
-                    (start_time, end_time, provenance, annotations)
-        uframe_url, timeout, timeout_read = get_uframe_info()
-        url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        if not response:
-            raise Exception('No data available from uFrame for this request.')
-        if response.status_code != 200:
-            raise Exception('(%s) failed to retrieve stream contents from uFrame', response.status_code)
-            #pass
-        return response
-    except Exception as e:
-        return internal_server_error('uFrame connection cannot be made. ' + str(e.message))
-'''

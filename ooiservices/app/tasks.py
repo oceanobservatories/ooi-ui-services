@@ -12,7 +12,7 @@ CACHE_TIMEOUT = 172800
 
 '''
 Create the celery app, and configure it to talk to the redis broker.
-Then intialize it.
+Then initialize it.
 '''
 
 celery = create_celery_app('PRODUCTION')
@@ -20,37 +20,98 @@ celery.config_from_object('ooiservices.app.celeryconfig')
 
 """
 Define the list of processes to run either on a heartbeat or simply waiting for
-
+Caches created/utilized:
+  asset_list
+  asset_rds
+  c2_toc
+  stream_list
+  event_list
+  glider_tracks
+  cam_images
+  bad_asset_list
 """
 
-from ooiservices.app.uframe.assetController import _compile_assets
+from ooiservices.app.uframe.assetController import _compile_assets, _compile_bad_assets
 from ooiservices.app.uframe.assetController import _compile_events
 from ooiservices.app.uframe.controller import dfs_streams
 from ooiservices.app.uframe.controller import _compile_glider_tracks
 from ooiservices.app.uframe.controller import _compile_cam_images
 from ooiservices.app.uframe.controller import _compile_large_format_files
-
+from ooiservices.app.main.alertsalarms_tools import _compile_asset_rds, get_assets_dict_from_list
 
 @celery.task(name='tasks.compile_assets')
 def compile_assets():
     try:
+        print '\n debug - *** tasks - compile_assets()'
         with current_app.test_request_context():
             print "[+] Starting asset cache reset..."
             cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
             cache.init_app(current_app)
-            url = current_app.config['UFRAME_ASSETS_URL'] + '/assets'
+            url = current_app.config['UFRAME_ASSETS_URL'] + '/%s' % ('assets')
             payload = requests.get(url)
             if payload.status_code is 200:
+
+                # Cache assets_list
                 data = payload.json()
-                assets = _compile_assets(data)
+                assets, asset_rds = _compile_assets(data)
                 if "error" not in assets:
                     cache.set('asset_list', assets, timeout=CACHE_TIMEOUT)
-                    print "[+] Asset cache reset"
+                    print "[+] Asset list cache reset"
+
+                    # Cache assets_dict (based on success of _compile_assets returning assets)
+                    assets_dict = get_assets_dict_from_list(assets)
+                    if not assets_dict:
+                        message = 'Warning: get_assets_dict_from_list returned empty assets_dict.'
+                        print '\n debug -- message: ', message
+                        current_app.logger.info(message)
+                    if isinstance(assets_dict, dict):
+                        cache.set('assets_dict', assets_dict, timeout=CACHE_TIMEOUT)
+                        print "[+] Assets dictionary cache reset"
+                    else:
+                        print "[-] Error in Assets dictionary cache update"
                 else:
-                    print "[-] Error in cache update"
+                    print "[-] Error in asset_list and asset_dict cache update"
+
+                # Cache assets_rd
+                if asset_rds:
+                    cache.set('asset_rds', asset_rds, timeout=CACHE_TIMEOUT)
+                    print "[+] Asset reference designators cache reset..."
+                else:
+                    print "[-] Error in asset_rds cache update"
+
+            else:
+                print "[-] Error in cache update"
     except Exception as err:
         message = 'compile_assets exception: %s' % err.message
         current_app.logger.warning(message)
+        raise Exception(message)
+
+
+@celery.task(name='tasks.compile_asset_rds')
+def compile_assets_rd():
+    try:
+        asset_rds = {}
+        with current_app.test_request_context():
+            print "[+] Starting asset reference designators cache reset..."
+
+            cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
+            cache.init_app(current_app)
+            try:
+                asset_rds, _ = _compile_asset_rds()
+            except Exception as err:
+                message = 'Error processing _compile_asset_rds: ', err.message
+                current_app.logger.warning(message)
+
+        if asset_rds:
+            cache.set('asset_rds', asset_rds, timeout=CACHE_TIMEOUT)
+            print "[+] Asset reference designators cache reset..."
+        else:
+            print "[-] Error in cache update"
+
+    except Exception as err:
+        message = 'compile_asset_rds exception: %s' % err.message
+        current_app.logger.warning(message)
+        raise Exception(message)
 
 
 @celery.task(name='tasks.compile_streams')
@@ -186,4 +247,26 @@ def compile_c2_toc():
 
     except Exception as err:
         message = 'compile_c2_toc exception: ', err.message
+        current_app.logger.warning(message)
+
+
+@celery.task(name='tasks.compile_bad_assets')
+def compile_bad_assets():
+    try:
+        with current_app.test_request_context():
+            print "[+] Starting bad asset cache reset..."
+            cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
+            cache.init_app(current_app)
+            url = current_app.config['UFRAME_ASSETS_URL'] + '/assets'
+            payload = requests.get(url)
+            if payload.status_code is 200:
+                data = payload.json()
+                bad_assets = _compile_bad_assets(data)
+                if "error" not in bad_assets:
+                    cache.set('bad_asset_list', bad_assets, timeout=CACHE_TIMEOUT)
+                    print "[+] Bad asset cache reset"
+                else:
+                    print "[-] Error in cache update"
+    except Exception as err:
+        message = 'compile_bad_assets exception: %s' % err.message
         current_app.logger.warning(message)
