@@ -1148,6 +1148,26 @@ def streams_list():
                         return_list.append(item)
                 retval = return_list
 
+    if request.args.get('startDate') and request.args.get('endDate') != "":
+        # setup a temporary container for the result and convert the time
+        return_val = []
+        search_start_date = float(request.args.get('startDate'))/1000.0
+        search_end_date = float(request.args.get('endDate'))/1000.0
+
+        # loop over the current return value and begin parsing
+        for obj in retval:
+            obj_end_date = iso_to_timestamp(obj['end'])
+            # add to the return_val if the obj has a end date
+            # greater than or equal to 'startDate' and an end date
+            # less than or equal to 'endDate'
+            # ** we are only filtering by END date **
+            if obj_end_date >= search_start_date and obj_end_date <= search_end_date:
+                return_val.append(obj)
+
+        # assign the new list to retval
+        retval = return_val
+
+
     if request.args.get('startAt'):
         start_at = int(request.args.get('startAt'))
         count = int(request.args.get('count'))
