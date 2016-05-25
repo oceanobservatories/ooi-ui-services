@@ -60,6 +60,10 @@ def get_alfresco_ticket():
 
     # massage the response a little . . .
     ticket_num = json.loads(ticket._content)
+    if 'data' not in ticket_num:
+        response = make_response(jsonify(ticket_num), 500)
+        return response, response.status_code
+
     ticket = ticket_num['data']['ticket']
 
     return ticket
