@@ -182,6 +182,9 @@ def _compile_assets(data):
                             meta_data['value'] = coord[1]
                         if meta_data['key'] == 'Deployment Number':
                             deployment_number = meta_data['value']
+                        if meta_data['key'] == 'Water Depth':
+                            depth = meta_data['value']
+
 
                         # If key 'Ref Des' has a value, use it, otherwise use ref_des value.
                         if meta_data['key'] == 'Ref Des':
@@ -235,6 +238,9 @@ def _compile_assets(data):
                         bad_data_ids.append(asset_id)
                         bad_data.append(row)
                     continue
+
+            if depth is not None:
+                row['depth'] = depth
 
             if deployment_number is not None:
                 row['deployment_number'] = deployment_number

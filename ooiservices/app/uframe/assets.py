@@ -112,6 +112,44 @@ def get_assets(use_min=False, normal_data=False, reset=False):
                 current_app.logger.info(str(err))
                 raise
 
+    if request.args.get('geoJSON') and request.args.get('geoJSON') != "":
+        return_list = []
+        unique = set()
+        for obj in data:
+            asset = {}
+
+            if (len(obj['ref_des']) <= 14 and
+                    'coordinates' in obj and
+                    obj['ref_des'] != "" and
+                    obj['assetInfo']['longName'] != "" and
+                    obj['assetInfo']['longName'] is not None):
+                if (obj['ref_des'] not in unique):
+                    unique.add(obj['ref_des'])
+
+                    asset['assetInfo'] = obj.pop('assetInfo')
+                    asset['assetInfo']['refDes'] = obj.pop('ref_des')
+                    asset['coordinates'] = obj.pop('coordinates')
+
+                    if 'depth' in obj:
+                        asset['assetInfo']['depth'] = obj.pop('depth')
+
+                    json = {
+                            'array_id': asset['assetInfo']['refDes'][:2],
+                            'display_name': asset['assetInfo']['longName'],
+                            'geo_location': {
+                                'coordinates': [
+                                    round(asset['coordinates'][0], 4),
+                                    round(asset['coordinates'][1], 4)
+                                    ],
+                                'depth': asset['assetInfo']['depth'] or None
+                                },
+                            'reference_designator': asset['assetInfo']['refDes']
+                            }
+                    return_list.append(json)
+
+        data = return_list
+
+
     # Search for each search item...two tiered search
     # - First get search result set: (a) all or (b) limited by tense ('Recovered' or 'Deployed')
     # - Second using first result set, search for additional search details.
