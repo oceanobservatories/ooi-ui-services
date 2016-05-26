@@ -71,7 +71,7 @@ def put_instrument_deployment(id):
 
 @api.route('/instrument_deployment/<int:id>', methods=['DELETE'])
 @auth.login_required
-@scope_required('user_admin')
+@scope_required('asset_manager')
 def delete_instrument_deployment(id):
     deployment = InstrumentDeployment.query.get(id)
     if deployment is None:

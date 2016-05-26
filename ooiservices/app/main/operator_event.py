@@ -286,7 +286,7 @@ def put_log_entry(id):
         return jsonify(error="No matching record"), 404
     user_id = log_entry.user_id
     current_scopes = [s.scope_name for s in g.current_user.scopes]
-    if g.current_user.id != user_id and 'user_admin' not in current_scopes:
+    if g.current_user.id != user_id and 'manager' not in current_scopes:
         return jsonify(error='Unauthorized: This user lacks sufficient privileges to change this entry'), 401
     log_entry.log_entry_type = data.get('log_entry_type')
     if 'entry_title' not in data:
@@ -305,7 +305,7 @@ def delete_log_entry(id):
         return jsonify(error='No matching record'), 404
     user_id = log_entry.user_id
     current_scopes = [s.scope_name for s in g.current_user.scopes]
-    if g.current_user.id != user_id and 'user_admin' not in current_scopes:
+    if g.current_user.id != user_id and 'manager' not in current_scopes:
         return jsonify(error='Unauthorized: This user lacks sufficient privileges to change this entry'), 401
     log_entry.retired = True
     db.session.add(log_entry)
@@ -355,7 +355,7 @@ def put_log_entry_comment(id):
     # Make sure it's the original author or an admin
     user_id = comment.user_id
     current_scopes = [s.scope_name for s in g.current_user.scopes]
-    if g.current_user.id != user_id and 'user_admin' not in current_scopes:
+    if g.current_user.id != user_id and 'manager' not in current_scopes:
         return jsonify(error='Unauthorized: This user lacks sufficient privileges to change this entry'), 401
     
     comment.comment = data.get('comment')
@@ -374,7 +374,7 @@ def delete_log_entry_comment(id):
     # Make sure it's the original author or an admin
     user_id = comment.user_id
     current_scopes = [s.scope_name for s in g.current_user.scopes]
-    if g.current_user.id != user_id and 'user_admin' not in current_scopes:
+    if g.current_user.id != user_id and 'manager' not in current_scopes:
         return jsonify(error='Unauthorized: This user lacks sufficient privileges to change this entry'), 401
 
     comment.retired = True

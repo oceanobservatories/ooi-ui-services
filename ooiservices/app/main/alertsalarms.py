@@ -201,8 +201,7 @@ def get_alert_alarm_status():
 #Create a new alert/alarm
 @api.route('/alert_alarm', methods=['POST'])
 @auth.login_required
-@scope_required(u'user_admin')
-@scope_required(u'redmine')
+@scope_required(u'asset_admin')
 def create_alert_alarm():
     """ Create an alert or an alarm; invoked when processing alerts and alarms from uframe.
     Note: offset from start of unix epoch (jan 1, 1900 at midnight 00:00) to 00:00 1 Jan 1970 GMT, in secs = 2208988800
@@ -282,8 +281,7 @@ def create_alert_alarm():
 # Acknowledge alert/alarm
 @api.route('/ack_alert_alarm', methods=['POST','PUT'])
 @auth.login_required
-@scope_required(u'user_admin')
-@scope_required(u'redmine')
+@scope_required(u'asset_manager')
 def acknowledge_alert_alarm():
     """ Acknowledge an alert or an alarm.
     """
@@ -429,7 +427,7 @@ def get_alert_alarm_def(id):
 #Create a new alert/alarm definition
 @api.route('/alert_alarm_definition', methods=['POST'])
 @auth.login_required
-@scope_required(u'user_admin')
+@scope_required(u'asset_manager')
 def create_alert_alarm_def():
     """ Create an alert or alarm definition, including the the user_event_notification record.
 
@@ -526,7 +524,7 @@ def create_alert_alarm_def():
 
 @api.route('/alert_alarm_definition/<int:id>', methods=['PUT'])
 @auth.login_required
-@scope_required(u'user_admin')
+@scope_required(u'asset_manager')
 def update_alert_alarm_def(id):
     """Update an alert or an alarm definition. Optional update of associated user_event_notification available.
 
@@ -642,7 +640,7 @@ def update_alert_alarm_def(id):
 
 @api.route('/delete_alert_alarm_definition/<int:id>', methods=['DELETE'])
 @auth.login_required
-@scope_required(u'user_admin')
+@scope_required(u'asset_manager')
 def delete_alert_alarm_definition(id):
     """ Delete SystemEventDefinition for alert or alarm; this retires SystemEventDefinition (no deletion).
     """
@@ -681,7 +679,7 @@ def delete_alert_alarm_definition(id):
 
 @api.route('/ok_to_delete_alert_alarm_definition/<int:id>', methods=['GET'])
 @auth.login_required
-@scope_required(u'user_admin')
+@scope_required(u'asset_manager')
 def ok_to_delete_alert_alarm_definition(id):
     """ Determine if an alert_alarm_definition can be deleted (retired). Response format:  { "status": false | true }
     """
@@ -1503,7 +1501,7 @@ def uframe_get_instrument_metadata(ref):
 # Acknowledge instances for alert/alarm definition
 @api.route('/ack_alert_alarm_definition/<int:definition_id>', methods=['GET'])
 @auth.login_required
-@scope_required(u'user_admin')
+@scope_required(u'asset_manager')
 def ack_alert_alarm_definition(definition_id):
     """ Acknowledge all alert(s) or an alarm(s) associated with the definition identified by definition_id.
     """
@@ -1566,7 +1564,7 @@ def ack_alert_alarm_definition(definition_id):
 # Resolve instance of alert/alarm
 @api.route('/resolve_alert_alarm/<int:id>', methods=['PUT'])
 @auth.login_required
-@scope_required(u'user_admin')
+@scope_required(u'asset_manager')
 def resolve_alert_alarm(id):
     """ Resolve an alert or an alarm.
     """
@@ -1629,7 +1627,7 @@ def resolve_alert_alarm(id):
 # Resolve all instances for alert/alarm definition
 @api.route('/resolve_alert_alarm_definition/<int:definition_id>', methods=['PUT'])
 @auth.login_required
-@scope_required(u'user_admin')
+@scope_required(u'asset_manager')
 def resolve_alert_alarm_definition(definition_id):
     """ Resolve alert alarm definition. ('Clear')
 

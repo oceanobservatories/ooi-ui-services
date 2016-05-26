@@ -472,8 +472,8 @@ def c2_direct_access_exit(reference_designator):
 # Direct Access sniffer
 # todo Under Development; enable auth and scope
 @api.route('/c2/instrument/<string:reference_designator>/direct_access/sniffer', methods=['POST', 'GET'])
-#@auth.login_required
-#@scope_required(u'command_control')
+@auth.login_required
+@scope_required(u'command_control')
 def c2_direct_access_sniffer(reference_designator):
     """ Sniff port/ip/title for data, return data
     Sample request:
