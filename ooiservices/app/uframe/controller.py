@@ -204,22 +204,6 @@ def iso_to_timestamp(iso8601):
 def dict_from_stream(mooring, platform, instrument, stream_type, stream, reference_designator,
                      beginTime, endTime, variables, variable_type, units, variables_shape, parameter_id):
     """ Prepare a data dictionary from input data, where input data is constructed in data_streams_in_instrument.
-
-    stream = (
-            instrument['mooring_code'],
-            instrument['platform_code'],
-            instrument['instrument_code'],
-            data_stream['method'].replace("_","-"),
-            data_stream['stream'].replace("_","-"),
-            instrument['reference_designator'],
-            data_stream['beginTime'],
-            data_stream['endTime'],
-            parameters_dict[tmp_stream],
-            parameters_dict[tmp_stream+'_variable_type'],
-            parameters_dict[tmp_stream+'_units'],
-            parameters_dict[tmp_stream+'_variables_shape'],
-            parameters_dict[tmp_stream+'_pdId']
-            )
     """
     try:
         stream_name = '_'.join([stream_type, stream])
@@ -230,7 +214,20 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
         data_dict['reference_designator'] = reference_designator
         data_dict['stream_type'] = stream_type
         data_dict['stream_name'] = stream_name
-        data_dict['stream_display_name'] = get_stream_name(stream_name)
+
+        # Get stream_display_name
+        tmp = stream_type + '_'
+        if tmp in stream_name:
+            actual_stream_name = stream_name.replace(tmp, '')
+            actual_stream_name = actual_stream_name.replace('-','_')
+            the_stream_name = get_stream_name(actual_stream_name)
+            if the_stream_name:
+                data_dict['stream_display_name'] = the_stream_name
+            else:
+                data_dict['stream_display_name'] = actual_stream_name
+        else:
+            data_dict['stream_display_name'] = get_stream_name(stream_name)
+
         data_dict['variables'] = []
         data_dict['variable_types'] = {}
         data_dict['units'] = {}
@@ -258,8 +255,18 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
             display_names.append(get_param_names(variable))
 
         data_dict['parameter_display_name'] = display_names
+
         if data_dict['display_name'] is None:
             data_dict['display_name'] = reference_designator
+        if data_dict['long_display_name'] is None:
+            data_dict['long_display_name'] = reference_designator
+        if data_dict['assembly_name'] is None:
+            data_dict['assembly_name'] = ref[:14]
+        if data_dict['platform_name'] is None:
+            data_dict['platform_name'] = ref[:8]
+        if data_dict['stream_display_name'] is None:
+            data_dict['stream_display_name'] = stream_name
+
         return data_dict
 
     except Exception as err:
@@ -2175,7 +2182,7 @@ def to_bool_str(value):
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # TODO If development only, deprecate or mark as such.
 @api.route('/get_structured_toc')
-@cache.memoize(timeout=1600)
+# @cache.memoize(timeout=1600)
 def get_structured_toc():
     try:
         mooring_list = []
@@ -2244,7 +2251,7 @@ def get_structured_toc():
 
 
 @api.route('/get_toc')
-@cache.memoize(timeout=1600)
+# @cache.memoize(timeout=1600)
 def get_toc():
     """ Get uframe toc data; process and return data list; if exception then raise.
     """
@@ -2301,7 +2308,7 @@ def _process_uframe_toc():
 
 # [OLD FORMAT]
 # TODO Deprecate once transition to new toc format has been completed.
-@cache.memoize(timeout=1600)
+# @cache.memoize(timeout=1600)
 def get_uframe_toc(d):
     """ Process uframe response from /sensor/inv/toc' for use in UI.
     """
@@ -2329,7 +2336,7 @@ def get_uframe_toc(d):
         return []
 
 # [NEW FORMAT]
-@cache.memoize(timeout=1600)
+# @cache.memoize(timeout=1600)
 def new_get_uframe_toc(data):
     """ Process uframe response from /sensor/inv/toc into list of dictionaries for use in UI.
     The toc response has three [required] dictionaries:
@@ -2441,7 +2448,7 @@ def new_get_uframe_toc(data):
 
 
 def get_names_for_toc(rd, mooring, platform):
-    """ Process display names for toc processing.
+    """ Process display names for toc processing. If unable to get display name, return ''.
     """
     _instrument_display_name = ""
     _mooring_display_name = ""
@@ -2456,12 +2463,19 @@ def get_names_for_toc(rd, mooring, platform):
         elif '-' in rd:
             mooring, platform, instr = rd.split('-', 2)
             _mooring_display_name = get_display_name_by_rd(mooring)
+            if _mooring_display_name is None:
+                _mooring_display_name = ""
             tmp_platform = '-'.join([mooring, platform])
             _platform_display_name = get_display_name_by_rd(tmp_platform)
+            if _platform_display_name is None:
+                _platform_display_name = ""
             _instrument_display_name = get_display_name_by_rd(rd)
+            if _instrument_display_name is None:
+                _instrument_display_name = ""
 
         return _instrument_display_name, _mooring_display_name, _platform_display_name
-    except:
+    except Exception as err:
+        print '\n debug -- exception: ', str(err)
         return "", "", ""
 
 

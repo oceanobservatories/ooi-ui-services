@@ -7,7 +7,7 @@ __author__ = 'M@Campbell'
 
 from flask import jsonify, request, current_app, url_for, g
 from ooiservices.app.main import api
-from ooiservices.app import db
+from ooiservices.app import db, security
 from ooiservices.app.main.authentication import auth, verify_auth
 from ooiservices.app.models import User, UserScope, UserScopeLink
 from ooiservices.app.decorators import scope_required
@@ -24,10 +24,14 @@ def get_user(id):
 
 @api.route('/user/<int:id>', methods=['PUT'])
 @auth.login_required
-@scope_required(u'user_admin')
+# @scope_required(u'user_admin')
 def put_user(id):
     user_account = User.query.get(id)
     data = json.loads(request.data)
+    first_name = data.get('first_name')
+    last_name = data.get('last_name')
+    phone_primary = data.get('phone_primary')
+    phone_alternate = data.get('phone_alternate')
     scopes = data.get('scopes')
     active = data.get('active')
     email_opt_in = data.get('email_opt_in')
@@ -37,6 +41,18 @@ def put_user(id):
     country = data.get('country')
     state = data.get('state')
     changed = False
+    if first_name is not None:
+        user_account.first_name = first_name
+        changed = True
+    if last_name is not None:
+        user_account.last_name = last_name
+        changed = True
+    if phone_primary is not None:
+        user_account.phone_primary = phone_primary
+        changed = True
+    if phone_alternate is not None:
+        user_account.phone_alternate = phone_alternate
+        changed = True
     if other_organization is not None:
         user_account.other_organization = other_organization
         changed = True
