@@ -547,35 +547,49 @@ def get_uframe_large_format_files_by_ref(ref_des, date_str):
     '''
     Walk the Hyrax server and parse out all available large format files
     '''
-    try:
-        cached = cache.get('large_format')
 
-        if cached:
-            data = cached
-            # Get the date we're looking for
-            date = date_str.split('-')
-            if len(date) < 3:
-                error = 'Date format not compliant, expecting ISO8601 (yyyy-mm-dd)'
-                return make_response(error, 500)
-            year = date[0]
-            month = date[1]
-            day = date[2]
-            try:
-                response = {'data': data[ref_des][year][month][day]}
-                return jsonify(response)
-            except Exception:
-                error = "Error: %s data not available for this date." % (ref_des)
-                return make_response(error, 500)
-        else:
-            # Throw an error because it takes too long
-            error = "Error: Data not available for this date."
-            return make_response(error, 500)
+    filetypes_to_check = ['-HYD', '-OBS', '-CAMDS', '-CAMHD', '-ZPL']
+    extensions_to_check = ['mseed', 'png', 'mp4', 'mov', 'raw']
 
-    except requests.exceptions.ConnectionError as e:
-        error = "Error: Cannot connect to uframe.  %s" % e
+    site = ref_des[0:8]
+    assembly = ref_des[9:14]
+    instrument = ref_des[15:]
+
+    date = date_str.split('-')
+    if len(date) < 3:
+        error = 'Date format not compliant, expecting ISO8601 (yyyy-mm-dd)'
         return make_response(error, 500)
+    year = date[0]
+    month = date[1]
+    day = date[2]
+    
+    data_payload = site + '/' + assembly + '/' + instrument + '/'
+    date_payload = str(year) + '/' + str(month) + '/' + str(day)
 
+    url = current_app.config['IMAGE_CAMERA_STORE'] + data_payload + date_payload 
+    r = requests.get(url, verify=False)
+    
+    soup = BeautifulSoup(r.content, "html.parser")
+    ss = soup.findAll('a')
+    
+    entry = {}
+    entry_list = []
+    for s in ss:
+        entry_url = url+s.attrs['href'][1:]
+        if entry_url.split('.')[-1] in extensions_to_check:
+            entry['url'] = entry_url
+            entry['datetime'] = date_str
+            entry['filename'] = entry_url.split('/')[-1]
+            entry_list.append(entry)
 
+    response = {'data': entry_list}
+    
+    if len(entry_list) < 1:
+        error = "Error: %s data not available for this date." % (ref_des)
+        return make_response(error, 500)
+    
+    return jsonify(response)
+    
 @api.route('/get_large_format_files')
 def get_uframe_large_format_files():
     '''
