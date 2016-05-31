@@ -1512,7 +1512,7 @@ def get_uframe_stream_metadata_times(ref):
         return internal_server_error(message)
 
 
-@auth.login_required
+#@auth.login_required
 @api.route('/get_multistream/<string:stream1>/<string:stream2>/<string:instrument1>/<string:instrument2>/<string:var1>/<string:var2>', methods=['GET'])
 def multistream_api(stream1, stream2, instrument1, instrument2, var1, var2):
     '''
@@ -1873,7 +1873,7 @@ def get_data_api(stream, instrument, yvar, xvar):
     return jsonify(data=resp_data, units=units, title=title)
 
 
-@auth.login_required
+#@auth.login_required
 @api.route('/plot/<string:instrument>/<string:stream>', methods=['GET'])
 def get_svg_plot(instrument, stream):
     # from ooiservices.app.uframe.controller import split_stream_name

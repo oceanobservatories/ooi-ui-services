@@ -36,7 +36,7 @@ class TestLogEntries(unittest.TestCase):
         UserScope.insert_scopes()
 
         admin = User.query.filter_by(user_name='admin').first()
-        scope = UserScope.query.filter_by(scope_name='user_admin').first()
+        scope = UserScope.query.filter_by(scope_name='asset_manager').first()
         admin.scopes.append(scope)
 
         db.session.add(admin)
@@ -252,7 +252,7 @@ class TestLogEntries(unittest.TestCase):
             'entry_title' : 'Another Entry',
             'entry_description' : "I'm Scotty P, knaw I'm sayin'"
         }
-        response = self.client.post('/log_entry', data=json.dumps(data), headers=joe_headers)
+        response = self.client.post('/log_entry', data=json.dumps(data), headers=admin_headers)
         self.assertEquals(response.status_code, 200)
         data = json.loads(response.data)
         entry_id = data['id']
@@ -281,5 +281,5 @@ class TestLogEntries(unittest.TestCase):
         response = self.client.delete('/log_entry/%s' % entry_id, headers=bob_headers)
         self.assertEquals(response.status_code, 401)
         
-        response = self.client.delete('/log_entry/%s' % entry_id, headers=joe_headers)
+        response = self.client.delete('/log_entry/%s' % entry_id, headers=admin_headers)
         self.assertEquals(response.status_code, 204)

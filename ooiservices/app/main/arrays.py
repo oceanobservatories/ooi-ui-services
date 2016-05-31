@@ -68,7 +68,7 @@ def update_array(id):
 #Delete an existing array
 @api.route('/arrays/<int:id>', methods=['DELETE'])
 @auth.login_required
-@scope_required(u'user_admin')
+@scope_required(u'asset_manager')
 def delete_array(id):
     try:
         array = Array.query.get_or_404(id)
