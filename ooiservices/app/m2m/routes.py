@@ -7,6 +7,10 @@ from flask import jsonify, request, current_app
 from ooiservices.app.m2m import m2m as api
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.main.errors import internal_server_error
+from ooiservices.app.decorators import scope_required
+from ooiservices.app.main.authentication import auth
+
+
 # data imports
 from ooiservices.app.uframe.data import get_data
 
@@ -49,43 +53,19 @@ def get_uframe_info():
     return uframe_url, timeout, timeout_read
 
 @auth.login_required
-@api.route('/get_data/<string:ref>/<string:method>/<string:stream>/<string:start_time>/<string:end_time>', methods=['GET'])
-def get_data(ref, method, stream, start_time, end_time):
-
-    mooring, platform, instrument = ref.split('-', 2)
-
-    method = method.replace('-','_')
+@scope_required('data_manager')
+@api.route('/get_data/', methods=['GET'])
+def get_data():
+    uframe_req = request.args.get('uframe').replace('(','?')
+    uframe_req = uframe_req.replace(')','&')
     uframe_url, timeout, timeout_read = get_uframe_info()
-    user = request.args.get('user', '')
-    email = request.args.get('email', '')
-    prov = request.args.get('provenance','false')
-    pids = request.args.get('pid','')
-
-    data_format = 'application/'+request.args.get('format', '')
-    possible_data_format = ['application/netcdf','application/json','application/csv','application/tsv']
-    if data_format not in possible_data_format:
-        data_format = 'applciation/netcdf'
-
-    limit = request.args.get('limit', 'NONE')
-    if limit is 'NONE':
-        query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=true&user=%s&email=%s&format=%s&pid=%s' % (start_time, end_time, prov, user, email, data_format, pids)
-    else:
-        if int(limit) > 1001 or int(limit) <1:
-            limit = 1000
-        query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=true&user=%s&email=%s&format=%s&limit=%s&pid=%s' % (start_time, end_time, prov, user, email, data_format,limit,pids)
-
-    uframe_url, timeout, timeout_read = get_uframe_info()
-    url = "/".join([uframe_url, mooring, platform, instrument, method, stream + query])
-    current_app.logger.debug('***** url: ' + url)
-    response = requests.get(url, timeout=(timeout, timeout_read))
-
+    print uframe_req, '~~~~~~'
+    if uframe_url not in uframe_req and 'uframe' not in uframe_req:
+        return "Not a valid uFrame Location"
     try:
-        GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=m2m&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
-        urllib2.urlopen(GA_URL)
-    except KeyError:
-        pass
+        response = requests.get(uframe_req, timeout=(timeout, timeout_read))
+    except Exception as e:
+        return internal_server_error('uframe connection cannot be made.' + str(e.message))
 
-
-    return response.text, response.status_code
-
+    return response.text
 

@@ -1873,6 +1873,7 @@ def get_data_api(stream, instrument, yvar, xvar):
     return jsonify(data=resp_data, units=units, title=title)
 
 
+#@auth.login_required
 @auth.login_required
 @api.route('/plot/<string:instrument>/<string:stream>', methods=['GET'])
 def get_svg_plot(instrument, stream):
