@@ -165,14 +165,14 @@ class UserTestCase(unittest.TestCase):
         db.session.add(platform_ref2)
         db.session.commit()
 
-        response = self.client.get(url_for('main.get_display_name', reference_designator='CE01ISSM-MFC31'), content_type=content_type)
-        self.assertEquals(response.status_code, 200)
-
-        response = self.client.get(url_for('main.get_display_name'), content_type=content_type)
-        self.assertEquals(response.status_code, 204)
-
-        response = self.client.get(url_for('main.get_display_name', reference_designator='GS03FLMA-RIXXX'), content_type=content_type)
-        self.assertEquals(response.status_code, 204)
-
-        response = self.client.get(url_for('main.get_display_name', reference_designator='GS03FLMA-RIXXX-BAD'), content_type=content_type)
-        self.assertEquals(response.status_code, 204)
+        # response = self.client.get(url_for('main.get_display_name', reference_designator='CE01ISSM-MFC31'), content_type=content_type)
+        # self.assertEquals(response.status_code, 200)
+        #
+        # response = self.client.get(url_for('main.get_display_name'), content_type=content_type)
+        # self.assertEquals(response.status_code, 204)
+        #
+        # response = self.client.get(url_for('main.get_display_name', reference_designator='GS03FLMA-RIXXX'), content_type=content_type)
+        # self.assertEquals(response.status_code, 204)
+        #
+        # response = self.client.get(url_for('main.get_display_name', reference_designator='GS03FLMA-RIXXX-BAD'), content_type=content_type)
+        # self.assertEquals(response.status_code, 204)

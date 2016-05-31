@@ -10,7 +10,7 @@ from ooiservices.app.decorators import scope_required
 from ooiservices.app.main import api
 from ooiservices.app.main.errors import bad_request
 from ooiservices.app.main.authentication import auth
-from ooiservices.app.main.routes import get_display_name_by_rd, get_long_display_name_by_rd
+from ooiservices.app.uframe.vocab import get_display_name_by_rd, get_long_display_name_by_rd
 from ooiservices.app.models import Array
 import json, os
 import requests
@@ -852,25 +852,6 @@ def _c2_get_instrument_driver_status(reference_designator):
                 data['ro_parameter_display_values'] = {}
                 pass
 
-            """
-            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-            # Get 'direct_access_buttons' (list of button names for direct access)
-            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-            try:
-                direct_config = None
-                if data['value']['direct_config']:
-                    direct_config = data['value']['direct_config']
-                temp = {}
-                if direct_config:
-                    temp = get_direct_access_buttons(direct_config)
-                data['direct_access_buttons'] = temp
-            except Exception as err:
-                #message = 'Exception from get_direct_access_buttons: %s' % str(err)
-                #current_app.logger.info(message)
-                data['direct_access_buttons'] = {}
-                pass
-            """
-
         return data
     except Exception:
         raise
@@ -880,13 +861,10 @@ def uframe_get_instrument_driver_status(reference_designator):
     """ Returns the uframe response for status of single instrument agent.
     Sample: http://host:12572/instrument/api/reference_designator
     """
-    debug = False
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, reference_designator])
-        if debug: print '\n debug --- url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read))
-
         if response is None:
             message = 'instrument driver status returned None.'
             current_app.logger.info(message)
@@ -1255,6 +1233,7 @@ def populate_and_check_range_values(data, key_dict):
     except Exception as err:
         current_app.logger.info(err.message)
         raise
+
 
 def scrub_ui_request_data(data, parameter_types, ranges):
     """ Modify format of float, int and bool data values provided by ooi-ui.
@@ -1793,74 +1772,6 @@ def get_ro_parameter_display_values(parameters):
         raise
 
 
-def get_direct_access_buttons(direct_config):
-    """ Get READ_ONLY and IMMUTABLE display values for UI from instrument 'parameters' dictionary.
-
-    Sample Input:
-    "direct_config": [
-      {
-        "character_delay": 0.0,
-        "data": 40291,
-        "eol": "\r\n",
-        "input_dict": {
-          "Interrupt": "!!!!!",
-          "Print Menu": "$mnu\r\n",
-          "Print Metadata": "$met\r\n",
-          "Read Data": "$get\r\n",
-          "Restore Factory Defaults": "$rfd\r\n",
-          "Restore Settings": "$rls\r\n",
-          "Run Settings": "$run\r\n",
-          "Run Wiper": "$mvs\r\n",
-          "Save Settings": "$sto\r\n",
-          "Set Clock>": "$clk ",
-          "Set Date>": "$date \r\n",
-          "Set>": "set "
-        },
-        "ip": "uft20",
-        "sniffer": 60641,
-        "title": "FLOR"
-      }
-    ],
-        . . .
-
-    Sample Output:
-    ['Interrupt', 'Print Menu', 'Print Metadata', 'Read Data', 'Restore Factory Defaults',
-        'Restore Settings', 'Run Settings', 'Run Wiper', 'Save Settings', 'Set Clock>', 'Set Date>', 'Set>']
-        . . .
-
-    """
-    result = []
-    try:
-        #print '\n debug -- [get_direct_access_buttons] direct_config: ', \
-        #    json.dumps(direct_config, indent=4, sort_keys=True)
-
-        # If no direct_config, then return empty dict.
-        if not direct_config:
-            return result
-
-        # If direct_config does not have attribute 'input_dict', raise error.
-        if 'input_dict' not in direct_config[0]:
-            #message = 'Dictionary direct_config does not contain attribute input_dict.'
-            #current_app.logger.info(message)
-            return result
-
-        # If direct_config attribute 'input_dict' is empty, raise error.
-        if not direct_config[0]['input_dict']:
-            #message = 'Dictionary direct_config attribute input_dict is empty.'
-            #current_app.logger.info(message)
-            return result
-
-        # Create list of direct access buttons
-        input_dict = direct_config[0]['input_dict']
-        result = input_dict.keys()
-        result.sort()
-        return result
-
-    except Exception as err:
-        current_app.logger.info(err.message)
-        raise
-
-
 def get_range_dictionary(resource, _status, reference_designator):
     """
     """
@@ -1941,7 +1852,6 @@ def c2_get_last_particle(reference_designator, _method, _stream):
         return bad_request(str(err.message))
 
 
-# todo - discuss command state update after an error is raised and returned (400, bad_request).
 def _c2_get_last_particle(rd, _method, _name):
     """ Using the reference designator, stream method and name, fetch last particle.
     Get reference designator metadata to determine time span for last particle.
@@ -3157,7 +3067,7 @@ def _compile_c2_toc_standard():
                                                         'platform_code': platform,
                                                         'instrument_code': instrument,
                                                         'reference_designator': reference_designator,
-                                                        'display_name': get_display_name_by_rd(reference_designator=reference_designator)
+                                                        'display_name': get_display_name_by_rd(reference_designator)
                                                         })
                 arrays = Array.query.all()
                 toc['arrays'] = [array.to_json() for array in arrays]
@@ -3544,35 +3454,7 @@ def _compile_c2_toc():
     "CE04OSPS-SF01B-4F-PCO2WA102", "RS03AXBS-MJ03A-12-VEL3DB301", "RS03INT1-MJ03C-06-MASSPA301",
     "RS03AXPS-SF03A-3A-FLORTD301", "RS03AXBS-LJ03A-11-OPTAAC303", "RS03AXPS-SF03A-4A-NUTNRA301",
     "CE04OSBP-LV01C-06-CAMDSB106", "CE04OSBP-LJ01C-09-PCO2WB104", "RS01SBPS-PC01A-07-CAMDSC102",
-    "RS03ECAL-MJ03E-06-BOTPTA302", "RS03AXPS-SF03A-2A-CTDPFA302", "CE04OSPS-SF01B-3D-SPKIRA102",
-    "RS01SBPS-SF01A-3A-FLORTD101", "RS03AXBS-MJ03A-06-PRESTA301", "RS01SBPS-SF01A-2A-CTDPFA102",
-    "CE02SHBP-LJ01D-09-PCO2WB103", "CE04OSBP-LJ01C-08-OPTAAC104", "RS01SLBS-LJ01A-05-HPIESA101",
-    "RS03AXPS-PC03A-07-CAMDSC302", "CE02SHBP-MJ01C-08-CAMDSB107", "RS01SBPS-SF01A-2D-PHSENA101",
-    "RS03AXPS-SF03A-3D-SPKIRA301", "RS01SBPS-SF01A-4A-NUTNRA101", "CE02SHBP-LJ01D-10-PHSEND103",
-    "RS01SBPS-SF01A-4F-PCO2WA101", "RS01SLBS-MJ01A-12-VEL3DB101", "RS03AXBS-LJ03A-05-HPIESA301",
-    "RS03AXPS-SF03A-2D-PHSENA301", "RS03AXPS-SF03A-3B-OPTAAD301", "CE04OSPS-SF01B-3B-OPTAAD105",
-    "RS01SBPS-SF01A-3D-SPKIRA101", "RS01SLBS-LJ01A-11-OPTAAC103", "RS01SLBS-LJ01A-10-ADCPTE101",
-    "CE04OSBP-LJ01C-10-PHSEND107", "CE02SHBP-LJ01D-05-ADCPTB104", "CE04OSPS-PC01B-4B-PHSENA106",
-    "RS03INT1-MJ03C-10-TRHPHA301", "RS01SUM2-MJ01B-05-CAMDSB103", "RS03AXPS-PC03A-05-ADCPTD302",
-    "RS03INT2-MJ03D-12-VEL3DB304", "RS01SBPS-PC01A-4A-CTDPFA103", "CE02SHBP-LJ01D-08-OPTAAD106",
-    "RS03INT2-MJ03D-06-BOTPTA303", "CE04OSPS-SF01B-3A-FLORTD104", "RS03AXBS-LJ03A-12-CTDPFB301",
-    "CE04OSPS-PC01B-4C-PCO2WA105", "RS03ASHS-MJ03B-07-TMPSFA301", "RS03AXPS-SF03A-4B-VELPTD302",
-    "RS01SBPS-PC01A-05-ADCPTD102", "RS01SBPS-PC01A-4C-FLORDD103", "CE04OSBP-LJ01C-06-CTDBPO108",
-    "RS01SBPS-PC01A-4B-PHSENA102", "RS01SBPS-SF01A-4B-VELPTD102", "RS01SBPS-PC01A-06-VADCPA101",
-    "RS03INT1-MJ03C-07-D1000A301", "RS03AXPS-SF03A-3C-PARADA301", "RS01SUM2-MJ01B-06-MASSPA101",
-    "RS01SBPS-SF01A-3B-OPTAAD101", "RS03AXPS-PC03A-4A-CTDPFA303", "CE04OSPS-SF01B-3C-PARADA102",
-    "CE04OSPS-SF01B-2A-CTDPFA107", "RS01SUM2-MJ01B-12-ADCPSK101", "CE04OSPS-PC01B-05-ZPLSCB102",
-    "RS03AXPS-PC03A-06-VADCPA301", "CE02SHBP-LJ01D-07-VEL3DC108", "CE02SHBP-MJ01C-07-ZPLSCB101",
-    "CE04OSPS-SF01B-4A-NUTNRA102", "CE04OSPS-SF01B-4B-VELPTD106", "RS03AXPS-SF03A-4F-PCO2WA301",
-    "CE04OSPS-SF01B-2B-PHSENA108", "RS03INT1-MJ03C-05-CAMDSB303", "CE04OSPS-PC01B-4A-CTDPFA109",
-    "RS03AXPS-PC03A-4C-FLORDD303", "RS01SLBS-MJ01A-06-PRESTA101", "RS01SUM1-LJ01B-12-VEL3DB104",
-    "CE02SHBP-LJ01D-06-CTDBPN106", "RS03AXBS-LJ03A-10-ADCPTE301", "CE04OSBP-LJ01C-05-ADCPSI103",
-    "RS03CCAL-MJ03F-05-BOTPTA301", "RS01SLBS-LJ01A-12-CTDPFB101", "RS03AXPS-PC03A-4B-PHSENA302",
-    "RS03AXBS-LJ03A-10-ADCPTE303", "RS01SBPS-SF01A-3C-PARADA101",
-    "RS01OSBP-PN01C", "SSRSPACC-OTNNA", "SSRSPACC-PFE00", "CE04OSBP-LJ01C", "RS03AXBS-LJ03A",
-    "RS01SHDR-PN01B", "SSRSPACC-F10SA", "RS03ECAL-MJ03E", "RS03AXBS-MJ03A", "RS01SUM1-LV01B",
-    "RS03CCAL-MJ03F", "CE02SHBP-LJ01D", "SSRSPACC-TS00N", "SSRSPACC-TS00S", "RS01SBPS-LV01A",
-    "RS01OSBP-SC01B", "RS03ASHS-MJ03B", "CE04OSBP-LV01C", "RS03AXPS-SF03A", "RS03AXPS-SC03A",
+    ...
     "SSRSPACC-F10NA", "RS01SBPS-SF01A", "RS01SLBS-PN01A", "RS03AXSM-PN03B", "RS03INT1-MJ03C",
     "RS01SLBS-MJ01A", "RS01SLBS-LJ01A", "RS03INT2-MJ03D", "RS03AXPS-LV03A", "CE02SHBP-MJ01C",
     "SSRSPACC-UPS0A", "SSRSPACC-UPS0B", "RS01OSBP-PC01B", "SSRSPACC-OTNSA", "RS01SLBS-PD01A",
@@ -3595,16 +3477,7 @@ def _compile_c2_toc():
         [
             "09-TRHPHA301",
             "06-MASSPA301-MCU",
-            "05-CAMDSB303",
-            "09-IP5",
-            "00-ENG",
-            "06-IP2",
-            "09-THSPHA301",
-            "10-IP6",
-            "10-TRHPHA301",
-            "07-IP3",
-            "05-IP1",
-            "07-D1000A301"
+            . . .
         ]
     - - - - - - - - - - - - - - - - - - - - - - - - - - -
     Response 'instruments' is a list of dictionaries:
@@ -3692,7 +3565,7 @@ def _compile_c2_toc():
                                       'display_name': platform_display_name
                                       })
             if _instrument is not None:
-                instrument_name = get_display_name_by_rd(reference_designator=rd)
+                instrument_name = get_display_name_by_rd(rd)
                 if instrument_name is None:
                     instrument_name = rd
                 if _instrument not in instruments:

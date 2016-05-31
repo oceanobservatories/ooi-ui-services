@@ -29,6 +29,8 @@ Caches created/utilized:
   glider_tracks
   cam_images
   bad_asset_list
+  vocab_dict
+  vocab_codes
 """
 
 from ooiservices.app.uframe.assetController import _compile_assets, _compile_bad_assets
@@ -37,6 +39,7 @@ from ooiservices.app.uframe.controller import dfs_streams
 from ooiservices.app.uframe.controller import _compile_glider_tracks
 from ooiservices.app.uframe.controller import _compile_cam_images
 from ooiservices.app.uframe.controller import _compile_large_format_files
+from ooiservices.app.uframe.vocab import _compile_vocab
 from ooiservices.app.main.alertsalarms_tools import _compile_asset_rds, get_assets_dict_from_list
 
 @celery.task(name='tasks.compile_assets')
@@ -269,4 +272,27 @@ def compile_bad_assets():
                     print "[-] Error in cache update"
     except Exception as err:
         message = 'compile_bad_assets exception: %s' % err.message
+        current_app.logger.warning(message)
+
+
+@celery.task(name='tasks.compile_vocabulary')
+def compile_vocabulary():
+    try:
+        with current_app.test_request_context():
+            print "[+] Starting vocabulary cache reset..."
+            cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
+            cache.init_app(current_app)
+            url = current_app.config['UFRAME_VOCAB_URL'] + '/vocab'
+            payload = requests.get(url)
+            if payload.status_code is 200:
+                data = payload.json()
+                vocab_dict, vocab_codes = _compile_vocab(data)
+                if "error" not in vocab_dict:
+                    cache.set('vocab_dict', vocab_dict, timeout=CACHE_TIMEOUT)
+                    cache.set('vocab_codes', codes, timeout=CACHE_TIMEOUT)
+                    print "[+] Vocabulary cache reset"
+                else:
+                    print "[-] Error in cache update"
+    except Exception as err:
+        message = 'compile_vocabulary exception: %s' % err.message
         current_app.logger.warning(message)

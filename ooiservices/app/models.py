@@ -1182,7 +1182,8 @@ class User(UserMixin, db.Model):
         email = json.get('email')
         password = json.get('password')
         password2 = json.get('repeatPassword')
-        phone_primary = json.get('primary_phone')
+        phone_primary = json.get('phone_primary')
+        phone_alternate = json.get('phone_alternate')
         first_name = json.get('first_name')
         last_name = json.get('last_name')
         role = json.get('role_name')
@@ -1203,6 +1204,7 @@ class User(UserMixin, db.Model):
         return User(email=email,
                     password=password,
                     phone_primary=phone_primary,
+                    phone_alternate=phone_alternate,
                     user_name=email,
                     user_id=email,
                     first_name=first_name,

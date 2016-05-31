@@ -35,6 +35,7 @@ COMMON: &common
     UFRAME_TOC:             '/sensor/inv/toc'
     UFRAME_INST_BASE:       '/instrument/api'
     UFRAME_PLAT_BASE:       '/platform/api'
+    UFRAME_VOCAB_URL:        'http://localhost:12586'
       #Values may be changed to work with uFrame performance. increase Data_Points for higher resolution plotting
     UFRAME_TIMEOUT_CONNECT: 5
     UFRAME_TIMEOUT_READ: 30

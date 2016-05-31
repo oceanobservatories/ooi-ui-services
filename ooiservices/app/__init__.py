@@ -31,7 +31,7 @@ from flask_wtf.csrf import CsrfProtect
 from sqlalchemy_searchable import make_searchable
 from flask_redis import Redis
 from flask_cors import CORS
-from flask_socketio import SocketIO
+
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -46,6 +46,7 @@ redis_store = Redis()
 cors = CORS()
 sio = None
 thread = None
+security = Security()
 
 def create_app(config_name):
     app = Flask(__name__)
@@ -98,15 +99,11 @@ def create_app(config_name):
     csrf.init_app(app)
     redis_store.init_app(app)
     cors.init_app(app)
-    global sio
-    sio = SocketIO(app, async_mode=async_mode)
-    # sio.emit('my result', {'data': 'initializing in __init__'}, broadcast=True, namespace='/test')
 
     # Flask-Security Init
     from ooiservices.app.models import User, Role
     user_datastore = SQLAlchemyUserDatastore(db, User, Role)
     security = Security(app, user_datastore)
-    security.init_app(app, register_blueprint=False)
 
     from ooiservices.app.main import api as main_blueprint
     app.register_blueprint(main_blueprint)

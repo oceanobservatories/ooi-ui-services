@@ -45,7 +45,7 @@ def auth_error():
 @api.route('/token')
 @auth.login_required
 def get_token():
-    print 'getting token'
+    # print 'getting token'
     if g.current_user.is_anonymous or g.token_used:
         return unauthorized('Invalid credentials')
     return jsonify({'token': g.current_user.generate_auth_token(

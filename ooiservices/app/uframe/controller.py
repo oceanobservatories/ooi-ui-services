@@ -6,15 +6,14 @@ uframe endpoints
 from flask import jsonify, request, current_app, make_response, Response, send_file
 from ooiservices.app import cache, db
 from ooiservices.app.uframe import uframe as api
-from ooiservices.app.models import PlatformDeployment, DisabledStreams
-from ooiservices.app.main.routes import get_display_name_by_rd, get_long_display_name_by_rd,\
-    get_parameter_name_by_parameter as get_param_names,\
-    get_stream_name_by_stream as get_stream_name
+from ooiservices.app.models import DisabledStreams
+from ooiservices.app.uframe.vocab import get_display_name_by_rd, get_long_display_name_by_rd
+from ooiservices.app.uframe.vocab import get_parameter_name_by_parameter as get_param_names
+from ooiservices.app.uframe.vocab import get_stream_name_by_stream as get_stream_name
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.main.errors import internal_server_error, bad_request
 # data imports
-from ooiservices.app.uframe.data import get_data, get_simple_data,\
-    find_parameter_ids, get_multistream_data
+from ooiservices.app.uframe.data import get_data, get_simple_data, find_parameter_ids, get_multistream_data
 from ooiservices.app.uframe.plotting import generate_plot
 from ooiservices.app.uframe.assetController import get_events_by_ref_des
 from ooiservices.app.uframe.events import get_events
@@ -48,18 +47,17 @@ __author__ = 'Andy Bird'
 requests.adapters.DEFAULT_RETRIES = 2
 CACHE_TIMEOUT = 172800
 COSMO_CONSTANT = 2208988800
-#BAD_DEPTH = 999999.999999
 
 
 def dfs_streams():
-    """
+    """ Compile a list of streams from uframe data.
     """
     try:
         retval = []
         streams = []
-        toc = _process_uframe_toc()
+        toc = process_uframe_toc()
         if toc is None:
-            message = 'The uframe toc response is empty.'
+            message = 'The uframe toc response is empty, unable to return stream information.'
             raise Exception(message)
 
         # For each instrument, prepare parameters dictionary
@@ -94,24 +92,10 @@ def dfs_streams():
             events = json.loads(response.data)
             for event in events['events']:
                 if event['eventClass'] == '.DeploymentEvent' and event['tense'] == 'PRESENT':
-                    """
-                    if isinstance(event['depth'], float):
-                        stream['depth'] = event['depth']
-                    else:
-                        stream['depth'] = BAD_DEPTH
-                    """
                     stream['depth'] = event['depth']
                     stream['lat_lon'] = event['lat_lon']
                     stream['cruise_number'] = event['cruise_number']
                     stream['deployment_number'] = event['deployment_number']
-
-                    """
-                    # Instead of None for lat_lon and cruise_number, provide [] and '' respectively.
-                    if stream['lat_lon'] is None:
-                        stream['lat_lon'] = []
-                    if stream['cruise_number'] is None:
-                        stream['cruise_number'] = ''
-                    """
 
         return retval
     except Exception as err:
@@ -135,7 +119,7 @@ def parameters_in_instrument(parameters):
                 parameters_dict[parameter['stream']+'_variables_shape'] = []
                 parameters_dict[parameter['stream']+'_pdId'] = []
 
-            parameters_dict[parameter['stream']].append(parameter['particleKey'])  # /toc
+            parameters_dict[parameter['stream']].append(parameter['particleKey'])
             parameters_dict[parameter['stream']+'_variable_type'].append(parameter['type'].lower())
             parameters_dict[parameter['stream']+'_units'].append(parameter['units'])
             parameters_dict[parameter['stream']+'_variables_shape'].append(parameter['shape'].lower())
@@ -204,22 +188,6 @@ def iso_to_timestamp(iso8601):
 def dict_from_stream(mooring, platform, instrument, stream_type, stream, reference_designator,
                      beginTime, endTime, variables, variable_type, units, variables_shape, parameter_id):
     """ Prepare a data dictionary from input data, where input data is constructed in data_streams_in_instrument.
-
-    stream = (
-            instrument['mooring_code'],
-            instrument['platform_code'],
-            instrument['instrument_code'],
-            data_stream['method'].replace("_","-"),
-            data_stream['stream'].replace("_","-"),
-            instrument['reference_designator'],
-            data_stream['beginTime'],
-            data_stream['endTime'],
-            parameters_dict[tmp_stream],
-            parameters_dict[tmp_stream+'_variable_type'],
-            parameters_dict[tmp_stream+'_units'],
-            parameters_dict[tmp_stream+'_variables_shape'],
-            parameters_dict[tmp_stream+'_pdId']
-            )
     """
     try:
         stream_name = '_'.join([stream_type, stream])
@@ -303,7 +271,7 @@ def _get_folder_list(url,search_filter):
 
 
 def _compile_cam_images():
-    """ Loop over a directory list to get the images available (url>ref>year>month>day>image)
+    """ Loop over a directory list to get the images available (url>ref>year>month>day>image).
     """
     url = current_app.config['IMAGE_CAMERA_STORE']
     r = requests.get(url)
@@ -406,17 +374,17 @@ def get_uframe_cam_images():
         return make_response(error, 500)
 
 def _create_entry(url, ext):
-    '''
-    Create the JSON object for this file
-    '''
-    # get the filename and other metadata
-    #  ZPL .raw = CE02SHBP-MJ01C-07-ZPLSCB101_OOI-D20150802-T230543.raw
-    #  HYD .mseed = OO-HYEA2--YDH.2015-09-03T23:55:06.365250.mseed
-    #  CAMDS .png = CE02SHBP-MJ01C-08-CAMDSB107_20150818T214937,543Z.png
-    #  OBS .mseed = OO-HYSB1--BHE.2015-09-03T23:54:37.100000.mseed
-    #  CAMHD .mov = CAMHDA301-20151119T210000Z.mov
-    #  CAMHS .mp4 = CAMHDA301-20151119T210000Z.mp4
+    """ Create the JSON object for this file.
 
+    Get the filename and other metadata
+       ZPL .raw = CE02SHBP-MJ01C-07-ZPLSCB101_OOI-D20150802-T230543.raw
+       HYD .mseed = OO-HYEA2--YDH.2015-09-03T23:55:06.365250.mseed
+       CAMDS .png = CE02SHBP-MJ01C-08-CAMDSB107_20150818T214937,543Z.png
+       OBS .mseed = OO-HYSB1--BHE.2015-09-03T23:54:37.100000.mseed
+       CAMHD .mov = CAMHDA301-20151119T210000Z.mov
+       CAMHS .mp4 = CAMHDA301-20151119T210000Z.mp4
+
+    """
     filename = url.split('/')[-1]
     if ext == '.png':
         ref = filename.split(ext)[0].split('_')
@@ -444,19 +412,18 @@ def _create_entry(url, ext):
 
     item = {"url": url,
             "filename": urllib.unquote(filename).decode('utf8'),
-            "datetime": dt.replace("-", "").replace(":", ""),
-           }
+            "datetime": dt.replace("-", "").replace(":", "")}
+
     return item
 
 
 def _compile_large_format_files(test_ref_des=None, test_date_str=None):
-    '''
-    Loop over a directory list to get the files available (url>ref>year>month>day>image)
+    """ Loop over a directory list to get the files available (url>ref>year>month>day>image)
 
     Optional arguments are for testing ONLY:
         ref_des: Pass in a reference designator to only retrieve those results
         date_str: Pass in a date string (yyyy-mm-dd) to only get data from a specific day
-    '''
+    """
     testing = False
     if test_ref_des is not None and test_date_str is not None:
         testing = True
@@ -476,7 +443,9 @@ def _compile_large_format_files(test_ref_des=None, test_date_str=None):
     extensions_to_check = ['.mseed', '.png', '.mp4', '.mov', '.raw']
 
     # Go fetch whatever data has already been cached
-    data_dict = {} if cache.get('large_format') is None else cache.get('large_format')
+    data_dict = {}
+    if cache.get('large_format') is not None:
+        data_dict = cache.get('large_format')
 
     # Get the current date to use to check against the data on HYRAX server
     current_year = datetime.utcnow().strftime('%Y')
@@ -562,16 +531,16 @@ def get_uframe_large_format_files_by_ref(ref_des, date_str):
     year = date[0]
     month = date[1]
     day = date[2]
-    
+
     data_payload = site + '/' + assembly + '/' + instrument + '/'
     date_payload = str(year) + '/' + str(month) + '/' + str(day)
 
-    url = current_app.config['IMAGE_CAMERA_STORE'] + data_payload + date_payload 
+    url = current_app.config['IMAGE_CAMERA_STORE'] + data_payload + date_payload
     r = requests.get(url, verify=False)
-    
+
     soup = BeautifulSoup(r.content, "html.parser")
     ss = soup.findAll('a')
-    
+
     entry = {}
     entry_list = []
     for s in ss:
@@ -583,18 +552,17 @@ def get_uframe_large_format_files_by_ref(ref_des, date_str):
             entry_list.append(entry)
 
     response = {'data': entry_list}
-    
+
     if len(entry_list) < 1:
         error = "Error: %s data not available for this date." % (ref_des)
         return make_response(error, 500)
-    
+
     return jsonify(response)
-    
+
 @api.route('/get_large_format_files')
 def get_uframe_large_format_files():
-    '''
-    Get all available large format files
-    '''
+    """ Get all available large format files.
+    """
     try:
         cached = cache.get('large_format')
         if cached:
@@ -658,12 +626,11 @@ def _select_glider_method(available_glider_methods):
 
 
 def _get_glider_track_data(glider_outline,glider_cache=None):
-    '''
-        get the glider track information from uframe
+    """ Get the glider track information from uframe
 
         glider_outline: is the currently obtained gliders from uframe
         glider_cache  : are the cached gliders we already have in the store!
-    '''
+    """
     gliders_to_update = []
     glider_skips = []
     data_limit  = 1000
@@ -758,10 +725,9 @@ def _get_glider_track_data(glider_outline,glider_cache=None):
 
 
 def _get_existing_glider_ids_to_skip(glider_cache):
-    '''
-        quick pass to identify glider entries that we can skip due to it being recovered
-        also identifies gliders we wish we update, i.e telemetered gliders
-    '''
+    """ Quick pass to identify glider entries that we can skip due to it being recovered.
+        Also identifies gliders we wish we update, i.e telemetered gliders
+    """
     locations_to_skip = []
     locations_to_update = []
     for g in glider_cache:
@@ -784,7 +750,7 @@ def _get_existing_glider_ids_to_skip(glider_cache):
 
 
 def _extract_glider_track_from_data(track_data, glider_depth=None):
-    """   loop through the response and create the line track
+    """ Loop through the response and create the line track.
     """
     lat_field = "latitude"
     lon_field = "longitude"
@@ -805,7 +771,7 @@ def _extract_glider_track_from_data(track_data, glider_depth=None):
 
             has_lat   = not np.isnan(row[lat_field])
             if row[lat_field] >= 90 or row[lat_field] <= -90:
-                has_lon = False
+                has_lat = False
 
             if glider_depth is not None:
                 has_depth = not np.isnan(row[glider_depth['particleKey']])
@@ -836,12 +802,12 @@ def _extract_glider_track_from_data(track_data, glider_depth=None):
                                      "units": glider_depth_units,
                                      "depths": depths}
         except Exception as e:
-            print e
+            #print e
             pass
 
 
 def _get_additional_data(glider_track):
-    """ Get additional data for a glider stream, [battery,vacuum,m_speed[] information.
+    """ Get additional data for a glider stream, [battery, vacuum, m_speed[] information.
     """
     #see if its recovered, create desired stream
     search_stream = None
@@ -899,7 +865,8 @@ def _get_additional_data(glider_track):
     return glider_track
 
 def _compile_glider_tracks(update_tracks):
-    # we will always want the telemetered data, and the engineering stream if possible
+    """ We will always want the telemetered data, and the engineering stream if possible.
+    """
     glider_ids = []
     glider_locations = []
     glider_info = []
@@ -1020,7 +987,93 @@ def _compile_glider_tracks(update_tracks):
 @api.route('/stream')
 #@auth.login_required
 def streams_list():
-    """ Accepts stream_name or reference_designator as a URL argument
+    """ Get streams (list of dictionaries); used in the data catalog.
+
+    List of request.args used in this function:
+        'sort', 'order', 'min', 'concepts', 'search', 'startDate', 'endDate' and 'startAt'
+
+    Sample response data (abbreviated):
+    {
+      "streams": [
+        {
+          "array_name": "Station Papa",
+          "assembly_name": "Mooring Riser",
+          "cruise_number": null,
+          "deployment_number": 3,
+          "depth": "NaN",
+          "display_name": "Seawater pH",
+          "download": {
+            "csv": "api/uframe/get_csv/recovered-inst_phsen-abcdef-metadata/GP03FLMA-RIS01-04-PHSENF000",
+            "json": "api/uframe/get_json/recovered-inst_phsen-abcdef-metadata/GP03FLMA-RIS01-04-PHSENF000",
+            "netcdf": "api/uframe/get_netcdf/recovered-inst_phsen-abcdef-metadata/GP03FLMA-RIS01-04-PHSENF000",
+            "profile": "api/uframe/get_profiles/recovered-inst_phsen-abcdef-metadata/GP03FLMA-RIS01-04-PHSENF000"
+          },
+          "end": "2040-02-05T12:25:32.000Z",
+          "lat_lon": null,
+          "long_display_name": "Station Papa Flanking Subsurface Mooring A - Mooring Riser - Seawater pH",
+          "parameter_display_name": [
+            "Time, UTC",
+            "Port Timestamp, UTC",
+            "Driver Timestamp, UTC",
+            "Internal Timestamp, UTC",
+            "Preferred Timestamp",
+            "Record Type",
+            . . .
+          ],
+          "parameter_id": [
+            "pd7",
+            "pd10",
+            "pd11",
+            "pd12",
+            "pd16",
+            "pd355",
+            . . .
+          ],
+          "platform_name": "Flanking Subsurface Mooring A",
+          "reference_designator": "GP03FLMA-RIS01-04-PHSENF000",
+          "site_name": "Flanking Subsurface Mooring A",
+          "start": "1904-01-01T18:50:57.000Z",
+          "stream_display_name": null,
+          "stream_name": "recovered-inst_phsen-abcdef-metadata",
+          "stream_type": "recovered-inst",
+          "units": [
+            "seconds since 1900-01-01",
+            "seconds since 1900-01-01",
+            "seconds since 1900-01-01",
+            "seconds since 1900-01-01",
+            "1",
+            "1",
+            . . .
+          ],
+          "variable_type": [
+            "double",
+            "double",
+            "double",
+            "double",
+            "string",
+            "ubyte",
+            . . .
+          ],
+          "variable_types": {},
+          "variables": [
+            "time",
+            "port_timestamp",
+            "driver_timestamp",
+            "internal_timestamp",
+            "preferred_timestamp",
+            "record_type",
+            . . .
+          ],
+          "variables_shape": [
+            "scalar",
+            "scalar",
+            "scalar",
+            "scalar",
+            "scalar",
+            "scalar",
+            . . .
+          ]
+        },
     """
     # Get cached stream_list; if available continue, if not fetch.
     cached = cache.get('stream_list')
@@ -1123,6 +1176,7 @@ def streams_list():
 
     retval = _parse_lists(disabled_streams, retval)
 
+    # If 'min' is provided and enabled, the filter the data.
     if request.args.get('min') == 'True':
         for obj in retval:
             try:
@@ -1136,6 +1190,7 @@ def streams_list():
             except KeyError as e:
                 print e
 
+    # If 'concepts' provided, then filter the data
     if request.args.get('concepts') and request.args.get('concepts') != "":
         return_list = []
         search_term = str(request.args.get('concepts')).split()
@@ -1146,6 +1201,7 @@ def streams_list():
                     return_list.append(item)
         retval = return_list
 
+    # If 'search' parameter(s) provided, then filter the data.
     if request.args.get('search') and request.args.get('search') != "":
         return_list = []
         search_term = str(request.args.get('search')).split()
@@ -1192,6 +1248,7 @@ def streams_list():
                         return_list.append(item)
                 retval = return_list
 
+    # If 'startDate' and 'endDate' provided, then use to filter the data.
     if request.args.get('startDate') and request.args.get('endDate') != "":
         # setup a temporary container for the result and convert the time
         return_val = []
@@ -1211,7 +1268,7 @@ def streams_list():
         # assign the new list to retval
         retval = return_val
 
-
+    # If 'startAt' provided, then use to filter the data.
     if request.args.get('startAt'):
         start_at = int(request.args.get('startAt'))
         count = int(request.args.get('count'))
@@ -1229,7 +1286,8 @@ def streams_list():
 @api.route('/disabled_streams', methods=['GET', 'POST'])
 @api.route('/disabled_streams/<int:id>', methods=['DELETE'])
 def disabled_streams(id=None):
-    '''
+    """ Process GET, POST and DELETE for disabled streams.
+
     @method GET:
         Returns the list of all the disabled streams from our database.
 
@@ -1240,7 +1298,7 @@ def disabled_streams(id=None):
     @method DELETE:
         @params: ID
         Delete a disabled streams identifier from our local database.
-    '''
+    """
 
     if request.method == 'GET':
         disabled_streams = DisabledStreams.query.all()
@@ -1285,9 +1343,8 @@ def disabled_streams(id=None):
 
 @api.route('/antelope_acoustic/list', methods=['GET'])
 def get_acoustic_datalist():
-    '''
-    Get all available acoustic data sets
-    '''
+    """ Get all available acoustic data sets.
+    """
     antelope_url = current_app.config['UFRAME_ANTELOPE_URL']
     r = requests.get(antelope_url)
     data = r.json()
@@ -1329,9 +1386,8 @@ def get_acoustic_datalist():
 # @auth.login_required
 @api.route('/get_glider_tracks')
 def get_uframe_glider_track():
-    '''
-    get glider tracks
-    '''
+    """ Get glider tracks.
+    """
     try:
         cached = cache.get('glider_tracks')
         will_reset_cache = False
@@ -1360,9 +1416,8 @@ def get_uframe_glider_track():
 
 
 def get_uframe_streams(mooring, platform, instrument, stream_type):
-    '''
-    Lists all the streams
-    '''
+    """ Get a list of all the streams.
+    """
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = '/'.join([uframe_url, mooring, platform, instrument, stream_type])
@@ -1374,7 +1429,7 @@ def get_uframe_streams(mooring, platform, instrument, stream_type):
 
 
 def get_uframe_stream(mooring, platform, instrument, stream):
-    """ Lists the reference designators for the streams.
+    """ Get a list the reference designators for the streams.
     """
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
@@ -1478,8 +1533,11 @@ def multistream_api(stream1, stream2, instrument1, instrument2, var1, var2):
     try:
         for ind, data in enumerate(resp_data[header2]):
             resp_data[header1][ind][var2] = data[var2]
-        title = PlatformDeployment._get_display_name(stream1)
-        subtitle = PlatformDeployment._get_display_name(stream2)
+        #title = PlatformDeployment._get_display_name(stream1)
+        #subtitle = PlatformDeployment._get_display_name(stream2)
+        # TODO Test remove use of PlatformDeployment and use vocabulary functions.
+        title = get_display_name_by_rd(stream1)
+        subtitle = get_display_name_by_rd(stream2)
     except IndexError:
         return jsonify(error='Data Array Length Error'), 500
     except KeyError:
@@ -1599,7 +1657,7 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
 
 
 def map_common_error_message(response, default):
-    """ This function parses the error response from uFrame into a meaningful message for the UI
+    """ This function parses the error response from uFrame into a meaningful message for the UI.
     """
     message = default
     if 'requestUUID' in response:
@@ -1673,6 +1731,7 @@ def get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_typ
         #return json.loads(dataBlock), 200
         return internal_server_error('uframe connection unstable.'),500
 
+
 def get_uframe_info():
     """ Returns uframe configuration information. (uframe_url, uframe timeout_connect and timeout_read.)
     """
@@ -1693,6 +1752,7 @@ def validate_date_time(start_time, end_time):
         end_time = new_end_time
     '''
     return end_time
+
 
 @auth.login_required
 @api.route('/get_csv/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>', methods=['GET'])
@@ -2170,12 +2230,14 @@ def to_bool_str(value):
         return "0"
     raise Exception('Invalid value for boolean conversion: ' + str(value))
 
+
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # TOC routes and supporting functions
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# TODO If development only, deprecate or mark as such.
+"""
+# Development only.
 @api.route('/get_structured_toc')
-@cache.memoize(timeout=1600)
+#@cache.memoize(timeout=1600)
 def get_structured_toc():
     try:
         mooring_list = []
@@ -2188,7 +2250,7 @@ def get_structured_toc():
         instrument_key = []
 
         # Get toc data from uframe and process, returns data; if exception raise
-        data = _process_uframe_toc()
+        data = process_uframe_toc()
 
         # If no data return empty content immediately
         if data is None:
@@ -2241,7 +2303,7 @@ def get_structured_toc():
         message = str(e.message)
         current_app.logger.info(message)
         return internal_server_error(message)
-
+"""
 
 @api.route('/get_toc')
 @cache.memoize(timeout=1600)
@@ -2249,7 +2311,7 @@ def get_toc():
     """ Get uframe toc data; process and return data list; if exception then raise.
     """
     try:
-        data = _process_uframe_toc()
+        data = process_uframe_toc()
         if data is None:
             data = []
         return jsonify(toc=data)
@@ -2259,7 +2321,7 @@ def get_toc():
         return internal_server_error(message)
 
 
-def _uframe_toc():
+def get_uframe_toc_data():
     """ Get toc data from uframe; on exception raise. On success, return uframe toc data.
     """
     d = None
@@ -2282,18 +2344,19 @@ def _uframe_toc():
         raise
 
 
-def _process_uframe_toc():
+def process_uframe_toc():
     """ Get toc content from uframe; if error raise. Continue processing based on toc content.
     """
     result = None
     try:
-        d = _uframe_toc()
+        d = get_uframe_toc_data()
         if d is not None:
             if isinstance(d, dict):
-                result = new_get_uframe_toc(d)
-            # TODO Deprecate once transition to new toc format has been completed.
-            else:
                 result = get_uframe_toc(d)
+            # TODO Deprecate once transition to new toc format has been completed.
+            # TODO A log message here once previous toc is deprecated.
+            else:
+                result = old_get_uframe_toc(d)
         return result
     except Exception:
         raise
@@ -2302,7 +2365,7 @@ def _process_uframe_toc():
 # [OLD FORMAT]
 # TODO Deprecate once transition to new toc format has been completed.
 @cache.memoize(timeout=1600)
-def get_uframe_toc(d):
+def old_get_uframe_toc(d):
     """ Process uframe response from /sensor/inv/toc' for use in UI.
     """
     if d:
@@ -2313,14 +2376,12 @@ def get_uframe_toc(d):
                 temp2 = row['mooring_code']
                 row['mooring_code'] = temp1
                 row['platform_code'] = temp2
-                instrument_display_name = PlatformDeployment._get_display_name(row['reference_designator'])
+                instrument_display_name = get_long_display_name_by_rd(row['reference_designator'])
                 split_name = instrument_display_name.split(' - ')
                 row['instrument_display_name'] = split_name[-1]
                 row['mooring_display_name'] = split_name[0]
                 row['platform_display_name'] = split_name[1]
             except:
-                message = '[get_uframe_toc] exception getting display names: %s' % row['reference_designator']
-                current_app.logger.info(message)
                 row['instrument_display_name'] = ""
                 row['platform_display_name'] = ""
                 row['mooring_display_name'] = ""
@@ -2328,10 +2389,12 @@ def get_uframe_toc(d):
     else:
         return []
 
+
 # [NEW FORMAT]
 @cache.memoize(timeout=1600)
-def new_get_uframe_toc(data):
+def get_uframe_toc(data):
     """ Process uframe response from /sensor/inv/toc into list of dictionaries for use in UI.
+
     The toc response has three [required] dictionaries:
         u'instruments', u'parameters_by_stream', u'parameter_definitions'.
 
@@ -2371,7 +2434,7 @@ def new_get_uframe_toc(data):
         . . .
         ]
     """
-    error_debug = True
+    error_debug = True  # This produces an informational message in ooiservice.log (default to True)
     error_messages = []
     required_components = ['instruments', 'parameters_by_stream', 'parameter_definitions']
     results = []
@@ -2435,19 +2498,22 @@ def new_get_uframe_toc(data):
         else:
             return []
     except Exception as err:
-        message = '[new_get_uframe_toc] exception: %s' % str(err.message)
+        message = '[get_uframe_toc] exception: %s' % str(err.message)
         current_app.logger.info(message)
         raise
 
 
 def get_names_for_toc(rd, mooring, platform):
     """ Process display names for toc processing.
+
+    Reference designator: 'GP03FLMB-RIS01-03-DOSTAD000' produces instrument_display_name:
+    Global Station Papa Flanking Subsurface Mooring B - Mooring Riser - Dissolved Oxygen Stable Response
     """
     _instrument_display_name = ""
     _mooring_display_name = ""
     _platform_display_name = ""
     try:
-        instrument_display_name = PlatformDeployment._get_display_name(rd)
+        instrument_display_name = get_long_display_name_by_rd(rd)
         if ' - ' in instrument_display_name:
             split_name = instrument_display_name.split(' - ')
             _instrument_display_name = split_name[-1]
@@ -2486,8 +2552,7 @@ def get_instrument_parameters(instrument, parameters_by_stream, parameter_defini
 
             # Determine stream name has parameter data; if not, error_message
             if stream_name not in parameters_by_stream:
-                message = 'Stream %s not provided in parameters_by_stream; used by instrument %s' % \
-                          (stream_name, rd)
+                message = 'Stream %s not provided in parameters_by_stream; used by instrument %s' % (stream_name, rd)
                 error_messages.append(message)
                 errors = True
                 continue
@@ -2532,8 +2597,6 @@ def get_instrument_parameters(instrument, parameters_by_stream, parameter_defini
 
 def get_toc_parameter_dict(definitions):
     """ Process the uframe toc['parameter_definitions'] list into a list of dict keyed by pdId. Return dict and pdids.
-    Note: newer toc returns the particle key with attribute name 'particle_key' rather than particleKey.
-    Retain earlier uframe 'particleKey', which is still used in the instrument metadata route.
     """
     result = {}
     pdids = []

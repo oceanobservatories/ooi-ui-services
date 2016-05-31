@@ -53,4 +53,3 @@ Pillow==3.0.0
 pycountry==1.19
 py-bcrypt==0.4
 tzlocal==1.2
-Flask-SocketIO==2.2
