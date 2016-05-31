@@ -33,7 +33,7 @@ class UserTestCase(unittest.TestCase):
         UserScope.insert_scopes()
 
         admin = User.query.filter_by(user_name='admin').first()
-        scope = UserScope.query.filter_by(scope_name='user_admin').first()
+        scope = UserScope.query.filter_by(scope_name='asset_manager').first()
         admin.scopes.append(scope)
         db.session.add(admin)
         db.session.commit()

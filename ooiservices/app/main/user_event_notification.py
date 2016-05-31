@@ -47,7 +47,7 @@ def get_user_event_notification(id):
 #Create a new user_event_notification
 @api.route('/user_event_notification', methods=['POST'])
 @auth.login_required
-@scope_required(u'user_admin')
+@scope_required(u'asset_manager')
 def create_user_event_notification():
     """
     Create user_event_notification associated with SystemEventDefinition.
@@ -93,7 +93,7 @@ def create_user_event_notification():
 
 @api.route('/user_event_notification/<int:id>', methods=['PUT'])
 @auth.login_required
-@scope_required(u'user_admin')
+@scope_required(u'asset_manager')
 def update_user_event_notification(id):
     """ Update user_event_notification associated with SystemEventDefinition.
     """
