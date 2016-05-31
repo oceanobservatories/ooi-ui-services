@@ -15,6 +15,7 @@ from ooiservices.app.redmine.routes import redmine_login
 import json, smtplib, string
 import datetime as dt
 import pycountry
+from operator import itemgetter
 
 @api.route('/user/<int:id>', methods=['GET'])
 @auth.login_required
@@ -141,6 +142,7 @@ def create_user():
     try:
         new_user = User.from_json(data)
         new_user.scopes = valid_scopes
+        new_user.active = True
         db.session.add(new_user)
         db.session.commit()
     except Exception as e:
@@ -186,13 +188,52 @@ def get_users():
 
 @api.route('/countries')
 def get_countries():
-    countries = [{"country_code" : country.alpha2.encode('utf8'), "country_name" : country.name.encode('utf8')} for country in pycountry.countries]
-    return json.dumps(countries)
+    try:
+        countries = [{"country_code" : country.alpha2.encode('utf8'), "country_name" : country.name.encode('utf8')} for country in pycountry.countries]
+    except Exception:
+        print 'unexpected'
+        return json.dumps([{"country_code" : "US", "country_name" : "United States"}])
 
+    # Sort
+    try:
+        countries = sorted(countries, key=itemgetter('country_name'))
+    except Exception:
+        pass
+
+    return json.dumps(countries)
 
 @api.route('/states/<string:country_code>')
 def get_states(country_code):
-    states = pycountry.subdivisions.get(country_code=country_code)
-    states_json = [{"state_code" : state.code.encode('utf8'), "state_name" : state.name.encode('utf8')} for state in states]
+    try:
+        states = pycountry.subdivisions.get(country_code=country_code)
+        states_json = [{"state_code" : state.code.encode('utf8'), "state_name" : state.name.encode('utf8')} for state in states]
+    except Exception:
+        current_app.logger.exception("Failed get states")
+        return json.dumps([{"state_code" : "RI", "state_name" : "Rhode Island"}])
+
+    # Sort
+    try:
+        states_json = sorted(states_json, key=itemgetter('state_name'))
+    except Exception:
+        pass
+
     return json.dumps(states_json)
 
+
+@api.route('/user/xpassword', methods=['PUT'])
+def put_password():
+
+    try:
+        data = json.loads(request.data)
+        user_account = User.query.filter_by(user_name=data.get('_reset_email')).first_or_404()
+        password = data.get('password')
+
+        if password is not None:
+            user_account.password = password
+            db.session.add(user_account)
+            db.session.commit()
+
+        return jsonify(**user_account.to_json()), 201
+    except Exception as ex:
+        current_app.logger.exception("Error setting password." + ex.message)
+        return

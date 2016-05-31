@@ -9,10 +9,10 @@ from copy import deepcopy
 import json
 import sys
 import requests
-import requests.exceptions, requests.adapters
+import requests.exceptions
+import requests.adapters
 from requests.exceptions import ConnectionError, Timeout
-from ooiservices.app.main.errors import (bad_request)
-#from ooiservices.app.main.alertsalarms_tools import get_uframe_assets_info, get_assets_dict_from_list
+from ooiservices.app.main.errors import (bad_request, internal_server_error)
 
 
 requests.adapters.DEFAULT_RETRIES = 2
@@ -21,44 +21,26 @@ CACHE_TIMEOUT = 172800
 
 @api.route('/assets', methods=['GET'])
 def get_assets(use_min=False, normal_data=False, reset=False):
-    """
-    Get list of all assets.  This method is cached for 1 hour.
-    add in helped params to bypass the json response and minification
-
-    Parameter 'augmented':
-        Sample 'bad assets' route: http://localhost:4000/uframe/assets?augmented=false
+    """ Get list of all qualified assets.
     """
     debug = False
     try:
-        # Get uframe connect and timeout information
-        uframe_url, timeout, timeout_read = get_uframe_assets_info()
-
         # Get 'assets_dict' if cached
         dict_cached = cache.get('assets_dict')
         if dict_cached:
             assets_dict = dict_cached
-            if debug: print '\n debug - have assets_dict payload (cached)...assets_dict(%d): ' % len(assets_dict)
-        else:
-            if debug: print '\n debug - assets_dict payload (not cached)...'
 
         # Get 'asset_list' if cached, else process uframe assets and cache
         cached = cache.get('asset_list')
         if cached and reset is not True:
             data = cached
-            if debug: print '\n debug - have cached: ', len(data)
         else:
-            if debug: print '\n debug - get assets payload...'
-            data = get_assets_payload(uframe_url)
+            data = get_assets_payload()
 
-    except requests.exceptions.ConnectionError as e:
-        error = "Error: Cannot connect to uframe.  %s" % str(e)
-        if debug: print '\n debug - error: ', error
-        current_app.logger.info(error)
-        return make_response(error, 500)
     except Exception as err:
-        error = "Error:  %s" % str(err)
-        current_app.logger.info(error)
-        return make_response(error, 500)
+        message = str(err)
+        current_app.logger.info(message)
+        return internal_server_error(message)
 
     # Determine field to sort by, sort asset data (ooi-ui-services format)
     try:
@@ -69,14 +51,12 @@ def get_assets(use_min=False, normal_data=False, reset=False):
 
         data = sorted(data, key=itemgetter(sort_by))
 
-    except Exception as e:
-        if debug: print '\n debug --- get_assets: exception on sorted: ', str(e)
-        current_app.logger.info(str(e))
+    except Exception as err:
+        current_app.logger.info(str(err))
         pass
 
-    # If using minimized as request.arg or use_min, then strip asset data
+    # If using minimized ('min') or use_min, then strip asset data
     if request.args.get('min') == 'True' or use_min is True:
-        if debug: print '\n debug --- STEP 1.......................'
         showDeployments = False
         deploymentEvents = []
         if request.args.get('deployments') == 'True':
@@ -112,20 +92,41 @@ def get_assets(use_min=False, normal_data=False, reset=False):
                 current_app.logger.info(str(err))
                 raise
 
+    """
+    # Create toc information using geoJSON=true
+    # Sample
+    # request: http://localhost:4000/uframe/assets?geoJSON=true
+    # response: (list of dicts for {mooring | platform}
+        {
+          "assets": [
+            {
+              "array_id": "CE",
+              "display_name": "Endurance OR Inshore Surface Mooring  ",
+              "geo_location": {
+                "coordinates": [
+                  44.6583,
+                  -124.0956
+                ],
+                "depth": "25"
+              },
+              "reference_designator": "CE01ISSM"
+            },
+            . . .
+    """
     if request.args.get('geoJSON') and request.args.get('geoJSON') != "":
         return_list = []
         unique = set()
         for obj in data:
             asset = {}
 
-            if (len(obj['ref_des']) <= 14 and
-                    'coordinates' in obj and
+            if (len(obj['ref_des']) <= 14 and 'coordinates' in obj and
                     obj['ref_des'] != "" and
                     obj['assetInfo']['longName'] != "" and
                     obj['assetInfo']['longName'] is not None):
-                if (obj['ref_des'] not in unique):
-                    unique.add(obj['ref_des'])
 
+                if (obj['ref_des'] not in unique):
+
+                    unique.add(obj['ref_des'])
                     asset['assetInfo'] = obj.pop('assetInfo')
                     asset['assetInfo']['refDes'] = obj.pop('ref_des')
                     asset['coordinates'] = obj.pop('coordinates')
@@ -175,16 +176,13 @@ def get_assets(use_min=False, normal_data=False, reset=False):
         # Set detailed search set based on request.args provided for search
         # assetInfo_fields = ['name', 'longName', 'type', 'array']
         search_set = set(search_term)
-        if debug: print '\n debug --- search_set: ', search_set
         try:
-
             fields = ['name', 'longName', 'type', 'array', 'metaData', 'tense', 'events']
 
             # Limit by selection of 'recovered' or 'deployed'?
             if limit_by_tense:
 
                 # Make asset result set (list), based on tense
-                if debug: print '\n looking for tense: ', tense_value
                 for item in data:
                     if 'tense' in item:
                         if item['tense']:
@@ -196,11 +194,6 @@ def get_assets(use_min=False, normal_data=False, reset=False):
             else:
                 results = data
 
-            if debug:
-                print '\n debug limit_by_tense: ', limit_by_tense
-                print '\n debug -- len(results): ', len(results)
-                print '\n debug -- search_set: ', search_set
-
             # If there are (1) assets to search, and (2) search set details provided
             if results and search_set:
 
@@ -208,8 +201,6 @@ def get_assets(use_min=False, normal_data=False, reset=False):
                 for subset in search_set:
 
                     subset_lower = subset.lower()
-                    if debug: print '\n debug ------------ searching for: ', subset_lower
-
                     for item in results:
 
                         if 'ref_des' in item:
@@ -229,10 +220,10 @@ def get_assets(use_min=False, normal_data=False, reset=False):
 
                     results = return_list
 
-        except KeyError as e:
-            message = 'Asset (get_assets) Search exception: %s' % str(e)
+        except KeyError as err:
+            message = 'Asset search exception: %s' % str(err)
             if debug: print '\n debug -- ', message
-            current_app.logger.info(str(e))
+            current_app.logger.info(message)
             pass
 
     # If search criteria used and results returned, use results as data
@@ -267,64 +258,58 @@ def match_subset(subset, value):
         return result
 
     except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
+        current_app.logger.info(str(err))
         return False
 
 
-def get_assets_payload(uframe_url):
+def get_assets_payload():
     """ Get all assets from uframe, process in ooi-ui-services list of assets (asset_list) and
     assets_dict by (key) asset id. Update cache for asset_list and assets_dict.
     """
-    debug = False
     try:
+        # Get uframe connect and timeout information
+        uframe_url, timeout, timeout_read = get_uframe_assets_info()
         url = '/'.join([uframe_url, 'assets'])
-        payload = requests.get(url)
+        payload = requests.get(url, timeout=(timeout, timeout_read))
         if payload.status_code != 200:
-            try:
-                return jsonify({"assets": payload.json()}),\
-                    payload.status_code
-            except AttributeError:
-                try:
-                    return jsonify({"assets": 'Undefined response'}),\
-                        payload.status_code
-                except Exception as e:
-                    error = "unhandled exception: %s. Line # %s" % (e, sys.exc_info()[2].tb_lineno)
-                    current_app.logger.info(error)
-                    return make_response(error, 500)
+            message = '(%d) Failed to get uframe assets.' % payload.status
+            current_app.logger.info(message)
+            return internal_server_error(message)
 
         result = payload.json()
         data, assets_dict = _compile_assets(result)
         if "error" not in data:
             cache.set('asset_list', data, timeout=CACHE_TIMEOUT)
             data = cache.get('asset_list')
-            if debug:
-                print '\n debug -- ************ (get_assets_payload) type(data): ', type(data)
-                print '\n debug -- ************ (get_assets_payload) len(data): ', len(data)
 
         return data
 
-    except Exception as e:
-        error = "Error: Cannot connect to uframe.  %s" % str(e)
-        current_app.logger.info(error)
+    except requests.exceptions.ConnectionError as err:
+        message = "ConnectionError getting uframe assets; %s" % str(err)
+        current_app.logger.info(message)
+        return internal_server_error(message)
+    except requests.exceptions.Timeout as err:
+        message = "Timeout getting uframe assets;  %s" % str(err)
+        current_app.logger.info(message)
+        return internal_server_error(message)
+    except Exception as err:
+        message = "Error getting uframe assets; %s" % str(err)
+        current_app.logger.info(message)
         raise
 
 
-def get_assets_from_uframe(uframe_url):
+def get_assets_from_uframe():
     try:
-        payload = requests.get(uframe_url)
-        if payload.status_code != 200:
-            try:
-                return jsonify({"assets": payload.json()}), payload.status_code
-            except AttributeError:
-                try:
-                    return jsonify({"assets": 'Undefined response'}), payload.status_code
-                except Exception as e:
-                    error = "unhandled exception: %s. Line # %s" % (e, sys.exc_info()[2].tb_lineno)
-                    current_app.logger.info(error)
-                    return make_response(error, 500)
+        # Get uframe connect and timeout information
+        uframe_url, timeout, timeout_read = get_uframe_assets_info()
+        url = '/'.join([uframe_url, 'assets'])
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = '(%d) Failed to get uframe assets.' % response.status_code
+            current_app.logger.info(message)
+            return internal_server_error(message)
 
-        result = payload.json()
+        result = response.json()
 
         return result
     except ConnectionError:
@@ -421,20 +406,10 @@ def create_asset():
     Cache ('asset_list') is updated with new asset
     Either a success or an error message.
     Login required.
-    CE01ISSP-XX099-01-CTDPFJ999
-    40.365,-70.7695
-    Latitude: 40.2266
-    Longitude: -70.8886
-
     """
     debug = False
     try:
         data = json.loads(request.data)
-        if debug:
-            print '\n debug --- request_data: ', json.dumps(data, indent=4, sort_keys=True)
-            print '\n debug --- request_data.keys: ', data.keys()
-            #raise Exception('manual speed bump here...')
-
         if valid_create_asset_request_data(data):
             if debug: print '\n debug validated required fields...'
 
@@ -454,7 +429,7 @@ def create_asset():
             data_list = [data]
             try:
                 compiled_data, _ = _compile_assets(data_list)
-            except Exception as err:
+            except Exception:
                 raise
 
             if not compiled_data or compiled_data is None:
@@ -463,30 +438,26 @@ def create_asset():
             # Update asset cache ('asset_list')
             asset_cache = cache.get('asset_list')
             if asset_cache:
-                if debug: print '\n debug -- Create asset - updating asset_list cache...'
                 cache.delete('asset_list')
                 asset_cache.append(compiled_data[0])
                 cache.set('asset_list', asset_cache, timeout=CACHE_TIMEOUT)
-            else:
-                if debug: print '\n debug -- Create asset - NOT updating asset_list cache...'
         else:
             return bad_request('Failed to create asset!')
 
         return response.text, response.status_code
 
     except ConnectionError:
-        error = 'Error: ConnectionError during create asset.'
-        current_app.logger.info(error)
-        return bad_request(error)
+        message = 'ConnectionError during create asset.'
+        current_app.logger.info(message)
+        return bad_request(message)
     except Timeout:
-        error = 'Error: Timeout during during create asset.'
-        current_app.logger.info(error)
-        return bad_request(error)
+        message = 'Timeout during during create asset.'
+        current_app.logger.info(message)
+        return bad_request(message)
     except Exception as err:
-        error = str(err)
-        if debug: print '\n create asset exception: ', error
-        current_app.logger.info(error)
-        return bad_request(error)
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
 
 
 def valid_create_asset_request_data(data):
@@ -498,10 +469,7 @@ def valid_create_asset_request_data(data):
     u'remoteDocuments', 'events', 'ref_des', u'assetInfo', u'metaData']
 
     """
-    debug = False
     try:
-        if debug: print '\n debug --- (valid_create_asset_request_data) validated required fields...'
-
         # Process reference designator (in metaData)
         if not 'metaData':
             message = 'Attribute \'metaData\' not provided in request data.'
@@ -517,8 +485,6 @@ def valid_create_asset_request_data(data):
             message = 'Attribute \'Ref Des\' not provided, or empty, in request data (metaData).'
             raise Exception(message)
 
-        if debug: print '\n debug -- rd: ', rd
-
     except Exception as err:
         message = str(err.message)
         current_app.logger.info(message)
@@ -531,27 +497,16 @@ def update_asset(id):
     Last writer wins; new format of request.data to be handled (post 5/31):
         {"assetInfo.array":"EnduranceAss","assetInfo.assembly":"testass","oper":"edit","id":"227"}
     """
-    debug = False
     try:
-        if debug: print '\n debug *************************************** Enter Update Asset........'
         data = json.loads(request.data)
-        if debug:
-            print '\n debug --- request_data: ', json.dumps(data, indent=4, sort_keys=True)
-            print '\n debug --- request_data.keys: ', data.keys()
-            #raise Exception('Update asset: manual speed bump here...')
 
         if 'asset_class' in data:
-            if debug: print '\n debug --- asset_class: ', data['asset_class']
             data['@class'] = data.pop('asset_class')
-
-        if debug:
-            print '\n debug --- request data: ', json.dumps(data, indent=4, sort_keys=True)
 
         url = current_app.config['UFRAME_ASSETS_URL'] + '/%s/%s' % ('assets', id)
         response = requests.put(url, data=json.dumps(data), headers=_uframe_headers())
         if response.status_code != 200:
             message = '(%d) Failed to update asset %d.' % (response.status_code, id)
-            if debug: print '\n debug -- %s' % message
             return bad_request(message)
 
         if response.status_code == 200:
@@ -566,11 +521,10 @@ def update_asset(id):
 
             asset_cache = cache.get('asset_list')
             if "error" in asset_cache:
-                message = 'error returned in \'asset_list\' cache; unable to update cache.'
+                message = 'Error returned in \'asset_list\' cache; unable to update cache.'
                 return bad_request(message)
 
             if asset_cache:
-                if debug: print '\n debug -- have asset...'
                 cache.delete('asset_list')
                 for row in asset_cache:
                     if row['id'] == id:
@@ -578,70 +532,57 @@ def update_asset(id):
                         break
                 cache.set('asset_list', asset_cache, timeout=CACHE_TIMEOUT)
 
-            else:
-                if debug: print '\n debug -- Update asset - NOT updating asset_list cache...'
-
-        if debug: print '\n debug *************************************** Exit Update Asset........'
         return response.text, response.status_code
 
     except ConnectionError:
-        error = 'Error: ConnectionError during update asset request (id: %d)' % id
-        current_app.logger.info(error)
-        return bad_request(error)
+        message = 'Error: ConnectionError during update asset request (id: %d)' % id
+        current_app.logger.info(message)
+        return bad_request(message)
     except Timeout:
-        error = 'Error: Timeout during during update asset request (id: %d)' % id
-        current_app.logger.info(error)
-        return bad_request(error)
+        message = 'Error: Timeout during during update asset request (id: %d)' % id
+        current_app.logger.info(message)
+        return bad_request(message)
     except Exception as err:
-        error = str(err)
-        if debug: print '\n update asset exception: ', error
-        current_app.logger.info(error)
-        return bad_request(error)
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
 
 
 @api.route('/assets/<int:id>', methods=['DELETE'])
 def delete_asset(id):
     """ Delete an asset by id.
     """
-    debug = False
     this_asset = ""
     try:
-        if debug: print '\n debug --- Delete asset: ', id
         url = current_app.config['UFRAME_ASSETS_URL'] + '/assets/%s' % str(id)
         response = requests.delete(url, headers=_uframe_headers())
 
         asset_cache = cache.get('asset_list')
         if asset_cache:
-            if debug: print '\n debug ---\t have asset_cache...'
             cache.delete('asset_list')
             for row in asset_cache:
                 if row['id'] == id:
                     this_asset = row
                     break
             if this_asset:
-                if debug: print '\n debug ---\t have this_asset...updating asset_list cache'
                 cache.delete('asset_list')
                 asset_cache.remove(this_asset)
                 cache.set('asset_list', asset_cache, timeout=CACHE_TIMEOUT)
-            else:
-                if debug: print '\n debug -- Did not locate requested asset; cannot delete asset (%d).' % id
 
-        if debug: print '\n debug ---\t exit Delete asset...'
         return response.text, response.status_code
 
     except ConnectionError:
-        error = 'Error: ConnectionError during delete asset.'
-        current_app.logger.info(error)
-        return bad_request(error)
+        message = 'ConnectionError during delete asset.'
+        current_app.logger.info(message)
+        return bad_request(message)
     except Timeout:
-        error = 'Error: Timeout during during delete asset.'
-        current_app.logger.info(error)
-        return bad_request(error)
+        message = 'Timeout during during delete asset.'
+        current_app.logger.info(message)
+        return bad_request(message)
     except Exception as err:
-        error = str(err)
-        if debug: print '\n delete asset exception: ', error
-        current_app.logger.info(error)
-        return bad_request(error)
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
 
 # END Assets CRUD methods.
 
@@ -649,67 +590,55 @@ def delete_asset(id):
 def get_bad_assets():
     """ Get bad assets.
     """
-    debug = False
     try:
-        if debug: print '\n debug --- GET bad_assets.... '
         results = _get_bad_assets()
-        if debug: print '\n debug -- len(bad assets): ', len(results)
         return jsonify({"assets": results})
 
     except ConnectionError:
-        error = 'Error: ConnectionError during get bad assets.'
-        current_app.logger.info(error)
-        return bad_request(error)
+        message = 'ConnectionError during get bad assets.'
+        current_app.logger.info(message)
+        return bad_request(message)
     except Timeout:
-        error = 'Error: Timeout during during get bad asset.'
-        current_app.logger.info(error)
-        return bad_request(error)
+        message = 'Timeout during during get bad asset.'
+        current_app.logger.info(message)
+        return bad_request(message)
     except Exception as err:
-        error = str(err)
-        if debug: print '\n get bad asset exception: ', error
-        current_app.logger.info(error)
-        return bad_request(error)
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
 
 
 @api.route('/all_assets', methods=['GET'])
 def get_all_assets():
     """ Get bad assets.
     """
-    debug = False
     try:
-        if debug: print '\n debug --- GET all_assets.... '
         results = _get_all_assets()
-        if debug: print '\n debug -- len(all assets): ', len(results)
         return jsonify({"assets": results})
 
     except ConnectionError:
-        error = 'Error: ConnectionError during get bad assets.'
-        current_app.logger.info(error)
-        return bad_request(error)
+        message = 'ConnectionError during get bad assets.'
+        current_app.logger.info(message)
+        return bad_request(message)
     except Timeout:
-        error = 'Error: Timeout during during get bad asset.'
-        current_app.logger.info(error)
-        return bad_request(error)
+        message = 'Timeout during during get bad asset.'
+        current_app.logger.info(message)
+        return bad_request(message)
     except Exception as err:
-        error = str(err)
-        if debug: print '\n get bad asset exception: ', error
-        current_app.logger.info(error)
-        return bad_request(error)
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
 
 
 def _get_bad_assets():
     """ Get all 'bad' assets (in ooi-ui-services format)
     """
-    debug = False
     try:
         bad_asset_cache = cache.get('bad_asset_list')
         if bad_asset_cache:
-            if debug: print '\n debug --- bad_assets cached.... '
             result_data = bad_asset_cache
         else:
-            if debug: print '\n debug --- bad_assets NOT cached.... '
-            url = current_app.config['UFRAME_ASSETS_URL'] + '/assets'
-            data = get_assets_from_uframe(url)
+            data = get_assets_from_uframe()
             try:
                 result_data = _compile_bad_assets(data)
                 cache.set('bad_asset_list', result_data, timeout=CACHE_TIMEOUT)
@@ -720,42 +649,31 @@ def _get_bad_assets():
         return result_data
 
     except Exception as err:
-        error = str(err)
-        if debug: print '\n get bad asset exception: ', error
         raise
 
 
 def _get_all_assets():
     """ Get all assets (complete or incomplete) (in ooi-ui-services format).
     """
-    debug = False
     try:
         # Get 'good' assets
         asset_cache = cache.get('asset_list')
         if asset_cache:
-            if debug: print '\n debug --- assets cached.... '
             asset_data = asset_cache
         else:
-            if debug: print '\n debug --- assets NOT cached.... '
-            url = current_app.config['UFRAME_ASSETS_URL']
             try:
-                asset_data = get_assets_payload(url)
+                asset_data = get_assets_payload()
                 cache.set('asset_list', asset_data, timeout=CACHE_TIMEOUT)
             except Exception as err:
                 message = err.message
                 raise Exception(message)
 
-        if debug: print '\n debug -- len(asset_data): ', len(asset_data)
-
         # Get 'bad' assets
         bad_asset_cache = cache.get('bad_asset_list')
         if bad_asset_cache:
-            if debug: print '\n debug --- bad_assets cached.... '
             bad_asset_data = bad_asset_cache
         else:
-            if debug: print '\n debug --- bad_assets NOT cached.... '
-            url = current_app.config['UFRAME_ASSETS_URL'] + '/assets'
-            data = get_assets_from_uframe(url)
+            data = get_assets_from_uframe()
             try:
                 bad_asset_data = _compile_bad_assets(data)
                 cache.set('bad_asset_list', bad_asset_data, timeout=CACHE_TIMEOUT)
@@ -763,16 +681,12 @@ def _get_all_assets():
                 message = err.message
                 raise Exception(message)
 
-        if debug: print '\n debug -- len(bad_asset_data): ', len(bad_asset_data)
-
         result_data = asset_data + bad_asset_data
         if result_data:
             result_data.sort()
         return result_data
 
     except Exception as err:
-        error = str(err)
-        if debug: print '\n get bad asset exception: ', error
         raise
 
 

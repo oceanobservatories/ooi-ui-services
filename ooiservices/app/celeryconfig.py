@@ -16,6 +16,11 @@ CELERYBEAT_SCHEDULE = {
         'schedule': crontab(minute=0, hour='*/2'),
         'args': (),
         },
+    'get-vocabulary': {
+        'task': 'tasks.compile_vocabulary',
+        'schedule': crontab(minute=0, hour='*/8'),
+        'args': (),
+        },
     'get-streams': {
         'task': 'tasks.compile_streams',
         'schedule': crontab(minute=0, hour='*/1'),

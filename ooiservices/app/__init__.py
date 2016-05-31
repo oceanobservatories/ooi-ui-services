@@ -21,33 +21,17 @@ if async_mode is None:
 
 
 import os
-from flask import Flask, jsonify, url_for, render_template, redirect
+from flask import Flask, jsonify, url_for
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.login import LoginManager
 from flask_environments import Environments
 from flask.ext.cache import Cache
-from flask.ext.security import current_user, login_required, RoleMixin, Security, \
-    SQLAlchemyUserDatastore, UserMixin, utils
-from flask_security.utils import encrypt_password
+from flask.ext.security import Security, SQLAlchemyUserDatastore
 from flask_wtf.csrf import CsrfProtect
 from sqlalchemy_searchable import make_searchable
 from flask_redis import Redis
 from flask_cors import CORS
-from flask_socketio import SocketIO
 
-
-from flask_security.utils import encrypt_password
-from flask_environments import Environments
-from flask_mail import Mail
-from flask.ext import login
-from flask.ext.admin.base import MenuLink, Admin, BaseView, expose
-from flask.ext.admin.contrib import sqla
-from wtforms import PasswordField
-
-from collections import OrderedDict
-from datetime import datetime
-from redis import Redis as RedisAdmin
-from flask.ext.admin.contrib import rediscli
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -63,81 +47,6 @@ cors = CORS()
 sio = None
 thread = None
 security = Security()
-
-class UserAdmin(sqla.ModelView):
-
-    # Don't display the password on the list of Users
-    column_exclude_list = ('_password',)
-
-    # Don't include the standard password field when creating or editing a User (but see below)
-    form_excluded_columns = ('_password',)
-
-    # Automatically display human-readable names for the current and available Roles when creating or editing a User
-    column_auto_select_related = True
-
-    # Prevent administration of Users unless the currently logged-in user has the "admin" role
-    def is_accessible(self):
-        return current_user.has_role('admin')
-
-    # On the form for creating or editing a User, don't display a field corresponding to the model's password field.
-    # There are two reasons for this. First, we want to encrypt the password before storing in the database. Second,
-    # we want to use a password field (with the input masked) rather than a regular text field.
-    def scaffold_form(self):
-
-        # Start with the standard form as provided by Flask-Admin. We've already told Flask-Admin to exclude the
-        # password field from this form.
-        form_class = super(UserAdmin, self).scaffold_form()
-
-        # Add a password field, naming it "password2" and labeling it "New Password".
-        form_class.password2 = PasswordField('New Password')
-        return form_class
-
-    # This callback executes when the user saves changes to a newly-created or edited User -- before the changes are
-    # committed to the database.
-    def on_model_change(self, form, model, is_created):
-
-        # If the password field isn't blank...
-        if len(model.password2):
-
-            # ... then encrypt the new password prior to storing it in the database. If the password field is blank,
-            # the existing password in the database will be retained.
-            model._password = utils.encrypt_password(model.password2)
-
-
-# Customized Role model for SQL-Admin
-class RoleAdmin(sqla.ModelView):
-
-    # Automatically display human-readable names for the current and available Roles when creating or editing a User
-    column_auto_select_related = True
-
-    # Prevent administration of Roles unless the currently logged-in user has the "admin" role
-    def is_accessible(self):
-        return current_user.has_role('admin')
-
-# Create menu links classes with reloaded accessible
-class AuthenticatedMenuLink(MenuLink):
-    def is_accessible(self):
-        return current_user.is_authenticated
-
-
-class NotAuthenticatedMenuLink(MenuLink):
-    def is_accessible(self):
-        return not current_user.is_authenticated
-
-
-class ResetMenuLink(MenuLink):
-    def is_accessible(self):
-        return not current_user.is_authenticated
-
-
-class RedisView(rediscli.RedisCli):
-
-    def is_accessible(self):
-        return current_user.has_role('redis')
-
-
-
-
 
 def create_app(config_name):
     app = Flask(__name__)
@@ -190,15 +99,11 @@ def create_app(config_name):
     csrf.init_app(app)
     redis_store.init_app(app)
     cors.init_app(app)
-    global sio
-    sio = SocketIO(app, async_mode=async_mode)
-    # sio.emit('my result', {'data': 'initializing in __init__'}, broadcast=True, namespace='/test')
 
     # Flask-Security Init
     from ooiservices.app.models import User, Role
     user_datastore = SQLAlchemyUserDatastore(db, User, Role)
-    # security = Security(app, user_datastore)
-    security.init_app(app, datastore=user_datastore, register_blueprint=False)
+    security = Security(app, user_datastore)
 
     from ooiservices.app.main import api as main_blueprint
     app.register_blueprint(main_blueprint)
@@ -212,57 +117,8 @@ def create_app(config_name):
     from ooiservices.app.alfresco import alfresco as alfresco_blueprint
     app.register_blueprint(alfresco_blueprint, url_prefix='/alfresco')
 
-
-
     from ooiservices.app.m2m import m2m as m2m_blueprint
     app.register_blueprint(m2m_blueprint, url_prefix='/m2m')
-
-
-    # @app.route('/')
-    # @login_required
-    # def index():
-    #     return redirect('admin')
-    #
-    # @app.route('/login')
-    # def login_view():
-    #     return redirect(url_for('security.login'))
-    #
-    # @app.route('/logout/')
-    # def logout_view():
-    #     login.logout_user()
-    #     # return redirect(url_for('security.logout'))
-    #
-    # @app.route('/reset')
-    # def reset_password():
-    #     login.logout_user()
-    #     return render_template('index.html')
-
-    admin = Admin(app, name='OOI User Admin')
-
-    # Add Flask-Admin views for Users and Roles
-    admin.add_view(UserAdmin(User, db.session))
-    admin.add_view(RoleAdmin(Role, db.session))
-
-    # Adds redis-cli view
-    redis_host = app.config['REDIS_URL'].split('://')[1].split(':')[0]
-    redis_port = app.config['REDIS_URL'].rsplit(':', 1)[1]
-    r = RedisAdmin(host=redis_host, port=redis_port)
-    admin.add_view(RedisView(r, name='Redis CLI'))
-
-    # Add login link
-    admin.add_link(NotAuthenticatedMenuLink(name='Login',
-                                            endpoint='login_view'))
-
-    # Add logout link
-    admin.add_link(AuthenticatedMenuLink(name='Logout',
-                                         endpoint='logout_view'))
-
-    # # Add reset password
-    # admin.add_link(ResetMenuLink(name='Reset Password',
-    #                              endpoint='reset_password'))
-
-    # Add OOI link
-    admin.add_link(MenuLink(name='OOI Home Page', category='Links', url='http://ooinet.oceanobservatories.org/'))
 
     # If debug is enabled add route for site-map
     if app.config['DEBUG']:

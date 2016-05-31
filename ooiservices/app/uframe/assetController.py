@@ -1,16 +1,15 @@
 #!/usr/bin/env python
 
-'''
+"""
 uframe assets and events endpoint and class definition.
 
-'''
+"""
 __author__ = 'M@Campbell'
 
 from flask import jsonify, current_app, request
 from ooiservices.app.uframe import uframe as api
-from ooiservices.app.main.routes import\
-    get_display_name_by_rd as get_dn_by_rd,\
-    get_long_display_name_by_rd as get_ldn_by_rd
+from ooiservices.app.uframe.vocab import get_display_name_by_rd as get_dn_by_rd
+from ooiservices.app.uframe.vocab import get_long_display_name_by_rd as get_ldn_by_rd
 import requests, requests.adapters
 import re
 import math
@@ -58,26 +57,22 @@ def _compile_assets(data):
         {u'type': u'java.lang.String', u'key': u'Longitude', u'value': u"124\xb032.0615' W"}]
 
     """
-    debug = False       # general development and debugging
-    info = False        # log missing vocab items when unable to create display name(s)
-    feedback = False    # display information as assets are processed
+    info = False        # Log missing vocab items when unable to create display name(s)
+    feedback = False    # Display information as assets are processed
     new_data = []
     bad_data = []
     bad_data_ids = []
 
-    vocab_failures = []
+    vocab_failures = [] # Vocabulary failures identified during asset processing are written to log.
     dict_asset_ids = {}
+    depth = None
     try:
         update_asset_rds_cache = False
         cached = cache.get('asset_rds')
         if cached:
-            if debug: print '\n **************** debug -- asset_rds cached...'
             dict_asset_ids = cached
-            if debug: print '\n **************** debug -- type(dict_asset_ids): ', type(dict_asset_ids)
         if not cached or not isinstance(cached, dict):
-            if debug: print '\n **************** debug -- asset_rds NOT cached...type(cached): ', type(cached)
 
-            #--------------------------------------------------------
             # If no asset_rds cached, then fetch and cache
             asset_rds = {}
             try:
@@ -88,22 +83,11 @@ def _compile_assets(data):
 
             if asset_rds:
                 cache.set('asset_rds', asset_rds, timeout=CACHE_TIMEOUT)
-                if debug:
-                    #print '\n debug --- asset_rds: ', json.dumps(asset_rds, indent=4, sort_keys=True)
-                    print '\n debug --- len(asset_rds.keys()): ', len(asset_rds.keys())
-                    print "[+] Asset reference designators cache reset..."
-            else:
-                if debug: print "[-] Error in cache update"
+
             dict_asset_ids = asset_rds
-            #--------------------------------------------------------
-        if debug:
-            print '\n debug -------------------------------------------------------------'
-            print '\n debug --- len(dict_asset_ids.keys()): ', len(dict_asset_ids.keys())
-            print '\n debug -------------------------------------------------------------'
 
     except Exception as err:
         message = 'Error compiling asset_rds: %s' % err.message
-        if debug: print '\n debug --- ', message
         current_app.logger.info(message)
         raise Exception(message)
 
@@ -144,11 +128,9 @@ def _compile_assets(data):
             # Process metadata (Note: row['metaData'] is often an empty list (especially for instruments).
             # -- Process when row['metaData'] is None (add metaData if possible)
             if row['metaData'] is None:
-                if debug: print '\n debug -- metaData is None...'
                 if ref_des:
                     row['metaData'] = [{u'type': u'java.lang.String', u'key': u'Ref Des', u'value': ref_des}]
                 else:
-                    if debug: print '\n debug -- NO metaData...NO ref_des...continue'
                     if asset_id not in bad_data_ids:
                         bad_data_ids.append(asset_id)
                         bad_data.append(row)
@@ -226,11 +208,11 @@ def _compile_assets(data):
                         bad_data.append(row)
                     continue
             else:
-                # Log asset class is unknown.
+                # Log asset class as unknown.
                 asset_class = row['asset_class']
                 if asset_class not in valid_asset_classes:
                     if info:
-                        message = 'Reference designator (%s) has an asset class value (%s) is not one of: %s' % \
+                        message = 'Reference designator (%s) has an asset class value (%s) not one of: %s' % \
                               (ref_des, asset_class, valid_asset_classes)
                         print '\n INFO: ', message
                         current_app.logger.info(message)
@@ -318,7 +300,7 @@ def _compile_assets(data):
                 if 'assembly' not in row['assetInfo']:
                     row['assetInfo']['assembly'] = ''
 
-                # Populate assetInfo - name and long name; if failure to get display name, use ref_des, log failure.
+                # Populate assetInfo - name, if failure to get display name, use ref_des, log failure.
                 name = get_dn_by_rd(ref_des)
                 if name is None:
                     if ref_des not in vocab_failures:
@@ -327,6 +309,8 @@ def _compile_assets(data):
                         message = 'Vocab Note ----- reference designator (%s) failed to get get_dn_by_rd' % ref_des
                         current_app.logger.info(message)
                     name = ref_des
+
+                # Populate assetInfo - long name, if failure to get long name then use ref_des, log failure.
                 longName = get_ldn_by_rd(ref_des)
                 if longName is None:
                     if ref_des not in vocab_failures:
@@ -361,40 +345,28 @@ def _compile_assets(data):
                     dict_asset_ids[asset_id] = ref_des
                     update_asset_rds_cache = True
 
-        except Exception as e:
-            current_app.logger.info(str(e))
+        except Exception as err:
+            current_app.logger.info(str(err))
             continue
 
     if dict_asset_ids:
-        if debug: print '\n debug -- (final) len(dict_asset_ids): %d' % len(dict_asset_ids)
         if update_asset_rds_cache:
-            if debug: print '\n debug -- (final) update asset_rds cache'
             cache.set('asset_rds', dict_asset_ids, timeout=CACHE_TIMEOUT)
-    else:
-        if debug: print '\n debug -- (final) NO dict_asset_ids...'
 
     # Log vocabulary failures (occur when creating display names)
     if vocab_failures:
         vocab_failures.sort()
-        message = 'The following reference designator(s) are not defined in vocab.sql causing display name failures: %s' \
-                  % (vocab_failures)
+        message = 'These reference designator(s) are not defined, causing display name failures(%d): %s' \
+                  % (len(vocab_failures), vocab_failures)
         current_app.logger.info(message)
-
-    if debug:
-        print '\n debug -- len(new_data): ', len(new_data)
-        print '\n debug -- len(dict_asset_ids): ', len(dict_asset_ids)
-        print '\n debug -- len(bad_data): ', len(bad_data)
-        print '\n debug -- len(bad_data_ids): ', len(bad_data_ids)
 
     # Update cache for bad_asset_list
     bad_assets_cached = cache.get('bad_asset_list')
     if bad_assets_cached:
         cache.delete('bad_asset_list')
         cache.set('bad_asset_list', bad_data, timeout=CACHE_TIMEOUT)
-        if debug: print '\n debug - reset bad_asset_list (%d): ' % len(bad_data)
     else:
         cache.set('bad_asset_list', bad_data, timeout=CACHE_TIMEOUT)
-        if debug: print '\n debug - set bad_asset_list (%d): ' % len(bad_data)
 
     print '\n Completed compiling assets...'
     return new_data, dict_asset_ids
@@ -413,9 +385,7 @@ def _uframe_headers():
 
 
 def _normalize_whitespace(string):
-    """
-    Requires re
-    - Removes extra white space from a string.
+    """ Removes extra white space from a string. (Requires re)
     """
     string = string.strip()
     string = re.sub(r'\s+', ' ', string)
@@ -423,9 +393,7 @@ def _normalize_whitespace(string):
 
 
 def _remove_duplicates(values):
-    """
-    Requires re
-    - Removes duplicate values, useful in getting a concise list.
+    """ Removes duplicate values, useful in getting a concise list. (Requires re)
     """
     output = []
     seen = set()
@@ -554,8 +522,7 @@ def associate_events(id):
     asset need to be associated.  This is represented in a list of URIs, one
     for it's services endpoint and one for it's direct endpoint in uframe.
     """
-    uframe_url = current_app.config['UFRAME_ASSETS_URL'] + \
-        '/assets/%s/events' % (id)
+    uframe_url = current_app.config['UFRAME_ASSETS_URL'] + '/assets/%s/events' % (id)
     result = []
     payload = requests.get(uframe_url)
     if payload.status_code != 200:
@@ -690,9 +657,8 @@ def _compile_bad_assets(data):
     """
     bad_data = []
     bad_data_ids = []
-    debug = False          # general development
     info = False           # detect missing vocab items when unable to create display name(s)
-    feedback = True        # (development/debug) display messages while processing each asset
+    feedback = False       # (development/debug) display messages while processing each asset
     vocab_failures = []
     dict_asset_ids = {}
     try:
@@ -756,11 +722,9 @@ def _compile_bad_assets(data):
             # Process metadata (Note: row['metaData'] is often an empty list (especially for instruments).
             # -- Process when row['metaData'] is None (add metaData if possible)
             if row['metaData'] is None:
-                if debug: print '\n debug -- metaData is None...'
                 if ref_des:
                     row['metaData'] = [{u'type': u'java.lang.String', u'key': u'Ref Des', u'value': ref_des}]
                 else:
-                    if debug: print '\n debug -- NO metaData...NO ref_des...continue'
                     if asset_id not in bad_data_ids:
                         bad_data_ids.append(asset_id)
                         bad_data.append(row)
