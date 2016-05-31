@@ -201,7 +201,7 @@ def get_alert_alarm_status():
 #Create a new alert/alarm
 @api.route('/alert_alarm', methods=['POST'])
 @auth.login_required
-@scope_required(u'asset_admin')
+@scope_required(u'asset_manager')
 def create_alert_alarm():
     """ Create an alert or an alarm; invoked when processing alerts and alarms from uframe.
     Note: offset from start of unix epoch (jan 1, 1900 at midnight 00:00) to 00:00 1 Jan 1970 GMT, in secs = 2208988800
