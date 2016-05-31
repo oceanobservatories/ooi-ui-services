@@ -411,6 +411,9 @@ def provide_vocab_correction(vocab):
     'RS03AXPS-SF03A-3B-OPTAAD301', 'RS03AXPS-SF03A-3C-PARADA301', 'RS03AXPS-SF03A-3D-SPKIRA301',
     'RS03AXPS-SF03A-4A-NUTNRA301', 'RS03AXPS-SF03A-4B-VELPTD302', 'RS03AXPS-SF03A-4F-PCO2WA301']
 
+    gp_node_name_missing = ['GI02HYPM-GPM01-00-SIOENG000', 'GI02HYPM-GP001-00-ENG000000',
+    'GP02HYPM-GPM01-00-SIOENG000', 'GA02HYPM-GP001-00-ENG000000']
+
     result = vocab.copy()
     rd = None
     try:
@@ -459,6 +462,11 @@ def provide_vocab_correction(vocab):
 
         elif rd in bad_slope_base or rd in extra_space:
             vocab['tocL2'] = vocab['tocL2'].strip()
+            result = vocab
+
+        elif rd in gp_node_name_missing:
+            # No valid display name for 'GP' at this time, use 'GP'
+            vocab['tocL3'] = "GP"
             result = vocab
 
         else:
@@ -547,6 +555,10 @@ def preprocess_vocab_data(vocabs):
 
     # vocab ids: 972, 973, 974 - Correct spelling error in axial seamount ('Disctrict' should be 'District')
 
+    # vocab ids: 526, 621, 622, 706 node starts with 'GP', no tocL3
+    gp_node_name_missing = ['GI02HYPM-GPM01-00-SIOENG000', 'GI02HYPM-GP001-00-ENG000000',
+    'GP02HYPM-GPM01-00-SIOENG000', 'GA02HYPM-GP001-00-ENG000000']
+
     # Codes processing
     codes = {'arrays': {}, 'subsites': {}, 'nodes': {}, 'classes': {}}
     arrays = {}
@@ -579,7 +591,7 @@ def preprocess_vocab_data(vocabs):
                    rd == 'RS01SLBS-LJ01A-05-HPIESA101' or \
                    rd == 'RS03AXBS-LJ03A-05-HPIESA301' or \
                    rd == 'RS03AXPS-PC03A-06-VADCPA301' or \
-                   rd in bad_slope_base or rd in extra_space:
+                   rd in bad_slope_base or rd in extra_space or rd in gp_node_name_missing:
 
                     vocab = provide_vocab_correction(vocab)
 
