@@ -813,7 +813,8 @@ def _get_additional_data(glider_track):
     if search_stream in glider_track['available_streams']:
         #get the additional metadata fields
         url = glider_track['glider_metadata_url']+"/metadata"
-        req_addit_info_list = requests.get(url)
+        base_url, timeout, timeout_read = get_uframe_info()
+        req_addit_info_list = requests.get(url, timeout=(timeout, timeout_read))
         metadata = req_addit_info_list.json()
         param_list = metadata['parameters']
 
@@ -840,7 +841,7 @@ def _get_additional_data(glider_track):
             param_request += '&parameters='+",".join(parameters)
 
         additional_data_url = glider_track['glider_metadata_url'] + "/"+ search_method +"/"+ search_stream + param_request
-        req_addit_info_data = requests.get(additional_data_url)
+        req_addit_info_data = requests.get(additional_data_url, timeout=(timeout, timeout_read))
         if req_addit_info_data.status_code == 200:
             data = req_addit_info_data.json()
             #newest should be on the top
@@ -865,7 +866,7 @@ def _compile_glider_tracks(update_tracks):
     # Get the list of mobile assets
     try:
 
-        r = requests.get(base_url)
+        r = requests.get(base_url, timeout=(timeout, timeout_read))
     except Exception as err:
         message = 'Failed to retrieve glider data from uframe:\n\tUrl:\t%s\n\tError:\t%s' % (base_url, err.message)
         print 'Exception: ', message
@@ -878,7 +879,7 @@ def _compile_glider_tracks(update_tracks):
     # Glider discovery
     for p in all_platforms:
         if "MOAS" in p:
-            r_p = requests.get(base_url+"/"+p)
+            r_p = requests.get(base_url+"/"+p, timeout=(timeout, timeout_read))
             try:
                 p_p = r_p.json()
                 for gl in p_p:
@@ -886,7 +887,7 @@ def _compile_glider_tracks(update_tracks):
                     glider_url = base_url+glider_location
 
                     # Get the slider streams to see whats available
-                    req_instrument_list = requests.get(glider_url)
+                    req_instrument_list = requests.get(glider_url, timeout=(timeout, timeout_read))
                     available_instruments = req_instrument_list.json()
 
                     # Set some defaults, that will be overridden
@@ -915,7 +916,7 @@ def _compile_glider_tracks(update_tracks):
                     # store the location to the metadata url
                     glider_metadata_url = glider_url
                     # get a list of the methods
-                    req_method_list = requests.get(glider_url)
+                    req_method_list = requests.get(glider_url, timeout=(timeout, timeout_read))
                     available_methods = req_method_list.json()
                     # if its not done get the best selected
                     if glider_method is None:
@@ -925,7 +926,7 @@ def _compile_glider_tracks(update_tracks):
                     glider_location+="/"+glider_method
                     glider_url = base_url+glider_location
 
-                    req_stream_list = requests.get(glider_url)
+                    req_stream_list = requests.get(glider_url, timeout=(timeout, timeout_read))
                     available_streams = req_stream_list.json()
                     if glider_stream is None:
                         glider_stream = available_streams[0]
