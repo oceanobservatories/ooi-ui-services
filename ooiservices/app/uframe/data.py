@@ -192,7 +192,7 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
 
     for xfield in xfields:
         if xfield == 'time':
-            if "time" not in data[0]['pk']:
+            if "time" not in data[0]:
                 message = 'Time Variable Not Available'
                 current_app.logger.exception(message)
                 raise Exception(message)
@@ -204,7 +204,7 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
 
     for yfield in yfields:
         if yfield == 'time':
-            if "time" not in data[0]['pk']:
+            if "time" not in data[0]:
                 message = 'Time Variable Not Available'
                 current_app.logger.exception(message)
                 raise Exception(message)
@@ -236,7 +236,7 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
             # x
             for xfield in xfields:
                 if xfield == 'time':
-                    x[xfield].append(float(row['pk']['time']))
+                    x[xfield].append(float(row['time']))
                 else:
                     x[xfield].append(row[xfield])
                     key = xfield + '_qc_results'
@@ -247,7 +247,7 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
             # y
             for yfield in yfields:
                 if yfield == 'time':
-                    y[yfield].append(float(row['pk']['time']))
+                    y[yfield].append(float(row['time']))
                 else:
                     y[yfield].append(row[yfield])
                     key = yfield + '_qc_results'
