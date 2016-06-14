@@ -38,7 +38,7 @@ def c2_direct_access_start(reference_designator):
     Command: "DRIVER_EVENT_START_DIRECT"
 
     """
-    debug = True
+    debug = False
     rd = reference_designator
     NOT_NONE = 'NOT_NONE'
     state_DRIVER_STATE_COMMAND = 'DRIVER_STATE_COMMAND'
@@ -391,7 +391,7 @@ def c2_direct_access_exit(reference_designator):
 
     Exit 'DRIVER_STATE_DIRECT_ACCESS', execute command 'DRIVER_EVENT_STOP_DIRECT'.
     """
-    debug = True
+    debug = False
     rd = reference_designator
     state_DRIVER_STATE_DIRECT_ACCESS = 'DRIVER_STATE_DIRECT_ACCESS'
     capability_DRIVER_EVENT_STOP_DIRECT = 'DRIVER_EVENT_STOP_DIRECT'
