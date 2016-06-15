@@ -15,11 +15,13 @@ from ooiservices.app.decorators import scope_required
 from ooiservices.app.main import api
 from ooiservices.app.main.errors import bad_request
 from ooiservices.app.main.authentication import auth
-from ooiservices.app.main.c2 import _c2_get_instrument_driver_status, uframe_post_instrument_driver_command
+from ooiservices.app.main.c2 import _c2_get_instrument_driver_status, uframe_post_instrument_driver_command, \
+                                    _eval_POST_response_data
 from requests.exceptions import ConnectionError, Timeout
 import socket as sock
 import ast
 import json
+
 
 # Direct Access start.
 # todo deprecate 'GET'?
@@ -36,6 +38,7 @@ def c2_direct_access_start(reference_designator):
     Command: "DRIVER_EVENT_START_DIRECT"
 
     """
+    debug = False
     rd = reference_designator
     NOT_NONE = 'NOT_NONE'
     state_DRIVER_STATE_COMMAND = 'DRIVER_STATE_COMMAND'
@@ -63,9 +66,29 @@ def c2_direct_access_start(reference_designator):
         response = uframe_post_instrument_driver_command(reference_designator, 'execute', suffix)
         if response.status_code != 200:
             message = '(%s) execute %s failed.' % (str(response.status_code), capability_DRIVER_EVENT_START_DIRECT)
-            if response.content:
-                message = '(%s) %s' % (str(response.status_code), str(response.content))
             raise Exception(message)
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Verify command execution status by reviewing error information returned from instrument driver
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if response.content:
+            try:
+                response_data = json.loads(response.content)
+            except Exception:
+                raise Exception('Direct access start command - malformed response data; invalid json format.')
+
+            # Evaluate response content for error (review 'value' list info in response_data )
+            if response_data:
+                status_code, status_type, status_message = _eval_POST_response_data(response_data, "")
+                #- - - - - - - - - - - - - - - - - - - - - - - - - -
+                if debug:
+                    print '\n START response_data: ', json.dumps(response_data, indent=4, sort_keys=True)
+                    print '\n direct_access START - status_code: ', status_code
+                    if status_code != 200:
+                        print '\n direct_access START - status_message: ', status_message
+                #- - - - - - - - - - - - - - - - - - - - - - - - - -
+                if status_code != 200:
+                    raise Exception(status_message)
 
         # Validate reference_designator
         _state, _capabilities, result = direct_access_get_state_and_capabilities(rd)
@@ -81,7 +104,7 @@ def c2_direct_access_start(reference_designator):
         return jsonify(result)
 
     except Exception as err:
-        message = '(%s) exception: %s' % (rd, err.message)
+        message = '(%s) direct access start exception: %s' % (rd, err.message)
         current_app.logger.info(message)
         return bad_request(err.message)
 
@@ -326,7 +349,7 @@ def c2_direct_access_execute(reference_designator):
             # Using command button value
             command_value = command_request_value
         else:
-            # Using command_text, prepare command_value
+            # If not using command button, , prepare command_value using the command_text
             try:
                 command_value = ast.literal_eval(TRIPS + command_text + TRIPS)
                 if eol:
@@ -341,7 +364,7 @@ def c2_direct_access_execute(reference_designator):
         try:
             send_command(rd, command_value, ip, data)
         except Exception as err:
-            message = 'Exception processing command: %s' % str(err)
+            message = 'Exception processing direct access command: %s' % str(err)
             raise Exception(message)
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -354,7 +377,7 @@ def c2_direct_access_execute(reference_designator):
         return jsonify(result)
 
     except Exception as err:
-        message = '(%s) exception: %s' % (rd, err.message)
+        message = '(%s) direct access execute exception: %s' % (rd, err.message)
         current_app.logger.info(message)
         return bad_request(err.message)
 
@@ -364,24 +387,26 @@ def c2_direct_access_execute(reference_designator):
 @auth.login_required
 @scope_required(u'command_control')
 def c2_direct_access_exit(reference_designator):
-    """ Exit direct access. (when button 'Exit Direct' is selected.)
+    """ Exit direct access, transition  to instrument driver state. If error, raise exception.
 
-    Transition from 'DRIVER_STATE_DIRECT_ACCESS' to 'DRIVER_STATE_COMMAND' (execute 'DRIVER_EVENT_STOP_DIRECT')
+    Exit 'DRIVER_STATE_DIRECT_ACCESS', execute command 'DRIVER_EVENT_STOP_DIRECT'.
     """
+    debug = False
     rd = reference_designator
-    NOT_NONE = 'NOT_NONE'
     state_DRIVER_STATE_DIRECT_ACCESS = 'DRIVER_STATE_DIRECT_ACCESS'
     capability_DRIVER_EVENT_STOP_DIRECT = 'DRIVER_EVENT_STOP_DIRECT'
-    target_state = 'DRIVER_STATE_COMMAND'
     try:
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Prepare to execute - direct access start command
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Validate reference_designator
+        # Validate reference_designator, get status and capabilities
         _state, _capabilities, result = direct_access_get_state_and_capabilities(rd)
 
-        # If current state is the same as target state, return status result
-        if _state == target_state:
+        # If current state is not in the state_DRIVER_STATE_DIRECT_ACCESS, then return status result
+        # Log request to exit direct access state when not in direct access.
+        if _state != state_DRIVER_STATE_DIRECT_ACCESS:
+            message = 'Request to exit direct access for instrument %s, when in driver state %s' % (rd, _state)
+            current_app.logger.info(message)
             return jsonify(result)
 
         # Verify current _state and _capabilities match expected state and capabilities
@@ -393,32 +418,49 @@ def c2_direct_access_exit(reference_designator):
         # Execute driver command 'DRIVER_EVENT_STOP_DIRECT' on upstream server
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         suffix = 'command=%22DRIVER_EVENT_STOP_DIRECT%22&timeout=60000'
-
-        # Execute driver command
         response = uframe_post_instrument_driver_command(reference_designator, 'execute', suffix)
         if response.status_code != 200:
             message = '(%s) execute %s failed.' % (str(response.status_code), capability_DRIVER_EVENT_STOP_DIRECT)
-            if response.content:
-                message = '(%s) %s' % (str(response.status_code), str(response.content))
             raise Exception(message)
 
-        # Validate reference_designator
-        _state, _capabilities, result = direct_access_get_state_and_capabilities(rd)
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Verify command execution status by reviewing error information returned from instrument driver
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if response.content:
+            try:
+                response_data = json.loads(response.content)
+            except Exception:
+                raise Exception('Direct access exit command - malformed response data; invalid json format.')
 
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Final - direct access response final checks for success or failure
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Verify _state and _capabilities match expected state and capabilities
-        verify_state_and_capabilities(rd, _state, _capabilities,
-                                      expected_state=target_state,
-                                      expected_capability=NOT_NONE)
+            # Evaluate response content for error (review 'value' list info in response_data )
+            if response_data:
+                status_code, status_type, status_message = _eval_POST_response_data(response_data, "")
+                #- - - - - - - - - - - - - - - - - - - - - - - - - -
+                if debug:
+                    print '\n direct_access EXIT - response_data: ', json.dumps(response_data, indent=4, sort_keys=True)
+                    print '\n direct_access EXIT - status_code: ', status_code
+                    if status_code != 200:
+                        print '\n direct_access EXIT - status_message: ', status_message
+                #- - - - - - - - - - - - - - - - - - - - - - - - - -
+                if status_code != 200:
+                    raise Exception(status_message)
+
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Final - Verify _state has changed from state_DRIVER_STATE_DIRECT_ACCESS, if not error
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Get state, capabilities and response result for reference_designator
+        _state, _capabilities, result = direct_access_get_state_and_capabilities(rd)
+        if _state == state_DRIVER_STATE_DIRECT_ACCESS:
+            message = 'The current state is \'DRIVER_STATE_DIRECT_ACCESS\'; failed to exit direct access.'
+            raise Exception(message)
 
         return jsonify(result)
 
     except Exception as err:
-        message = '(%s) exception: %s' % (rd, err.message)
+        message = '(%s) direct access exit exception: %s' % (rd, err.message)
         current_app.logger.info(message)
         return bad_request(err.message)
+
 
 # Direct Access sniffer
 @api.route('/c2/instrument/<string:reference_designator>/direct_access/sniffer', methods=['POST', 'GET'])
@@ -455,7 +497,7 @@ def c2_direct_access_sniffer(reference_designator):
         # Get request data, process required items.
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         if not request.data:
-            message = 'Direct access sniffer requires request.data for POST.'
+            message = 'Direct access sniffer requires request data for POST.'
             raise Exception(message)
 
         # Get request data and process
@@ -477,24 +519,22 @@ def c2_direct_access_sniffer(reference_designator):
         # Get ip, port and title
         ip = request_data['ip']
         port = request_data['port']
-        title = request_data['title']
+        #title = request_data['title']
 
         # Issue request to sniffer process
         s = None
-
+        _data = "Sniffer Connection Failed\r\n"
         try:
             s = sock.socket(sock.AF_INET, sock.SOCK_STREAM)
             s.connect((ip, port))
-            _data = None
+
             try:
                 _data = s.recv(4096)
             except Exception:
+                _data = "Error Receiving Data\r\n"
                 pass
             if s is not None:
                 s.close()
-
-            #if _data:
-            #    if debug: print 'Received: ', repr(_data)
 
         except Exception:
             if s is not None:
@@ -504,7 +544,7 @@ def c2_direct_access_sniffer(reference_designator):
         return jsonify(msg=_data)
 
     except Exception as err:
-        message = '(%s) exception: %s' % (reference_designator, err.message)
+        message = '(%s) direct access exception: %s' % (reference_designator, err.message)
         current_app.logger.info(message)
         return bad_request(err.message)
 
@@ -516,9 +556,9 @@ def direct_access_get_state_and_capabilities(reference_designator):
     """ Get current state and capabilities information for an instrument.
     Overview:
         Get instrument status
-        Get state rom resulting status
+        Get state from resulting status
         Get capabilities from resulting status
-        Add 'direct_access_buttons' dict to _status
+        Add 'direct_access_buttons' dictionary to _status
         Return state, capabilities and  _status
     """
     state = None
