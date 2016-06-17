@@ -39,7 +39,7 @@ from ooiservices.app.uframe.controller import dfs_streams
 from ooiservices.app.uframe.controller import _compile_glider_tracks
 from ooiservices.app.uframe.controller import _compile_cam_images
 from ooiservices.app.uframe.controller import _compile_large_format_files
-from ooiservices.app.uframe.vocab import _compile_vocab
+from ooiservices.app.uframe.vocab import compile_vocab
 from ooiservices.app.main.alertsalarms_tools import _compile_asset_rds, get_assets_dict_from_list
 
 @celery.task(name='tasks.compile_assets')
@@ -286,7 +286,7 @@ def compile_vocabulary():
             payload = requests.get(url)
             if payload.status_code is 200:
                 data = payload.json()
-                vocab_dict, vocab_codes = _compile_vocab(data)
+                vocab_dict, vocab_codes = compile_vocab(data)
                 if "error" not in vocab_dict:
                     cache.set('vocab_dict', vocab_dict, timeout=CACHE_TIMEOUT)
                     cache.set('vocab_codes', codes, timeout=CACHE_TIMEOUT)
