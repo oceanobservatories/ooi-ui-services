@@ -265,6 +265,10 @@ def get_asset_id_by_reference_designator(rd, uframe_url=None, timeout=None, time
             url = "/".join([url_root, mooring, platform])
         elif len_rd == 8:   # and ('-' not in rd):
             url = "/".join([url_root, rd])
+        # Added for irregular reference designators (e.g. CE02SHBP-LJ01D-00-ENG)
+        elif len_rd > 14 and len_rd < 27:
+            mooring, platform, instrument = rd.split('-', 2)
+            url = "/".join([url_root, mooring, platform, instrument])
         else:
             message = 'Malformed reference designator: %s' % rd
             current_app.logger.info(message)

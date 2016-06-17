@@ -583,6 +583,7 @@ class PlatformDeployment(db.Model, DictSerializableMixin):
     @hybrid_property
     def proper_display_name(self):
         return self._get_display_name(reference_designator=self.reference_designator)
+        #return get_long_display_name_by_rd(self.reference_designator)
 
     def to_json(self):
         geo_location = None
@@ -600,6 +601,7 @@ class PlatformDeployment(db.Model, DictSerializableMixin):
         }
         return json_platform_deployment
 
+    """
     @classmethod
     def _f_concat_rd(cls, array_type, array_name, site, platform, assembly, instrument_name):
 
@@ -609,6 +611,7 @@ class PlatformDeployment(db.Model, DictSerializableMixin):
             return array_type + ' ' + array_name + ' ' + site + ' ' + platform + ' - ' + assembly
         else:
             return array_type + ' ' + array_name + ' ' + site + ' ' + platform
+    """
 
     @classmethod
     def _get_display_name(cls, reference_designator):
@@ -624,6 +627,7 @@ class PlatformDeployment(db.Model, DictSerializableMixin):
         curl -X GET http://localhost:4000/display_name?reference_designator=CP05MOAS-AV001
         '''
 
+        """
         import re
         if not reference_designator:
             return None
@@ -663,7 +667,12 @@ class PlatformDeployment(db.Model, DictSerializableMixin):
                 return cls._f_concat_rd(p_n.array_type, p_n.array_name, p_n.site, p_n.platform, platform_text, inst)
 
             return cls._f_concat_rd(p_n.array_type, p_n.array_name, p_n.site, p_n.platform, platform_text, i_n.display_name)
+
         return None
+        """
+        from ooiservices.app.uframe.vocab import get_long_display_name_by_rd
+        return get_long_display_name_by_rd(reference_designator)
+
 
     def __repr__(self):
         return '{0}(display_name={1})'.format(self.__class__.__name__, self.display_name)
@@ -680,6 +689,7 @@ class Platformname(db.Model):
     site = db.Column(db.Text)
     platform = db.Column(db.Text)
     assembly = db.Column(db.Text)
+
 
 class Platform(db.Model):
     __tablename__ = 'platforms'
@@ -698,6 +708,7 @@ class Platform(db.Model):
     asset = db.relationship(u'Asset')
     manufacturer = db.relationship(u'Manufacturer')
 
+
 class StreamParameterLink(db.Model):
     __tablename__ = 'stream_parameter_link'
     __table_args__ = {u'schema': __schema__}
@@ -708,6 +719,7 @@ class StreamParameterLink(db.Model):
 
     parameter = db.relationship(u'StreamParameter')
     stream = db.relationship(u'Stream')
+
 
 class StreamParameter(db.Model):
     __tablename__ = 'stream_parameters'
@@ -1336,7 +1348,37 @@ class Watch(db.Model, DictSerializableMixin):
         user_id = json_post.get('user_id')
         return Watch(id=id, start_time=start_time, end_time=end_time, user_id=user_id)
 
+class DisabledStreams(db.Model):
+    ''' M@Campbell - 01/17/2016 '''
 
+    __tablename__ = 'disabledstreams'
+    __table_args__ = {u'schema': __schema__}
+
+    id = db.Column(db.Integer, primary_key=True)
+    ref_des = db.Column(db.Text, unique=True, nullable=False)
+    stream_name = db.Column(db.Text)
+    disabled_by = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime(True))
+
+    def to_json(self):
+        json_disabled_streams = {
+            'id': self.id,
+            'refDes': self.ref_des,
+            'streamName': self.stream_name,
+            'disabledBy': self.disabled_by,
+            'timestamp': self.timestamp
+            }
+        return json_disabled_streams
+
+    @staticmethod
+    def from_json(json_post):
+        ref_des = json_post.get('refDes')
+        stream_name = json_post.get('streamName')
+        disabled_by = json_post.get('disabledBy')
+        return DisabledStreams(ref_des=ref_des, stream_name=stream_name,
+                               disabled_by=disabled_by)
+
+"""
 class VocabNames(db.Model):
     ''' M@Campbell - 12/21/2015 '''
 
@@ -1370,34 +1412,4 @@ class VocabNames(db.Model):
         return VocabNames(reference_designator=reference_designator, level_one=level_one,
                           level_two=level_two, level_three=level_three,
                           level_four=level_four)
-
-
-class DisabledStreams(db.Model):
-    ''' M@Campbell - 01/17/2016 '''
-
-    __tablename__ = 'disabledstreams'
-    __table_args__ = {u'schema': __schema__}
-
-    id = db.Column(db.Integer, primary_key=True)
-    ref_des = db.Column(db.Text, unique=True, nullable=False)
-    stream_name = db.Column(db.Text)
-    disabled_by = db.Column(db.Text)
-    timestamp = db.Column(db.DateTime(True))
-
-    def to_json(self):
-        json_disabled_streams = {
-            'id': self.id,
-            'refDes': self.ref_des,
-            'streamName': self.stream_name,
-            'disabledBy': self.disabled_by,
-            'timestamp': self.timestamp
-            }
-        return json_disabled_streams
-
-    @staticmethod
-    def from_json(json_post):
-        ref_des = json_post.get('refDes')
-        stream_name = json_post.get('streamName')
-        disabled_by = json_post.get('disabledBy')
-        return DisabledStreams(ref_des=ref_des, stream_name=stream_name,
-                               disabled_by=disabled_by)
+"""
