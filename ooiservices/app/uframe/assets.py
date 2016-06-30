@@ -13,6 +13,7 @@ import requests.exceptions
 import requests.adapters
 from requests.exceptions import ConnectionError, Timeout
 from ooiservices.app.main.errors import (bad_request, internal_server_error)
+from ooiservices.app.uframe.vocab import get_vocab, get_display_name_by_rd
 
 
 requests.adapters.DEFAULT_RETRIES = 2
@@ -119,10 +120,7 @@ def get_assets(use_min=False, normal_data=False, reset=False):
         for obj in data:
             asset = {}
 
-            if (len(obj['ref_des']) <= 14 and 'coordinates' in obj and
-                    obj['ref_des'] != "" and
-                    obj['assetInfo']['longName'] != "" and
-                    obj['assetInfo']['longName'] is not None):
+            if (len(obj['ref_des']) <= 14 and 'coordinates' in obj):
 
                 if (obj['ref_des'] not in unique):
 
@@ -130,13 +128,19 @@ def get_assets(use_min=False, normal_data=False, reset=False):
                     asset['assetInfo'] = obj.pop('assetInfo')
                     asset['assetInfo']['refDes'] = obj.pop('ref_des')
                     asset['coordinates'] = obj.pop('coordinates')
-
                     if 'depth' in obj:
                         asset['assetInfo']['depth'] = obj.pop('depth')
 
+                    # Get display name
+                    name = asset['assetInfo']['name']
+                    if not name or name is None:
+                        name = get_display_name_by_rd(asset['assetInfo']['refDes'])
+                        if name is None:
+                            name = asset['assetInfo']['refDes']
+
                     json = {
                             'array_id': asset['assetInfo']['refDes'][:2],
-                            'display_name': asset['assetInfo']['longName'],
+                            'display_name': name,
                             'geo_location': {
                                 'coordinates': [
                                     round(asset['coordinates'][0], 4),
@@ -267,6 +271,7 @@ def get_assets_payload():
     assets_dict by (key) asset id. Update cache for asset_list and assets_dict.
     """
     try:
+        get_vocab()
         # Get uframe connect and timeout information
         uframe_url, timeout, timeout_read = get_uframe_assets_info()
         url = '/'.join([uframe_url, 'assets'])

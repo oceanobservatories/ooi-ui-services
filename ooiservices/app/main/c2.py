@@ -1992,10 +1992,29 @@ def _c2_get_last_particle(rd, _method, _name):
                 message = 'Failed to process stream (%s) contents to json.' % stream_name
                 raise Exception(message)
 
+            # Verify response data contents are available and particles include attribute 'driver_timestamp'.
+            #if debug: print '\n get_uframe_stream_contents - result: ', json.dumps(result, indent=4, sort_keys=True)
+            try:
+                if not result or result is None:
+                    message = 'No stream (%s) contents returned, result is empty or null.' % stream_name
+                    raise Exception(message)
+                if not isinstance(result, list):
+                    message = 'Malformed stream (%s) contents, result is not a list.' % stream_name
+                    raise Exception(message)
+                for item in result:
+                    if 'driver_timestamp' not in item:
+                        message = 'Malformed stream contents, stream (%s) ' % stream_name
+                        message += 'particle(s) are missing required attribute \'driver_timestamp\'.'
+                        raise Exception(message)
+                    break
+            except:
+                raise
+
         # Process result returned for most recent particle
         particle_metadata = {}
         particle_values = {}
         if result:
+
             # If stream contents provided, sort in reverse
             data = sorted(result, key=itemgetter('driver_timestamp'), reverse=True)
             if data:
@@ -2003,6 +2022,7 @@ def _c2_get_last_particle(rd, _method, _name):
                 # Retrieve first item in list as particle.
                 particle = data[0]
                 if particle:
+
                     # Add each name-value pair to response dict attribute 'particle_metadata' or 'particle_values'
                     if isinstance(particle, dict):
 
@@ -2030,7 +2050,16 @@ def _c2_get_last_particle(rd, _method, _name):
 
                             # regular key-value pair, add to response attribute 'particle_values'
                             else:
-                                particle_values[k] = v
+                                if not isinstance(v, list):
+                                    particle_values[k] = v
+                                elif isinstance(v, list):
+                                    new_v = []
+                                    for x in v:
+                                        if is_nan(x):
+                                            new_v.append('NaN')
+                                        else:
+                                            new_v.append(x)
+                                    particle_values[k] = new_v
 
         particle = {}
         particle['particle_metadata'] = particle_metadata
@@ -2089,7 +2118,7 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
         url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
         response = requests.get(url, timeout=(timeout, timeout_read))
         if not response or response is None:
-            message = 'No data available from uFrame for this request. Instrument: %s, Method: %s, Stream: %s' % \
+            message = 'No data available for this request. Instrument: %s, Method: %s, Stream: %s' % \
                             (instrument, stream_type, stream)
             current_app.logger.info('C2 Failed request: ' + url)
             raise Exception(message)
