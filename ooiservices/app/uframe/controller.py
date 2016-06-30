@@ -190,6 +190,19 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
     """ Prepare a data dictionary from input data, where input data is constructed in data_streams_in_instrument.
     """
     try:
+        # Check stream to make sure it does not contain stream_type, if so remove
+        if '_' in stream:
+            prefix = stream.split('_')
+            if len(prefix) == 2:
+                if prefix[1]:
+                    if '-' in prefix[1]:
+                        stream = prefix[1].replace('-','_')
+                    else:
+                        stream = prefix[1]
+                # print '\n debug -- trimmed stream... ', stream
+        else:
+            if '-' in stream:
+                stream = stream.replace('-', '_')
         stream_name = '_'.join([stream_type, stream])
         ref = '-'.join([mooring, platform, instrument])
         data_dict = {}
@@ -198,7 +211,11 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
         data_dict['reference_designator'] = reference_designator
         data_dict['stream_type'] = stream_type
         data_dict['stream_name'] = stream_name
-        data_dict['stream_display_name'] = get_stream_name(stream_name)
+        tmp = get_stream_name(stream)
+        if tmp is None or not tmp:
+            tmp = stream
+            # print 'debug -- undefined stream in database: ', tmp
+        data_dict['stream_display_name'] = tmp   #get_stream_name(stream)
         data_dict['variables'] = []
         data_dict['variable_types'] = {}
         data_dict['units'] = {}
