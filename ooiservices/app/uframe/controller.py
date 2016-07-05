@@ -188,8 +188,23 @@ def iso_to_timestamp(iso8601):
 def dict_from_stream(mooring, platform, instrument, stream_type, stream, reference_designator,
                      beginTime, endTime, variables, variable_type, units, variables_shape, parameter_id):
     """ Prepare a data dictionary from input data, where input data is constructed in data_streams_in_instrument.
+    For processing stream_display_name...
+        Create _stream which is valid stream value, but with hyphens replaced by '_'.
+        Use _stream in database queries for stream name, i.e. get_stream_name(_stream)
+        if get_stream_name provides null, return stream for stream_display_name (will have hyphens)
+
+    For processing parameter_display_names...
+        Using variable value provided, try to get parameter name from database, if null, then use variable value.
+
     """
+    #debug = False
+    _stream = None
     try:
+
+        # No checks, just create _stream (used in database queries for stream_display_name)
+        if '-' in stream:
+            _stream = stream.replace('-', '_')
+
         stream_name = '_'.join([stream_type, stream])
         ref = '-'.join([mooring, platform, instrument])
         data_dict = {}
@@ -198,7 +213,14 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
         data_dict['reference_designator'] = reference_designator
         data_dict['stream_type'] = stream_type
         data_dict['stream_name'] = stream_name
-        data_dict['stream_display_name'] = get_stream_name(stream_name)
+
+        # Get stream_display_name using _stream (if not in database then use stream value provided (has hyphens)
+        tmp = get_stream_name(_stream)
+        if tmp is None or not tmp:
+            tmp = stream
+            #print 'debug -- undefined stream in database: ', tmp
+        data_dict['stream_display_name'] = tmp
+
         data_dict['variables'] = []
         data_dict['variable_types'] = {}
         data_dict['units'] = {}
@@ -220,11 +242,27 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
         data_dict['units'] = units
         data_dict['variables_shape'] = variables_shape
         data_dict['parameter_id'] = parameter_id
-
         display_names = []
+        #param_not_in_database = []          # for debug only
         for variable in variables:
-            display_names.append(get_param_names(variable))
+            # If no database entry for parameter variable, assign to variable provided
+            tmp = get_param_names(variable)
+            if tmp is None:
+                tmp = variable
+                """
+                # Gather variables which failed to get parameter name from database
+                if debug:
+                    if variable not in param_not_in_database:
+                        param_not_in_database.append(variable)
+                """
+            display_names.append(tmp)
 
+        """
+        if debug:
+            if param_not_in_database:
+                #print '%s [%s] (%d): %s' % (ref, stream, len(param_not_in_database), param_not_in_database)
+                print '%s' % param_not_in_database
+        """
         data_dict['parameter_display_name'] = display_names
         if data_dict['display_name'] is None:
             data_dict['display_name'] = reference_designator
