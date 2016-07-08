@@ -2,10 +2,13 @@ from flask import request, jsonify, make_response, current_app
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.uframe.assetController import _compile_assets, _compile_bad_assets
 from ooiservices.app.uframe.assetController import _uframe_headers
+from ooiservices.app.main.alertsalarms_tools import get_assets_dict_from_list
+from ooiservices.app.main.alertsalarms_tools import _compile_rd_assets, _get_rd_assets
 from ooiservices.app import cache
 from operator import itemgetter
 from copy import deepcopy
-
+from ooiservices.app.uframe.vocab import get_vocab, get_display_name_by_rd
+from ooiservices.app.main.alertsalarms_tools import _compile_asset_rds
 import json
 import sys
 import requests
@@ -13,7 +16,7 @@ import requests.exceptions
 import requests.adapters
 from requests.exceptions import ConnectionError, Timeout
 from ooiservices.app.main.errors import (bad_request, internal_server_error)
-from ooiservices.app.uframe.vocab import get_vocab, get_display_name_by_rd
+import datetime as dt
 
 
 requests.adapters.DEFAULT_RETRIES = 2
@@ -26,18 +29,36 @@ def get_assets(use_min=False, normal_data=False, reset=False):
     """
     debug = False
     try:
+        if debug: print '\n debug -- entered get_assets...'
         # Get 'assets_dict' if cached
         dict_cached = cache.get('assets_dict')
         if dict_cached:
             assets_dict = dict_cached
+        else:
+            if debug: print '\n debug -- assets_dict not cached...'
 
         # Get 'asset_list' if cached, else process uframe assets and cache
+        if debug: print '\n debug -- Get cached assets_list or fetch and cache...'
         cached = cache.get('asset_list')
-        if cached and reset is not True:
+        if cached: # and reset is not True:
+            if debug: print '\n debug -- assets_list is cached...'
             data = cached
         else:
+            if debug: print '\n debug -- get_assets_payload...'
             data = get_assets_payload()
+            if not data:
+                message = 'No asset data returned from uframe.'
+                current_app.logger.info(message)
+                return internal_server_error(message)
 
+    except ConnectionError as err:
+        message = "ConnectionError getting uframe assets; %s" % str(err)
+        current_app.logger.info(message)
+        return internal_server_error(message)
+    except Timeout as err:
+        message = "Timeout getting uframe assets;  %s" % str(err)
+        current_app.logger.info(message)
+        return internal_server_error(message)
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
@@ -49,9 +70,7 @@ def get_assets(use_min=False, normal_data=False, reset=False):
             sort_by = str(request.args.get('sort'))
         else:
             sort_by = 'ref_des'
-
         data = sorted(data, key=itemgetter(sort_by))
-
     except Exception as err:
         current_app.logger.info(str(err))
         pass
@@ -64,6 +83,7 @@ def get_assets(use_min=False, normal_data=False, reset=False):
             showDeployments = True
         for obj in data:
             try:
+                # todo - update and remove if blocks which no longer apply with new assets
                 if 'metaData' in obj:
                     del obj['metaData']
                 if 'events' in obj:
@@ -115,12 +135,20 @@ def get_assets(use_min=False, normal_data=False, reset=False):
             . . .
     """
     if request.args.get('geoJSON') and request.args.get('geoJSON') != "":
+        if debug: print '\n debug -- processing geoJSON request...'
         return_list = []
         unique = set()
+        if debug:
+            if not data:
+                print '\n debug -- no assets to process.....'
+
         for obj in data:
             asset = {}
-
-            if (len(obj['ref_des']) <= 14 and 'coordinates' in obj):
+            """
+            if (len(obj['ref_des']) <= 14 and 'coordinates' in obj and
+                    obj['ref_des'] != "" and
+                    obj['assetInfo']['longName'] != "" and
+                    obj['assetInfo']['longName'] is not None):
 
                 if (obj['ref_des'] not in unique):
 
@@ -128,16 +156,50 @@ def get_assets(use_min=False, normal_data=False, reset=False):
                     asset['assetInfo'] = obj.pop('assetInfo')
                     asset['assetInfo']['refDes'] = obj.pop('ref_des')
                     asset['coordinates'] = obj.pop('coordinates')
+
                     if 'depth' in obj:
                         asset['assetInfo']['depth'] = obj.pop('depth')
+                    else:
+                        asset['assetInfo']['depth'] = None
 
+                    json = {
+                            'array_id': asset['assetInfo']['refDes'][:2],
+                            'display_name': asset['assetInfo']['longName'],
+                            'geo_location': {
+                                'coordinates': [
+                                    round(asset['coordinates'][0], 4),
+                                    round(asset['coordinates'][1], 4)
+                                    ],
+                                'depth': asset['assetInfo']['depth']
+                                },
+                            'reference_designator': asset['assetInfo']['refDes']
+                            }
+                    return_list.append(json)
+            """
+            if debug: print '\n debug -- ref_des: ', obj['ref_des']
+            if (len(obj['ref_des']) <= 14 and 'coordinates' in obj):
+
+                if debug: print '\n debug -- unique: ', unique
+                if (obj['ref_des'] not in unique):
+
+                    if debug: print '\n step 1...'
+                    unique.add(obj['ref_des'])
+                    asset['assetInfo'] = obj.pop('assetInfo')
+                    asset['assetInfo']['refDes'] = obj.pop('ref_des')
+                    if debug: print '\n step 2...'
+                    asset['coordinates'] = obj.pop('coordinates')
+                    if 'depth' in obj:
+                        asset['assetInfo']['depth'] = obj.pop('depth')
+                    else:
+                        asset['assetInfo']['depth'] = None
+                    if debug: print '\n step 3...'
                     # Get display name
                     name = asset['assetInfo']['name']
                     if not name or name is None:
                         name = get_display_name_by_rd(asset['assetInfo']['refDes'])
                         if name is None:
                             name = asset['assetInfo']['refDes']
-
+                    if debug: print '\n step 4...'
                     json = {
                             'array_id': asset['assetInfo']['refDes'][:2],
                             'display_name': name,
@@ -146,93 +208,14 @@ def get_assets(use_min=False, normal_data=False, reset=False):
                                     round(asset['coordinates'][0], 4),
                                     round(asset['coordinates'][1], 4)
                                     ],
-                                'depth': asset['assetInfo']['depth'] or None
+                                'depth': asset['assetInfo']['depth']
                                 },
                             'reference_designator': asset['assetInfo']['refDes']
                             }
+                    if debug: print '\n step 5...'
                     return_list.append(json)
 
         data = return_list
-
-
-    # Search for each search item...two tiered search
-    # - First get search result set: (a) all or (b) limited by tense ('Recovered' or 'Deployed')
-    # - Second using first result set, search for additional search details.
-    results = None
-    if request.args.get('search') and request.args.get('search') != "":
-        results = []
-        return_list = []
-        ven_subset = []
-        search_term = str(request.args.get('search')).split()
-
-        # Determine if result set to be limited by tense (either 'recovered' or 'deployed')
-        limit_by_tense = False
-        tense_value = None
-        if 'past' in search_term or 'present' in search_term:
-            limit_by_tense = True
-            if 'past' in search_term:
-                search_term.remove('past')
-                tense_value = 'past'
-            else:
-                search_term.remove('present')
-                tense_value = 'present'
-
-        # Set detailed search set based on request.args provided for search
-        # assetInfo_fields = ['name', 'longName', 'type', 'array']
-        search_set = set(search_term)
-        try:
-            fields = ['name', 'longName', 'type', 'array', 'metaData', 'tense', 'events']
-
-            # Limit by selection of 'recovered' or 'deployed'?
-            if limit_by_tense:
-
-                # Make asset result set (list), based on tense
-                for item in data:
-                    if 'tense' in item:
-                        if item['tense']:
-                            if (item['tense']).lower() == tense_value:
-                                results.append(item)
-                                continue
-
-            # Not limited by tense, result set is all asset data
-            else:
-                results = data
-
-            # If there are (1) assets to search, and (2) search set details provided
-            if results and search_set:
-
-                # for each item in the search set, refine list of assets by search term
-                for subset in search_set:
-
-                    subset_lower = subset.lower()
-                    for item in results:
-
-                        if 'ref_des' in item:
-                            if match_subset(subset_lower, item['ref_des']):
-                                return_list.append(item)
-                                continue
-
-                        for field in fields:
-                            if field in item['assetInfo']:
-                                if match_subset(subset_lower, item['assetInfo'][field]):
-                                    return_list.append(item)
-                                    break
-                            else:
-                                if match_subset(subset_lower, item[field]):
-                                    return_list.append(item)
-                                    break
-
-                    results = return_list
-
-        except KeyError as err:
-            message = 'Asset search exception: %s' % str(err)
-            if debug: print '\n debug -- ', message
-            current_app.logger.info(message)
-            pass
-
-    # If search criteria used and results returned, use results as data
-    if results is not None:
-        data = results
 
     if request.args.get('startAt'):
         start_at = int(request.args.get('startAt'))
@@ -251,7 +234,7 @@ def get_assets(use_min=False, normal_data=False, reset=False):
             result = jsonify({'assets': data})
         return result
 
-
+"""
 def match_subset(subset, value):
     result = False
     try:
@@ -264,39 +247,73 @@ def match_subset(subset, value):
     except Exception as err:
         current_app.logger.info(str(err))
         return False
-
+"""
 
 def get_assets_payload():
     """ Get all assets from uframe, process in ooi-ui-services list of assets (asset_list) and
     assets_dict by (key) asset id. Update cache for asset_list and assets_dict.
     """
+    debug = False
     try:
-        get_vocab()
+        if debug: print '\n debug -- entered get_assets_payload...'
         # Get uframe connect and timeout information
         uframe_url, timeout, timeout_read = get_uframe_assets_info()
-        url = '/'.join([uframe_url, 'assets'])
-        payload = requests.get(url, timeout=(timeout, timeout_read))
+        url = '/'.join([uframe_url, 'asset'])
+        if debug: print '\n debug -- url: ', url
+        if debug: print '\n debug -- Start Time: ', dt.datetime.now()
+        timeout_extended = timeout_read * 40
+        payload = requests.get(url, timeout=(timeout, timeout_extended))
+        if debug: print '\n debug -- End Time: ', dt.datetime.now()
         if payload.status_code != 200:
             message = '(%d) Failed to get uframe assets.' % payload.status
+            if debug: print '\n debug -- uframe error getting assets...', message
             current_app.logger.info(message)
-            return internal_server_error(message)
+            return Exception(message)
 
         result = payload.json()
+        if debug: print '\n\t debug -- number of uframe assets: %d' % len(result)
+        if not result:
+            message = 'Response content from uframe asset request is empty.'
+            current_app.logger.info(message)
+            raise Exception(message)
+
+        # Process uframe assets for UI and cache 'asset_list'
+        if debug: print '\n\t debug -- _compile_assets...'
         data, assets_dict = _compile_assets(result)
         if "error" not in data:
+            if debug: print '\n\t debug -- set \'asset_list\' cache...'
             cache.set('asset_list', data, timeout=CACHE_TIMEOUT)
             data = cache.get('asset_list')
+        else:
+            if debug: print '\n\t debug -- error setting asset_list cache...'
+
+        # Cache 'assets_dict' (based on success of _compile_assets returning assets)
+        if debug: print '\n\t debug -- get_assets_dict_from_list...'
+        assets_dict = get_assets_dict_from_list(data)
+        if not assets_dict:
+            message = 'Warning: get_assets_dict_from_list returned empty assets_dict.'
+            if debug: print '\n debug -- message: ', message
+            current_app.logger.info(message)
+        if isinstance(assets_dict, dict):
+            cache.set('assets_dict', assets_dict, timeout=CACHE_TIMEOUT)
+            if debug: print "[+] Assets dictionary cache reset..."
+        else:
+            if debug: print "[-] Error in Assets dictionary cache update....."
+
+        # Get 'rd_assets' cache; if not cache then get and cache
+        if debug: print '\n\t debug -- _get_rd_assets...'
+        rd_assets = _get_rd_assets()
 
         return data
 
-    except requests.exceptions.ConnectionError as err:
+    except ConnectionError as err:
         message = "ConnectionError getting uframe assets; %s" % str(err)
         current_app.logger.info(message)
-        return internal_server_error(message)
-    except requests.exceptions.Timeout as err:
+        raise Exception(message)
+    except Timeout as err:
         message = "Timeout getting uframe assets;  %s" % str(err)
         current_app.logger.info(message)
-        return internal_server_error(message)
+        raise Exception(message)
     except Exception as err:
         message = "Error getting uframe assets; %s" % str(err)
         current_app.logger.info(message)
@@ -304,40 +321,46 @@ def get_assets_payload():
 
 
 def get_assets_from_uframe():
+    debug = False
     try:
+        if debug: print '\n debug -- entered get_assets_from_uframe...'
         # Get uframe connect and timeout information
         uframe_url, timeout, timeout_read = get_uframe_assets_info()
-        url = '/'.join([uframe_url, 'assets'])
+        url = '/'.join([uframe_url, 'asset'])
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
-            message = '(%d) Failed to get uframe assets.' % response.status_code
+            message = '(%d) Failed to get uframe asset.' % response.status_code
             current_app.logger.info(message)
-            return internal_server_error(message)
+            #return internal_server_error(message)
+            raise Exception(message)
 
         result = response.json()
 
         return result
     except ConnectionError:
-        message = 'ConnectionError getting uframe assets.'
+        message = 'ConnectionError getting uframe asset.'
         current_app.logger.info(message)
         raise Exception(message)
     except Timeout:
-        message = 'Timeout getting uframe assets.'
+        message = 'Timeout getting uframe asset.'
         current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
-        error = "Error getting uframe assets.  %s" % str(err)
-        current_app.logger.info(error)
+        message = "Error getting uframe asset.  %s" % str(err)
+        current_app.logger.info(message)
         raise
 
 
-
+# todo ======================================================
+# todo - modify for new asset REST interface
 @api.route('/assets/<int:id>', methods=['GET'])
 def get_asset(id):
     """ Get asset by id.
     Object response for the GET(id) request.  This response is NOT cached.
     """
+    debug = False
     try:
+        if debug: print '\n debug -- entered get_asset...'
         uframe_url, timeout, timeout_read = get_uframe_assets_info()
         if id == 0:
             error = 'Zero (0) is an invalid asset id value.'
@@ -369,6 +392,8 @@ def get_asset(id):
         return bad_request(error)
 
 
+# todo ======================================================
+# todo - modify for new asset REST interface
 @api.route('/assets/<int:id>/events', methods=['GET'])
 def get_asset_events(id):
     """ Get events for asset id.
@@ -405,6 +430,8 @@ def get_asset_events(id):
         return bad_request(error)
 
 
+# todo ======================================================
+# todo - modify for new asset REST interface
 @api.route('/assets', methods=['POST'])
 def create_asset():
     """ Create a new asset, the return will be uframe asset format (not ooi-ui-services format).
@@ -464,7 +491,9 @@ def create_asset():
         current_app.logger.info(message)
         return bad_request(message)
 
-
+# todo ======================================================
+# todo - modify for new asset REST interface
+'''
 def valid_create_asset_request_data(data):
     """ Validate request_data provides required fields to create an asset. Must have metaData with key 'Ref Des'.
 
@@ -494,8 +523,10 @@ def valid_create_asset_request_data(data):
         message = str(err.message)
         current_app.logger.info(message)
         raise
+'''
 
-
+# todo ======================================================
+# todo - modify for new asset REST interface
 @api.route('/assets/<int:id>', methods=['PUT'])
 def update_asset(id):
     """ Update asset by id.
@@ -517,7 +548,7 @@ def update_asset(id):
         if response.status_code == 200:
             data_list = [data]
             try:
-                compiled_data, _ = _compile_assets(data_list)
+                compiled_data, asset_rds = _compile_assets(data_list)
             except Exception:
                 raise
 
@@ -537,6 +568,17 @@ def update_asset(id):
                         break
                 cache.set('asset_list', asset_cache, timeout=CACHE_TIMEOUT)
 
+            # Cache assets_rd
+            if asset_rds:
+                asset_rds_cache = cache.get('asset_rds')
+                if asset_rds_cache:
+                    cache.delete('asset_rds')
+                cache.set('asset_rds', asset_rds, timeout=CACHE_TIMEOUT)
+                print "[+] Asset reference designators cache reset..."
+                print '\n len(asset_rds): ', len(asset_rds)
+            else:
+                print "[-] Error in asset_rds cache update"
+
         return response.text, response.status_code
 
     except ConnectionError:
@@ -553,6 +595,8 @@ def update_asset(id):
         return bad_request(message)
 
 
+# todo ======================================================
+# todo - modify for new asset REST interface
 @api.route('/assets/<int:id>', methods=['DELETE'])
 def delete_asset(id):
     """ Delete an asset by id.
@@ -591,12 +635,16 @@ def delete_asset(id):
 
 # END Assets CRUD methods.
 
+# todo ======================================================
+# todo - test with new asset REST interface
 @api.route('/bad_assets', methods=['GET'])
 def get_bad_assets():
     """ Get bad assets.
     """
+    debug = False
     try:
         results = _get_bad_assets()
+        if debug: print '\n debug -- Number of bad assets: %d' % len(results)
         return jsonify({"assets": results})
 
     except ConnectionError:
@@ -612,7 +660,8 @@ def get_bad_assets():
         current_app.logger.info(message)
         return bad_request(message)
 
-
+# todo ======================================================
+# todo - test with new asset REST interface
 @api.route('/all_assets', methods=['GET'])
 def get_all_assets():
     """ Get bad assets.
@@ -634,7 +683,8 @@ def get_all_assets():
         current_app.logger.info(message)
         return bad_request(message)
 
-
+# todo ======================================================
+# todo - test with new asset REST interface
 def _get_bad_assets():
     """ Get all 'bad' assets (in ooi-ui-services format)
     """
@@ -656,7 +706,8 @@ def _get_bad_assets():
     except Exception as err:
         raise
 
-
+# todo ======================================================
+# todo - test with new asset REST interface
 def _get_all_assets():
     """ Get all assets (complete or incomplete) (in ooi-ui-services format).
     """
@@ -696,7 +747,6 @@ def _get_all_assets():
 
 
 #=====================================================
-# from alertalarms_tools.py
 def get_uframe_assets_info():
     """ Get uframe assets configuration information.
     """
@@ -709,3 +759,175 @@ def get_uframe_assets_info():
         message = 'Unable to locate UFRAME_ASSETS_URL, UFRAME_TIMEOUT_CONNECT or UFRAME_TIMEOUT_READ in config file.'
         current_app.logger.info(message)
         raise Exception(message)
+
+#=====================================================
+# Development only routes...
+#=====================================================
+# Development only route......
+@api.route('/compile_asset_rds', methods=['GET'])
+def dev_compile_asset_rds():
+    """ Get dictionary of asset ids for reference designators.
+    """
+    debug = False
+    try:
+        if debug: print '\n debug -- entered dev_compile_asset_rds...'
+        # If no asset_rds cached, then fetch and cache
+        asset_rds = {}
+        rds_wo_assets = []
+        try:
+            asset_rds, rds_wo_assets = _compile_asset_rds()
+        except Exception as err:
+            message = 'Error processing _compile_asset_rds: ', err.message
+            current_app.logger.warning(message)
+
+        if debug: print '\n debug -- length of asset_rds: %d' % len(asset_rds)
+        return jsonify(asset_rds), 200
+
+    except Exception as err:
+        message = 'Exception processing dev_compile_asset_rds: %s' % str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
+
+
+# Development only route......
+@api.route('/assets_dict', methods=['GET'])
+def dev_assets_dict():
+    """ Get cached 'assets_dict', if not available generate cache and return 'assets_dict' dictionary. Does NOT cache.
+    """
+    debug = False
+    assets_dict = {}
+    try:
+        if debug: print '\n debug -- entered dev_assets_dict...'
+        # Get 'assets_dict' if cached
+        dict_cached = cache.get('assets_dict')
+        if dict_cached:
+            assets_dict = dict_cached
+        else:
+            if debug: print '\n debug -- assets_dict not cached, get_asset_payload then check cache...'
+            data = get_assets_payload()
+            if not data:
+                message = 'No asset data returned from uframe.'
+                current_app.logger.info(message)
+                return internal_server_error(message)
+            dict_cached = cache.get('assets_dict')
+            if dict_cached:
+                assets_dict = dict_cached
+            else:
+                message = 'assets_dict STILL not cached. after calling get_assets_payload..'
+                if debug: print '\n debug -- ', message
+                return internal_server_error(message)
+
+        if debug: print '\n debug -- Length of asset_dict: %d' % len(assets_dict)
+
+        return jsonify(assets_dict), 200
+
+    except Exception as err:
+        message = 'Exception processing dev_assets_dict: %s' % str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
+
+# Development only route......
+@api.route('/get_asset_rds', methods=['GET'])
+def dev_get_asset_rds():
+    """ Get cached 'asset_rds' or generate 'asset_rds'. Does NOT cache.
+    """
+    debug = False
+    try:
+        if debug: print '\n debug -- entered dev_get_asset_rds...'
+        asset_rds = {}
+
+        # Get 'asset_rds' if cached
+        asset_rds_cached = cache.get('asset_rds')
+        if asset_rds_cached:
+            asset_rds = asset_rds_cached
+        else:
+            if debug: print '\n debug -- asset_rds not cached, compile_asset_rds then check cache...'
+            try:
+                asset_rds, rds_wo_assets = _compile_asset_rds()
+            except Exception as err:
+                message = 'Error processing _compile_asset_rds: ', err.message
+                current_app.logger.warning(message)
+
+        if debug: print '\n debug -- Length of asset_rds: %d' % len(asset_rds)
+
+        return jsonify(asset_rds), 200
+
+    except Exception as err:
+        message = 'Exception processing dev_get_asset_rds: %s' % str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
+
+
+# Development only route......
+@api.route('/get_rd_assets', methods=['GET'])
+def dev_get_rd_assets():
+    """ Get cached 'rd_assets', if not available generate cache and return 'rd_assets' dictionary. Does NOT cache.
+    """
+    debug = False
+    try:
+        if debug: print '\n debug -- entered dev_get_rd_assets...'
+        rd_assets = {}
+
+        # Get 'rd_assets' if cached
+        rd_assets_cached = cache.get('rd_assets')
+        if rd_assets_cached:
+            rd_assets = rd_assets_cached
+
+        # Get 'rd_assets' - compile them
+        else:
+            if debug: print '\n debug -- rd_assets not cached, get rd_assets, cache and then check cache...'
+            try:
+                rd_assets = _compile_rd_assets()
+            except Exception as err:
+                message = 'Error processing _compile_rd_assets: ', err.message
+                current_app.logger.warning(message)
+
+        if debug: print '\n debug -- Length of rd_assets: %d' % len(rd_assets)
+
+        return jsonify(rd_assets), 200
+
+    except Exception as err:
+        message = 'Exception processing dev_get_rd_assets: %s' % str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
+
+# Development only route......
+@api.route('/_get_rd_assets', methods=['GET'])
+def dev__get_rd_assets():
+    """ Get cached 'rd_assets', if not available generate cache and return 'rd_assets' dictionary. This caches!!!.
+    """
+    debug = False
+    try:
+        if debug: print '\n debug -- entered dev__get_rd_assets...'
+        rd_assets = {}
+
+        # Get 'rd_assets' if cached
+        rd_assets_cached = cache.get('rd_assets')
+        if rd_assets_cached:
+            rd_assets = rd_assets_cached
+
+        # Get 'rd_assets' - compile them
+        else:
+            if debug: print '\n debug -- rd_assets not cached, get rd_assets, cache and then check cache...'
+            try:
+                rd_assets = _compile_rd_assets()
+            except Exception as err:
+                message = '[dev route _get_rd_assets] Error processing _compile_rd_assets: ', err.message
+                current_app.logger.warning(message)
+
+            # Cache rd_assets, if not rd_assets to be cached, print error.
+            if rd_assets:
+                cache.set('rd_assets', rd_assets, timeout=CACHE_TIMEOUT)
+                print "[+] Reference designators asset cache reset..."
+            else:
+                print "[-] Error in cache update"
+
+
+        if debug: print '\n debug -- Length of rd_assets: %d' % len(rd_assets)
+
+        return jsonify(rd_assets), 200
+
+    except Exception as err:
+        message = 'Exception processing dev__get_rd_assets: %s' % str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
