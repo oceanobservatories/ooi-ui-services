@@ -40,7 +40,7 @@ from ooiservices.app.uframe.controller import _compile_glider_tracks
 from ooiservices.app.uframe.controller import _compile_cam_images
 from ooiservices.app.uframe.controller import _compile_large_format_files
 from ooiservices.app.uframe.vocab import compile_vocab
-from ooiservices.app.main.alertsalarms_tools import _compile_asset_rds, get_assets_dict_from_list
+from ooiservices.app.main.alertsalarms_tools import _compile_asset_rds, get_assets_dict_from_list, _compile_rd_assets
 
 @celery.task(name='tasks.compile_assets')
 def compile_assets():
@@ -50,7 +50,7 @@ def compile_assets():
             print "[+] Starting asset cache reset..."
             cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
             cache.init_app(current_app)
-            url = current_app.config['UFRAME_ASSETS_URL'] + '/%s' % ('assets')
+            url = current_app.config['UFRAME_ASSETS_URL'] + '/%s' % ('asset')
             payload = requests.get(url)
             if payload.status_code is 200:
 
@@ -79,6 +79,7 @@ def compile_assets():
                 if asset_rds:
                     cache.set('asset_rds', asset_rds, timeout=CACHE_TIMEOUT)
                     print "[+] Asset reference designators cache reset..."
+                    print '\n len(asset_rds): ', len(asset_rds)
                 else:
                     print "[-] Error in asset_rds cache update"
 
@@ -94,13 +95,15 @@ def compile_assets():
 def compile_assets_rd():
     try:
         asset_rds = {}
+        rds_wo_assets = []
+        rds = []
         with current_app.test_request_context():
             print "[+] Starting asset reference designators cache reset..."
 
             cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
             cache.init_app(current_app)
             try:
-                asset_rds, _ = _compile_asset_rds()
+                asset_rds, rds_wo_assets, rds = _compile_asset_rds()
             except Exception as err:
                 message = 'Error processing _compile_asset_rds: ', err.message
                 current_app.logger.warning(message)
@@ -110,6 +113,20 @@ def compile_assets_rd():
             print "[+] Asset reference designators cache reset..."
         else:
             print "[-] Error in cache update"
+
+        # List of reference designators [in toc i.e./sensor/inv/toc] but without associated asset id(s). TODO Remove this...
+        if rds_wo_assets:
+            cache.set('rds_wo_assets', rds_wo_assets, timeout=CACHE_TIMEOUT)
+            print "[+] Reference designators with assets cache reset..."
+        else:
+            print "[-] Error in rds_wo_assets cache update..."
+
+        # List of reference designators [in toc]. TODO Remove this...
+        if rds:
+            cache.set('toc_rds', rds, timeout=CACHE_TIMEOUT)
+            print "[+] Reference designators (in toc) cache reset..."
+        else:
+            print "[-] Error in toc_rds cache update..."
 
     except Exception as err:
         message = 'compile_asset_rds exception: %s' % err.message
@@ -274,6 +291,7 @@ def compile_bad_assets():
         message = 'compile_bad_assets exception: %s' % err.message
         current_app.logger.warning(message)
 
+# - - - - - - - - - - - - - - - - - - - - -
 
 @celery.task(name='tasks.compile_vocabulary')
 def compile_vocabulary():
@@ -282,17 +300,43 @@ def compile_vocabulary():
             print "[+] Starting vocabulary cache reset..."
             cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
             cache.init_app(current_app)
-            url = current_app.config['UFRAME_VOCAB_URL'] + '/vocab'
-            payload = requests.get(url)
-            if payload.status_code is 200:
-                data = payload.json()
-                vocab_dict, vocab_codes = compile_vocab(data)
-                if "error" not in vocab_dict:
-                    cache.set('vocab_dict', vocab_dict, timeout=CACHE_TIMEOUT)
-                    cache.set('vocab_codes', codes, timeout=CACHE_TIMEOUT)
-                    print "[+] Vocabulary cache reset"
-                else:
-                    print "[-] Error in cache update"
+            vocab_dict, vocab_codes = compile_vocab()
+            if "error" not in vocab_dict:
+                cache.set('vocab_dict', vocab_dict, timeout=CACHE_TIMEOUT)
+                cache.set('vocab_codes', vocab_codes, timeout=CACHE_TIMEOUT)
+                print "[+] Vocabulary cache reset"
+            else:
+                print "[-] Error in cache update"
     except Exception as err:
         message = 'compile_vocabulary exception: %s' % err.message
         current_app.logger.warning(message)
+
+
+@celery.task(name='tasks.compile_rd_assets')
+def compile_rd_assets():
+    """ Get 'rd_assets' dictionary.
+    Key: reference designator, returns associated asset ids and info map from deployments.
+    """
+    try:
+        rd_assets = {}
+        with current_app.test_request_context():
+            print "[+] Starting reference designators assets cache reset..."
+
+            cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
+            cache.init_app(current_app)
+            try:
+                rd_assets  = _compile_rd_assets()
+            except Exception as err:
+                message = 'Error processing _compile_asset_rds: ', err.message
+                current_app.logger.warning(message)
+
+        if rd_assets:
+            cache.set('rd_assets', rd_assets, timeout=CACHE_TIMEOUT)
+            print "[+] Reference designators asset cache reset..."
+        else:
+            print "[-] Error in cache update"
+
+    except Exception as err:
+        message = 'compile_rd_assets exception: %s' % err.message
+        current_app.logger.warning(message)
+        raise Exception(message)
