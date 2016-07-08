@@ -66,12 +66,14 @@ def dfs_streams():
             streams = data_streams_in_instrument(instrument, parameters_dict, streams)
 
         # try to use the event list cache first, if not loaded...load the event cache.
-        cached = cache.get('event_list')
-        if cached:
-            event_list = cached
-        else:
-            get_events()
-            event_list = cache.get('event_list')
+        # cached = cache.get('event_list')
+        # if cached:
+        #     event_list = cached
+        # else:
+        #     get_events()
+        #     event_list = cache.get('event_list')
+
+        event_list = None
 
         for stream in streams:
             try:
@@ -87,15 +89,16 @@ def dfs_streams():
                 retval.append(data_dict)
 
         # Populate event information in response dictionaries
-        for stream in retval:
-            response = get_events_by_ref_des(event_list, stream['reference_designator'])
-            events = json.loads(response.data)
-            for event in events['events']:
-                if event['eventClass'] == '.DeploymentEvent' and event['tense'] == 'PRESENT':
-                    stream['depth'] = event['depth']
-                    stream['lat_lon'] = event['lat_lon']
-                    stream['cruise_number'] = event['cruise_number']
-                    stream['deployment_number'] = event['deployment_number']
+        # for stream in retval:
+        #     if event_list:
+        #         response = get_events_by_ref_des(event_list, stream['reference_designator'])
+        #         events = json.loads(response.data)
+        #         for event in events['events']:
+        #             if event['eventClass'] == '.DeploymentEvent' and event['tense'] == 'PRESENT':
+        #                 stream['depth'] = event['depth']
+        #                 stream['lat_lon'] = event['lat_lon']
+        #                 stream['cruise_number'] = event['cruise_number']
+        #                 stream['deployment_number'] = event['deployment_number']
 
         return retval
     except Exception as err:

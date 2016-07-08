@@ -27,6 +27,8 @@ import calendar
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #List all alerts and alarms
 @api.route('/alert_alarm', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'asset_manager')
 def get_alerts_alarms():
     """ Get all alert(s) and alarm(s) which match filter rules provided in request.args.
     Dynamically construct filters to query SystemEvent and SystemEventDefinitions.
@@ -59,8 +61,11 @@ def get_alerts_alarms_object():
             result = result_json
     return result
 
+
 #List an alert or alarm by id
 @api.route('/alert_alarm/<int:id>')
+#@auth.login_required
+#@scope_required(u'asset_manager')
 def get_alert_alarm(id):
     alert_alarm = SystemEvent.query.filter_by(id=id).first()
     if alert_alarm is None:
@@ -70,6 +75,7 @@ def get_alert_alarm(id):
 
 
 def get_asset_list():
+    debug = False
     data = get_assets(True, True)
     ref_list = []
     name_list = []
@@ -80,13 +86,17 @@ def get_asset_list():
                 ref_list.append(d)
                 name_list.append(d['ref_des'])
         else:
-            current_app.logger.info("Ref-Des not in asset")
+            if debug: current_app.logger.info('ref_des not in assets.')
     return ref_list, name_list
 
+
 @api.route('/alert_alarm/status', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'asset_manager')
 def get_alert_alarm_status():
     """ Gets the alert alarm status for all available assets.
     """
+    debug = False
     #the actual alert alarms
     data = get_alerts_alarms_object()
     status_info = []
@@ -115,7 +125,6 @@ def get_alert_alarm_status():
     aa_def_list = []
 
     #alerts and alarms
-
     for aa_item in aa_def:
         if 'reference_designator' in aa_item:
             #get the A/A definitions
@@ -125,17 +134,17 @@ def get_alert_alarm_status():
             if aa_item['reference_designator'] not in assets_names:
                 #means an asset was in the A/A definition, that was not in the asset list returned
                 #create and add it so we can see the status, the TOC may not reflect this
-                print "Ref-Des not in asset name list: ERROR: appending", aa_item['reference_designator']
+                if debug: print 'reference_designator not in asset name list: ERROR: appending', aa_item['reference_designator']
 
                 new_asset = {'ref_des':aa_item['reference_designator'],
                              'hasDeploymentEvent' : True,
                              'coordinates': [0, 0],
                              'assetInfo': {"type":"Sensor",
-                                           "longName":aa_item['reference_designator'],
+                                           "longName": aa_item['reference_designator'],
                                            "instrumentClass": "Sensor",
-                                           "name":aa_item['reference_designator'],
-                                           "owner":"N/A",
-                                           "description":"N/A"
+                                           "name": aa_item['reference_designator'],
+                                           "owner": "N/A",
+                                           "description": "N/A"
                               },
                             }
 
@@ -152,36 +161,45 @@ def get_alert_alarm_status():
         d = asset['ref_des']
 
         if 'hasDeploymentEvent' in asset and asset['hasDeploymentEvent']:
+
+            # Workaround for new assets integration -  missing asset['assetInfo']['instrumentClass'],
+            if 'assetInfo' in asset:
+                if asset['assetInfo']:
+                    if 'instrumentClass' in asset['assetInfo']:
+                        instrument_class = asset['assetInfo']['instrumentClass']
+                    else:
+                        if 'assetType' in asset:
+                            instrument_class = asset['assetType']
+
             #create inital entry
             if 'manufactureInfo' in asset:
                 entry = {'reference_designator':d, "count":0,
-                        "event_type":'unknown',
-                        'coordinates':asset['coordinates'],
-                        'asset_type':asset['assetInfo']['type'],
-                        'longName':asset['assetInfo']['longName'],
-                        'name':asset['assetInfo']['name'],
-                        'instrumentClass':asset['assetInfo']['instrumentClass'],
+                        "event_type": 'unknown',
+                        'coordinates': asset['coordinates'],
+                        'asset_type': asset['assetInfo']['type'],
+                        'longName': asset['assetInfo']['longName'],
+                        'name': asset['assetInfo']['name'],
+                        'instrumentClass': instrument_class,
                         'manufacturer': asset['manufactureInfo']['manufacturer'],
                         'modelNumber': asset['manufactureInfo']['modelNumber'],
                         'serialNumber': asset['manufactureInfo']['serialNumber'],
                         'owner': asset['assetInfo']['owner'],
                         'description': asset['assetInfo']['description']}
             else:
-                entry = {'reference_designator':d, "count":0,
-                        "event_type":'unknown',
-                        'coordinates':asset['coordinates'],
-                        'asset_type':asset['assetInfo']['type'],
-                        'longName':asset['assetInfo']['longName'],
-                        'name':asset['assetInfo']['name'],
-                        'instrumentClass':asset['assetInfo']['instrumentClass'],
+                entry = {'reference_designator': d, "count": 0,
+                        "event_type": 'unknown',
+                        'coordinates': asset['coordinates'],
+                        'asset_type': asset['assetInfo']['type'],
+                        'longName': asset['assetInfo']['longName'],
+                        'name': asset['assetInfo']['name'],
+                        'instrumentClass': instrument_class,
                         'manufacturer': 'N/A',
                         'modelNumber': 'N/A',
                         'serialNumber': 'N/A',
                         'owner': asset['assetInfo']['owner'],
                         'description': asset['assetInfo']['description']}
 
-
-            #use alert alarms status (alarm or alert)
+            # use alert alarms status (alarm or alert)
             if d in status_outline.keys():
                 entry["count"] = status_outline[d]['count']
                 entry["event_type"] = status_outline[d]["event_type"]
@@ -386,6 +404,8 @@ def is_valid_alert_alarm_for_ack(data):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #List all alert and alarm definitions
 @api.route('/alert_alarm_definition', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'asset_manager')
 def get_alerts_alarms_def():
     """ Get a list of alert or alarm definition(s).
     """
@@ -414,6 +434,8 @@ def get_alerts_alarms_def_object():
 
 #List an alerts and alarms definition by id
 @api.route('/alert_alarm_definition/<int:id>')
+#@auth.login_required
+#@scope_required(u'asset_manager')
 def get_alert_alarm_def(id):
     """ Get an alert or alarm definition by id.
     """
