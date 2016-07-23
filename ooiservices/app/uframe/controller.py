@@ -2344,7 +2344,7 @@ def get_structured_toc():
 """
 
 @api.route('/get_toc')
-@cache.memoize(timeout=1600)
+# @cache.memoize(timeout=1600)
 def get_toc():
     """ Get uframe toc data; process and return data list; if exception then raise.
     """
@@ -2402,7 +2402,7 @@ def process_uframe_toc():
 
 # [OLD FORMAT]
 # TODO Deprecate once transition to new toc format has been completed.
-@cache.memoize(timeout=1600)
+# @cache.memoize(timeout=1600)
 def old_get_uframe_toc(d):
     """ Process uframe response from /sensor/inv/toc' for use in UI.
     """
@@ -2429,7 +2429,7 @@ def old_get_uframe_toc(d):
 
 
 # [NEW FORMAT]
-@cache.memoize(timeout=1600)
+# @cache.memoize(timeout=1600)
 def get_uframe_toc(data):
     """ Process uframe response from /sensor/inv/toc into list of dictionaries for use in UI.
 
