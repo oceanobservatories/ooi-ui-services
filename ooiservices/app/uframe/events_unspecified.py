@@ -1,5 +1,21 @@
 """
-Events: Storage event create and update functions.
+Events: Unspecified event create and update functions.
+
+Event Type UNSPECIFIED
+
+{
+  "@class" : ".XEvent",
+  "eventId" : -1,                    Reserved - (-1 or null for Create)
+  "eventType" : "UNSPECIFIED",       Mandatory -
+  "eventStartTime" : null,           Suggested for most events.
+  "eventStopTime" : null,            Optional for most events.
+  "notes" : null,                    Optional
+  "eventName" : null,                Suggested
+  "tense" : "UNKNOWN",               Readonly from api
+  "dataSource" : null,               Suggested - Identifies the source of this edit. "UI:user=username" for example
+  "lastModifiedTimestamp" : null     Reserved - Not specified for create; required in values for modify.
+}
+
 
 """
 
@@ -11,56 +27,50 @@ from ooiservices.app.uframe.config import (get_uframe_deployments_info, get_even
 import json
 import requests
 
-DATA_CLASS = '.XStorageEvent'
-EVENT_TYPE = 'STORAGE'
+DATA_CLASS = '.XEvent'
+EVENT_TYPE = 'UNSPECIFIED'
 
 
-# Create storage event.
-def create_event_storage(uid, data):
-    """ Create a new storage event. Return success or error message.
+# Create unspecified event.
+def create_event_unspecified(uid, data):
+    """ Create a new unspecified event. Return success or error message.
 
-    Sample request - create storage event for uid=A000416:
-    localhost:4000/event
+    Sample request - create event of type unspecified for uid=A000416, using /uframe/event:
 
-    Sample request.data (new_event_storage.txt):
+    curl -H "Content-Type: application/json" -X POST --upload-file new_event_unspecified_uid391.txt localhost:4000/uframe/event
+    Sample request.data (new_event_unspecified_uid391.txt):
     {
-        "buildingName": "Tower",
-        "eventName": "CP01CNSM-RID26-04-VELPTA000",
+        "eventName": "CP02PMUO-WFP01-00-WFPENG000",
         "eventStartTime": 1398039060000,
         "eventStopTime": 1405382400000,
-        "eventType": "STORAGE",
-        "lastModifiedTimestamp": 1468512400236,
-        "notes": "This is another test storage event against CP01CNSM-RID26-04-VELPTA000:1:1 instrument:A00416",
-        "performedBy": "Edna Donoughe, RPS ASA",
-        "physicalLocation": "Narragansett, RI",
-        "roomIdentification": "23",
-        "shelfIdentification": "Cube 7-21",
-        "dataSource": null,
-        "tense": null
-    }
-    Add '@class' and 'eventId'; data sent to uframe:
-    curl -H "Content-Type: application/json" -X POST --upload-file new_event_storage.txt host:12587/events/postto/A00416
-    {
-        "@class": ".XStorageEvent",
-        "buildingName": "Tower",
-        "eventName": "CP01CNSM-RID26-04-VELPTA000",
-        "eventStartTime": 1398039060000,
-        "eventStopTime": 1405382400000,
-        "eventType": "STORAGE",
-        "lastModifiedTimestamp": 1468512400236,
-        "notes": "This is another test storage event against CP01CNSM-RID26-04-VELPTA000:1:1 instrument:A00416",
-        "performedBy": "Edna Donoughe, RPS ASA",
-        "physicalLocation": "Narragansett, RI",
-        "roomIdentification": "23",
-        "shelfIdentification": "Cube 7-21",
+        "eventType": "UNSPECIFIED",
+        "notes": "Test unspecified event for CP02PMUO-WFP01-00-WFPENG000:1:1 instrument:A00391.1",
         "dataSource": null,
         "tense": null,
-        "eventId" : -1
+        "uid": "A00391.1"
+    }
+    Add '@class' and 'eventId'; data sent to uframe.
+
+    Sample uframe curl command to test uframe events postto:
+    curl -H "Content-Type: application/json" -X POST --upload-file new_event_unspecified_uid391_uframe.txt
+        uframe-3-test.ooi.rutgers.edu:12587/events/postto/A00391.1
+
+    Add '@class' and 'eventId'; data sent to uframe:
+    {
+        "@class": ".XEvent",
+        "dataSource": null,
+        "eventId": -1,
+        "eventName": "CP02PMUO-WFP01-00-WFPENG000",
+        "eventStartTime": 1398039060000,
+        "eventStopTime": 1405382400000,
+        "eventType": "UNSPECIFIED",
+        "notes": "Updated unspecified event for CP02PMUO-WFP01-00-WFPENG000 A00391.1",
+        "tense": "UNKNOWN"
     }
     Response on success:
     {
         "message" : "Element created successfully.",
-        "id" : 14485,
+        "id" : 14501,
         "statusCode" : "CREATED"
     }
 
@@ -136,54 +146,43 @@ def create_event_storage(uid, data):
         raise Exception(message)
 
 
-# Update event of type storage.
-def update_event_storage(id, uid, data):
-    """ Update an existing storage event.
+# Update event of type unspecified.
+def update_event_unspecified(id, uid, data):
+    """ Update an existing unspecified event.
 
-    Sample request - create event of type storage for uid=A000416, using host:4000/uframe/event/{event_id}
+    Sample request - create event of type unspecified for uid=A000416, using /uframe/event/{event_id}
     Sample request.data from UI::
     {
-        "buildingName": "Tower",
         "dataSource": null,
-        "eventId": 14499,
+        "eventId": 14501,
         "eventName": "CP02PMUO-WFP01-00-WFPENG000",
         "eventStartTime": 1398039060000,
         "eventStopTime": 1405382400000,
-        "eventType": "STORAGE",
-        "lastModifiedTimestamp": 1469402158783,
-        "notes": "Updated storage event for CP02PMUO-WFP01-00-WFPENG000:1:1 instrument:A00391.1",
-        "performedBy": "Engineer, RPS ASA",
-        "physicalLocation": "Narragansett, RI",
-        "roomIdentification": "23",
-        "shelfIdentification": "Cube 7-21",
+        "eventType": "UNSPECIFIED",
+        "lastModifiedTimestamp": 1469434166813,
+        "notes": "Update for unspecified event for CP02PMUO-WFP01-00-WFPENG000 A00391.1",
         "tense": "UNKNOWN",
         "uid": "A00391.1"
     }
 
     Add '@class' and sent to uframe....
-    curl -H "Content-Type: application/json" -X PUT --upload-file update_event_storage_uid391.txt host:12587/events/14499
-    sample uframe request data for uid 391.1 update
+    curl -H "Content-Type: application/json" -X PUT --upload-file update_event_unspecified_uid391.txt localhost:4000/uframe/events/14500
+    sample request data for uid 391.1 (new_event_unspecified_uid391.txt)
     {
-        "@class": ".XStorage",
-        "buildingName": "Tower",
+        "@class": ".XEvent"
         "dataSource": null,
-        "eventId": 14499,
+        "eventId": 14501,
         "eventName": "CP02PMUO-WFP01-00-WFPENG000",
         "eventStartTime": 1398039060000,
         "eventStopTime": 1405382400000,
-        "eventType": "STORAGE",
-        "lastModifiedTimestamp": 1469402158783,
-        "notes": "Updated storage event for CP02PMUO-WFP01-00-WFPENG000:1:1 instrument:A00391.1",
-        "performedBy": "Engineer, RPS ASA",
-        "physicalLocation": "Narragansett, RI",
-        "roomIdentification": "23",
-        "shelfIdentification": "Cube 7-21",
+        "eventType": "UNSPECIFIED",
+        "lastModifiedTimestamp": 1469434166813,
+        "notes": "Update for unspecified event for CP02PMUO-WFP01-00-WFPENG000 A00391.1",
         "tense": "UNKNOWN",
         "uid": "A00391.1"
     }
-
     Sample uframe response on success:
-    {"id": 14492}
+    {"id": 14501}
 
     Sample uframe response on error:
     {
@@ -276,28 +275,25 @@ def update_event_storage(id, uid, data):
 def validate_required_fields_are_provided(data, action=None):
     """ Verify required fields are present in the data and each field has input data of correct type.
 
-    Sample storage event request data for create ('@class' and 'eventId' added during processing.
+    Sample unspecified event request data for create ('@class' and 'eventId' added during processing.
     {
-        "buildingName": "Tower",
-        "eventName": "CP02PMUO-WFP01-00-WFPENG000",
-        "eventStartTime": 1398039060000,
-        "eventStopTime": 1405382400000,
-        "eventType": "STORAGE",
-        "notes": "This is another test storage event against CP02PMUO-WFP01-00-WFPENG000:1:1 instrument:A00391.1",
-        "performedBy": "Edna Donoughe, RPS ASA",
-        "physicalLocation": "Narragansett, RI",
-        "roomIdentification": "23",
-        "shelfIdentification": "Cube 7-21",
-        "dataSource": null,
-        "tense": null,
-        "uid": "A00391.1"
+      "@class" : ".XEvent",
+      "eventId" : -1,                    Reserved - (-1 or null for Create)
+      "eventType" : "UNSPECIFIED",       Mandatory -
+      "eventStartTime" : null,           Suggested for most events.
+      "eventStopTime" : null,            Optional for most events.
+      "notes" : null,                    Optional
+      "eventName" : null,                Suggested
+      "tense" : "UNKNOWN",               Readonly from api
+      "dataSource" : null,               Suggested - Identifies the source of this edit. "UI:user=username" for example
+      "lastModifiedTimestamp" : null     Reserved - Not specified for create; required in values for modify.
     }
 
     Add following fields and send to uframe:
         "@class": ".XStorageEvent",
         "eventId:": -1,
 
-    Sample storage event from uframe: [Review when uframe provides uid in event base class.]
+    Sample unspecified event from uframe: [Review when uframe provides uid in event base class.]
     request:    http://localhost:4000/uframe/events/14495
     response:
     {
@@ -321,24 +317,21 @@ def validate_required_fields_are_provided(data, action=None):
     Remove "@class" from uframe event before returning response for display.
 
     Review valid fields:
-    valid_fields = ['@class', 'buildingName', 'eventName', 'eventStartTime', 'eventStopTime', 'eventType',
-                    'lastModifiedTimestamp', 'notes', 'performedBy', 'physicalLocation', 'roomIdentification',
-                    'shelfIdentification', 'dataSource', 'tense']
+    valid_fields = ['@class', 'eventName', 'eventStartTime', 'eventStopTime', 'eventType',
+                    'lastModifiedTimestamp', 'notes', 'dataSource', 'tense']
     """
     event_type = EVENT_TYPE.lower()
     actions = ['create', 'update']
 
     # Fields required (from UI) for uframe create STORAGE event.
-    required_fields = ['buildingName', 'eventName', 'eventStartTime', 'eventStopTime', 'eventType',
-                       'notes', 'performedBy', 'physicalLocation', 'roomIdentification',
-                       'shelfIdentification', 'dataSource', 'tense', 'uid']
+    required_fields = ['eventName', 'eventStartTime', 'eventStopTime', 'eventType',
+                       'notes', 'dataSource', 'tense', 'uid']
 
 
-    field_types = { 'buildingName': 'string', 'eventName': 'string', 'eventId': 'int',
+    field_types = { 'eventName': 'string', 'eventId': 'int',
                     'eventStartTime': 'int', 'eventStopTime': 'int', 'eventType': 'string',
-                    'lastModifiedTimestamp': 'int', 'notes': 'string', 'performedBy': 'string',
-                    'physicalLocation': 'string', 'roomIdentification': 'string',
-                    'shelfIdentification': 'string', 'dataSource': 'string', 'tense': 'string', 'uid': 'string'}
+                    'lastModifiedTimestamp': 'int', 'notes': 'string', 'dataSource': 'string',
+                     'tense': 'string', 'uid': 'string'}
     update_additional_fields = ['eventId', 'lastModifiedTimestamp']
 
     number_of_required_fields = len(required_fields)

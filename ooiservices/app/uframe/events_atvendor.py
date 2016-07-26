@@ -1,6 +1,31 @@
 """
 Events: Storage event create and update functions.
 
+Event Type ATVENDOR
+
+{
+  "@class" : ".AtVendorEvent",
+  "reason" : null,                   Suggested
+  "vendorIdentification" : null,     Optional
+  "authorizationNumber" : null,      Optional
+  "authorizationForPayment" : null,  Optional
+  "invoiceNumber" : null,            Optional
+  "vendorPointOfContact" : null,     Optional
+  "sentToVendorBy" : null,           Optional
+  "receivedFromVendorBy" : null,     Optional - on receipt from vendor
+  "eventId" : -1,                    Reserved - (-1 or null for Create)
+  "eventType" : "ATVENDOR",          Mandatory -
+  "eventStartTime" : null,           Suggested for most events.
+  "eventStopTime" : null,            Optional - on receipt from vendor
+  "notes" : null,                    Optional
+  "eventName" : null,                Suggested
+  "tense" : "UNKNOWN",               Readonly from api
+  "dataSource" : null,               Suggested - Identifies the source of this edit. "UI:user=username" for example
+  "lastModifiedTimestamp" : null     Reserved - Not specified for create; required in values for modify.
+}
+
+
+
 """
 
 # todo - Review create and update when uframe adds uid attribute to base event type. IMPORTANT
@@ -11,56 +36,66 @@ from ooiservices.app.uframe.config import (get_uframe_deployments_info, get_even
 import json
 import requests
 
-DATA_CLASS = '.XStorageEvent'
-EVENT_TYPE = 'STORAGE'
+DATA_CLASS = '.AtVendorEvent'
+EVENT_TYPE = 'ATVENDOR'
 
 
-# Create storage event.
-def create_event_storage(uid, data):
-    """ Create a new storage event. Return success or error message.
+# Create atvendor event.
+def create_event_atvendor(uid, data):
+    """ Create a new atvendor event. Return success or error message.
 
-    Sample request - create storage event for uid=A000416:
-    localhost:4000/event
+    Sample request - create event of type unspecified for uid=A000416, using /uframe/event:
 
-    Sample request.data (new_event_storage.txt):
+    curl -H "Content-Type: application/json" -X POST --upload-file new_event_atvendor_uid391.txt localhost:4000/uframe/event
+    Sample request.data (new_event_atvendor_uid391.txt):
     {
-        "buildingName": "Tower",
-        "eventName": "CP01CNSM-RID26-04-VELPTA000",
-        "eventStartTime": 1398039060000,
-        "eventStopTime": 1405382400000,
-        "eventType": "STORAGE",
-        "lastModifiedTimestamp": 1468512400236,
-        "notes": "This is another test storage event against CP01CNSM-RID26-04-VELPTA000:1:1 instrument:A00416",
-        "performedBy": "Edna Donoughe, RPS ASA",
-        "physicalLocation": "Narragansett, RI",
-        "roomIdentification": "23",
-        "shelfIdentification": "Cube 7-21",
-        "dataSource": null,
-        "tense": null
+      "reason": "Broken",
+      "vendorIdentification": null,
+      "authorizationNumber": null,
+      "authorizationForPayment": null,
+      "invoiceNumber": null,
+      "vendorPointOfContact": null,
+      "sentToVendorBy": null,
+      "receivedFromVendorBy" : null,
+      "eventType": "ATVENDOR",
+      "eventStartTime": 1398039060000,
+      "eventStopTime": 1405382400000,
+      "notes": "Create an atvendor event for CP02PMUO-WFP01-00-WFPENG000 A00391.1",
+      "eventName": "CP02PMUO-WFP01-00-WFPENG000",
+      "tense": "UNKNOWN",
+      "dataSource": null,
+      "uid": "A00391.1"
     }
-    Add '@class' and 'eventId'; data sent to uframe:
-    curl -H "Content-Type: application/json" -X POST --upload-file new_event_storage.txt host:12587/events/postto/A00416
+
+    Add '@class' and 'eventId'; send data to uframe.
+
+    Sample uframe curl command to test uframe events postto:
+    curl -H "Content-Type: application/json" -X POST --upload-file new_event_atvendor_uid391_uframe.txt uframe-3-test.ooi.rutgers.edu:12587/events/postto/A00391.1
+
+    Add '@class' and 'eventId'; send data to uframe:
     {
-        "@class": ".XStorageEvent",
-        "buildingName": "Tower",
-        "eventName": "CP01CNSM-RID26-04-VELPTA000",
-        "eventStartTime": 1398039060000,
-        "eventStopTime": 1405382400000,
-        "eventType": "STORAGE",
-        "lastModifiedTimestamp": 1468512400236,
-        "notes": "This is another test storage event against CP01CNSM-RID26-04-VELPTA000:1:1 instrument:A00416",
-        "performedBy": "Edna Donoughe, RPS ASA",
-        "physicalLocation": "Narragansett, RI",
-        "roomIdentification": "23",
-        "shelfIdentification": "Cube 7-21",
-        "dataSource": null,
-        "tense": null,
-        "eventId" : -1
+      "@class": ".AtVendorEvent",
+      "reason": "Broken",
+      "vendorIdentification": null,
+      "authorizationNumber": null,
+      "authorizationForPayment": null,
+      "invoiceNumber": null,
+      "vendorPointOfContact": null,
+      "sentToVendorBy": null,
+      "receivedFromVendorBy" : null,
+      "eventType": "ATVENDOR",
+      "eventStartTime": 1398039060000,
+      "eventStopTime": 1405382400000,
+      "notes": "Create an atvendor event for CP02PMUO-WFP01-00-WFPENG000 A00391.1",
+      "eventName": "CP02PMUO-WFP01-00-WFPENG000",
+      "tense": "UNKNOWN",
+      "dataSource": null,
+      "eventId": -1
     }
     Response on success:
     {
         "message" : "Element created successfully.",
-        "id" : 14485,
+        "id" : 14501,
         "statusCode" : "CREATED"
     }
 
@@ -77,9 +112,9 @@ def create_event_storage(uid, data):
         data['@class'] = DATA_CLASS
         if 'lastModifiedTimestamp' in data:
             del data['lastModifiedTimestamp']
-
         # Set eventId for create
         data['eventId'] = -1
+
 
         # Set uframe query parameter, get configuration url and timeout information, build request url.
         query = 'postto'
@@ -136,54 +171,82 @@ def create_event_storage(uid, data):
         raise Exception(message)
 
 
-# Update event of type storage.
-def update_event_storage(id, uid, data):
-    """ Update an existing storage event.
+# Update event of type atvendor.
+def update_event_atvendor(id, uid, data):
+    """ Update an existing atvendor event.
 
-    Sample request - create event of type storage for uid=A000416, using host:4000/uframe/event/{event_id}
+    Sample request - create event of type atvendor for uid=A000416, using /uframe/event/{event_id}
     Sample request.data from UI::
     {
-        "buildingName": "Tower",
-        "dataSource": null,
-        "eventId": 14499,
-        "eventName": "CP02PMUO-WFP01-00-WFPENG000",
-        "eventStartTime": 1398039060000,
-        "eventStopTime": 1405382400000,
-        "eventType": "STORAGE",
-        "lastModifiedTimestamp": 1469402158783,
-        "notes": "Updated storage event for CP02PMUO-WFP01-00-WFPENG000:1:1 instrument:A00391.1",
-        "performedBy": "Engineer, RPS ASA",
-        "physicalLocation": "Narragansett, RI",
-        "roomIdentification": "23",
-        "shelfIdentification": "Cube 7-21",
-        "tense": "UNKNOWN",
-        "uid": "A00391.1"
+      "reason": "Broken",
+      "vendorIdentification": null,
+      "authorizationNumber": null,
+      "authorizationForPayment": null,
+      "invoiceNumber": null,
+      "vendorPointOfContact": null,
+      "sentToVendorBy": null,
+      "receivedFromVendorBy" : null,
+      "eventType": "ATVENDOR",
+      "eventStartTime": 1398039060000,
+      "eventStopTime": 1405382400000,
+      "notes": "Create an atvendor event for CP02PMUO-WFP01-00-WFPENG000 A00391.1",
+      "eventName": "CP02PMUO-WFP01-00-WFPENG000",
+      "tense": "UNKNOWN",
+      "dataSource": null,
+      "lastModifiedTimestamp": 1469442271809,
+      "eventId": 14505,
+      "uid": "A00391.1"
     }
 
     Add '@class' and sent to uframe....
-    curl -H "Content-Type: application/json" -X PUT --upload-file update_event_storage_uid391.txt host:12587/events/14499
-    sample uframe request data for uid 391.1 update
+    curl -H "Content-Type: application/json" -X PUT --upload-file update_event_atvendor_uid391.txt localhost:4000/uframe/events/14500
+    sample request data for uid 391.1 (new_event_unspecified_uid391.txt)
     {
-        "@class": ".XStorage",
-        "buildingName": "Tower",
-        "dataSource": null,
-        "eventId": 14499,
-        "eventName": "CP02PMUO-WFP01-00-WFPENG000",
-        "eventStartTime": 1398039060000,
-        "eventStopTime": 1405382400000,
-        "eventType": "STORAGE",
-        "lastModifiedTimestamp": 1469402158783,
-        "notes": "Updated storage event for CP02PMUO-WFP01-00-WFPENG000:1:1 instrument:A00391.1",
-        "performedBy": "Engineer, RPS ASA",
-        "physicalLocation": "Narragansett, RI",
-        "roomIdentification": "23",
-        "shelfIdentification": "Cube 7-21",
-        "tense": "UNKNOWN",
-        "uid": "A00391.1"
+      "@class": ".AtVendorEvent",
+      "reason": "Broken",
+      "vendorIdentification": null,
+      "authorizationNumber": null,
+      "authorizationForPayment": null,
+      "invoiceNumber": null,
+      "vendorPointOfContact": null,
+      "sentToVendorBy": null,
+      "receivedFromVendorBy" : null,
+      "eventType": "ATVENDOR",
+      "eventStartTime": 1398039060000,
+      "eventStopTime": 1405382400000,
+      "notes": "Create an atvendor event for CP02PMUO-WFP01-00-WFPENG000 A00391.1",
+      "eventName": "CP02PMUO-WFP01-00-WFPENG000",
+      "tense": "UNKNOWN",
+      "dataSource": null,
+      "lastModifiedTimestamp": 1469442271809,
+      "eventId": 14507,
+      "uid": "A00391.1"
     }
-
     Sample uframe response on success:
-    {"id": 14492}
+    {"id": 14501}
+
+    Contents (from uframe) on success :
+    http://host:12587/events/14507
+    {
+      "@class" : ".AtVendorEvent",
+      "reason" : "Broken",
+      "vendorIdentification" : null,
+      "vendorPointOfContact" : null,
+      "sentToVendorBy" : null,
+      "receivedFromVendorBy" : null,
+      "authorizationNumber" : null,
+      "authorizationForPayment" : null,
+      "invoiceNumber" : null,
+      "eventId" : 14507,
+      "eventType" : "ATVENDOR",
+      "eventName" : "CP02PMUO-WFP01-00-WFPENG000",
+      "eventStartTime" : 1398039060000,
+      "eventStopTime" : 1405382400000,
+      "notes" : "Update an atvendor event for CP02PMUO-WFP01-00-WFPENG000 A00391.1",
+      "tense" : "UNKNOWN",
+      "dataSource" : null,
+      "lastModifiedTimestamp" : 1469443326272
+    }
 
     Sample uframe response on error:
     {
@@ -266,6 +329,7 @@ def update_event_storage(id, uid, data):
         raise Exception(message)
     except Exception as err:
         message = "Error during update %s event; %s." % (event_type, str(err))
+        if debug: print '\n debug -- ', message
         current_app.logger.info(message)
         raise Exception(message)
 
@@ -276,69 +340,98 @@ def update_event_storage(id, uid, data):
 def validate_required_fields_are_provided(data, action=None):
     """ Verify required fields are present in the data and each field has input data of correct type.
 
-    Sample storage event request data for create ('@class' and 'eventId' added during processing.
+    Sample Create atvendor event request data (from UI) ('@class' and 'eventId' added during processing.
     {
-        "buildingName": "Tower",
-        "eventName": "CP02PMUO-WFP01-00-WFPENG000",
-        "eventStartTime": 1398039060000,
-        "eventStopTime": 1405382400000,
-        "eventType": "STORAGE",
-        "notes": "This is another test storage event against CP02PMUO-WFP01-00-WFPENG000:1:1 instrument:A00391.1",
-        "performedBy": "Edna Donoughe, RPS ASA",
-        "physicalLocation": "Narragansett, RI",
-        "roomIdentification": "23",
-        "shelfIdentification": "Cube 7-21",
-        "dataSource": null,
-        "tense": null,
-        "uid": "A00391.1"
+      "reason": "Broken",
+      "vendorIdentification": null,
+      "authorizationNumber": null,
+      "authorizationForPayment": null,
+      "invoiceNumber": null,
+      "vendorPointOfContact": null,
+      "sentToVendorBy": null,
+      "receivedFromVendorBy" : null,
+      "eventType": "ATVENDOR",
+      "eventStartTime": 1398039060000,
+      "eventStopTime": 1405382400000,
+      "notes": "Create an atvendor event for CP02PMUO-WFP01-00-WFPENG000 A00391.1",
+      "eventName": "CP02PMUO-WFP01-00-WFPENG000",
+      "tense": "UNKNOWN",
+      "dataSource": null
     }
 
     Add following fields and send to uframe:
-        "@class": ".XStorageEvent",
+        "@class": ".AtVendor",
         "eventId:": -1,
 
-    Sample storage event from uframe: [Review when uframe provides uid in event base class.]
-    request:    http://localhost:4000/uframe/events/14495
+    Sample request uframe atvendor event:           [Review when uframe provides uid in event base class.]
+    request: http://host:12587/events/14507
     response:
     {
-      "@class": ".XStorageEvent",
-      "buildingName": "Tower",
+      "@class" : ".AtVendorEvent",
+      "reason" : "Broken",
+      "vendorIdentification" : null,
+      "vendorPointOfContact" : null,
+      "sentToVendorBy" : null,
+      "receivedFromVendorBy" : null,
+      "authorizationNumber" : null,
+      "authorizationForPayment" : null,
+      "invoiceNumber" : null,
+      "eventId" : 14507,
+      "eventType" : "ATVENDOR",
+      "eventName" : "CP02PMUO-WFP01-00-WFPENG000",
+      "eventStartTime" : 1398039060000,
+      "eventStopTime" : 1405382400000,
+      "notes" : "Update an atvendor event for CP02PMUO-WFP01-00-WFPENG000 A00391.1",
+      "tense" : "UNKNOWN",
+      "dataSource" : null,
+      "lastModifiedTimestamp" : 1469443326272
+    }
+    request:    http://localhost:4000/uframe/events/14507
+    response:
+    {
+      "authorizationForPayment": null,
+      "authorizationNumber": null,
       "dataSource": null,
-      "eventId": 14495,
+      "eventId": 14507,
       "eventName": "CP02PMUO-WFP01-00-WFPENG000",
-      "eventStartTime": "2014-04-20T20:11:00",
-      "eventStopTime": "2014-07-14T20:00:00",
-      "eventType": "STORAGE",
-      "notes": "This is another test storage event against CP02PMUO-WFP01-00-WFPENG000:1:1 instrument:A00391.1",
-      "performedBy": "Edna Donoughe, RPS ASA",
-      "physicalLocation": "Narragansett, RI",
-      "roomIdentification": "23",
-      "shelfIdentification": "Cube 7-21",
-      "tense": "UNKNOWN"
-      "uid": "A00391.1"                           # Review - uid currently NOT provided by uframe. **********
+      "eventStartTime": 1398039060000,
+      "eventStopTime": 1405382400000,
+      "eventType": "ATVENDOR",
+      "invoiceNumber": null,
+      "lastModifiedTimestamp": 1469443326272,
+      "notes": "Update an atvendor event for CP02PMUO-WFP01-00-WFPENG000 A00391.1",
+      "reason": "Broken",
+      "receivedFromVendorBy": null,
+      "sentToVendorBy": null,
+      "tense": "UNKNOWN",
+      "vendorIdentification": null,
+      "vendorPointOfContact": null
     }
 
     Remove "@class" from uframe event before returning response for display.
 
     Review valid fields:
-    valid_fields = ['@class', 'buildingName', 'eventName', 'eventStartTime', 'eventStopTime', 'eventType',
-                    'lastModifiedTimestamp', 'notes', 'performedBy', 'physicalLocation', 'roomIdentification',
-                    'shelfIdentification', 'dataSource', 'tense']
+    valid_fields = ['@class', 'eventName', 'eventStartTime', 'eventStopTime', 'eventType',
+                    'lastModifiedTimestamp', 'notes', 'dataSource', 'tense']
     """
     event_type = EVENT_TYPE.lower()
     actions = ['create', 'update']
 
     # Fields required (from UI) for uframe create STORAGE event.
-    required_fields = ['buildingName', 'eventName', 'eventStartTime', 'eventStopTime', 'eventType',
-                       'notes', 'performedBy', 'physicalLocation', 'roomIdentification',
-                       'shelfIdentification', 'dataSource', 'tense', 'uid']
+    required_fields = ['eventName', 'eventStartTime', 'eventStopTime', 'eventType',
+                       'reason', 'vendorIdentification', 'authorizationNumber',
+                       'authorizationForPayment', 'invoiceNumber', 'vendorPointOfContact',
+                       'sentToVendorBy', 'receivedFromVendorBy',
+                       'notes', 'dataSource', 'tense', 'uid']
 
-
-    field_types = { 'buildingName': 'string', 'eventName': 'string', 'eventId': 'int',
+    field_types = { 'eventName': 'string', 'eventId': 'int',
                     'eventStartTime': 'int', 'eventStopTime': 'int', 'eventType': 'string',
-                    'lastModifiedTimestamp': 'int', 'notes': 'string', 'performedBy': 'string',
-                    'physicalLocation': 'string', 'roomIdentification': 'string',
-                    'shelfIdentification': 'string', 'dataSource': 'string', 'tense': 'string', 'uid': 'string'}
+                    'lastModifiedTimestamp': 'int', 'notes': 'string', 'dataSource': 'string',
+                    'tense': 'string', 'uid': 'string',
+                    'reason': 'string', 'vendorIdentification': 'string', 'authorizationNumber': 'string',
+                    'authorizationForPayment': 'string', 'invoiceNumber': 'string', 'vendorPointOfContact': 'string',
+                    'sentToVendorBy': 'string', 'receivedFromVendorBy': 'string'}
+
     update_additional_fields = ['eventId', 'lastModifiedTimestamp']
 
     number_of_required_fields = len(required_fields)

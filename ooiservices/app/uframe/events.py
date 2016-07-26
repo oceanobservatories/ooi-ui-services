@@ -6,36 +6,91 @@ Routes:
 [GET]    /events/<int:id>        # Get event. This should not be used by UI; if needed, then discuss!
 [GET]    /events                 # DEPRECATED
 [DELETE] /asset                  # Deprecated.
+
+All events shall have the following information [requirement 3.1.6.23]
+'The CI shall store the following information for each asset associated event:
+    a. Event type
+    b. Event description
+    c. Name of operator recording the event
+    d. Start date/time of event
+    e. End  date/time of event
+    f. Unique event identifier/record number
+'
+Required field names:
+    a. eventType
+    b. MISSING Event description                        # ***** Missing data item
+    c. MISSING Name of operator recording the event     # ***** Missing data item
+    d. eventStartTime
+    e. eventStopTime
+    f. eventId
+    g. lastModifiedTimestamp [not in requirements]      # ***** Add to requirements
+
 """
+# todo ===============================================================================================
 # todo Remaining events routes to be completed for new asset model and web services:
-# todo - [POST] /events         # Create an event of each eventType (12 now - more to come)
-# todo - [POST] /events         # Create event - review negative tests; add negative tests to test cases
-# todo - [PUT] /events/<int:id> # Update event - update test cases and add positive tests for each eventType.
+# todo - [POST] /events          # Create an event of each eventType (12 now - more to come)
+# todo - [POST] /events          # Create event - review negative tests; add negative tests to test cases
+# todo - [PUT]  /events/<int:id> # Update event - update test cases and add positive tests for each eventType.
+# todo
+# todo Test Cases:
+# todo - Create event route - review negative tests; add negative tests to test cases
+# todo - Update event route - update test cases and add positive tests for each eventType.
+# todo - Review negative tests; add negative tests to test cases for all routes
+# todo - Update test cases for all routes to have positive test cases for new asset management data model.
+# todo
+# todo Requirements
+# todo - Review again since 2016-07-21 web services update)
+# todo - Expect two required fields to be added (in uframe) to each base event per requirement 3.1.6.23
+# todo - Missing fields: (1) Event description, (2) Name of operator recording the event
+# todo - Add 'g. lastModifiedTimestamp' to requirement 3.1.6.23
+# todo
+# todo Authentication and Scope
+# todo - Review authentication and scope for all routes
+# todo
+# todo Details
+# todo - Review events wrt new asset management data model
+# todo - Review all code paths when uid is provided with base event. (important)
+#
+# Create and Update
+# 'STORAGE'                     # Basic create and update completed
+# 'UNSPECIFIED'                 # Basic create and update completed
+# 'ATVENDOR'                    # Basic create and update completed
+# 'ASSET_STATUS'                # Basic create and update completed
+# 'RETIREMENT'                  # Basic create and update completed
+# 'INTEGRATION'                 # Basic create and update completed
+# 'LOCATION'                    # Basic create and update completed
+# 'CRUISE_INFO'                 # (general) Basic create and update completed
+# todo - 'DEPLOYMENT'           # (general)
+# todo - 'CALIBRATION_DATA'     # create and update api not available
+# todo - 'RECOVERY'             # not available?
+# todo - 'PURCHASE'             # not available?
+# todo ===============================================================================================
 
 from flask import (jsonify, request, current_app)
+from requests.exceptions import ConnectionError, Timeout
+from ooiservices.app.main.errors import (bad_request, internal_server_error)
 from ooiservices.app.uframe import uframe as api
+from ooiservices.app.uframe.events_storage import (create_event_storage, update_event_storage)
+from ooiservices.app.uframe.events_unspecified import (create_event_unspecified, update_event_unspecified)
+from ooiservices.app.uframe.events_atvendor import (create_event_atvendor, update_event_atvendor)
+from ooiservices.app.uframe.events_asset_status import (create_event_asset_status, update_event_asset_status)
+from ooiservices.app.uframe.events_retirement import (create_event_retirement, update_event_retirement)
+from ooiservices.app.uframe.events_integration import (create_event_integration, update_event_integration)
+from ooiservices.app.uframe.events_location import (create_event_location, update_event_location)
+from ooiservices.app.uframe.events_cruise_info import (create_event_cruise_info, update_event_cruise_info)
+from ooiservices.app.uframe.config import get_all_event_types
+from ooiservices.app.uframe.event_tools import (get_uframe_event, _get_events_by_uid)
 
-# todo add authentication and scope
+# todo Review authentication and scope
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.decorators import scope_required
 
-# todo review events wrt new asset management data model
-#from ooiservices.app.uframe.assetController import get_events_by_ref_des
-
-from ooiservices.app.uframe.events_storage import create_event_storage, update_event_storage
-
-
 import json
-import datetime as dt
-import requests
-#import requests.adapters
-from requests.exceptions import ConnectionError, Timeout
-from ooiservices.app.main.errors import (bad_request, internal_server_error)
-from ooiservices.app.uframe.config import (get_uframe_deployments_info, get_events_url_base, get_all_event_types, headers)
-from ooiservices.app.uframe.asset_tools import get_timestamp_value
 
 
 @api.route('/events/types', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'asset_manager')
 def get_event_type():
     """ Get all valid event types supported in uframe asset web services.
     localhost:4000/events/types
@@ -67,12 +122,14 @@ def get_event_type():
         return bad_request(message)
 
 
-# todo - done - Added conversion of in eventStartTime, eventStopTime, lastModifiedTimestamp to formatted datetime.
 @api.route('/events/uid/<string:uid>', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'asset_manager')
 def get_events_by_uid(uid):
     """ Get list of events for asset with uid, filtered by optional type value(s). If error, log and raise.
 
     Samples requests:
+    localhost:4000/uframe/events/uid/A00391.1
     localhost:4000/uframe/events/uid/A00416?type=INTEGRATION,STORAGE
     localhost:4000/uframe/events/uid/A00416?type=INTEGRATION
     localhost:4000/uframe/events/uid/A00416
@@ -151,8 +208,6 @@ def get_events_by_uid(uid):
           ]
         }
     """
-    debug = False
-    results = []
     try:
         # Determine uid has provided, if not error.
         if not uid:
@@ -162,28 +217,9 @@ def get_events_by_uid(uid):
         #- - - - - - - - - - - - - - - - - - - - - - -
         # Get uid and type
         #- - - - - - - - - - - - - - - - - - - - - - -
-        #uid = request.args.get('uid')
         _type = request.args.get('type')
-        if debug: print '\n debug -- _type: ', _type
-        types, _ = get_event_query_types(_type)
-        if debug: print '\n debug -- types: ', types
-
-        #- - - - - - - - - - - - - - - - - - - - - - -
-        # Get uframe events
-        #- - - - - - - - - - - - - - - - - - - - - - -
-        result = get_uframe_events_by_uid(uid, types)
-        if debug: print '\n debug -- result: %s' % json.dumps(result, indent=4, sort_keys=True)
-        # Process result - error - unknown uid provided (204)
-        if result is None:
-            message = 'Unknown asset uid %s, unable to get events.' % uid
-            raise Exception(message)
-        """
-        # Process result - events (200)
-        elif result:
-            results = process_timestamps_in_events(result)
-        """
-
-        return jsonify({'events': results})
+        events = _get_events_by_uid(uid, _type)
+        return jsonify({'events': events})
 
     except Exception as err:
         message = str(err)
@@ -191,224 +227,9 @@ def get_events_by_uid(uid):
         return bad_request(message)
 
 
-# todo ======================================================
-# todo - Requirements - review again since 2016-07-21 update
-# todo - Expect two required fields to be added (in uframe) to each base event per requirement 3.1.6.23
-# todo - Missing fields: (1) Event description, (2) Name of operator recording the event
-# todo - Add 'g. lastModifiedTimestamp' to requirement 3.1.6.23
-# todo ======================================================
-'''
-def process_timestamps_in_events(data):
-    """ Process uframe events response (events by uid).
-
-    All event shall have the following information [requirement 3.1.6.23]
-    'The CI shall store the following information for each asset associated event:
-        a. Event type
-        b. Event description
-        c. Name of operator recording the event
-        d. Start date/time of event
-        e. End  date/time of event
-        f. Unique event identifier/record number
-    '
-    Required field names:
-        a. eventType
-        b. MISSING Event description                        # ***** Missing data item
-        c. MISSING Name of operator recording the event     # ***** Missing data item
-        d. eventStartTime
-        e. eventStopTime
-        f. eventId
-        g. lastModifiedTimestamp [not in requirements]      # ***** Add to requirements
-
-    """
-    debug = False
-    try:
-        if data:
-            if debug: print '\n debug -- processing data...'
-            for event in data:
-                convert_event_timestamps(event)
-                if '@class' in event:
-                    del event['@class']
-        return data
-
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return bad_request(message)
-
-
-def convert_event_timestamps(event):
-    """ Convert all datetime int field values in base event into formatted datetime.
-    """
-    try:
-        if 'eventStartTime' in event:
-            if event['eventStartTime']:
-                event['eventStartTime'] = convert_event_time(event['eventStartTime'])
-        if 'eventStopTime' in event:
-            if event['eventStopTime']:
-                event['eventStopTime'] = convert_event_time(event['eventStopTime'])
-
-        if 'lastModifiedTimestamp' in event:
-            if event['lastModifiedTimestamp']:
-                event['lastModifiedTimestamp'] = convert_event_time(event['lastModifiedTimestamp'])
-        """
-        if 'lastModifiedTimestamp' in event:
-            del event['lastModifiedTimestamp']
-        """
-        return event
-
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return bad_request(message)
-
-
-def convert_event_time(data):
-    tmp = None
-    try:
-        if data > 0 and data is not None:
-            tmp1 = dt.datetime.fromtimestamp(data / 1e3)
-            tmp = dt.datetime.strftime(tmp1, '%Y-%m-%dT%H:%M:%S')
-        return tmp
-    except Exception:
-        return data
-'''
-
-def get_event_query_types(_type):
-    """ Get type parameter - if value, process into query string, otherwise return None. On error, raise.
-    """
-    debug = False
-    types_list = []
-    try:
-        #- - - - - - - - - - - - - - - - - - - - - - -
-        # If no type value
-        #- - - - - - - - - - - - - - - - - - - - - - -
-        if not _type:
-            types = None
-
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # If type value - single or multiple types provided?
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        else:
-            _type = _type.replace(' ', '')
-            type = _type.upper()
-            valid_event_types = get_all_event_types()
-            #- - - - - - - - - - - - - - - - - - - - - - -
-            # If multiple types provided
-            #- - - - - - - - - - - - - - - - - - - - - - -
-            if ',' in type:
-                query_types = []
-                # Get and validate each type
-                types = type.split(',')
-                for type in types:
-                    if type not in valid_event_types:
-                        message = 'Invalid event type provided in request argument: %s.' % type
-                        current_app.logger.info(message)
-                        continue
-                    elif type not in query_types:
-                        query_types.append(type)
-                        types_list.append(type)
-
-                # If none of the type values provided is a valid type, raise error.
-                if not query_types:
-                    message = 'None of the event types provided are valid. %s.' % _type
-                    raise Exception(message)
-
-                # query_types as string
-                if debug: print '\n debug -- query_types: ', query_types
-                types = ''
-                for item in query_types:
-                    types += item + ','
-                types = types.strip(',')
-
-            #- - - - - - - - - - - - - - - - - - - - - - -
-            # Single type provided
-            #- - - - - - - - - - - - - - - - - - - - - - -
-            else:
-                if type not in valid_event_types:
-                    message = 'Invalid event type provided in request argument: %s.' % type
-                    raise Exception(message)
-                types = type
-                types_list = [type]
-
-        return types, types_list
-
-    except Exception:
-        raise
-
-
-def get_uframe_events_by_uid(uid, types):
-    """ For a specific asset uid and optional list of event types, get list of events from uframe.
-    On status_code(s):
-        200     Success, return events
-        204     Error, raise exception unknown uid
-        not 200 Error, raise exception
-
-    """
-    debug = False
-    check = False
-    try:
-        if not uid:
-            message = 'Malformed request, no uid request argument provided.'
-            raise Exception(message)
-
-        # Build query_suffix for uframe url if required
-        query_suffix = None
-        if types:
-            query_suffix = '?type=' + types
-
-        # Build uframe request for events.
-        base_url, timeout, timeout_read = get_uframe_deployments_info()
-        url = '/'.join([base_url, get_events_url_base(), 'uid', uid ])
-        if query_suffix:
-            url += query_suffix
-        if debug: print '\n debug -- [get_uframe_events_by_uid] url: ', url
-        if check: print '\n check -- [get_uframe_events_by_uid] url: ', url
-        payload = requests.get(url, timeout=(timeout, timeout_read))
-
-        # If no content, return empty result
-        if debug: print '\n debug -- uframe get events status_code: ', payload.status_code
-        if payload.status_code == 204:
-            # Return None when unknown uid is provided; log invalid request.
-            message = '(204) Unknown asset uid %s, unable to get events.' % uid
-            current_app.logger.info(message)
-            return None
-
-        # If error, raise exception
-        elif payload.status_code != 200:
-            message = '(%d) Error getting event information for uid \'%s\'' % (payload.status_code, uid)
-            raise Exception(message)
-
-        # Process events returned (status_code success)
-        else:
-            result = payload.json()
-            if result:
-                for event in result:
-                    # Add uid to each event if not present todo - remove if provided by uframe
-                    if 'uid' not in event:
-                        event['uid'] = uid
-                if debug: print '\n debug -- len(result): ', len(result)
-                #print '\n debug -- result: %s' % json.dumps(result, indent=4, sort_keys=True)
-            else:
-                if debug: print '\n debug ** result: ', result
-
-        return result
-
-    except ConnectionError as err:
-        message = 'ConnectionError getting events from uframe for %s;  %s' % (uid, str(err))
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout as err:
-        message = 'Timeout getting events from uframe for %s;  %s' % (uid, str(err))
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        raise Exception(message)
-
-
-# todo - add authorization
 @api.route('/events/<int:id>', methods=['GET'])
+@auth.login_required
+@scope_required(u'asset_manager')
 def get_event(id):
     """ Get uframe event with id. Return dict, None or raise Exception.
 
@@ -430,24 +251,9 @@ def get_event(id):
           "uniqueCruiseIdentifer": "CP-2013-0001"
         }
     """
-    check = False
     try:
-        # Get configuration url and timeout information, build request url.
-        base_url, timeout, timeout_read = get_uframe_deployments_info()
-        url = '/'.join([base_url, get_events_url_base(), str(id) ])
-        if check: print '\n check -- url: ', url
-
-        # Request data from uframe, on error return bad_request.
-        payload = requests.get(url, timeout=(timeout, timeout_read))
-        data = payload.json()
-        if payload.status_code != 200:
-            message = 'Error getting event id %d; status code: %d' % (id, payload.status_code)
-            return bad_request(message)
-
-        # Convert int time values into formatted datetime values.
-        if data:
-            data = convert_event_timestamps(data)
-        return jsonify(data)
+        event = get_uframe_event(id)
+        return jsonify(event)
 
     except ConnectionError as err:
         message = "ConnectionError getting event %d from uframe;  %s" % (id, str(err))
@@ -458,21 +264,15 @@ def get_event(id):
         current_app.logger.info(message)
         return internal_server_error(message)
     except Exception as err:
-        message = "Error getting event %d from uframe; %s" % (id, str(err))
+        message = "Error getting event %d; %s" % (id, str(err))
         current_app.logger.info(message)
         return bad_request(message)
 
 
-#==============================================================================================
-# todo - rework for new asset web services, in progress
-# todo - add authorization
-# todo - [hold] added required parameters uid and type=eventType, where eventType is one of (config) get_all_event_types()
-# todo - [hold] forces change in UI route. (was /event/id [POST] if uid present, then back to original and minimal UI change.
-# todo - review negative tests; add negative tests to test cases
-# todo - update test cases to have positive test cases for new asset management data model.
-# @api.route('/create_event/uid/<string:uid>/type/<string:event_type>', methods=['POST'])
 # Create event
 @api.route('/event', methods=['POST'])
+#@auth.login_required
+#@scope_required(u'asset_manager')
 def create_event():
     """ Create a new event. Return success or error message.
 
@@ -533,45 +333,48 @@ def create_event():
             message = 'The uid provided is empty or null, a valid uid is required to create event %s.' % event_type
             raise Exception(message)
 
-        if debug: print '\n debug -- Event type %s...' % (event_type.lower())
+        # Create event based on event type.
         if event_type == 'STORAGE':
             id = create_event_storage(uid, request_data)
-            if id == 0:
-                message = 'Failed to create %s event for uid %s' % (event_type, uid)
-                if debug: print '\n debug -- ', message
-                raise Exception(message)
-
-        elif event_type == 'INTEGRATION':
-            if debug: print '\n debug -- Create event type %s is not supported at this time.' % event_type
-        elif event_type == 'CALIBRATION_DATA':
-            if debug: print '\n debug -- Create event type %s is not supported at this time.' % event_type
-        elif event_type == 'PURCHASE':
-            if debug: print '\n debug -- Create event type %s is not supported at this time.' % event_type
-        elif event_type == 'DEPLOYMENT':
-            if debug: print '\n debug -- Create event type %s is not supported at this time.' % event_type
-        elif event_type == 'RECOVERY':
-            if debug: print '\n debug -- Create event type %s is not supported at this time.' % event_type
+        elif event_type == 'UNSPECIFIED':
+            id = create_event_unspecified(uid, request_data)
         elif event_type == 'ATVENDOR':
-            if debug: print '\n debug -- Create event type %s is not supported at this time.' % event_type
-        elif event_type == 'RETIREMENT':
-            if debug: print '\n debug -- Create event type %s is not supported at this time.' % event_type
-        elif event_type == 'LOCATION':
-            if debug: print '\n debug -- Create event type %s is not supported at this time.' % event_type
+            id = create_event_atvendor(uid, request_data)
         elif event_type == 'ASSET_STATUS':
-            if debug: print '\n debug -- Create event type %s is not supported at this time.' % event_type
+            id = create_event_asset_status(uid, request_data)
+        elif event_type == 'RETIREMENT':
+            id = create_event_retirement(uid, request_data)
+        elif event_type == 'INTEGRATION':
+            id = create_event_integration(uid, request_data)
+        elif event_type == 'LOCATION':
+            id = create_event_location(uid, request_data)
         elif event_type == 'CRUISE_INFO':
-            if debug: print '\n debug -- Create event type %s is not supported at this time.' % event_type
+            id = create_event_cruise_info(uid, request_data)
+
+        # Event types not yet defined (by uframe): PURCHASE and RECOVERY
+        elif event_type == 'PURCHASE' or event_type == 'RECOVERY':
+            if debug: print '\n debug -- Event type %s is undefined, cannot create.' % event_type
+
+        # Event type CALIBRATION_DATA does not have create and update api support.
+        elif event_type == 'CALIBRATION_DATA':
+            if debug: print '\n debug -- Event type %s is not supported in api, cannot create.' % event_type
+
+        # Event types not support by these services (to do):
+        # 'DEPLOYMENT'
         else:
-            if event_type == 'UNSPECIFIED':
-                if debug: print '\n debug -- Create event type %s is not supported.' % event_type
-            else:
-                if debug: print '\n debug -- Create invalid event type %s is not supported.' % event_type
+            message = 'Create event type %s is not supported at this time.' % event_type
+            if debug: print '\n exception: Create event type %s is not supported at this time.' % event_type
+            raise Exception(message)
 
-        if debug: print '\n debug -- Created storage event for uid %s with id: %d' % (uid, id)
+        if id == 0:
+            message = 'Failed to create %s event for uid %s' % (event_type, uid)
+            raise Exception(message)
 
-        # Get newly created event
-        # if debug: print '\n debug -- response_data: %s' % json.dumps(response_data, indent=4, sort_keys=True)
+        if debug: print '\n debug -- Created %s event for uid %s with id: %d' % (event_type, uid, id)
+
+        # Get newly created event and return.
         result = jsonify({'event_id': id})
+        # if debug: print '\n debug -- response_data: %s' % json.dumps(response_data, indent=4, sort_keys=True)
         return result
 
     except Exception as err:
@@ -580,20 +383,19 @@ def create_event():
         return bad_request(message)
 
 
-# todo - rework for new asset web services.
-# todo - [hold] forces change in UI route. (was /event/id [POST] if uid present, then back to original and minimal UI change.
-# todo - [hold] @api.route('/update_event/<int:id>/uid/<string:uid>/type/<string:event_type>', methods=['PUT'])
+# todo - Modified for new asset web services.
 # todo - review negative tests; add negative tests to test cases
 # todo - update test cases to have positive test cases for new asset management data model.
-# todo - add authorization
 # Update event
 @api.route('/events/<int:id>', methods=['PUT'])
+#@auth.login_required
+#@scope_required(u'asset_manager')
 def update_event(id):
     """ Update an existing event.
     """
     debug = False
-    id = 0
     try:
+        if debug: print '\n debug -- Update event with id: ', id
         if not request.data:
             message = 'No request data provided in request; request data is required to update an event.'
             raise Exception(message)
@@ -630,6 +432,7 @@ def update_event(id):
             raise Exception(message)
 
         event_id = request_data['eventId']
+        if debug: print '\n debug -- event_id: ', event_id
         if not event_id:
             message = 'The eventId provided is empty or null, a valid eventId is required to update event %s.' % event_type
             raise Exception(message)
@@ -639,52 +442,61 @@ def update_event(id):
 
         if debug: print '\n debug -- Event type %s...' % (event_type.lower())
         if event_type == 'STORAGE':
-            id = update_event_storage(uid, request_data)
-            if id == 0:
-                message = 'Failed to create storage event for uid %s' % uid
-                if debug: print '\n debug -- ', message
-                raise Exception(message)
-
-        elif event_type == 'INTEGRATION':
-            if debug: print '\n debug -- Update event type %s is not supported at this time.' % event_type
-        elif event_type == 'CALIBRATION_DATA':
-            if debug: print '\n debug -- Update event type %s is not supported at this time.' % event_type
-        elif event_type == 'PURCHASE':
-            if debug: print '\n debug -- Update event type %s is not supported at this time.' % event_type
-        elif event_type == 'DEPLOYMENT':
-            if debug: print '\n debug -- Update event type %s is not supported at this time.' % event_type
-        elif event_type == 'RECOVERY':
-            if debug: print '\n debug -- Update event type %s is not supported at this time.' % event_type
+            id = update_event_storage(id, uid, request_data)
+        elif event_type == 'UNSPECIFIED':
+            id = update_event_unspecified(id, uid, request_data)
         elif event_type == 'ATVENDOR':
-            if debug: print '\n debug -- Update event type %s is not supported at this time.' % event_type
-        elif event_type == 'RETIREMENT':
-            if debug: print '\n debug -- Update event type %s is not supported at this time.' % event_type
-        elif event_type == 'LOCATION':
-            if debug: print '\n debug -- Update event type %s is not supported at this time.' % event_type
+            id = update_event_atvendor(id, uid, request_data)
         elif event_type == 'ASSET_STATUS':
-            if debug: print '\n debug -- Update event type %s is not supported at this time.' % event_type
+            id = update_event_asset_status(id, uid, request_data)
+        elif event_type == 'RETIREMENT':
+            id = update_event_retirement(id, uid, request_data)
+        elif event_type == 'INTEGRATION':
+            id = update_event_integration(id, uid, request_data)
+        elif event_type == 'LOCATION':
+            id = update_event_location(id, uid, request_data)
         elif event_type == 'CRUISE_INFO':
-            if debug: print '\n debug -- Update event type %s is not supported at this time.' % event_type
+            id = update_event_cruise_info(id, uid, request_data)
+
+        # Event types not yet defined by uframe: PURCHASE and RECOVERY
+        elif event_type == 'PURCHASE' or event_type == 'RECOVERY':
+            if debug: print '\n debug -- Event type %s is undefined, cannot update.' % event_type
+
+        # Event type CALIBRATION_DATA does not have create and update api support.
+        elif event_type == 'CALIBRATION_DATA':
+            if debug: print '\n debug -- Event type %s is not supported in api, cannot update.' % event_type
+
+        # Event types not support by these services (to do):
+        # 'DEPLOYMENT'
         else:
-            if event_type == 'UNSPECIFIED':
-                if debug: print '\n debug -- Updating event type %s is not supported.' % event_type
-            else:
-                if debug: print '\n debug -- Updating unknown event type %s is not supported.' % event_type
+            message = 'Update event type %s is not supported at this time.' % event_type
+            if debug: print '\n exception: Update event type %s is not supported at this time.' % event_type
+            raise Exception(message)
+
+        # If update failed, raise exception.
+        if id == 0:
+            message = 'Failed to update %s for uid %s' % (event_type, uid)
+            if debug: print '\n debug -- ', message
+            raise Exception(message)
 
         if debug: print '\n debug -- Updating storage event for uid %s with id: %d' % (uid, id)
+
+        # Get updated event, return event
+        event = get_uframe_event(id)
+        if debug: print '\n debug -- event: ', event
         result = jsonify({'event_id': id})
         return result
 
-
     except ConnectionError as err:
-        message = "ConnectionError from uframe during update event;  %s" % str(err)
+        message = 'ConnectionError from uframe during update event;  %s' % str(err)
         current_app.logger.info(message)
         return internal_server_error(message)
     except Timeout as err:
-        message = "Timeout from uframe during update event;  %s" % str(err)
+        message = 'Timeout from uframe during update event;  %s' % str(err)
         current_app.logger.info(message)
         return internal_server_error(message)
     except Exception as err:
-        message = "Error from uframe during update event; %s" % str(err)
+        message = str(err)
+        if debug: print '\n debug -- update_event exception: ', message
         current_app.logger.info(message)
         return internal_server_error(message)
