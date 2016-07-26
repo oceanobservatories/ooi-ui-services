@@ -65,6 +65,7 @@ def get_asset_types():
     asset_types = ['Sensor', 'notClassified', 'Mooring', 'Node', 'Array']
     return asset_types
 
+
 def get_uframe_assets_info():
     """ Get uframe assets configuration information.
     """
@@ -80,8 +81,15 @@ def get_uframe_assets_info():
 
 # events
 def get_events_url_base():
-    events = current_app.config['UFRAME_EVENTS']
-    return events
+    """ Returns string value from configuration file for UFRAME_EVENTS. (i.e. 'events') If error, raise exception.
+    """
+    try:
+        events = current_app.config['UFRAME_EVENTS']
+        return events
+    except:
+        message = 'Unable to locate UFRAME_EVENTS in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
 
 
 def get_all_event_types():
@@ -89,15 +97,15 @@ def get_all_event_types():
                    'ATVENDOR', 'RETIREMENT', 'LOCATION', 'INTEGRATION', 'ASSET_STATUS', 'CRUISE_INFO']
     return event_types
 
+
 def get_event_types(rd):
     len_rd = len(rd)
-    event_types = ['UNSPECIFIED', 'PURCHASE', 'DEPLOYMENT', 'RECOVERY', 'STORAGE',
-                    'ATVENDOR', 'RETIREMENT', 'LOCATION', 'INTEGRATION', 'ASSET_STATUS', 'CRUISE_INFO']
+    event_types = ['UNSPECIFIED', 'PURCHASE', 'DEPLOYMENT', 'RECOVERY', 'STORAGE', 'ATVENDOR',
+                   'RETIREMENT', 'LOCATION', 'INTEGRATION', 'ASSET_STATUS', 'CRUISE_INFO']
 
     # For instruments add event type 'CALIBRATION_DATA'
     if len_rd >14 and len_rd <=27:
         event_types.append('CALIBRATION_DATA')
-
     return event_types
 
 

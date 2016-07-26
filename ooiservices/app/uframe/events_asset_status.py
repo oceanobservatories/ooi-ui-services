@@ -1,5 +1,25 @@
 """
-Events: Storage event create and update functions.
+Events: asset_status event create and update functions.
+
+Event Type ASSET_STATUS
+
+{
+  "@class" : ".AssetStatusEvent",
+  "severity" : null,                 Suggested
+  "reason" : null,                   Suggested
+  "location" : null,                 Optional
+  "status" : null,                   Suggested
+  "eventId" : -1,                    Reserved - (-1 or null for Create)
+  "eventType" : "ASSET_STATUS",      Mandatory -
+  "eventStartTime" : null,           Suggested for most events.
+  "eventStopTime" : null,            Optional for most events.
+  "notes" : null,                    Optional
+  "eventName" : null,                Suggested
+  "tense" : "UNKNOWN",               Readonly from api
+  "dataSource" : null,               Suggested - Identifies the source of this edit. "UI:user=username" for example
+  "lastModifiedTimestamp" : null     Reserved - Not specified for create; required in values for modify.
+}
+
 
 """
 
@@ -11,56 +31,32 @@ from ooiservices.app.uframe.config import (get_uframe_deployments_info, get_even
 import json
 import requests
 
-DATA_CLASS = '.XStorageEvent'
-EVENT_TYPE = 'STORAGE'
+DATA_CLASS = '.AssetStatusEvent'
+EVENT_TYPE = 'ASSET_STATUS'
 
 
-# Create storage event.
-def create_event_storage(uid, data):
-    """ Create a new storage event. Return success or error message.
+# Create asset_status event.
+def create_event_asset_status(uid, data):
+    """ Create a new asset_status event. Return id of new event, 0 if failed, if error log and raise exception.
 
-    Sample request - create storage event for uid=A000416:
-    localhost:4000/event
+    Sample request - create event of type asset_status for uid=A000416, using /uframe/event:
 
-    Sample request.data (new_event_storage.txt):
-    {
-        "buildingName": "Tower",
-        "eventName": "CP01CNSM-RID26-04-VELPTA000",
-        "eventStartTime": 1398039060000,
-        "eventStopTime": 1405382400000,
-        "eventType": "STORAGE",
-        "lastModifiedTimestamp": 1468512400236,
-        "notes": "This is another test storage event against CP01CNSM-RID26-04-VELPTA000:1:1 instrument:A00416",
-        "performedBy": "Edna Donoughe, RPS ASA",
-        "physicalLocation": "Narragansett, RI",
-        "roomIdentification": "23",
-        "shelfIdentification": "Cube 7-21",
-        "dataSource": null,
-        "tense": null
-    }
-    Add '@class' and 'eventId'; data sent to uframe:
-    curl -H "Content-Type: application/json" -X POST --upload-file new_event_storage.txt host:12587/events/postto/A00416
-    {
-        "@class": ".XStorageEvent",
-        "buildingName": "Tower",
-        "eventName": "CP01CNSM-RID26-04-VELPTA000",
-        "eventStartTime": 1398039060000,
-        "eventStopTime": 1405382400000,
-        "eventType": "STORAGE",
-        "lastModifiedTimestamp": 1468512400236,
-        "notes": "This is another test storage event against CP01CNSM-RID26-04-VELPTA000:1:1 instrument:A00416",
-        "performedBy": "Edna Donoughe, RPS ASA",
-        "physicalLocation": "Narragansett, RI",
-        "roomIdentification": "23",
-        "shelfIdentification": "Cube 7-21",
-        "dataSource": null,
-        "tense": null,
-        "eventId" : -1
-    }
+    curl -H "Content-Type: application/json" -X POST --upload-file new_event_asset_status_uid391.txt localhost:4000/uframe/event
+    Sample request.data (new_event_asset_status_uid391.txt):
+
+
+    Add '@class' and 'eventId'; send data to uframe.
+
+    Sample uframe curl command to test uframe events postto:
+    curl -H "Content-Type: application/json" -X POST --upload-file new_event_asset_status_uid391_uframe.txt uframe-3-test.ooi.rutgers.edu:12587/events/postto/A00391.1
+
+    Add '@class' and 'eventId'; send data to uframe:
+
+
     Response on success:
     {
         "message" : "Element created successfully.",
-        "id" : 14485,
+        "id" : 14501,
         "statusCode" : "CREATED"
     }
 
@@ -81,6 +77,34 @@ def create_event_storage(uid, data):
         # Set eventId for create
         data['eventId'] = -1
 
+        if debug: print '\n debug -- data: ', json.dumps(data, indent=4, sort_keys=True)
+        """
+        The following data for uframe is failing (eventName is set to null, but uframe does not want it to be null.)
+        data:  {
+            "@class": ".AssetStatusEvent",
+            "dataSource": null,
+            "eventId": -1,
+            "eventName": null,
+            "eventStartTime": null,
+            "eventStopTime": null,
+            "eventType": "ASSET_STATUS",
+            "location": null,
+            "notes": null,
+            "reason": null,
+            "severity": null,
+            "status": null,
+            "tense": "UNKNOWN",
+            "uid": "A00391.1"
+        }
+
+        Error (note - no 'error' in response_data when error occurs in uframe.)
+        {
+          "message" : "Error creating element: not-null property references a null or transient value: com.raytheon.uf.common.ooi.dataplugin.xasset.events.AssetStatusEvent.eventName; nested exception is org.hibernate.PropertyValueException: not-null property references a null or transient value: com.raytheon.uf.common.ooi.dataplugin.xasset.events.AssetStatusEvent.eventName",
+          "id" : null,
+          "statusCode" : "INTERNAL_SERVER_ERROR"
+        }
+        """
+
         # Set uframe query parameter, get configuration url and timeout information, build request url.
         query = 'postto'
         base_url, timeout, timeout_read = get_uframe_deployments_info()
@@ -89,8 +113,38 @@ def create_event_storage(uid, data):
         response = requests.post(url, data=json.dumps(data), headers=headers())
         if debug: print '\n debug -- response.status_code: ', response.status_code
         if response.status_code != 201:
-            message = 'Failed to create %s event; status code: %d' % (event_type, response.status_code)
-            raise Exception(message)
+            if response.content is None:
+                message = 'Failed to create %s event; status code: %d' % (event_type, response.status_code)
+                if debug: print '\n exception debug -- ', message
+                raise Exception(message)
+            elif response.content is not None:
+                response_data = json.loads(response.content)
+                if debug: print '\n debug -- data: ', json.dumps(response_data, indent=4, sort_keys=True)
+                # Determine if success or failure.
+                if 'error' not in response_data:
+                    # Success? If success get id.
+                    if 'statusCode' in response_data:
+                        if response_data['statusCode'] == 'CREATED':
+                            id = response_data['id']
+                            if debug: print '\n debug -- Created %s event for uid %s, id is: %d' % (event_type, uid, id)
+                        else:
+                            """
+                            message = 'Failed to create %s event; statusCode from uframe: %s' % \
+                                      (event_type, response_data['statusCode'])
+                            if debug: print '\n debug -- ', message
+                            raise Exception(message)
+                            """
+                            # Failure? If failure build error message.
+                            if 'message' in response_data and 'statusCode' in response_data:
+                                message = str(response_data['statusCode']) + ': ' + str(response_data['message'])
+                                if debug: print '\n exception debug -- ', message
+                                raise Exception(message)
+                else:
+                    # Failure? If failure build error message.
+                    if 'message' in response_data and 'statusCode' in response_data:
+                        message = str(response_data['statusCode']) + ': ' + str(response_data['message'])
+                        if debug: print '\n exception debug -- ', message
+                        raise Exception(message)
 
         # Get response data, check status code returned from uframe.
         id = 0
@@ -114,9 +168,9 @@ def create_event_storage(uid, data):
                         raise Exception(message)
             else:
                 # Failure? If failure build error message.
-                if 'message' in response_data:
-                    message = response_data['error'] + ': ' + response_data['message']
-                    if debug: print '\n debug -- ', message
+                if 'message' in response_data and 'statusCode' in response_data:
+                    message = response_data['statusCode'] + ': ' + response_data['message']
+                    if debug: print '\n exception debug -- ', message
                     raise Exception(message)
 
         return id
@@ -136,60 +190,61 @@ def create_event_storage(uid, data):
         raise Exception(message)
 
 
-# Update event of type storage.
-def update_event_storage(id, uid, data):
-    """ Update an existing storage event.
+# Update event of type asset_status.
+def update_event_asset_status(id, uid, data):
+    """ Update an existing asset_status event.
 
-    Sample request - create event of type storage for uid=A000416, using host:4000/uframe/event/{event_id}
+    Sample request - create event of type atvendor for uid=A000416, using /uframe/event/{event_id}
     Sample request.data from UI::
-    {
-        "buildingName": "Tower",
-        "dataSource": null,
-        "eventId": 14499,
-        "eventName": "CP02PMUO-WFP01-00-WFPENG000",
-        "eventStartTime": 1398039060000,
-        "eventStopTime": 1405382400000,
-        "eventType": "STORAGE",
-        "lastModifiedTimestamp": 1469402158783,
-        "notes": "Updated storage event for CP02PMUO-WFP01-00-WFPENG000:1:1 instrument:A00391.1",
-        "performedBy": "Engineer, RPS ASA",
-        "physicalLocation": "Narragansett, RI",
-        "roomIdentification": "23",
-        "shelfIdentification": "Cube 7-21",
-        "tense": "UNKNOWN",
-        "uid": "A00391.1"
-    }
+
 
     Add '@class' and sent to uframe....
-    curl -H "Content-Type: application/json" -X PUT --upload-file update_event_storage_uid391.txt host:12587/events/14499
-    sample uframe request data for uid 391.1 update
-    {
-        "@class": ".XStorage",
-        "buildingName": "Tower",
-        "dataSource": null,
-        "eventId": 14499,
-        "eventName": "CP02PMUO-WFP01-00-WFPENG000",
-        "eventStartTime": 1398039060000,
-        "eventStopTime": 1405382400000,
-        "eventType": "STORAGE",
-        "lastModifiedTimestamp": 1469402158783,
-        "notes": "Updated storage event for CP02PMUO-WFP01-00-WFPENG000:1:1 instrument:A00391.1",
-        "performedBy": "Engineer, RPS ASA",
-        "physicalLocation": "Narragansett, RI",
-        "roomIdentification": "23",
-        "shelfIdentification": "Cube 7-21",
-        "tense": "UNKNOWN",
-        "uid": "A00391.1"
-    }
+    curl -H "Content-Type: application/json" -X PUT --upload-file update_event_asset_status_uid391.txt localhost:4000/uframe/events/14500
+    sample request data for uid 391.1 (new_event_asset_status_uid391.txt)
 
     Sample uframe response on success:
-    {"id": 14492}
+    {"id": 14501}
+
+    Contents (from uframe) on success :
+    http://host:12587/events/14507
+
 
     Sample uframe response on error:
     {
       "error": "bad request",
       "message": "Invalid control character at: line 11 column 38 (char 405)"
     }
+
+    Issues:
+    Fail to post update to asset_status event, request data:
+    {
+    "severity" : "Severe: Unable to create ASSET_STATUS event.",
+    "reason" : "Unable to process new ASSET_STATUS with eventName field null.",
+    "location" : "Need sample location data.",
+    "status" : "Need sample status data.",
+    "eventType" : "ASSET_STATUS",
+    "eventStartTime": 1398039060000,
+    "eventStopTime": 1405382400000,
+    "lastModifiedTimestamp": 1469447710116,
+    "notes" : "Create asset_status event for uid A00391.1.",
+    "eventName" : "ASSET_STATUS event name",
+    "tense" : "UNKNOWN",
+    "dataSource" : null,
+    "uid": "A00391.1",
+    "eventId": 14522
+    }
+    curl -H "Content-Type: application/json" -X PUT --upload-file update_event_asset_status_uid391.txt localhost:4000/uframe/events/14522
+    Error message (based on uframe error returned):
+
+    {
+      "error": "internal server error",
+      "message": "Error during update ASSET_STATUS event; BAD_REQUEST: Error updating element '14522': Unable to deserialize object:
+          Can not construct instance of java.lang.Integer from String value '.AssetStatusEvent':
+          not a valid Integer value\n at [Source: org.apache.cxf.transport.http.AbstractHTTPDestination$1@3fa1a4e9;
+          line: 1, column: 508] (through reference chain:
+          com.raytheon.uf.common.ooi.dataplugin.xasset.events.AssetStatusEvent[\"severity\"])."
+    }
+
     """
     event_type = EVENT_TYPE
     debug = False
@@ -232,6 +287,7 @@ def update_event_storage(id, uid, data):
                         if debug: print '\n exception debug -- ', message
                         raise Exception(message)
 
+
         # Get response data, check status code returned from uframe.
         id = 0
         if response.content is not None:
@@ -247,6 +303,7 @@ def update_event_storage(id, uid, data):
                 if 'id' in response_data:
                     id = response_data['id']
                     if debug: print '\n debug -- Update %s event for uid %s, id is: %d' % (event_type, uid, id)
+
             else:
                 # Failure? If failure build error message.
                 if 'message' in response_data:
@@ -266,6 +323,7 @@ def update_event_storage(id, uid, data):
         raise Exception(message)
     except Exception as err:
         message = "Error during update %s event; %s." % (event_type, str(err))
+        if debug: print '\n debug -- ', message
         current_app.logger.info(message)
         raise Exception(message)
 
@@ -276,69 +334,54 @@ def update_event_storage(id, uid, data):
 def validate_required_fields_are_provided(data, action=None):
     """ Verify required fields are present in the data and each field has input data of correct type.
 
-    Sample storage event request data for create ('@class' and 'eventId' added during processing.
+    Sample Create asset_status event request data (from UI) ('@class' and 'eventId' added during processing.
     {
-        "buildingName": "Tower",
-        "eventName": "CP02PMUO-WFP01-00-WFPENG000",
-        "eventStartTime": 1398039060000,
-        "eventStopTime": 1405382400000,
-        "eventType": "STORAGE",
-        "notes": "This is another test storage event against CP02PMUO-WFP01-00-WFPENG000:1:1 instrument:A00391.1",
-        "performedBy": "Edna Donoughe, RPS ASA",
-        "physicalLocation": "Narragansett, RI",
-        "roomIdentification": "23",
-        "shelfIdentification": "Cube 7-21",
-        "dataSource": null,
-        "tense": null,
-        "uid": "A00391.1"
+      "@class" : ".AssetStatusEvent",
+      "severity" : null,                 Suggested
+      "reason" : null,                   Suggested
+      "location" : null,                 Optional
+      "status" : null,                   Suggested
+      "eventId" : -1,                    Reserved - (-1 or null for Create)
+      "eventType" : "ASSET_STATUS",      Mandatory -
+      "eventStartTime" : null,           Suggested for most events.
+      "eventStopTime" : null,            Optional for most events.
+      "notes" : null,                    Optional
+      "eventName" : null,                Suggested
+      "tense" : "UNKNOWN",               Readonly from api
+      "dataSource" : null,               Suggested - Identifies the source of this edit. "UI:user=username" for example
+      "lastModifiedTimestamp" : null     Reserved - Not specified for create; required in values for modify.
     }
 
     Add following fields and send to uframe:
-        "@class": ".XStorageEvent",
+        "@class": ".AtVendor",
         "eventId:": -1,
 
-    Sample storage event from uframe: [Review when uframe provides uid in event base class.]
-    request:    http://localhost:4000/uframe/events/14495
+    Sample request uframe asset_status event:           [Review when uframe provides uid in event base class.]
+    request: http://host:12587/events/14507
     response:
-    {
-      "@class": ".XStorageEvent",
-      "buildingName": "Tower",
-      "dataSource": null,
-      "eventId": 14495,
-      "eventName": "CP02PMUO-WFP01-00-WFPENG000",
-      "eventStartTime": "2014-04-20T20:11:00",
-      "eventStopTime": "2014-07-14T20:00:00",
-      "eventType": "STORAGE",
-      "notes": "This is another test storage event against CP02PMUO-WFP01-00-WFPENG000:1:1 instrument:A00391.1",
-      "performedBy": "Edna Donoughe, RPS ASA",
-      "physicalLocation": "Narragansett, RI",
-      "roomIdentification": "23",
-      "shelfIdentification": "Cube 7-21",
-      "tense": "UNKNOWN"
-      "uid": "A00391.1"                           # Review - uid currently NOT provided by uframe. **********
-    }
+
+
+    request:    http://localhost:4000/uframe/events/14507
+    response:
+
 
     Remove "@class" from uframe event before returning response for display.
 
-    Review valid fields:
-    valid_fields = ['@class', 'buildingName', 'eventName', 'eventStartTime', 'eventStopTime', 'eventType',
-                    'lastModifiedTimestamp', 'notes', 'performedBy', 'physicalLocation', 'roomIdentification',
-                    'shelfIdentification', 'dataSource', 'tense']
     """
     event_type = EVENT_TYPE.lower()
     actions = ['create', 'update']
 
     # Fields required (from UI) for uframe create STORAGE event.
-    required_fields = ['buildingName', 'eventName', 'eventStartTime', 'eventStopTime', 'eventType',
-                       'notes', 'performedBy', 'physicalLocation', 'roomIdentification',
-                       'shelfIdentification', 'dataSource', 'tense', 'uid']
+    required_fields = ['eventName', 'eventStartTime', 'eventStopTime', 'eventType',
+                       'severity', 'reason', 'location', 'status',
+                       'notes', 'dataSource', 'tense', 'uid']
 
-
-    field_types = { 'buildingName': 'string', 'eventName': 'string', 'eventId': 'int',
+    field_types = { 'eventName': 'string', 'eventId': 'int',
                     'eventStartTime': 'int', 'eventStopTime': 'int', 'eventType': 'string',
-                    'lastModifiedTimestamp': 'int', 'notes': 'string', 'performedBy': 'string',
-                    'physicalLocation': 'string', 'roomIdentification': 'string',
-                    'shelfIdentification': 'string', 'dataSource': 'string', 'tense': 'string', 'uid': 'string'}
+                    'lastModifiedTimestamp': 'int', 'notes': 'string', 'dataSource': 'string',
+                    'tense': 'string', 'uid': 'string', 'location': 'string', 'status': 'string',
+                    'severity': 'string', 'reason': 'string'}
+
     update_additional_fields = ['eventId', 'lastModifiedTimestamp']
 
     number_of_required_fields = len(required_fields)
