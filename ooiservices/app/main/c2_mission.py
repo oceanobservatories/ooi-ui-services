@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-API v1.0 Command and Control (C2) routes for Mission Control
+API v1.0 Command and Control (C2) routes for Mission Control (Executive and Load)
 '''
 __author__ = 'Edna Donoughe'
 
@@ -9,6 +9,7 @@ from ooiservices.app.main import api
 from ooiservices.app.main.errors import bad_request
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.decorators import scope_required
+from ooiservices.app.uframe.config import get_c2_missions_uframe_info
 import json
 import requests
 from base64 import b64encode
@@ -291,6 +292,7 @@ def uframe_get_missions(state=None):
         raise
 
 
+# todo - note no timeout info on get request; correct this.
 def uframe_get_mission(id):
     """ Get mission.
     Sample request to be executed:    http://localhost:port/mission/mission_id
@@ -724,14 +726,6 @@ def get_mission_info_short(mission_id, result):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # uframe specific functions
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-def get_uframe_info():
-    """ Returns uframe C2 mission api specific configuration information.
-    """
-    uframe_url = "".join([current_app.config['UFRAME_MISSIONS_URL'], current_app.config['UFRAME_MISSIONS_BASE']])
-    timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
-    timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
-    return uframe_url, timeout, timeout_read
-
 def get_api_headers(username, password):
         return {
             'Authorization': 'Basic ' + b64encode(
@@ -739,6 +733,7 @@ def get_api_headers(username, password):
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
+
 
 def uframe_issue_get_request(method='get', suffix=None, data=None):
     """ Issue uframe get request; returns response.content as result, otherwise None or raise Exception.
@@ -752,7 +747,7 @@ def uframe_issue_get_request(method='get', suffix=None, data=None):
             raise Exception(message)
 
         # Setup basic request info
-        url, timeout, timeout_read = get_uframe_info()
+        url, timeout, timeout_read = get_c2_missions_uframe_info()
         if suffix is not None:
             url += suffix
 
@@ -783,6 +778,7 @@ def uframe_issue_get_request(method='get', suffix=None, data=None):
         message = str(err.message)
         current_app.logger.info(message)
         raise
+
 
 def process_events(data):
     """

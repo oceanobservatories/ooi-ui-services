@@ -9,14 +9,12 @@ __created__ = '11/04/2015'
 from flask import request, current_app as app
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.authentication import auth
+from ooiservices.app.main.errors import bad_request
+from ooiservices.app.uframe.config import get_uframe_timeout_info
 
 import requests
-import requests.adapters
 from requests.exceptions import ConnectionError, Timeout
-from ooiservices.app.main.errors import bad_request
-from ooiservices.app.main.alertsalarms_tools import get_uframe_info
 
-requests.adapters.DEFAULT_RETRIES = 2
 
 headers = {'Content-Type': 'application/json'}
 
@@ -27,7 +25,7 @@ def get_subscription():
 
     try:
         # Get uframe connect and timeout information
-        timeout, timeout_read = get_uframe_info()
+        timeout, timeout_read = get_uframe_timeout_info()
         if request.args is not None:
             res = requests.get(
                 app.config['UFRAME_SUBSCRIBE_URL']+'/subscription',
@@ -54,7 +52,7 @@ def get_subscription():
 def create_subscription():
     try:
         # Get uframe connect and timeout information
-        timeout, timeout_read = get_uframe_info()
+        timeout, timeout_read = get_uframe_timeout_info()
         res = requests.post(
             app.config['UFRAME_SUBSCRIBE_URL']+'/subscription',
             data=request.data,
@@ -78,7 +76,7 @@ def create_subscription():
 def delete_subscription(id):
     try:
         # Get uframe connect and timeout information
-        timeout, timeout_read = get_uframe_info()
+        timeout, timeout_read = get_uframe_timeout_info()
         res = requests.delete(
             app.config['UFRAME_SUBSCRIBE_URL']+'/subscription/%s' % id,
             timeout=(timeout, timeout_read))
