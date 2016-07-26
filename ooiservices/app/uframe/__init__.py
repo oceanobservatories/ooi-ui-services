@@ -10,4 +10,5 @@ from flask import Blueprint
 
 uframe = Blueprint('uframe', __name__)
 
-from ooiservices.app.uframe import controller, assetController, data, assets, events, subscribe, vocab
+from ooiservices.app.uframe import controller, assetController, data, assets, events, subscribe, \
+    vocab, asset_tools, config, events_storage

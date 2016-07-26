@@ -11,6 +11,7 @@ from ooiservices.app import cache
 from requests.exceptions import ConnectionError, Timeout
 from ooiservices.app.models import Stream, StreamParameter
 from ooiservices.app.main.errors import bad_request
+from ooiservices.app.uframe.config import get_uframe_vocab_info
 #from ooiservices.app.decorators import scope_required
 #from ooiservices.app.main.authentication import auth
 
@@ -21,6 +22,7 @@ import json
 
 requests.adapters.DEFAULT_RETRIES = 2
 CACHE_TIMEOUT = 172800
+
 
 @api.route('/vocab', methods=['GET'])
 def get_vocabulary():
@@ -106,6 +108,30 @@ def get_display_name_by_rd(rd):
                     if debug: print '\n sd: ', rd
 
         return result
+    except Exception:
+        raise
+
+
+def get_rs_array_display_name_by_rd(rd):
+    """ Get display name for a reference designator.
+    """
+    debug = False
+    name = None
+    try:
+        if debug: print '\n debug -- get_rs_array_display_name_by_rd - rd: ', rd
+        # Get 'vocab_codes' if cached
+        codes_cached = cache.get('vocab_codes')
+        if codes_cached:
+            if debug: print '\n debug -- vocab_codes is cached'
+            vocab_codes = codes_cached
+            if 'rs_array_names' in vocab_codes:
+                rs_array_codes = vocab_codes['rs_array_names']
+                if rd in rs_array_codes:
+                    name = rs_array_codes[rd]
+        if name is None:
+            name = 'Cabled'
+
+        return name
     except Exception:
         raise
 
@@ -227,14 +253,12 @@ def compile_vocab():
 
                 # Instrument (standard)
                 elif len_rd == 27:
-
                     display_name, name, id = make_display_name(vocab)
                     if display_name is not None and name is not None:
                         results[rd] = {'long_name': display_name, 'name': name, 'id': id}
 
                 # Instrument (irregular)
                 elif len_rd > 14 and len_rd < 27:
-
                     display_name, name, id = make_display_name(vocab)
                     if display_name is not None and name is not None:
                         results[rd] = {'long_name': display_name, 'name': name, 'id': id}
@@ -263,8 +287,11 @@ def compile_vocab():
                             if key:
                                 if key not in rs_array_names:
                                     rs_array_names[key] = vocab['tocL1']
-                                    if debug: print '\n debug -- added to rs_array_names(%d): %s' % \
-                                                    (len(rs_array_names), rs_array_names)
+                                    """
+                                    if debug:
+                                        print '\n debug -- added to rs_array_names(%d): %s' % \
+                                              (len(rs_array_names), rs_array_names)
+                                    """
 
                     else:
                         if array_code not in array_names:
@@ -288,9 +315,11 @@ def compile_vocab():
         if debug:
             print '\n debug -- codes: %s' % json.dumps(codes, indent=4, sort_keys=True)
             print '\n debug -- final len(results): ', len(results)
+            """
             keys = results.keys()
             keys.sort()
             print '\n debug -- final results.keys(): ', json.dumps(keys, indent=4, sort_keys=True)
+            """
 
         # Return vocabulary results (list) and codes (dict)
         return results, codes
@@ -495,20 +524,6 @@ def get_stream_name_by_stream(stream):
 # ========================================================================
 # utility functions
 # ========================================================================
-def get_uframe_vocab_info():
-    """ Get uframe vocabulary configuration information.
-    """
-    try:
-        uframe_url = current_app.config['UFRAME_VOCAB_URL']
-        timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
-        timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
-        return uframe_url, timeout, timeout_read
-    except:
-        message = 'Unable to locate UFRAME_VOCAB_URL, UFRAME_TIMEOUT_CONNECT or UFRAME_TIMEOUT_READ in config file.'
-        current_app.logger.info(message)
-        raise Exception(message)
-
-
 def get_vocab_from_uframe():
     """ Get vocab items from uframe. Return dict (with reference designator as key), None or exception.
 

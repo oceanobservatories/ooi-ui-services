@@ -10,9 +10,12 @@ from ooiservices.app.decorators import scope_required
 from ooiservices.app.main import api
 from ooiservices.app.main.errors import bad_request
 from ooiservices.app.main.authentication import auth
-from ooiservices.app.uframe.vocab import get_display_name_by_rd, get_long_display_name_by_rd
+from ooiservices.app.uframe.vocab import get_display_name_by_rd
+from ooiservices.app.uframe.config import get_c2_uframe_info, get_uframe_data_info
 from ooiservices.app.models import Array
-import json, os
+
+import json
+import os
 import requests
 import requests.exceptions
 from requests.exceptions import ConnectionError, Timeout
@@ -86,14 +89,10 @@ def c2_get_array_current_status_display(array_code):
     if not array:
         return bad_request('Unknown array (array_code: \'%s\')' % array_code)
 
+    # Gets new content for toc (from instrument/api) each time array is selected in Command and Control display
     toc = _compile_c2_toc()
     if toc is not None:
         cache.set('c2_toc', toc, timeout=CACHE_TIMEOUT)
-    """
-        print "[+] C2 toc cache reset..."
-    else:
-        print "[-] Error in C2 toc cache update"
-    """
 
     # Get data, add to output
     # get ordered set of platform_deployments for array.id
@@ -747,7 +746,7 @@ def uframe_get_instruments_status():
     Sample: http://host:12572/instrument/api
     """
     try:
-        url, timeout, timeout_read = get_uframe_info()
+        url, timeout, timeout_read = get_c2_uframe_info()
         response = requests.get(url, timeout=(timeout, timeout_read))
         return response
     except Exception as err:
@@ -862,7 +861,7 @@ def uframe_get_instrument_driver_status(reference_designator):
     Sample: http://host:12572/instrument/api/reference_designator
     """
     try:
-        uframe_url, timeout, timeout_read = get_uframe_info()
+        uframe_url, timeout, timeout_read = get_c2_uframe_info()
         url = "/".join([uframe_url, reference_designator])
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response is None:
@@ -1098,7 +1097,7 @@ def uframe_get_instrument_driver_parameter_values(reference_designator, command)
     """ Return the uframe response of instrument command resource with payload provided for GET
     """
     try:
-        uframe_url, timeout, timeout_read = get_uframe_info()
+        uframe_url, timeout, timeout_read = get_c2_uframe_info()
         url = "/".join([uframe_url, reference_designator, command])
         response = requests.get(url, timeout=(timeout, timeout_read),
                                 data={'resource': json.dumps('DRIVER_PARAMETER_ALL')})
@@ -2142,7 +2141,7 @@ def _c2_get_instrument_metadata(reference_designator):
     """ Get metadata for reference designator.
 
     Sample uframe query to be made:
-    http://uframe-2-test.ooi.rutgers.edu:12576/sensor/inv/CP02PMCO/WFP01/01-VEL3DK000/metadata
+    http://host.edu:12576/sensor/inv/CP02PMCO/WFP01/01-VEL3DK000/metadata
 
     Receive:
     {
@@ -2424,7 +2423,7 @@ def _uframe_post_instrument_driver_set(reference_designator, command, data):
     """
     debug = False
     try:
-        uframe_url, timeout, timeout_read = get_uframe_info()
+        uframe_url, timeout, timeout_read = get_c2_uframe_info()
         if 'CAMDS' in reference_designator:
             timeout = 10
             timeout_read = 200
@@ -2611,7 +2610,7 @@ def _c2_instrument_driver_execute(reference_designator, data):
             message = 'Failed to retrieve command (%s) timeout from status.' % command_name
             raise Exception(message)
 
-        # Get timeout from command dictionary and convert to milliseconds; default 60 seconds.
+        # Get timeout from command dictionary and convert to milliseconds; default 30 seconds.
         _timeout = _commands[command_name]['timeout']
         if _timeout:
             _timeout = _timeout * 1000
@@ -2862,7 +2861,7 @@ def uframe_get_instrument_driver_command(reference_designator, command):
     """ Return the uframe response of instrument command provided for GET
     """
     try:
-        uframe_url, timeout, timeout_read = get_uframe_info()
+        uframe_url, timeout, timeout_read = get_c2_uframe_info()
         url = "/".join([uframe_url, reference_designator, command])
         response = requests.get(url, timeout=(timeout, timeout_read))
         return response
@@ -2886,7 +2885,7 @@ def uframe_post_instrument_driver_command(reference_designator, command, suffix)
     Example of suffix = '?command=%22DRIVER_EVENT_STOP_AUTOSAMPLE%22&timeout=60000'
     """
     try:
-        uframe_url, timeout, timeout_read = get_uframe_info()
+        uframe_url, timeout, timeout_read = get_c2_uframe_info()
         url = "/".join([uframe_url, reference_designator, command])
         url = "?".join([url, suffix])
         response = requests.post(url, timeout=(timeout, timeout_read), headers=_post_headers())
@@ -2902,30 +2901,7 @@ def uframe_post_instrument_driver_command(reference_designator, command, suffix)
     except Exception:
         raise
 
-
-def get_uframe_info(type='instrument'):
-    """ Returns uframe instrument/api specific configuration information. (port 12572)
-    """
-    try:
-        if type == 'instrument':
-            uframe_url = "".join([current_app.config['UFRAME_INST_URL'], current_app.config['UFRAME_INST_BASE']])
-        else:
-            uframe_url = "".join([current_app.config['UFRAME_INST_URL'], current_app.config['UFRAME_PLAT_BASE']])
-        timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
-        timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
-        return uframe_url, timeout, timeout_read
-    except ConnectionError:
-        message = 'ConnectionError for instrument/api configuration values.'
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout:
-        message = 'Timeout for instrument/api configuration values.'
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Exception:
-        raise
-
-
+'''
 def get_uframe_data_info():
     """ Returns uframe data configuration information. (port 12576)
     """
@@ -2947,7 +2923,7 @@ def get_uframe_data_info():
         raise Exception(message)
     except Exception:
         raise
-
+'''
 
 def _post_headers():
     """ urlencoded values for uframe POST.
@@ -3044,6 +3020,7 @@ def _get_toc():
         current_app.logger.info(message)
         return None
 
+'''
 # Retain: deprecated, now using instruments (instrument/api) as toc data source rather than /sensor/inv port 12576.
 def _compile_c2_toc_standard():
     """ Returns a toc dictionary of arrays, moorings, platforms and instruments from uframe data (port 12576).
@@ -3118,6 +3095,7 @@ def _compile_c2_toc_standard():
         message = str(err.message)
         current_app.logger.info(message)
         return None
+'''
 
 
 def _get_validate_instrument_rd(mooring, platform, instrument):
@@ -3142,7 +3120,7 @@ def _get_validate_instrument_rd(mooring, platform, instrument):
 
     rd = "-".join([mooring, platform, instrument])
     if rd:
-        if len(rd) != 27:
+        if len(rd) > 27 or len(rd) <=14:
             return None
         if not _instrument_has_streams(rd):
             return None
@@ -3535,7 +3513,7 @@ def _compile_c2_toc():
             array_display_names[array.array_code] = array.display_name
 
         # Get list of instruments from instrument/api
-        uframe_url, timeout, timeout_read = get_uframe_info()
+        uframe_url, timeout, timeout_read = get_c2_uframe_info()
         response = requests.get(uframe_url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
             message = '(%d) Failed to get instrument/api list of instruments.' % response.status_code
@@ -3549,7 +3527,7 @@ def _compile_c2_toc():
             if len(rd) == 14:                   # platform
                 _mooring, _platform = rd.split('-')
                 _instrument = None
-            elif len(rd) == 27:                 # instrument
+            elif len(rd) > 15 and len(rd) <=27:                 # instrument
                 _mooring, _platform, _instrument = rd.split('-', 2)
             else:
                 # The rd is not a platform (14) or instrument (27), log issue and continue
