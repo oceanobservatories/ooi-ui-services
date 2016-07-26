@@ -1,6 +1,11 @@
 from celery.schedules import crontab
 
 CELERYBEAT_SCHEDULE = {
+    'get-asset-information': {
+        'task': 'tasks.compile_asset_information',
+        'schedule': crontab(minute=0, hour='*/8'),
+        'args': (),
+        },
     'get-vocabulary': {
         'task': 'tasks.compile_vocabulary',
         'schedule': crontab(minute=0, hour='*/8'),

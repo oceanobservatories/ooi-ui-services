@@ -5,12 +5,11 @@
 
 from flask import jsonify, current_app
 from ooiservices.app import cache
-from ooiservices.app.uframe import uframe as api
 from ooiservices.app.uframe.vocab import get_display_name_by_rd as get_dn_by_rd
 from ooiservices.app.uframe.vocab import get_long_display_name_by_rd as get_ldn_by_rd
-from ooiservices.app.uframe.asset_tools import (_compile_asset_rds, get_asset_deployment_info, _get_rd_assets)
-from ooiservices.app.uframe.asset_tools import (is_instrument, is_mooring, is_platform)
-from ooiservices.app.uframe.asset_tools import get_assets_dict_from_list
+from ooiservices.app.uframe.asset_tools import _compile_asset_rds
+from ooiservices.app.uframe.deployment_tools import (get_asset_deployment_info, _get_rd_assets,
+                                                     is_instrument, is_mooring, is_platform)
 import re
 import math
 
@@ -19,18 +18,6 @@ import requests
 #requests.adapters.DEFAULT_RETRIES = 2
 CACHE_TIMEOUT = 172800
 
-'''
-def _compile_events(data):
-    try:
-        for row in data:
-            row['id'] = row.pop('eventId')
-            row['eventClass'] = row.pop('@class')
-        return data
-    except Exception as err:
-        message = 'exception _compile_events: %s' % (str(err))
-        current_app.logger.info(message)
-        raise Exception(message)
-'''
 
 def _compile_assets(data, compile_all=False):
     """ Process list of asset dictionaries from uframe; transform into (ooi-ui-services) list of asset dictionaries.
@@ -369,10 +356,10 @@ def _compile_assets(data, compile_all=False):
     if debug:
         print '\n debug -- len(dict_asset_ids): ', len(dict_asset_ids)
         print '\n debug -- len(new_data): ', len(new_data)
-    print '\n Note:\n Asset types used: ', all_asset_types
-    print ' Asset types received: ', all_asset_types_received
+        print '\n Note:\n Asset types used: ', all_asset_types
+        print ' Asset types received: ', all_asset_types_received
 
-    print '\n Completed compiling assets...'
+    print '\n Completed compiling assets...\n'
     return new_data, dict_asset_ids
 
 
@@ -674,7 +661,8 @@ def convert_water_depth(depth):
 
 #====================================================================
 # todo - modify or remove for new uframe asset management data model
-# todo used by controller.py: get_svg_plot and dfs_streams
+# todo - Note: used by controller.py: get_svg_plot and dfs_streams
+#====================================================================
 def get_events_by_ref_des(data, ref_des):
     """ Create the container for the processed response.
     """
@@ -723,9 +711,6 @@ def get_events_by_ref_des(data, ref_des):
     return result
 
 
-#---------------------------------------------------------------------------------------
-#-- The following routes are for generating drop down lists, used in filtering view.
-#---------------------------------------------------------------------------------------
 def _compile_bad_assets(data):
     """ Process list of 'bad' asset dictionaries from uframe; return list of bad assets.
     transform into (ooi-ui-services) list of asset dictionaries.
