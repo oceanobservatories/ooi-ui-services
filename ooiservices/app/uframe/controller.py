@@ -16,7 +16,7 @@ from ooiservices.app.main.errors import internal_server_error, bad_request
 from ooiservices.app.uframe.data import get_data, get_simple_data, find_parameter_ids, get_multistream_data
 from ooiservices.app.uframe.plotting import generate_plot
 from ooiservices.app.uframe.assetController import get_events_by_ref_des
-from ooiservices.app.uframe.events import get_events
+# from ooiservices.app.uframe.events import get_events
 
 from urllib import urlencode
 from datetime import datetime
