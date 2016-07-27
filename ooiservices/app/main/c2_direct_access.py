@@ -17,10 +17,13 @@ from ooiservices.app.main.errors import bad_request
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.main.c2 import _c2_get_instrument_driver_status, uframe_post_instrument_driver_command, \
                                     _eval_POST_response_data
+import requests
 from requests.exceptions import ConnectionError, Timeout
+#from ooiservices.app.uframe.config import get_c2_uframe_info, get_uframe_timeout_info
 import socket as sock
 import ast
 import json
+import base64
 
 
 # Direct Access start.
@@ -109,6 +112,56 @@ def c2_direct_access_start(reference_designator):
         return bad_request(err.message)
 
 
+def _headers():
+    """ Headers for uframe POST.
+    """
+    return {"Content-Type": "application/json"}
+
+
+def new_send_command(rd, command):
+    debug = False
+    response_data = None
+    try:
+        if debug: print '\n debug -- command: ', command
+        b64_command = '_base64:' + base64.b64encode(command)
+        json_data = {'command': 'EXECUTE_DIRECT', 'kwargs': {'data': b64_command}}
+        if debug: print '\n debug -- json_data: ', json_data
+        uframe_url, timeout, timeout_read = get_c2_uframe_info()
+        url = "/".join([uframe_url, rd, 'execute'])
+        if debug: print '\n debug -- url: ', url
+        response = requests.post(url, json=json_data, timeout=(timeout, timeout_read), headers=_headers())
+        if response.status_code == 200:
+            # Evaluate response content for error (review 'value' list info in response_data )
+            if response.content:
+                response_data = json.loads(response.content)
+            if response_data:
+                status_code, status_type, status_message = _eval_POST_response_data(response_data, "")
+                #- - - - - - - - - - - - - - - - - - - - - - - - - -
+                if debug:
+                    print '\n execute response_data: ', json.dumps(response_data, indent=4, sort_keys=True)
+                    print '\n direct_access send_new_command - status_code: ', status_code
+                    if status_code != 200:
+                        print '\n direct_access send_new_command - status_message: ', status_message
+                #- - - - - - - - - - - - - - - - - - - - - - - - - -
+                if status_code != 200:
+                    raise Exception(status_message)
+            if debug:
+                print '\n status_code: ', response.status_code
+
+        return
+    except ConnectionError:
+        message = 'ConnectionError for instrument/api configuration values.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Timeout for instrument/api configuration values.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Exception as err:
+        if debug: print '\nexception in new_send_command: ', str(err)
+        raise
+
+
 # Direct Access execute command.
 @api.route('/c2/instrument/<string:reference_designator>/direct_access/execute', methods=['POST'])
 @auth.login_required
@@ -178,6 +231,7 @@ def c2_direct_access_execute(reference_designator):
         using_command_request = True
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Get request data, process required items.
+        # Sample request_data:  {u'command': u'Nano On', u'title': u'instrument'}
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         if not request.data:
             message = 'Direct access execute command requires request.data for POST.'
@@ -294,6 +348,7 @@ def c2_direct_access_execute(reference_designator):
             # Identified item in direct_config; process item
             located_requested_item = True
 
+            """
             # Get and check ip from direct_config dictionary
             ip = None
             if 'ip' in direct_config:
@@ -302,13 +357,18 @@ def c2_direct_access_execute(reference_designator):
                     message = 'Instrument %s has invalid ip: \'%r\'.' % (rd, ip)
                     raise Exception(message)
 
+
+
             # Get and check data from direct_config dictionary
             data = None
             if 'data' in direct_config:
                 data = direct_config['data']
-                if data is None or not data:
-                    message = 'Instrument %s has invalid data: \'%r\'.' % (rd, data)
-                    raise Exception(message)
+                if isinstance(data, int):
+                    if data < 0:
+                        #if data is None or not data:
+                        message = 'Instrument %s has invalid data: \'%r\'.' % (rd, data)
+                        raise Exception(message)
+            """
 
             # Get and check eol from direct_config dictionary
             eol = None
@@ -362,7 +422,8 @@ def c2_direct_access_execute(reference_designator):
         # Execute - direct access command.
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         try:
-            send_command(rd, command_value, ip, data)
+            #send_command(rd, command_value, ip, data)
+            new_send_command(rd, command_value)
         except Exception as err:
             message = 'Exception processing direct access command: %s' % str(err)
             raise Exception(message)
@@ -378,6 +439,7 @@ def c2_direct_access_execute(reference_designator):
 
     except Exception as err:
         message = '(%s) direct access execute exception: %s' % (rd, err.message)
+        print '\n exception: message: ', message
         current_app.logger.info(message)
         return bad_request(err.message)
 
