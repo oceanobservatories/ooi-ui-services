@@ -17,10 +17,13 @@ from ooiservices.app.main.errors import bad_request
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.main.c2 import _c2_get_instrument_driver_status, uframe_post_instrument_driver_command, \
                                     _eval_POST_response_data
+import requests
 from requests.exceptions import ConnectionError, Timeout
+#from ooiservices.app.uframe.config import get_c2_uframe_info, get_uframe_timeout_info
 import socket as sock
 import ast
 import json
+import base64
 
 
 # Direct Access start.
@@ -55,7 +58,7 @@ def c2_direct_access_start(reference_designator):
 
         # Verify _state and _capabilities match expected state and capabilities
         verify_state_and_capabilities(rd, _state, _capabilities,
-                                      expected_state=state_DRIVER_STATE_COMMAND,
+                                      expected_state=NOT_NONE,
                                       expected_capability=capability_DRIVER_EVENT_START_DIRECT)
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -107,6 +110,56 @@ def c2_direct_access_start(reference_designator):
         message = '(%s) direct access start exception: %s' % (rd, err.message)
         current_app.logger.info(message)
         return bad_request(err.message)
+
+
+def _headers():
+    """ Headers for uframe POST.
+    """
+    return {"Content-Type": "application/json"}
+
+
+def new_send_command(rd, command):
+    debug = False
+    response_data = None
+    try:
+        if debug: print '\n debug -- command: ', command
+        b64_command = '_base64:' + base64.b64encode(command)
+        json_data = {'command': 'EXECUTE_DIRECT', 'kwargs': {'data': b64_command}}
+        if debug: print '\n debug -- json_data: ', json_data
+        uframe_url, timeout, timeout_read = get_c2_uframe_info()
+        url = "/".join([uframe_url, rd, 'execute'])
+        if debug: print '\n debug -- url: ', url
+        response = requests.post(url, json=json_data, timeout=(timeout, timeout_read), headers=_headers())
+        if response.status_code == 200:
+            # Evaluate response content for error (review 'value' list info in response_data )
+            if response.content:
+                response_data = json.loads(response.content)
+            if response_data:
+                status_code, status_type, status_message = _eval_POST_response_data(response_data, "")
+                #- - - - - - - - - - - - - - - - - - - - - - - - - -
+                if debug:
+                    print '\n execute response_data: ', json.dumps(response_data, indent=4, sort_keys=True)
+                    print '\n direct_access send_new_command - status_code: ', status_code
+                    if status_code != 200:
+                        print '\n direct_access send_new_command - status_message: ', status_message
+                #- - - - - - - - - - - - - - - - - - - - - - - - - -
+                if status_code != 200:
+                    raise Exception(status_message)
+            if debug:
+                print '\n status_code: ', response.status_code
+
+        return
+    except ConnectionError:
+        message = 'ConnectionError for instrument/api configuration values.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Timeout for instrument/api configuration values.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Exception as err:
+        if debug: print '\nexception in new_send_command: ', str(err)
+        raise
 
 
 # Direct Access execute command.
@@ -178,6 +231,7 @@ def c2_direct_access_execute(reference_designator):
         using_command_request = True
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Get request data, process required items.
+        # Sample request_data:  {u'command': u'Nano On', u'title': u'instrument'}
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         if not request.data:
             message = 'Direct access execute command requires request.data for POST.'
@@ -294,6 +348,7 @@ def c2_direct_access_execute(reference_designator):
             # Identified item in direct_config; process item
             located_requested_item = True
 
+            """
             # Get and check ip from direct_config dictionary
             ip = None
             if 'ip' in direct_config:
@@ -302,13 +357,18 @@ def c2_direct_access_execute(reference_designator):
                     message = 'Instrument %s has invalid ip: \'%r\'.' % (rd, ip)
                     raise Exception(message)
 
+
+
             # Get and check data from direct_config dictionary
             data = None
             if 'data' in direct_config:
                 data = direct_config['data']
-                if data is None or not data:
-                    message = 'Instrument %s has invalid data: \'%r\'.' % (rd, data)
-                    raise Exception(message)
+                if isinstance(data, int):
+                    if data < 0:
+                        #if data is None or not data:
+                        message = 'Instrument %s has invalid data: \'%r\'.' % (rd, data)
+                        raise Exception(message)
+            """
 
             # Get and check eol from direct_config dictionary
             eol = None
@@ -362,7 +422,8 @@ def c2_direct_access_execute(reference_designator):
         # Execute - direct access command.
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         try:
-            send_command(rd, command_value, ip, data)
+            #send_command(rd, command_value, ip, data)
+            new_send_command(rd, command_value)
         except Exception as err:
             message = 'Exception processing direct access command: %s' % str(err)
             raise Exception(message)
@@ -378,6 +439,7 @@ def c2_direct_access_execute(reference_designator):
 
     except Exception as err:
         message = '(%s) direct access execute exception: %s' % (rd, err.message)
+        print '\n exception: message: ', message
         current_app.logger.info(message)
         return bad_request(err.message)
 
@@ -621,11 +683,13 @@ def verify_state_and_capabilities(reference_designator, state, capabilities, exp
                               (reference_designator, expected_state, state)
             raise Exception(message)
 
-        # If current state is not the state expected, raise exception
-        if state != expected_state:
-            message = 'Instrument (%s) not in %s state, current state is %s.' % \
-                      (reference_designator, expected_state, state)
-            raise Exception(message)
+        # Determine if we need to check the current state
+        if expected_state != NOT_NONE:
+            # If current state is not the state expected, raise exception
+            if state != expected_state:
+                message = 'Instrument (%s) not in %s state, current state is %s.' % \
+                          (reference_designator, expected_state, state)
+                raise Exception(message)
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Verify capability
@@ -737,3 +801,269 @@ def get_direct_access_buttons(direct_config):
     except Exception as err:
         current_app.logger.info(err.message)
         raise
+
+#========================================================================================
+"""
+GET http://host:12572/instrument/api/RS10ENGC-XX00X-00-PARADA001/lock
+
+{ "locked-by": null }
+
+Set Lock
+POST http://host:12572/instrument/api/RS10ENGC-XX00X-00-PARADA001/lock {'key': 'jdoe@oceans.org'}
+{ "locked-by": "jdoe@oceans.org" }
+
+Release Lock
+POST http://host:12572/instrument/api/RS10ENGC-XX00X-00-PARADA001/unlock
+{ "locked-by": null}
+"""
+
+
+# Direct Access Instrument get lock
+# todo enable auth and scope
+@api.route('/c2/instrument/<string:reference_designator>/lock', methods=['GET'])
+@auth.login_required
+@scope_required(u'command_control')
+def c2_instrument_get_lock(reference_designator):
+    """ Get instrument lock status.
+    """
+    status = {}
+    debug = False
+    rd = reference_designator
+    try:
+        if debug: print '\n debug -- c2_instrument_get_lock entered...'
+        status = get_lock_status(rd)
+        return jsonify(status)
+    except Exception as err:
+        message = '(%s) exception: %s' % (reference_designator, err.message)
+        if debug: print '\n exception: ', message
+        current_app.logger.info(message)
+        return bad_request(err.message)
+
+
+# todo enable auth and scope
+@api.route('/c2/instrument/<string:reference_designator>/lock', methods=['POST'])
+#@auth.login_required
+#@scope_required(u'command_control')
+def c2_instrument_lock(reference_designator):
+    """ Lock instrument.
+    """
+    debug = True
+    rd = reference_designator
+    #status = {}
+    current_user_data = {"locked-by": "admin@ooi.rutgers.edu", "key": "admin@ooi.rutgers.edu"}
+    try:
+        if debug: print '\n debug -- c2_instrument_lock entered...'
+        try:
+            result = get_lock_status(rd)
+            if debug: print '\n result: ', result
+        except:
+            raise
+
+        payload = json.dumps(current_user_data)
+        print '\n payload: ', payload
+        response = uframe_post_instrument_lock(rd,'lock', payload)
+        if response.status_code != 201:
+            if debug: print '\n (%d) failed to post lock...' % response.status_code
+            message = 'Failed to lock instrument, status code: %d' % response.status_code
+            raise Exception(message)
+
+        # Determine result of POST
+        answer = None
+        if response.content:
+            try:
+                answer = json.loads(response.content)
+            except:
+                message = 'Failed to parse malformed json.'
+                if debug: print '\n exception: ', message
+                raise Exception(message)
+
+        if debug: print '\n answer: ', answer
+
+        # Check lock status
+        try:
+            status = get_lock_status(rd)
+            if debug: print '\n status: ', status
+        except:
+            raise
+
+        if debug: print '\n check status: ', status
+        return jsonify(status)
+
+
+    except Exception as err:
+        message = '(%s) exception: %s' % (reference_designator, err.message)
+        if debug: print '\n exception: ', message
+        current_app.logger.info(message)
+        return bad_request(err.message)
+
+
+# todo enable auth and scope
+@api.route('/c2/instrument/<string:reference_designator>/unlock', methods=['POST'])
+#@auth.login_required
+#@scope_required(u'command_control')
+def c2_instrument_unlock(reference_designator):
+    """ Unlock instrument.
+    """
+    debug = False
+    rd = reference_designator
+    status = {}
+    current_user_data = {"locked-by": None}
+    try:
+        if debug: print '\n debug -- c2_instrument_lock entered...'
+        try:
+            result = get_lock_status(rd)
+            print '\n result: ', result
+        except:
+            raise
+
+        payload = json.dumps(current_user_data)
+        print '\n payload: ', payload
+        response = uframe_post_instrument_lock(rd,'unlock', payload)
+        if response.status_code != 201:
+            print '\n (%d) failed to post lock...' % response.status_code
+
+        status = None
+        if response.content:
+            try:
+                status = json.loads(response.content)
+            except:
+                message = 'Failed to parse malformed json.'
+                print '\n exception: ', message
+
+        print '\n answer: ', status
+        return jsonify(status)
+
+    except Exception as err:
+        message = '(%s) exception: %s' % (reference_designator, err.message)
+        if debug: print '\n exception: ', message
+        current_app.logger.info(message)
+        return bad_request(err.message)
+
+
+def _post_headers():
+    """ urlencoded values for uframe POST.
+    """
+    return {"Content-Type": "application/x-www-form-urlencoded"}
+
+def uframe_post_instrument_lock(reference_designator, command, data):
+    """ Return the uframe response of instrument driver command and suffix provided for POST.
+    Example of suffix = '?command=%22DRIVER_EVENT_STOP_AUTOSAMPLE%22&timeout=60000'
+    """
+    debug = False
+    try:
+        uframe_url, timeout, timeout_read = get_c2_uframe_info()
+        url = "/".join([uframe_url, reference_designator, command])
+        #url = "?".join([url, suffix])
+        print '\n debug -- url: ', url
+        response = requests.post(url, data=data, timeout=(timeout, timeout_read), headers=_post_headers())
+        return response
+    except ConnectionError:
+        message = 'ConnectionError for post instrument driver command.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Timeout for post instrument driver command.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Exception:
+        raise
+
+
+def uframe_get_instrument_lock(reference_designator):
+    """ Return the uframe response of /instrument/api/reference_designator/lock.
+    """
+    try:
+        uframe_url, timeout, timeout_read = get_c2_uframe_info()
+        url = "/".join([uframe_url, reference_designator, 'lock'])
+        print '\n debug -- url: ', url
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        return response
+    except ConnectionError:
+        message = 'ConnectionError for get instrument lock.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Timeout for get instrument lock.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Exception:
+        raise
+
+
+def get_lock_status(rd):
+    """ Get instrument lock response, if error raise exception. Return dict of response.
+    Sample output:
+        {
+          "locked-by": null
+        }
+    """
+    debug = True
+    status = {}
+    try:
+        # Get instrument lock status from uframe
+        response = uframe_get_instrument_lock(rd)
+        if response.status_code != 200:
+            message = '(%d) Failed to get instrument %s lock status.' % (response.status_code, rd)
+            raise Exception(message)
+
+        # If response.content is empty or None, raise exception.
+        if not response.content or response.content is None:
+            message = 'Get instrument %s lock response has empty or None response content.' % rd
+            raise Exception(message)
+
+        # Parse response.content into json; if error raise exception.
+        if response.content:
+            try:
+                status = json.loads(response.content)
+            except:
+                message = 'Get instrument %s lock response has malformed data; not in valid json format.' % rd
+                raise Exception(message)
+
+        # Verify required attribute 'locked-by' is provided in json
+        if status:
+            if 'locked-by' not in status:
+                message = 'required attribute \'locked-by\' missing from get instrument %s lock response.' % rd
+                raise Exception(message)
+
+        return status
+
+    except Exception as err:
+        message = err.message
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_c2_uframe_info(type='instrument'):
+    """ Returns uframe instrument/api specific configuration information. (port 12572)
+    """
+    try:
+        timeout, timeout_read = get_uframe_timeout_info()
+        if type == 'instrument':
+            uframe_url = "".join([current_app.config['UFRAME_INST_URL'], current_app.config['UFRAME_INST_BASE']])
+        else:
+            uframe_url = "".join([current_app.config['UFRAME_INST_URL'], current_app.config['UFRAME_PLAT_BASE']])
+        return uframe_url, timeout, timeout_read
+    except ConnectionError:
+        message = 'ConnectionError for instrument/api configuration values.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Timeout for instrument/api configuration values.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Exception:
+        raise
+
+
+# uframe timeout information
+def get_uframe_timeout_info():
+    """ Get uframe timeout configuration information.
+    """
+    try:
+        timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
+        timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
+        return timeout, timeout_read
+    except:
+        message = 'Unable to locate UFRAME_TIMEOUT_CONNECT or UFRAME_TIMEOUT_READ in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
