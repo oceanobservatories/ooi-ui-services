@@ -29,6 +29,7 @@ def get_user(id):
 def put_user(id):
     user_account = User.query.get(id)
     data = json.loads(request.data)
+    user_name = data.get('user_name')
     first_name = data.get('first_name')
     last_name = data.get('last_name')
     phone_primary = data.get('phone_primary')
@@ -70,6 +71,8 @@ def put_user(id):
         valid_scopes = UserScope.query.filter(UserScope.scope_name.in_(scopes)).all()
         user_account.scopes = valid_scopes
         changed = True
+        current_app.logger.info('User %s scope(s) changed to %s'%(user_name, user_account.scopes))
+
     if active is not None:
         user_account.active = bool(active)
         changed = True
