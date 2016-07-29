@@ -70,7 +70,7 @@ def put_user(id):
         valid_scopes = UserScope.query.filter(UserScope.scope_name.in_(scopes)).all()
         user_account.scopes = valid_scopes
         changed = True
-        current_app.logger.info('User %s scope(s) changed to %s'%(data['email'], user_account.scopes))
+        current_app.logger.info('User %s scope(s) changed to %s'%(data['user_name'], user_account.scopes))
     if active is not None:
         user_account.active = bool(active)
         changed = True
