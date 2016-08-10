@@ -7,6 +7,7 @@ Support for generating svg plots
 from flask import request
 from netCDF4 import num2date
 from ooiservices.app.uframe.plot_tools import OOIPlots
+from ooiservices.app.uframe.vocab import get_parameter_name_by_parameter
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import io
@@ -296,7 +297,7 @@ def generate_plot(data, plot_options):
         #     raise(Exception('No good data avaliable!'))
 
         ooi_plots.plot_1d_quiver(fig, ax, time, u, v,
-                                 title=data['title']+'\n'+'Quiver Plot',
+                                 title=data['title'],
                                  ylabel=ylabel,
                                  tick_font=tick_font,
                                  title_font=title_font,
@@ -315,10 +316,9 @@ def generate_plot(data, plot_options):
 
         time = mdates.date2num(data['x']['time'])
         z = np.array(data['y'][data['y_field'][0]])
-        label = data['y_field'][0] + " (" + data['y_units'][0] + ")"
-
+        label = get_parameter_name_by_parameter(data['y_field'][0])
         ooi_plots.plot_stacked_time_series(fig, ax, time, np.arange(len(z[0]))[::-1], z.transpose(),
-                                           title=data['title']+'\n'+'Stacked Time Series Plot',
+                                           title=data['title'],
                                            ylabel='bin',
                                            cbar_title=label,
                                            title_font=title_font,
@@ -353,7 +353,7 @@ def generate_plot(data, plot_options):
         #     raise(Exception('No good data avaliable!'))
 
         ooi_plots.plot_3d_scatter(fig, ax, x, y, z,
-                                  title=data['title']+'\n'+'3D Scatter',
+                                  title=data['title'],
                                   xlabel=xlabel + " (" + data['y_units'][0] + ")",
                                   ylabel=ylabel + " (" + data['y_units'][1] + ")",
                                   zlabel=zlabel + " (" + data['y_units'][2] + ")",
@@ -394,7 +394,7 @@ def generate_plot(data, plot_options):
                                   title=data['title'],
                                   title_font=title_font,
                                   legend_title=legend_title,
-                                  fontsize=int(hypot)+2)
+                                  fontsize=int(hypot) + 2)
 
     buf = io.BytesIO()
 
