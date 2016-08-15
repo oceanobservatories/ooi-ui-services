@@ -8,22 +8,20 @@ __author__ = 'Edna Donoughe'
 from flask import jsonify, current_app
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app import cache
-from requests.exceptions import ConnectionError, Timeout
-from ooiservices.app.models import Stream, StreamParameter
+from requests.exceptions import (ConnectionError, Timeout)
+from ooiservices.app.models import (Stream, StreamParameter)
 from ooiservices.app.main.errors import bad_request
 from ooiservices.app.uframe.config import get_uframe_vocab_info
-#from ooiservices.app.decorators import scope_required
-#from ooiservices.app.main.authentication import auth
 
 import requests
 import requests.exceptions
 import requests.adapters
 import json
 
-requests.adapters.DEFAULT_RETRIES = 2
 CACHE_TIMEOUT = 172800
 
 
+# Get vocabulary
 @api.route('/vocab', methods=['GET'])
 def get_vocabulary():
     """ Get dict of all vocabulary entries. Key is reference designator, value is display name.
@@ -38,6 +36,7 @@ def get_vocabulary():
         return bad_request(message)
 
 
+# Get vocab dictionary.
 def get_vocab():
     """ Get 'vocab_dict' from cache or compiled, return vocab_dict.
     """
@@ -71,6 +70,7 @@ def get_vocab():
         raise Exception(message)
 
 
+# Get long display name for reference designator.
 def get_long_display_name_by_rd(rd):
     """ Get long display name for reference designator.
     """
@@ -91,6 +91,7 @@ def get_long_display_name_by_rd(rd):
         raise
 
 
+# Get display name for a reference designator.
 def get_display_name_by_rd(rd):
     """ Get display name for a reference designator.
     """
@@ -112,6 +113,7 @@ def get_display_name_by_rd(rd):
         raise
 
 
+# Get RS array name.
 def get_rs_array_display_name_by_rd(rd):
     """ Get display name for a reference designator.
     """
@@ -136,6 +138,46 @@ def get_rs_array_display_name_by_rd(rd):
         raise
 
 
+# Get vocabulary item for reference designator.
+def get_vocab_dict_by_rd(rd):
+    """ Get vocabulary items for reference designator.
+    """
+    debug = False
+    try:
+        result = None
+        vocab_dict = get_vocab()
+        if vocab_dict:
+            if rd in vocab_dict:
+                result = vocab_dict[rd]
+            else:
+                result = build_vocab_dict_item(rd)
+        return result
+    except Exception:
+        raise
+
+
+# Build vocabulary item for reference designator.
+def build_vocab_dict_item(rd):
+    """ Build vocab dict for rd when one is not available.
+    """
+    template = {
+          'id': 0,
+          'long_name': '',
+          'name': '',
+          'model': '',
+          'manufacturer': '',
+          'mindepth': 0,
+          'maxdepth': 0
+        }
+    try:
+        template['long_name'] = build_long_display_name(rd)
+        template['name'] = build_long_display_name(rd)
+        return template
+    except Exception:
+        return template
+
+
+# Compile vocabulary.
 def compile_vocab():
     """ Get list of vocab items from uframe (reference designator as key), None or exception.
     if successful, update cache 'vocab_dict'.
@@ -165,6 +207,24 @@ def compile_vocab():
         . . .
     ]
 
+    New Sample input from uframe:
+    [
+        {
+          "@class" : ".VocabRecord",
+          "model" : "Communications and Power Manager",
+          "manufacturer" : "WHOI",
+          "vocabId" : 3,
+          "refdes" : "CE01ISSM-MFC31-00-CPMENG000",
+          "instrument" : "Platform Controller",
+          "tocL1" : "Coastal Endurance",
+          "tocL2" : "Oregon Inshore Surface Mooring",
+          "tocL3" : "Seafloor Multi-Function Node (MFN)",
+          "mindepth" : 25,
+          "maxdepth" : 25
+        },
+        . . .
+    ]
+
     Sample response dictionary:
     {
       "vocab": {
@@ -190,6 +250,80 @@ def compile_vocab():
         },
         . . .
     }
+
+    New Sample response dictionary:
+    {
+      "vocab": {
+        "CE": {
+          "id": 0,
+          "long_name": "Coastal Endurance",
+          "name": "Coastal Endurance"
+          "model" : "",
+          "manufacturer" : "",
+          "mindepth" : 0,
+          "maxdepth" : 25
+        },
+        "CE01ISSM": {
+          "id": 0,
+          "long_name": "Coastal Endurance Oregon Inshore Surface Mooring",
+          "name": "Oregon Inshore Surface Mooring"
+          "model" : "",
+          "manufacturer" : "",
+          "mindepth" : 0,
+          "maxdepth" : 25
+        },
+        "CE01ISSM-MFC31": {
+          "id": 0,
+          "long_name": "Coastal Endurance Oregon Inshore Surface Mooring - Seafloor Multi-Function Node (MFN)",
+          "name": "Oregon Inshore Surface Mooring - Seafloor Multi-Function Node (MFN)"
+          "model" : "",
+          "manufacturer" : "",
+          "mindepth" : 0,
+          "maxdepth" : 25
+        },
+        "CE01ISSM-MFC31-00-CPMENG000": {
+          "id": 1953,
+          "long_name": "Coastal Endurance Oregon Inshore Surface Mooring - Seafloor Multi-Function Node (MFN) - Platform Controller",
+          "name": "Platform Controller"
+          "model" : "Communications and Power Manager",
+          "manufacturer" : "WHOI",
+          "mindepth" : 25,
+          "maxdepth" : 25
+        },
+        . . .
+    }
+
+    New Sample response dictionary:
+    {
+        "CE01ISSM-MFD35": {
+            "id": 0,
+            "long_name": "Coastal Endurance Oregon Inshore Surface Mooring - Seafloor Multi-Function Node (MFN)",
+            "manufacturer": "",
+            "maxdepth": 25,
+            "mindepth": 25,
+            "model": "",
+            "name": "Oregon Inshore Surface Mooring - Seafloor Multi-Function Node (MFN)"
+        },
+        "CE01ISSM-MFD35-00-DCLENG000": {
+            "id": 5,
+            "long_name": "Coastal Endurance Oregon Inshore Surface Mooring - Seafloor Multi-Function Node (MFN) - Data Concentrator Logger (DCL)",
+            "manufacturer": "WHOI",
+            "maxdepth": 25,
+            "mindepth": 25,
+            "model": "Data Concentrator Logger",
+            "name": "Data Concentrator Logger (DCL)"
+        },
+        "CE01ISSM-MFD35-01-VEL3DD000": {
+            "id": 6,
+            "long_name": "Coastal Endurance Oregon Inshore Surface Mooring - Seafloor Multi-Function Node (MFN) - 3-D Single Point Velocity Meter",
+            "manufacturer": "Nortek",
+            "maxdepth": 25,
+            "mindepth": 25,
+            "model": "VECTOR",
+            "name": "3-D Single Point Velocity Meter"
+        },
+        . . .
+    }
     """
     array_names = {'RS': 'Cabled'}
     rs_array_names = {}
@@ -197,7 +331,7 @@ def compile_vocab():
     results_plus = {}   # additional vocabulary gleaned from original vocabulary source
     vocabulary = []
     codes = {}
-    debug = False
+    debug = True
     try:
         if debug: print '\n debug -- Entered compile_vocab...'
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -209,11 +343,25 @@ def compile_vocab():
             codes = create_vocabulary_codes(vocabulary)
             if debug: print '\n debug -- UFRAME len(vocabulary): ', len(vocabulary)
         except Exception as err:
-            message = 'uframe vocabulary error; use COL vocabulary. %s' % str(err)
+            message = 'uframe vocabulary error. %s' % str(err)
             current_app.logger.info(message)
+            raise Exception(str(err))
 
         if debug: print '\n debug -- before len(vocabulary): ', len(vocabulary)
 
+        # Check vocabulary results were returned.
+        updated_vocabulary = False
+        if len(vocabulary) <= 0:
+            message = 'uframe vocabulary error, length of vocabulary returned is 0.'
+            current_app.logger.info(message)
+            raise Exception(message)
+
+        # Verify if vocabulary entries indicate an updated vocabulary.
+        test = vocabulary[0]
+        print '\n verify vocabulary - check test element: ', test
+        if len(test) > 7:
+            updated_vocabulary = True
+        print '\n verify vocabulary - updated_vocabulary: ', updated_vocabulary
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Process each vocab item into list with one or more dictionaries. (make_vocabulary response)
         # Two step process:
@@ -231,6 +379,24 @@ def compile_vocab():
                     if len_rd != 8 and len_rd != 14 and len_rd < 14:
                         print '\n debug -- malformed rd: %s: ', rd
                         continue
+
+                if updated_vocabulary:
+                    # Get field values: model, manufacturer, mindepth, maxdepth
+                    model = ''
+                    if 'model' in vocab:
+                        model = vocab['model']
+                    manufacturer = ''
+                    if 'manufacturer' in vocab:
+                        manufacturer = vocab['manufacturer']
+                    mindepth = 0
+                    if 'mindepth' in vocab:
+                        mindepth = vocab['mindepth']
+
+                    maxdepth = 0
+                    if 'maxdepth' in vocab:
+                        maxdepth = vocab['maxdepth']
+
+
 
                 # Platform
                 if len_rd == 14:
@@ -262,6 +428,13 @@ def compile_vocab():
                     display_name, name, id = make_display_name(vocab)
                     if display_name is not None and name is not None:
                         results[rd] = {'long_name': display_name, 'name': name, 'id': id}
+
+                if updated_vocabulary:
+                    results[rd]['model'] = model
+                    results[rd]['manufacturer'] = manufacturer
+                    results[rd]['mindepth'] = mindepth
+                    results[rd]['maxdepth'] = maxdepth
+
 
         # Re-process for arrays and anything else which can be harvested for vocabulary display names.
         # Additions added to results_plus; if results_plus, then combine result_plus into results.
@@ -321,6 +494,8 @@ def compile_vocab():
             print '\n debug -- final results.keys(): ', json.dumps(keys, indent=4, sort_keys=True)
             """
 
+        #print '\n debug -- final results(): ', json.dumps(results, indent=4, sort_keys=True)
+
         # Return vocabulary results (list) and codes (dict)
         return results, codes
 
@@ -330,6 +505,7 @@ def compile_vocab():
         raise
 
 
+# Construct display name.
 def make_display_name(data):
     """ Get instrument display name values from vocab element provided. Return long_name, name and id.
     Sample input data item:
@@ -373,6 +549,7 @@ def make_display_name(data):
         return None, None, 0
 
 
+# Get vocabulary codes.
 def create_vocabulary_codes(vocabs):
     """ Create codes dictionary from vocabulary provided; the codes dictionary stores semantics provided in vocabulary.
     """
@@ -540,11 +717,29 @@ def get_vocab_from_uframe():
         },
         ...
     ]
+
+    New Sample response (August 2016):
+    [
+        {
+          "@class" : ".VocabRecord",
+          "model" : "Communications and Power Manager",
+          "manufacturer" : "WHOI",
+          "vocabId" : 3,
+          "refdes" : "CE01ISSM-MFC31-00-CPMENG000",
+          "instrument" : "Platform Controller",
+          "tocL1" : "Coastal Endurance",
+          "tocL2" : "Oregon Inshore Surface Mooring",
+          "tocL3" : "Seafloor Multi-Function Node (MFN)",
+          "mindepth" : 25,
+          "maxdepth" : 25
+        },
+    ]
     """
     try:
         uframe_url, timeout, timeout_read = get_uframe_vocab_info()
         url = uframe_url + '/vocab'
-        response = requests.get(url, timeout=(timeout, timeout_read))
+        extended_timeout = 5 * timeout_read
+        response = requests.get(url, timeout=(timeout, extended_timeout))
         if response.status_code != 200:
             message = '(%d) Failed to successfully get vocabulary from uframe.' % response.status_code
             raise Exception(message)
@@ -575,6 +770,7 @@ def get_vocab_from_uframe():
         raise
 
 
+# Build long display name.
 def build_long_display_name(rd):
     """ Get long display name for reference designator using the codes dictionary.
     """
@@ -615,7 +811,6 @@ def build_long_display_name(rd):
             subsite_code = subsite[4:8]
             node_code = node[0:2]
             port, instrument = instr.split('-')
-
             instr_class = instrument[0:5]
 
             line1 = None
@@ -756,6 +951,7 @@ def build_long_display_name(rd):
         return None
 
 
+# Build display name.
 def build_display_name(rd):
     """ Get display name for reference designator using the codes dictionary.
     """
@@ -799,10 +995,8 @@ def build_display_name(rd):
             line4 = None
             if instr_class in vocab_codes['classes']:
                 line4 = vocab_codes['classes'][instr_class]
-
             if line4 is None:
                 return None
-
             result = line4
 
         # Build display name for platform (subsite = 'CE01ISSM', node = 'MFC31')
@@ -822,7 +1016,6 @@ def build_display_name(rd):
             #if line3 is None:
             if line2 is None or line3 is None:
                 return None
-
             result = ' - '.join([line2, line3])
 
         # Build display name for mooring
@@ -861,27 +1054,23 @@ def build_display_name(rd):
                 raise(message)
 
             port, instrument = instr.split('-')
-
             if not instrument:
                 message = 'Reference designator \'%s\' is malformed; unable to discern instrument class.' % rd
                 raise(message)
 
+            # Get instrument class
             instr_class = None
             if instrument:
                 if len(instrument) > 5:
                     instr_class = instrument[0:5]
                 else:
                     instr_class = instrument
-
             line4 = None
             if instr_class in vocab_codes['classes']:
                 line4 = vocab_codes['classes'][instr_class]
-
             if line4 is None:
                 return None
-
             result = line4
-
         else:
             return None
 

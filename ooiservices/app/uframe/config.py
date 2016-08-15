@@ -1,46 +1,28 @@
 #!/usr/bin/env python
 
 """
-Support functions used for configurations and connection to uframe for:
-    toc
-    assets
-    events
-    deployments
-    vocabulary
-    c2
-    c2 toc
-    c2 missions
-    alertsalarms
+Support functions used for configurations and connections.
+    TOC
+    Vocabulary
+    C2
+    C2 toc
+    C2 missions
+    Alerts and Alarms
+    Assets
+    Cruises
+    Deployments
+    Events
+    common
 
 """
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
+from requests.exceptions import (ConnectionError, Timeout)
 
-
-# todo - note controller.py requires review, modifications and test for try/except before using.
-# uframe timeout information
-def get_uframe_timeout_info():
-    """ Get uframe timeout configuration information.
-    """
-    try:
-        timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
-        timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
-        return timeout, timeout_read
-    except:
-        message = 'Unable to locate UFRAME_TIMEOUT_CONNECT or UFRAME_TIMEOUT_READ in config file.'
-        current_app.logger.info(message)
-        raise Exception(message)
-
-
-def get_uframe_info():
-    """ Get uframe configuration information. (uframe_url, uframe timeout_connect and timeout_read.) """
-    timeout, timeout_read = get_uframe_timeout_info()
-    uframe_url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-    return uframe_url, timeout, timeout_read
-
-
-# toc
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# TOC
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def get_uframe_toc_url():
     """ Get uframe url for toc from configuration file; raise exception if not found.
     """
@@ -54,82 +36,9 @@ def get_uframe_toc_url():
         raise Exception(message)
 
 
-# assets
-def get_assets_url_base():
-    """ 'asset' """
-    assets = current_app.config['UFRAME_ASSETS']
-    return assets
-
-
-def get_asset_types():
-    asset_types = ['Sensor', 'notClassified', 'Mooring', 'Node', 'Array']
-    return asset_types
-
-
-def get_uframe_assets_info():
-    """ Get uframe assets configuration information.
-    """
-    try:
-        timeout, timeout_read = get_uframe_timeout_info()
-        uframe_url = current_app.config['UFRAME_ASSETS_URL']
-        return uframe_url, timeout, timeout_read
-    except:
-        message = 'Unable to locate UFRAME_ASSETS_URL, UFRAME_TIMEOUT_CONNECT or UFRAME_TIMEOUT_READ in config file.'
-        current_app.logger.info(message)
-        raise Exception(message)
-
-
-# events
-def get_events_url_base():
-    """ Returns string value from configuration file for UFRAME_EVENTS. (i.e. 'events') If error, raise exception.
-    """
-    try:
-        events = current_app.config['UFRAME_EVENTS']
-        return events
-    except:
-        message = 'Unable to locate UFRAME_EVENTS in config file.'
-        current_app.logger.info(message)
-        raise Exception(message)
-
-
-def get_all_event_types():
-    event_types = ['UNSPECIFIED', 'CALIBRATION_DATA', 'PURCHASE', 'DEPLOYMENT', 'RECOVERY', 'STORAGE',
-                   'ATVENDOR', 'RETIREMENT', 'LOCATION', 'INTEGRATION', 'ASSET_STATUS', 'CRUISE_INFO']
-    return event_types
-
-
-def get_event_types(rd):
-    len_rd = len(rd)
-    event_types = ['UNSPECIFIED', 'PURCHASE', 'DEPLOYMENT', 'RECOVERY', 'STORAGE', 'ATVENDOR',
-                   'RETIREMENT', 'LOCATION', 'INTEGRATION', 'ASSET_STATUS', 'CRUISE_INFO']
-
-    # For instruments add event type 'CALIBRATION_DATA'
-    if len_rd >14 and len_rd <=27:
-        event_types.append('CALIBRATION_DATA')
-    return event_types
-
-
-# deployments
-def get_deployments_url_base():
-    """'events/deployment """
-    deployments = current_app.config['UFRAME_DEPLOYMENTS']
-    return deployments
-
-
-def get_uframe_deployments_info():
-    """ Get uframe deployments configuration information.
-    """
-    try:
-        timeout, timeout_read = get_uframe_timeout_info()
-        uframe_url = current_app.config['UFRAME_DEPLOYMENTS_URL']
-        return uframe_url, timeout, timeout_read
-    except:
-        message = 'Unable to locate UFRAME_DEPLOYMENTS_URL, UFRAME_TIMEOUT_CONNECT or UFRAME_TIMEOUT_READ in config file.'
-        current_app.logger.info(message)
-        raise Exception(message)
-
-
-# vocabulary
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Vocabulary
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def get_uframe_vocab_info():
     """ Get uframe vocabulary configuration information.
     """
@@ -144,9 +53,9 @@ def get_uframe_vocab_info():
 
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# C2
 # todo - not yet incorporated into c2.py
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# c2
 def get_c2_uframe_info(type='instrument'):
     """ Returns uframe instrument/api specific configuration information. (port 12572)
     """
@@ -169,7 +78,10 @@ def get_c2_uframe_info(type='instrument'):
         raise
 
 
-# c2 toc
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# C2 toc
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# todo - get ports dynamically and do replace.
 def get_uframe_data_info():
     """ Returns uframe data configuration information. (port 12576)
     """
@@ -192,9 +104,10 @@ def get_uframe_data_info():
         raise
 
 
-
-# c2 missions
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# C2 missions
 # todo - review how exception handling c2_mission.py, then add try/except block here
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def get_c2_missions_uframe_info():
     """ Returns uframe C2 mission api specific configuration information.
     """
@@ -211,11 +124,12 @@ def get_c2_missions_uframe_info():
 
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# todo - review how exception handling c2_mission.py, then add try/except block here
+# Alerts and Alarms
+# todo - review how exception handling alertalarms.py, then add try/except block here
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# alertalarms
 def get_uframe_alerts_info():
-    """ Get uframe alertalarm configuration information. """
+    """ Get uframe alertalarm configuration information.
+    """
     #try:
     timeout, timeout_read = get_uframe_timeout_info()
     uframe_url = current_app.config['UFRAME_ALERTS_URL']
@@ -227,20 +141,142 @@ def get_uframe_alerts_info():
         raise Exception(message)
     """
 
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Assets
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+def get_assets_url_base():
+    """ 'asset' """
+    assets = current_app.config['UFRAME_ASSETS']
+    return assets
 
+
+def get_uframe_assets_info():
+    """ Get uframe assets configuration information.
+    """
+    try:
+        timeout, timeout_read = get_uframe_timeout_info()
+        uframe_url = current_app.config['UFRAME_ASSETS_URL']
+        return uframe_url, timeout, timeout_read
+    except:
+        message = 'Unable to locate UFRAME_ASSETS_URL, UFRAME_TIMEOUT_CONNECT or UFRAME_TIMEOUT_READ in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Cruises
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+def get_cruises_url_base():
+    """ Returns configuration file value for UFRAME_CRUISES. ('events/cruise') If error, raise exception.
+    'events/cruise'
+    """
+    try:
+        cruises = current_app.config['UFRAME_CRUISES']
+        return cruises
+    except:
+        message = 'Unable to locate UFRAME_CRUISES in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_url_info_cruises():
+    """ Get complete url to query uframe cruises ('uframe-host:12587/events/cruise/inv')
+    """
+    try:
+        timeout, timeout_read = get_uframe_timeout_info()
+        uframe_url = '/'.join([current_app.config['UFRAME_DEPLOYMENTS_URL'], get_cruises_url_base()])
+        return uframe_url, timeout, timeout_read
+    except:
+        message = 'Unable to form uframe url for cruises using config file variables.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_url_info_cruises_inv():
+    """ Get complete url to query uframe cruises ('uframe-host:12587/events/cruise/inv')
+    """
+    try:
+        url, timeout, timeout_read = get_url_info_cruises()
+        uframe_url = '/'.join([url, 'inv'])
+        return uframe_url, timeout, timeout_read
+    except:
+        message = 'Unable to form uframe url for cruises using config file variables.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Deployments
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+def get_deployments_url_base():
+    """'events/deployment' """
+    deployments = current_app.config['UFRAME_DEPLOYMENTS']
+    return deployments
+
+
+def get_uframe_deployments_info():
+    """ Get uframe deployments configuration information.
+    """
+    try:
+        timeout, timeout_read = get_uframe_timeout_info()
+        uframe_url = current_app.config['UFRAME_DEPLOYMENTS_URL']
+        return uframe_url, timeout, timeout_read
+    except:
+        message = 'Unable to locate UFRAME_DEPLOYMENTS_URL, UFRAME_TIMEOUT_CONNECT or UFRAME_TIMEOUT_READ in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Events
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+def get_events_url_base():
+    """ Returns string value from configuration file for UFRAME_EVENTS. (i.e. 'events') If error, raise exception.
+    """
+    try:
+        events = current_app.config['UFRAME_EVENTS']
+        return events
+    except:
+        message = 'Unable to locate UFRAME_EVENTS in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Common utility functions
+# todo - note controller.py requires review, mods and test for try/except before using.
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# uframe timeout information
+def get_uframe_timeout_info():
+    """ Get uframe timeout configuration information.
+    """
+    try:
+        timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
+        timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
+        return timeout, timeout_read
+    except:
+        message = 'Unable to locate UFRAME_TIMEOUT_CONNECT or UFRAME_TIMEOUT_READ in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+# Get uframe timeout, timeout_read and base url.
+def get_uframe_info():
+    """ Get uframe configuration information. (uframe_url, uframe timeout_connect and timeout_read.) """
+    timeout, timeout_read = get_uframe_timeout_info()
+    uframe_url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
+    return uframe_url, timeout, timeout_read
+
+
+# Get uframe headers.
 def _uframe_headers():
-    """
-    No special headers are needed to connect to uframe.  This simply states
-    the default content type, and would be where authentication would/could be added.
-    """
     return {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
     }
 
+
+# Headers for uframe PUT and POST.
 def headers():
-    """ Headers for uframe PUT and POST. """
     return {"Content-Type": "application/json"}
 
 

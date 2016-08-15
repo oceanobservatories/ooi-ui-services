@@ -1,46 +1,28 @@
 
 """
-Event supporting functions.
-
+Events: Supporting functions.
 """
-# todo Requirements
-# todo - Review again since 2016-07-21 web services update)
-# todo - Expect two required fields to be added (in uframe) to each base event per requirement 3.1.6.23
-# todo - Missing fields: (1) Event description, (2) Name of operator recording the event
-# todo - Add 'g. lastModifiedTimestamp' to requirement 3.1.6.23
-# todo
-# todo Details
-# todo - Review events wrt new asset management data model
-# todo - Review all code paths when uid is provided with base event. (important)
-#
-# Create and Update
-# 'STORAGE'                     # Basic create and update completed
-# 'UNSPECIFIED'                 # Basic create and update completed
-# 'ATVENDOR'                    # Basic create and update completed
-# 'ASSET_STATUS'                # Basic create and update completed
-# 'RETIREMENT'                  # Basic create and update completed
-# 'INTEGRATION'                 # Basic create and update completed
-# 'LOCATION'                    # Basic create and update completed
-# 'CRUISE_INFO'                 # (general) Basic create and update completed
-# todo - 'DEPLOYMENT'           # (general)
-# todo - 'CALIBRATION_DATA'     # create and update api not available
-# todo - 'RECOVERY'             # not available?
-# todo - 'PURCHASE'             # not available?
-# todo ===============================================================================================
 
 from flask import current_app
 from ooiservices.app import cache
-from ooiservices.app.uframe.deployment_tools import is_instrument
-from ooiservices.app.uframe.config import (get_uframe_deployments_info, get_events_url_base, get_all_event_types,
-                                           get_event_types, get_uframe_assets_info, get_assets_url_base, headers)
+from ooiservices.app.uframe.common_tools import is_instrument
+from ooiservices.app.uframe.asset_tools import uframe_get_asset_by_id
+from ooiservices.app.uframe.common_tools import (get_event_types, get_event_types_by_rd)
+from ooiservices.app.uframe.events_validate_fields import get_rd_from_integrationInto
+from ooiservices.app.uframe.config import (get_uframe_deployments_info, get_events_url_base,
+                                           get_uframe_assets_info, get_assets_url_base, headers)
 import requests
 from requests.exceptions import (ConnectionError, Timeout)
 
+
+# Get events by asset uid and type.
 def _get_events_by_uid(uid, _type):
+    """ Get events by asset uid and type.
+    """
     try:
         id = _get_id_by_uid(uid)
         if not id:
-            message = 'Unknown or invalid uid %s; unable to get asset id.' % uid
+            message = 'Unknown or invalid uid %s; unable to get asset id to process events.' % uid
             raise Exception(message)
         events = get_and_process_events(id, uid, _type)
         return events
@@ -50,12 +32,14 @@ def _get_events_by_uid(uid, _type):
         raise Exception(message)
 
 
+# Get events by asset id and type.
 def _get_events_by_id(id, _type):
-    debug = False
+    """ Get events by asset id and type.
+    """
     try:
         uid = _get_uid_by_id(id)
         if not uid:
-            message = 'Unknown or invalid id %d; unable to get asset id.' % id
+            message = 'Unknown or invalid asset id %d; unable to get events.' % id
             raise Exception(message)
         events = get_and_process_events(id, uid, _type)
         return events
@@ -65,8 +49,10 @@ def _get_events_by_id(id, _type):
         raise Exception(message)
 
 
+# Get and process events for an asset.
 def get_and_process_events(id, uid, _type):
-    debug = False
+    """ Get and process events for an asset.
+    """
     events = {}
     types = ''
     types_list = []
@@ -78,22 +64,15 @@ def get_and_process_events(id, uid, _type):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Get reference designator
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        rd = None
-        asset_rds = cache.get('asset_rds')
-        if asset_rds:
-            if debug: print '\n debug -- have asset_rds...'
-            if id in asset_rds:
-                rd = asset_rds[id]
-        if not rd:
-            if debug: print '\n debug -- No reference designator found.'
+        rd = get_rd_by_asset_id(id)
+        if rd is None:
             message = 'Unable to determine the reference designator for asset id %d.' % id
-            current_app.logger.info(message)
             raise Exception(message)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Prepare events dictionary
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        event_types = get_event_types(rd)
+        event_types = get_event_types_by_rd(rd)
         for type in event_types:
             events[type] = []
 
@@ -106,8 +85,7 @@ def get_and_process_events(id, uid, _type):
             message = 'Unknown asset uid %s, unable to get events.' % uid
             raise Exception(message)
         elif results:
-            # Process result (200)
-            # Populate events dictionary
+            # Process result (200), populate events dictionary
             for event in results:
                 if '@class' in event:
                     del event['@class']
@@ -115,14 +93,28 @@ def get_and_process_events(id, uid, _type):
                     event_type = event['eventType']
                     if not types_list or event_type in types_list:
                         if event_type in event_types:
+                            if event_type == 'INTEGRATION':
+                                if 'integrationInto' in event:
+                                    if event['integrationInto'] is not None:
+                                        if len(event['integrationInto']) > 0:
+                                            rd = get_rd_from_integrationInto(event['integrationInto'])
+                                            event['integrationInto'] = rd
+                                        else:
+                                            event['integrationInto'] = None
+
                             events[event['eventType']].append(event)
                         else:
-                            if debug: print '\n debug -- Unknown or invalid event type provided: %s' % event['eventType']
+                            message = 'Unknown or invalid event type provided: %s' % event['eventType']
+                            current_app.logger.info(message)
+
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # For asset id, get deployments and calibration (calibration only if is_instrument(rd))
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         events['DEPLOYMENT'] = []           # Note: if no deployments, there is a serious issue.
+        if rd:
+            if is_instrument(rd):
+                events['CALIBRATION_DATA'] = []
         if rd:
             add_deployments = True
             if types_list and ('DEPLOYMENT' not in types_list):
@@ -133,16 +125,16 @@ def get_and_process_events(id, uid, _type):
                 if deployment_events:
                     events['DEPLOYMENT'] = deployment_events
 
+            # If rd is instrument, get calibration events
             if is_instrument(rd):
+                events['CALIBRATION_DATA'] = []
                 add_calibrations = True
                 if types_list and 'CALIBRATION_DATA' not in types_list:
                     add_calibrations = False
                 if add_calibrations:
-                    # If rd is instrument, get calibration events (if is_instrument(rd))
-                    # url: http://host:12587/asset/cal?assetid=500
-                        calibration_events = get_calibration_events(id, uid)
-                        if calibration_events:
-                            events['CALIBRATION_DATA'] = calibration_events
+                    calibration_events = get_calibration_events(id, uid)
+                    if calibration_events:
+                        events['CALIBRATION_DATA'] = calibration_events
 
         return events
 
@@ -152,6 +144,25 @@ def get_and_process_events(id, uid, _type):
         raise Exception(message)
 
 
+# Get reference designator for asset_id.
+def get_rd_by_asset_id(id):
+    """ Get reference designator for a given asset id; return None if not found. raise exception onerror.
+    """
+    try:
+        rd = None
+        asset_rds = cache.get('asset_rds')
+        if asset_rds:
+            if id in asset_rds:
+                rd = asset_rds[id]
+        return rd
+
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+# Get type parameter.
 def get_event_query_types(_type):
     """ Get type parameter - if value, process into query string, otherwise return None. On error, raise.
     """
@@ -165,7 +176,7 @@ def get_event_query_types(_type):
         else:
             _type = _type.replace(' ', '')
             type = _type.upper()
-            valid_event_types = get_all_event_types()
+            valid_event_types = get_event_types()
             #- - - - - - - - - - - - - - - - - - - - - - -
             # If multiple types provided
             #- - - - - - - - - - - - - - - - - - - - - - -
@@ -206,87 +217,23 @@ def get_event_query_types(_type):
         return types, types_list
 
     except Exception as err:
-        if debug: print '\n debug -- exception: ', str(err)
-        raise
-
-
-def get_uframe_events_by_uid(uid, types):
-    """ For a specific asset uid and optional list of event types, get list of events from uframe.
-    On status_code(s):
-        200     Success, return events
-        204     Error, raise exception unknown uid
-        not 200 Error, raise exception
-    """
-    check = False
-    try:
-        if not uid:
-            message = 'Malformed request, no uid request argument provided.'
-            raise Exception(message)
-
-        # Build query_suffix for uframe url if required
-        query_suffix = None
-        if types:
-            query_suffix = '?type=' + types
-
-        # Build uframe request for events.
-        base_url, timeout, timeout_read = get_uframe_deployments_info()
-        url = '/'.join([base_url, get_events_url_base(), 'uid', uid ])
-        if query_suffix:
-            url += query_suffix
-        if check: print '\n check -- [get_uframe_events_by_uid] url: ', url
-        payload = requests.get(url, timeout=(timeout, timeout_read))
-
-        # If no content, return empty result
-        if payload.status_code == 204:
-            # Return None when unknown uid is provided; log invalid request.
-            message = '(204) Unknown asset uid %s, unable to get events.' % uid
-            current_app.logger.info(message)
-            #return None
-            raise Exception(message)
-
-        # If error, raise exception
-        elif payload.status_code != 200:
-            message = '(%d) Error getting event information for uid \'%s\'' % (payload.status_code, uid)
-            raise Exception(message)
-
-        # Process events returned (status_code success)
-        else:
-            result = payload.json()
-            if result:
-                for event in result:
-                    # Add uid to each event if not present todo - remove if provided by uframe
-                    if 'uid' not in event:
-                        event['uid'] = uid
-
-        return result
-
-    except ConnectionError as err:
-        message = 'ConnectionError getting events from uframe for %s;  %s' % (uid, str(err))
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout as err:
-        message = 'Timeout getting events from uframe for %s;  %s' % (uid, str(err))
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Exception as err:
         message = str(err)
-        current_app.logger.info(message)
         raise Exception(message)
 
 
 def get_deployment_events(rd, id, uid):
-    """ Get deployment maps for
+    """ Get deployment maps for and asset/reference designator.
     """
     try:
         results = get_deployment_maps(rd, id, uid)
         return results
-
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
         raise Exception(message)
 
 
+# todo deprecate and use 'deployment_numbers'.
 def get_deployments_list(data):
     """ Convert deployment_number string to list of deployments.
     """
@@ -313,6 +260,7 @@ def get_deployments_list(data):
         raise Exception(message)
 
 
+# Get list of all deployment events associated with an asset id.
 def get_deployment_maps(rd, id, uid):
     """ Get list of all deployment events associated with this asset id.
     """
@@ -323,7 +271,7 @@ def get_deployment_maps(rd, id, uid):
         if debug:
             print '\n debug -- asset rd: ', rd
             print '\n debug -- asset id: ', id
-            print '\n debug -- asset rd: ', uid
+            print '\n debug -- asset uid: ', uid
         assets_dict = cache.get('assets_dict')
         if not assets_dict:
             if debug: print '\n issue -- assets_dict is None, unable to get deployment events.'
@@ -336,8 +284,12 @@ def get_deployment_maps(rd, id, uid):
         if debug: print '\n debug -- asset: ', asset
         deployments = []
         if asset:
-            tmp = asset['deployment_number']
-            deployments = get_deployments_list(tmp)
+            if 'deployment_numbers' in asset:
+                deployments = asset['deployment_numbers']
+            else:
+                tmp = asset['deployment_number']
+                deployments = get_deployments_list(tmp)
+
         if not deployments:
             return events
 
@@ -359,13 +311,7 @@ def get_deployment_maps(rd, id, uid):
         # Process maps into list of deployment events
         events = []
         if maps:
-            if debug: print '\n debug -- have maps...'
             events = convert_maps_to_deployment_events(maps, uid)
-            if debug:
-                print '\n debug -- after convert_maps_to_deployment_events...'
-                print '\n debug -- len(events): ', len(events)
-                print '\n debug -- type(events): ', type(events)
-                print '\n debug -- events: ', events
         return events
 
     except Exception as err:
@@ -411,12 +357,9 @@ def get_all_deployment_maps(rd, uid):
         raise Exception(message)
 
 
+# Get deployments events list, reverse order.
 def convert_maps_to_deployment_events(maps, uid):
-    """ Generate list of deployment events, reverse order with most recent first.
-
-    Sample request: http://localhost:4000/uframe/assets/1663/events
-    Target format structure:         ***** update documentation*****
-
+    """ Generate list of deployment events, with most recent first (reverse order).
     """
     events = []
     if not maps:
@@ -431,7 +374,7 @@ def convert_maps_to_deployment_events(maps, uid):
                        'location': [ 0.0, 0.0],
                        'notes': '',
                        'tense': '',
-                       'uid': uid}
+                       'assetUid': uid}
     ordered_keys = (maps.keys())
     ordered_keys.sort(reverse=True)
     try:
@@ -441,15 +384,13 @@ def convert_maps_to_deployment_events(maps, uid):
             event['deployment_number'] = k
             event['eventStartTime'] = v['beginDT']
             event['eventStopTime'] = v['endDT']
-            event['event_id'] = v['eventId']                               # todo - add to rd_assets
+            event['eventId'] = v['eventId']                                # todo - add to rd_assets
             #event['lastModifiedTimestamp'] = v['lastModifiedTimestamp']    # todo - add to rd_assets
             event['location'] = [v['location']['longitude'], v['location']['latitude']]
             event['depth'] = v['location']['depth']
             event['tense'] = v['tense']
-            #event = convert_event_timestamps(event)
             event['eventName'] = 'Deployment ' + str(k)
             event['notes'] = ''                             # todo - add to rd_assets
-            #event['uid'] = uid                              # todo - add to rd_assets; by passing right now
             events.append(event)
         return events
 
@@ -459,6 +400,7 @@ def convert_maps_to_deployment_events(maps, uid):
         raise Exception(message)
 
 
+# Get calibration results from uframe.
 def get_calibration_events(id, uid):
     calibration_events = []
     try:
@@ -472,9 +414,9 @@ def get_calibration_events(id, uid):
         raise Exception(message)
 
 
+# Process calibration results from uframe.
 def process_calibration_results(results, uid):
     """
-
     Sample calibration input data:
     "calibration" : [ {
         "@class" : ".XCalibration",
@@ -513,7 +455,7 @@ def process_calibration_results(results, uid):
         "lastModifiedTimestamp": 1468511911189,
         "notes": null,
         "tense": "UNKNOWN",
-        "uid": "A00089",
+        "assetUid": "A00089",
         "values": [
           0.45
         ]
@@ -542,7 +484,7 @@ def process_calibration_results(results, uid):
             if 'calData' in calibration:
                 cal_data = calibration['calData']
                 for cal in cal_data:
-                    cal['uid'] = uid
+                    #cal['uid'] = uid
                     if '@class' in cal:
                         del cal['@class']
                     calibrations.append(cal)
@@ -555,12 +497,215 @@ def process_calibration_results(results, uid):
         raise Exception(message)
 
 
-def _get_id_by_uid(uid):
-    """ Get id from uframe asset.
-    Sample request: http://host:12587/asset?uid=A00089
+# Get uid from using asset id.
+def _get_uid_by_id(id):
+    """ Get uid from using asset id.
+    """
+    try:
+        asset = uframe_get_asset_by_id(id)
+        uid = None
+        if asset:
+            if 'uid' in asset:
+                uid = asset['uid']
+        return uid
+
+    except Exception as err:
+        message = 'Error processing GET request for asset (id %d) events. %s' % (id, str(err))
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+# Prepare event for display.
+def post_process_event(event):
+    """ Process event from uframe before returning for display (in UI).
+    """
+    try:
+        if not event:
+            message = 'The event provided for post processing is empty.'
+            raise Exception(message)
+        if '@class' in event:
+            del event['@class']
+        return event
+
+    except Exception as err:
+        message = 'Error post-processing event for display. %s' % str(err)
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+# Get event class for an event type.
+def _get_event_class(event_type):
+    """ Get event class for a specific event_type.
+    """
+    try:
+        if event_type not in get_event_types():
+            message = 'Unknown event type (%s) provided; unable to return event class.' % event_type
+            raise Exception(message)
+
+        if event_type == 'ACQUISITION':
+            event_class = '.AcquisitionEvent'
+        elif event_type == 'ASSET_STATUS':
+            event_class = '.AssetStatusEvent'
+        elif event_type == 'ATVENDOR':
+            event_class = '.AtVendorEvent'
+        elif event_type == 'CRUISE_INFO':
+            event_class = '.CruiseInfo'
+        elif event_type == 'INTEGRATION':
+            event_class = '.XIntegrationEvent'
+        elif event_type == 'LOCATION':
+            event_class = '.XLocationEvent'
+        elif event_type == 'RETIREMENT':
+            event_class = '.XRetirementEvent'
+        elif event_type == 'STORAGE':
+            event_class = '.XStorageEvent'
+        elif event_type == 'UNSPECIFIED':
+            event_class = '.XEvent'
+        elif event_type == 'DEPLOYMENT':
+            event_class = '.XDeployment'
+        else:
+            message = 'Unknown event type (%s), unable to return event class.' % event_type
+            raise Exception(message)
+        return event_class
+
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Functions requiring uframe.
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+def get_uframe_events_by_uid(uid, types):
+    """ For a specific asset uid and optional list of event types, get list of events from uframe.
+    On status_code(s):
+        200     Success, return events
+        204     Error, raise exception unknown uid
+        not 200 Error, raise exception
+    """
+    debug = False
+    check = False
+    try:
+        if not uid:
+            message = 'Malformed request, no uid parameter value provided.'
+            raise Exception(message)
+
+        # Build query_suffix for uframe url if required
+        query_suffix = None
+        if types:
+            query_suffix = '?type=' + types
+
+        # Build uframe request for events.
+        base_url, timeout, timeout_read = get_uframe_deployments_info()
+        url = '/'.join([base_url, get_events_url_base(), 'uid', uid ])
+        if query_suffix:
+            url += query_suffix
+        if check: print '\n check -- [get_uframe_events_by_uid] url: ', url
+        payload = requests.get(url, timeout=(timeout, timeout_read))
+
+        # If no content, return empty result
+        if payload.status_code == 204:
+            # Return None when unknown uid is provided; log invalid request.
+            message = '(204) Unknown asset uid %s, unable to get events.' % uid
+            current_app.logger.info(message)
+            return None
+
+        # If error, raise exception
+        elif payload.status_code != 200:
+            message = '(%d) Error getting event information for uid \'%s\'' % (payload.status_code, uid)
+            raise Exception(message)
+
+        # Process events returned (status_code success)
+        else:
+
+            result = payload.json()
+            if result:
+                if debug: print '\n debug -- result: ', result
+                for event in result:
+                    if debug: print '\n debug -- event: ', event
+                    # Add uid to each event if not present todo - remove if provided by uframe
+                    if 'assetUid' not in event:
+                        if debug: print '\n adding assetUid to events...'
+                        event['assetUid'] = uid
+
+        return result
+
+    except ConnectionError as err:
+        message = 'ConnectionError getting events from uframe for %s;  %s' % (uid, str(err))
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout as err:
+        message = 'Timeout getting events from uframe for %s;  %s' % (uid, str(err))
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+# Get uframe event by event id.
+def get_uframe_event(id):
+    """ Get event from uframe by id.
     """
     check = False
     try:
+        # Build uframe request for events, issue request
+        uframe_url, timeout, timeout_read = get_uframe_assets_info()
+        url = '/'.join([uframe_url, get_events_url_base(), str(id)])
+        if check: print '\n check -- [get_uframe_event] url: ', url
+        payload = requests.get(url, timeout=(timeout, timeout_read))
+
+        # If no content, return empty result
+        if payload.status_code == 204:
+            # Return None when unknown uid is provided; log invalid request.
+            message = '(204) Unknown event id %d, failed to get event.' % id
+            current_app.logger.info(message)
+            return None
+
+        # If error, raise exception
+        elif payload.status_code != 200:
+            message = '(%d) Error getting event id %d from uframe.' % (payload.status_code, id)
+            raise Exception(message)
+        event = payload.json()
+        if not event:
+            message = 'Unable to get event %d from uframe.' % id
+            raise Exception(message)
+
+        # Get event_type
+        event_type = None
+        if 'eventType' in event:
+            event_type = event['eventType']
+        if not event_type:
+            message = 'Failed to obtain valid eventType from uframe event, event id: %d' % id
+            raise Exception(message)
+
+        # Post process event content for display.
+        event = post_process_event(event)
+        return event
+
+    except ConnectionError:
+        message = 'ConnectionError getting event (id %d) from uframe.' % id
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Timeout getting event (id %d) from uframe; unable to process events.' % id
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Exception as err:
+        message = 'Error processing GET request for event (id %d). %s' % (id, str(err))
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+# Get asset id using asset uid.
+def _get_id_by_uid(uid):
+    """ Get asset id using asset uid.
+    """
+    debug = False
+    check = False
+    try:
+        if debug: print '\n debug -- Get asset id using this uid: ', uid
         # Get uframe asset by uid.
         query = '?uid=' + uid
         uframe_url, timeout, timeout_read = get_uframe_assets_info()
@@ -569,13 +714,14 @@ def _get_id_by_uid(uid):
         if check: print '\n check -- [_get_id_by_uid] url to get asset %s: %s' % (uid, url)
         payload = requests.get(url, timeout=(timeout, timeout_read), headers=headers())
         if payload.status_code != 200:
-            message = '(%d) GET request failed for asset (uid %s) events.' % (payload.status_code, uid)
+            message = '(%d) Failed for asset with uid: \'%s\'.' % (payload.status_code, uid)
             raise Exception(message)
         asset = payload.json()
         id = None
         if asset:
             if 'assetId' in asset:
                 id = asset['assetId']
+        if debug: print '\n asset id: ', id
         return id
     except ConnectionError:
         message = 'ConnectionError getting asset (uid %s) from uframe; unable to process events. %s' % (uid, str(err))
@@ -586,7 +732,7 @@ def _get_id_by_uid(uid):
         current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
-        message = 'Error processing GET request for asset (uid %s) events. %s' % (uid, str(err))
+        message = str(err)
         current_app.logger.info(message)
         raise Exception(message)
 
@@ -684,9 +830,6 @@ def get_uframe_calibration_events_by_uid(id, uid):
                     calibrations = result['calibration']
                 # Process calibration data - add uid if not present, remove '@class' and 'lastModifiedTimestamp'.
                 for event in calibrations:
-                    # Add uid to each event if not present todo - remove if provided by uframe
-                    if 'uid' not in event:
-                        event['uid'] = uid
                     # Remove '@class'
                     if '@class' in event:
                         del event['@class']
@@ -707,123 +850,3 @@ def get_uframe_calibration_events_by_uid(id, uid):
         raise Exception(message)
 
 
-def _get_uframe_asset_by_id(id):
-    """ Get asset from uframe by id.
-
-    Sample request: http:host:12587/asset/500
-    """
-    debug = False
-    check = False
-    try:
-        # Get uframe asset
-        uframe_url, timeout, timeout_read = get_uframe_assets_info()
-        url = '/'.join([uframe_url, get_assets_url_base(), str(id)])
-        if debug: print '\n debug -- url to get asset %d: %s' % (id, url)
-        if check: print '\n check -- [_get_uframe_asset_by_id] url to get asset %d: %s' % (id, url)
-        payload = requests.get(url, timeout=(timeout, timeout_read), headers=headers())
-        if payload.status_code != 200:
-            message = '(%d) GET request failed for asset (id %d) events.' % (payload.status_code, id)
-            current_app.logger.info(message)
-            raise Exception(message)
-        asset = payload.json()
-        return asset
-    except ConnectionError:
-        message = 'ConnectionError getting asset (id %d) from uframe; unable to process events. %s' % (id, str(err))
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout:
-        message = 'Timeout getting asset (id %d) from uframe; unable to process events. %s' % (id, str(err))
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Exception as err:
-        message = 'Error processing GET request for asset (id %d) events. %s' % (id, str(err))
-        current_app.logger.info(message)
-        raise Exception(message)
-
-
-# Get uid from uframe asset.
-def _get_uid_by_id(id):
-    """ Get uid from uframe asset.
-    Sample request: http:host:12587/asset/500
-    """
-    try:
-        asset = _get_uframe_asset_by_id(id)
-        uid = None
-        if asset:
-            if 'uid' in asset:
-                uid = asset['uid']
-        return uid
-
-    except Exception as err:
-        message = 'Error processing GET request for asset (id %d) events. %s' % (id, str(err))
-        current_app.logger.info(message)
-        raise Exception(message)
-
-
-# Get uframe event by id.
-def get_uframe_event(id):
-    """ Get event from uframe by id.
-    """
-    check = False
-    debug = False
-    try:
-        # Build uframe request for events, issue request
-        uframe_url, timeout, timeout_read = get_uframe_assets_info()
-        url = '/'.join([uframe_url, get_events_url_base(), str(id)])
-        if check: print '\n check -- [get_uframe_event] url: ', url
-        payload = requests.get(url, timeout=(timeout, timeout_read))
-
-        # If no content, return empty result
-        if payload.status_code == 204:
-            # Return None when unknown uid is provided; log invalid request.
-            message = '(204) Unknown event id %d, failed to get event.' % id
-            current_app.logger.info(message)
-            return None
-
-        # If error, raise exception
-        elif payload.status_code != 200:
-            message = '(%d) Error getting event id %d from uframe.' % (payload.status_code, id)
-            raise Exception(message)
-        event = payload.json()
-        if not event:
-            message = 'Unable to get event %d from uframe.' % id
-            raise Exception(message)
-
-        # Get event_type
-        event_type = None
-        if 'eventType' in event:
-            event_type = event['eventType']
-            if event_type is None:
-                message = 'Failed to obtain eventType from uframe event, event id: %d' % id
-                raise Exception(message)
-
-        # Post process event content for display.
-        if debug: print '\n debug -- post process event'
-        event = post_process_event(event)
-        if debug: print '\n debug -- after post process event'
-
-        return event
-
-    except Exception as err:
-        message = 'Error processing GET request for event (id %d). %s' % (id, str(err))
-        current_app.logger.info(message)
-        raise Exception(message)
-
-
-# Prepare event for display.
-def post_process_event(event):
-    """ Process event from uframe before returning for display (in UI).
-    """
-    try:
-        if not event:
-            message = 'Event provided for post processing is empty.'
-            raise Exception(message)
-
-        if '@class' in event:
-            del event['@class']
-        return event
-
-    except Exception as err:
-        message = 'Error post-processing event (id %d) for display. %s' % (id, str(err))
-        current_app.logger.info(message)
-        raise Exception(message)
