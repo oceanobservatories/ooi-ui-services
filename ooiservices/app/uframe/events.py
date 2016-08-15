@@ -93,8 +93,8 @@ def get_events_by_uid(uid):
 
 # Create event
 @api.route('/events', methods=['POST'])
-#@auth.login_required
-#@scope_required(u'asset_manager')
+@auth.login_required
+@scope_required(u'asset_manager')
 def create_event():
     """ Create a new event. Returns event (dict) on success or error message.
     """
@@ -148,4 +148,4 @@ def update_event(id):
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
-        return internal_server_error(message)
+        return bad_request(message)
