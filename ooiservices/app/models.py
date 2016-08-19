@@ -1164,6 +1164,8 @@ class User(UserMixin, db.Model):
     country = db.Column(db.Text)
     state = db.Column(db.Text)
     roles = db.relationship(u'Role', secondary=RolesUsers.__table__, backref=db.backref('users', lazy='dynamic'))
+    api_user_name = db.Column(db.Text)
+    api_user_token = db.Column(db.Text)
 
     def to_json(self):
         json_user = {
@@ -1183,7 +1185,9 @@ class User(UserMixin, db.Model):
             'other_organization' : self.other_organization,
             'vocation' : self.vocation,
             'country' : self.country,
-            'state' : self.state
+            'state' : self.state,
+            'api_user_name' : self.api_user_name,
+            'api_user_token' : self.api_user_token
         }
         if self.organization:
             json_user['organization'] = self.organization.organization_name
@@ -1205,6 +1209,8 @@ class User(UserMixin, db.Model):
         vocation = json.get('vocation')
         country = json.get('country')
         state = json.get('state')
+        api_user_name = json.get('api_user_name')
+        api_user_token = json.get('api_user_token')
 
         #Validate some of the field.
 
@@ -1227,7 +1233,9 @@ class User(UserMixin, db.Model):
                     other_organization=other_organization,
                     vocation=vocation,
                     country=country,
-                    state=state)
+                    state=state,
+                    api_user_name=api_user_name,
+                    api_user_token=api_user_token)
 
 
     @staticmethod
@@ -1238,7 +1246,9 @@ class User(UserMixin, db.Model):
                     email='FirstLast@somedomain.com',
                     org_name='RPS ASA',
                     phone_primary='8001234567',
-                    other_organization=None):
+                    other_organization=None,
+                    api_user_name=None,
+                    api_user_token=None):
         try:
             user = User()
             user.password = password
@@ -1256,6 +1266,8 @@ class User(UserMixin, db.Model):
             user.organization_id = org.id
             if org.id == 9:
                 user.other_organization = other_organization
+            user.api_user_name = api_user_name
+            user.api_user_token = api_user_token
             db.session.add(user)
             db.session.commit()
             current_app.logger.info('[+] New user created: %s' % user.email)
@@ -1279,6 +1291,11 @@ class User(UserMixin, db.Model):
             return check_password_hash(self._password, password)
         except TypeError:
             return fs_verify_password(password, self._password)
+
+    @staticmethod
+    def api_verify_token(api_user_name, api_user_token):
+        if User.query.filter_by(api_user_name=api_user_name, api_user_token=api_user_token).first():
+            return True
 
     def validate_email(self, field):
         if User.query.filter_by(email=field).first():
