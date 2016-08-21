@@ -600,11 +600,15 @@ def create_location_dict(data):
         # Build and return location dictionary
         location_dict = {}
         location_dict['depth'] = depth
-        location = [longitude, latitude]
+        if latitude is None:
+            return None
+        else:
+            location = [longitude, latitude]
         location_dict['location'] = location
         location_dict['latitude'] = latitude
         location_dict['longitude'] = longitude
         location_dict['orbitRadius'] = orbitRadius
+
         return location_dict
     except Exception as err:
         message = str(err)
