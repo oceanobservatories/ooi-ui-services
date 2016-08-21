@@ -7,11 +7,10 @@ __author__ = 'Edna Donoughe'
 
 from flask import current_app
 from ooiservices.app.uframe.config import (get_deployments_url_base, get_uframe_deployments_info)
+from ooiservices.app.uframe.toc_tools import (process_toc_reference_designators, get_toc_information)
+from ooiservices.app.uframe.asset_tools import _get_rd_assets
 from ooiservices.app.uframe.common_tools import (is_instrument, is_platform, is_mooring, get_asset_type_by_rd,
                                                  get_supported_asset_types)
-from ooiservices.app.uframe.asset_tools import (process_toc_information_reference_designators,
-                                                get_toc_information, _get_rd_assets)
-
 import requests
 import requests.exceptions
 from requests.exceptions import (ConnectionError, Timeout)
@@ -172,7 +171,7 @@ def _compile_rd_assets():
         # (3)list of differences
 
         #uframe_url, timeout, timeout_read = get_uframe_deployments_info()
-        reference_designators, toc_only, difference = process_toc_information_reference_designators(toc)
+        reference_designators, toc_only, difference = process_toc_reference_designators(toc)
         if not reference_designators:
             message = 'No reference_designators identified when processing toc information.'
             raise Exception(message)
@@ -369,10 +368,10 @@ def get_asset_deployment_map(asset_id, ref_des):
         current_app.logger.info(message)
         return None
 
+
 def get_instrument_deployments_list(rd):
     """ Get list of deployments for instrument rd.
     """
-    debug = False
     check = False
     result = []
     try:
@@ -389,7 +388,6 @@ def get_instrument_deployments_list(rd):
 
         # Build uframe url: host:port/events/deployment/inv/mooring/node/sensor
         url = '/'.join([uframe_url, get_deployments_url_base(), 'inv', query_rd])
-        if debug: print '\n debug -- [get_instrument_deployments_list] url: ', url
         if check: print '\n check -- [get_instrument_deployments_list] url: ', url
 
         response = requests.get(url, timeout=(timeout, timeout_read))
@@ -411,7 +409,7 @@ def get_instrument_deployments_list(rd):
         raise Exception(message)
     except Exception as err:
         message = str(err)
-        print '\n debug -- exception [get_instrument_deployments_list]: ', message
+        print '\n-- [get_instrument_deployments_list]: ', message
         current_app.logger.info(message)
         return None
 
@@ -422,7 +420,6 @@ def get_instrument_deployments(rd):
 
     Use: http://host:12587/deployments/inv/CE05MOAS/GL326/04-DOSTAM000/-1
     """
-    debug = False
     check = False
     result = []
     try:
@@ -438,7 +435,6 @@ def get_instrument_deployments(rd):
         uframe_url, timeout, timeout_read = get_uframe_deployments_info()
         #url = '/'.join([uframe_url, 'deployments', 'inv', query_rd, '-1'])
         url = '/'.join([uframe_url, get_deployments_url_base(), 'inv', query_rd, '-1'])
-        if debug: print '\n debug -- [get_instrument_deployments] url: ', url
         if check: print '\n check -- [get_instrument_deployments] url: ', url
 
         response = requests.get(url, timeout=(timeout, timeout_read))
@@ -448,7 +444,6 @@ def get_instrument_deployments(rd):
             raise Exception(message)
 
         result = response.json()
-        #if debug: print '\n debug -- [get_instrument_deployments] (list) result: ', result
         return result
 
     except ConnectionError:
@@ -461,7 +456,6 @@ def get_instrument_deployments(rd):
         raise Exception(message)
     except Exception as err:
         message = str(err)
-        print '\n debug -- exception [get_instrument_deployments]: ', message
         current_app.logger.info(message)
         raise
 
@@ -476,10 +470,10 @@ def get_rd_deployments(rd):
          http://host:12587/events/deployment/query?refdes=CE05MOAS
          http://host:12587/events/deployment/query?refdes=CP02PMUI
     """
-    debug = False
     check = False
     result = []
     try:
+        # Verify rd is valid.
         if not is_instrument(rd) and not is_mooring(rd) and not is_platform(rd):
             message = 'The reference designator %s is not a mooring, platform or instrument.'
             current_app.logger.info(message)
@@ -491,13 +485,11 @@ def get_rd_deployments(rd):
         # Build uframe url: host:port/events/deployment/query?refdes=XXXXXXXX
         url = '/'.join([uframe_url, get_deployments_url_base(), 'query']) # todo hard coded - track uframe
         url += '?refdes=' + rd
-        if debug: print '\n debug -- [get_rd_deployments] url: ', url
         if check: print '\n Check -- [get_rd_deployments] url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
-            message = '(%d) Failed to get deployments from uframe for  %r.' % (response.status_code, rd)
+            message = 'Failed to get deployments from uframe for  %r.' % rd
             raise Exception(message)
-
         result = response.json()
         return result
 
@@ -617,7 +609,6 @@ def get_mooring_deployments_list(rd):
                     info[deployment_number]['asset_ids'] = deployment_asset_ids
 
             if info:
-                #print '\n debug -- info: ', json.dumps(info, indent=4, sort_keys=True)
                 results.update(info)
 
         if all_asset_ids:
@@ -631,10 +622,10 @@ def get_mooring_deployments_list(rd):
         # Get current deployment number, if there are deployment(s); set tense for each deployment.
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         if not deployments_list:
-            print '\n debug -- Mooring %s does not have a deployments_list! -----------------'
+            message = 'Mooring %s does not have a deployments_list!' % rd
+            current_app.logger.info(message)
 
         if deployments_list:
-
             deployments_list.sort(reverse=True)
             current_deployment_number = deployments_list[0]
 
@@ -790,7 +781,7 @@ def get_platform_deployments_list(rd):
 
     except Exception as err:
         message = str(err)
-        print '\n debug -- exception [get_platform_deployments_list]: ', message
+        if debug: print '\n debug -- exception [get_platform_deployments_list]: ', message
         current_app.logger.info(message)
         return None, None
 
@@ -801,11 +792,8 @@ def get_asset_deployment_info(asset_id, rd):
 
     The result dict value returned is described in get_asset_deployment_detail function.
     """
-    debug = False
     result = {}
     try:
-        if debug: print '\n debug -- get_asset_deployment_info for rd: ', rd
-
         # Get asset and deployment data for reference designator.
         data = get_asset_deployment_data(rd)
 
@@ -813,14 +801,11 @@ def get_asset_deployment_info(asset_id, rd):
         if data:
             # Get specific info for asset id from data
             result = get_asset_deployment_detail(asset_id, data)
-        else:
-            if debug: print '\n debug -- no deployment info for asset_id %s,  rd: %s' % (str(asset_id), rd)
 
         return result
 
     except Exception as err:
         message = str(err)
-        print '\n debug -- exception [get_asset_deployment_info]: ', message
         current_app.logger.info(message)
         return {}
 
@@ -865,10 +850,7 @@ def get_asset_deployment_detail(id, data):
     }
 
     """
-    debug = False
     try:
-        if debug: print '\n debug -- get_asset_deployment_detail for id: ', id
-
         # Determine if asset_id in data['asset_ids'], if not log and return empty dict.
         if id not in data['asset_ids']:
             message = 'Unable to find asset id %s for %s in rd_assets entry.' % (str(id), rd)
@@ -882,7 +864,6 @@ def get_asset_deployment_detail(id, data):
 
     except Exception as err:
         message = str(err)
-        print '\n debug -- exception [get_asset_deployment_detail]: ', message
         current_app.logger.info(message)
         return {}
 
@@ -890,18 +871,15 @@ def get_asset_deployment_detail(id, data):
 def get_asset_deployment_data(rd):
     """ Get deployment specific information for a reference designator from rd_cache. Returns dictionary from cache.
     """
-    debug = False
     result = {}
     try:
-        if debug: print '\n debug -- get_asset_deployment_data for rd: ', rd
-
         # Validate reference designator
         if not is_instrument(rd) and not is_mooring(rd) and not is_platform(rd):
             message = 'The reference designator provided (%s) is not an instrument or mooring.' % rd
             message += 'unable to provide asset deployment info.'
             raise Exception(message)
 
-        # Verify rd_assets cache available, if not get rd_assets and cache.
+        # Verify rd_assets cache available, if raise exception.
         rd_assets = _get_rd_assets()
         if not rd_assets:
             message = 'The \'rd_assets\' cache is empty; unable to provide asset deployment info for %s.' % rd
@@ -915,7 +893,6 @@ def get_asset_deployment_data(rd):
 
     except Exception as err:
         message = str(err)
-        print '\n debug -- exception [get_asset_deployment_data]: ', message
         current_app.logger.info(message)
         return {}
 
@@ -1182,7 +1159,7 @@ def get_deployment_asset_ids(deployment):
 
     except Exception as err:
         message = str(err)
-        print '\n debug -- exception [get_deployment_asset_ids]: ', message
+        if debug: print '\n debug -- exception [get_deployment_asset_ids]: ', message
         current_app.logger.info(message)
         return result
 
@@ -1231,7 +1208,6 @@ def get_instrument_deployment_work(rd):
                 #continue
                 message = 'Failed to get deployments for %s from uframe.' % rd
                 current_app.logger.info(message)
-                if debug: print '\n debug -- ', message
                 return work
 
             # For each deployment number, create dictionary map of deployment data
@@ -1422,8 +1398,8 @@ def get_platform_deployment_work(rd):
         return {}
 
 
-
 #===========================================================
+'''
 def get_timestamp_value(value):
     """ Convert float value into formatted string.
     """
@@ -1465,61 +1441,5 @@ def convert_from_utc(u):
 
 def ut(d):
     return calendar.timegm(d.timetuple())
-
-
-'''
-def process_timestamps_in_events(data):
-
-    debug = False
-    try:
-        if data:
-            if debug: print '\n debug -- processing data...'
-            for event in data:
-                convert_event_timestamps(event)
-                if '@class' in event:
-                    del event['@class']
-        return data
-
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return bad_request(message)
-
-
-def convert_event_timestamps(event):
-    """ Convert all datetime int field values in base event into formatted datetime.
-    """
-    try:
-        if 'eventStartTime' in event:
-            if event['eventStartTime']:
-                event['eventStartTime'] = convert_event_time(event['eventStartTime'])
-        if 'eventStopTime' in event:
-            if event['eventStopTime']:
-                event['eventStopTime'] = convert_event_time(event['eventStopTime'])
-
-        if 'lastModifiedTimestamp' in event:
-            if event['lastModifiedTimestamp']:
-                event['lastModifiedTimestamp'] = convert_event_time(event['lastModifiedTimestamp'])
-        """
-        if 'lastModifiedTimestamp' in event:
-            del event['lastModifiedTimestamp']
-        """
-        return event
-
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return bad_request(message)
-
-
-def convert_event_time(data):
-    tmp = None
-    try:
-        if data > 0 and data is not None:
-            tmp1 = dt.datetime.fromtimestamp(data / 1e3)
-            tmp = dt.datetime.strftime(tmp1, '%Y-%m-%dT%H:%M:%S')
-        return tmp
-    except Exception:
-        return data
 '''
 

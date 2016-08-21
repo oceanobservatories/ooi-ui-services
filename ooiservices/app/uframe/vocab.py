@@ -331,9 +331,9 @@ def compile_vocab():
     results_plus = {}   # additional vocabulary gleaned from original vocabulary source
     vocabulary = []
     codes = {}
-    debug = True
+    debug = False
     try:
-        if debug: print '\n debug -- Entered compile_vocab...'
+        print '\n Compiling vocabulary...'
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Get vocabulary. Try uframe, if error, then get COL vocabulary. Must have vocabulary
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -341,13 +341,13 @@ def compile_vocab():
             # Get vocabulary from uframe.
             vocabulary = get_vocab_from_uframe()
             codes = create_vocabulary_codes(vocabulary)
-            if debug: print '\n debug -- UFRAME len(vocabulary): ', len(vocabulary)
+            #if debug: print '\n debug -- UFRAME len(vocabulary): ', len(vocabulary)
         except Exception as err:
             message = 'uframe vocabulary error. %s' % str(err)
             current_app.logger.info(message)
             raise Exception(str(err))
 
-        if debug: print '\n debug -- before len(vocabulary): ', len(vocabulary)
+        #if debug: print '\n debug -- before len(vocabulary): ', len(vocabulary)
 
         # Check vocabulary results were returned.
         updated_vocabulary = False
@@ -358,10 +358,10 @@ def compile_vocab():
 
         # Verify if vocabulary entries indicate an updated vocabulary.
         test = vocabulary[0]
-        print '\n verify vocabulary - check test element: ', test
+        #print '\n verify vocabulary - check test element: ', test
         if len(test) > 7:
             updated_vocabulary = True
-        print '\n verify vocabulary - updated_vocabulary: ', updated_vocabulary
+        if debug: print '\n verify vocabulary - Updated_vocabulary: ', updated_vocabulary
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Process each vocab item into list with one or more dictionaries. (make_vocabulary response)
         # Two step process:
@@ -486,8 +486,9 @@ def compile_vocab():
             codes['rs_array_names'] = rs_array_names
 
         if debug:
-            print '\n debug -- codes: %s' % json.dumps(codes, indent=4, sort_keys=True)
-            print '\n debug -- final len(results): ', len(results)
+            print '\n -- codes: %s' % json.dumps(codes, indent=4, sort_keys=True)
+            print '\n -- final len(results): ', len(results)
+
             """
             keys = results.keys()
             keys.sort()
@@ -497,6 +498,7 @@ def compile_vocab():
         #print '\n debug -- final results(): ', json.dumps(results, indent=4, sort_keys=True)
 
         # Return vocabulary results (list) and codes (dict)
+        print '\n Completed compiling vocabulary...'
         return results, codes
 
     except Exception as err:

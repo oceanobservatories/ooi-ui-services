@@ -1,45 +1,37 @@
 """
 Events: Validate required event fields based on event type.
 """
-# todo - Remove exception for calibration once it is added to uframe..
-# todo - Remove exception for deployments once it is added to UI.
 
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
-from ooiservices.app.uframe.common_tools import (get_event_types, is_instrument, is_platform, is_mooring)
-
+from ooiservices.app.uframe.common_convert import convert_ui_data
+from ooiservices.app.uframe.cruise_tools import (create_unique_cruise_identifier, verify_uniqueCruiseIdentifier_format)
+from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types,
+                                                 is_instrument, is_platform, is_mooring)
 
 def events_validate_all_required_fields_are_provided(event_type, data, action=None):
     """ Verify for the event_type and action, the required field have been provided in the input data.
     """
     try:
-        # Calibration data create and update not yet supported in uframe, raise exception.
-        if event_type == 'CALIBRATION_DATA':
-            message = 'Event type %s \'create\' or \'update\' is not supported in uframe.' % event_type
-            raise Exception(message)
-        # Deployment event create and update not yet supported in UI; , raise exception.
-        if event_type == 'DEPLOYMENT':
-            message = 'Event type %s \'create\' or \'update\' is not supported yet in UI.' % event_type
+        # If event type create/update not yet supported, raise exception.
+        if event_type not in get_supported_event_types():
+            message = 'Event type %s \'%s\' is not supported.' % (event_type, action)
             raise Exception(message)
 
-        # Convert field values: - All field values are provided as type string, convert into target type.
+        # Convert field values: All data field values are provided as type string, convert into target type.
         converted_data = convert_required_fields(event_type, data, action)
 
         # Get asset management event types
-        valid_event_types = get_event_types()
         event_type = event_type.upper()
-        if event_type not in valid_event_types:
+        if event_type not in get_event_types():
             message = 'Valid event type is required to validate event fields. Invalid value: %s' % event_type
             raise Exception(message)
 
         # Get required fields and field types (from UI for uframe create event).
         required_fields, field_types = get_required_fields_and_types(event_type, action)
-        if not required_fields:
-            message = 'Event type %s action %s requires specific fields.' % (event_type, action)
-            raise Exception(message)
-        if not field_types:
-            message = 'Event type %s action %s requires specific field types.' % (event_type, action)
+        if not required_fields or not field_types:
+            message = 'Event type %s action %s requires specific fields and types.' % (event_type, action)
             raise Exception(message)
 
         # Create integrationInfo dictionary or None when appropriate for 'INTEGRATION' event type.
@@ -49,13 +41,25 @@ def events_validate_all_required_fields_are_provided(event_type, data, action=No
 
         # Create location dictionary for uframe when appropriate for LOCATION event type.
         elif event_type == 'LOCATION':
-            location_dict = create_location_dict(converted_data, action)
+            location_dict = create_location_dict(converted_data)
             converted_data['location'] = location_dict
             required_fields.append('location')
 
         # Set location dictionary to None for ASSET_STATUS event type.
         elif event_type == 'ASSET_STATUS':
             converted_data['location'] = None
+
+        # Set uniqueCruiseIdentifer field
+        elif event_type == 'CRUISE_INFO':
+            if action == 'update':
+                if 'uniqueCruiseIdentifer' in converted_data:
+                    cruise_id = converted_data['uniqueCruiseIdentifer']
+                    verify_uniqueCruiseIdentifier_format(cruise_id)
+
+            elif action == 'create':
+                cruise_id = create_unique_cruise_identifier(converted_data)
+                verify_uniqueCruiseIdentifier_format(cruise_id)
+                converted_data['uniqueCruiseIdentifer'] = cruise_id
 
         # Verify required fields are present in the data and each field has input data of correct type.
         for field in required_fields:
@@ -65,12 +69,12 @@ def events_validate_all_required_fields_are_provided(event_type, data, action=No
 
             # Verify field is provided in data
             if field not in converted_data:
-                message = 'required field %s not provided in data.' % field
+                message = 'Required field \'%s\' not provided in data.' % field
                 raise Exception(message)
 
             # Verify field type is provided in defined field_types.
             if field not in field_types:
-                message = 'required field %s does not have a defined field type value.' % field
+                message = 'Required field \'%s\' does not have a field type value defined.' % field
                 raise Exception(message)
 
             # Verify field value in data is of expected type.
@@ -79,45 +83,45 @@ def events_validate_all_required_fields_are_provided(event_type, data, action=No
                 # 'string'
                 if field_types[field] == 'string':
                     if not isinstance(converted_data[field], str) and not isinstance(converted_data[field], unicode):
-                        message = 'required field %s provided, but value is not of type %s.' % (field, field_types[field])
+                        message = 'Field \'%s\' provided, but value is not of type %s.' % (field, field_types[field])
                         raise Exception(message)
 
                 # 'int'
                 elif field_types[field] == 'int':
                     if not isinstance(converted_data[field], int):
-                        message = 'required field %s provided, but value is not of type %s' % (field, field_types[field])
+                        message = 'Field \'%s\' provided, but value is not of type %s.' % (field, field_types[field])
                         raise Exception(message)
 
                 # 'long'
                 elif field_types[field] == 'long':
                     if not isinstance(converted_data[field], long):
-                        message = 'required field %s provided, but value is not of type %s' % (field, field_types[field])
-                        raise Exception(message)
-
-                # 'dict'
-                elif field_types[field] == 'dict':
-                    if not isinstance(converted_data[field], dict):
-                        message = 'required field %s provided, but value is not of type %s' % (field, field_types[field])
+                        message = 'Field \'%s\' provided, but value is not of type %s.' % (field, field_types[field])
                         raise Exception(message)
 
                 # 'float'
                 elif field_types[field] == 'float':
                     if not isinstance(converted_data[field], float):
-                        message = 'required field %s provided, but value is not of type %s' % (field, field_types[field])
+                        message = 'Field \'%s\' provided, but value is not of type %s.' % (field, field_types[field])
+                        raise Exception(message)
+
+                # 'dict'
+                elif field_types[field] == 'dict':
+                    if not isinstance(converted_data[field], dict):
+                        message = 'Field \'%s\' provided, but value is not of type %s.' % (field, field_types[field])
                         raise Exception(message)
 
                 # 'list or 'intlist' or 'floatlist'
                 elif field_types[field] == 'list' or \
                      field_types[field] == 'intlist' or field_types[field] == 'floatlist':
                     if not isinstance(converted_data[field], list):
-                        message = 'required field %s provided, but value is not of type %s' % (field, field_types[field])
+                        message = 'Field \'%s\' provided, but value is not of type %s.' % (field, field_types[field])
                         raise Exception(message)
                 # Error
                 else:
-                    message = 'required field %s provided, but value is undefined type %s' % (field, field_types[field])
+                    message = 'Required field %s provided, but value is unknown type. %s' % (field, field_types[field])
                     raise Exception(message)
 
-        # Determine if 'extra' fields are being provided in the data, if so, report in log.
+        # Determine if 'extra' fields are being provided in the data, if so, log and raise.
         number_of_required_fields = len(required_fields)
         number_of_data_fields = len(converted_data.keys())
         extra_fields = []
@@ -128,9 +132,7 @@ def events_validate_all_required_fields_are_provided(event_type, data, action=No
                     if field not in extra_fields:
                         extra_fields.append(field)
         if extra_fields:
-            message = 'data contains extra fields %s, ' % extra_fields
-            message += 'correct and re-submit request to validate fields for %s %s event request.' % \
-                       (action.upper(), event_type)
+            message = 'Data contains extra fields %s, for \'%s\' %s event request.' % (extra_fields, action, event_type)
             current_app.logger.info(message)
             raise Exception(message)
 
@@ -145,17 +147,7 @@ def events_validate_all_required_fields_are_provided(event_type, data, action=No
 # todo - Verify DEPLOYMENT fields here.
 def get_required_fields_and_types(event_type, action):
     """ Get required fields and field types for event_type being processed.
-
-    Event types are:
-        'ACQUISITION', 'ASSET_STATUS', 'ATVENDOR', 'CALIBRATION_DATA', 'CRUISE_INFO',
-        'DEPLOYMENT', 'INTEGRATION', 'LOCATION', 'RETIREMENT', 'STORAGE', 'UNSPECIFIED',
-
-        'RECOVERY' event type is not supported by uframe (at all).
-        'CALIBRATION_DATA' event type creation and update is not supported by uframe.
-        'DEPLOYMENT' event type creation and update is not supported by the UI.
     """
-    required_fields = []
-    field_types = {}
     valid_actions = ['create', 'update']
     try:
         if not action:
@@ -163,6 +155,11 @@ def get_required_fields_and_types(event_type, action):
             raise Exception(message)
         if action not in valid_actions:
             message = 'Invalid action (%s) provided, use either \'create\' or \'update\'.' % action
+            raise Exception(message)
+
+        # If event type create/update not yet supported, raise exception.
+        if event_type not in get_supported_event_types():
+            message = 'Event type %s \'%s\' is not supported.' % (event_type, action)
             raise Exception(message)
 
         #- - - - - - - - - - - - - - - - - - - - - - -
@@ -219,9 +216,6 @@ def get_required_fields_and_types(event_type, action):
         #- - - - - - - - - - - - - - - - - - - - - - -
         # Event type: CALIBRATION_DATA
         #- - - - - - - - - - - - - - - - - - - - - - -
-        elif event_type == 'CALIBRATION_DATA':
-            message = 'event type CALIBRATION_DATA not currently supported in uframe.'
-            raise Exception(message)
 
         #- - - - - - - - - - - - - - - - - - - - - - -
         # Event type: CRUISE_INFO
@@ -332,7 +326,7 @@ def get_required_fields_and_types(event_type, action):
         # Event type: Unknown - error.
         #- - - - - - - - - - - - - - - - - - - - - - -
         else:
-            message = 'Unknown event type %s not currently supported in events_validate_fields.' % event_type
+            message = 'Unknown event type \'%s\' not currently supported in events_validate_fields.' % event_type
             raise Exception(message)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -361,14 +355,11 @@ def get_required_fields_and_types(event_type, action):
 
 def convert_required_fields(event_type, data, action=None):
     """ Verify for the event_type and action, the required fields have been provided in the input data.
-    asset_types = ['Mooring', 'Node', 'Sensor', 'notClassified', 'Array']
     """
-    converted_data = {}
     try:
         # Fields required (from UI) for uframe create event.
         verify_inputs(event_type, data, action)
         required_fields, field_types = get_required_fields_and_types(event_type, action)
-
         if not required_fields:
             message = 'Event type %s action %s requires specific fields.' % (event_type, action)
             raise Exception(message)
@@ -376,174 +367,11 @@ def convert_required_fields(event_type, data, action=None):
             message = 'Event type %s action %s requires specific field types.' % (event_type, action)
             raise Exception(message)
 
+        # todo - review location for asset_status event.
         if event_type == 'ASSET_STATUS':
             data['location'] = None
 
-        # Verify required fields are present in the data and each field has input data of correct type.
-        for field in required_fields:
-
-            # Verify field is provided in data
-            if field not in data:
-                message = 'required field %s not provided in data.' % field
-                raise Exception(message)
-
-            # Verify field type is provided in defined field_types.
-            if field not in field_types:
-                message = 'required field %s does not have a defined field type value' % field
-                raise Exception(message)
-
-            # Verify field value in data is of expected type.
-            if data[field] is None:
-                converted_data[field] = None
-
-            elif data[field] is not None:
-                # 'string'
-                if field_types[field] == 'string':
-                    if data[field] and len(data[field]) > 0:
-                        tmp = str(data[field])
-                        if not isinstance(tmp, str) and not isinstance(data[field], unicode):
-                            message = 'required field %s provided, but value is not of type %s' % (field, field_types[field])
-                            raise Exception(message)
-                        converted_data[field] = tmp
-                    else:
-                        converted_data[field] = None
-
-                # 'int'
-                elif field_types[field] == 'int':
-                    try:
-                        if data[field] and len(data[field]) > 0:
-                            tmp = int(data[field])
-                            if not isinstance(tmp, int):
-                                message = 'required field %s provided, but value is not of type %s' % (field, field_types[field])
-                                raise Exception(message)
-                            converted_data[field] = tmp
-                        else:
-                            converted_data[field] = None
-                    except:
-                        message = 'required field %s provided, but type conversion error (type %s)' % (field, field_types[field])
-                        raise Exception(message)
-
-                # 'long'
-                elif field_types[field] == 'long':
-                    try:
-                        if data[field] and len(data[field]) > 0:
-                            tmp = long(data[field])
-                            if not isinstance(tmp, long):
-                                message = 'required field %s provided, but value is not of type %s' % (field, field_types[field])
-                                raise Exception(message)
-                            converted_data[field] = tmp
-                        else:
-                            converted_data[field] = None
-                    except:
-                        message = 'required field %s provided, but type conversion error (type %s)' % (field, field_types[field])
-                        raise Exception(message)
-
-                # 'float'
-                elif field_types[field] == 'float':
-                    try:
-                        if data[field] and len(data[field]) > 0:
-                            tmp = float(data[field])
-                            if not isinstance(tmp, float):
-                                message = 'required field %s provided, but value is not of type %s' % (field, field_types[field])
-                                raise Exception(message)
-                            converted_data[field] = tmp
-                        else:
-                            converted_data[field] = None
-                    except:
-                        message = 'required field %s provided, but type conversion error (type %s)' % (field, field_types[field])
-                        raise Exception(message)
-
-                # 'dict'
-                elif field_types[field] == 'dict':
-                    continue
-                    #message = 'Unknown dict field to convert: ', field
-                    #raise Exception(message)
-
-                # 'list'
-                elif field_types[field] == 'list':
-                    try:
-                        tmp = data[field].strip()
-                        if len(tmp) < 2:
-                            message = 'Invalid value (%s) for list.' % data[field]
-                            print '\n exception: ', message
-                            raise Exception(message)
-                        if len(tmp) == 2:
-                            if '[' in data[field] and ']' in data[field]:
-                                tmp = []
-                        else:
-                            if '[' in data[field]:
-                                tmp = tmp.replace('[', '')
-                            if ']' in data[field]:
-                                tmp = tmp.replace(']', '')
-                            tmp = tmp.strip()
-                            if ',' not in tmp:
-                                tmp = [int(tmp)]
-                            elif ',' in tmp:
-                                subs = tmp.split(',')
-                                newtmp = []
-                                for sub in subs:
-                                    sub = sub.strip()
-                                    if sub:
-                                        if '.' in sub:
-                                            val = float(sub)
-                                            newtmp.append(val)
-                                        else:
-                                            val = int(sub)
-                                            newtmp.append(val)
-                                tmp = newtmp
-                    except:
-                        message = 'required field %s provided, but type conversion error (type %s)' % (field, field_types[field])
-                        raise Exception(message)
-
-                    if not isinstance(tmp, list):
-                        message = 'required field %s provided, but value is not of type %s' % (field, field_types[field])
-                        raise Exception(message)
-                    converted_data[field] = tmp
-
-                elif field_types[field] == 'intlist' or field_types[field] == 'floatlist':
-                    try:
-                        tmp = data[field].strip()
-                        if len(tmp) < 2:
-                            message = 'Invalid input value (%s) for list.' % data[field]
-                            raise Exception(message)
-                        if len(tmp) == 2:
-                            if '[' in data[field] and ']' in data[field]:
-                                tmp = []
-                        else:
-                            if '[' in data[field]:
-                                tmp = tmp.replace('[', '')
-                            if ']' in data[field]:
-                                tmp = tmp.replace(']', '')
-                            tmp = tmp.strip()
-                            if ',' not in tmp:
-                                if field_types[field] == 'floatlist':
-                                    tmp = [float(tmp)]
-                                else:
-                                    tmp = [int(tmp)]
-                            elif ',' in tmp:
-                                subs = tmp.split(',')
-                                newtmp = []
-                                for sub in subs:
-                                    sub = sub.strip()
-                                    if sub:
-                                        if field_types[field] == 'floatlist':
-                                            val = float(sub)
-                                            newtmp.append(val)
-                                        else:
-                                            val = int(sub)
-                                            newtmp.append(val)
-
-                                tmp = newtmp
-                    except:
-                        message = 'required field %s provided, but type conversion error (type %s)' % (field, field_types[field])
-                        raise Exception(message)
-                    if not isinstance(tmp, list):
-                        message = 'required field %s provided, but value is not of type %s' % (field, field_types[field])
-                        raise Exception(message)
-                    converted_data[field] = tmp
-                else:
-                    message = 'required field %s provided, but value is undefined type %s' % (field, field_types[field])
-                    raise Exception(message)
+        converted_data = convert_ui_data(data, required_fields, field_types)
 
         return converted_data
 
@@ -567,7 +395,7 @@ def verify_inputs(event_type, data, action):
 
         # Check data is provided and of correct type.
         if not data:
-            message = 'Field validation requires event type, data dict and a defined action; data is empty.'
+            message = 'Field validation requires data dictionary; data provided is empty.'
             raise Exception(message)
         if not isinstance(data, dict):
             message = 'Field validation requires data to be of type dictionary.'
@@ -601,38 +429,6 @@ def process_integration_event(data):
             integrationInto_dict = create_integrationInto(rd)
         return integrationInto_dict
 
-        """
-        # Prevent creation of integration event for non-existent deployment number for associated asset.
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Deployment number.
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Get deployment number from data.
-        deployment_number = None
-        if 'deploymentNumber' in data:
-            deployment_number = data['deploymentNumber']
-        if deployment_number is None:
-            message = 'Failed to get deploymentNumber value from INTEGRATION event.'
-            raise Exception(message)
-
-        # Get existing deployment numbers for this asset.
-        current_deployment_numbers = None
-        if 'deployment_numbers' in asset:
-            current_deployment_numbers= asset['deployment_numbers']
-        if current_deployment_numbers is None:
-            message = 'Failed to get deployment_numbers from asset with uid: %d; ' % deployment_number
-            message += 'cannot verify proposed deployment in integration event.'
-            current_app.logger.info(message)
-            raise Exception(message)
-
-        # Verify the deployment number provided is an existing deployment number associated with this asset.
-        if debug: print '\n debug -- current_deployment_numbers: ', current_deployment_numbers
-        if deployment_number not in current_deployment_numbers:
-            message = 'The proposed deployment number (%d) does not exist for asset with uid: %s' % \
-                      (deployment_number, uid)
-            current_app.logger.info(message)
-            raise Exception(message)
-        """
-
     except Exception as err:
         message = str(err)
         raise Exception(message)
@@ -658,7 +454,7 @@ def create_integrationInto(rd):
         elif is_mooring(rd):
             subsite = rd
         else:
-            message = 'Invalid reference designator to integrate into; provide valid reference designator.'
+            message = 'Cannot integrate into an invalid reference designator (\'%s\').' % rd
             raise Exception(message)
 
         template = {
@@ -682,7 +478,7 @@ def get_rd_from_integrationInto(data):
             message = 'No integrationInto data provided to determine reference designator.'
             raise Exception(message)
         if not isinstance(data, dict):
-            message = 'The integrationInto data provided not in form of a dictionary.'
+            message = 'The integrationInto data provided is not in form of a dictionary.'
             raise Exception(message)
 
         for item in required_attributes:
@@ -721,19 +517,19 @@ def events_validate_user_required_fields_are_provided(event_type, valid_data, ac
             raise Exception(message)
 
         # Get list of fields user must provide for an event type create or update
-        user_fields = get_user_fields_populated(event_type, action)
+        user_fields = get_user_fields_populated(event_type)
 
         # Verify required fields are present in the data and each field has input data of correct type.
         for field in user_fields:
 
             # Verify field is provided in data (get display names in here)
             if field not in valid_data:
-                message = 'required user field %s not provided in data.' % field
+                message = 'Required user field %s not provided in data.' % field
                 raise Exception(message)
 
             # Verify field value in data is of expected type.
             if valid_data[field] is None:
-                message = 'required field \'%s\' must be populated.' % field
+                message = 'Required field \'%s\' must be populated.' % field
                 raise Exception(message)
         return
 
@@ -741,12 +537,15 @@ def events_validate_user_required_fields_are_provided(event_type, valid_data, ac
         message = str(err)
         raise Exception(message)
 
-def get_user_fields_populated(event_type, action):
-    """ For an event type and action, get fields the user shall populate. Return list.
+
+def get_user_fields_populated(event_type):
+    """ For an event type [and action], get fields the user shall populate. Return list.
     """
-    user_populated_fields = ['eventName']
     event_fields = []
     try:
+        # event type: All
+        user_populated_fields = ['eventName']
+
         # Event type: INTEGRATION
         if event_type == 'INTEGRATION':
             # For action(s): create and update
@@ -754,8 +553,9 @@ def get_user_fields_populated(event_type, action):
 
         # Event type: CRUISE_INFO
         elif event_type == 'CRUISE_INFO':
-            event_fields = ['uniqueCruiseIdentifer', 'shipName', 'cruiseIdentifier']
+            event_fields = ['uniqueCruiseIdentifer', 'shipName', 'cruiseIdentifier']    # 'editPhase'
 
+        # Sum up all required fields
         if event_fields:
             user_populated_fields = user_populated_fields + event_fields
         return user_populated_fields
@@ -764,7 +564,7 @@ def get_user_fields_populated(event_type, action):
         raise Exception(message)
 
 
-def create_location_dict(data, action):
+def create_location_dict(data):
     """ Verify fields to create location have been provided in data; create output dictionary.
 
     "location" : {
@@ -778,12 +578,12 @@ def create_location_dict(data, action):
     required_fields = ['depth', 'latitude', 'longitude', 'orbitRadius']
     try:
         if not data:
-            message = 'Failed to receive data to create location dictionary for ufame.'
+            message = 'Failed to receive data to create location dictionary.'
             raise Exception(message)
 
         for item in required_fields:
             if item not in data:
-                message = 'Failed to receive required field \'%s\' in request data.'
+                message = 'Failed to receive required field \'%s\' to create location dictionary.'
                 raise Exception(message)
 
         depth = data['depth']
@@ -794,11 +594,8 @@ def create_location_dict(data, action):
             message = 'Both latitude and longitude must be populated (not just longitude).'
             raise Exception(message)
         if latitude is not None and longitude is None:
-            message = 'Both latitude and longitude must be populated, (not just latitude).'
+            message = 'Both latitude and longitude must be populated (not just latitude).'
             raise Exception(message)
-
-        if action == 'create':
-            return None
 
         # Build and return location dictionary
         location_dict = {}

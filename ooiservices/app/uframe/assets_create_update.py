@@ -7,9 +7,10 @@ __author__ = 'Edna Donoughe'
 from flask import current_app
 from ooiservices.app import cache
 from requests.exceptions import (ConnectionError, Timeout)
-from ooiservices.app.uframe.common_tools import (get_asset_class_by_rd, get_asset_types, get_asset_class_by_asset_type)
+from ooiservices.app.uframe.common_tools import (get_asset_types, get_asset_class_by_asset_type)
 from ooiservices.app.uframe.config import (get_uframe_assets_info, get_assets_url_base, headers)
-from ooiservices.app.uframe.asset_tools import (uframe_get_asset_by_id, _compile_assets)
+from ooiservices.app.uframe.asset_tools import (uframe_get_asset_by_id, format_asset_for_ui,
+                                                update_asset_cache, _compile_assets)
 from ooiservices.app.uframe.assets_validate_fields import (convert_required_fields,
                                                            asset_get_required_fields_and_types_uframe)
 import json
@@ -25,10 +26,14 @@ def _create_asset(data):
     Asset data is from UI and must be transformed into uframe asset format.
     New asset is returned on success. On failure, log and raise exception.
     """
-    debug = True
+    debug = False
     asset_type = None
     action = 'create'
     try:
+        message = 'Create asset is not enabled at this time.'
+        raise Exception(message)
+
+        """
         if debug: print '\n debug -- _create_asset ...'
         keys = []
         if not data:
@@ -45,7 +50,6 @@ def _create_asset(data):
         _new_asset = uframe_create_asset(xasset)
         new_asset = _new_asset
 
-        """
         # Verify asset exists: Get uframe asset (for 'calibration', 'events', 'location', 'lastModifiedTimestamp')
         asset = uframe_get_asset_by_id(id)
         if asset:
@@ -111,8 +115,9 @@ def _create_asset(data):
         if debug: print '\n Updating cache...'
         update_asset_cache(id, new_asset, action)
         # return updated asset
-        """
+
         return new_asset
+        """
 
     except Exception as err:
         message = str(err)
@@ -130,7 +135,10 @@ def _update_asset(id, data):
     debug = False
     asset_type = None
     try:
-        if debug: print '\n debug -- _update_asset: %d' % id
+
+        message = 'Update asset is not enabled at this time.'
+        raise Exception(message)
+        """
         # Verify asset exists:
         # Get uframe asset (for 'calibration', 'events', 'location', 'lastModifiedTimestamp')
         asset = uframe_get_asset_by_id(id)
@@ -191,78 +199,12 @@ def _update_asset(id, data):
         # Format modified asset from uframe for UI.
         updated_asset = format_asset_for_ui(modified_asset)
 
-        if debug: print '\n Updating cache...'
+        if debug: print '\n Updating cache...TURNED OFF RIGHT NOW...'
         update_asset_cache(id, updated_asset)
 
         # return updated asset
         return updated_asset
-
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        raise Exception(message)
-
-
-def format_asset_for_ui(modified_asset):
-    """ Format uframe asset into ui asset.
-    """
-    debug = False
-    try:
-        data_list = [modified_asset]
-        try:
-            asset_with_update, _ = _compile_assets(data_list)
-            updated_asset = asset_with_update[0]
-        except Exception as err:
-            message = 'Failed to format asset for ui. %s' % str(err)
-            raise Exception(message)
-
-        if not updated_asset or updated_asset is None:
-            raise Exception('Asset compilation failed to return a result; empty or None result.')
-
-        if debug: print '\n debug ***** updated_asset(%d): %s' % \
-                        (len(updated_asset), json.dumps(updated_asset, indent=4, sort_keys=True))
-
-        if debug: print '\n debug -- after compile_assets to process....'
-        return updated_asset
-
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        raise Exception(message)
-
-
-def update_asset_cache(id, asset):
-    debug = False
-    try:
-        # Update asset cache ('asset_list')
-        asset_cache = cache.get('asset_list')
-        if asset_cache:
-            if debug: print '\n Updating asset_list cache...'
-            found_asset = False
-            for item in asset_cache:
-                if item['id'] == id:
-                    item = asset
-                    found_asset = True
-                    if debug: print '\n Found and updated item in cache!'
-                    break
-            if found_asset:
-                cache.set('asset_list', asset_cache, timeout=CACHE_TIMEOUT)
-            else:
-                print '\n Error: Did not find item in cache to update!'
-        else:
-            if debug: print '\n Did not update asset_list cache...'
-
-        # Update assets_dict cache ('assets_dict')
-        assets_dict_cache = cache.get('assets_dict')
-        if assets_dict_cache:
-            if debug: print '\n Updating assets_dict cache...'
-            if id in assets_dict_cache:
-                if debug: print '\n Found id %d in assets_dict cache...' % id
-                assets_dict_cache[id] = asset
-                cache.set('assets_dict', assets_dict_cache, timeout=CACHE_TIMEOUT)
-                if debug: print '\n Updated id %d in assets_dict cache...\n' % id
-        else:
-            if debug: print '\n Did not update assets_dict cache...'
+        """
 
     except Exception as err:
         message = str(err)
@@ -310,7 +252,6 @@ def uframe_update_asset(asset):
         raise Exception(message)
     except Exception as err:
         message = str(err)
-        current_app.logger.info(message)
         raise Exception(message)
 
 
@@ -319,7 +260,7 @@ def uframe_create_asset(asset):
     """ Create asset in uframe. On success return updated asset, on error, raise exception.
     """
     id = None
-    check = True
+    check = False
     try:
         # Check asset data provided.
         if not asset or asset is None:
@@ -328,41 +269,43 @@ def uframe_create_asset(asset):
         if not isinstance(asset, dict):
             message = 'Asset data must be provided in dict form to create asset in uframe.'
             raise Exception(message)
+
         # Create asset in uframe.
         base_url, timeout, timeout_read = get_uframe_assets_info()
         url = '/'.join([base_url, get_assets_url_base()])
         if check: print '\n check: url: ', url
         response = requests.post(url, data=json.dumps(asset), headers=headers())
-        print '\n after uframe create asset: response.status_code: ', response.status_code
         if response.status_code != 201:
             message = '(%d) uframe failed to create asset.' % (response.status_code)
             #response_data = json.loads(response.content)
             #print '\n debug -- response_data: ', response_data
             raise Exception(message)
 
-        #print '\n debug -- create status_code: ', response.status_code
-
         # Get id for new asset.
-        print '\n debug -- get id for new asset...'
         if not response.content:
             message = 'No response content returned from create asset.'
             raise Exception(message)
         response_data = json.loads(response.content)
 
+        if 'assetId' in response_data:
+            id = response_data['assetId']
+        else:
+            message = 'Failed to obtain properly formed asset from uframe; missing \'assetId\'.'
+            raise Exception(message)
+
         # Get new asset from uframe.
-        updated_asset = uframe_get_asset_by_id(id)
-        return updated_asset
+        new_asset = uframe_get_asset_by_id(id)
+        return new_asset
     except ConnectionError:
-        message = 'Error: ConnectionError during uframe asset update(id: %d)' % id
+        message = 'Error: ConnectionError during uframe asset create.'
         current_app.logger.info(message)
         raise Exception(message)
     except Timeout:
-        message = 'Error: Timeout during during uframe asset update (id: %d)' % id
+        message = 'Error: Timeout during during uframe asset create.'
         current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
         message = str(err)
-        current_app.logger.info(message)
         raise Exception(message)
 
 
@@ -501,7 +444,6 @@ def transform_asset_for_uframe(id, asset, action=None):
     uframe_asset = {}
     valid_actions = ['create', 'update']
     try:
-        #print '\n debug -- transform_asset_for_uframe...'
         if action is None:
             message = 'Failed to transform asset, action value is None.'
             raise Exception(message)
@@ -513,12 +455,11 @@ def transform_asset_for_uframe(id, asset, action=None):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Perform basic checks on input data
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if debug: print '\n Entered transform_asset_for_uframe...'
         if not asset:
-            message = 'Not input provided, unable to process.'
+            message = 'No input provided, unable to process transform for asset %s.' % action
             raise Exception(message)
         if 'assetType' not in asset:
-            message = 'Malformed asset; missing required attribute \'assetType\'. Failed to update asset.'
+            message = 'Malformed asset; missing required attribute \'assetType\'.'
             raise Exception(message)
         asset_type = asset['assetType']
         if asset_type not in get_asset_types():
@@ -529,25 +470,21 @@ def transform_asset_for_uframe(id, asset, action=None):
         # Convert values for fields in 'string asset'
         #- - - - - - - - - - - - - - - - - - - - - -
         converted_asset = convert_required_fields(asset_type, asset, action)
-        if debug: print '\n **************** debug +++++ \n converted_asset(%d): %s' % \
-                        (len(converted_asset), json.dumps(converted_asset, indent=4, sort_keys=True))
 
         # Action 'update' specific check: verify asset id in data is same as asset id on PUT
         if action == 'update':
             if 'id' in converted_asset:
                 if converted_asset['id'] != id:
-                    message = 'Unable to perform asset update; asset id in request does not match id provided in data.'
+                    message = 'The asset id provided in url does not match id provided in data.'
                     raise Exception(message)
 
             # Fields in assetInfo: description, asset_type
             if 'ref_des' not in converted_asset:
                 message = 'Unable to process asset provided, no reference designator.'
                 raise Exception(message)
-            rd = asset['ref_des']
+            #rd = asset['ref_des']
             #asset_class = get_asset_class_by_rd(rd)
 
-
-        if debug: print '\n ====================== Marshalling converted_data =========================='
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Marshall all data for creation of uframe_asset, build uframe_asset.
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -631,8 +568,6 @@ def transform_asset_for_uframe(id, asset, action=None):
 
     except Exception as err:
         message = str(err)
-        print '\n debug -- Exception message: ', message
-        current_app.logger.info(message)
         raise Exception(message)
 
 

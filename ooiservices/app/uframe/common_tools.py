@@ -23,7 +23,6 @@ __author__ = 'Edna Donoughe'
 
 from flask import current_app
 
-
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Common functions
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -219,16 +218,58 @@ def get_supported_asset_classes():
     return asset_classes
 
 
+# Get event class for an event type.
+def get_event_class(event_type):
+    """ Get event class for a specific event_type.
+    """
+    try:
+        if event_type not in get_event_types():
+            message = 'Unknown event type (%s) provided; unable to return event class.' % event_type
+            raise Exception(message)
+
+        if event_type == 'ACQUISITION':
+            event_class = '.AcquisitionEvent'
+        elif event_type == 'ASSET_STATUS':
+            event_class = '.AssetStatusEvent'
+        elif event_type == 'ATVENDOR':
+            event_class = '.AtVendorEvent'
+        elif event_type == 'CRUISE_INFO':
+            event_class = '.CruiseInfo'
+        elif event_type == 'INTEGRATION':
+            event_class = '.XIntegrationEvent'
+        elif event_type == 'LOCATION':
+            event_class = '.XLocationEvent'
+        elif event_type == 'RETIREMENT':
+            event_class = '.XRetirementEvent'
+        elif event_type == 'STORAGE':
+            event_class = '.XStorageEvent'
+        elif event_type == 'UNSPECIFIED':
+            event_class = '.XEvent'
+        elif event_type == 'DEPLOYMENT':
+            event_class = '.XDeployment'
+        else:
+            message = 'Unknown event type (%s), unable to return event class.' % event_type
+            raise Exception(message)
+        return event_class
+
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
 def get_event_types():
     # Get all event type values.
     event_types = ['ACQUISITION', 'ASSET_STATUS', 'ATVENDOR', 'CALIBRATION_DATA', 'CRUISE_INFO',
                    'DEPLOYMENT', 'INTEGRATION', 'LOCATION', 'RETIREMENT', 'STORAGE', 'UNSPECIFIED']
+    event_types.sort()
     return event_types
 
 def get_supported_event_types():
-    # Get all event type values.
-    event_types = ['ACQUISITION', 'ASSET_STATUS', 'ATVENDOR', 'CALIBRATION_DATA', 'CRUISE_INFO',
-                   'DEPLOYMENT', 'INTEGRATION', 'LOCATION', 'RETIREMENT', 'STORAGE', 'UNSPECIFIED']
+    # Get all event type values. Missing 'CALIBRATION_DATA' and 'DEPLOYMENT'.
+    event_types = ['ACQUISITION', 'ASSET_STATUS', 'ATVENDOR',  'CRUISE_INFO',
+                   'INTEGRATION', 'LOCATION', 'RETIREMENT', 'STORAGE', 'UNSPECIFIED']
+    event_types.sort()
     return event_types
 
 
@@ -241,5 +282,6 @@ def get_event_types_by_rd(rd):
     # For sensor assets, add event type 'CALIBRATION_DATA'.
     if len_rd >14 and len_rd <=27:
         event_types.append('CALIBRATION_DATA')
+    event_types.sort()
     return event_types
 

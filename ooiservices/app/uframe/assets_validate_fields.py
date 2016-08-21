@@ -2,16 +2,14 @@
 Assets: Validate required fields based on asset type.
 
 """
-from ooiservices.app.uframe.common_tools import (get_asset_types)
+from ooiservices.app.uframe.common_tools import get_asset_types
+from ooiservices.app.uframe.common_convert import convert_ui_data
 
 
 def validate_required_fields_are_provided(asset_type, data, action=None):
     """ Verify for the asset_type and action, the required fields have been provided in the input data.
-    asset_types = ['Mooring', 'Node', 'Sensor', 'notClassified', 'Array']
     """
-    debug = False
     try:
-        if debug: print '\n debug -- validate_required_fields_are_provided...'
         # Verify input, on error will raise exception; no error indicates success.
         verify_inputs(asset_type, data, action)
 
@@ -19,12 +17,10 @@ def validate_required_fields_are_provided(asset_type, data, action=None):
         required_fields, field_types = asset_ui_get_required_fields_and_types(asset_type, action)
         if not required_fields:
             message = 'Asset type %s action %s requires specific fields.' % (asset_type, action)
-            if debug: print '\n exception: ', message
             raise Exception(message)
 
         if not field_types:
             message = 'Asset type %s action %s requires specific field types.' % (asset_type, action)
-            if debug: print '\n exception: ', message
             raise Exception(message)
 
         # Convert field values - for all field values, convert into target type.
@@ -36,81 +32,69 @@ def validate_required_fields_are_provided(asset_type, data, action=None):
         number_of_data_fields = len(data_fields)
         # Processing all fields and type versus value.
         for field in required_fields:
-            if not field:
-                if debug: print '\n ***** Null or empty field provided in required_fields.'
-            if debug: print '\n Processing field: ', field
 
             # Verify field is provided in data
             if field not in data:
-                message = 'required field %s not provided in data.' % field
+                message = 'Required field %s not provided in data.' % field
                 raise Exception(message)
 
             # Verify field type is provided in defined field_types.
             if field not in field_types:
-                message = 'required field %s does not have a defined field type value.' % field
+                message = 'Required field %s does not have a defined field type value.' % field
                 raise Exception(message)
 
             # Verify field value in data is of expected type.
             if data[field] is not None:
                 if field_types[field] == 'string':
                     if not isinstance(data[field], str) and not isinstance(data[field], unicode):
-                        message = 'required field %s provided, but value is not of type %s.' % (field, field_types[field])
+                        message = 'Required field %s provided, but value is not of type %s.' % (field, field_types[field])
                         raise Exception(message)
                 elif field_types[field] == 'int':
                     if not isinstance(data[field], int):
-                        message = 'required field %s provided, but value is not of type %s.' % (field, field_types[field])
+                        message = 'Required field %s provided, but value is not of type %s.' % (field, field_types[field])
                         raise Exception(message)
                 elif field_types[field] == 'long':
                     if not isinstance(data[field], long):
-                        message = 'required field %s provided, but value is not of type %s.' % (field, field_types[field])
+                        message = 'Required field %s provided, but value is not of type %s.' % (field, field_types[field])
                         raise Exception(message)
                 elif field_types[field] == 'dict':
                     if not isinstance(data[field], dict):
-                        message = 'required field %s provided, but value is not of type %s.' % (field, field_types[field])
+                        message = 'Required field %s provided, but value is not of type %s.' % (field, field_types[field])
                         raise Exception(message)
                 elif field_types[field] == 'float':
                     if not isinstance(data[field], float):
-                        message = 'required field %s provided, but value is not of type %s.' % (field, field_types[field])
+                        message = 'Required field %s provided, but value is not of type %s.' % (field, field_types[field])
                         raise Exception(message)
                 elif field_types[field] == 'list' or \
                      field_types[field] == 'intlist' or field_types[field] == 'floatlist':
                     if not isinstance(data[field], list):
-                        #print '\n Field (list) data[%s]: %s' % (field, data[field])
-                        message = 'required field %s provided, but value is not of type %s.' % (field, field_types[field])
+                        message = 'Required field %s provided, but value is not of type %s.' % (field, field_types[field])
                         raise Exception(message)
                 elif field_types[field] == 'bool':
                     if not isinstance(data[field], bool):
-                        #print '\n Field (list) data[%s]: %s' % (field, data[field])
-                        message = 'required field %s provided, but value is not of type %s.' % (field, field_types[field])
+                        message = 'Required field %s provided, but value is not of type %s.' % (field, field_types[field])
                         raise Exception(message)
                 else:
-                    message = 'required field %s provided, but value is undefined type %s.' % (field, field_types[field])
+                    message = 'Required field %s provided, but value is undefined type %s.' % (field, field_types[field])
                     raise Exception(message)
 
         # Determine if 'extra' fields are being provided in the data, if so, report in log.
         extra_fields = []
-        if debug:
-            print '\n Number_of_data_fields: ', number_of_data_fields
-            print '\n number_of_required_fields: ', number_of_required_fields
         if number_of_data_fields != number_of_required_fields:
             data_fields = data.keys()
             for field in data_fields:
                 if field not in required_fields:
                     if field not in extra_fields:
                         extra_fields.append(field)
-
         if extra_fields:
-            if debug: print '\n data contains extra fields: ',  extra_fields
-            message = 'data contains extra fields %s, ' % extra_fields
+            message = 'Data contains extra fields %s, ' % extra_fields
             message += 'correct and re-submit request to validate fields for %s %s asset request.' % \
                        (action.upper(), asset_type)
             raise Exception(message)
 
-        if debug: print '\n Done with validation of required fields.'
         return
 
     except Exception as err:
-        if debug: print '\n Exception processing required fields: %s' % str(err)
         message = str(err)
         raise Exception(message)
 
@@ -118,12 +102,8 @@ def validate_required_fields_are_provided(asset_type, data, action=None):
 def verify_inputs(asset_type, data, action):
     """ Simple error checking for input data.
     """
-    debug = False
     valid_actions = ['create', 'update']
     try:
-        if debug:
-            print '\n ***************** Processing %s asset type.' % asset_type
-
         if not action:
             message = 'Invalid action (empty) provided, use either \'create\' or \'update\'.'
             raise Exception(message)
@@ -139,9 +119,6 @@ def verify_inputs(asset_type, data, action):
         if not asset_type:
             message = 'Field validation requires asset_type to be provided, not empty.'
             raise Exception(message)
-        if debug:
-            print '\n validate required fields: \nasset_type: %s\naction: %s' % (asset_type, action)
-            print '\n data: ', data
 
         # Verify action for which we are validating the field (create or update).
         actions = ['create', 'update']
@@ -157,34 +134,17 @@ def verify_inputs(asset_type, data, action):
             message = 'Valid asset type is required to validate asset fields. Invalid value: %s' % asset_type
             raise Exception(message)
     except Exception as err:
-        if debug: print '\n Exception processing required fields: %s' % str(err)
         message = str(err)
         raise Exception(message)
 
 
 def asset_ui_get_required_fields_and_types(asset_type, action):
     """ Get required fields and field types for asset_type being processed.
-
-
-    Asset types: notClassified, Mooring, Node, Sensor, Array
-    asset_types = ['Mooring', 'Node', 'Sensor', 'notClassified', 'Array']
-
-    Asset Data structures: base, mooring, node, sensor, array
-
-    Asset       assetType       Defined by @class
-    base        notClassified   "@class" : ".XAsset"
-    mooring     Mooring         "@class" : ".XMooring"
-    node        Node            "@class" : ".XNode"
-    sensor      Sensor          "@class" : ".XInstrument"
-    array       Array           "@class" : ".XAsset"
-
     """
-    debug = False
     required_fields = []
     field_types = {}
     valid_actions = ['create', 'update']
     try:
-        if debug: print '\n debug -- entering asset_ui_get_required_fields_and_types...'
         # Check parameters.
         if not action:
             message = 'Invalid action (empty) provided, use either \'create\' or \'update\'.'
@@ -194,22 +154,17 @@ def asset_ui_get_required_fields_and_types(asset_type, action):
             raise Exception(message)
         if not asset_type:
             message = 'Asset type %s is required to get asset required fields and types for ui.' % asset_type
-            if debug: print '\n Error -- ', message
             raise Exception(message)
         if asset_type not in get_asset_types():
             message ='Asset type %s is required to get asset required fields and types for ui.' % asset_type
-            if debug: print '\n Error -- ', message
             raise Exception(message)
 
         # Set base required fields
         base_required_fields = get_base_required_fields()
         base_required_field_types = get_base_required_field_types()
-
-        if debug: print '\n Getting required fields for asset type %s, action: %s.' % (asset_type, action)
         if asset_type in ['notClassified', 'Mooring', 'Node', 'Array']:
             required_fields = base_required_fields
             field_types = base_required_field_types
-
         elif asset_type == 'Sensor':
             required_fields = base_required_fields
             field_types = base_required_field_types
@@ -217,9 +172,8 @@ def asset_ui_get_required_fields_and_types(asset_type, action):
             #field_types['calibration'] = 'list'
 
         if required_fields and field_types:
-            update_additional_fields = ['id', 'uid', 'lastModifiedTimestamp']
+            # Note additional fields: 'id', 'uid', 'lastModifiedTimestamp'
             if action == 'update':
-                #required_fields += update_additional_fields
                 if 'id' not in required_fields:
                     required_fields.append('id')
                 if 'id' not in field_types:
@@ -232,18 +186,8 @@ def asset_ui_get_required_fields_and_types(asset_type, action):
                     required_fields.append('lastModifiedTimestamp')
                 if 'lastModifiedTimestamp' not in field_types:
                     field_types['lastModifiedTimestamp'] = 'long'
-                """
-                if 'assetId' not in field_types:
-                    field_types['assetId'] = 'int'
-
-                """
-
             required_fields.sort()
-            if debug:
-                print '\n Asset type %s has required fields for ui(%d): %s' % \
-                      (asset_type, len(required_fields), required_fields)
-                print '\n Leaving validation; have required_fields and field_types.'
-                print '\n debug -- leaving asset_ui_get_required_fields_and_types...'
+
         else:
             message = 'Asset type %s does not have required fields for ui %s (%d): %s' % \
                       (asset_type, action, len(required_fields), required_fields)
@@ -252,9 +196,6 @@ def asset_ui_get_required_fields_and_types(asset_type, action):
 
     except Exception as err:
         message = str(err)
-        if debug:
-            print '\n Exception processing required fields for asset type %s, action %s.\n%s' % \
-                  (asset_type, action, message)
         raise Exception(message)
 
 
@@ -463,7 +404,6 @@ def asset_get_required_fields_and_types_uframe(asset_type, action):
     field_types = {}
     valid_actions = ['create', 'update']
     try:
-        if debug: print '\n debug -- asset_get_required_fields_and_types_uframe...'
         if not action:
             message = 'Invalid action (empty) provided, use either \'create\' or \'update\'.'
             raise Exception(message)
@@ -472,11 +412,9 @@ def asset_get_required_fields_and_types_uframe(asset_type, action):
             raise Exception(message)
         if not asset_type:
             message ='Asset type %s is required to get asset required fields and types for uframe.' % asset_type
-            print '\n Error -- ', message
             raise Exception(message)
         if asset_type not in get_asset_types():
             message ='Asset type %s is required to get asset required fields and types for uframe.' % asset_type
-            print '\n Error -- ', message
             raise Exception(message)
 
         base_required_fields = get_base_required_fields_uframe()
@@ -504,11 +442,6 @@ def asset_get_required_fields_and_types_uframe(asset_type, action):
                 if 'lastModifiedTimestamp' not in field_types:
                     field_types['lastModifiedTimestamp'] = 'int'
             required_fields.sort()
-            if debug:
-                print '\n Asset type %s has required fields for uframe(%d): %s' % \
-                      (asset_type, len(required_fields), required_fields)
-                print '\n Leaving validation; have required_fields and field_types.'
-                print '\n debug -- leaving asset_get_required_fields_and_types_uframe...'
         else:
             message = 'Asset type %s does not have required fields for uframe %s (%d): %s' % \
                       (asset_type, action, len(required_fields), required_fields)
@@ -518,9 +451,6 @@ def asset_get_required_fields_and_types_uframe(asset_type, action):
 
     except Exception as err:
         message = str(err)
-        if debug:
-            print '\n Exception processing required fields for asset type %s, action %s.\n%s' % \
-                  (asset_type, action, message)
         raise Exception(message)
 
 
@@ -528,291 +458,40 @@ def convert_required_fields(asset_type, data, action=None):
     """ Verify for the asset_type and action, the required fields have been provided in the input data.
     asset_types = ['Mooring', 'Node', 'Sensor', 'notClassified', 'Array']
     """
-    converted_data = data.copy()
     debug = False
     try:
-        if debug: print '\n =========== Converting asset of %s asset type, action: %s' % (asset_type, action)
-
         # Fields required (from UI) for uframe create event.
         verify_inputs(asset_type, data, action)
         required_fields, field_types = asset_ui_get_required_fields_and_types(asset_type, action)
         if not required_fields:
             message = 'Asset type %s action %s requires specific fields.' % (asset_type, action)
-            if debug: print '\n exception: ', message
             raise Exception(message)
         if not field_types:
             message = 'Asset type %s action %s requires specific field types.' % (asset_type, action)
-            if debug: print '\n exception: ', message
             raise Exception(message)
+
+        converted_data = convert_ui_data(data, required_fields, field_types)
 
         # Verify required fields are present in the data and each field has input data of correct type.
-        number_of_required_fields = len(required_fields)
-        data_fields = data.keys()
-        number_of_data_fields = len(data_fields)
-        # Processing all fields and type versus value.
         for field in required_fields:
-
-            if not field:
-                if debug: print '\n ***** Null or empty field provided in required_fields.'
-            if debug: print '\n  ----- Converting field: ', field
-
-            # Verify field is provided in data
-            if field not in data:
-                message = 'required field %s not provided in data.' % field
-                raise Exception(message)
-
-            # Verify field type is provided in defined field_types.
-            if field not in field_types:
-                message = 'required field %s does not have a defined field type value.' % field
-                raise Exception(message)
-
-            # Verify field value in data is of expected type.
-            if data[field] is not None:
-
-                # 'string' or 'unicode'
-                if field_types[field] == 'string':
-                    if not isinstance(data[field], str) and not isinstance(data[field], unicode):
-                        message = 'required field %s provided, but value is not of type %s.' % (field, field_types[field])
-                        raise Exception(message)
-
-                # 'int'
-                elif field_types[field] == 'int':
-                    try:
-                        if debug: print '\n convert to int: %r' % data[field]
-                        if data[field] and len(data[field]) > 0:
-                            tmp = int(data[field])
-                            if debug: print '\n int tmp: %r' % tmp
-                        else:
-                            tmp = None
-                    except:
-                        message = 'required field %s provided, but type conversion error (type %s).' % (field, field_types[field])
-                        raise Exception(message)
-                    converted_data[field] = tmp
-                    if not isinstance(converted_data[field], int):
-                        message = 'required field %s provided, but value is not of type %s.' % (field, field_types[field])
-                        raise Exception(message)
-
-                # 'long'
-                elif field_types[field] == 'long':
-                    try:
-                        if debug: print '\n convert %s to long: %r' % (field, data[field])
-                        if data[field] and len(data[field]) > 0:
-                            value = str(data[field])
-                            tmp = long(value)
-                            if debug: print '\n long tmp: %r' % tmp
-                        else:
-                            tmp = None
-                    except:
-                        message = 'required field %s provided, but type conversion error (type %s).' % (field, field_types[field])
-                        raise Exception(message)
-                    converted_data[field] = tmp
-                    if tmp is not None:
-                        if not isinstance(converted_data[field], long):
-                            message = 'required field %s provided, but value is not of type %s.' % (field, field_types[field])
-                            raise Exception(message)
-
-                # 'float'
-                elif field_types[field] == 'float':
-                    try:
-                        if data[field] and len(data[field]) > 0:
-                            tmp = float(data[field])
-                            converted_data[field] = tmp
-                            if not isinstance(converted_data[field], float):
-                                message = 'required field %s provided, but value is not of type %s.' % (field, field_types[field])
-                                raise Exception(message)
-                        else:
-                            converted_data[field] = None
-                    except:
-                        message = 'required field %s provided, but type conversion error (type %s).' % (field, field_types[field])
-                        raise Exception(message)
-
-                # 'bool'
-                elif field_types[field] == 'bool':
-                    try:
-                        if debug: print '\n convert to bool: %r' % data[field]
-                        value = str(data[field])
-                        if debug: print '\n value: %r' % value
-                        if not value:
-                            message = 'Boolean value provided is empty; unable to convert asset field %s' % field
-                            raise Exception(message)
-
-                        if value.lower() == 'true':
-                            converted_data[field] = True
-                        else:
-                            converted_data[field] = False
-                        if debug: print '\n converted_data[%s]: %r' % (field, converted_data[field])
-                    except Exception as err:
-                        message = str(err)
-                        raise Exception(message)
-
-                    if not isinstance(converted_data[field], bool):
-                        if debug: print '\n Field (list) data[%s]: %r' % (field, data[field])
-                        message = 'required field %s provided, but value is not of type %s.' % (field, field_types[field])
-                        raise Exception(message)
-
-                # 'dict'
-                elif field_types[field] == 'dict':
-                    if field == 'manufactureInfo':
-                        convert_manufactureInfo_fields(converted_data)
-                    elif field == 'purchaseAndDeliveryInfo':
-                        convert_purchaseAndDeliveryInfo_fields(converted_data)
-                    elif field == 'physicalInfo':
-                        convert_physicalInfo_fields(converted_data)
-                    elif field == 'assetInfo':
-                        convert_assetInfo_fields(converted_data)
-                    elif field == 'partData':
-                        continue
-                    else:
-                        message = 'Unknown asset dict %s to convert: ' % field
-                        raise Exception(message)
-                    """
-                    if not isinstance(data[field], dict):
-                        message = 'required field %s provided, but value is not of type %s.' % (field, field_types[field])
-                        raise Exception(message)
-                    """
-                    #continue
-
-                # 'list'
-                elif field_types[field] == 'list':
-                    try:
-                        #if debug: print '\n convert to list: %r' % data[field]
-
-                        tmp = data[field].strip()
-                        if len(tmp) < 2:
-                            message = 'Invalid value (%s) for list.' % data[field]
-                            #print '\n exception: ', message
-                            raise Exception(message)
-                        if len(tmp) == 2:
-                            if '[' in data[field] and ']' in data[field]:
-                                tmp = []
-                        else:
-                            if '[' in data[field]:
-                                tmp = tmp.replace('[', '')
-                            if ']' in data[field]:
-                                tmp = tmp.replace(']', '')
-                            tmp = tmp.strip()
-                            if ',' not in tmp:
-                                tmp = [int(tmp)]
-                            elif ',' in tmp:
-                                subs = tmp.split(',')
-                                if debug: print '\n subs(%d): %r' % (len(subs), subs)
-                                newtmp = []
-                                for sub in subs:
-                                    sub = sub.strip()
-                                    if sub:
-                                        if '.' in sub:
-                                            #if debug: print '\n convert %r to float...' % sub
-                                            val = float(sub)
-                                            if debug: print '\n val: %r' % val
-                                            newtmp.append(val)
-                                        else:
-                                            #if debug: print '\n convert %r to int...' % sub
-                                            val = int(sub)
-                                            if debug: print '\n val: %r' % val
-                                            newtmp.append(val)
-
-                                if debug: print '\n subs: newtmp: ', newtmp
-                                tmp = newtmp
-
-                        #if debug: print '\n list converted: %r ' % tmp
-                    except:
-                        message = 'required field %s provided, but type conversion error (type %s).' % (field, field_types[field])
-                        raise Exception(message)
-
-                    if not isinstance(tmp, list):
-                        #print '\n Field (list) data[%s]: %s' % (field, data[field])
-                        message = 'required field %s provided, but value is not of type %s.' % (field, field_types[field])
-                        raise Exception(message)
-                    converted_data[field] = tmp
-
-                # 'intlist' or 'floatlist'
-                elif field_types[field] == 'intlist' or field_types[field] == 'floatlist':
-                    try:
-                        if debug: print '\n convert to list of ints or floats: %r' % data[field]
-                        tmp = data[field].strip()
-                        if len(tmp) < 2:
-                            message = 'Invalid input value (%s) for list.' % data[field]
-                            if debug: print '\n exception: ', message
-                            raise Exception(message)
-                        if len(tmp) == 2:
-                            if '[' in data[field] and ']' in data[field]:
-                                tmp = []
-                        else:
-                            if '[' in data[field]:
-                                tmp = tmp.replace('[', '')
-                            if ']' in data[field]:
-                                tmp = tmp.replace(']', '')
-                            tmp = tmp.strip()
-                            if ',' not in tmp:
-                                if field_types[field] == 'floatlist':
-                                    tmp = [float(tmp)]
-                                else:
-                                    tmp = [int(tmp)]
-                            elif ',' in tmp:
-                                subs = tmp.split(',')
-                                if debug: print '\n subs(%d): %r' % (len(subs), subs)
-                                newtmp = []
-                                for sub in subs:
-                                    if debug: print '\n debug type(sub): ', type(sub)
-                                    if not isinstance(sub, float) and not isinstance(sub, float):
-                                        if isinstance(sub, str) or isinstance(sub, unicode):
-                                            sub = sub.strip()
-                                            if sub:
-                                                if field_types[field] == 'floatlist':
-                                                    if not isinstance(sub, float):
-                                                        if debug: print '\n convert %r to float...' % sub
-                                                        val = float(sub)
-                                                        if debug: print '\n val: %r' % val
-                                                        newtmp.append(val)
-                                                else:
-                                                    if not isinstance(sub, int):
-                                                        if debug: print '\n convert %r to int...' % sub
-                                                        val = int(sub)
-                                                        if debug: print '\n val: %r' % val
-                                                        newtmp.append(val)
-                                        if debug: print '\n subs: newtmp: ', newtmp
-                                        tmp = newtmp
-
-                        if debug: print '\n list converted: %r ' % tmp
-                    except:
-                        message = 'required field %s provided, but type conversion error (type %s).' % (field, field_types[field])
-                        raise Exception(message)
-
-                    if not isinstance(tmp, list):
-                        #print '\n Field (list) data[%s]: %s' % (field, data[field])
-                        message = 'required field %s provided, but value is not of type %s.' % (field, field_types[field])
-                        raise Exception(message)
-                    converted_data[field] = tmp
+            if field_types[field] == 'dict':
+                if field == 'manufactureInfo':
+                    convert_manufactureInfo_fields(converted_data)
+                elif field == 'purchaseAndDeliveryInfo':
+                    convert_purchaseAndDeliveryInfo_fields(converted_data)
+                elif field == 'physicalInfo':
+                    convert_physicalInfo_fields(converted_data)
+                elif field == 'assetInfo':
+                    convert_assetInfo_fields(converted_data)
+                elif field == 'partData':
+                    continue
                 else:
-                    message = 'required field %s provided, but value is undefined type %s.' % (field, field_types[field])
+                    message = 'Unknown asset dict %s to convert: ' % field
                     raise Exception(message)
 
-        """
-        # Determine if 'extra' fields are being provided in the data, if so, report in log.
-        extra_fields = []
-        if debug:
-            print '\n Number_of_data_fields: ', number_of_data_fields
-            print '\n number_of_required_fields: ', number_of_required_fields
-        if number_of_data_fields != number_of_required_fields:
-            data_fields = data.keys()
-            for field in data_fields:
-                if field not in required_fields:
-                    if field not in extra_fields:
-                        extra_fields.append(field)
-
-        if extra_fields:
-            if debug: print '\n data contains extra fields: ',  extra_fields
-            message = 'data contains extra fields %s, ' % extra_fields
-            message += 'correct and re-submit request to validate fields for %s %s event request.' % \
-                       (action.upper(), asset_type)
-            raise Exception(message)
-        """
-
-        if debug: print '\n debug -- Completed asset converting_required_fields....\n'
         return converted_data
 
     except Exception as err:
-        if debug: print '\n Exception processing required fields: %s' % str(err)
         message = str(err)
         raise Exception(message)
 
