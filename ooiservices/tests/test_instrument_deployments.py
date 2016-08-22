@@ -14,12 +14,15 @@ from ooiservices.app.models import InstrumentDeployment, PlatformDeployment, Ins
 from ooiservices.app.models import User, UserScope
 import datetime as dt
 import json
+from unittest import skipIf
+import os
 
 '''
 These tests are additional to the normal testing performed by coverage; each of
 these tests are to validate model logic outside of db management.
 
 '''
+@skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
 class UserTestCase(unittest.TestCase):
     def setUp(self):
         self.app = create_app('TESTING_CONFIG')
