@@ -10,6 +10,8 @@ from flask import url_for
 from ooiservices.app import create_app, db
 from ooiservices.app.models import Array, InstrumentDeployment, PlatformDeployment, Stream, StreamParameter
 from ooiservices.app.models import Organization
+import os
+from unittest import skipIf
 import json
 '''
 These tests verify the functioning of the api list.
@@ -43,6 +45,7 @@ class TOCTestCase(unittest.TestCase):
         response = self.client.get(url_for('main.get_array',id='CE'), content_type='application/json')
         self.assertTrue(response.status_code == 200)
 
+    @skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
     def test_platform_deployment(self):
         #Create a sample data set.
         #TODO : This will be replaced by an endpoint
