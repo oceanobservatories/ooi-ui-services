@@ -14,6 +14,7 @@ import requests.adapters
 import requests.exceptions
 from requests.exceptions import ConnectionError, Timeout
 from requests.utils import quote, unquote
+import urllib2
 
 
 requests.adapters.DEFAULT_RETRIES = 2
@@ -65,6 +66,28 @@ def get_data():
             uframe_url, timeout, timeout_read = get_uframe_info()
             user_url = "/".join([current_app.config['UFRAME_URL'], current_app.config[data_types[request.args.get('data_type', '')]], user_request])
             r = requests.get(user_url, timeout=(timeout, timeout_read))
+            try:
+                # Form the Google Analytics request
+                user_request_list = user_request.split('/')
+                ga_data_string = '-'.join(
+                    [
+                        user_request_list[0],
+                        user_request_list[1],
+                        user_request_list[2],
+                        user_request_list[3],
+                        user_request_list[4].split('?')[0],
+                    ]
+                )
+                ga_time_string = '-'.join(
+                    [
+                        user_request_list[4].split('beginDT=')[1].split('&')[0],
+                        user_request_list[4].split('endDT=')[1].split('&')[0]
+                    ]
+                )
+                ga_url = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=m2m&ea=%s&el=%s' % (ga_data_string, ga_time_string)
+                urllib2.urlopen(ga_url)
+            except KeyError:
+                pass
             return r.text, r.status_code
         except ConnectionError:
             message = 'ConnectionError for get uframe contents.'
