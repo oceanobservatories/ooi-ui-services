@@ -32,12 +32,12 @@ COMMON: &common
     UFRAME_VOCAB_URL:        'http://localhost:12586'
     UFRAME_DEPLOYMENTS_URL:  'http://localhost:12587'
 
-    UFRAME_MISSIONS_BASE:   '/missions'c
-    UFRAME_ANNOTATION_BASE: '/annotations'c
-    UFRAME_URL_BASE:        '/sensor/inv'c
-    UFRAME_TOC:             '/sensor/inv/toc'c
-    UFRAME_INST_BASE:       '/instrument/api'c
-    UFRAME_PLAT_BASE:       '/platform/api'c
+    UFRAME_MISSIONS_BASE:   '/missions'
+    UFRAME_ANNOTATION_BASE: '/annotations'
+    UFRAME_URL_BASE:        '/sensor/inv'
+    UFRAME_TOC:             '/sensor/inv/toc'
+    UFRAME_INST_BASE:       '/instrument/api'
+    UFRAME_PLAT_BASE:       '/platform/api'
     UFRAME_ASSETS:           'asset'
     UFRAME_EVENTS:           'events'
     UFRAME_DEPLOYMENTS:      'events/deployment'
