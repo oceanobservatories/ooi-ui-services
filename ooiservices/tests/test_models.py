@@ -35,33 +35,33 @@ class ModelTestCase(unittest.TestCase):
     def test_array(self):
         #Test the json in the object
         array = Array()
-        self.assertTrue(array.to_json() == {'id': None, 'array_code': None, \
-        'array_name': None, 'description': None, 'display_name': None, \
-        'geo_location': None})
+        self.assertTrue(array.to_json() == {'id': None, 'array_code': None,
+                                            'array_name': None, 'description': None, 'display_name': None,
+                                            'geo_location': None})
 
     def test_platform_deployment(self):
         #Test the json in the object
         platform_deployment = PlatformDeployment()
-        self.assertTrue(platform_deployment.to_json() == {'id': None, \
-        'array_id': None, 'display_name': None, 'end_date': None, \
-        'geo_location': None, 'reference_designator': None, 'start_date': None})
+        self.assertTrue(platform_deployment.to_json() == {'id': None,
+                                                            'array_id': None, 'display_name': None,
+                                                            'end_date': None, 'geo_location': None,
+                                                            'reference_designator': None, 'start_date': None})
 
     def test_instrument_deployment(self):
         #Test the json in the object
         instrument_deployment = InstrumentDeployment()
         should_be = {
-            'id' :None,
+            'id': None,
             'depth': None,
-            'display_name' : None,
-            'end_date' : None,
+            'display_name': None,
+            'end_date': None,
             'geo_location': None,
-            'platform_deployment_id' : None,
-            'reference_designator' : None,
-            'start_date' : None
+            'platform_deployment_id': None,
+            'reference_designator': None,
+            'start_date': None
         }
         self.assertEquals(instrument_deployment.to_json() , should_be)
 
-    @skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
     def test_stream(self):
         #Test the json in the object
         stream = Stream()
@@ -72,9 +72,9 @@ class ModelTestCase(unittest.TestCase):
     def test_parameter(self):
         #Test the json in the object
         stream_param = StreamParameter()
-        self.assertTrue(stream_param.to_json() == {'id': None, 'data_type': None, \
-        'long_name': None, 'parameter_name': None, 'short_name': None, \
-        'standard_name': None, 'units': None})
+        self.assertTrue(stream_param.to_json() == {'id': None, 'data_type': None,
+                                                   'long_name': None, 'parameter_name': None,
+                                                   'short_name': None, 'standard_name': None, 'units': None})
 
     def test_user(self):
         #Test the json in the object
@@ -85,12 +85,12 @@ class ModelTestCase(unittest.TestCase):
             'user_id': None,
             'active':None,
             'first_name': None,
-            'last_name' : None,
-            'organization_id' : None,
-            'phone_alternate' : None,
-            'phone_primary' : None,
-            'scopes' : [],
-            'role' : None,
+            'last_name': None,
+            'organization_id': None,
+            'phone_alternate': None,
+            'phone_primary': None,
+            'scopes': [],
+            'role': None,
             'user_name': None,
             'email_opt_in': None,
             'other_organization' : None,
@@ -112,5 +112,5 @@ class ModelTestCase(unittest.TestCase):
         platform_deployment.geo_location = 'POINT(-70 40)'
         db.session.add(platform_deployment)
         db.session.commit()
-        pd = PlatformDeployment.query.filter(PlatformDeployment.reference_designator=='TEST0000').first()
+        pd = PlatformDeployment.query.filter(PlatformDeployment.reference_designator == 'TEST0000').first()
         self.assertEquals(pd.geojson, {'coordinates': [-70, 40], 'type': 'Point'})
