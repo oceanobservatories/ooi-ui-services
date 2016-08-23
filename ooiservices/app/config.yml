@@ -29,13 +29,19 @@ COMMON: &common
     UFRAME_ANTELOPE_URL:    'http://localhost:12582/data/list/antelope/'
     UFRAME_MISSIONS_URL:    'http://localhost:8000'
     UFRAME_SUBSCRIBE_URL:   'http://localhost:12585'
+    UFRAME_VOCAB_URL:        'http://localhost:12586'
+    UFRAME_DEPLOYMENTS_URL:  'http://localhost:12587'
+
     UFRAME_MISSIONS_BASE:   '/missions'
     UFRAME_ANNOTATION_BASE: '/annotations'
     UFRAME_URL_BASE:        '/sensor/inv'
     UFRAME_TOC:             '/sensor/inv/toc'
     UFRAME_INST_BASE:       '/instrument/api'
     UFRAME_PLAT_BASE:       '/platform/api'
-    UFRAME_VOCAB_URL:        'http://localhost:12586'
+    UFRAME_ASSETS:           'asset'
+    UFRAME_EVENTS:           'events'
+    UFRAME_DEPLOYMENTS:      'events/deployment'
+    UFRAME_CRUISES:          'events/cruise'
       #Values may be changed to work with uFrame performance. increase Data_Points for higher resolution plotting
     UFRAME_TIMEOUT_CONNECT: 5
     UFRAME_TIMEOUT_READ: 30

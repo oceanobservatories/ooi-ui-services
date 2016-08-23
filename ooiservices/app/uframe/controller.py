@@ -3,20 +3,16 @@
 uframe endpoints
 '''
 # base
-from flask import jsonify, request, current_app, make_response, Response, send_file
+from flask import jsonify, request, current_app, make_response, send_file
 from ooiservices.app import cache, db
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.models import DisabledStreams
-from ooiservices.app.uframe.vocab import get_display_name_by_rd, get_long_display_name_by_rd
+from ooiservices.app.main.authentication import auth
+from ooiservices.app.main.errors import (internal_server_error, bad_request)
 from ooiservices.app.uframe.vocab import get_parameter_name_by_parameter as get_param_names
 from ooiservices.app.uframe.vocab import get_stream_name_by_stream as get_stream_name
-from ooiservices.app.main.authentication import auth
-from ooiservices.app.main.errors import internal_server_error, bad_request
-# data imports
-from ooiservices.app.uframe.data import get_data, get_simple_data, find_parameter_ids, get_multistream_data
-from ooiservices.app.uframe.plotting import generate_plot
-from ooiservices.app.uframe.assetController import get_events_by_ref_des
-# from ooiservices.app.uframe.events import get_events
+from ooiservices.app.uframe.vocab import (get_display_name_by_rd, get_long_display_name_by_rd,
+                                          get_rs_array_display_name_by_rd)
 
 from urllib import urlencode
 from datetime import datetime

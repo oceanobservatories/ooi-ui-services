@@ -21,7 +21,7 @@ from ooiservices.app.uframe.controller import _compile_cam_images
 from ooiservices.app.uframe.controller import _compile_large_format_files
 from ooiservices.app.main.c2 import _compile_c2_toc
 from ooiservices.app.uframe.vocab import compile_vocab
-from ooiservices.app.uframe.assets import verify_cache
+from ooiservices.app.uframe.asset_tools import verify_cache
 
 """
 Define the list of processes to run on a scheduled basis.
