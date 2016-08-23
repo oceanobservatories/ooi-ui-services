@@ -16,6 +16,8 @@ import json, smtplib, string
 import datetime as dt
 import pycountry
 from operator import itemgetter
+import string
+import random
 
 @api.route('/user/<int:id>', methods=['GET'])
 @auth.login_required
@@ -42,6 +44,8 @@ def put_user(id):
     vocation = data.get('vocation')
     country = data.get('country')
     state = data.get('state')
+    api_user_name = data.get('api_user_name')
+    api_user_token = data.get('api_user_token')
     changed = False
     if first_name is not None:
         user_account.first_name = first_name
@@ -67,11 +71,18 @@ def put_user(id):
     if state is not None:
         user_account.state = state
         changed = True
+    if api_user_name is not None:
+        user_account.api_user_name = api_user_name
+        changed = True
+    if api_user_token is not None:
+        user_account.api_user_token = api_user_token
+        changed = True
+        current_app.logger.info('User %s API token changed to %s by %s'%(user_name, user_account.api_user_token, g.current_user))
     if scopes is not None:
         valid_scopes = UserScope.query.filter(UserScope.scope_name.in_(scopes)).all()
         user_account.scopes = valid_scopes
         changed = True
-        current_app.logger.info('User %s scope(s) changed to %s'%(user_name, user_account.scopes))
+        current_app.logger.info('User %s scope(s) changed to %s by %s'%(user_name, user_account.scopes, g.current_user))
 
     if active is not None:
         user_account.active = bool(active)
@@ -103,6 +114,11 @@ def send_activate_email(to):
 
     except:
         print "error sending mail"
+
+
+def id_generator(size=14, chars=string.ascii_uppercase + string.digits):
+    return ''.join(random.choice(chars) for _ in range(size))
+
 
 @api.route('/user_scopes')
 @auth.login_required
@@ -146,6 +162,8 @@ def create_user():
         new_user = User.from_json(data)
         new_user.scopes = valid_scopes
         new_user.active = True
+        new_user.api_user_name = 'OOIAPI-'+id_generator()
+        new_user.api_user_token = 'TEMP-TOKEN-'+id_generator()
         db.session.add(new_user)
         db.session.commit()
     except Exception as e:

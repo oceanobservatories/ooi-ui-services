@@ -207,7 +207,7 @@ def deploy(password, production, psqluser):
     if not os.getenv('TRAVIS'):
         UserScope.insert_scopes()
         app.logger.info('Insert default user, name: admin')
-        User.insert_user(password=password)
+        User.insert_user(password=password,api_user_name='api_user_name',api_user_token='api_user_token')
         admin = User.query.first()
         admin.scopes.append(UserScope.query.filter_by(scope_name='user_admin').first())
         admin.scopes.append(UserScope.query.filter_by(scope_name='sys_admin').first())
@@ -227,7 +227,9 @@ def deploy(password, production, psqluser):
 @manager.option('-al', '--last_name', required=False)
 @manager.option('-ae', '--email', required=False)
 @manager.option('-ao', '--org_name', required=False)
-def rebuild_schema(schema, schema_owner, save_users, save_disabled_streams, admin_username, admin_password, first_name, last_name, email, org_name):
+@manager.option('-in', '--api_user_name', required=False)
+@manager.option('-it', '--api_user_token', required=False)
+def rebuild_schema(schema, schema_owner, save_users, save_disabled_streams, admin_username, admin_password, first_name, last_name, email, org_name, api_user_name, api_user_token):
     """
     Creates the OOI UI Services schema based on models.py
     :usage: python manage.py rebuild_schema --schema ooiui --schema_owner postgres --save_users False --save_disabled_streams True --admin_username admin --admin_password password --first_name Default --last_name Admin --email defaultadmin@ooi.rutgers.edu --org_name Rutgers
@@ -311,6 +313,8 @@ def rebuild_schema(schema, schema_owner, save_users, save_disabled_streams, admi
                 new_user.vocation = getattr(sresult, 'vocation', '')
                 new_user.country = getattr(sresult, 'country', '')
                 new_user.state = getattr(sresult, 'state', '')
+                new_user.api_user_name = getattr(sresult, 'api_user_name', '')
+                new_user.api_user_token = getattr(sresult, 'api_user_token', '')
                 db.session.add(new_user)
                 db.engine.execute("SELECT nextval('ooiui.users_id_seq')")
                 db.session.commit()
@@ -368,7 +372,19 @@ def rebuild_schema(schema, schema_owner, save_users, save_disabled_streams, admi
         if org_name is None:
             app.logger.info('Admin org_name set to: Rutgers')
             org_name = 'Rutgers'
-        add_admin_user(username=admin_username, password=admin_password, first_name=first_name, last_name=last_name, email=email, org_name=org_name)
+        if api_user_name is None:
+            api_user_name = 'OOIAPI-ADMIN'
+        if api_user_token is None:
+            api_user_token = 'ADMINTOKEN'
+        add_admin_user(
+            username=admin_username,
+            password=admin_password,
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            org_name=org_name,
+            api_user_name=api_user_name,
+            api_user_token=api_user_token)
 
 
 @manager.option('-u', '--username', required=True)
@@ -377,7 +393,9 @@ def rebuild_schema(schema, schema_owner, save_users, save_disabled_streams, admi
 @manager.option('-l', '--last_name', required=True)
 @manager.option('-e', '--email', required=True)
 @manager.option('-o', '--org_name', required=True)
-def add_admin_user(username, password, first_name, last_name, email, org_name):
+@manager.option('-in', '--api_user_name', required=False)
+@manager.option('-it', '--api_user_token', required=False)
+def add_admin_user(username, password, first_name, last_name, email, org_name, api_user_name, api_user_token):
     '''
     Creates a 'user_admin' scoped user using the supplied username and password
     :param username:
@@ -385,7 +403,7 @@ def add_admin_user(username, password, first_name, last_name, email, org_name):
     :return:
     '''
     app.logger.info('Insert user_name: %s' % username)
-    User.insert_user(username=username, password=password, first_name=first_name, last_name=last_name, email=email, org_name=org_name)
+    User.insert_user(username=username, password=password, first_name=first_name, last_name=last_name, email=email, org_name=org_name, api_user_name=api_user_name, api_user_token=api_user_token)
     admin = User.query.filter_by(user_name=username).first()
     admin.scopes.append(UserScope.query.filter_by(scope_name='user_admin').first())
     admin.scopes.append(UserScope.query.filter_by(scope_name='sys_admin').first())

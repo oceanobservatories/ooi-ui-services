@@ -65,8 +65,9 @@ class ModelTestCase(unittest.TestCase):
     def test_stream(self):
         #Test the json in the object
         stream = Stream()
-        self.assertTrue(stream.to_json() == {'id': None, 'description': None, \
-        'instrument_id': None, 'stream_name': None})
+        self.assertTrue(stream.to_json() == {'id': None, 'stream': None, \
+        'delivery_method': None, 'data_type': None, 'content': None, \
+        'stream_description': None, 'concatenated_name': None})
 
     def test_parameter(self):
         #Test the json in the object
@@ -95,7 +96,9 @@ class ModelTestCase(unittest.TestCase):
             'other_organization' : None,
             'vocation' : None,
             'country' : None,
-            'state' : None
+            'state' : None,
+            'api_user_name' : None,
+            'api_user_token' : None
             })
 
     def test_operator_event_type(self):

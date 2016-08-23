@@ -7,15 +7,22 @@ from flask import jsonify, request, current_app
 from ooiservices.app.m2m import m2m as api
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.main.errors import internal_server_error
-# data imports
-from ooiservices.app.uframe.data import get_data
+from ooiservices.app.models import User
 
 import requests
+import requests.adapters
+import requests.exceptions
+from requests.exceptions import ConnectionError, Timeout
+from requests.utils import quote, unquote
 import urllib2
 
 
 requests.adapters.DEFAULT_RETRIES = 2
 CACHE_TIMEOUT = 86400
+
+data_types = {}
+data_types['sensor_inv'] = 'UFRAME_URL_BASE'
+data_types['sensor_inv_toc'] = 'UFRAME_TOC'
 
 
 @api.route('/get_metadata/<string:ref>', methods=['GET'])
@@ -48,44 +55,51 @@ def get_uframe_info():
     timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
     return uframe_url, timeout, timeout_read
 
+
 @auth.login_required
-@api.route('/get_data/<string:ref>/<string:method>/<string:stream>/<string:start_time>/<string:end_time>', methods=['GET'])
-def get_data(ref, method, stream, start_time, end_time):
+@api.route('/get_data', methods=['GET'])
+def get_data():
+    if User.api_verify_token(request.authorization['username'], request.authorization['password']):
+        user_request = unquote(request.args.get('user_request', ''))
 
-    mooring, platform, instrument = ref.split('-', 2)
-
-    method = method.replace('-','_')
-    uframe_url, timeout, timeout_read = get_uframe_info()
-    user = request.args.get('user', '')
-    email = request.args.get('email', '')
-    prov = request.args.get('provenance','false')
-    pids = request.args.get('pid','')
-
-    data_format = 'application/'+request.args.get('format', '')
-    possible_data_format = ['application/netcdf','application/json','application/csv','application/tsv']
-    if data_format not in possible_data_format:
-        data_format = 'applciation/netcdf'
-
-    limit = request.args.get('limit', 'NONE')
-    if limit is 'NONE':
-        query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=true&user=%s&email=%s&format=%s&pid=%s' % (start_time, end_time, prov, user, email, data_format, pids)
+        try:
+            uframe_url, timeout, timeout_read = get_uframe_info()
+            user_url = "/".join([current_app.config['UFRAME_URL'], current_app.config[data_types[request.args.get('data_type', '')]], user_request])
+            r = requests.get(user_url, timeout=(timeout, timeout_read))
+            try:
+                # Form the Google Analytics request
+                user_request_list = user_request.split('/')
+                ga_data_string = '-'.join(
+                    [
+                        user_request_list[0],
+                        user_request_list[1],
+                        user_request_list[2],
+                        user_request_list[3],
+                        user_request_list[4].split('?')[0],
+                    ]
+                )
+                ga_time_string = '-'.join(
+                    [
+                        user_request_list[4].split('beginDT=')[1].split('&')[0],
+                        user_request_list[4].split('endDT=')[1].split('&')[0]
+                    ]
+                )
+                ga_url = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=m2m&ea=%s&el=%s' % (ga_data_string, ga_time_string)
+                urllib2.urlopen(ga_url)
+            except KeyError:
+                pass
+            return r.text, r.status_code
+        except ConnectionError:
+            message = 'ConnectionError for get uframe contents.'
+            current_app.logger.info(message)
+            raise Exception(message)
+        except Timeout:
+            message = 'Timeout for get uframe contents.'
+            current_app.logger.info(message)
+            raise Exception(message)
+        except Exception:
+            raise
     else:
-        if int(limit) > 1001 or int(limit) <1:
-            limit = 1000
-        query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=true&user=%s&email=%s&format=%s&limit=%s&pid=%s' % (start_time, end_time, prov, user, email, data_format,limit,pids)
-
-    uframe_url, timeout, timeout_read = get_uframe_info()
-    url = "/".join([uframe_url, mooring, platform, instrument, method, stream + query])
-    current_app.logger.debug('***** url: ' + url)
-    response = requests.get(url, timeout=(timeout, timeout_read))
-
-    try:
-        GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=m2m&ea=%s&el=%s' % ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
-        urllib2.urlopen(GA_URL)
-    except KeyError:
-        pass
-
-
-    return response.text, response.status_code
-
-
+        message = 'Authentication failed.'
+        current_app.logger.info(message)
+        return message, 401
