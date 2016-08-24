@@ -11,8 +11,11 @@ from ooiservices.app.main.authentication import auth
 from ooiservices.app.main.errors import (internal_server_error, bad_request)
 from ooiservices.app.uframe.vocab import get_parameter_name_by_parameter as get_param_names
 from ooiservices.app.uframe.vocab import get_stream_name_by_stream as get_stream_name
-from ooiservices.app.uframe.vocab import (get_display_name_by_rd, get_long_display_name_by_rd,
-                                          get_rs_array_display_name_by_rd)
+from ooiservices.app.uframe.vocab import (get_display_name_by_rd, get_long_display_name_by_rd)
+
+# data imports
+from ooiservices.app.uframe.data import (get_data, get_simple_data, find_parameter_ids, get_multistream_data)
+from ooiservices.app.uframe.plotting import generate_plot
 
 from urllib import urlencode
 from datetime import datetime
@@ -31,7 +34,7 @@ import os.path
 import requests
 import requests.adapters
 import requests.exceptions
-from requests.exceptions import ConnectionError, Timeout
+from requests.exceptions import (ConnectionError, Timeout)
 
 #for image processing
 import PIL
@@ -1635,6 +1638,9 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
                                      start_time, end_time, dpa_flag, parameter_ids):
     """ Gets the bounded stream contents, start_time and end_time need to be datetime objects
     """
+    debug = False
+    query = ''          # todo - added
+    dataBlock = ''      # todo - added
     try:
         if dpa_flag == '0' and len(parameter_ids) < 1:
             query = '?beginDT=%s&endDT=%s&limit=%s' % (start_time, end_time, current_app.config['DATA_POINTS'])
@@ -1647,12 +1653,25 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
         elif dpa_flag == '1' and len(parameter_ids) > 0:
             query = '?beginDT=%s&endDT=%s&limit=%s&execDPA=true&parameters=%s' % \
                     (start_time, end_time, current_app.config['DATA_POINTS'], ','.join(map(str, parameter_ids)))
+        else:
+            if debug:
+                print '\n debug -- else branch...'
+                print '\n debug -- else query: ', query
+                print '\n debug -- else dps_flag: ', dpa_flag
+                print '\n debug -- else parameter_ids: ', parameter_ids
+
+        if debug:
+                print '\n debug -- query: ', query
+                print '\n debug -- dps_flag: ', dpa_flag
+                print '\n debug -- parameter_ids: ', parameter_ids
 
         GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=plot&ea=%s&el=%s' % \
                  ('-'.join([mooring, platform, instrument, stream_type, stream]), '-'.join([start_time, end_time]))
 
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
         url = "/".join([UFRAME_DATA, mooring, platform, instrument, stream_type, stream + query])
+
+        if debug: print '\n debug -- url: ', url
         current_app.logger.debug("***:" + url)
 
         TOO_BIG = 1024 * 1024 * 15 # 15MB
