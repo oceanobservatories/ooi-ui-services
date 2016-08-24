@@ -68,24 +68,25 @@ def get_data():
             r = requests.get(user_url, timeout=(timeout, timeout_read))
             try:
                 # Form the Google Analytics request
-                user_request_list = user_request.split('/')
-                ga_data_string = '-'.join(
-                    [
-                        user_request_list[0],
-                        user_request_list[1],
-                        user_request_list[2],
-                        user_request_list[3],
-                        user_request_list[4].split('?')[0],
-                    ]
-                )
-                ga_time_string = '-'.join(
-                    [
-                        user_request_list[4].split('beginDT=')[1].split('&')[0],
-                        user_request_list[4].split('endDT=')[1].split('&')[0]
-                    ]
-                )
-                ga_url = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=m2m&ea=%s&el=%s' % (ga_data_string, ga_time_string)
-                urllib2.urlopen(ga_url)
+                if request.args.get('data_type', '') == 'sensor_inv':
+                    user_request_list = user_request.split('/')
+                    ga_data_string = '-'.join(
+                        [
+                            user_request_list[0],
+                            user_request_list[1],
+                            user_request_list[2],
+                            user_request_list[3],
+                            user_request_list[4].split('?')[0],
+                        ]
+                    )
+                    ga_time_string = '-'.join(
+                        [
+                            user_request_list[4].split('beginDT=')[1].split('&')[0],
+                            user_request_list[4].split('endDT=')[1].split('&')[0]
+                        ]
+                    )
+                    ga_url = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=m2m&ea=%s&el=%s' % (ga_data_string, ga_time_string)
+                    urllib2.urlopen(ga_url)
             except KeyError:
                 pass
             return r.text, r.status_code
