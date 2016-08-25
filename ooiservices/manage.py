@@ -314,13 +314,14 @@ def rebuild_schema(schema, schema_owner, save_users, save_disabled_streams, admi
                 new_user.vocation = getattr(sresult, 'vocation', '')
                 new_user.country = getattr(sresult, 'country', '')
                 new_user.state = getattr(sresult, 'state', '')
-                print '* %r' % getattr(sresult, 'api_user_name', '')
-                if len(getattr(sresult, 'api_user_name', '')) > 0:
-                    new_user.api_user_name = getattr(sresult, 'api_user_name')
+                aun = getattr(sresult, 'api_user_name', '')
+                aut = getattr(sresult, 'api_user_token', '')
+                if aun is not None and len(aun) > 0:
+                    new_user.api_user_name = aun
                 else:
                     new_user.api_user_name = 'OOIAPI-'+id_generator()
-                if len(getattr(sresult, 'api_user_token', '')) > 0:
-                    new_user.api_user_token = getattr(sresult, 'api_user_token')
+                if aut is not None and len(aut) > 0:
+                    new_user.api_user_token = aut
                 else:
                     new_user.api_user_token = id_generator()
                 db.session.add(new_user)
