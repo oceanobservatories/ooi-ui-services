@@ -1138,6 +1138,12 @@ class Role(db.Model, RoleMixin):
 
     # roles_users = db.relationship(u'RolesUsers')
 
+import string
+import random
+def id_generator(size=14, chars=string.ascii_uppercase + string.digits):
+    return ''.join(random.choice(chars) for _ in range(size))
+
+
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     __table_args__ = {u'schema': __schema__}
@@ -1266,8 +1272,14 @@ class User(UserMixin, db.Model):
             user.organization_id = org.id
             if org.id == 9:
                 user.other_organization = other_organization
-            user.api_user_name = api_user_name
-            user.api_user_token = api_user_token
+            if api_user_name:
+                user.api_user_name = api_user_name
+            else:
+                user.api_user_name = 'OOIAPI-'+id_generator()
+            if api_user_token:
+                user.api_user_token = api_user_token
+            else:
+                user.api_user_token = id_generator()
             db.session.add(user)
             db.session.commit()
             current_app.logger.info('[+] New user created: %s' % user.email)
