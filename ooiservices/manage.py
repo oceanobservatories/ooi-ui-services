@@ -19,6 +19,7 @@ from ooiservices.app.models import PlatformDeployment, User, UserScope, UserScop
 from datetime import datetime
 import sqlalchemy.exc
 import codecs
+from ooiservices.app.main.user import id_generator
 
 import yaml
 if os.path.exists(os.path.join(basedir, '/app/config_local.yml')):
@@ -313,8 +314,15 @@ def rebuild_schema(schema, schema_owner, save_users, save_disabled_streams, admi
                 new_user.vocation = getattr(sresult, 'vocation', '')
                 new_user.country = getattr(sresult, 'country', '')
                 new_user.state = getattr(sresult, 'state', '')
-                new_user.api_user_name = getattr(sresult, 'api_user_name', '')
-                new_user.api_user_token = getattr(sresult, 'api_user_token', '')
+                print '* %r' % getattr(sresult, 'api_user_name', '')
+                if len(getattr(sresult, 'api_user_name', '')) > 0:
+                    new_user.api_user_name = getattr(sresult, 'api_user_name')
+                else:
+                    new_user.api_user_name = 'OOIAPI-'+id_generator()
+                if len(getattr(sresult, 'api_user_token', '')) > 0:
+                    new_user.api_user_token = getattr(sresult, 'api_user_token')
+                else:
+                    new_user.api_user_token = id_generator()
                 db.session.add(new_user)
                 db.engine.execute("SELECT nextval('ooiui.users_id_seq')")
                 db.session.commit()
@@ -375,7 +383,7 @@ def rebuild_schema(schema, schema_owner, save_users, save_disabled_streams, admi
         if api_user_name is None:
             api_user_name = 'OOIAPI-ADMIN'
         if api_user_token is None:
-            api_user_token = 'ADMINTOKEN'
+            api_user_token = id_generator()
         add_admin_user(
             username=admin_username,
             password=admin_password,
