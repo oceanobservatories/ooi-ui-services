@@ -15,8 +15,7 @@ import requests
 import requests.exceptions
 from requests.exceptions import (ConnectionError, Timeout)
 import json
-import datetime as dt
-import calendar
+
 
 CACHE_TIMEOUT = 172800
 
@@ -213,7 +212,7 @@ def _compile_rd_assets():
                         if debug: print '\n debug -- %s not instrument, platform or mooring...' % rd
 
                 except Exception as err:
-                    message = 'Exception raised in _compile_rd_assets: %s' % err.message
+                    message = 'Exception raised in _compile_rd_assets: %s' % str(err)
                     raise Exception(message)
 
         return result
@@ -242,7 +241,6 @@ def get_asset_deployment_map(asset_id, ref_des):
         tense (str, default: '')
 
     Each asset displays the following information related to deployment(s):
-      hasDeploymentEvent (bool),
       New deployment display grid covers these deployment related items on per deployment basis:
         deployment_number, beginDT, endDT, tense, and
         location dict with: latitude, longitude, location [], orbit radius and depth
@@ -262,18 +260,21 @@ def get_asset_deployment_map(asset_id, ref_des):
     deployment_numbers = ''
     _deployment_numbers = []
     tense = ''
+    cumulative_tense = ''
     try:
         # Get type of asset we are processing, using reference designator.
-        processing_asset_type = get_asset_type_by_rd(ref_des)
-        if processing_asset_type:
-            processing_asset_type = processing_asset_type.lower()
+        asset_type = get_asset_type_by_rd(ref_des)
+        if asset_type:
+            asset_type = asset_type.lower()
         if debug:
-            if processing_asset_type not in valid_processing_types:
-                if debug: print '\n debug ------------ processing_asset_type not valid: ', processing_asset_type
+            if asset_type not in valid_processing_types:
+                message = 'Processing %s for deployments, invalid asset type \'%s\'.' % (ref_des, asset_type)
+                current_app.logger.info(message)
+                if debug: print '\n debug -- ', message
 
         no_deployments_nums = []
-        if processing_asset_type in valid_processing_types:
-            if debug: print '\n debug ------------ processing_asset_type: ', processing_asset_type
+        if asset_type in valid_processing_types:
+            if debug: print '\n debug -- Processing asset_type: ', asset_type
             deployments_info = get_asset_deployment_info(asset_id, ref_des)
             if deployments_info:
                 deployments_list = deployments_info['deployments']
@@ -298,17 +299,18 @@ def get_asset_deployment_map(asset_id, ref_des):
                     _deployment_numbers = []
                     for deploy_number in deployments_list:
 
+                        tense = deployments_info[deploy_number]['tense']
                         # Get asset ids, based on asset type (of associated) reference designator being processed,
-                        tmp = deployments_info[deploy_number]['asset_ids_by_type'][processing_asset_type]
+                        tmp = deployments_info[deploy_number]['asset_ids_by_type'][asset_type]
                         if tmp:
                             if debug: print '\n debug -- %s %s deployment %d has asset ids: %s' % \
-                                            (ref_des, processing_asset_type, deploy_number, tmp)
+                                            (ref_des, asset_type, deploy_number, tmp)
                             if asset_id in tmp:
                                 if deploy_number not in _deployment_numbers:
                                     _deployment_numbers.append(deploy_number)
                         else:
                             # In this case there is a deployments_list, but deployments_info for this deploy_number
-                            # does not have asset ids for processing_asset_type in assets map. (uframe missing data problem)
+                            # does not have asset ids for asset_type in assets map. (uframe missing data problem)
                             # Basically 'sensor' data does not have assetId for deploy_number deployment.
                             # This MAY lead to incorrectly identifying the most recent or current deployment for
                             # this asset id; certainly deployment asset map will have 'holes' if data is missing.
@@ -336,22 +338,22 @@ def get_asset_deployment_map(asset_id, ref_des):
                             # }]
                             if deploy_number not in no_deployments_nums:
                                 no_deployments_nums.append(deploy_number)
-                            if debug:
-                                message = 'No asset ids for %s, deployment %d.' % (ref_des, deploy_number)
-                                print '\n debug -- ', message
+                            message = 'No asset ids for %s %s, deployment number %d.' % \
+                                      (asset_type, ref_des, deploy_number)
+                            current_app.logger.info(message)
+                            #print '\n debug -- %s %s deployments_list: %s' % (asset_type, ref_des, deployments_list)
 
-                    # Get tense value for last deployment provided
+                    # Get cumulative tense value for last deployment provided
                     if _deployment_numbers:
                         _deployment_numbers.sort(reverse=True)
                         recent_deployment_number = _deployment_numbers[0]
                         if current_deployment_number != recent_deployment_number:
                             if debug: print '\n debug -- reporting recent_deployment number %d, as last, not %d' % \
                                             (recent_deployment_number, current_deployment_number)
-                        tense = deployments_info[recent_deployment_number]['tense']
+                        cumulative_tense = deployments_info[recent_deployment_number]['cumulative_tense']
                         _deployment_numbers.sort()
                         for dn in _deployment_numbers:
                                 deployment_numbers += str(dn) + ', '
-
                         if deployment_numbers:
                             deployment_numbers = deployment_numbers.strip(', ')
 
@@ -360,7 +362,7 @@ def get_asset_deployment_map(asset_id, ref_des):
                         if current_deployment_number in no_deployments_nums:
                             deployment_numbers += ' *'
 
-        return depth, location, has_deployment_event, deployment_numbers, tense, no_deployments_nums, _deployment_numbers
+        return depth, location, has_deployment_event, deployment_numbers, cumulative_tense, tense, no_deployments_nums, _deployment_numbers
 
     except Exception as err:
         message = str(err)
@@ -392,7 +394,7 @@ def get_instrument_deployments_list(rd):
 
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
-            message = '(%d) Failed to get deployments list for  %r.' % (response.status_code, rd)
+            message = '(%d) Failed to get deployments list from uframe for %r.' % (response.status_code, rd)
             current_app.logger.info(message)
             raise Exception(message)
 
@@ -439,7 +441,7 @@ def get_instrument_deployments(rd):
 
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
-            message = '(%d) Failed to get all for  %r.' % (response.status_code, rd)
+            message = '(%d) Failed to get all deployments from uframe for  %r.' % (response.status_code, rd)
             current_app.logger.info(message)
             raise Exception(message)
 
@@ -457,7 +459,7 @@ def get_instrument_deployments(rd):
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
-        raise
+        raise Exception(message)
 
 
 # todo review to see if we can use /deployments/query?refdes=CE05MOAS-GL326-04-DOSTAM000 instead
@@ -483,12 +485,12 @@ def get_rd_deployments(rd):
         uframe_url, timeout, timeout_read = get_uframe_deployments_info()
 
         # Build uframe url: host:port/events/deployment/query?refdes=XXXXXXXX
-        url = '/'.join([uframe_url, get_deployments_url_base(), 'query']) # todo hard coded - track uframe
+        url = '/'.join([uframe_url, get_deployments_url_base(), 'query'])
         url += '?refdes=' + rd
         if check: print '\n Check -- [get_rd_deployments] url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
-            message = 'Failed to get deployments from uframe for  %r.' % rd
+            message = 'Failed to get deployments from uframe for %r.' % rd
             raise Exception(message)
         result = response.json()
         return result
@@ -527,7 +529,6 @@ def get_mooring_deployments_list(rd):
             # If no deployments, return empty result and results ([], {})
             if debug: print '\n debug -- get_mooring_deployments_list for rd %s: No deployments' % rd
             return result, results
-
         else:
             if debug: print '\n debug -- get_mooring_deployments_list: len(mooring_deployments): ', len(mooring_deployments)
 
@@ -536,7 +537,6 @@ def get_mooring_deployments_list(rd):
         results = {}
         results['asset_ids'] = []
         results['asset_ids_by_type'] = {'sensor': [], 'mooring': [], 'node': []}
-
         for item in mooring_deployments:
             info = {}
             info['asset_ids'] = []
@@ -546,12 +546,9 @@ def get_mooring_deployments_list(rd):
             if 'deploymentNumber' in item:
                 deployment_number = item['deploymentNumber']
 
-            #if debug: print '\n debug -- deployment_number: ', deployment_number
-
             location = None
             if 'location' in item:
                 location = item['location']
-            #if debug: print '\n debug -- location: ', location
 
             # Get deployment beginDT and endDT
             beginDT = None
@@ -565,6 +562,10 @@ def get_mooring_deployments_list(rd):
             eventId = None
             if 'eventId' in item:
                 eventId = item['eventId']
+
+            tense = None
+            if 'tense' in item:
+                tense = item['tense']
 
             asset_id = None
             if 'mooring' in item:
@@ -603,6 +604,7 @@ def get_mooring_deployments_list(rd):
                     info[deployment_number]['beginDT'] = beginDT
                     info[deployment_number]['endDT'] = endDT
                     info[deployment_number]['eventId'] = eventId
+                    info[deployment_number]['tense'] = tense
 
                     if deployment_asset_ids:
                         deployment_asset_ids.sort()
@@ -623,6 +625,7 @@ def get_mooring_deployments_list(rd):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         if not deployments_list:
             message = 'Mooring %s does not have a deployments_list!' % rd
+            print '\n debug -- [get_mooring_deployments_list] (list) result: ', result
             current_app.logger.info(message)
 
         if deployments_list:
@@ -630,12 +633,12 @@ def get_mooring_deployments_list(rd):
             current_deployment_number = deployments_list[0]
 
             # Set tense to Past if deployment number not equal to current_deployment_number
-            # Get 'tense' for each deployment
+            # Get 'cumulative_tense' for each deployment
             for num in deployments_list:
                 tense = 'PAST'
                 if num == current_deployment_number:
                     tense = 'PRESENT'
-                results[num]['tense'] = tense
+                results[num]['cumulative_tense'] = tense
 
         if debug:
             print '\n debug -- [get_mooring_deployments_list] (list) result: ', result
@@ -704,6 +707,10 @@ def get_platform_deployments_list(rd):
             if 'eventId' in item:
                 eventId = item['eventId']
 
+            tense = None
+            if 'tense' in item:
+                tense = item['tense']
+
             asset_id = None
             if 'node' in item:
 
@@ -743,6 +750,7 @@ def get_platform_deployments_list(rd):
                     info[deployment_number]['beginDT'] = beginDT
                     info[deployment_number]['endDT'] = endDT
                     info[deployment_number]['eventId'] = eventId
+                    info[deployment_number]['tense'] = tense
                     if deployment_asset_ids:
                         deployment_asset_ids.sort()
                     info[deployment_number]['asset_ids'] = deployment_asset_ids
@@ -771,7 +779,7 @@ def get_platform_deployments_list(rd):
                 tense = 'PAST'
                 if num == current_deployment_number:
                     tense = 'PRESENT'
-                results[num]['tense'] = tense
+                results[num]['cumulative_tense'] = tense
 
         if debug:
             print '\n debug -- [get_platform_deployments_list] (list) result: ', result
@@ -845,7 +853,8 @@ def get_asset_deployment_detail(id, data):
                 "longitude": -124.09524,
                 "orbitRadius": 0.0
               },
-              "tense": "PRESENT"
+              "cumulative_tense": "PRESENT",
+              "tense": "UNKNOWN"
             }
     }
 
@@ -875,7 +884,7 @@ def get_asset_deployment_data(rd):
     try:
         # Validate reference designator
         if not is_instrument(rd) and not is_mooring(rd) and not is_platform(rd):
-            message = 'The reference designator provided (%s) is not an instrument or mooring.' % rd
+            message = 'The reference designator provided (%s) is not a mooring, platform, or instrument.' % rd
             message += 'unable to provide asset deployment info.'
             raise Exception(message)
 
@@ -883,6 +892,7 @@ def get_asset_deployment_data(rd):
         rd_assets = _get_rd_assets()
         if not rd_assets:
             message = 'The \'rd_assets\' cache is empty; unable to provide asset deployment info for %s.' % rd
+            print '\n Error: ', message
             raise Exception(message)
 
         # Pluck from rd_assets information required
@@ -1163,9 +1173,6 @@ def get_deployment_asset_ids(deployment):
         current_app.logger.info(message)
         return result
 
-
-
-
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def get_instrument_deployment_work(rd):
     """ Create instrument deployment information breakout. Return dict or empty dict. Log exceptions.
@@ -1222,12 +1229,13 @@ def get_instrument_deployment_work(rd):
                 work[deployment_number]['beginDT'] = deployment['eventStartTime']
                 work[deployment_number]['endDT'] = deployment['eventStopTime']
                 work[deployment_number]['eventId'] = deployment['eventId']
+                work[deployment_number]['tense'] = deployment['tense']
 
-                # Get 'tense' for this deployment
+                # Get 'cumulative_tense' for this deployment
                 tense = 'PAST'
                 if deployment_number == current_deployment_number:
                     tense = 'PRESENT'
-                work[deployment_number]['tense'] = tense
+                work[deployment_number]['cumulative_tense'] = tense
                 work[deployment_number]['asset_ids'] = []
 
                 # Get location for this deployment
@@ -1396,50 +1404,4 @@ def get_platform_deployment_work(rd):
         message = err.message
         current_app.logger.info(message)
         return {}
-
-
-#===========================================================
-'''
-def get_timestamp_value(value):
-    """ Convert float value into formatted string.
-    """
-    result = value
-    try:
-        formatted_value = timestamp_to_string(value)
-        if formatted_value is not None:
-            result = formatted_value
-        return result
-    except Exception as err:
-        message = str(err.message)
-        current_app.logger.info(message)
-        return result
-
-
-def timestamp_to_string(time_float):
-    """ Convert float to formatted time string. If failure to convert, return None.
-    """
-    offset = 2208988800
-    formatted_time = None
-    try:
-        if not isinstance(time_float, float):
-            return None
-        ts_time = convert_from_utc(time_float - offset)
-        formatted_time = dt.datetime.strftime(ts_time, "%Y-%m-%dT%H:%M:%S")
-        return formatted_time
-    except Exception as err:
-        current_app.logger.info(str(err.message))
-        return None
-
-
-# Note: start of unix epoch (jan 1, 1900 at midnight 00:00) in seconds == 2208988800
-# http://stackoverflow.com/questions/13260863/convert-a-unixtime-to-a-datetime-object-
-# and-back-again-pair-of-time-conversion (url continued from previous line)
-# Convert a unix time u to a datetime object d, and vice versa
-def convert_from_utc(u):
-    return dt.datetime.utcfromtimestamp(u)
-
-
-def ut(d):
-    return calendar.timegm(d.timetuple())
-'''
 

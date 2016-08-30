@@ -239,6 +239,32 @@ def get_events_url_base():
         current_app.logger.info(message)
         raise Exception(message)
 
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Resources
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+def get_resources_url_base():
+    """ Returns configuration file value for UFRAME_RESOURCES. ('resource') If error, raise exception.
+    """
+    try:
+        resources = current_app.config['UFRAME_RESOURCES']
+        return resources
+    except:
+        message = 'Unable to locate UFRAME_RESOURCES in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_url_info_resources():
+    """ Get complete url to query uframe [remote] resources ('http://uframe-host:12587/resource')
+    """
+    try:
+        timeout, timeout_read = get_uframe_timeout_info()
+        uframe_url = '/'.join([current_app.config['UFRAME_ASSETS_URL'], get_resources_url_base()])
+        return uframe_url, timeout, timeout_read
+    except:
+        message = 'Unable to form uframe url for asset resources using config file variables.'
+        current_app.logger.info(message)
+        raise Exception(message)
 
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

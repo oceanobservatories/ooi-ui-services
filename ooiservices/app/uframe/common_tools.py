@@ -192,7 +192,7 @@ def get_asset_type_by_rd(rd):
 
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Common definitions (assets, events)
+# Common definitions - assets
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def get_asset_types():
     # Get all defined asset types.
@@ -218,6 +218,14 @@ def get_supported_asset_classes():
     return asset_classes
 
 
+def get_class_remote_resource():
+    class_remote_resource = '.XRemoteResource'
+    return class_remote_resource
+
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Common definitions - events
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Get event class for an event type.
 def get_event_class(event_type):
     """ Get event class for a specific event_type.
@@ -285,3 +293,49 @@ def get_event_types_by_rd(rd):
     event_types.sort()
     return event_types
 
+
+'''
+import datetime as dt
+import calendar
+def get_timestamp_value(value):
+    """ Convert float value into formatted string.
+    """
+    result = value
+    try:
+        formatted_value = timestamp_to_string(value)
+        if formatted_value is not None:
+            result = formatted_value
+        return result
+    except Exception as err:
+        message = str(err.message)
+        current_app.logger.info(message)
+        return result
+
+
+def timestamp_to_string(time_float):
+    """ Convert float to formatted time string. If failure to convert, return None.
+    """
+    offset = 2208988800
+    formatted_time = None
+    try:
+        if not isinstance(time_float, float):
+            return None
+        ts_time = convert_from_utc(time_float - offset)
+        formatted_time = dt.datetime.strftime(ts_time, "%Y-%m-%dT%H:%M:%S")
+        return formatted_time
+    except Exception as err:
+        current_app.logger.info(str(err.message))
+        return None
+
+
+# Note: start of unix epoch (jan 1, 1900 at midnight 00:00) in seconds == 2208988800
+# http://stackoverflow.com/questions/13260863/convert-a-unixtime-to-a-datetime-object-
+# and-back-again-pair-of-time-conversion (url continued from previous line)
+# Convert a unix time u to a datetime object d, and vice versa
+def convert_from_utc(u):
+    return dt.datetime.utcfromtimestamp(u)
+
+
+def ut(d):
+    return calendar.timegm(d.timetuple())
+'''

@@ -26,9 +26,11 @@ def create_event_type(request_data):
         "statusCode" : "CREATED"
     }
     """
+    debug = False
     event_type = None
     action = 'create'
     try:
+        if debug: print '\n debug -- request_data: ', request_data
         # Verify minimum required fields to proceed with create (event_type and uid)
         # Required field: event_type
         if 'eventType' not in request_data:
@@ -50,7 +52,7 @@ def create_event_type(request_data):
             raise Exception(message)
         uid = request_data['assetUid']
         if not uid:
-            message = 'The assetUid is empty or null, unable to create an event.'
+            message = 'The assetUid is empty or null, unable to create a %s event.' % event_type
             raise Exception(message)
 
         # Get event class
@@ -66,6 +68,9 @@ def create_event_type(request_data):
             del data['lastModifiedTimestamp']
         # Set eventId for create
         data['eventId'] = -1
+
+        if debug: print '\n debug ********\n Create event data for postto (%d): %s' % (len(data),
+                                                          json.dumps(data, indent=4, sort_keys=True))
 
         # Set uframe query parameter, get configuration url and timeout information, build request url.
         query = 'postto'
@@ -235,5 +240,4 @@ def update_event_type(id, data):
         raise Exception(message)
     except Exception as err:
         message = str(err)
-        current_app.logger.info(message)
         raise Exception(message)

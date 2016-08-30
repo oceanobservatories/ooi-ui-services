@@ -128,17 +128,16 @@ def get_alert_alarm_status():
     #alerts and alarms
     for aa_item in aa_def:
         if 'reference_designator' in aa_item:
-            #get the A/A definitions
+            #get the alert/alarm definitions
             if aa_item['reference_designator'] not in aa_def_list:
-                #used to identify halth sensors
+                #used to identify healthy sensors
                 aa_def_list.append(aa_item['reference_designator'])
             if aa_item['reference_designator'] not in assets_names:
-                #means an asset was in the A/A definition, that was not in the asset list returned
-                #create and add it so we can see the status, the TOC may not reflect this
+                # means an asset was in the alert/alarm definition, that was not in the asset list returned
+                # create and add it so we can see the status, the TOC may not reflect this
                 if debug: print 'reference_designator not in asset name list: ERROR: appending', aa_item['reference_designator']
-
-                new_asset = {'ref_des':aa_item['reference_designator'],
-                             'hasDeploymentEvent' : True,
+                new_asset = {'ref_des': aa_item['reference_designator'],
+                             'hasDeploymentEvent': True,
                              'coordinates': [0, 0],
                              'assetInfo': {'type': 'Sensor',
                                            'longName': aa_item['reference_designator'],
@@ -156,31 +155,23 @@ def get_alert_alarm_status():
                 aa_def_list.append(aa_item['reference_designator'])
                 assets_names.append(aa_item['reference_designator'])
 
-
     #use all the info to create status
     for asset in assets_dict:
         d = asset['ref_des']
 
+        # todo - add function to support hasDeployments (bool) for a reference designator.
+        # todo - hasDeployments = hasDeployments(d)
         if 'hasDeploymentEvent' in asset and asset['hasDeploymentEvent']:
 
-            # Workaround for new assets integration -  missing asset['assetInfo']['instrumentClass'],
-            if 'assetInfo' in asset:
-                if asset['assetInfo']:
-                    if 'instrumentClass' in asset['assetInfo']:
-                        instrument_class = asset['assetInfo']['instrumentClass']
-                    else:
-                        if 'assetType' in asset:
-                            instrument_class = asset['assetType']
-
-            #create inital entry
+            # Create initial entry
             if 'manufactureInfo' in asset:
                 entry = {'reference_designator': d, 'count': 0,
                         'event_type': 'unknown',
                         'coordinates': asset['coordinates'],
-                        'asset_type': asset['assetInfo']['type'],
+                        'asset_type': asset['assetType'],           #asset['assetInfo']['type'],
                         'longName': asset['assetInfo']['longName'],
                         'name': asset['assetInfo']['name'],
-                        'instrumentClass': instrument_class,
+                        'instrumentClass': asset['assetType'],      #instrument_class,
                         'manufacturer': asset['manufactureInfo']['manufacturer'],
                         'modelNumber': asset['manufactureInfo']['modelNumber'],
                         'serialNumber': asset['manufactureInfo']['serialNumber'],
@@ -190,10 +181,10 @@ def get_alert_alarm_status():
                 entry = {'reference_designator': d, 'count': 0,
                         'event_type': 'unknown',
                         'coordinates': asset['coordinates'],
-                        'asset_type': asset['assetInfo']['type'],
+                        'asset_type': asset['assetType'],           #asset['assetInfo']['type'],
                         'longName': asset['assetInfo']['longName'],
                         'name': asset['assetInfo']['name'],
-                        'instrumentClass': instrument_class,
+                        'instrumentClass': asset['assetType'],      #instrument_class,
                         'manufacturer': 'N/A',
                         'modelNumber': 'N/A',
                         'serialNumber': 'N/A',

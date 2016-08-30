@@ -117,14 +117,11 @@ def get_display_name_by_rd(rd):
 def get_rs_array_display_name_by_rd(rd):
     """ Get display name for a reference designator.
     """
-    debug = False
     name = None
     try:
-        if debug: print '\n debug -- get_rs_array_display_name_by_rd - rd: ', rd
         # Get 'vocab_codes' if cached
         codes_cached = cache.get('vocab_codes')
         if codes_cached:
-            if debug: print '\n debug -- vocab_codes is cached'
             vocab_codes = codes_cached
             if 'rs_array_names' in vocab_codes:
                 rs_array_codes = vocab_codes['rs_array_names']
@@ -395,8 +392,6 @@ def compile_vocab():
                     maxdepth = 0
                     if 'maxdepth' in vocab:
                         maxdepth = vocab['maxdepth']
-
-
 
                 # Platform
                 if len_rd == 14:

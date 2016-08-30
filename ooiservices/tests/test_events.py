@@ -19,12 +19,14 @@ __author__ = 'Edna Donoughe'
 import unittest
 import json
 from base64 import b64encode
+from random import randint
 from flask import (url_for)
 from ooiservices.app import (create_app, db)
 from ooiservices.app.models import (User, UserScope, Organization)
-from ooiservices.app.uframe.common_tools import get_event_types
+from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types)
 from ooiservices.app.uframe.event_tools import (get_rd_by_asset_id)    # get_uframe_event (future test)
 from ooiservices.app.uframe.deployment_tools import (is_instrument, is_platform, is_mooring)
+from ooiservices.app.uframe.events_validate_fields import get_rd_from_integrationInto
 from unittest import skipIf
 import os
 import requests
@@ -34,6 +36,7 @@ These tests are additional to the normal testing performed by coverage; each of
 these tests are to validate model logic outside of db management.
 
 '''
+
 
 @skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
 class EventsTestCase(unittest.TestCase):
@@ -102,7 +105,8 @@ class EventsTestCase(unittest.TestCase):
         if verbose: print '\n -- len(assets): ', len(assets)
 
         # Verify there asset objects which are dictionaries
-        asset = assets[0]
+        index = len(assets) - 10
+        asset = assets[index]
         self.assertTrue(asset is not None)
         self.assertTrue(asset)
         self.assertTrue(isinstance(asset, dict))
@@ -159,7 +163,14 @@ class EventsTestCase(unittest.TestCase):
         result = json.loads(response.data)
         self.assertTrue(result is not None)
         self.assertTrue(result)
-        result = None
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Negative) Get events by bad asset uid #(returns empty dict if asset not found, status code 200)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        url = url_for('uframe.get_events_by_uid', uid='')
+        if verbose: print '\n ----- url: ', url
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 404)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # (Positive) Get events for asset (by event_id)
@@ -196,60 +207,70 @@ class EventsTestCase(unittest.TestCase):
                 for event in events:
                     self.assertTrue(event is not None)
                     self.assertTrue(isinstance(event, dict))
-                    #if debug: print '\n ****** event: ', event
                     self.assertTrue('eventId' in event)
                     self.assertTrue(event['eventId'])
                     if event['eventId'] not in event_ids:
                         event_ids.append(event['eventId'])
 
-                """
-                # If events, get events in event_ids list from uframe.
-                if event_ids:
-                    if debug: print '\n ****** Have %s event_ids(%d): %s' % (event_type, len(event_ids), event_ids)
-                    for id in event_ids:
-                        result = get_uframe_event(id)
+        # (Negative) Create events
+        self.create_event_negative('{}')
+        self.create_event_negative(None)
 
-                        if debug: print '\n -- fetched event(%d): %s' % (id, result)
-                        self.assertTrue(result is not None)
-                        self.assertTrue(result)
-                        self.assertTrue(isinstance(result, dict))
-                        self.assertTrue(len(result) > 0)
-                        try:
-                            validate_required_fields_are_provided_uframe(event_type, result, 'update')
-                        except Exception as err:
-                            message = str(err)
-                            if verbose: print '\n test exception: ', message
-                            continue
-                    if debug: print '\n Done processing event_ids for %s events.' % event_type
-                """
+        self.update_event_negative('{}')
+        self.update_event_negative(None)
+
+        asset_id, asset_uid, rd = self.get_id_uid_rd(asset)
+        uid, input = self.create_event_data('STORAGE', asset_uid, rd)
+        input['eventName'] = None
+        self.create_event_negative(input)
+
+        # Get event types (/uframe/events/types)
+        url = url_for('uframe.get_event_type', id=asset_id)
+        if verbose: print '\n ----- url: ', url
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        result = json.loads(response.data)
+        self.assertTrue(result is not None)
+        self.assertTrue(isinstance(result, dict))
+
+        # Get supported event types (/uframe/events/types/supported)
+        url = url_for('uframe.get_supported_event_type', id=asset_id)
+        if verbose: print '\n ----- url: ', url
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        result = json.loads(response.data)
+        self.assertTrue(result is not None)
+        self.assertTrue(isinstance(result, dict))
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Negative test - use bad uid
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        base_url = url_for('uframe.get_events_by_uid', uid='nogood')
+        target_url = base_url + '?type=' + 'CRUISE_INFO'
+        if verbose: print '\n target_url: ', target_url
+        response = self.client.get(base_url, headers=headers)
+        self.assertEquals(response.status_code, 400)
+        #result = json.loads(response.data)
+
+        if verbose: print '\n'
 
     def test_create_event_types_random(self):
         """
         Create events of different types for three random assets with an asset type of mooring, platform and sensor.
-
-        Following event types not support and why:
-        'DEPLOYMENT'           # (general)
-        'CALIBRATION_DATA'     # create and update api not available
         """
-        debug = self.debug
         verbose = self.verbose
-        event_types = get_event_types()
+        event_types = get_supported_event_types()
 
-        # Remove event_type which are not supported at this time.
-        event_types.remove('DEPLOYMENT')
-        event_types.remove('CALIBRATION_DATA')
-        if 'RECOVERY' in event_types:
-            event_types.remove('RECOVERY')
-
-        # For now remove cruise info until I have a way to generate next unique cruise id.
+        # Cruises tested elsewhere.
         if 'CRUISE_INFO' in event_types:
             event_types.remove('CRUISE_INFO')
 
+
         if verbose: print '\n event_types: ', event_types
 
-        #========================================================================
+        #===============================================================================================
         # Get three assets, one for mooring, node and sensor; generate variety of event types for each.
-        #========================================================================
+        #===============================================================================================
         # Get some assets...
         assets = self.get_some_assets()
         self.assertTrue(assets is not None)
@@ -275,7 +296,6 @@ class EventsTestCase(unittest.TestCase):
         platform_rd = None
         instrument_rd = None
 
-        from random import randint
         count = 0
         while not have_mooring_id or not have_platform_id or not have_instrument_id and count <= number_of_assets:
 
@@ -329,80 +349,214 @@ class EventsTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Add event(s) to a mooring asset.
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        event_types = ['INTEGRATION']
+        #event_types = ['LOCATION']
         for event_type in event_types:
             if verbose: print '\n Creating %s event for mooring - asset id/uid/rd: %d/%s/%s' % (event_type,
                                                                                 mooring_id, mooring_uid, mooring_rd)
 
-            # How many of this type of event does mooring currently have?
-            events_before = self.get_events_for_an_event_type(event_type, mooring_uid)
-            number_before = len(events_before)
-            if verbose: print '\n Number before creating %s event: %d' % (event_type, number_before)
-
             # Create another
             uid, input = self.create_event_data(event_type, mooring_uid, mooring_rd)
-            self._create_event_type(event_type, uid, input)
-
-            # How many total now?
-            events_after = self.get_events_for_an_event_type(event_type, mooring_uid)
-            number_after = len(events_after)
-            if verbose: print ' Number after creating %s event: %d' % (event_type, number_after)
-            self.assertTrue((number_after - number_before), 1)
+            event_id, last_modified = self._create_event_type(event_type, uid, input)
+            if verbose:
+                print '\n\tCreated eventId: %d and lastModifiedTimestamp: %d' % (event_id, last_modified)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Add event(s) to a platform asset.
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        event_types = ['INTEGRATION']
+        #event_types = ['INTEGRATION']
         for event_type in event_types:
             if verbose: print '\n Creating %s event for platform - asset id/uid/rd: %d/%s/%s' % (event_type,
                                                                                 platform_id, platform_uid, platform_rd)
-            # How many of this type of event does mooring currently have?
-            events_before = self.get_events_for_an_event_type(event_type, platform_uid)
-            number_before = len(events_before)
-            if verbose: print '\n Number before creating %s event: %d' % (event_type, number_before)
 
             # Create another
             uid, input = self.create_event_data(event_type, platform_uid, platform_rd)
-            self._create_event_type(event_type, uid, input)
-
-            # How many total now?
-            events_after = self.get_events_for_an_event_type(event_type, platform_uid)
-            number_after = len(events_after)
-            if verbose: print ' Number after creating %s event: %d' % (event_type, number_after)
-            self.assertTrue((number_after - number_before), 1)
+            event_id, last_modified = self._create_event_type(event_type, uid, input)
+            if verbose:
+                print '\n\tCreated eventId: %d and lastModifiedTimestamp: %d' % (event_id, last_modified)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Add event(s) to an instrument asset.
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        event_types = ['INTEGRATION']
+        #event_types = ['INTEGRATION']
         for event_type in event_types:
             if verbose: print '\n Creating %s event for instrument - asset id/uid/rd: %d/%s/%s' % (event_type,
                                                                         instrument_id, instrument_uid, instrument_rd)
 
-            # How many of this type of event does mooring currently have?
-            events_before = self.get_events_for_an_event_type(event_type, instrument_uid)
-            number_before = len(events_before)
-            if verbose: print '\n Number before creating %s event: %d' % (event_type, number_before)
-
             # Create another
             uid, input = self.create_event_data(event_type, instrument_uid, instrument_rd)
-            self._create_event_type(event_type, uid, input)
+            event_id, last_modified = self._create_event_type(event_type, uid, input)
+            if verbose:
+                print '\n\tCreated eventId: %d and lastModifiedTimestamp: %d' % (event_id, last_modified)
 
-            # How many total now?
-            events_after = self.get_events_for_an_event_type(event_type, instrument_uid)
-            number_after = len(events_after)
-            if verbose: print ' Number after creating %s event: %d' % (event_type, number_after)
-            self.assertTrue((number_after - number_before), 1)
+            if verbose: print '\n'
+
+    # Test cruise events.
+    def test_cruise_events(self):
+        """
+        Create CRUISE_INFO events for three random assets with types of mooring, platform and sensor.
+        """
+        verbose = self.verbose
+        event_type = 'CRUISE_INFO'
+        if verbose: print '\n'
+        #if verbose: print '\n event_types: ', event_types
+
+        #===============================================================================================
+        # Get three assets, one for mooring, node and sensor; generate variety of event types for each.
+        #===============================================================================================
+        # Get some assets...
+        assets = self.get_some_assets()
+        self.assertTrue(assets is not None)
+        self.assertTrue(assets)
+        self.assertTrue(isinstance(assets, list))
+        number_of_assets = len(assets)
+
+        have_mooring_id = False
+        have_platform_id = False
+        have_instrument_id = False
+
+        mooring_id = None
+        platform_id = None
+        instrument_id = None
+
+        mooring_uid = None
+        platform_uid = None
+        instrument_uid = None
+
+        mooring_rd = None
+        platform_rd = None
+        instrument_rd = None
+
+        count = 0
+        while not have_mooring_id or not have_platform_id or not have_instrument_id and count <= number_of_assets:
+
+            count +=1
+            asset_index = randint(0, (number_of_assets-1))
+            #print '\n Random asset_index: %d' % asset_index
+
+            # Select an asset...
+            asset = assets[asset_index]
+            self.assertTrue(asset is not None)
+            self.assertTrue(asset)
+            self.assertTrue(isinstance(asset, dict))
+
+            # Get asset_id, asset_uid, rd.
+            asset_id, asset_uid, rd = self.get_id_uid_rd(asset)
+            if is_mooring(rd):
+                if not have_mooring_id:
+                    have_mooring_id = True
+                    mooring_id = asset_id
+                    mooring_uid = asset_uid
+                    mooring_rd = rd
+
+            elif is_platform(rd):
+                if not have_platform_id:
+                    have_platform_id = True
+                    platform_id = asset_id
+                    platform_uid = asset_uid
+                    platform_rd = rd
+
+            elif is_instrument(rd):
+                if not have_instrument_id:
+                    have_instrument_id = True
+                    instrument_id = asset_id
+                    instrument_uid = asset_uid
+                    instrument_rd = rd
+        if verbose:
+            print '\n Note: Number of loops to get three items of interest: %d ' % count
+            print '\n ----- Mooring:'
+            print '\n\t mooring_id: %d' % mooring_id
+            print '\n\t mooring_uid: %s' % mooring_uid
+            print '\n\t mooring_rd: %s' % mooring_rd
+            print '\n ----- Platform:'
+            print '\n\t platform_id: %d' % platform_id
+            print '\n\t platform_uid: %s' % platform_uid
+            print '\n\t platform_rd: %s' % platform_rd
+            print '\n ----- Instrument:'
+            print '\n\t instrument_id: %d' % instrument_id
+            print '\n\t instrument_uid: %s' % instrument_uid
+            print '\n\t instrument_rd: %s' % instrument_rd
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Add cruise event to a mooring asset.
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if verbose:
+            print '\n ----------------------------------'
+            print '\n Mooring: Creating %s event - asset id/uid/rd: %d/%s/%s' % (event_type,
+                                                                            mooring_id, mooring_uid, mooring_rd)
+
+        # Get unique cruise identifier
+        cruise_id, input = self.get_cruise_by_cruise_id(mooring_uid, mooring_rd)
+        self.assertTrue(cruise_id is not None)
+        self.assertTrue(input is not None)
+
+        # Create cruise event
+        event_id, last_modified = self._create_event_type(event_type, mooring_uid, input)
+        if verbose:
+            print '\n\tCreated eventId: %d and lastModifiedTimestamp: %d' % (event_id, last_modified)
+            print '\n\tUnique cruise identifier: ', cruise_id
+            print '\n\tNow performing an UPDATE on event we just created...'
+
+        # Update the cruise we just created
+        uid, input = self.update_event_data(event_type, mooring_uid, mooring_rd,
+                                            event_id, last_modified, cruise_id=cruise_id)
+        update_event_id = self._update_event_type(event_type, input, event_id)
+        if verbose: print '\n\tUpdated eventId: %d, cruise id: %s ' % (update_event_id, cruise_id)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Add cruise event to a platform asset.
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if verbose:
+            print '\n ----------------------------------'
+            print '\n Platform: Creating %s event - asset id/uid/rd: %d/%s/%s' % (event_type,
+                                                                            platform_id, platform_uid, platform_rd)
+        # Get unique cruise identifier
+        cruise_id, input = self.get_cruise_by_cruise_id(platform_uid, platform_rd)
+        self.assertTrue(cruise_id is not None)
+        self.assertTrue(input is not None)
+
+        # Create cruise event
+        event_id, last_modified = self._create_event_type(event_type, platform_uid, input)
+        if verbose:
+            print '\n\tCreated eventId: %d and lastModifiedTimestamp: %d' % (event_id, last_modified)
+            print '\n\tUnique cruise identifier: ', cruise_id
+
+        # Update the cruise we just created
+        uid, input = self.update_event_data(event_type, mooring_uid, mooring_rd,
+                                            event_id, last_modified, cruise_id=cruise_id)
+        update_event_id = self._update_event_type(event_type, input, event_id)
+        if verbose: print '\n\tUpdated eventId: %d, cruise id: %s ' % (update_event_id, cruise_id)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Add cruise event to an instrument asset.
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if verbose:
+            print '\n ----------------------------------'
+            print '\n Instrument: Creating %s event - asset id/uid/rd: %d/%s/%s' % (event_type,
+                                                                    instrument_id, instrument_uid, instrument_rd)
+
+        # Get unique cruise identifier
+        cruise_id, input = self.get_cruise_by_cruise_id(instrument_uid, instrument_rd)
+        self.assertTrue(cruise_id is not None)
+        self.assertTrue(input is not None)
+
+        # Create cruise event
+        event_id, last_modified = self._create_event_type(event_type, instrument_uid, input)
+        if verbose:
+            print '\n\tCreated eventId: %d and lastModifiedTimestamp: %d' % (event_id, last_modified)
+            print '\n\tUnique cruise identifier: ', cruise_id
+
+        # Update the cruise we just created
+        uid, input = self.update_event_data(event_type, mooring_uid, mooring_rd,
+                                            event_id, last_modified, cruise_id=cruise_id)
+        update_event_id = self._update_event_type(event_type, input, event_id)
+        if verbose: print '\n\tUpdated eventId: %d, cruise id: %s ' % (update_event_id, cruise_id)
+
+        if verbose: print '\n'
 
     def test_create_event_types_numerous_regular(self):
         """
-        Create events of different types for numerous assets, configure for more than two assets.
+        Create events of different types for numerous assets, can configure for more than one asset.
         This test case is useful for populating large quantities of event (all types) on a uframe server. Careful.
-
-        Following event types not support and why:
-        'DEPLOYMENT'           # (general)
-        'CALIBRATION_DATA'     # create and update api not available
-        'RECOVERY'             # OBE?
 
         Routes:
         [GET]   /assets
@@ -411,19 +565,20 @@ class EventsTestCase(unittest.TestCase):
         [PUT]   /events/<int:id>
         [POST]  /events
         """
-        debug = self.debug
         verbose = self.verbose
         event_types = get_event_types()
 
         # Remove event_type which are not supported at this time.
-        event_types.remove('DEPLOYMENT')
-        event_types.remove('CALIBRATION_DATA')
-        if 'RECOVERY' in event_types:
-            event_types.remove('RECOVERY')
+        #event_types.remove('DEPLOYMENT')
+        #event_types.remove('CALIBRATION_DATA')
 
-        # For now remove cruise info until determine a way to generate next unique cruise id.
+        # Cruises tested elsewhere.
         if 'CRUISE_INFO' in event_types:
             event_types.remove('CRUISE_INFO')
+
+        # Put back in when hear from Korman
+        if 'ATVENDOR' in event_types:
+            event_types.remove('ATVENDOR')
 
         if verbose: print '\n event_types: ', event_types
 
@@ -440,10 +595,8 @@ class EventsTestCase(unittest.TestCase):
         maximum_count = 1
         while count <= number_of_assets and count < maximum_count:
 
-            # Select an asset...
+            # Select an asset...Get asset_id, asset_uid, rd.
             asset = assets[count]
-
-            # Get asset_id, asset_uid, rd.
             asset_id, asset_uid, rd = self.get_id_uid_rd(asset)
             asset_type = ''
             if is_mooring(rd):
@@ -453,6 +606,7 @@ class EventsTestCase(unittest.TestCase):
             elif is_instrument(rd):
                 asset_type = 'instrument'
 
+            if verbose: print '\n***********************************************************************'
             message = '\n (%d) Processing %s asset...' % ((count + 1), asset_type)
             if verbose: print '\n %s' % message
             count +=1
@@ -462,48 +616,48 @@ class EventsTestCase(unittest.TestCase):
             #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             # Note: To test single event type, set event_types list here: event_types = ['UNSPECIFIED']
             #event_types = ['INTEGRATION']  # ['ACQUISITION'] #
+            #event_types = ['CALIBRATION_DATA', 'DEPLOYMENT']
+            #event_types = ['ATVENDOR']
             for event_type in event_types:
-                if verbose: print '\n Creating %s event - asset id/uid/rd: %d/%s/%s' % (event_type, asset_id, asset_uid, rd)
-
-                """
-                # Note: Add in if running small quantities of assets or to see event counts before and after create.
-                # How many of this type of event does mooring currently have?
-                events_before = self.get_events_for_an_event_type(event_type, asset_uid)
-                number_before = len(events_before)
-                if verbose: print '\t Number before creating %s event: %d' % (event_type, number_before)
-                """
+                if verbose: print '\n ----- Creating %s event - asset id/uid/rd: %d/%s/%s' % (event_type, asset_id, asset_uid, rd)
 
                 # Create an event
                 uid, input = self.create_event_data(event_type, asset_uid, rd)
+                if event_type == 'DEPLOYMENT' or event_type == 'CALIBRATION_DATA':
+                    input['eventType'] = event_type
+                    input['assetUid'] = uid
                 event_id, last_modified = self._create_event_type(event_type, uid, input)
-                if verbose: print '\n Created eventId: %d and lastModifiedTimestamp: %d' % (event_id, last_modified)
+                if verbose:
+                    print '\n Created eventId: %d and lastModifiedTimestamp: %d' % (event_id, last_modified)
+                #if event_type == 'DEPLOYMENT' or event_type == 'CALIBRATION_DATA':
+                #    continue
 
-                """
-                # Note: Add in if running small quantities of assets or to see event counts before and after create.
-                # How many events now?
-                events_after = self.get_events_for_an_event_type(event_type, asset_uid)
-                number_after = len(events_after)
-                if verbose: print '\t Number after creating %s event: %d' % (event_type, number_after)
-                self.assertTrue((number_after - number_before), 1)
-                """
+                if event_type == 'CRUISE_INFO':
+                    continue
 
                 if verbose:
-                    print '\n***********************************************************************'
                     print '\n Now performing an UPDATE on event we just created...'
                 # Update the one we just created
                 uid, input = self.update_event_data(event_type, asset_uid, rd, event_id, last_modified)
-                update_event_id = self._update_event_type(event_type, uid, input, event_id)
+                update_event_id = self._update_event_type(event_type, input, event_id)
                 if verbose: print '\n Updated eventId: %d ' % update_event_id
-                self.assertTrue(event_id, update_event_id)
+
+                if event_type != 'DEPLOYMENT' and event_type != 'CALIBRATION_DATA':
+                    self.assertTrue(event_id, update_event_id)
 
         if verbose: print '\n Note: Number of assets processed: %d ' % count
+        if verbose: print '\n'
 
     def test_create_event_types_numerous_requests(self):
         """
+        *********************************************************************************************************
+        **** Fails if login and asset_manage scope required. Requires localhost:400 services to be running. *****
+        *********************************************************************************************************
+
         Create events of different types for numerous assets, configure for more than two assets.
         This test case is useful for populating large quantities of event (all types) on a uframe server. Careful.
 
-        Following event types not support and why:
+        Following event types not supported and why:
         'DEPLOYMENT'           # (general)
         'CALIBRATION_DATA'     # create and update api not available
         'RECOVERY'             # OBE?
@@ -521,12 +675,11 @@ class EventsTestCase(unittest.TestCase):
         # Remove event_type which are not supported at this time.
         event_types.remove('DEPLOYMENT')
         event_types.remove('CALIBRATION_DATA')
-        if 'RECOVERY' in event_types:
-            event_types.remove('RECOVERY')
 
-        # For now remove cruise info until determine a way to generate next unique cruise id.
+        # Cruises tested elsewhere.
         if 'CRUISE_INFO' in event_types:
             event_types.remove('CRUISE_INFO')
+
         if verbose: print '\n event_types: ', event_types
 
         # Get some assets...
@@ -556,6 +709,7 @@ class EventsTestCase(unittest.TestCase):
             elif is_instrument(rd):
                 asset_type = 'instrument'
 
+            if verbose: print '\n***********************************************************************'
             message = '\n (%d) Processing %s asset...' % ((count + 1), asset_type)
             if verbose: print '\n %s' % message
             count +=1
@@ -564,46 +718,136 @@ class EventsTestCase(unittest.TestCase):
             # Add event(s) to asset.
             #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             # Note: To test single event type, set event_types list here:
-            #event_types = ['STORAGE']
+            #event_types = ['INTEGRATION']
             for event_type in event_types:
-                if verbose: print '\n Creating %s event - asset id/uid/rd: %d/%s/%s' % (event_type, asset_id, asset_uid, rd)
-
-                """
-                # Note: Add in if running small quantities of assets or to see event counts before and after create.
-                # How many of this type of event does mooring currently have?
-                events_before = self.get_events_for_an_event_type(event_type, asset_uid)
-                number_before = len(events_before)
-                if verbose: print '\t Number before creating %s event: %d' % (event_type, number_before)
-                """
+                if verbose:
+                    print '\n Creating %s event - asset id/uid/rd: %d/%s/%s' % (event_type, asset_id, asset_uid, rd)
 
                 # Create another
                 uid, input = self.create_event_data(event_type, asset_uid, rd)
                 event_id, last_modified = self._create_event_type_requests(event_type, uid, input)
                 if verbose: print '\n (requests) Created eventId: %d and lastModifiedTimestamp: %d' % (event_id, last_modified)
 
-                """
-                # Note: Add in if running small quantities of assets or to see event counts before and after create.
-                # How many events now?
-                events_after = self.get_events_for_an_event_type(event_type, asset_uid)
-                number_after = len(events_after)
-                if verbose: print '\t Number after creating %s event: %d' % (event_type, number_after)
-                self.assertTrue((number_after - number_before), 1)
-                """
+                if event_type == 'CRUISE_INFO':
+                    continue
 
                 if verbose:
-                    print '\n***********************************************************************'
                     print '\n Now performing an UPDATE on event we just created...'
                 # Update the one we just created
                 uid, input = self.update_event_data(event_type, asset_uid, rd, event_id, last_modified)
-                update_event_id = self._update_event_type_requests(event_type, uid, input, event_id)
+                update_event_id = self._update_event_type_requests(event_type, input, event_id)
                 if verbose: print '\n (requests) Updated eventId: %d ' % update_event_id
                 self.assertTrue(event_id, update_event_id)
 
         if verbose: print '\n Note: Number of assets processed: %d ' % count
+        if verbose: print '\n'
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Supporting functions
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def create_event_negative(self, input):
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Negative) Create Event
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        debug = False
+        headers = self.get_api_headers('admin', 'test')
+        url = url_for('uframe.create_event')
+        if debug: print '\n create url: ', url
+        data = json.dumps(input)
+        response = self.client.post(url, headers=headers, data=data)
+        self.assertEquals(response.status_code, 400)
+        if debug: print '\n response.status_code: ', response.status_code
+        response_error = json.loads(response.data)
+        if debug: print '\n response_data: ', response_error
+
+        response = self.client.post(url, headers=headers, data=None)
+        self.assertEquals(response.status_code, 400)
+        if debug: print '\n response.status_code: ', response.status_code
+        response_error = json.loads(response.data)
+        if debug: print '\n response_data: ', response_error
+
+        response = self.client.post(url, headers=headers)
+        self.assertEquals(response.status_code, 400)
+        if debug: print '\n response.status_code: ', response.status_code
+        response_error = json.loads(response.data)
+        if debug: print '\n response_data: ', response_error
+
+    def update_event_negative(self, input):
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Negative) Create Event
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        debug = False
+        headers = self.get_api_headers('admin', 'test')
+        url = url_for('uframe.update_event', id=20052)
+        if debug: print '\n create url: ', url
+        data = json.dumps(input)
+        response = self.client.put(url, headers=headers, data=data)
+        self.assertEquals(response.status_code, 400)
+        if debug: print '\n response.status_code: ', response.status_code
+        response_error = json.loads(response.data)
+        if debug: print '\n response_data: ', response_error
+
+        response = self.client.put(url, headers=headers, data=None)
+        self.assertEquals(response.status_code, 400)
+        if debug: print '\n response.status_code: ', response.status_code
+        response_error = json.loads(response.data)
+        if debug: print '\n response_data: ', response_error
+
+        response = self.client.put(url, headers=headers)
+        self.assertEquals(response.status_code, 400)
+        if debug: print '\n response.status_code: ', response.status_code
+        response_error = json.loads(response.data)
+        if debug: print '\n response_data: ', response_error
+
+    def get_cruise_by_cruise_id(self, uid, rd):
+
+        """ http://uframe-test.ooi.rutgers.edu:12587/events/cruise/inv/EE-2016-0191
+        """
+        verbose = self.verbose
+        headers = self.get_api_headers('admin', 'test')
+
+        # Make create initial cruise data.
+        event_type = 'CRUISE_INFO'
+        uid, input = self.create_event_data(event_type, uid, rd)
+
+        # Get value for uniqueCruiseIdentifer
+        cruise_id = input['uniqueCruiseIdentifier']
+
+        # Verify uniqueCruiseIdentifer does not already exist in cruises.
+        url = url_for('uframe.get_cruise_by_cruise_id', cruise_id=cruise_id)
+        if verbose: print '\n ----- url: ', url
+        response = self.client.get(url, headers=headers)
+        if verbose: print '\n debug -- response.status_code: ', response.status_code
+        if response.status_code != 409:
+            if verbose: print '\n ************** Loop to create unique id...'
+            max_count = 10
+            count = 0
+            while count < max_count:
+                count += 1
+                cruise_id = None
+                if verbose: print '\n debug -- (%d) Get unique cruise id. '% count
+                # Get a unique cruise identifier
+                # Make some unique key in form: 'EE-2016-0102'
+                unique_num = randint(105, 990)
+                uniqueCruiseIdentifer = 'EE-2016-0' + str(unique_num)
+                if verbose: print '\n debug -- Try uniqueCruiseIdentifier: ', uniqueCruiseIdentifer
+                # Verify uniqueCruiseIdentifer does not exist in cruises
+                url = url_for('uframe.get_cruise_by_cruise_id', cruise_id=uniqueCruiseIdentifer)
+                if verbose: print '\n ----- url: ', url
+                response = self.client.get(url, headers=headers)
+                if verbose: print '\n debug -- response.status_code: ', response.status_code
+                if response.status_code == 409:
+                    cruise_id = uniqueCruiseIdentifer
+                    break
+
+        self.assertTrue(cruise_id is not None)
+        if verbose: print '\n Unique cruise id: ', cruise_id
+        input['uniqueCruiseIdentifier'] = cruise_id
+
+        return cruise_id, input
+
     def get_id_uid_rd(self, asset):
         """ For an asset, get id, uid and rd.
         """
@@ -663,7 +907,8 @@ class EventsTestCase(unittest.TestCase):
         headers = self.get_api_headers('admin', 'test')
 
         # Define variables specific to event type
-        if debug: print '\n Creating new event of type %s' % _event_type
+        if debug: print '\n ***************************************** start'
+        if debug: print '\n -------------- Creating new event of type %s' % _event_type
         target_event_type = _event_type
         key = target_event_type
 
@@ -686,124 +931,50 @@ class EventsTestCase(unittest.TestCase):
         if debug: print '\n -- len(events_by_type): ', len(events_by_type)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Get asset with uid 'A00391.1'; get asset_id
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        response = self.client.get(url_for('uframe.get_asset_by_uid', uid=uid), headers=headers)
-        self.assertEquals(response.status_code, 200)
-        result = json.loads(response.data)
-        #if debug: print '\n -- fetched asset (%s): %s' % (uid, result)
-        self.assertTrue(result is not None)
-        self.assertTrue(isinstance(result, dict))
-
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Get events for asset with uid 'A00391.1'
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        base_url = url_for('uframe.get_events_by_uid', uid=uid)
-        if verbose: print '\n Base url: ', base_url
-        response = self.client.get(base_url, headers=headers)
-        self.assertEquals(response.status_code, 200)
-        result = json.loads(response.data)
-        #if debug: print '\n -- fetched asset uid events(%s): %s' % (uid, result)
-        self.assertTrue(result is not None)
-        self.assertTrue('events' in result)
-
-        # Get events by type dictionary, key is event_type
-        events_by_type = result['events']
-        self.assertTrue(events_by_type is not None)
-        self.assertTrue(len(events_by_type) > 0)
-
-        # Create list of event_types returned for this asset
-        event_types = events_by_type.keys()
-        self.assertTrue(len(event_types) > 0)
-        if debug: print '\n Have event_types: ', event_types
-
-        # Get all uframe supported event types
-        all_event_types = get_event_types()
-        self.assertTrue(isinstance(all_event_types, list))
-        self.assertTrue(len(all_event_types) > 0)
-
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Determine number of events of target event type currently available
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        target_events = []
-        target_event_ids = []
-        if target_event_type in event_types:
-            target_events = events_by_type[target_event_type]
-            if target_events:
-                for event in target_events:
-                    if 'event_id' in event:
-                        if event['event_id']:
-                            if event['event_id'] not in target_event_ids:
-                                target_event_ids.append(event['event_id'])
-
-        if debug: print '\n Number of %s events: %d' % (target_event_type, len(target_events))
-        number_of_target_events = len(target_events)
-
-        # Verify number of events by query (using type=target_event_type)
-        target_url = base_url + '?type=' + key
-        if verbose: print '\n target_url: ', target_url
-        response = self.client.get(base_url, headers=headers)
-        self.assertEquals(response.status_code, 200)
-        result = json.loads(response.data)
-        #if debug: print '\n -- fetched asset uid %s %s events: %s' % (uid, key, result)
-        self.assertTrue(result is not None)
-        self.assertTrue('events' in result)
-        self.assertTrue(result['events'] is not None)
-        some_events = result['events'][key]
-        if debug: print '\n Number of %s events returned: %d' % (key, len(some_events))
-        self.assertEquals(len(some_events), number_of_target_events)
-
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Create Event
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         if debug:
             print '\n Create %s event' % key
-            print '\n debug ********\n test create (line 668) CREATE request_data(%d): %r' % (len(input),
+            print '\n debug ********\n test CREATE request_data(%d): %r' % (len(input),
                                                               json.dumps(input, indent=4, sort_keys=True))
 
         url = url_for('uframe.create_event')
         if debug: print '\n create url: ', url
-        goo = json.dumps(input)
-        response = self.client.post(url, headers=headers, data=goo)
+        data = json.dumps(input)
+        response = self.client.post(url, headers=headers, data=data)
         if debug:
-            print '\n response.status_code: ', response.status_code
+            print '\n Create event -- response.status_code: ', response.status_code
             response_error = json.loads(response.data)
             print '\n response_data: ', response_error
 
-        self.assertEquals(response.status_code, 200)
-        self.assertTrue(response.data is not None)
-        response_data = json.loads(response.data)
-        self.assertTrue('event' in response_data)
-        event = response_data['event']
-        self.assertTrue(event is not None)
-        self.assertTrue('eventId' in event)
-        event_id = event['eventId']
-        self.assertTrue(event_id is not None)
-        #print '\n event_id: ', event_id
-        self.assertTrue('lastModifiedTimestamp' in event)
-        last_modified = event['lastModifiedTimestamp']
-        self.assertTrue(last_modified is not None)
-        #print '\n last_modified: ', last_modified
+        if _event_type == 'DEPLOYMENT' or _event_type == 'CALIBRATION_DATA':
+            self.assertEquals(response.status_code, 400)
+            if debug: print '\n response.status_code: ', response.status_code
+            response_error = json.loads(response.data)
+            if debug: print '\n response_data: ', response_error
+            event_id = 0
+            last_modified = 0
 
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Verify number of events has increased by one
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        target_url = base_url + '?type=' + key
-        if verbose: print '\n target_url: ', target_url
-        response = self.client.get(base_url, headers=headers)
-        self.assertEquals(response.status_code, 200)
-        result = json.loads(response.data)
-        #if debug: print '\n -- fetched asset uid %s %s events: %s' % (uid, key, result)
-        self.assertTrue(result is not None)
-        self.assertTrue('events' in result)
-        self.assertTrue(result['events'] is not None)
-        some_events = result['events'][key]
-        if debug: print '\n Number of %s events returned: %d' % (key, len(some_events))
-        self.assertEquals(len(some_events), number_of_target_events + 1)
+        else:
+            if debug: print '\n response.status_code: ', response.status_code
+            if debug: print '\n response_data: ', json.loads(response.data)
+            self.assertEquals(response.status_code, 200)
+            self.assertTrue(response.data is not None)
+            response_data = json.loads(response.data)
+            self.assertTrue('event' in response_data)
+            event = response_data['event']
+            self.assertTrue(event is not None)
+            self.assertTrue('eventId' in event)
+            event_id = event['eventId']
+            self.assertTrue(event_id is not None)
+            #print '\n event_id: ', event_id
+            self.assertTrue('lastModifiedTimestamp' in event)
+            last_modified = event['lastModifiedTimestamp']
+            self.assertTrue(last_modified is not None)
+            #print '\n last_modified: ', last_modified
+            if debug: print '\n ***************************************** exit'
 
         return event_id, last_modified
-
-
 
     #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # Create event_type using requests
@@ -839,6 +1010,7 @@ class EventsTestCase(unittest.TestCase):
         self.assertTrue(isinstance(events_by_type, list))
         if debug: print '\n -- len(events_by_type): ', len(events_by_type)
 
+        """
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Get asset with uid 'A00391.1'; get asset_id
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -868,6 +1040,7 @@ class EventsTestCase(unittest.TestCase):
 
         # Create list of event_types returned for this asset
         event_types = events_by_type.keys()
+        event_types.sort()
         self.assertTrue(len(event_types) > 0)
         if debug: print '\n Have event_types: ', event_types
 
@@ -903,9 +1076,14 @@ class EventsTestCase(unittest.TestCase):
         self.assertTrue(result is not None)
         self.assertTrue('events' in result)
         self.assertTrue(result['events'] is not None)
+        events = result['events']
+        #if debug: print '\n debug-- result[events]: ', events
+        self.assertTrue(events is not None)
+
         some_events = result['events'][key]
         if debug: print '\n Number of %s events returned: %d' % (key, len(some_events))
         self.assertEquals(len(some_events), number_of_target_events)
+        """
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Create Event
@@ -924,43 +1102,58 @@ class EventsTestCase(unittest.TestCase):
         #response = requests.post(url, timeout=(timeout, timeout_read), headers=self.request_headers(), data=data)
         response = requests.post(url, timeout=(timeout, timeout_read),  data=data)
         if debug: print '\n debug -- Test: Create response.status_code: ', response.status_code
-        if response.status_code != 200:
-            if debug: print '\n Failed to execute to localhost:4000 create event, status_code: ', response.status_code
-            if response.content:
-                response_data = json.loads(response.content)
-                if debug: print '\n Failed Event create data from POST: %s' % response_data
+
+        if _event_type == 'DEPLOYMENT' or _event_type == 'CALIBRATION_DATA':
+            self.assertEquals(response.status_code, 400)
+            if debug: print '\n response.status_code: ', response.status_code
+            response_error = json.loads(response.data)
+            if debug: print '\n response_data: ', response_error
+            event_id = 0
+            last_modified = 0
+
         else:
-            if response.content:
-                response_data = json.loads(response.content)
-                if debug: print '\n Test: Successful Event create data from POST (json.loads(response.content)): %s' % response_data
+            if response.status_code != 200:
+                if debug: print '\n Failed to execute to localhost:4000 create event, status_code: ', response.status_code
+                if response.content:
+                    response_data = json.loads(response.content)
+                    if debug: print '\n Failed Event create data from POST: %s' % response_data
+                event_id = 0
+                last_modified = 0
+            else:
+                if response.content:
+                    response_data = json.loads(response.content)
+                    if debug: print '\n Test: Successful Event create data from POST (json.loads(response.content)): %s' % response_data
 
-        self.assertTrue('event' in response_data)
-        event = response_data['event']
-        self.assertTrue(event is not None)
-        self.assertTrue('eventId' in event)
-        event_id = event['eventId']
-        self.assertTrue(event_id is not None)
-        #print '\n event_id: ', event_id
-        self.assertTrue('lastModifiedTimestamp' in event)
-        last_modified = event['lastModifiedTimestamp']
-        self.assertTrue(last_modified is not None)
-        #print '\n last_modified: ', last_modified
+                #print '\n response_data: ', response_data
+                self.assertTrue('event' in response_data)
+                event = response_data['event']
+                self.assertTrue(event is not None)
+                self.assertTrue('eventId' in event)
+                event_id = event['eventId']
+                self.assertTrue(event_id is not None)
+                #print '\n event_id: ', event_id
+                self.assertTrue('lastModifiedTimestamp' in event)
+                last_modified = event['lastModifiedTimestamp']
+                self.assertTrue(last_modified is not None)
+                #print '\n last_modified: ', last_modified
 
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Verify number of events has increased by one
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        target_url = base_url + '?type=' + key
-        if verbose: print '\n target_url: ', target_url
-        response = self.client.get(base_url, headers=headers)
-        self.assertEquals(response.status_code, 200)
-        result = json.loads(response.data)
-        #if debug: print '\n -- fetched asset uid %s %s events: %s' % (uid, key, result)
-        self.assertTrue(result is not None)
-        self.assertTrue('events' in result)
-        self.assertTrue(result['events'] is not None)
-        some_events = result['events'][key]
-        if debug: print '\n Number of %s events returned: %d' % (key, len(some_events))
-        self.assertEquals(len(some_events), number_of_target_events + 1)
+            """
+            #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            # Verify number of events has increased by one
+            #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            target_url = base_url + '?type=' + key
+            if verbose: print '\n target_url: ', target_url
+            response = self.client.get(base_url, headers=headers)
+            self.assertEquals(response.status_code, 200)
+            result = json.loads(response.data)
+            #if debug: print '\n -- fetched asset uid %s %s events: %s' % (uid, key, result)
+            self.assertTrue(result is not None)
+            self.assertTrue('events' in result)
+            self.assertTrue(result['events'] is not None)
+            some_events = result['events'][key]
+            if debug: print '\n Number of %s events returned: %d' % (key, len(some_events))
+            self.assertEquals(len(some_events), number_of_target_events + 1)
+            """
         return event_id, last_modified
 
 
@@ -971,7 +1164,7 @@ class EventsTestCase(unittest.TestCase):
     #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # Update event_type - regular
     #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    def _update_event_type(self, _event_type, uid, input, event_id):
+    def _update_event_type(self, _event_type, input, event_id):
         """
         Create event.
         """
@@ -993,29 +1186,38 @@ class EventsTestCase(unittest.TestCase):
 
         url = url_for('uframe.update_event', id=event_id)
         if verbose: print '\n **** Update url: ', url
-        goo = json.dumps(input)
-        response = self.client.put(url, headers=headers, data=goo)
+        data = json.dumps(input)
+        response = self.client.put(url, headers=headers, data=data)
         if response.status_code != 200:
-            print '\n response.status_code: ', response.status_code
+            if debug: print '\n response.status_code: ', response.status_code
             response_error = json.loads(response.data)
-            print '\n response_error: ', response_error
+            if debug: print '\n response_error: ', response_error
 
-        self.assertEquals(response.status_code, 200)
-        self.assertTrue(response.data is not None)
-        response_data = json.loads(response.data)
-        self.assertTrue('event' in response_data)
-        event = response_data['event']
-        self.assertTrue(event is not None)
-        self.assertTrue('eventId' in event)
-        event_id = event['eventId']
-        self.assertTrue(event_id is not None)
+        if _event_type == 'DEPLOYMENT' or _event_type == 'CALIBRATION_DATA':
+            self.assertEquals(response.status_code, 400)
+            if debug: print '\n response.status_code: ', response.status_code
+            response_error = json.loads(response.data)
+            if debug: print '\n response_data: ', response_error
+            event_id = 0
+
+        else:
+            self.assertEquals(response.status_code, 200)
+            self.assertTrue(response.data is not None)
+            response_data = json.loads(response.data)
+            self.assertTrue('event' in response_data)
+            event = response_data['event']
+            self.assertTrue(event is not None)
+            #print '\n debug -- event: ', event
+            self.assertTrue('eventId' in event)
+            event_id = event['eventId']
+            self.assertTrue(event_id is not None)
         return event_id
 
 
     #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # Update event_type - using requests
     #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    def _update_event_type_requests(self, _event_type, uid, input, event_id):
+    def _update_event_type_requests(self, _event_type, input, event_id):
         """
         Create event.
         """
@@ -1057,6 +1259,7 @@ class EventsTestCase(unittest.TestCase):
 
         self.assertTrue('event' in response_data)
         event = response_data['event']
+        if debug: print '\n debug -- event: ', event
         self.assertTrue(event is not None)
         self.assertTrue('eventId' in event)
         event_id = event['eventId']
@@ -1160,18 +1363,22 @@ class EventsTestCase(unittest.TestCase):
                     }
 
         elif event_type == 'CRUISE_INFO':
+            # Make some unique key in form: 'EE-2016-0102'
+            unique_num = randint(105, 990)
+            uniqueCruiseIdentifer = 'EE-2016-0' + str(unique_num)
+            #'cruiseIdentifier': 'Test EE Cruise Info 2016',
             input = {
-                    'uniqueCruiseIdentifer': 'CE-2016-0102',
-                    'cruiseIdentifier': 'Test CE Cruise Info 2016',
+                    'uniqueCruiseIdentifier': uniqueCruiseIdentifer,
                     'shipName': 'M/V Gallant',
                     'eventType': 'CRUISE_INFO',
                     'eventStartTime': 1453308000000,
                     'eventStopTime': 1453508700000,
                     'notes': notes,
-                    'eventName': 'Test CE Cruise Info 2016',
+                    'eventName': 'Test EE Cruise Info 2016',
                     'tense': 'UNKNOWN',
                     'dataSource': None,
-                    'assetUid': uid
+                    'assetUid': uid,
+                    'editPhase': None
                     }
 
         elif event_type == 'INTEGRATION':
@@ -1254,10 +1461,12 @@ class EventsTestCase(unittest.TestCase):
         return uid, string_input
 
     # Data used to update different event types.
-    def update_event_data(self, event_type, uid, rd, event_id, last_modified):
-        #print '\n debug -- update_event_data -- event_type: ', event_type
+    def update_event_data(self, event_type, uid, rd, event_id, last_modified, cruise_id=None):
+        debug = False
+        if debug: print '\n debug -- update_event_data -- event_type: ', event_type
         input = {}
         notes = 'Update new %s event for %s, associated with asset: %s)' % (event_type, rd, uid)
+
         if event_type == 'ACQUISITION':
             input = {
                       'purchasePrice': None,
@@ -1302,10 +1511,8 @@ class EventsTestCase(unittest.TestCase):
 
         elif event_type == 'ATVENDOR':
 
-            notes = 'The are serious concerns about some newer components used to '
-            notes += 'refurbish the hardware. Issues configuring to OEM specs '
-            notes += 'during calibration. Please review.'
-
+            notes = 'Issues with some components used to refurbish the hardware. '
+            notes += 'Issues configuring calibration to OEM specs. Please review.'
             input = {
                     'reason': 'Dial not working properly do to power issues.',
                     'authorizationNumber': '10147',
@@ -1313,7 +1520,7 @@ class EventsTestCase(unittest.TestCase):
                     'authorizationForPayment': None,
                     'invoiceNumber': '2016-45870',
                     'vendorPointOfContact': 'Vendor Technician',
-                    'sentToVendorBy': 'Raytheon Engineer',
+                    'sentToVendorBy': 'Engineer',
                     'receivedFromVendorBy': 'Marine technician',
                     'eventType': 'ATVENDOR',
                     'eventStartTime': 1398039160000,
@@ -1328,37 +1535,47 @@ class EventsTestCase(unittest.TestCase):
                     }
 
         elif event_type == 'CRUISE_INFO':
+            eventName = 'Updated %s event name.' % cruise_id
+            #cruiseIdentifier = 'Updated %s cruise identifier.' % cruise_id
+            eventStartTime = 1453309000000 + 10000
+            eventStopTime = eventStartTime + 10000
+            notes = None
+            # edit_phase is one of ['EDIT', 'STAGED', 'OPERATIONAL']
+            #'cruiseIdentifier': cruiseIdentifier,
             input = {
-                    'uniqueCruiseIdentifer': 'CE-2016-0102',
-                    'cruiseIdentifier': 'Test CE Cruise Info 2016',
+                    'uniqueCruiseIdentifier': cruise_id,
                     'shipName': 'M/V Gallant',
                     'eventType': 'CRUISE_INFO',
-                    'eventStartTime': 1453309000000,
-                    'eventStopTime': 1453508710000,
+                    'eventStartTime': eventStartTime,
+                    'eventStopTime': eventStopTime,
                     'notes': notes,
-                    'eventName': 'Test CE Cruise Info 2016',
+                    'eventName': eventName,
                     'tense': 'UNKNOWN',
                     'dataSource': None,
                     'assetUid': uid,
                     'eventId': event_id,
-                    'lastModifiedTimestamp': last_modified
+                    'lastModifiedTimestamp': last_modified,
+                    'editPhase': 'EDIT'
                     }
 
         elif event_type == 'INTEGRATION':
+            notes = None
             integrationInto = {
-                                'node': 'RID26',
+                                'node': None,
                                 'subsite': 'CP01CNSM',
-                                'sensor': '04-VELPTA000'
+                                'sensor': None
                               }
+            integration_rd = get_rd_from_integrationInto(integrationInto)
+            if debug: print '\n debug -- rd: ', rd
             input = {
-                    'integrationInto': None,
+                    'integrationInto': integration_rd,
                     'deploymentNumber': 1,
                     'versionNumber': 2,
-                    'integratedBy': 'Engineer 2, RPS ASA',
+                    'integratedBy': 'Engineer 5, RPS ASA',
                     'eventType': 'INTEGRATION',
                     'eventName':  rd,
-                    'eventStartTime': 1398039260000,
-                    'eventStopTime': 1405382420000,
+                    'eventStartTime': 1471218130232,
+                    'eventStopTime': 1471218130532,
                     'notes': notes,
                     'tense': 'UNKNOWN',
                     'dataSource': None,
@@ -1435,9 +1652,7 @@ class EventsTestCase(unittest.TestCase):
                     'lastModifiedTimestamp': last_modified
                     }
 
-        #string_input = self.get_event_input_as_string(input)
         string_input = self.get_event_input_as_unicode(input)
-        #print '\n debug -- Completed get update string event.'
         return uid, string_input
 
     def get_event_input_as_string(self, data):
