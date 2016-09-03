@@ -165,9 +165,9 @@ def update_asset(id):
     """ Update asset by id.
     """
     try:
+        """
         message = 'Update asset is not enabled at this time.'
         return bad_request(message)
-
         """
         if not request.data:
             message = 'No data provided to update asset %d.' % id
@@ -179,7 +179,7 @@ def update_asset(id):
             return conflict(message)
         result = jsonify({'asset': asset})
         return result
-        """
+
 
     except Exception as err:
         message = str(err)

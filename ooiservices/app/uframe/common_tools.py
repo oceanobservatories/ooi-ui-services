@@ -22,6 +22,8 @@ Common functions and definitions.
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
+import datetime as dt
+import calendar
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Common functions
@@ -241,6 +243,8 @@ def get_event_class(event_type):
             event_class = '.AssetStatusEvent'
         elif event_type == 'ATVENDOR':
             event_class = '.AtVendorEvent'
+        elif event_type == 'CALIBRATION_DATA':
+            event_class = '.XCalibrationData'
         elif event_type == 'CRUISE_INFO':
             event_class = '.CruiseInfo'
         elif event_type == 'INTEGRATION':
@@ -262,6 +266,7 @@ def get_event_class(event_type):
 
     except Exception as err:
         message = str(err)
+
         current_app.logger.info(message)
         raise Exception(message)
 
@@ -274,8 +279,8 @@ def get_event_types():
     return event_types
 
 def get_supported_event_types():
-    # Get all event type values. Missing 'CALIBRATION_DATA' and 'DEPLOYMENT'.
-    event_types = ['ACQUISITION', 'ASSET_STATUS', 'ATVENDOR',  'CRUISE_INFO',
+    # Get all event type values. Missing 'DEPLOYMENT'.
+    event_types = ['ACQUISITION', 'ASSET_STATUS', 'ATVENDOR', 'CALIBRATION_DATA', 'CRUISE_INFO',
                    'INTEGRATION', 'LOCATION', 'RETIREMENT', 'STORAGE', 'UNSPECIFIED']
     event_types.sort()
     return event_types
@@ -294,9 +299,18 @@ def get_event_types_by_rd(rd):
     return event_types
 
 
-'''
-import datetime as dt
-import calendar
+def get_event_phase_values():
+    # Get all editPhase values.
+    values = ['EDIT', 'OPERATIONAL', 'STAGED']
+    return values
+
+def get_supported_array_codes():
+    values = ['CP', 'CE', 'RS',  'GI', 'GS', 'GP', 'GA', 'SS']
+    return values
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Common datetime functions
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def get_timestamp_value(value):
     """ Convert float value into formatted string.
     """
@@ -338,4 +352,3 @@ def convert_from_utc(u):
 
 def ut(d):
     return calendar.timegm(d.timetuple())
-'''

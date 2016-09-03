@@ -379,7 +379,6 @@ class EventsTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         #event_types = ['INTEGRATION']
         for event_type in event_types:
-            #print '\n processing event_type: ', event_type
             if verbose: print '\n Creating %s event for platform - asset id/uid/rd: %d/%s/%s' % (event_type,
                                                                                 platform_id, platform_uid, platform_rd)
 
@@ -691,6 +690,7 @@ class EventsTestCase(unittest.TestCase):
         if verbose: print '\n Note: Number of assets processed: %d ' % count
         if verbose: print '\n'
 
+    # todo - bad fix this!!
     def test_create_event_types_numerous_requests(self):
         """
         *********************************************************************************************************
@@ -880,16 +880,12 @@ class EventsTestCase(unittest.TestCase):
                 unique_num = randint(105, 990)
                 uniqueCruiseIdentifer = 'XX-2016-0' + str(unique_num)
 
-                exists = uniqueCruiseIdentifier_exists(uniqueCruiseIdentifer)
-                #print '\n ============> uniqueCruiseIdentifier %s exists?: %r' % (uniqueCruiseIdentifer, exists)
-                if uniqueCruiseIdentifier_exists(uniqueCruiseIdentifer):
-                    if debug: print '\n Do not have unique cruise identifier: ', uniqueCruiseIdentifer
-                    continue
-                else:
+                if not uniqueCruiseIdentifier_exists(uniqueCruiseIdentifer):
                     if debug: print '\n Have unique cruise identifier: ', uniqueCruiseIdentifer
                     cruise_id = uniqueCruiseIdentifer
                     break
-
+                else:
+                    if debug: print '\n Do not have unique cruise identifier: ', uniqueCruiseIdentifer
 
                 """
                 if debug: print '\n test -- Try uniqueCruiseIdentifier: ', uniqueCruiseIdentifer

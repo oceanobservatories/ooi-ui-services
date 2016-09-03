@@ -95,7 +95,6 @@ def get_long_display_name_by_rd(rd):
 def get_display_name_by_rd(rd):
     """ Get display name for a reference designator.
     """
-    debug = False
     try:
         result = None
         vocab_dict = get_vocab()
@@ -106,7 +105,7 @@ def get_display_name_by_rd(rd):
                 # Build display name
                 result = build_display_name(rd)
                 if result is None:
-                    if debug: print '\n sd: ', rd
+                    result = rd
 
         return result
     except Exception:
@@ -139,7 +138,6 @@ def get_rs_array_display_name_by_rd(rd):
 def get_vocab_dict_by_rd(rd):
     """ Get vocabulary items for reference designator.
     """
-    debug = False
     try:
         result = None
         vocab_dict = get_vocab()
@@ -338,13 +336,10 @@ def compile_vocab():
             # Get vocabulary from uframe.
             vocabulary = get_vocab_from_uframe()
             codes = create_vocabulary_codes(vocabulary)
-            #if debug: print '\n debug -- UFRAME len(vocabulary): ', len(vocabulary)
         except Exception as err:
             message = 'uframe vocabulary error. %s' % str(err)
             current_app.logger.info(message)
             raise Exception(str(err))
-
-        #if debug: print '\n debug -- before len(vocabulary): ', len(vocabulary)
 
         # Check vocabulary results were returned.
         updated_vocabulary = False
@@ -374,7 +369,6 @@ def compile_vocab():
                 len_rd = len(rd)
                 if len_rd < 27:
                     if len_rd != 8 and len_rd != 14 and len_rd < 14:
-                        print '\n debug -- malformed rd: %s: ', rd
                         continue
 
                 if updated_vocabulary:
@@ -489,8 +483,6 @@ def compile_vocab():
             keys.sort()
             print '\n debug -- final results.keys(): ', json.dumps(keys, indent=4, sort_keys=True)
             """
-
-        #print '\n debug -- final results(): ', json.dumps(results, indent=4, sort_keys=True)
 
         # Return vocabulary results (list) and codes (dict)
         print '\n Completed compiling vocabulary...'

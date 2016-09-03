@@ -340,8 +340,8 @@ def get_asset_deployment_map(asset_id, ref_des):
                                 no_deployments_nums.append(deploy_number)
                             message = 'No asset ids for %s %s, deployment number %d.' % \
                                       (asset_type, ref_des, deploy_number)
-                            current_app.logger.info(message)
-                            #print '\n debug -- %s %s deployments_list: %s' % (asset_type, ref_des, deployments_list)
+                            #current_app.logger.info(message)
+                            if debug: print '\n debug -- %s %s deployments_list: %s' % (asset_type, ref_des, deployments_list)
 
                     # Get cumulative tense value for last deployment provided
                     if _deployment_numbers:
@@ -366,7 +366,6 @@ def get_asset_deployment_map(asset_id, ref_des):
 
     except Exception as err:
         message = str(err)
-        print '\n debug -- exception [get_processing_asset_type]: ', message
         current_app.logger.info(message)
         return None
 
@@ -577,7 +576,6 @@ def get_mooring_deployments_list(rd):
                     continue
 
                 # Process 'node' attribute in this deployment item.
-                #if debug: print '\n debug -- item[mooring]: ', json.dumps(item['mooring'], indent=4, sort_keys=True)
                 if 'assetId' in _item:
                     if _item['assetId']:
                         asset_id = _item['assetId']
@@ -585,20 +583,16 @@ def get_mooring_deployments_list(rd):
                             all_asset_ids.append(asset_id)
 
                 if deployment_number:
-                    #if debug: print '\n debug -- have deployment_number... '
                     if asset_id:
-                        #if debug: print '\n debug -- have asset_id... '
                         if asset_id not in deployment_asset_ids:
-                            #if debug: print '\n debug -- add asset_id to deployment_asset_ids... '
                             deployment_asset_ids.append(asset_id)
 
-                    #if debug: print '\n debug -- processing info[deployment_number][asset_ids_by_type]...'
                     info[deployment_number] = {}
                     info[deployment_number]['asset_ids_by_type'] = {'sensor': [], 'mooring': deployment_asset_ids, 'node': []}
                     if deployment_number not in deployments_list:
                         deployments_list.append(deployment_number)
 
-                    #if debug: print '\n debug -- processing deployment location and times...'
+                    # Processing deployment location and times...
                     # Valuable luggage
                     info[deployment_number]['location'] = location
                     info[deployment_number]['beginDT'] = beginDT
@@ -686,7 +680,6 @@ def get_platform_deployments_list(rd):
             deployment_number = None
             if 'deploymentNumber' in item:
                 deployment_number = item['deploymentNumber']
-
             if debug: print '\n debug -- deployment_number: ', deployment_number
 
             location = None
@@ -721,7 +714,6 @@ def get_platform_deployments_list(rd):
                     continue
 
                 # Process 'node' attribute in this deployment item.
-                #if debug: print '\n debug -- _item: ', json.dumps(_item, indent=4, sort_keys=True)
                 if 'assetId' in _item:
                     if _item['assetId']:
                         asset_id = _item['assetId']
@@ -742,7 +734,6 @@ def get_platform_deployments_list(rd):
                     info[deployment_number]['asset_ids_by_type'] = {'sensor': [], 'mooring': [], 'node': deployment_asset_ids}
                     if deployment_number not in deployments_list:
                         deployments_list.append(deployment_number)
-
                     if debug: print '\n debug -- processing info[deployment_number][location]...'
 
                     # Valuable luggage
@@ -756,7 +747,6 @@ def get_platform_deployments_list(rd):
                     info[deployment_number]['asset_ids'] = deployment_asset_ids
 
             if info:
-                #print '\n debug -- info: ', json.dumps(info, indent=4, sort_keys=True)
                 results.update(info)
 
         if all_asset_ids:
@@ -781,15 +771,10 @@ def get_platform_deployments_list(rd):
                     tense = 'PRESENT'
                 results[num]['cumulative_tense'] = tense
 
-        if debug:
-            print '\n debug -- [get_platform_deployments_list] (list) result: ', result
-            print '\n debug -- results: ', json.dumps(results, indent=4, sort_keys=True)
-
         return result, results
 
     except Exception as err:
         message = str(err)
-        if debug: print '\n debug -- exception [get_platform_deployments_list]: ', message
         current_app.logger.info(message)
         return None, None
 
@@ -1108,7 +1093,6 @@ def get_deployment_asset_ids(deployment):
     asset_ids_by_type = {'sensor': [], 'mooring': [], 'node': []}
     result = {}
     try:
-        if debug: print '\n debug -- get_deployment_asset_ids... '
         # Check parameter
         if not deployment or deployment is None:
             return result
@@ -1125,7 +1109,6 @@ def get_deployment_asset_ids(deployment):
         # Check format/structure of deployment['referenceDesignator'] for required attributes
         for item in required_referenceDesignator_attributes:
             if item not in ref_des:
-                print '\n debug -- %s not provided in deployment attribute \'referenceDesignator\'.'
                 return result
         rd = '-'.join([ref_des['subsite'], ref_des['node'], ref_des['sensor']])
         if debug: print ' debug -- get_deployment_asset_ids for rd: ', rd

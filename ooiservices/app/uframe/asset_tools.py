@@ -730,8 +730,6 @@ def _get_asset_from_assets_dict(id):
 
         # Get 'assets_dict' - compile them
         else:
-            # Could use asset list (if available): populate_assets_dict(data), better than verify cache?
-            # print '\n debug -- assets_dict not available, verify_cache...'
             verify_cache()
             assets_dict = cache.get('assets_dict')
 
@@ -788,7 +786,7 @@ def format_asset_for_ui(modified_asset):
     try:
         # Process remoteResources list.
         remoteResources = None
-        if  'remoteResources' in modified_asset:
+        if 'remoteResources' in modified_asset:
             remoteResources = modified_asset['remoteResources']
         if remoteResources is not None:
             modified_asset['remoteResources'] = post_process_remote_resources(remoteResources)
@@ -891,7 +889,7 @@ def _get_id_by_uid(uid):
         raise Exception(message)
 
 
-# todo - Refactor for new asset management data model,
+# todo - Refactor for new asset management data model;
 # todo - used by controller.py: get_svg_plot and dfs_streams
 def get_events_by_ref_des(data, ref_des):
     """ Create the container for the processed response.
@@ -940,10 +938,11 @@ def get_events_by_ref_des(data, ref_des):
     #result = jsonify({'events': result})
     return result
 
-def dump_dict(self, dict, debug=False):
+'''
+def dump_dict(dict, debug=False):
         """
         Print dict if debug enabled.
         """
         if debug:
             print '\n --------------\n dictionary: %s' % json.dumps(dict, indent=4, sort_keys=True)
-
+'''

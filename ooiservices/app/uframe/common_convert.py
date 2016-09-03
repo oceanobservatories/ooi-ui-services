@@ -6,19 +6,13 @@ import ast
 
 def convert_ui_data(data, required_fields, field_types):
     """ Convert string values to target type for field. Dictionary processing performed by caller.
-
-    value = ast.literal_eval(data[field])
-    if debug: print '\n debug -- str convert: value: %r' % value
-    if not isinstance(value, str) and not isinstance(value, unicode):
-        message = 'Required field %s provided, but value is not of type %s.' % (field, field_types[field])
-        raise Exception(message)
     """
-    debug = False
+    debug = True
     converted_data = {}
     try:
         # Verify required fields are present in the data and each field has input data of correct type.
         for field in required_fields:
-            if debug: print '\n Common convert -- field: ', field
+
             # Verify field is provided in data
             if field not in data:
                 message = 'Required field \'%s\' not provided in data.' % field
@@ -37,9 +31,6 @@ def convert_ui_data(data, required_fields, field_types):
 
                 # 'string'
                 if field_types[field] == 'string':
-                    if debug:
-                        print '\n debug -- field: ', field
-                        print '\n debug -- data[field]: %r' % data[field]
                     if not isinstance(data[field], str) and not isinstance(data[field], unicode):
                             message = 'Required field \'%s\' provided, but value is not of type %s.' % (field, field_types[field])
                             raise Exception(message)
@@ -73,9 +64,14 @@ def convert_ui_data(data, required_fields, field_types):
                 # 'long'
                 elif field_types[field] == 'long':
                     try:
+                        if debug:
+                            print '\n Type (%r)' % type(data[field])
+                            print '\n Value: %r' % data[field]
                         if isinstance(data[field], long) or isinstance(data[field], int):
+                            print '\n a'
                             converted_data[field] = long(data[field])
                         else:
+                            print '\n b'
                             if data[field] and len(data[field]) > 0:
                                 tmp = long(data[field])
                                 if not isinstance(tmp, long):
@@ -178,7 +174,6 @@ def convert_ui_data(data, required_fields, field_types):
 
                 elif field_types[field] == 'dictlist':
                     try:
-                        if debug: print '\n debug -- field: ', field, type(data[field])
                         if isinstance(data[field], list):
                             tmp = data[field]
                         else:
@@ -238,11 +233,12 @@ def convert_ui_data(data, required_fields, field_types):
                         message = 'Required field \'%s\' provided, but value is not of type %s.' % (field, field_types[field])
                         raise Exception(message)
                     converted_data[field] = tmp
+                else:
+                    message = 'Field \'%s\' has unknown field type \'%s\' provided.' % (field, field_types[field])
+                    raise Exception(message)
 
-        if debug: print '\n debug - exiting convert_ui_data...'
         return converted_data
     except Exception as err:
         message = str(err)
-        if debug: print '\n exception: ', message
         raise Exception(message)
 
