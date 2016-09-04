@@ -7,7 +7,6 @@ import ast
 def convert_ui_data(data, required_fields, field_types):
     """ Convert string values to target type for field. Dictionary processing performed by caller.
     """
-    debug = True
     converted_data = {}
     try:
         # Verify required fields are present in the data and each field has input data of correct type.
@@ -64,14 +63,9 @@ def convert_ui_data(data, required_fields, field_types):
                 # 'long'
                 elif field_types[field] == 'long':
                     try:
-                        if debug:
-                            print '\n Type (%r)' % type(data[field])
-                            print '\n Value: %r' % data[field]
                         if isinstance(data[field], long) or isinstance(data[field], int):
-                            print '\n a'
                             converted_data[field] = long(data[field])
                         else:
-                            print '\n b'
                             if data[field] and len(data[field]) > 0:
                                 tmp = long(data[field])
                                 if not isinstance(tmp, long):
@@ -174,21 +168,28 @@ def convert_ui_data(data, required_fields, field_types):
 
                 elif field_types[field] == 'dictlist':
                     try:
+                        field_type_text = 'list of dictionaries'
                         if isinstance(data[field], list):
                             tmp = data[field]
                         else:
                             tmp = ast.literal_eval(data[field])
                     except:
-                        message = 'Required field \'%s\' provided, but type conversion error (type %s).' % (field, field_types[field])
+                        message = 'Required field \'%s\' provided, but type conversion error (not a %s).' % \
+                                  (field, field_types[field])
                         raise Exception(message)
 
                     if not isinstance(tmp, list):
-                        message = 'Required field \'%s\' provided, but value is not of type %s.' % (field, field_types[field])
+                        message = 'Required field \'%s\' provided, but value is not a %s.' % (field, field_type_text)
                         raise Exception(message)
                     converted_data[field] = tmp
 
                 elif field_types[field] == 'intlist' or field_types[field] == 'floatlist':
+                    field_type_text = 'list of integers.'
                     try:
+                        if field_types[field] == 'intlist':
+                            field_type_text = 'list of integer values'
+                        else:
+                            field_type_text = 'list of float values'
                         if isinstance(data[field], list):
                             tmp = data[field]
                         else:
@@ -227,16 +228,16 @@ def convert_ui_data(data, required_fields, field_types):
                                     tmp = newtmp
 
                     except:
-                        message = 'Required field \'%s\' provided, but type conversion error (type %s).' % (field, field_types[field])
+                        message = 'Required field \'%s\' provided, but type conversion error (not a %s).' % \
+                                  (field, field_type_text)
                         raise Exception(message)
                     if not isinstance(tmp, list):
-                        message = 'Required field \'%s\' provided, but value is not of type %s.' % (field, field_types[field])
+                        message = 'Required field \'%s\' provided, but value is not %s.' % (field, field_type_text)
                         raise Exception(message)
                     converted_data[field] = tmp
                 else:
-                    message = 'Field \'%s\' has unknown field type \'%s\' provided.' % (field, field_types[field])
+                    message = 'Field \'%s\' has unknown field type provided.' % field
                     raise Exception(message)
-
         return converted_data
     except Exception as err:
         message = str(err)

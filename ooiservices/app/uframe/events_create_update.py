@@ -72,7 +72,7 @@ def create_event_type(request_data):
 
         # Create event.
         id = perform_uframe_create_event(event_type, uid, data)
-        if id == 0:
+        if id <= 0:
             message = 'Failed to create %s event for asset with uid %s' % (event_type, uid)
             raise Exception(message)
 
@@ -99,6 +99,10 @@ def update_event_type(id, data):
     action = 'update'
     try:
         # Verify minimum required fields to proceed with update (event_type and uid)
+        if 'eventId' not in data:
+            message = 'An event id must be provided in the request data.'
+            raise Exception(message)
+
         # Required field: event_type
         if 'eventType' not in data:
             message = 'An event type must be provided in the request data.'
@@ -127,9 +131,22 @@ def update_event_type(id, data):
                 message = 'No assetUid in request data to update event %s.' % event_type
                 raise Exception(message)
             uid = data['assetUid']
-            if not uid:
+            if not uid or uid is None:
                 message = 'The assetUid provided is empty or null, unable to update event %s.' % event_type
                 raise Exception(message)
+
+        # Verify eventId provided and of type int.
+        # Required field: eventId
+        if 'eventId' not in data:
+            message = 'No eventId in request data to update event %s.' % event_type
+            raise Exception(message)
+        if not isinstance(data['eventId'], int):
+            message = 'The event id value (%r) must be an integer, it is type: %s' % \
+                      (data['eventId'], str(type(data['eventId'])))
+            raise Exception(message)
+        if data['eventId'] != id:
+            message = 'The event id (\'%r\') provided in data is not equal to id (%d) in url.' % (data['eventId'], id)
+            raise Exception(message)
 
         # Get event class
         event_class = get_event_class(event_type)
@@ -199,24 +216,38 @@ def perform_uframe_create_event(event_type, uid, data):
     """ Create event using uframe interface determined by event type.
     """
     try:
+        if event_type != 'CRUISE_INFO':
+            if uid is None or not uid:
+                message = 'Unable to create %s event for asset with uid: \'%s\'.' % (event_type, uid)
+                raise Exception(message)
+
         # Create cruise_info event using/events/cruise POST
         if event_type == 'CRUISE_INFO':
             id = uframe_create_cruise(event_type, data)
 
         # Create calibration_data event
         elif event_type == 'CALIBRATION_DATA':
+            if not isinstance(data['eventId'], int):
+                message = 'The event id value (%r) must be an integer, it is type: %s' % \
+                          (data['eventId'], str(type(data['eventId'])))
+                raise Exception(message)
             id = create_calibration_data_event(event_type, uid, data)
 
         # Create event using /events/postto/uid POST
         else:
+            if event_type == 'DEPLOYMENT':
+                message = 'Create event type DEPLOYMENT is not supported at this time.'
+                raise Exception(message)
             id = uframe_postto(event_type, uid, data)
 
+        if id is None or id <= 0:
+            message = 'Failed to create and retrieve event from uframe for asset uid: \'%s\'. ' % uid
+            raise Exception(message)
         return id
 
     except Exception as err:
         message = str(err)
         raise Exception(message)
-
 
 def create_calibration_data_event(event_type, uid, data):
     success_codes = [201, 204]
@@ -316,7 +347,6 @@ def uframe_postto(event_type, uid, data):
         base_url, timeout, timeout_read = get_uframe_deployments_info()
         url = '/'.join([base_url, get_events_url_base(), query, uid])
         response = requests.post(url, data=json.dumps(data), headers=headers())
-
         # Process error.
         if response.status_code != 201:
             if response.content is None:

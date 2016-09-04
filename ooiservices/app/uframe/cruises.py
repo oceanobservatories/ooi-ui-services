@@ -3,10 +3,11 @@
 Cruise routes and supporting functions.
 
 Routes:
-[GET]   /cruises                       # Get all cruises from uframe.
-[GET]   /cruises/<int:id>              # Get cruise by event id.
-[GET]   /cruises/<string:cruise_id>    # Get cruise by unique cruise id.
-[GET]   /cruises/<int:id>/deployments  # Get all deployments for a cruise.
+[GET]   /cruises                                 # Get all cruises in inventory.
+[GET]   /cruises/<int:id>                        # Get cruise by event id.
+[GET]   /cruises/<string:cruise_id>              # Get cruise by unique cruise id.
+[GET]   /cruises/<string:cruise_id>/deployments  # Get all deployments for a cruise.
+[GET]   /cruises/deployment/<int:event_id>       # Get a specific deployment for a specific cruise.
 """
 __author__ = 'Edna Donoughe'
 
@@ -14,7 +15,7 @@ from flask import request, jsonify, current_app
 from ooiservices.app.main.errors import (bad_request, conflict)
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.uframe.cruise_tools import (_get_cruise_by_cruise_id, _get_cruise_by_event_id,
-                                                 _get_cruises, _get_cruise_deployments, _get_cruise_deployment)
+                                                 _get_cruises, _get_cruise_deployments, _get_deployment_by_event_id)
 
 # Get cruises.
 @api.route('/cruises', methods=['GET'])
@@ -23,7 +24,6 @@ def get_cruises():
     """
     try:
         cruises_list = _get_cruises()
-        print '\n deployments: ', len(cruises_list)
         return jsonify({'cruises': cruises_list})
     except Exception as err:
         message = str(err)
@@ -38,8 +38,6 @@ def get_cruise_by_event_id(event_id):
     """
     try:
         result = _get_cruise_by_event_id(event_id)
-        if result is None:
-            result = {}
         return jsonify(result)
 
     except Exception as err:
@@ -97,7 +95,7 @@ def get_cruise_deployments(cruise_id):
 
 # Get deployment by event id.
 @api.route('/cruises/deployment/<int:event_id>', methods=['GET'])
-def get_deployment_by_id(event_id):
+def get_deployment_by_event_id(event_id):
     """ Get deployment by event id; result used in deployment form view for UI.
     """
     try:
@@ -105,7 +103,7 @@ def get_deployment_by_id(event_id):
             message = 'Invalid event id, failed to get deployment event id %d.' % event_id
             raise Exception(message)
 
-        deployment = _get_cruise_deployment(event_id)
+        deployment = _get_deployment_by_event_id(event_id)
         return jsonify({'deployment': deployment})
 
     except Exception as err:

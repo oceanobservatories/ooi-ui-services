@@ -256,7 +256,8 @@ def get_required_fields_and_types(event_type, action):
         #- - - - - - - - - - - - - - - - - - - - - - -
         elif event_type == 'CALIBRATION_DATA':
             required_fields = ['assetUid', 'cardinality', 'comments', 'dimensions', 'eventName',
-                               'eventStartTime', 'eventType', 'values']
+                               'eventStartTime', 'eventType', 'values', 'notes', 'dataSource',
+                               'eventStopTime']
             field_types = {'assetUid': 'string',
                            'cardinality': 'int',
                            'comments': 'string',
@@ -264,7 +265,10 @@ def get_required_fields_and_types(event_type, action):
                            'eventName': 'string',
                            'eventStartTime': 'long',
                            'eventType': 'string',
-                           'values': 'floatlist'
+                           'values': 'floatlist',
+                           'notes': 'string',
+                           'dataSource': 'string',
+                           'eventStopTime': 'long'
                             }
         #- - - - - - - - - - - - - - - - - - - - - - -
         # Event type: CRUISE_INFO
@@ -606,7 +610,11 @@ def get_user_fields_populated(event_type):
 
         # Event type: CRUISE_INFO
         elif event_type == 'CRUISE_INFO':
-            event_fields = ['uniqueCruiseIdentifier', 'shipName']    # 'editPhase'
+            event_fields = ['uniqueCruiseIdentifier', 'shipName']       # 'editPhase'
+
+        # Event type: CALIBRATION_DATA
+        elif event_type == 'CALIBRATION_DATA':
+            event_fields = ['dimensions', 'cardinality', 'values', ]    # 'editPhase'
 
         # Sum up all required fields
         if event_fields:

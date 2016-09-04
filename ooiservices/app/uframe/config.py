@@ -203,6 +203,7 @@ def get_url_info_cruises_inv():
         current_app.logger.info(message)
         raise Exception(message)
 
+
 def get_url_info_cruises_rec():
     """ Get complete url to query uframe cruises ('uframe-host:12587/events/cruise/inv')
     """
