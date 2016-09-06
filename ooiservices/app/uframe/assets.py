@@ -24,12 +24,14 @@ __author__ = 'Edna Donoughe'
 from flask import request, jsonify, current_app
 from ooiservices.app.main.errors import (bad_request, conflict, internal_server_error)
 from ooiservices.app.uframe import uframe as api
-from ooiservices.app.uframe.common_tools import (get_supported_asset_types, get_asset_types)
 from ooiservices.app.uframe.asset_tools import (_get_asset, verify_cache)
-from ooiservices.app.uframe.assets_create_update import (_create_asset, _update_asset)
 from ooiservices.app.uframe.event_tools import (_get_events_by_id, _get_id_by_uid)
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.decorators import scope_required
+from ooiservices.app.uframe.common_tools import (get_supported_asset_types, get_asset_types)
+from ooiservices.app.uframe.assets_create_update import (_create_asset, _update_asset,
+                                                         _create_remote_resource, _update_remote_resource)
+
 from operator import itemgetter
 import json
 
@@ -147,6 +149,7 @@ def create_asset():
         return result
         """
 
+
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
@@ -162,6 +165,7 @@ def update_asset(id):
     """ Update asset by id.
     """
     try:
+        """
         message = 'Update asset is not enabled at this time.'
         return bad_request(message)
         """
@@ -175,7 +179,7 @@ def update_asset(id):
             return conflict(message)
         result = jsonify({'asset': asset})
         return result
-        """
+
 
     except Exception as err:
         message = str(err)
@@ -260,8 +264,8 @@ def get_assets(use_min=False, normal_data=False):
                     del obj['lastModifiedTimestamp']
                 if 'partData' in obj:
                     del obj['partData']
-                if 'remoteDocuments' in obj:
-                    del obj['remoteDocuments']
+                #if 'remoteDocuments' in obj:
+                #    del obj['remoteDocuments']
 
         # Create toc information using geoJSON=true
         if request.args.get('geoJSON') and request.args.get('geoJSON') != "":
@@ -328,6 +332,69 @@ def get_assets(use_min=False, normal_data=False):
             else:
                 result = jsonify({'assets': data})
             return result
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
+
+
+# todo - Under development.
+# Create a remote resource for an asset.
+@auth.login_required
+@scope_required(u'asset_manager')
+@api.route('/remote_resource', methods=['POST'])
+def create_remote_resource():
+    """ Create a new remote resource for an asset.
+    """
+    try:
+        """
+        message = 'Create remote resource is not enabled at this time.'
+        return bad_request(message)
+        """
+        if not request.data:
+            message = 'No data provided to create a remote resource.'
+            raise Exception(message)
+        data = json.loads(request.data)
+        remote_resource = _create_remote_resource(data)
+        if not remote_resource:
+            message = 'Failed to create remote resource for asset.'
+            return conflict(message)
+        result = jsonify({'remote_resource': remote_resource})
+        """
+        asset = _create_remote_resource(data)
+        if not asset:
+            message = 'Failed to create remote resource for asset.'
+            return conflict(message)
+        result = jsonify({'asset': asset})
+        """
+        return result
+
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
+
+
+# todo - Under development.
+# Update a remote resource for an asset.
+#@auth.login_required
+#@scope_required(u'asset_manager')
+@api.route('/remote_resource', methods=['PUT'])
+def update_remote_resource():
+    """ Update a remote resource for an asset.
+    """
+    try:
+        if not request.data:
+            message = 'No data provided to update a remote resource.'
+            raise Exception(message)
+        data = json.loads(request.data)
+        asset = _update_remote_resource(data)
+        if not asset:
+            message = 'Unable to get update remote resource for asset.'
+            return conflict(message)
+        result = jsonify({'asset': asset})
+        return result
+
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)

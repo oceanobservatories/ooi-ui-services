@@ -11,11 +11,14 @@ from ooiservices.app.main.authentication import auth
 from ooiservices.app.main.errors import (internal_server_error, bad_request)
 from ooiservices.app.uframe.vocab import get_parameter_name_by_parameter as get_param_names
 from ooiservices.app.uframe.vocab import get_stream_name_by_stream as get_stream_name
-from ooiservices.app.uframe.vocab import (get_display_name_by_rd, get_long_display_name_by_rd)
+from ooiservices.app.uframe.vocab import (get_display_name_by_rd, get_long_display_name_by_rd,
+                                          get_rs_array_display_name_by_rd)
 
 # data imports
 from ooiservices.app.uframe.data import (get_data, get_simple_data, find_parameter_ids, get_multistream_data)
 from ooiservices.app.uframe.plotting import generate_plot
+#from ooiservices.app.uframe.asset_tools import get_events_by_ref_des
+from ooiservices.app.uframe.config import get_uframe_toc_url
 
 from urllib import urlencode
 from datetime import datetime
@@ -199,7 +202,6 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
         Using variable value provided, try to get parameter name from database, if null, then use variable value.
 
     """
-    #debug = False
     _stream = None
     try:
 
@@ -220,14 +222,15 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
         tmp = get_stream_name(_stream)
         if tmp is None or not tmp:
             tmp = stream
-            #print 'debug -- undefined stream in database: ', tmp
         data_dict['stream_display_name'] = tmp
-
         data_dict['variables'] = []
         data_dict['variable_types'] = {}
         data_dict['units'] = {}
         data_dict['variables_shape'] = {}
-        data_dict['array_name'] = get_display_name_by_rd(ref[:2])
+        if ref[:2] == 'RS':
+            data_dict['array_name'] = get_rs_array_display_name_by_rd(ref[:8])
+        else:
+            data_dict['array_name'] = get_display_name_by_rd(ref[:2])
         data_dict['assembly_name'] = get_display_name_by_rd(ref[:14])
         data_dict['site_name'] = get_display_name_by_rd(ref[:8])
         data_dict['display_name'] = get_display_name_by_rd(ref)
@@ -245,33 +248,20 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
         data_dict['variables_shape'] = variables_shape
         data_dict['parameter_id'] = parameter_id
         display_names = []
-        #param_not_in_database = []          # for debug only
         for variable in variables:
             # If no database entry for parameter variable, assign to variable provided
             tmp = get_param_names(variable)
             if tmp is None:
                 tmp = variable
-                """
-                # Gather variables which failed to get parameter name from database
-                if debug:
-                    if variable not in param_not_in_database:
-                        param_not_in_database.append(variable)
-                """
             display_names.append(tmp)
 
-        """
-        if debug:
-            if param_not_in_database:
-                #print '%s [%s] (%d): %s' % (ref, stream, len(param_not_in_database), param_not_in_database)
-                print '%s' % param_not_in_database
-        """
         data_dict['parameter_display_name'] = display_names
         if data_dict['display_name'] is None:
             data_dict['display_name'] = reference_designator
         return data_dict
 
     except Exception as err:
-        message = '[dict_from_stream] exception : %s' % str(err)
+        message = str(err)
         current_app.logger.info(message)
         return {}
 
@@ -727,7 +717,7 @@ def _get_glider_track_data(glider_outline,glider_cache=None):
 
                         dt_old = datetime.strptime(existing_data['times']['end_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
                         dt_new = datetime.strptime(glider_track['times']['end_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
-                        print "old:",dt_old,"\t","new:",dt_new
+                        #print "old:",dt_old,"\t","new:",dt_new
                         #if the existing data, has the same stream metadata info just use the cache
                         if dt_old != dt_new: #and existing_data['track']['time'][-1] == glider_track['track']['time'][-1]:
                             #if they don't match, get the new data using the: old end, and the new end
@@ -1638,9 +1628,8 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
                                      start_time, end_time, dpa_flag, parameter_ids):
     """ Gets the bounded stream contents, start_time and end_time need to be datetime objects
     """
-    debug = False
-    query = ''          # todo - added
-    dataBlock = ''      # todo - added
+    query = ''
+    dataBlock = ''
     try:
         if dpa_flag == '0' and len(parameter_ids) < 1:
             query = '?beginDT=%s&endDT=%s&limit=%s' % (start_time, end_time, current_app.config['DATA_POINTS'])
@@ -1653,17 +1642,6 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
         elif dpa_flag == '1' and len(parameter_ids) > 0:
             query = '?beginDT=%s&endDT=%s&limit=%s&execDPA=true&parameters=%s' % \
                     (start_time, end_time, current_app.config['DATA_POINTS'], ','.join(map(str, parameter_ids)))
-        else:
-            if debug:
-                print '\n debug -- else branch...'
-                print '\n debug -- else query: ', query
-                print '\n debug -- else dps_flag: ', dpa_flag
-                print '\n debug -- else parameter_ids: ', parameter_ids
-
-        if debug:
-                print '\n debug -- query: ', query
-                print '\n debug -- dps_flag: ', dpa_flag
-                print '\n debug -- parameter_ids: ', parameter_ids
 
         GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=plot&ea=%s&el=%s' % \
                  ('-'.join([mooring, platform, instrument, stream_type, stream]), '-'.join([start_time, end_time]))
@@ -1671,7 +1649,6 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
         url = "/".join([UFRAME_DATA, mooring, platform, instrument, stream_type, stream + query])
 
-        if debug: print '\n debug -- url: ', url
         current_app.logger.debug("***:" + url)
 
         TOO_BIG = 1024 * 1024 * 15 # 15MB
@@ -2290,77 +2267,6 @@ def to_bool_str(value):
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # TOC routes and supporting functions
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-"""
-# Development only.
-@api.route('/get_structured_toc')
-#@cache.memoize(timeout=1600)
-def get_structured_toc():
-    try:
-        mooring_list = []
-        mooring_key = []
-
-        platform_list = []
-        platform_key = []
-
-        instrument_list = []
-        instrument_key = []
-
-        # Get toc data from uframe and process, returns data; if exception raise
-        data = process_uframe_toc()
-
-        # If no data return empty content immediately
-        if data is None:
-            return jsonify(toc={'moorings': mooring_list,
-                            'platforms': platform_list,
-                            'instruments': instrument_list
-                            })
-
-        # If data, Process uframe toc data for output
-        for d in data:
-            if d['reference_designator'] not in instrument_key:
-                instrument_list.append({'array_code':d['reference_designator'][0:2],
-                                        'display_name': d['instrument_display_name'],
-                                        'mooring_code': d['mooring_code'],
-                                        'platform_code': d['platform_code'],
-                                        'instrument_code': d['platform_code'],
-                                        'streams':d['streams'],
-                                        'instrument_parameters':d['instrument_parameters'],
-                                        'reference_designator':d['reference_designator']
-                                     })
-
-                instrument_key.append(d['reference_designator'])
-
-            if d['mooring_code'] not in mooring_key:
-                mooring_list.append({'array_code':d['reference_designator'][0:2],
-                                     'mooring_code':d['mooring_code'],
-                                     'platform_code':d['platform_code'],
-                                     'display_name':d['mooring_display_name'],
-                                     'geo_location':[],
-                                     'reference_designator':d['mooring_code']
-                                     })
-
-                mooring_key.append(d['mooring_code'])
-
-            if d['mooring_code']+d['platform_code'] not in platform_key:
-                platform_list.append({'array_code':d['reference_designator'][0:2],
-                                      'platform_code':d['platform_code'],
-                                      'mooring_code':d['mooring_code'],
-                                      'reference_designator':d['reference_designator'],
-                                      'display_name': d['platform_display_name']
-                                        })
-
-                platform_key.append(d['mooring_code']+d['platform_code'])
-
-        return jsonify(toc={'moorings': mooring_list,
-                            'platforms': platform_list,
-                            'instruments': instrument_list
-                            })
-    except Exception as e:
-        message = str(e.message)
-        current_app.logger.info(message)
-        return internal_server_error(message)
-"""
-
 @api.route('/get_toc')
 @cache.memoize(timeout=1600)
 def get_toc():
@@ -2382,8 +2288,8 @@ def get_uframe_toc_data():
     """
     d = None
     try:
-        uframe_url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_TOC']
-        r = requests.get(uframe_url)
+        url, timeout, timeout_read = get_uframe_toc_url()
+        r = requests.get(url, timeout=(timeout, timeout_read))
         if r.status_code == 200:
             d = r.json()
         return d
@@ -2396,8 +2302,9 @@ def get_uframe_toc_data():
         message = 'Timeout for get uframe toc contents.'
         current_app.logger.info(message)
         raise Exception(message)
-    except Exception:
-        raise
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
 
 
 def process_uframe_toc():
@@ -2409,44 +2316,18 @@ def process_uframe_toc():
         if d is not None:
             if isinstance(d, dict):
                 result = get_uframe_toc(d)
-            # TODO Deprecate once transition to new toc format has been completed.
-            # TODO A log message here once previous toc is deprecated.
+            # Using deprecated toc structure; log message here and raise exception.
             else:
-                result = old_get_uframe_toc(d)
+                message = 'WARNING: USING DEPRECATED TOC FORMAT! Use proper toc dictionary format. Check configuration.'
+                print message
+                current_app.logger.info(message)
+                raise Exception(message)
         return result
-    except Exception:
-        raise
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
 
 
-# [OLD FORMAT]
-# TODO Deprecate once transition to new toc format has been completed.
-@cache.memoize(timeout=1600)
-def old_get_uframe_toc(d):
-    """ Process uframe response from /sensor/inv/toc' for use in UI.
-    """
-    if d:
-        for row in d:
-            try:
-                # FIX FOR THE WRONG WAY ROUND
-                temp1 = row['platform_code']
-                temp2 = row['mooring_code']
-                row['mooring_code'] = temp1
-                row['platform_code'] = temp2
-                instrument_display_name = get_long_display_name_by_rd(row['reference_designator'])
-                split_name = instrument_display_name.split(' - ')
-                row['instrument_display_name'] = split_name[-1]
-                row['mooring_display_name'] = split_name[0]
-                row['platform_display_name'] = split_name[1]
-            except:
-                row['instrument_display_name'] = ""
-                row['platform_display_name'] = ""
-                row['mooring_display_name'] = ""
-        return d
-    else:
-        return []
-
-
-# [NEW FORMAT]
 @cache.memoize(timeout=1600)
 def get_uframe_toc(data):
     """ Process uframe response from /sensor/inv/toc into list of dictionaries for use in UI.
@@ -2501,11 +2382,9 @@ def get_uframe_toc(data):
             for component in required_components:
                 if component not in data:
                     message = 'The uframe toc data does not contain required component %s.' % component
-                    current_app.logger.info(message)
                     raise Exception(message)
                 if not data[component]:
                     message = 'The uframe toc data contains required component %s, but it is empty.' % component
-                    current_app.logger.info(message)
                     raise Exception(message)
 
             # Get working dictionary of parameter definitions keyed by pdId.
@@ -2556,14 +2435,11 @@ def get_uframe_toc(data):
     except Exception as err:
         message = '[get_uframe_toc] exception: %s' % str(err.message)
         current_app.logger.info(message)
-        raise
+        raise Exception(message)
 
 
 def get_names_for_toc(rd, mooring, platform):
     """ Process display names for toc processing.
-
-    Reference designator: 'GP03FLMB-RIS01-03-DOSTAD000' produces instrument_display_name:
-    Global Station Papa Flanking Subsurface Mooring B - Mooring Riser - Dissolved Oxygen Stable Response
     """
     _instrument_display_name = ""
     _mooring_display_name = ""

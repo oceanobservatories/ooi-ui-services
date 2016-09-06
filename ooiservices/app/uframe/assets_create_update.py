@@ -7,17 +7,18 @@ __author__ = 'Edna Donoughe'
 from flask import current_app
 from ooiservices.app import cache
 from requests.exceptions import (ConnectionError, Timeout)
-from ooiservices.app.uframe.common_tools import (get_asset_types, get_asset_class_by_asset_type)
 from ooiservices.app.uframe.config import (get_uframe_assets_info, get_assets_url_base, headers)
-from ooiservices.app.uframe.asset_tools import (uframe_get_asset_by_id, format_asset_for_ui,
-                                                update_asset_cache, _compile_assets)
-from ooiservices.app.uframe.assets_validate_fields import (convert_required_fields,
-                                                           asset_get_required_fields_and_types_uframe)
+from ooiservices.app.uframe.common_tools import (get_asset_types, get_asset_class_by_asset_type,
+                                                 get_class_remote_resource, get_event_phase_values)
+from ooiservices.app.uframe.asset_tools import (uframe_get_asset_by_id, uframe_get_asset_by_uid, format_asset_for_ui,
+                                                update_asset_cache, _compile_assets, uframe_get_remote_resource_by_id)
+from ooiservices.app.uframe.assets_validate_fields import (assets_validate_required_fields_are_provided,
+                                                           asset_get_required_fields_and_types_uframe,
+                                                           validate_required_fields_remote_resource)
 import json
 import requests
 
 CACHE_TIMEOUT = 172800
-
 
 # Create asset.
 def _create_asset(data):
@@ -26,7 +27,6 @@ def _create_asset(data):
     Asset data is from UI and must be transformed into uframe asset format.
     New asset is returned on success. On failure, log and raise exception.
     """
-    debug = False
     asset_type = None
     action = 'create'
     try:
@@ -34,7 +34,6 @@ def _create_asset(data):
         raise Exception(message)
 
         """
-        if debug: print '\n debug -- _create_asset ...'
         keys = []
         if not data:
             message = 'Data is required to create an asset, none provided.'
@@ -42,14 +41,14 @@ def _create_asset(data):
 
         # Transform input data from UI into uframe format, get keys ()
         xasset = transform_asset_for_uframe(None, data, action=action)
-        if debug: print '\n debug -- xasset(%d): %s' % (len(xasset), json.dumps(xasset, indent=4, sort_keys=True))
         xasset_keys = xasset.keys()
         xasset_keys.sort()
 
         # Update asset in uframe.
         _new_asset = uframe_create_asset(xasset)
         new_asset = _new_asset
-
+        """
+        """
         # Verify asset exists: Get uframe asset (for 'calibration', 'events', 'location', 'lastModifiedTimestamp')
         asset = uframe_get_asset_by_id(id)
         if asset:
@@ -115,9 +114,8 @@ def _create_asset(data):
         if debug: print '\n Updating cache...'
         update_asset_cache(id, new_asset, action)
         # return updated asset
-
-        return new_asset
         """
+        return new_asset
 
     except Exception as err:
         message = str(err)
@@ -132,29 +130,129 @@ def _update_asset(id, data):
     Asset data is from UI and must be transformed into uframe asset format.
     Updated asset is returned on success. On failure, log and raise exception.
     """
-    debug = False
     asset_type = None
     try:
-
-        message = 'Update asset is not enabled at this time.'
-        raise Exception(message)
-        """
-        # Verify asset exists:
-        # Get uframe asset (for 'calibration', 'events', 'location', 'lastModifiedTimestamp')
-        asset = uframe_get_asset_by_id(id)
-        keys = []
-        if asset:
-            keys = asset.keys()
-            keys.sort()
-            if debug: print '\n actual uframe asset keys(%d): %s' % (len(keys), keys)
-            if 'assetType' in asset:
-                asset_type = asset['assetType']
-
         # Transform input data from UI into uframe format, get keys ()
         xasset = transform_asset_for_uframe(id, data, action='update')
         xasset_keys = xasset.keys()
         xasset_keys.sort()
-        if debug: print '\n debug -- xasset(%d): %s' % (len(xasset), json.dumps(xasset, indent=4, sort_keys=True))
+
+        # Verify asset exists:
+        # Get uframe asset (for 'calibration', 'events', 'location', 'lastModifiedTimestamp')
+        asset = uframe_get_asset_by_id(id)
+
+        if not asset or asset is None:
+            message = 'Failed to get asset with id %d from uframe.' % id
+            raise Exception(message)
+
+        uid = None
+        if 'uid' in asset:
+            uid = asset['uid']
+        if uid is None:
+            message = 'Failed to receive asset with id %s from uframe.' % id
+            raise Exception(message)
+
+        keys = []
+        if asset:
+            keys = asset.keys()
+            keys.sort()
+            if 'assetType' in asset:
+                asset_type = asset['assetType']
+
+
+        #==========================================================================
+        #updated_asset = process_asset_update(uid, xasset) #, action='update', xasset)
+        #==========================================================================
+        # Assets: Reserved fields: fields which may not be modified by UI once assigned in uframe:
+        #   assetId, assetType, lastModifiedTimestamp, uid
+        reserved_fields = ['assetId', 'assetType', 'lastModifiedTimestamp', 'uid']
+
+        # Determine any missing items are in valid items list, is not error.
+        valid_missing_keys = ['events', 'location', 'remoteResources']
+
+        # Assets: Fields location and events are not provided by UI, get from asset. If asset is Sensor, calibration too.
+        if asset_type == 'Sensor':
+            valid_missing_keys.append('calibration')
+
+        missing_keys = []
+        for key in keys:
+            if key not in xasset_keys:
+                if key not in valid_missing_keys:
+                    message = 'Input data is invalid; missing required key: %s' % key
+                    raise Exception(message)
+                if key not in missing_keys:
+                    missing_keys.append(key)
+
+        for key in valid_missing_keys:
+            xasset[key] = asset[key]
+
+        # Apply reserved fields
+        for key in reserved_fields:
+            xasset[key] = asset[key]
+
+        # Check all keys required are accounted for.
+        xasset_keys = xasset.keys()
+        xasset_keys.sort()
+        for key in keys:
+            if key not in xasset_keys:
+                message = 'Missing required attribute \'%s\'.' % key
+                raise Exception(message)
+
+        # Update asset in uframe.
+        modified_asset = uframe_update_asset(xasset)
+
+        # Format modified asset from uframe for UI.
+        updated_asset = format_asset_for_ui(modified_asset)
+
+        update_asset_cache(id, updated_asset)
+
+        # return updated asset
+        return updated_asset
+
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def process_asset_update(uid, xasset=None):
+    asset_type = None
+    try:
+        # Verify asset exists. Get uframe asset for:
+        #  'calibration', 'events', 'location', 'remoteResources', 'lastModifiedTimestamp'
+        asset = uframe_get_asset_by_uid(uid)
+        id = None
+        if 'assetId' in asset:
+            id = asset['assetId']
+        if id is None:
+            message = 'uframe asset did not return \'assetId\'.'
+            raise Exception(message)
+
+        if id < 1:
+            message = 'uframe asset id is invalid: %d.' % id
+            raise Exception(message)
+
+        # Get asset id for cache update.
+        if 'assetId' in asset:
+            if not id or not isinstance(id, int):
+                message = 'uframe assetId is empty or not an integer.'
+                raise Exception(message)
+            if id <= 0:
+                message = 'uframe assetId is an invalid integer values.'
+                raise Exception(message)
+
+        keys = []
+        if asset:
+            keys = asset.keys()
+            keys.sort()
+            if 'assetType' in asset:
+                asset_type = asset['assetType']
+
+        if xasset is None:
+            xasset = asset.copy()
+
+        xasset_keys = xasset.keys()
+        xasset_keys.sort()
 
         # Assets: Reserved fields: fields which may not be modified by UI once assigned in uframe:
         #   assetId, assetType, lastModifiedTimestamp, uid
@@ -175,15 +273,12 @@ def _update_asset(id, data):
                     raise Exception(message)
                 if key not in missing_keys:
                     missing_keys.append(key)
-                if debug: print '\n missing key: ', key
 
         for key in valid_missing_keys:
-            if debug: print '\n Adding %s...' % key
             xasset[key] = asset[key]
 
         # Apply reserved fields
         for key in reserved_fields:
-            if debug: print '\n Adding reserved %s...' % key
             xasset[key] = asset[key]
 
         # Check all keys required are accounted for.
@@ -191,20 +286,16 @@ def _update_asset(id, data):
         xasset_keys.sort()
         for key in keys:
             if key not in xasset_keys:
-                if debug: print '\n Missing key: ', key
+                message = 'Missing required key: %s' % key
+                raise Exception(message)
 
         # Update asset in uframe.
         modified_asset = uframe_update_asset(xasset)
 
         # Format modified asset from uframe for UI.
         updated_asset = format_asset_for_ui(modified_asset)
-
-        if debug: print '\n Updating cache...TURNED OFF RIGHT NOW...'
         update_asset_cache(id, updated_asset)
-
-        # return updated asset
         return updated_asset
-        """
 
     except Exception as err:
         message = str(err)
@@ -217,31 +308,32 @@ def uframe_update_asset(asset):
     """ Update asset in uframe. On success return updated asset, on error, raise exception.
     """
     id = None
-    check = False
+    uid = None
     try:
         # Get asset id from asset data provided.
         if 'assetId' in asset:
             id = asset['assetId']
         if id is None:
-            message = 'Invalid asset, missing attribute \'assetId\', request to update asset failed.'
+            message = 'Invalid asset, missing attribute \'assetId\', unable to request asset update.'
+            raise Exception(message)
+        if 'uid' in asset:
+            uid = asset['uid']
+        if uid is None:
+            message = 'Invalid asset, missing attribute \'uid\', unable to request asset update.'
             raise Exception(message)
 
         # Update asset in uframe.
         base_url, timeout, timeout_read = get_uframe_assets_info()
         url = '/'.join([base_url, get_assets_url_base(), str(id)])
-        if check: print '\n check: url: ', url
         response = requests.put(url, data=json.dumps(asset), headers=headers())
-        if check:
-            print '\n debug -- id: ', id
-            print '\n debug -- response.status_code: ', response.status_code
-            print '\n debug -- json.loads(response.content): ', json.loads(response.content)
         if response.status_code != 200:
             message = '(%d) Failed to update asset %d.' % (response.status_code, id)
             raise Exception(message)
 
         # Get updated asset from uframe and return.
-        updated_asset = uframe_get_asset_by_id(id)
+        updated_asset = uframe_get_asset_by_uid(uid)
         return updated_asset
+
     except ConnectionError:
         message = 'Error: ConnectionError during uframe asset update(id: %d)' % id
         current_app.logger.info(message)
@@ -259,7 +351,6 @@ def uframe_update_asset(asset):
 def uframe_create_asset(asset):
     """ Create asset in uframe. On success return updated asset, on error, raise exception.
     """
-    id = None
     check = False
     try:
         # Check asset data provided.
@@ -276,9 +367,10 @@ def uframe_create_asset(asset):
         if check: print '\n check: url: ', url
         response = requests.post(url, data=json.dumps(asset), headers=headers())
         if response.status_code != 201:
-            message = '(%d) uframe failed to create asset.' % (response.status_code)
-            #response_data = json.loads(response.content)
-            #print '\n debug -- response_data: ', response_data
+            message = '(%d) uframe failed to create asset.' % response.status_code
+            current_app.logger.info(message)
+            if response.content:
+                response_data = json.loads(response.content)
             raise Exception(message)
 
         # Get id for new asset.
@@ -304,6 +396,191 @@ def uframe_create_asset(asset):
         message = 'Error: Timeout during during uframe asset create.'
         current_app.logger.info(message)
         raise Exception(message)
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+def _create_remote_resource(data):
+    """ Create a remote resource for an asset.
+    """
+    action = 'create'
+    try:
+        # Get asset uid to post remote resource to.
+        uid, class_value, remoteResourceId, lastModifiedTimeStamp  = get_remote_resource_uid(data, action)
+
+        # Remove extra 'uid', add '@class' and 'remoteResourceId' fields to data
+        del data['uid']
+        data['@class'] = class_value
+        data['remoteResourceId'] = -1
+
+        # Verify remote resource fields and required values are provided.
+        converted_data = validate_required_fields_remote_resource('create', data, action=None)
+        # Post remote resource to asset, returns remote_resource.
+        remote_resource = uframe_postto_asset(uid, converted_data)
+        updated_asset = process_asset_update(uid, xasset=None)
+        if not updated_asset:
+            message = 'Failed to return updated asset from uframe.'
+            raise Exception(message)
+
+        # Return complete asset with new remote resource
+        return remote_resource
+
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+def _update_remote_resource(data):
+    """ Update a remote resource for an asset.
+    """
+    action = 'update'
+    try:
+        # Get asset uid to post remote resource to.
+        uid, class_value, remoteResourceId, lastModifiedTimeStamp = get_remote_resource_uid(data, action)
+
+        current_asset = uframe_get_asset_by_uid(uid)
+
+        # Remove extra 'uid', add '@class' and 'remoteResourceId' fields to data
+        del data['uid']
+        data['@class'] = class_value
+        data['remoteResourceId'] = remoteResourceId
+        data['lastModifiedTimeStamp'] = lastModifiedTimeStamp
+
+        # Verify remote resource fields and required values are provided.
+        validate_required_fields_remote_resource('update', data, action=None)
+
+        # Check: Current number of remote resources
+        current_asset = uframe_get_asset_by_uid(uid)
+
+        if 'remoteResources' in current_asset:
+            current_remote_resources = current_asset['remoteResources']
+
+        # Post remote resource to asset, returns asset.
+        remote_resource = uframe_postto_asset(uid, data)
+
+        # Return complete asset with new remote resource
+        return remote_resource
+
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+def get_remote_resource_uid(data, action=None):
+    """ The request.data from Ui shall provide the asset uid to postto for a remote resource.
+    """
+    try:
+        # Get uid. Verify asset uid provided for remote resource.
+        if 'uid' not in data:
+            message = 'The asset uid has not been provided for this remote resource.'
+            raise Exception(message)
+        uid = data['uid']
+        if not uid:
+            message = 'The asset uid provided for this remote resource is empty.'
+            raise Exception(message)
+
+        # Get remote resource class
+        _class = get_class_remote_resource()
+
+        # Get remoteResourceId
+        remoteResourceId = None
+        if 'remoteResourceId' in data:
+            remoteResourceId = data['remoteResourceId']
+
+        # Get lastModifiedTimeStamp
+        lastModifiedTimestamp = None
+        if 'lastModifiedTimestamp' in data:
+            lastModifiedTimestamp = data['lastModifiedTimestamp']
+
+        if action == 'update':
+            if remoteResourceId is None or lastModifiedTimestamp is None:
+                message = 'Update remoteResource requires a lastModifiedTimestamp and remoteResourceId.'
+                raise Exception(message)
+
+            if not isinstance(remoteResourceId, int):
+                message = 'The remoteResourceId value must be of type int.'
+                raise Exception(message)
+            if not isinstance(lastModifiedTimestamp, long) and not isinstance(lastModifiedTimestamp, int):
+                message = 'The lastModifiedTimestamp value must be of type long.'
+                raise Exception(message)
+            if lastModifiedTimestamp <= 0:
+                message = 'Invalid lastModifiedTimestamp value provided.'
+                raise Exception(message)
+            if remoteResourceId <= 0:
+                message = 'Invalid remoteResourceId value provided.'
+                raise Exception(message)
+
+
+        return uid, _class, remoteResourceId, lastModifiedTimestamp
+
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+def uframe_postto_asset(uid, data):
+    try:
+        # Post request. Get configuration url and timeout information, build request url and post.
+        base_url, timeout, timeout_read = get_uframe_assets_info()
+        url = '/'.join([base_url, 'resource', 'postto', uid])
+        response = requests.post(url, data=json.dumps(data), headers=headers())
+
+        # Process error.
+        if response.status_code == 204:
+            message = 'Failed to get an asset with the uid (\'%s\') provided.' % uid
+            raise Exception(message)
+        elif response.status_code != 201:
+            if response.content is None:
+                message = 'Failed to create remote resource; status code: %d' % response.status_code
+                raise Exception(message)
+
+            elif response.content is not None:
+                response_data = json.loads(response.content)
+
+                # Determine if success or failure.
+                if 'error' not in response_data:
+                    # Success? If success get id.
+                    if 'statusCode' in response_data:
+                        # Failure? If failure build error message.
+                        if 'message' in response_data and 'statusCode' in response_data:
+                            message = str(response_data['statusCode']) + ': ' + str(response_data['message'])
+                            raise Exception(message)
+                else:
+                    # Failure? If failure build error message.
+                    if 'message' in response_data and 'statusCode' in response_data:
+                        message = str(response_data['statusCode']) + ': ' + str(response_data['message'])
+                        raise Exception(message)
+
+        # Get response data, check status code returned from uframe. Return error in exception.
+        id = 0
+        if response.content is not None:
+            response_data = json.loads(response.content)
+            # Determine if success or failure.
+            if 'error' not in response_data:
+                # Success? If success get id.
+                if 'statusCode' in response_data:
+                    if response_data['statusCode'] == 'CREATED':
+                        id = response_data['id']
+                    else:
+                        message = 'Failed to create remote resource; statusCode from uframe: %s' % \
+                                  response_data['statusCode']
+                        raise Exception(message)
+            else:
+                # Failure? If failure build error message.
+                if 'message' in response_data and 'statusCode' in response_data:
+                    message = response_data['statusCode'] + ': ' + response_data['message']
+                    raise Exception(message)
+
+        if id == 0:
+            message = 'Failed to create a remote resource for asset with uid %s' % uid
+            raise Exception(message)
+
+        # Get newly created event and return.
+        remote_resource = uframe_get_remote_resource_by_id(id)
+
+        return remote_resource
+
     except Exception as err:
         message = str(err)
         raise Exception(message)
@@ -440,7 +717,6 @@ def transform_asset_for_uframe(id, asset, action=None):
           "lastModifiedTimestamp" : 1470493081598
         }
     """
-    debug = False
     uframe_asset = {}
     valid_actions = ['create', 'update']
     try:
@@ -448,8 +724,7 @@ def transform_asset_for_uframe(id, asset, action=None):
             message = 'Failed to transform asset, action value is None.'
             raise Exception(message)
         if action not in valid_actions:
-            message = 'Invalid action (%s) received in transform asset for uframe. Must be one of %s' % (action,
-                                                                                                         valid_actions)
+            message = 'Invalid action (%s) for transform asset for uframe. Must be one of %s' % (action, valid_actions)
             raise Exception(message)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -469,7 +744,16 @@ def transform_asset_for_uframe(id, asset, action=None):
         #- - - - - - - - - - - - - - - - - - - - - -
         # Convert values for fields in 'string asset'
         #- - - - - - - - - - - - - - - - - - - - - -
-        converted_asset = convert_required_fields(asset_type, asset, action)
+        converted_asset = assets_validate_required_fields_are_provided(asset_type, asset, action)
+
+        # Business rules.
+        edit_phase = None
+        valid_edit_phases = get_event_phase_values()
+        if 'editPhase' in converted_asset:
+            edit_phase = converted_asset['editPhase']
+            if edit_phase not in valid_edit_phases and edit_phase is not None:
+                message = 'Invalid editPhase value (use one of %s).' % valid_edit_phases
+                raise Exception(message)
 
         # Action 'update' specific check: verify asset id in data is same as asset id on PUT
         if action == 'update':
@@ -482,12 +766,11 @@ def transform_asset_for_uframe(id, asset, action=None):
             if 'ref_des' not in converted_asset:
                 message = 'Unable to process asset provided, no reference designator.'
                 raise Exception(message)
-            #rd = asset['ref_des']
-            #asset_class = get_asset_class_by_rd(rd)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Marshall all data for creation of uframe_asset, build uframe_asset.
+        # Marshall all data for creation of uframe_asset.
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        uframe_asset['editPhase'] = edit_phase
         # Field: assetType [reserved]
         uframe_asset['assetType'] = asset_type
 
@@ -553,7 +836,6 @@ def transform_asset_for_uframe(id, asset, action=None):
         # Fields: mobile, notes, remoteDocuments, remoteResources, dataSource
         uframe_asset['mobile'] = converted_asset['mobile']
         uframe_asset['notes'] = converted_asset['notes']
-        uframe_asset['remoteDocuments'] = converted_asset['remoteDocuments']
         uframe_asset['remoteResources'] = converted_asset['remoteResources']
         uframe_asset['dataSource'] = converted_asset['dataSource']
 
@@ -563,7 +845,6 @@ def transform_asset_for_uframe(id, asset, action=None):
         #if debug: print '\n Before check required fields for uframe asset...'
         #required_fields, field_types = asset_get_required_fields_and_types_uframe(asset_type, action)
         #if debug: print '\n After check required fields for uframe asset...'
-        #print '\n debug -- Completed asset transform to uframe_asset.'
         return uframe_asset
 
     except Exception as err:

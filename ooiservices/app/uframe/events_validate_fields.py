@@ -6,9 +6,10 @@ __author__ = 'Edna Donoughe'
 
 from flask import current_app
 from ooiservices.app.uframe.common_convert import convert_ui_data
-from ooiservices.app.uframe.cruise_tools import (create_unique_cruise_identifier, verify_uniqueCruiseIdentifier_format)
+from ooiservices.app.uframe.cruise_tools import (uniqueCruiseIdentifier_exists, _get_cruise_by_event_id)
 from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types,
-                                                 is_instrument, is_platform, is_mooring)
+                                                 is_instrument, is_platform, is_mooring, get_event_phase_values)
+
 
 def events_validate_all_required_fields_are_provided(event_type, data, action=None):
     """ Verify for the event_type and action, the required field have been provided in the input data.
@@ -49,17 +50,52 @@ def events_validate_all_required_fields_are_provided(event_type, data, action=No
         elif event_type == 'ASSET_STATUS':
             converted_data['location'] = None
 
-        # Set uniqueCruiseIdentifer field
+        # Set uniqueCruiseIdentifier field
         elif event_type == 'CRUISE_INFO':
-            if action == 'update':
-                if 'uniqueCruiseIdentifer' in converted_data:
-                    cruise_id = converted_data['uniqueCruiseIdentifer']
-                    verify_uniqueCruiseIdentifier_format(cruise_id)
 
-            elif action == 'create':
-                cruise_id = create_unique_cruise_identifier(converted_data)
-                verify_uniqueCruiseIdentifier_format(cruise_id)
-                converted_data['uniqueCruiseIdentifer'] = cruise_id
+            cruise_id = None
+            if 'uniqueCruiseIdentifier' in converted_data:
+                cruise_id = converted_data['uniqueCruiseIdentifier']
+
+            if not cruise_id or cruise_id is None:
+                message = 'Invalid uniqueCruiseIdentifier (empty).'
+                raise Exception(message)
+
+            valid_edit_phases = get_event_phase_values()
+            if 'editPhase' in converted_data:
+                edit_phase = converted_data['editPhase']
+                if edit_phase not in valid_edit_phases and edit_phase is not None:
+                    message = 'Invalid value (use one of %s).' % valid_edit_phases
+                    raise Exception(message)
+
+            # Process for CRUISE_INFO create
+            if action == 'create':
+                # Verify uniqueCruiseIdentifier is not already used.
+                if uniqueCruiseIdentifier_exists(cruise_id):
+                    message = 'This cruise identifier \'%s\' is not unique, it already exists in system.' % cruise_id
+                    raise Exception(message)
+
+            # Process for CRUISE_INFO update
+            elif action == 'update':
+
+                # Get current cruise event by eventId; compare uniqueCruiseIdentifier to update data.
+                eventId = None
+                if 'eventId' in converted_data:
+                    eventId = converted_data['eventId']
+                if not eventId or eventId is None:
+                    message = 'Invalid eventId (empty), unable to process %s event.' % event_type
+                    raise Exception(message)
+
+                # Get current cruise event to ensure unique cruise id remains same.
+                cruise = _get_cruise_by_event_id(eventId)
+                if not cruise or cruise is None:
+                    message = 'Failed to update %s, unable to get %s event for eventId %d.' % (event_type, event_type, eventId)
+                    raise Exception(message)
+                current_cruise_id = cruise['uniqueCruiseIdentifier']
+                #print '\n existing unique cruise id: ', current_cruise_id
+                if cruise_id != current_cruise_id:
+                    message = 'The unique cruise identifier field cannot be modified.'
+                    raise Exception(message)
 
         # Verify required fields are present in the data and each field has input data of correct type.
         for field in required_fields:
@@ -136,6 +172,9 @@ def events_validate_all_required_fields_are_provided(event_type, data, action=No
             current_app.logger.info(message)
             raise Exception(message)
 
+        # todo - deprecate when cruiseIdentifier is removed as a field in uframe from CRUISE_INFO event.
+        if event_type == 'CRUISE_INFO':
+            converted_data['cruiseIdentifier'] = ''
         return converted_data
 
     except Exception as err:
@@ -143,7 +182,6 @@ def events_validate_all_required_fields_are_provided(event_type, data, action=No
         raise Exception(message)
 
 
-# todo - Add CALIBRATION_DATA fields here.
 # todo - Verify DEPLOYMENT fields here.
 def get_required_fields_and_types(event_type, action):
     """ Get required fields and field types for event_type being processed.
@@ -216,20 +254,37 @@ def get_required_fields_and_types(event_type, action):
         #- - - - - - - - - - - - - - - - - - - - - - -
         # Event type: CALIBRATION_DATA
         #- - - - - - - - - - - - - - - - - - - - - - -
-
+        elif event_type == 'CALIBRATION_DATA':
+            required_fields = ['assetUid', 'cardinality', 'comments', 'dimensions', 'eventName',
+                               'eventStartTime', 'eventType', 'values', 'notes', 'dataSource',
+                               'eventStopTime']
+            field_types = {'assetUid': 'string',
+                           'cardinality': 'int',
+                           'comments': 'string',
+                           'dimensions': 'intlist',
+                           'eventName': 'string',
+                           'eventStartTime': 'long',
+                           'eventType': 'string',
+                           'values': 'floatlist',
+                           'notes': 'string',
+                           'dataSource': 'string',
+                           'eventStopTime': 'long'
+                            }
         #- - - - - - - - - - - - - - - - - - - - - - -
         # Event type: CRUISE_INFO
+        # removed: 'cruiseIdentifier',
+        # removed: 'cruiseIdentifier': 'string',
         #- - - - - - - - - - - - - - - - - - - - - - -
         elif event_type == 'CRUISE_INFO':
             required_fields = ['eventName', 'eventStartTime', 'eventStopTime', 'eventType',
-                       'uniqueCruiseIdentifer',  'cruiseIdentifier', 'shipName',
-                       'notes', 'dataSource', 'tense', 'assetUid']
+                       'uniqueCruiseIdentifier', 'shipName',
+                       'notes', 'dataSource', 'tense', 'assetUid', 'editPhase']
 
             field_types = { 'eventName': 'string', 'eventId': 'int',
                     'eventStartTime': 'long', 'eventStopTime': 'long', 'eventType': 'string',
                     'lastModifiedTimestamp': 'long', 'notes': 'string', 'dataSource': 'string',
                     'tense': 'string', 'assetUid': 'string',
-                    'uniqueCruiseIdentifer': 'string', 'cruiseIdentifier': 'string', 'shipName': 'string'}
+                    'uniqueCruiseIdentifier': 'string',  'shipName': 'string', 'editPhase': 'string'}
 
         #- - - - - - - - - - - - - - - - - - - - - - -
         # Event type: DEPLOYMENT
@@ -370,6 +425,8 @@ def convert_required_fields(event_type, data, action=None):
         # todo - review location for asset_status event.
         if event_type == 'ASSET_STATUS':
             data['location'] = None
+        elif event_type == 'CRUISE_INFO':
+            data['assetUid'] = None
 
         converted_data = convert_ui_data(data, required_fields, field_types)
 
@@ -553,7 +610,11 @@ def get_user_fields_populated(event_type):
 
         # Event type: CRUISE_INFO
         elif event_type == 'CRUISE_INFO':
-            event_fields = ['uniqueCruiseIdentifer', 'shipName', 'cruiseIdentifier']    # 'editPhase'
+            event_fields = ['uniqueCruiseIdentifier', 'shipName']       # 'editPhase'
+
+        # Event type: CALIBRATION_DATA
+        elif event_type == 'CALIBRATION_DATA':
+            event_fields = ['dimensions', 'cardinality', 'values', ]    # 'editPhase'
 
         # Sum up all required fields
         if event_fields:

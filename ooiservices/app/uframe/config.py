@@ -204,6 +204,19 @@ def get_url_info_cruises_inv():
         raise Exception(message)
 
 
+def get_url_info_cruises_rec():
+    """ Get complete url to query uframe cruises ('uframe-host:12587/events/cruise/inv')
+    """
+    try:
+        url, timeout, timeout_read = get_url_info_cruises()
+        uframe_url = '/'.join([url, 'rec'])
+        return uframe_url, timeout, timeout_read
+    except:
+        message = 'Unable to form uframe url for cruises using config file variables.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Deployments
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -239,6 +252,72 @@ def get_events_url_base():
         current_app.logger.info(message)
         raise Exception(message)
 
+
+def get_uframe_events_info():
+    """ Get uframe events configuration information.
+    """
+    try:
+        timeout, timeout_read = get_uframe_timeout_info()
+        uframe_url = '/'.join([current_app.config['UFRAME_DEPLOYMENTS_URL'], get_events_url_base()])
+        return uframe_url, timeout, timeout_read
+    except:
+        message = 'Unable to locate UFRAME_DEPLOYMENTS_URL, UFRAME_TIMEOUT_CONNECT or UFRAME_TIMEOUT_READ in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Calibration
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+def get_calibration_url_base():
+    """ Returns string value from configuration file for UFRAME_CALIBRATION. (i.e. 'cal') If error, raise exception.
+    """
+    try:
+        events = current_app.config['UFRAME_CALIBRATION']
+        return events
+    except:
+        message = 'Unable to locate UFRAME_CALIBRATION in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_uframe_info_calibration():
+    """ Get uframe calibration event configuration information.
+    """
+    try:
+        timeout, timeout_read = get_uframe_timeout_info()
+        uframe_url = '/'.join([current_app.config['UFRAME_ASSETS_URL'], get_assets_url_base(), get_calibration_url_base()])
+        return uframe_url, timeout, timeout_read
+    except:
+        message = 'Unable to locate calibration resources in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Resources
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+def get_resources_url_base():
+    """ Returns configuration file value for UFRAME_RESOURCES. ('resource') If error, raise exception.
+    """
+    try:
+        resources = current_app.config['UFRAME_RESOURCES']
+        return resources
+    except:
+        message = 'Unable to locate UFRAME_RESOURCES in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_url_info_resources():
+    """ Get complete url to query uframe [remote] resources ('http://uframe-host:12587/resource')
+    """
+    try:
+        timeout, timeout_read = get_uframe_timeout_info()
+        uframe_url = '/'.join([current_app.config['UFRAME_ASSETS_URL'], get_resources_url_base()])
+        return uframe_url, timeout, timeout_read
+    except:
+        message = 'Unable to form uframe url for asset resources using config file variables.'
+        current_app.logger.info(message)
+        raise Exception(message)
 
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

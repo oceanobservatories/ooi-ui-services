@@ -1,12 +1,14 @@
 """
 Assets: Validate required fields based on asset type.
-
 """
-from ooiservices.app.uframe.common_tools import get_asset_types
+__author__ = 'Edna Donoughe'
+
+
+from ooiservices.app.uframe.common_tools import (get_asset_types, get_event_phase_values)
 from ooiservices.app.uframe.common_convert import convert_ui_data
 
 
-def validate_required_fields_are_provided(asset_type, data, action=None):
+def assets_validate_required_fields_are_provided(asset_type, data, action=None):
     """ Verify for the asset_type and action, the required fields have been provided in the input data.
     """
     try:
@@ -24,17 +26,27 @@ def validate_required_fields_are_provided(asset_type, data, action=None):
             raise Exception(message)
 
         # Convert field values - for all field values, convert into target type.
-        #updated_data = convert_required_fields(asset_type, data, required_fields, field_types, action)
+        converted_data = convert_required_fields(asset_type, data, required_fields, field_types, action)
+        check_required_fields(converted_data, action, required_fields, field_types)
 
+        return converted_data
+
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+def check_required_fields(converted_data, action, required_fields, field_types):
+    try:
         # Verify required fields are present in the data and each field has input data of correct type.
         number_of_required_fields = len(required_fields)
-        data_fields = data.keys()
+        data_fields = converted_data.keys()
         number_of_data_fields = len(data_fields)
         # Processing all fields and type versus value.
         for field in required_fields:
 
             # Verify field is provided in data
-            if field not in data:
+            if field not in converted_data:
                 message = 'Required field %s not provided in data.' % field
                 raise Exception(message)
 
@@ -43,57 +55,57 @@ def validate_required_fields_are_provided(asset_type, data, action=None):
                 message = 'Required field %s does not have a defined field type value.' % field
                 raise Exception(message)
 
-            # Verify field value in data is of expected type.
-            if data[field] is not None:
+            # Verify field value in converted data is of expected type.
+            if converted_data[field] is not None:
                 if field_types[field] == 'string':
-                    if not isinstance(data[field], str) and not isinstance(data[field], unicode):
+                    if not isinstance(converted_data[field], str) and not isinstance(converted_data[field], unicode):
                         message = 'Required field %s provided, but value is not of type %s.' % (field, field_types[field])
                         raise Exception(message)
                 elif field_types[field] == 'int':
-                    if not isinstance(data[field], int):
+                    if not isinstance(converted_data[field], int):
                         message = 'Required field %s provided, but value is not of type %s.' % (field, field_types[field])
                         raise Exception(message)
                 elif field_types[field] == 'long':
-                    if not isinstance(data[field], long):
+                    if not isinstance(converted_data[field], long):
                         message = 'Required field %s provided, but value is not of type %s.' % (field, field_types[field])
                         raise Exception(message)
                 elif field_types[field] == 'dict':
-                    if not isinstance(data[field], dict):
+                    if not isinstance(converted_data[field], dict):
                         message = 'Required field %s provided, but value is not of type %s.' % (field, field_types[field])
                         raise Exception(message)
                 elif field_types[field] == 'float':
-                    if not isinstance(data[field], float):
+                    if not isinstance(converted_data[field], float):
                         message = 'Required field %s provided, but value is not of type %s.' % (field, field_types[field])
                         raise Exception(message)
                 elif field_types[field] == 'list' or \
-                     field_types[field] == 'intlist' or field_types[field] == 'floatlist':
-                    if not isinstance(data[field], list):
+                     field_types[field] == 'intlist' or \
+                     field_types[field] == 'floatlist' or \
+                     field_types[field] == 'dictlist':
+                    if not isinstance(converted_data[field], list):
                         message = 'Required field %s provided, but value is not of type %s.' % (field, field_types[field])
                         raise Exception(message)
                 elif field_types[field] == 'bool':
-                    if not isinstance(data[field], bool):
+                    if not isinstance(converted_data[field], bool):
                         message = 'Required field %s provided, but value is not of type %s.' % (field, field_types[field])
                         raise Exception(message)
                 else:
                     message = 'Required field %s provided, but value is undefined type %s.' % (field, field_types[field])
                     raise Exception(message)
 
-        # Determine if 'extra' fields are being provided in the data, if so, report in log.
+        # Determine if 'extra' fields are being provided in the converted data, if so, report in log.
         extra_fields = []
         if number_of_data_fields != number_of_required_fields:
-            data_fields = data.keys()
+            data_fields = converted_data.keys()
             for field in data_fields:
                 if field not in required_fields:
                     if field not in extra_fields:
                         extra_fields.append(field)
         if extra_fields:
             message = 'Data contains extra fields %s, ' % extra_fields
-            message += 'correct and re-submit request to validate fields for %s %s asset request.' % \
-                       (action.upper(), asset_type)
+            message += 'correct and re-submit request to validate fields for %s asset request.' % action.upper()
             raise Exception(message)
 
         return
-
     except Exception as err:
         message = str(err)
         raise Exception(message)
@@ -121,11 +133,10 @@ def verify_inputs(asset_type, data, action):
             raise Exception(message)
 
         # Verify action for which we are validating the field (create or update).
-        actions = ['create', 'update']
         if action is None:
             message = 'Action value of \'create\' or \'update\' required to validate %s asset fields.' % asset_type
             raise Exception(message)
-        if action not in actions:
+        if action not in valid_actions:
             message = 'Valid action value of \'create\' or \'update\' required to validate %s asset fields.' % asset_type
             raise Exception(message)
 
@@ -206,19 +217,19 @@ def get_base_required_fields():
     """ Get 23 required fields for base asset from UI.
     Fields required for update only: 'id', 'uid', ['lastModifiedTimestamp', 'location', 'events', 'calibration']
     Present in input, not required for output:
-        'coordinates', 'hasDeploymentEvent', 'augmented', 'deployment_numbers', 'deployment_number', 'Ref Des',
-        'depth',
+        'coordinates', 'hasDeploymentEvent', 'augmented', 'deployment_numbers', 'deployment_number',
+        'Ref Des', 'depth',
+    2016-08-24: removed 'coordinates'
+    2016-08-26: removed 'augmented', 'Ref Des', 'remoteDocuments', 'hasDeploymentEvent',
     """
     base_required_fields = [
                             'assetInfo',
                             'assetType',
-                            'augmented',
-                            'coordinates',
                             'dataSource',
                             'deployment_numbers',
                             'deployment_number',
-                            'hasDeploymentEvent',
                             'depth',
+                            'editPhase',
                             'latitude',
                             'longitude',
                             'manufactureInfo',
@@ -228,70 +239,45 @@ def get_base_required_fields():
                             'physicalInfo',
                             'purchaseAndDeliveryInfo',
                             'ref_des',
-                            'Ref Des',
-                            'remoteDocuments',
                             'remoteResources',
                             'tense',
+                            'uid'
                             ]
-    """
-    base_required_fields = [
-                            'remoteResources',
-                            'notes',
-                            'physicalInfo',
-
-                            'assetType',
-                            'mobile',
-                            'dataSource',
-                            'purchaseAndDeliveryInfo',
-                            'latitude',
-                            'longitude',
-                            'ref_des',
-                            'manufactureInfo',
-                            'tense',
-                            'partData',
-                            'assetInfo',
-
-                            'remoteDocuments',
-                            ]
-    """
-
 
     return base_required_fields
 
 
 def get_base_required_field_types():
     """ Get (23) field types for UI asset required fields.
+    2016-08-24: removed 'coordinates': 'floatlist',
+    2016-08-26" remove 'augmented': 'bool', 'Ref Des': 'string','hasDeploymentEvent': 'bool','remoteDocuments': 'list',
+    added 'editPhase' can have values: EDIT, STAGED, OPERATIONAL
     """
     base_required_field_types = {
-                            'id': 'int',
-                            'remoteResources': 'list',
-                            'notes': 'string',
-                            'physicalInfo': 'dict',
-                            'uid': 'string',
+                            'assetInfo': 'dict',
                             'assetType': 'string',
-                            'mobile': 'bool',
                             'dataSource': 'string',
+                            'deployment_number': 'string',
+                            'deployment_numbers': 'intlist',
+                            'depth': 'float',
+                            'editPhase': 'string',
+                            'id': 'int',
+                            'latitude': 'float',
+                            'longitude': 'float',
+                            'lastModifiedTimestamp': 'long',
+                            'manufactureInfo': 'dict',
+                            'mobile': 'bool',
+                            'notes': 'string',
+                            'partData': 'dict',
+                            'physicalInfo': 'dict',
                             'purchaseAndDeliveryInfo': 'dict',
                             'ref_des': 'string',
-                            'Ref Des': 'string',
-                            'manufactureInfo': 'dict',
-                            'hasDeploymentEvent': 'bool',
+                            'remoteResources': 'dictlist',
                             'tense': 'string',
-                            'partData': 'dict',
-                            'deployment_number': 'string',
-                            'lastModifiedTimestamp': 'long',
-                            'assetInfo': 'dict',
-                            'depth': 'float',
-                            'remoteDocuments': 'list',
-                            'deployment_numbers': 'intlist',
-                            'augmented': 'bool',
-                            'coordinates': 'floatlist',
-                            'latitude': 'float',
-                            'longitude': 'float'
+                            'uid': 'string'
                             }
 
     return base_required_field_types
-
 
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -300,10 +286,6 @@ def get_base_required_field_types():
 def get_base_required_fields_uframe():
     """ Get (31) required fields for base asset in uframe.
     """
-    """
-
-    """
-
     base_required_fields = [
                             'assetId',
                             'assetType',
@@ -384,22 +366,8 @@ def get_base_required_field_types_uframe():
 
 
 def asset_get_required_fields_and_types_uframe(asset_type, action):
-    """ Get UFRAME required fields (list) and field types (dict) for asset_type being processed.
-
-    Asset types: notClassified, Mooring, Node, Sensor, Array
-    asset_types = ['Mooring', 'Node', 'Sensor', 'notClassified', 'Array']
-
-    Asset Data structures: base, mooring, node, sensor, array
-
-    Asset       assetType       Defined by @class
-    base        notClassified   "@class" : ".XAsset"
-    mooring     Mooring         "@class" : ".XMooring"
-    node        Node            "@class" : ".XNode"
-    sensor      Sensor          "@class" : ".XInstrument"
-    array       Array           "@class" : ".XAsset"
-
+    """ Get uframe required fields (list) and field types (dict) for asset_type being processed.
     """
-    debug = False
     required_fields = []
     field_types = {}
     valid_actions = ['create', 'update']
@@ -419,8 +387,6 @@ def asset_get_required_fields_and_types_uframe(asset_type, action):
 
         base_required_fields = get_base_required_fields_uframe()
         base_required_field_types = get_base_required_field_types_uframe()
-
-        if debug: print '\n Getting required fields for asset type %s, action: %s.' % (asset_type, action)
         if asset_type in ['notClassified', 'Mooring', 'Node', 'Array']:
             required_fields = base_required_fields
             field_types = base_required_field_types
@@ -454,25 +420,21 @@ def asset_get_required_fields_and_types_uframe(asset_type, action):
         raise Exception(message)
 
 
-def convert_required_fields(asset_type, data, action=None):
+def convert_required_fields(asset_type, data, required_fields, field_types, action=None):
     """ Verify for the asset_type and action, the required fields have been provided in the input data.
-    asset_types = ['Mooring', 'Node', 'Sensor', 'notClassified', 'Array']
     """
-    debug = False
     try:
-        # Fields required (from UI) for uframe create event.
-        verify_inputs(asset_type, data, action)
-        required_fields, field_types = asset_ui_get_required_fields_and_types(asset_type, action)
-        if not required_fields:
-            message = 'Asset type %s action %s requires specific fields.' % (asset_type, action)
-            raise Exception(message)
-        if not field_types:
-            message = 'Asset type %s action %s requires specific field types.' % (asset_type, action)
-            raise Exception(message)
-
+        # General convert
         converted_data = convert_ui_data(data, required_fields, field_types)
 
-        # Verify required fields are present in the data and each field has input data of correct type.
+        valid_edit_phases = get_event_phase_values()
+        if 'editPhase' in converted_data:
+            edit_phase = converted_data['editPhase']
+            if edit_phase not in valid_edit_phases:
+                message = 'Invalid value (use one of %s).' % valid_edit_phases
+                raise Exception(message)
+
+        # Dictionary convert
         for field in required_fields:
             if field_types[field] == 'dict':
                 if field == 'manufactureInfo':
@@ -488,6 +450,9 @@ def convert_required_fields(asset_type, data, action=None):
                 else:
                     message = 'Unknown asset dict %s to convert: ' % field
                     raise Exception(message)
+            elif field_types[field] == 'dictlist':
+                if field == 'remoteResources':
+                    convert_remoteResources_fields(converted_data)
 
         return converted_data
 
@@ -714,3 +679,105 @@ def convert_purchaseAndDeliveryInfo_fields(asset):
         return
     except Exception as err:
         raise Exception(str(err))
+
+
+def convert_remoteResources_fields(asset):
+    """
+    "remoteResources" : [ {
+        "@class": ".XRemoteResource",
+        "dataSource": null,
+        "keywords": null,
+        "label": "testresource",
+        "lastModifiedTimestamp": 1472138644728,
+        "remoteResourceId": 8446,
+        "resourceNumber": "1258.1548.58756.098",
+        "status": "active",
+        "url": null
+        }
+        ],
+    """
+    try:
+        remoteResources = None
+        if 'remoteResources' in asset:
+            remoteResources = asset['remoteResources']
+        if remoteResources is None:
+            message = 'Malformed asset, missing required field \'remoteResources\'.'
+            raise Exception(message)
+
+        for remote in remoteResources:
+            # Convert to long
+            if 'lastModifiedTimestamp' in remote:
+                if remote['lastModifiedTimestamp']:
+                    try:
+                        tmp = long(remote['lastModifiedTimestamp'])
+                        remote['lastModifiedTimestamp'] = tmp
+                    except:
+                        message = 'Failed to convert remoteResources field: lastModifiedTimestamp to long. '
+                        raise Exception(message)
+
+            # Convert to int
+            if 'remoteResourceId' in remote:
+                if remote['remoteResourceId']:
+                    try:
+                        tmp = int(remote['remoteResourceId'])
+                        remote['remoteResourceId'] = tmp
+                    except:
+                        message = 'Failed to convert remoteResources field: remoteResourceId to int. '
+                        raise Exception(message)
+        return
+    except Exception as err:
+        raise Exception(str(err))
+
+
+def validate_required_fields_remote_resource(asset_type, data, action=None):
+    """ Verify the remote remote data provided contains all required fields.
+            {
+                "@class": ".XRemoteResource",
+                "dataSource": null,
+                "keywords": null,
+                "label": "testresource",
+                "lastModifiedTimestamp": 1472128206466,
+                "remoteResourceId": 8441,
+                "resourceNumber": "1258.1548.58756.098",
+                "status": "active",
+                "url": null
+            },
+    """
+    try:
+        # Note: required_fields must be equal to or a subset of valid fields.
+        # Fields which are available in remote resource.
+        required_fields = ['@class', 'dataSource', 'keywords', 'label', 'remoteResourceId', 'resourceNumber', 'status', 'url']
+        field_types = {
+            'dataSource': 'string',
+            'keywords': 'string',
+            'label': 'string',
+            'remoteResourceId': 'int',
+            'resourceNumber': 'string',
+            'status': 'string',
+            'url': 'string',
+            '@class': 'string'
+        }
+        # Fields which must have a value.
+        required_values = ['remoteResourceId', '@class']
+        if action == 'update':
+            required_fields.append('lastModifiedTimestamp')
+            field_types['lastModifiedTimestamp'] = 'long'
+
+        for field in required_fields:
+            if field not in data:
+                message = 'Required field \'%s\' not in remote resource data provided.' % field
+                raise Exception(message)
+
+        for field in required_values:
+            if not data[field]:
+                message = 'Required field \'%s\' value is empty.' % field
+                raise Exception(message)
+
+        converted_data = convert_ui_data(data, required_fields, field_types)
+        convert_required_fields(asset_type, converted_data, required_fields, field_types, action=None)
+
+        return converted_data
+
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)

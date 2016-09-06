@@ -548,9 +548,9 @@ def get_uframe_events_by_uid(uid, types):
         raise Exception(message)
 
 
-# Get uframe event by event id.
+# Get event from uframe by event id.
 def get_uframe_event(id):
-    """ Get event from uframe by id.
+    """ Get event from uframe by id, some error checking applied for return event.
     """
     check = False
     try:

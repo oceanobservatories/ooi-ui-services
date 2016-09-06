@@ -18,7 +18,7 @@ Routes:
 from flask import (jsonify, request, current_app)
 from ooiservices.app.main.errors import bad_request
 from ooiservices.app.uframe import uframe as api
-from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types)
+from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types, get_event_phase_values)
 from ooiservices.app.uframe.events_create_update import (create_event_type, update_event_type)
 from ooiservices.app.uframe.event_tools import (_get_events_by_uid)
 from ooiservices.app.main.authentication import auth
@@ -42,6 +42,14 @@ def get_supported_event_type():
     """ Get all valid event types supported in uframe asset web services.
     """
     return jsonify({'event_types': get_supported_event_types()})
+
+@auth.login_required
+@scope_required(u'asset_manager')
+@api.route('/events/edit_phase_values', methods=['GET'])
+def get_edit_phase_values():
+    """ Get all valid event types supported in uframe asset web services.
+    """
+    return jsonify({'values': get_event_phase_values()})
 
 
 @auth.login_required

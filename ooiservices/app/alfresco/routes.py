@@ -58,13 +58,22 @@ def get_alfresco_ticket():
         response = make_response(jsonify(error_response), 500)
         return response, response.status_code
 
-    # massage the response a little . . .
-    ticket_num = json.loads(ticket._content)
-    if 'data' not in ticket_num:
-        response = make_response(jsonify(ticket_num), 500)
+    if not ticket:
+        error_response = {'error': 'Alfresco ticket invalid,' +
+            ' cannot create ticket.', 'status_code': 500}
+        response = make_response(jsonify(error_response), 500)
         return response, response.status_code
 
-    ticket = ticket_num['data']['ticket']
+    # massage the response a little . . .
+    ticket_num = None
+    if ticket:
+        ticket_num = json.loads(ticket._content)
+    if ticket_num:
+        if 'data' not in ticket_num:
+            response = make_response(jsonify(ticket_num), 500)
+            return response, response.status_code
+
+        ticket = ticket_num['data']['ticket']
 
     return ticket
 

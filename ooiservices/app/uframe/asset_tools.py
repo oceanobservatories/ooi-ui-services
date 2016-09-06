@@ -9,7 +9,7 @@ from flask import current_app
 from ooiservices.app import cache
 from ooiservices.app.uframe.controller import dfs_streams
 from ooiservices.app.uframe.toc_tools import _compile_asset_rds
-from ooiservices.app.uframe.config import (get_uframe_assets_info, get_assets_url_base, headers)
+from ooiservices.app.uframe.config import (get_uframe_assets_info, get_assets_url_base, headers, get_url_info_resources)
 from ooiservices.app.uframe.common_tools import (get_asset_type_by_rd, get_asset_classes, get_supported_asset_types)
 from ooiservices.app.uframe.vocab import (get_vocab, get_vocab_dict_by_rd, get_rs_array_display_name_by_rd,
                                           get_display_name_by_rd)
@@ -65,7 +65,6 @@ def _compile_assets(data, compile_all=False):
         ref_des = ''
         try:
             # Get asset_id, if not asset_id then continue
-            row['augmented'] = False
             asset_id = None
             if 'assetId' in row:
                 row['id'] = row.pop('assetId')
@@ -116,7 +115,6 @@ def _compile_assets(data, compile_all=False):
 
             # Set row values with reference designator
             row['ref_des'] = ref_des
-            row['Ref Des'] = ref_des
 
             if len(row['remoteResources']) == 0:
                 row['remoteResources'] = []
@@ -129,8 +127,8 @@ def _compile_assets(data, compile_all=False):
                 continue
 
             # Get deployment information for this asset_id-rd; populate asset values using deployment information.
-            depth, location, has_deployment_event, deployment_numbers, tense, no_deployments_nums, deployments_list \
-                                        = get_asset_deployment_map(asset_id, ref_des)
+            depth, location, has_deployment_event, deployment_numbers, cumulative_tense, tense, \
+                no_deployments_nums, deployments_list = get_asset_deployment_map(asset_id, ref_des)
 
             # If reference designator has deployments which do not have associated asset ids, compile information.
             if no_deployments_nums:
@@ -143,13 +141,12 @@ def _compile_assets(data, compile_all=False):
                             all_no_deployments_dict[ref_des].append(did)
 
             row['depth'] = depth
-            row['coordinates'] = location
             row['longitude'] = location[0]
             row['latitude'] = location[1]
-            row['hasDeploymentEvent'] = has_deployment_event
             row['deployment_number'] = deployment_numbers
             row['deployment_numbers'] = deployments_list
-            row['tense'] = tense
+            row['cumulative_tense'] = cumulative_tense                 # tense based on review of deployment numbers
+            row['tense'] = tense                            # uframe deployment tense
 
             # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             # Get asset class based on reference designator
@@ -258,7 +255,6 @@ def _compile_assets(data, compile_all=False):
                 row['manufactureInfo']['firmwareVersion'] = row.pop('firmwareVersion')
                 row['manufactureInfo']['softwareVersion'] = row.pop('softwareVersion')
                 row['manufactureInfo']['shelfLifeExpirationDate'] = row.pop('shelfLifeExpirationDate')
-                row['remoteDocuments'] = []
                 row['purchaseAndDeliveryInfo'] = {}
                 row['purchaseAndDeliveryInfo']['deliveryDate'] = row.pop('deliveryDate')
                 row['purchaseAndDeliveryInfo']['purchaseDate'] = row.pop('purchaseDate')
@@ -281,6 +277,12 @@ def _compile_assets(data, compile_all=False):
                     if row['assetType'] not in all_asset_types:
                         all_asset_types.append(row['assetType'])
 
+                #row['augmented'] = False
+                #row['remoteDocuments'] = []
+                #row['Ref Des'] = ref_des
+                #row['coordinates'] = location
+                #row['hasDeploymentEvent'] = has_deployment_event
+
             except Exception as err:
                 # asset info error
                 current_app.logger.info('asset info error' + str(err.message))
@@ -291,7 +293,7 @@ def _compile_assets(data, compile_all=False):
 
             # Add new row to output dictionary
             if asset_id and ref_des:
-                row['augmented'] = True
+                #row['augmented'] = True
                 new_data.append(row)
                 # if new item for dictionary of asset ids, add id with value of reference designator
                 if asset_id not in dict_asset_ids:
@@ -552,16 +554,16 @@ def _get_asset(id):
     """
     asset = {}
     try:
+        if id == 0:
+            message = 'Zero (0) is an invalid asset id value.'
+            raise Exception(message)
+
         assets_dict = cache.get('assets_dict')
         if assets_dict is not None:
             if id in assets_dict:
                 asset = assets_dict[id]
         else:
             uframe_url, timeout, timeout_read = get_uframe_assets_info()
-            if id == 0:
-                message = 'Zero (0) is an invalid asset id value.'
-                raise Exception(message)
-
             url = '/'.join([uframe_url, get_assets_url_base(), str(id)])
             payload = requests.get(url, timeout=(timeout, timeout_read))
             if payload.status_code != 200:
@@ -572,9 +574,7 @@ def _get_asset(id):
                 data_list = [data]
                 result, _ = _compile_assets(data_list)
                 if result:
-                    # todo test here
                     asset = result[0]
-                    #return jsonify(**result[0])
 
         return asset
     except ConnectionError:
@@ -611,6 +611,74 @@ def uframe_get_asset_by_id(id):
         raise Exception(message)
     except Timeout:
         message = 'Timeout getting asset (id: %d) from uframe.' % id
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+# Get asset from uframe by asset uid.
+def uframe_get_asset_by_uid(uid):
+    """ Get asset from uframe by asset uid.
+    """
+    check = False
+    try:
+        # Get uframe asset by uid.
+        query = '?uid=' + uid
+        uframe_url, timeout, timeout_read = get_uframe_assets_info()
+        url = '/'.join([uframe_url, get_assets_url_base()])
+        url += query
+        if check: print '\n check -- [uframe_get_asset_by_uid] url to get asset %s: %s' % (uid, url)
+        response = requests.get(url, timeout=(timeout, timeout_read), headers=headers())
+        if response.status_code == 204:
+            message = 'Failed to receive content from uframe for asset with uid \'%s\'.' % uid
+            raise Exception(message)
+        elif response.status_code != 200:
+            message = 'Failed to get asset from uframe with uid: \'%s\'.' % uid
+            raise Exception(message)
+        asset = response.json()
+        return asset
+    except ConnectionError:
+        message = 'ConnectionError getting asset (uid %s) from uframe.' % uid
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Timeout getting asset (uid %s) from uframe.' % uid
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+# Get asset from uframe by asset uid.
+def uframe_get_remote_resource_by_id(id):
+    """ Get asset from uframe by asset uid.
+    """
+    check = False
+    try:
+        # Get uframe asset by uid.
+        uframe_url, timeout, timeout_read = get_url_info_resources()
+        url = '/'.join([uframe_url, str(id)])
+        if check: print '\n check -- [uframe_get_remote_resource_by_id] url to get remote resource %d: %s' % (id, url)
+        response = requests.get(url, timeout=(timeout, timeout_read), headers=headers())
+        if response.status_code == 204:
+            message = 'Failed to receive content from uframe for remote resource with id \'%d\'.' % id
+            raise Exception(message)
+        elif response.status_code != 200:
+            message = 'Failed to get asset from uframe with uid: \'%s\'.' % uid
+            raise Exception(message)
+        asset = response.json()
+        return asset
+    except ConnectionError:
+        message = 'ConnectionError getting remote resource (uid %d) from uframe.' % id
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Timeout getting remote resource (uid %d) from uframe.' % id
         current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
@@ -662,8 +730,6 @@ def _get_asset_from_assets_dict(id):
 
         # Get 'assets_dict' - compile them
         else:
-            # Could use asset list (if available): populate_assets_dict(data), better than verify cache?
-            print '\n debug -- assets_dict not available, verify_cache...'
             verify_cache()
             assets_dict = cache.get('assets_dict')
 
@@ -718,6 +784,14 @@ def format_asset_for_ui(modified_asset):
     """ Format uframe asset into ui asset.
     """
     try:
+        # Process remoteResources list.
+        remoteResources = None
+        if 'remoteResources' in modified_asset:
+            remoteResources = modified_asset['remoteResources']
+        if remoteResources is not None:
+            modified_asset['remoteResources'] = post_process_remote_resources(remoteResources)
+
+        # Prepare and convert asset.
         data_list = [modified_asset]
         try:
             asset_with_update, _ = _compile_assets(data_list)
@@ -733,6 +807,23 @@ def format_asset_for_ui(modified_asset):
 
     except Exception as err:
         message = str(err)
+        raise Exception(message)
+
+
+# Prepare remote resources for display.
+def post_process_remote_resources(resources):
+    """ Process resources list from uframe before returning for display (in UI).
+    """
+    try:
+        if not resources:
+            return resources
+        for resource in resources:
+            if '@class' in resource:
+                del resource['@class']
+        return resources
+
+    except Exception as err:
+        message = 'Error post-processing event for display. %s' % str(err)
         raise Exception(message)
 
 
@@ -798,7 +889,7 @@ def _get_id_by_uid(uid):
         raise Exception(message)
 
 
-# todo - Refactor for new asset management data model,
+# todo - Refactor for new asset management data model;
 # todo - used by controller.py: get_svg_plot and dfs_streams
 def get_events_by_ref_des(data, ref_des):
     """ Create the container for the processed response.
@@ -847,3 +938,11 @@ def get_events_by_ref_des(data, ref_des):
     #result = jsonify({'events': result})
     return result
 
+'''
+def dump_dict(dict, debug=False):
+        """
+        Print dict if debug enabled.
+        """
+        if debug:
+            print '\n --------------\n dictionary: %s' % json.dumps(dict, indent=4, sort_keys=True)
+'''
