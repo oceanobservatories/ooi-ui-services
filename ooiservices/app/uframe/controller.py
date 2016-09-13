@@ -17,7 +17,7 @@ from ooiservices.app.uframe.vocab import (get_display_name_by_rd, get_long_displ
 # data imports
 from ooiservices.app.uframe.data import (get_data, get_simple_data, find_parameter_ids, get_multistream_data)
 from ooiservices.app.uframe.plotting import generate_plot
-#from ooiservices.app.uframe.asset_tools import get_events_by_ref_des
+# from ooiservices.app.uframe.asset_tools import get_events_by_ref_des
 from ooiservices.app.uframe.config import get_uframe_toc_url
 
 from urllib import urlencode
@@ -2554,3 +2554,9 @@ def get_stream_names(streams):
             if stream['stream'] not in stream_names:
                 stream_names.append(stream['stream'])
     return stream_names
+
+def get_events_by_ref_des(data, ref_des):
+    """
+    """
+    result = []
+    return result

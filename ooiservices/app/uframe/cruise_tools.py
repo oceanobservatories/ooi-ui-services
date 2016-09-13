@@ -10,6 +10,7 @@ from ooiservices.app.uframe.config import (get_url_info_cruises_inv, get_uframe_
 import requests
 import requests.exceptions
 from requests.exceptions import (ConnectionError, Timeout)
+import urllib
 
 
 def _get_cruises():
@@ -20,8 +21,11 @@ def _get_cruises():
         cruise_list = uframe_get_cruise_inv()
         if not cruise_list:
             return cruises
-        set_cruise_list = set(cruise_list)
-        cruise_list = list(set_cruise_list)
+        set_cruise_list = []
+        for cruise in cruise_list:
+            if cruise not in set_cruise_list:
+                set_cruise_list.append(cruise)
+        cruise_list = set_cruise_list
         if not cruise_list:
             return cruises
         for cruise in cruise_list:
@@ -55,8 +59,11 @@ def _get_cruise_by_event_id(event_id):
 def _get_cruise_by_cruise_id(cruise_id):
     """ Get all assets from uframe.
     """
+    result = None
     try:
-        result = post_process_cruise(uframe_get_cruise_by_cruise_id(cruise_id))
+        cruise = uframe_get_cruise_by_cruise_id(cruise_id)
+        if cruise is not None:
+            result = post_process_cruise(cruise)
         return result
 
     except Exception as err:
@@ -304,11 +311,13 @@ def uframe_get_cruise_by_cruise_id(cruise_id):
     """
     try:
         base_url, timeout, timeout_read = get_url_info_cruises_rec()
-        url = '/'.join([base_url, cruise_id])
+        _cruise_id = (urllib.quote(cruise_id, ''))
+        url = '/'.join([base_url, _cruise_id])
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
-            message = '(%d) Unable to get cruise %s from uframe.' % (response.status_code, cruise_id)
-            raise Exception(message)
+            message = '(%d) Unable to get cruise \'%s\' from uframe.' % (response.status_code, cruise_id)
+            current_app.logger.info(message)
+            return None
         result = response.json()
         if result is None or not result:
             message = 'No cruises found with unique identifier of \'%s\'.' % cruise_id
