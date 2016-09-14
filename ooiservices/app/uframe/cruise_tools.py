@@ -35,14 +35,13 @@ def _get_cruises():
             cruise_dict = post_process_cruise(cruise_dict)
             cruises.append(cruise_dict)
         return cruises
-
     except Exception as err:
         message = str(err)
         raise Exception(message)
 
 
 # Get cruise by event id.
-def _get_cruise_by_event_id(event_id):
+def _get_cruise(event_id):
     """ Get cruise by event id.
     """
     try:
@@ -55,27 +54,24 @@ def _get_cruise_by_event_id(event_id):
         raise Exception(message)
 
 
-# Get cruise using uniqueCruiseIdentifier.
-def _get_cruise_by_cruise_id(cruise_id):
-    """ Get all assets from uframe.
-    """
-    result = None
-    try:
-        cruise = uframe_get_cruise_by_cruise_id(cruise_id)
-        if cruise is not None:
-            result = post_process_cruise(cruise)
-        return result
-
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-
-def _get_cruise_deployments(cruise_id, type):
-    """ Get deployments for a specific cruise. Apply phase type selection.
+# Get cruise deployments by event id.
+def _get_cruise_deployments(event_id, type):
+    """ Get deployments for a cruise using the event id. Apply phase type selection.
     """
     abridged_deployments = []
     try:
+        cruise = _get_cruise(event_id)
+        if cruise is None:
+            message = 'Unable to get cruise for event id %d.' % event_id
+            raise Exception(message)
+
+        cruise_id = None
+        if 'uniqueCruiseIdentifier' in cruise:
+            cruise_id = cruise['uniqueCruiseIdentifier']
+        if cruise_id is None:
+            message = 'The cruise returned for event id %d does not contain a  unique cruise id.' % event_id
+            raise Exception(message)
+
         # Get deployments
         deployments = uframe_get_deployments_by_cruise_id(cruise_id, type=type)
         if not deployments or deployments is None:
@@ -92,7 +88,7 @@ def _get_cruise_deployments(cruise_id, type):
         raise Exception(message)
 
 
-def _get_deployment_by_event_id(event_id):
+def _get_cruise_deployment(event_id):
     try:
         # Get deployment
         deployment = uframe_get_event(event_id)
@@ -110,14 +106,31 @@ def _get_deployment_by_event_id(event_id):
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Helper functions - External and internal.
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Get cruise using uniqueCruiseIdentifier.
+def _get_cruise_by_cruise_id(cruise_id):
+    """ Get all assets from uframe.
+    """
+    result = None
+    try:
+        cruise = uframe_get_cruise_by_cruise_id(cruise_id)
+        if cruise is not None:
+            result = post_process_cruise(cruise)
+        return result
+
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
 # (external) Verify unique cruise id does not exist.
 def uniqueCruiseIdentifier_exists(cruise_id):
-    """ Verify cruise identifier provided does not exist. Boolean result True then exists, else False.
+    """ Verify cruise identifier provided does not exist. Boolean result True if exists, else False.
     """
     try:
         try:
             # If uframe returns a value, then cruise exists, otherwise it does not.
-            value = uframe_get_cruise_by_subsite(cruise_id)
+            #value = uframe_get_cruise_by_subsite(cruise_id)
+            value = uframe_get_cruise_by_cruise_id(cruise_id)
             if value is None or not value:
                 result = False
             else:
@@ -129,6 +142,21 @@ def uniqueCruiseIdentifier_exists(cruise_id):
     except Exception as err:
         message = str(err)
         raise Exception(message)
+
+
+# todo -- process deployment data as required for UI display.
+# (internal)
+def process_deployment_view(data):
+    """ Process deployment data for UI display, where data represents a complete deployment object.
+    """
+    try:
+        result = data
+        # Process deployment data as required for UI display.
+        return result
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
 
 
 # (internal)
@@ -162,9 +190,7 @@ def process_deployment_row(data):
         node = None
         sensor = None
         rd = None
-        if 'referenceDesignator' not in data:
-            deployment['rd'] = None
-        elif 'referenceDesignator' in data:
+        if 'referenceDesignator' in data:
             if 'subsite' in data['referenceDesignator']:
                 subsite = data['referenceDesignator']['subsite']
             if 'node' in data['referenceDesignator']:
@@ -180,9 +206,6 @@ def process_deployment_row(data):
             deployment['rd'] = rd
 
         # Get location dictionary information:  latitude, longitude, depth and orbitRadius
-        latitude = 0.0
-        longitude = 0.0
-        depth = 0.0
         if 'location' in data:
             if data['location']:
                 if 'latitude' in data['location']:
@@ -191,10 +214,6 @@ def process_deployment_row(data):
                     deployment['longitude'] = data['location']['longitude']
                 if 'depth' in data['location']:
                     deployment['depth'] = data['location']['depth']
-        else:
-            deployment['latitude'] = latitude
-            deployment['longitude'] = longitude
-            deployment['depth'] = depth
 
         # Get mooring, node and sensor uids.
         mooring_uid = None
@@ -217,20 +236,6 @@ def process_deployment_row(data):
         deployment['sensor_uid'] = sensor_uid
         return deployment
 
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-
-# todo -- process deployment data as required for UI display.
-# (internal)
-def process_deployment_view(data):
-    """ Process deployment data for UI display, where data represents a complete deployment object.
-    """
-    try:
-        result = data
-        # Process deployment data as required for UI display.
-        return result
     except Exception as err:
         message = str(err)
         raise Exception(message)
@@ -332,6 +337,7 @@ def uframe_get_cruise_by_cruise_id(cruise_id):
         raise Exception(message)
     except Exception as err:
         message = str(err)
+        current_app.logger.info(message)
         raise Exception(message)
 
 
@@ -363,10 +369,9 @@ def uframe_get_cruise_by_event_id(event_id):
         raise Exception(message)
 
 
-
 # Get uframe deployments by cruise id.
 def uframe_get_deployments_by_cruise_id(cruise_id, type=None):
-    """ Get deployments from uframe for cruise_id.
+    """ Get deployments from uframe for cruise_id (the uniqueCruiseIdentifier).
 
     Requests to uframe:
         http://uframe-host:12587/events/cruise/deployments/CP-2016-0001?phase=all           [all=deploy+recover]
@@ -375,8 +380,9 @@ def uframe_get_deployments_by_cruise_id(cruise_id, type=None):
     """
     try:
         base_url, timeout, timeout_read = get_url_info_cruises()
-        url = '/'.join([base_url, 'deployments', cruise_id])
-        if type is not None:
+        _cruise_id = (urllib.quote(cruise_id, ''))
+        url = '/'.join([base_url, 'deployments', _cruise_id])
+        if type is not None and type:
             url += '?type=' + type
         payload = requests.get(url, timeout=(timeout, timeout_read))
 
@@ -391,6 +397,7 @@ def uframe_get_deployments_by_cruise_id(cruise_id, type=None):
         elif payload.status_code != 200:
             message = 'Error getting deployments for cruise id %s from uframe.' % cruise_id
             raise Exception(message)
+
         deployments = payload.json()
         if not deployments or deployments is None:
             deployments = []
@@ -404,6 +411,7 @@ def uframe_get_deployments_by_cruise_id(cruise_id, type=None):
         raise Exception(message)
     except Exception as err:
         message = str(err)
+        current_app.logger.info(message)
         raise Exception(message)
 
 

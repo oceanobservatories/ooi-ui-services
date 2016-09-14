@@ -226,6 +226,7 @@ def get_deployments_url_base():
     return deployments
 
 
+#def get_url_info_deployment():
 def get_uframe_deployments_info():
     """ Get uframe deployments configuration information.
     """
@@ -235,6 +236,18 @@ def get_uframe_deployments_info():
         return uframe_url, timeout, timeout_read
     except:
         message = 'Unable to locate UFRAME_DEPLOYMENTS_URL, UFRAME_TIMEOUT_CONNECT or UFRAME_TIMEOUT_READ in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+def get_url_info_deployments_inv():
+    """ Get complete url to query uframe cruises ('uframe-host:12587/events/deployment/inv')
+    """
+    try:
+        url, timeout, timeout_read = get_uframe_deployments_info()
+        uframe_url = '/'.join([url, get_deployments_url_base(), 'inv'])
+        return uframe_url, timeout, timeout_read
+    except:
+        message = 'Unable to form uframe url for cruises using config file variables.'
         current_app.logger.info(message)
         raise Exception(message)
 

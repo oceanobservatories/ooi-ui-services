@@ -8,7 +8,7 @@ from flask import current_app
 from requests.exceptions import (ConnectionError, Timeout)
 from ooiservices.app.uframe.event_tools import get_uframe_event
 from ooiservices.app.uframe.asset_tools import uframe_get_asset_by_uid
-from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types, get_event_class)
+from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types, get_event_class, dump_dict)
 from ooiservices.app.uframe.config import (get_uframe_deployments_info, get_events_url_base,
                                            headers, get_url_info_cruises, get_uframe_info_calibration)
 from ooiservices.app.uframe.events_validate_fields import (events_validate_all_required_fields_are_provided,
@@ -20,7 +20,6 @@ import requests
 # Create event.
 def create_event_type(request_data):
     """ Create a new event. Return new event on success, or raise exception on error.
-
     Response on success:
     {
         "message" : "Element created successfully.",
@@ -28,6 +27,7 @@ def create_event_type(request_data):
         "statusCode" : "CREATED"
     }
     """
+    debug = False
     event_type = None
     action = 'create'
     try:
@@ -95,6 +95,7 @@ def create_event_type(request_data):
 def update_event_type(id, data):
     """ Update an existing event, no success return event, on error raise exception.
     """
+    debug = False
     event_type = None
     action = 'update'
     try:
@@ -157,6 +158,9 @@ def update_event_type(id, data):
         # Get configuration url and timeout information, build request url.
         base_url, timeout, timeout_read = get_uframe_deployments_info()
         url = '/'.join([base_url, get_events_url_base(), str(id)])
+        if debug:
+            print '\n debug -- Update %s event url: %s' % (event_type, url)
+            dump_dict(data, debug)
 
         # Issue uframe PUT to update, process response status_code and content.
         response = requests.put(url, data=json.dumps(data), headers=headers())
@@ -215,6 +219,7 @@ def update_event_type(id, data):
 def perform_uframe_create_event(event_type, uid, data):
     """ Create event using uframe interface determined by event type.
     """
+    debug = False
     try:
         if event_type != 'CRUISE_INFO':
             if uid is None or not uid:
@@ -238,6 +243,7 @@ def perform_uframe_create_event(event_type, uid, data):
             if event_type == 'DEPLOYMENT':
                 message = 'Create event type DEPLOYMENT is not supported at this time.'
                 raise Exception(message)
+
             id = uframe_postto(event_type, uid, data)
 
         if id is None or id <= 0:
@@ -248,6 +254,7 @@ def perform_uframe_create_event(event_type, uid, data):
     except Exception as err:
         message = str(err)
         raise Exception(message)
+
 
 def create_calibration_data_event(event_type, uid, data):
     success_codes = [201, 204]
@@ -341,11 +348,16 @@ def calibration_data_exists(uid, event_name):
 
 
 def uframe_postto(event_type, uid, data):
+    debug = False
     try:
         # Set uframe query parameter, get configuration url and timeout information, build request url.
         query = 'postto'
         base_url, timeout, timeout_read = get_uframe_deployments_info()
         url = '/'.join([base_url, get_events_url_base(), query, uid])
+        if debug:
+            print '\n debug -- Update %s event url: %s' % (event_type, url)
+            dump_dict(data, debug)
+
         response = requests.post(url, data=json.dumps(data), headers=headers())
         # Process error.
         if response.status_code != 201:
@@ -462,7 +474,15 @@ def uframe_create_calibration(event_type, uid, data):
 
         # Process error.
         if response.status_code != 201 and response.status_code != 204:
-            message = 'Failed to create %s event in uframe; status code: %d' % (event_type, response.status_code)
+            uframe_message = None
+            if response.content:
+                error = json.loads(response.content)
+                if 'message' in error:
+                    uframe_message = '%s' % error['message']
+                current_app.logger.info(uframe_message)
+            message = 'Failed to create %s event in uframe. ' % event_type
+            if uframe_message:
+                message += '%s' % uframe_message
             raise Exception(message)
 
         return response.status_code

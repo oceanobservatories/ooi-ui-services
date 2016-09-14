@@ -1,12 +1,13 @@
 
 """
-Event routes and supporting functions.
+Event routes.
 
 Routes:
-[GET]  /events/<int:id>           # Get event. This should not be used by UI; if needed, then discuss!
-[GET]  /events/types              # Get all supported event types
-[GET]  /events/uid/<string:uid>   # Get all events of all types for asset with uid
-       /events/uid/<string:uid>?type=EventType   # Get all events for asset with uid, only type(s) identified
+[GET]  /events/<int:id>           # Get event.
+[GET]  /events/types              # Get all event types.
+[GET]  /events/types/supported    # Get all supported event types.
+[GET]  /events/uid/<string:uid>   # Get all events of all types for asset with uid.
+       /events/uid/<string:uid>?type=EventType   # Get all events for asset with uid, but only type(s) identified.
        # Example: /uframe/events/uid/A00228?type=ATVENDOR
        # Example: /uframe/events/uid/A00228?type=ATVENDOR,INTEGRATION
 
@@ -18,11 +19,12 @@ Routes:
 from flask import (jsonify, request, current_app)
 from ooiservices.app.main.errors import bad_request
 from ooiservices.app.uframe import uframe as api
-from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types, get_event_phase_values)
-from ooiservices.app.uframe.events_create_update import (create_event_type, update_event_type)
-from ooiservices.app.uframe.event_tools import (_get_events_by_uid)
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.decorators import scope_required
+from ooiservices.app.uframe.event_tools import (_get_events_by_uid, _get_all_events_by_uid)
+from ooiservices.app.uframe.events_create_update import (create_event_type, update_event_type)
+from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types, get_supported_asset_types,
+                                                 event_edit_phase_values, get_event_types_by_asset_type)
 import json
 
 
@@ -43,13 +45,32 @@ def get_supported_event_type():
     """
     return jsonify({'event_types': get_supported_event_types()})
 
+
+@auth.login_required
+@scope_required(u'asset_manager')
+@api.route('/events/tabs/<string:asset_type>', methods=['GET'])
+def get_event_tabs_by_asset_type(asset_type):
+    """ Get event tab names for an asset type.
+    Examples:
+        http://localhost:4000/uframe/events/tabs/Mooring
+        http://localhost:4000/uframe/events/tabs/Node
+        http://localhost:4000/uframe/events/tabs/Sensor
+        http://localhost:4000/uframe/events/tabs/Array
+        http://localhost:4000/uframe/events/tabs/notClassified
+    """
+    tabs = []
+    if asset_type in get_supported_asset_types():
+        tabs = get_event_types_by_asset_type(asset_type)
+    return jsonify({'tabs': tabs})
+
+
 @auth.login_required
 @scope_required(u'asset_manager')
 @api.route('/events/edit_phase_values', methods=['GET'])
-def get_edit_phase_values():
-    """ Get all valid event types supported in uframe asset web services.
+def get_event_edit_phase_values():
+    """ Get all event edit phase values supported in uframe asset web services.
     """
-    return jsonify({'values': get_event_phase_values()})
+    return jsonify({'values': event_edit_phase_values()})
 
 
 @auth.login_required
@@ -62,6 +83,24 @@ def get_events_by_uid(uid):
         # Get uid and type
         _type = request.args.get('type')
         events = _get_events_by_uid(uid, _type)
+        return jsonify({'events': events})
+
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
+
+
+@auth.login_required
+@scope_required(u'asset_manager')
+@api.route('/events/uid/<string:uid>/all', methods=['GET'])
+def get_all_events_by_uid(uid):
+    """ Get list of all events for asset with uid.
+    """
+    try:
+        # Get uid and type
+        _type = request.args.get('type')
+        events = _get_all_events_by_uid(uid, _type)
         return jsonify({'events': events})
 
     except Exception as err:

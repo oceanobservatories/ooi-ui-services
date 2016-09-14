@@ -6,9 +6,9 @@ __author__ = 'Edna Donoughe'
 
 from flask import current_app
 from ooiservices.app.uframe.common_convert import convert_ui_data
-from ooiservices.app.uframe.cruise_tools import (uniqueCruiseIdentifier_exists, _get_cruise_by_event_id)
+from ooiservices.app.uframe.cruise_tools import (uniqueCruiseIdentifier_exists, _get_cruise)
 from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types,
-                                                 is_instrument, is_platform, is_mooring, get_event_phase_values)
+                                                 is_instrument, is_platform, is_mooring, event_edit_phase_values)
 
 
 def events_validate_all_required_fields_are_provided(event_type, data, action=None):
@@ -61,7 +61,7 @@ def events_validate_all_required_fields_are_provided(event_type, data, action=No
                 message = 'Invalid uniqueCruiseIdentifier (empty).'
                 raise Exception(message)
 
-            valid_edit_phases = get_event_phase_values()
+            valid_edit_phases = event_edit_phase_values()
             if 'editPhase' in converted_data:
                 edit_phase = converted_data['editPhase']
                 if edit_phase not in valid_edit_phases and edit_phase is not None:
@@ -87,7 +87,7 @@ def events_validate_all_required_fields_are_provided(event_type, data, action=No
                     raise Exception(message)
 
                 # Get current cruise event to ensure unique cruise id remains same.
-                cruise = _get_cruise_by_event_id(eventId)
+                cruise = _get_cruise(eventId)
                 if not cruise or cruise is None:
                     message = 'Failed to update %s, unable to get %s event for eventId %d.' % (event_type, event_type, eventId)
                     raise Exception(message)
@@ -257,7 +257,7 @@ def get_required_fields_and_types(event_type, action):
         elif event_type == 'CALIBRATION_DATA':
             required_fields = ['assetUid', 'cardinality', 'comments', 'dimensions', 'eventName',
                                'eventStartTime', 'eventType', 'values', 'notes', 'dataSource',
-                               'eventStopTime']
+                               'eventStopTime', 'tense']
             field_types = {'assetUid': 'string',
                            'cardinality': 'int',
                            'comments': 'string',
@@ -268,7 +268,8 @@ def get_required_fields_and_types(event_type, action):
                            'values': 'floatlist',
                            'notes': 'string',
                            'dataSource': 'string',
-                           'eventStopTime': 'long'
+                           'eventStopTime': 'long',
+                           'tense': 'string'
                             }
         #- - - - - - - - - - - - - - - - - - - - - - -
         # Event type: CRUISE_INFO
@@ -610,7 +611,7 @@ def get_user_fields_populated(event_type):
 
         # Event type: CRUISE_INFO
         elif event_type == 'CRUISE_INFO':
-            event_fields = ['uniqueCruiseIdentifier', 'shipName']       # 'editPhase'
+            event_fields = ['uniqueCruiseIdentifier', 'shipName', 'editPhase']
 
         # Event type: CALIBRATION_DATA
         elif event_type == 'CALIBRATION_DATA':

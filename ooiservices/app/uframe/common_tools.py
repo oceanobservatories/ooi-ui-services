@@ -24,43 +24,11 @@ __author__ = 'Edna Donoughe'
 from flask import current_app
 import datetime as dt
 import calendar
+import json
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Common functions
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Is reference designator a instrument.
-def is_instrument(rd):
-    """ Verify reference designator is a valid instrument reference designator. Return True or False
-    """
-    result = False
-    try:
-        # Check rd is not empty or None
-        if not rd or rd is None:
-            return False
-
-        # Check rd length equals rd length after trim (catch malformed reference designators)
-        len_rd = len(rd)
-        if len(rd) != len(rd.strip()):
-            message = 'Instrument reference designator is malformed \'%s\'. ' % rd
-            current_app.logger.info(message)
-            return False
-
-        # Check rd length is greater than 14 and less than or equal to 27
-        if len_rd < 14 or len_rd > 27:
-            return False
-
-        # Verify '-' present and count is three (sample of valid: CP02PMUI-WFP01-04-FLORTK000)
-        if rd.count('-') != 3:
-            return False
-        result = True
-        return result
-
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return result
-
-
 # Is reference designator a mooring.
 def is_mooring(rd):
     """ Verify reference designator is a valid mooring reference designator. Return True or False
@@ -129,6 +97,72 @@ def is_platform(rd):
         return result
 
 
+# Is reference designator a instrument.
+def is_instrument(rd):
+    """ Verify reference designator is a valid instrument reference designator. Return True or False
+    """
+    result = False
+    try:
+        # Check rd is not empty or None
+        if not rd or rd is None:
+            return False
+
+        # Check rd length equals rd length after trim (catch malformed reference designators)
+        len_rd = len(rd)
+        if len(rd) != len(rd.strip()):
+            message = 'Instrument reference designator is malformed \'%s\'. ' % rd
+            current_app.logger.info(message)
+            return False
+
+        # Check rd length is greater than 14 and less than or equal to 27
+        if len_rd < 14 or len_rd > 27:
+            return False
+
+        # Verify '-' present and count is three (sample of valid: CP02PMUI-WFP01-04-FLORTK000)
+        if rd.count('-') != 3:
+            return False
+        result = True
+        return result
+
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return result
+
+
+# Is reference designator an array.
+def is_array(rd):
+    """ Verify reference designator is a valid array reference designator. Return True or False
+    """
+    result = False
+    try:
+        # Check rd is not empty or None
+        if not rd or rd is None:
+            return False
+
+        # Check rd length equals rd length after trim (catch malformed reference designators)
+        len_rd = len(rd)
+        if len(rd) != len(rd.strip()):
+            message = 'Array reference designator is malformed \'%s\'. ' % rd
+            current_app.logger.info(message)
+            return False
+
+        # Check rd length is equal to 2.
+        if len_rd != 2:
+            return False
+
+        # Verify '-' not present and count is zero. (sample of valid: CP)
+        if rd.count('-') != 0:
+            return False
+        result = True
+        return result
+
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return result
+
+
 # Get asset class by reference designator.
 def get_asset_class_by_rd(rd):
     """ Get asset class for reference designator.
@@ -140,6 +174,8 @@ def get_asset_class_by_rd(rd):
             asset_class = '.XNode'
         elif is_mooring(rd):
             asset_class = '.XMooring'
+        elif is_array(rd):
+            asset_class = '.XArray'
         else:
             asset_class = '.XAsset'
         return asset_class
@@ -160,7 +196,7 @@ def get_asset_class_by_asset_type(asset_type):
         elif asset_type == 'Sensor':
             asset_class = '.XInstrument'
         elif asset_type == 'Array':
-            asset_class = '.XAsset'
+            asset_class = '.XArray'
         else:
             if asset_type not in get_asset_types():
                 message = 'Unknown asset_type provided (%s), using .XAsset for class.' % asset_type
@@ -185,6 +221,8 @@ def get_asset_type_by_rd(rd):
             result = 'Mooring'
         elif is_platform(rd):
             result = 'Node'
+        elif is_array(rd):
+            result = 'Array'
         return result
 
     except Exception as err:
@@ -198,25 +236,25 @@ def get_asset_type_by_rd(rd):
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def get_asset_types():
     # Get all defined asset types.
-    asset_types = ['Mooring', 'Node', 'Sensor', 'notClassified', 'Array']
+    asset_types = ['Array', 'Mooring', 'Node', 'Sensor', 'notClassified']
     return asset_types
 
 
 def get_supported_asset_types():
     # Get all supported asset types.
-    asset_types = ['Mooring', 'Node', 'Sensor']
+    asset_types = ['Array', 'Mooring', 'Node', 'Sensor', 'notClassified']
     return asset_types
 
 
 def get_asset_classes():
     # Get all asset classes.
-    asset_classes = ['.XInstrument', '.XNode', '.XMooring', '.XAsset']
+    asset_classes = ['.XArray', '.XMooring', '.XNode', '.XInstrument', '.XAsset']
     return asset_classes
 
 
 def get_supported_asset_classes():
     # Get all supported asset classes.
-    asset_classes = ['.XInstrument', '.XNode', '.XMooring']
+    asset_classes = ['.XArray', '.XInstrument', '.XNode', '.XMooring', '.XAsset']
     return asset_classes
 
 
@@ -299,14 +337,44 @@ def get_event_types_by_rd(rd):
     return event_types
 
 
-def get_event_phase_values():
+def get_event_types_by_asset_type(asset_type):
+    # Get all supported event types values.
+    event_types = ['ACQUISITION', 'ASSET_STATUS', 'ATVENDOR', 'CRUISE_INFO',
+                   'DEPLOYMENT', 'INTEGRATION', 'LOCATION', 'RETIREMENT', 'STORAGE', 'UNSPECIFIED']
+
+    # For sensor assets, add event type 'CALIBRATION_DATA'.
+    if asset_type == 'Sensor':
+        event_types.append('CALIBRATION_DATA')
+    event_types.sort()
+    return event_types
+
+
+def event_edit_phase_values():
     # Get all editPhase values.
     values = ['EDIT', 'OPERATIONAL', 'STAGED']
     return values
 
+
+def asset_edit_phase_values():
+    # Get all editPhase values.
+    values = ['EDIT', 'OPERATIONAL', 'STAGED']
+    return values
+
+
+def deployment_edit_phase_values():
+    # Get all editPhase values.
+    values = ['EDIT', 'OPERATIONAL', 'STAGED']
+    return values
+
+
 def get_supported_array_codes():
     values = ['CP', 'CE', 'RS',  'GI', 'GS', 'GP', 'GA', 'SS']
     return values
+
+def dump_dict(dict, debug=False):
+        if debug:
+            print '\n --------------\n %s' % json.dumps(dict, indent=4, sort_keys=True)
+
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Common datetime functions

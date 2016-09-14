@@ -7,7 +7,7 @@ from flask import current_app
 from ooiservices.app import cache
 from ooiservices.app.uframe.common_tools import is_instrument
 from ooiservices.app.uframe.asset_tools import uframe_get_asset_by_id
-from ooiservices.app.uframe.common_tools import (get_event_types, get_event_types_by_rd)
+from ooiservices.app.uframe.common_tools import (get_event_types, get_event_types_by_rd, get_event_types_by_asset_type)
 from ooiservices.app.uframe.events_validate_fields import get_rd_from_integrationInto
 from ooiservices.app.uframe.config import (get_uframe_deployments_info, get_events_url_base,
                                            get_uframe_assets_info, get_assets_url_base, headers)
@@ -20,12 +20,84 @@ def _get_events_by_uid(uid, _type):
     """ Get events by asset uid and type.
     """
     try:
-        id = _get_id_by_uid(uid)
+        id, asset_type = _get_id_by_uid(uid)
         if not id:
             message = 'Unknown or invalid uid %s; unable to get asset id to process events.' % uid
             raise Exception(message)
-        events = get_and_process_events(id, uid, _type)
+        events = get_and_process_events(id, uid, _type, asset_type)
         return events
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        raise Exception(message)
+
+# Get all events by asset uid.
+def _get_all_events_by_uid(uid, _type):
+    """ Get all events by asset uid, shown common field across all events.
+    Display line items containing one or more of the following:
+        eventId, eventType, eventName, StartTime, EndTime, lastModifiedTimestamp, dataSource | Tense,  notes
+
+    Sample output:
+    [
+        {
+          "dataSource": "UI=edna",
+          "eventId": 33192,
+          "eventName": "Acquisition test event.",
+          "eventStartTime": null,
+          "eventStopTime": null,
+          "eventType": "ACQUISITION",
+          "lastModifiedTimestamp": 1473798995742
+        },
+        {
+          "dataSource": "PCO2W_Cal_Info.xlsx",
+          "eventId": 18799,
+          "eventName": "CC_calc",
+          "eventStartTime": 1451606400000,
+          "eventStopTime": null,
+          "eventType": "CALIBRATION_DATA",
+          "lastModifiedTimestamp": 1473180395102
+        },
+        . . .
+    """
+    try:
+        id, asset_type = _get_id_by_uid(uid)
+        if not id:
+            message = 'Unknown or invalid uid %s; unable to get asset id to process events.' % uid
+            raise Exception(message)
+        events = get_uframe_events_by_uid(uid)
+        results = condense_events(events)
+
+        # Calibration_data events, if appropriate, get .
+        if asset_type == 'Sensor':
+            calibrations = get_calibration_events(id, uid)
+            if calibrations and calibrations is not None:
+                calib_results = condense_events(calibrations)
+                if calib_results:
+                    results = results + calib_results
+
+        # todo - Add deployment events here; get rd and then deployment events.
+        # Deployment events.
+        # events = get_and_process_events(id, uid, _type, asset_type)
+        return results
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def condense_events(events):
+    """ For a set of events, condense to fields common to all events.
+    """
+    results = []
+    columns = ['eventId', 'eventType', 'eventName', 'eventStartTime', 'eventStopTime',
+               'lastModifiedTimestamp', 'dataSource', 'tense', 'notes']
+    try:
+        for event in events:
+            temp = {}
+            for col in columns:
+             temp[col] = event[col]
+            results.append(temp)
+        return results
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
@@ -37,26 +109,27 @@ def _get_events_by_id(id, _type):
     """ Get events by asset id and type.
     """
     try:
-        uid = _get_uid_by_id(id)
+        uid, asset_type = _get_uid_by_id(id)
         if not uid:
             message = 'Unknown or invalid asset id %d; unable to get events.' % id
             raise Exception(message)
-        events = get_and_process_events(id, uid, _type)
+        events = get_and_process_events(id, uid, _type, asset_type)
         return events
     except Exception as err:
         message = str(err)
-        current_app.logger.info(message)
         raise Exception(message)
 
 
 # Get and process events for an asset.
-def get_and_process_events(id, uid, _type):
+def get_and_process_events(id, uid, _type, asset_type):
     """ Get and process events for an asset.
     """
+    debug = False
     events = {}
     types = ''
     types_list = []
     try:
+        if debug: print '\n debug -- asset_type: ', asset_type
         # Determine if type parameter provided, if so process
         if _type:
             types, types_list = get_event_query_types(_type)
@@ -65,16 +138,27 @@ def get_and_process_events(id, uid, _type):
         # Get reference designator
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         rd = get_rd_by_asset_id(id)
+        if debug: print '\n debug -- rd: ', rd
+        """
         if rd is None:
             message = 'Unable to determine the reference designator for asset id %d.' % id
             raise Exception(message)
+        """
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Prepare events dictionary
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        event_types = get_event_types_by_rd(rd)
-        for type in event_types:
-            events[type] = []
+        if rd is not None:
+            event_types = get_event_types_by_rd(rd)
+            for type in event_types:
+                events[type] = []
+        else:
+            if debug: print '\n debug -- before get event types by asset_type...'
+            event_types = get_event_types_by_asset_type(asset_type)
+            if debug: print '\n debug -- [1] event_types: ', event_types
+            for type in event_types:
+                events[type] = []
+            if debug: print '\n debug -- [2] event_types: ', event_types
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Get events, filtering by types provided. Process results
@@ -85,6 +169,9 @@ def get_and_process_events(id, uid, _type):
             message = 'Unknown asset uid %s, unable to get events.' % uid
             raise Exception(message)
         elif results:
+            #refactor into function
+            #events = process_event_by_types(result)
+            #========================================================
             # Process result (200), populate events dictionary
             for event in results:
                 if '@class' in event:
@@ -97,8 +184,8 @@ def get_and_process_events(id, uid, _type):
                                 if 'integrationInto' in event:
                                     if event['integrationInto'] is not None:
                                         if len(event['integrationInto']) > 0:
-                                            rd = get_rd_from_integrationInto(event['integrationInto'])
-                                            event['integrationInto'] = rd
+                                            _rd = get_rd_from_integrationInto(event['integrationInto'])
+                                            event['integrationInto'] = _rd
                                         else:
                                             event['integrationInto'] = None
 
@@ -106,12 +193,12 @@ def get_and_process_events(id, uid, _type):
                         else:
                             message = 'Unknown or invalid event type provided: %s' % event['eventType']
                             current_app.logger.info(message)
-
-
+            #=========================================================
+        if debug: print '\n debug -- Check for deployment and calibration events...'
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # For asset id, get deployments and calibration (calibration only if is_instrument(rd))
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        events['DEPLOYMENT'] = []           # Note: if no deployments, there is a serious issue.
+        events['DEPLOYMENT'] = []
         if rd:
             if is_instrument(rd):
                 events['CALIBRATION_DATA'] = []
@@ -135,12 +222,25 @@ def get_and_process_events(id, uid, _type):
                     calibration_events = get_calibration_events(id, uid)
                     if calibration_events:
                         events['CALIBRATION_DATA'] = calibration_events
+        else:
+            # Assets which do not have deployments but are of asset type 'Sensor' should be
+            # permitted to create and edit calibration values. The calibration values, if any, are
+            # gathered here for UI.
+            if asset_type == 'Sensor':
+                events['CALIBRATION_DATA'] = []
+                add_calibrations = True
+                if types_list and 'CALIBRATION_DATA' not in types_list:
+                    add_calibrations = False
+                if add_calibrations:
+                    calibration_events = get_calibration_events(id, uid)
+                    if calibration_events:
+                        events['CALIBRATION_DATA'] = calibration_events
+
 
         return events
 
     except Exception as err:
         message = str(err)
-        current_app.logger.info(message)
         raise Exception(message)
 
 
@@ -318,9 +418,9 @@ def convert_maps_to_deployment_events(maps, uid):
     events = []
     if not maps:
         return events
+    #'eventName': '',
     events_template = {'deployment_number': 0,
                        'depth': 0.0,
-                       'eventName': '',
                        'eventStartTime': None,
                        'eventStopTime': None,
                        'eventType': 'DEPLOYMENT',
@@ -342,7 +442,6 @@ def convert_maps_to_deployment_events(maps, uid):
             event['location'] = [v['location']['longitude'], v['location']['latitude']]
             event['depth'] = v['location']['depth']
             event['tense'] = v['tense']
-            event['eventName'] = 'Deployment ' + str(k)
             event['notes'] = ''                             # todo - add to rd_assets
             events.append(event)
         return events
@@ -455,10 +554,13 @@ def _get_uid_by_id(id):
     try:
         asset = uframe_get_asset_by_id(id)
         uid = None
+        asset_type = None
         if asset:
             if 'uid' in asset:
                 uid = asset['uid']
-        return uid
+            if 'assetType' in asset:
+                asset_type = asset['assetType']
+        return uid, asset_type
 
     except Exception as err:
         message = str(err)
@@ -602,7 +704,7 @@ def get_uframe_event(id):
         raise Exception(message)
 
 
-# Get asset id using asset uid.
+# Get asset id and asset type using asset uid.
 def _get_id_by_uid(uid):
     """ Get asset id using asset uid.
     """
@@ -622,10 +724,13 @@ def _get_id_by_uid(uid):
             raise Exception(message)
         asset = payload.json()
         id = None
+        asset_type = None
         if asset:
             if 'assetId' in asset:
                 id = asset['assetId']
-        return id
+            if 'assetType' in asset:
+                asset_type = asset['assetType']
+        return id, asset_type
     except ConnectionError:
         message = 'ConnectionError getting asset (uid %s) from uframe.' % uid
         current_app.logger.info(message)

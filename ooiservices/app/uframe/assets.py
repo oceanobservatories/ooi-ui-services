@@ -1,22 +1,18 @@
 
 """
-Asset routes and supporting functions.
+Asset routes.
 
 Routes:
-[GET]  /assets                 # Get all assets from uframe and reformat for UI; get single asset reformatted for UI
-[GET]  /assets/types           # [dup] Get asset types used by those assets loaded into asset management display
-[GET]  /assets/types/used      # [dup] Get asset types used by those assets loaded into asset management display
-[GET]  /assets/types/uframe    # List of all asset types supported by uframe.
-[GET]  /assets/<int:id>        # Get asset by asset id.
-[Get]  /assets/uid/<string:uid># Get asset by asset uid.
-[GET]  /assets/<int:id>/events # Get all events for an asset; option 'type' parameter provided for one or more types.
-[PUT]  /assets/<int:id>        # Update an existing asset
-[DELETE] /asset                # Deprecated.
 
-# todo [POST]  /assets           # Create an asset
-# todo [GET]   /bad_assets       # Display assets (1) are type .XAsset or (2) which do not have a reference designator.
-# todo [GET]   /all_assets       # Display results from /assets and /bad_assets
+[GET]  /assets/types             # Get all asset types used by those assets loaded into asset management display
+[GET]  /assets/types/uframe      # Get all asset types supported by uframe.
+[GET]  /assets/<int:id>          # Get asset by asset id.
+[GET]  /assets/uid/<string:uid>  # Get asset by asset uid.
+[GET]  /assets/<int:id>/events   # Get all events for an asset; optional 'type' parameter for one or more types.
+[GET]  /assets                   # Get all assets from uframe and format for UI
 
+[POST]  /assets                  # Create an asset
+[PUT]   /assets/<int:id>         # Update an existing asset
 """
 __author__ = 'Edna Donoughe'
 
@@ -24,21 +20,17 @@ __author__ = 'Edna Donoughe'
 from flask import request, jsonify, current_app
 from ooiservices.app.main.errors import (bad_request, conflict, internal_server_error)
 from ooiservices.app.uframe import uframe as api
-from ooiservices.app.uframe.asset_tools import (_get_asset, verify_cache)
-from ooiservices.app.uframe.event_tools import (_get_events_by_id, _get_id_by_uid)
+from ooiservices.app.uframe.asset_tools import (_get_asset, verify_cache, _get_id_by_uid)
+from ooiservices.app.uframe.event_tools import _get_events_by_id
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.decorators import scope_required
-from ooiservices.app.uframe.common_tools import (get_supported_asset_types, get_asset_types)
-from ooiservices.app.uframe.assets_create_update import (_create_asset, _update_asset,
-                                                         _create_remote_resource, _update_remote_resource)
-
+from ooiservices.app.uframe.common_tools import (get_supported_asset_types, get_asset_types, asset_edit_phase_values)
+from ooiservices.app.uframe.assets_create_update import (_create_asset, _update_asset)
 from operator import itemgetter
 import json
 
-CACHE_TIMEOUT = 172800
 
-
-# Get supported asset types.
+# Get all asset types.
 @api.route('/assets/types', methods=['GET'])
 def get_asset_type():
     """ Get list of all asset types.
@@ -52,6 +44,24 @@ def get_supported_asset_type():
     """ Get list of all supported asset types.
     """
     return jsonify({'asset_types': get_supported_asset_types()})
+
+
+@auth.login_required
+@scope_required(u'asset_manager')
+@api.route('/assets/edit_phase_values', methods=['GET'])
+def get_asset_edit_phase_values():
+    """ Get all valid event types supported in uframe asset web services.
+    """
+    return jsonify({'values': asset_edit_phase_values()})
+
+
+@auth.login_required
+@scope_required(u'asset_manager')
+@api.route('/assets/edit_phase_values', methods=['GET'])
+def get_edit_phase_values():
+    """ Get all valid event types supported in uframe asset web services.
+    """
+    return jsonify({'values': get_asset_edit_phase_values()})
 
 
 # Get asset by asset id.
@@ -93,7 +103,6 @@ def get_asset_by_uid(uid):
             message = 'No asset with asset id %d.' % id
             return conflict(message)
         return jsonify(result)
-
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
@@ -106,7 +115,6 @@ def get_asset_by_uid(uid):
 @api.route('/assets/<int:id>/events', methods=['GET'])
 def get_asset_events(id):
     """ Get events for asset id. Optional type=[[event_type][,event_type, ...]]
-
     Sample requests:
         http://localhost:4000/uframe/assets/1663/events
         http://localhost:4000/uframe/assets/1663/events?type=STORAGE
@@ -121,54 +129,40 @@ def get_asset_events(id):
         _type = request.args.get('type')
         events = _get_events_by_id(id, _type)
         return jsonify({'events': events})
-
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
         return bad_request(message)
 
 
-# todo - Under development.
-# Create asset
+# Create asset.
 @auth.login_required
 @scope_required(u'asset_manager')
 @api.route('/assets', methods=['POST'])
 def create_asset():
-    """ Create a new asset.
+    """ Create asset.
     """
     try:
-        message = 'Create asset is not enabled at this time.'
-        return bad_request(message)
-        """
         if not request.data:
             message = 'No data provided to create an asset.'
             raise Exception(message)
         data = json.loads(request.data)
         asset = _create_asset(data)
-        result = jsonify({'asset': asset})
-        return result
-        """
-
-
+        return jsonify({'asset': asset}), 201
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
         return bad_request(message)
 
 
-# todo - Under development.
 # Update asset.
 @auth.login_required
 @scope_required(u'asset_manager')
 @api.route('/assets/<int:id>', methods=['PUT'])
 def update_asset(id):
-    """ Update asset by id.
+    """ Update asset.
     """
     try:
-        """
-        message = 'Update asset is not enabled at this time.'
-        return bad_request(message)
-        """
         if not request.data:
             message = 'No data provided to update asset %d.' % id
             raise Exception(message)
@@ -179,8 +173,6 @@ def update_asset(id):
             return conflict(message)
         result = jsonify({'asset': asset})
         return result
-
-
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
@@ -273,39 +265,40 @@ def get_assets(use_min=False, normal_data=False):
             unique = set()
             for obj in data:
                 asset = {}
-                if len(obj['ref_des']) <= 14 and 'latitude' in obj and 'longitude' in obj:
+                if 'ref_des' in obj and obj['ref_des']:
+                    if len(obj['ref_des']) <= 14 and 'latitude' in obj and 'longitude' in obj:
 
-                    if obj['ref_des'] not in unique:
-                        unique.add(obj['ref_des'])
-                        asset['assetInfo'] = obj.pop('assetInfo')
-                        asset['assetInfo']['refDes'] = obj.pop('ref_des')
-                        asset['latitude'] = obj.pop('latitude')
-                        asset['longitude'] = obj.pop('longitude')
-                        asset['assetInfo']['depth'] = obj.pop('depth')
-                        mindepth = 0
-                        if 'mindepth' in asset['assetInfo']:
-                            mindepth = asset['assetInfo']['mindepth']
+                        if obj['ref_des'] not in unique:
+                            unique.add(obj['ref_des'])
+                            asset['assetInfo'] = obj.pop('assetInfo')
+                            asset['assetInfo']['refDes'] = obj.pop('ref_des')
+                            asset['latitude'] = obj.pop('latitude')
+                            asset['longitude'] = obj.pop('longitude')
+                            asset['assetInfo']['depth'] = obj.pop('depth')
+                            mindepth = 0
+                            if 'mindepth' in asset['assetInfo']:
+                                mindepth = asset['assetInfo']['mindepth']
 
-                        maxdepth = 0
-                        if 'maxdepth' in asset['assetInfo']:
-                            maxdepth = asset['assetInfo']['maxdepth']
+                            maxdepth = 0
+                            if 'maxdepth' in asset['assetInfo']:
+                                maxdepth = asset['assetInfo']['maxdepth']
 
-                        name = asset['assetInfo']['name']
-                        json = {
-                                'array_id': asset['assetInfo']['refDes'][:2],
-                                'display_name': name,
-                                'geo_location': {
-                                    'coordinates': [
-                                        round(asset['longitude'], 4),
-                                        round(asset['latitude'], 4)
-                                        ],
-                                    'depth': asset['assetInfo']['depth']
-                                    },
-                                'mindepth': mindepth,
-                                'maxdepth': maxdepth,
-                                'reference_designator': asset['assetInfo']['refDes']
-                                }
-                        return_list.append(json)
+                            name = asset['assetInfo']['name']
+                            json = {
+                                    'array_id': asset['assetInfo']['refDes'][:2],
+                                    'display_name': name,
+                                    'geo_location': {
+                                        'coordinates': [
+                                            round(asset['longitude'], 4),
+                                            round(asset['latitude'], 4)
+                                            ],
+                                        'depth': asset['assetInfo']['depth']
+                                        },
+                                    'mindepth': mindepth,
+                                    'maxdepth': maxdepth,
+                                    'reference_designator': asset['assetInfo']['refDes']
+                                    }
+                            return_list.append(json)
 
             data = return_list
 
@@ -332,69 +325,6 @@ def get_assets(use_min=False, normal_data=False):
             else:
                 result = jsonify({'assets': data})
             return result
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return bad_request(message)
-
-
-# todo - Under development.
-# Create a remote resource for an asset.
-@auth.login_required
-@scope_required(u'asset_manager')
-@api.route('/remote_resource', methods=['POST'])
-def create_remote_resource():
-    """ Create a new remote resource for an asset.
-    """
-    try:
-        """
-        message = 'Create remote resource is not enabled at this time.'
-        return bad_request(message)
-        """
-        if not request.data:
-            message = 'No data provided to create a remote resource.'
-            raise Exception(message)
-        data = json.loads(request.data)
-        remote_resource = _create_remote_resource(data)
-        if not remote_resource:
-            message = 'Failed to create remote resource for asset.'
-            return conflict(message)
-        result = jsonify({'remote_resource': remote_resource})
-        """
-        asset = _create_remote_resource(data)
-        if not asset:
-            message = 'Failed to create remote resource for asset.'
-            return conflict(message)
-        result = jsonify({'asset': asset})
-        """
-        return result
-
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return bad_request(message)
-
-
-# todo - Under development.
-# Update a remote resource for an asset.
-#@auth.login_required
-#@scope_required(u'asset_manager')
-@api.route('/remote_resource', methods=['PUT'])
-def update_remote_resource():
-    """ Update a remote resource for an asset.
-    """
-    try:
-        if not request.data:
-            message = 'No data provided to update a remote resource.'
-            raise Exception(message)
-        data = json.loads(request.data)
-        asset = _update_remote_resource(data)
-        if not asset:
-            message = 'Unable to get update remote resource for asset.'
-            return conflict(message)
-        result = jsonify({'asset': asset})
-        return result
-
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)

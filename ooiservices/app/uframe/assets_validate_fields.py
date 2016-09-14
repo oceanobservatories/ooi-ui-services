@@ -4,7 +4,7 @@ Assets: Validate required fields based on asset type.
 __author__ = 'Edna Donoughe'
 
 
-from ooiservices.app.uframe.common_tools import (get_asset_types, get_event_phase_values)
+from ooiservices.app.uframe.common_tools import (get_asset_types, asset_edit_phase_values)
 from ooiservices.app.uframe.common_convert import convert_ui_data
 
 
@@ -427,7 +427,7 @@ def convert_required_fields(asset_type, data, required_fields, field_types, acti
         # General convert
         converted_data = convert_ui_data(data, required_fields, field_types)
 
-        valid_edit_phases = get_event_phase_values()
+        valid_edit_phases = asset_edit_phase_values()
         if 'editPhase' in converted_data:
             edit_phase = converted_data['editPhase']
             if edit_phase not in valid_edit_phases:
