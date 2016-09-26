@@ -1,18 +1,17 @@
 
 """
-Events: Supporting functions.
+Asset Management - Events: supporting functions.
 """
+__author__ = 'Edna Donoughe'
 
 from flask import current_app
 from ooiservices.app import cache
 from ooiservices.app.uframe.common_tools import is_instrument
-from ooiservices.app.uframe.asset_tools import uframe_get_asset_by_id
+from ooiservices.app.uframe.uframe_tools import (uframe_get_asset_by_id, get_uframe_events_by_uid, _get_id_by_uid,
+                                                 get_uframe_calibration_events_by_uid)
 from ooiservices.app.uframe.common_tools import (get_event_types, get_event_types_by_rd, get_event_types_by_asset_type)
 from ooiservices.app.uframe.events_validate_fields import get_rd_from_integrationInto
-from ooiservices.app.uframe.config import (get_uframe_deployments_info, get_events_url_base,
-                                           get_uframe_assets_info, get_assets_url_base, headers)
-import requests
-from requests.exceptions import (ConnectionError, Timeout)
+from ooiservices.app.uframe.asset_cache_tools import get_rd_from_rd_assets
 
 
 # Get events by asset uid and type.
@@ -30,6 +29,7 @@ def _get_events_by_uid(uid, _type):
         message = str(err)
         current_app.logger.info(message)
         raise Exception(message)
+
 
 # Get all events by asset uid.
 def _get_all_events_by_uid(uid, _type):
@@ -139,11 +139,6 @@ def get_and_process_events(id, uid, _type, asset_type):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         rd = get_rd_by_asset_id(id)
         if debug: print '\n debug -- rd: ', rd
-        """
-        if rd is None:
-            message = 'Unable to determine the reference designator for asset id %d.' % id
-            raise Exception(message)
-        """
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Prepare events dictionary
@@ -367,12 +362,14 @@ def get_deployment_maps(rd, id, uid):
     events = []
     maps = {}
     try:
+        # Get asset dict.
         assets_dict = cache.get('assets_dict')
         if not assets_dict:
             return events
         if id not in assets_dict:
             return events
 
+        # Get asset from asset dict.
         asset = assets_dict[id]
         deployments = []
         if asset:
@@ -386,6 +383,7 @@ def get_deployment_maps(rd, id, uid):
             return events
 
         # Determine if deployment events are available for this reference designator.
+        '''
         rd_assets = cache.get('rd_assets')
         if not rd_assets:
             return events
@@ -394,6 +392,10 @@ def get_deployment_maps(rd, id, uid):
 
         # Get all deployment maps for reference designator
         deployment_map = rd_assets[rd]
+        '''
+        deployment_map = get_rd_from_rd_assets(rd)
+        if deployment_map is None:
+            return events
 
         # Compile maps dictionary using only deployments associated with the asset.
         for number in deployments:
@@ -464,6 +466,7 @@ def get_calibration_events(id, uid):
         raise Exception(message)
 
 
+# todo - review for calibration api changes (2016-09-14)
 # Process calibration results from uframe.
 def process_calibration_results(results, uid):
     """
@@ -567,27 +570,11 @@ def _get_uid_by_id(id):
         raise Exception(message)
 
 
-# Prepare event for display.
-def post_process_event(event):
-    """ Process event from uframe before returning for display (in UI).
-    """
-    try:
-        if not event:
-            message = 'The event provided for post processing is empty.'
-            raise Exception(message)
-        if '@class' in event:
-            del event['@class']
-        return event
-
-    except Exception as err:
-        message = 'Error post-processing event for display. %s' % str(err)
-        raise Exception(message)
-
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Functions requiring uframe.
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-def get_uframe_events_by_uid(uid, types):
+'''
+def get_uframe_events_by_uid(uid, types=None):
     """ For a specific asset uid and optional list of event types, get list of events from uframe.
     On status_code(s):
         200     Success, return events
@@ -745,6 +732,7 @@ def _get_id_by_uid(uid):
         raise Exception(message)
 
 
+# todo - review/modify for new calibration api changes. (2016-09-14)
 def get_uframe_calibration_events_by_uid(id, uid):
     """ Get list of calibration events from uframe for a specific sensor asset uid.
 
@@ -854,5 +842,4 @@ def get_uframe_calibration_events_by_uid(id, uid):
         message = str(err)
         current_app.logger.info(message)
         raise Exception(message)
-
-
+'''

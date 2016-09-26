@@ -1,7 +1,6 @@
 #!/usr/bin/env python
-
 """
-Support functions used for configurations and connections.
+Asset Management - Configuration and connection support functions.
     TOC
     Vocabulary
     C2
@@ -13,12 +12,12 @@ Support functions used for configurations and connections.
     Deployments
     Events
     common
-
 """
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
 from requests.exceptions import (ConnectionError, Timeout)
+
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # TOC

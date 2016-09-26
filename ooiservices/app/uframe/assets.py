@@ -1,6 +1,6 @@
 
 """
-Asset routes.
+Asset Management - Asset routes.
 
 Routes:
 
@@ -16,16 +16,15 @@ Routes:
 """
 __author__ = 'Edna Donoughe'
 
-
 from flask import request, jsonify, current_app
 from ooiservices.app.main.errors import (bad_request, conflict, internal_server_error)
 from ooiservices.app.uframe import uframe as api
-from ooiservices.app.uframe.asset_tools import (_get_asset, verify_cache, _get_id_by_uid)
+from ooiservices.app.uframe.asset_tools import (verify_cache, _get_asset, _get_ui_asset_by_uid)
 from ooiservices.app.uframe.event_tools import _get_events_by_id
-from ooiservices.app.main.authentication import auth
-from ooiservices.app.decorators import scope_required
 from ooiservices.app.uframe.common_tools import (get_supported_asset_types, get_asset_types, asset_edit_phase_values)
 from ooiservices.app.uframe.assets_create_update import (_create_asset, _update_asset)
+from ooiservices.app.main.authentication import auth
+from ooiservices.app.decorators import scope_required
 from operator import itemgetter
 import json
 
@@ -55,15 +54,6 @@ def get_asset_edit_phase_values():
     return jsonify({'values': asset_edit_phase_values()})
 
 
-@auth.login_required
-@scope_required(u'asset_manager')
-@api.route('/assets/edit_phase_values', methods=['GET'])
-def get_edit_phase_values():
-    """ Get all valid event types supported in uframe asset web services.
-    """
-    return jsonify({'values': get_asset_edit_phase_values()})
-
-
 # Get asset by asset id.
 @auth.login_required
 @scope_required(u'asset_manager')
@@ -87,18 +77,11 @@ def get_asset(id):
 @auth.login_required
 @scope_required(u'asset_manager')
 @api.route('/assets/uid/<string:uid>', methods=['GET'])
-def get_asset_by_uid(uid):
+def get_ui_asset_by_uid(uid):
     """ Get asset by uid.
     """
     try:
-        # Get asset from uframe by uid, return asset id.
-        id = _get_id_by_uid(uid)
-        if id is None:
-            message = 'No asset with asset uid %s.' % uid
-            return conflict(message)
-
-        # Get asset by asset id.
-        result = _get_asset(id)
+        result = _get_ui_asset_by_uid(uid)
         if not result:
             message = 'No asset with asset id %d.' % id
             return conflict(message)

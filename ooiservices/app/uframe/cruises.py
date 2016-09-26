@@ -1,6 +1,6 @@
 
 """
-Cruise routes and supporting functions.
+Asset Management - Cruise routes.
 
 Routes:
 [GET]   /cruises                                 # Get all cruises in inventory.
@@ -16,6 +16,7 @@ from ooiservices.app.main.errors import (bad_request)
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.uframe.cruise_tools import (_get_cruises, _get_cruise,
                                                  _get_cruise_deployments, _get_cruise_deployment)
+
 
 # Get cruises.
 @api.route('/cruises', methods=['GET'])
@@ -77,7 +78,7 @@ def get_cruise_deployments(event_id):
 # Get deployment by event id.
 @api.route('/cruises/<int:event_id>/deployment', methods=['GET'])
 def get_cruise_deployment(event_id):
-    """ Get deployment by event id; result used in deployment form view for UI.
+    """ Get deployment by event id; result to be used in deployment form view for UI.
     """
     try:
         if event_id < 1:

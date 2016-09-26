@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Specific testing for events routes
+Asset Management - Specific testing for events routes
 
 Routes:
 [GET] /events/<int:id>                          # Get event. This should not be used by UI; if needed, then discuss!
@@ -49,7 +49,7 @@ import os
 
 from ooiservices.app.models import (User, UserScope, Organization)
 from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types)
-from ooiservices.app.uframe.event_tools import (get_rd_by_asset_id, get_uframe_event)
+from ooiservices.app.uframe.event_tools import (get_rd_by_asset_id)
 from ooiservices.app.uframe.deployment_tools import (is_instrument, is_platform, is_mooring)
 from ooiservices.app.uframe.events_validate_fields import get_rd_from_integrationInto
 
@@ -105,7 +105,8 @@ class EventsTestCase(unittest.TestCase):
     #   test_create_event_types_random
     #   test_create_event_types_numerous_regular
     #   test_create_event_types_numerous_requests
-    # * [Proposed] test_negative_create_events
+    # Proposed:
+    #   test_negative_create_events
     #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     def test_get_events(self):
         """
@@ -141,6 +142,7 @@ class EventsTestCase(unittest.TestCase):
         # Get asset uid
         self.assertTrue('uid' in asset)
         asset_uid = asset['uid']
+        good_asset_uid = asset['uid']
         self.assertTrue(asset_uid is not None)
         self.assertTrue(asset_uid)
 
@@ -273,7 +275,7 @@ class EventsTestCase(unittest.TestCase):
         self.assertEquals(response.status_code, 400)
         #result = json.loads(response.data)
 
-        # Get supported event types (/events/edit_phase_values)
+        # Get supported event types (/events/edit_phase_values).
         url = url_for('uframe.get_event_edit_phase_values')
         if verbose: print '\n ----- url: ', url
         response = self.client.get(url, headers=headers)
@@ -281,6 +283,17 @@ class EventsTestCase(unittest.TestCase):
         result = json.loads(response.data)
         self.assertTrue(result is not None)
         self.assertTrue(isinstance(result, dict))
+
+        # Get all events for an asset uid.
+        url = url_for('uframe.get_all_events_by_uid', uid=good_asset_uid)
+        if verbose: print '\n ----- url: ', url
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        result = json.loads(response.data)
+        self.assertTrue(result is not None)
+        self.assertTrue(isinstance(result, dict))
+        self.assertTrue('events' in result)
+        self.assertTrue(len(result['events']) > 0)
 
         if verbose: print '\n'
 
@@ -509,6 +522,7 @@ class EventsTestCase(unittest.TestCase):
                                                                                 mooring_id, mooring_uid, mooring_rd)
             # Create events.
             uid, input = self.create_event_data(event_type, mooring_uid, mooring_rd)
+            #print '\n event_type: ', event_type
             event_id, last_modified = self._create_event_type(event_type, uid, input)
             if verbose:
                 print '\t\tCreated eventId: %d and lastModifiedTimestamp: %d' % (event_id, last_modified)
@@ -523,6 +537,7 @@ class EventsTestCase(unittest.TestCase):
                                                                                 platform_id, platform_uid, platform_rd)
             # Create events.
             uid, input = self.create_event_data(event_type, platform_uid, platform_rd)
+            #print '\n event_type: ', event_type
             event_id, last_modified = self._create_event_type(event_type, uid, input)
             if verbose:
                 print '\t\tCreated eventId: %d and lastModifiedTimestamp: %d' % (event_id, last_modified)
@@ -536,9 +551,302 @@ class EventsTestCase(unittest.TestCase):
                                                                         instrument_id, instrument_uid, instrument_rd)
             # Create events.
             uid, input = self.create_event_data(event_type, instrument_uid, instrument_rd)
+            #print '\n event_type: ', event_type
             event_id, last_modified = self._create_event_type(event_type, uid, input)
             if verbose:
                 print '\t\tCreated eventId: %d and lastModifiedTimestamp: %d' % (event_id, last_modified)
+
+        if verbose: print '\n'
+
+    def test_create_duplicate_event_types_random(self):
+        """
+        Create events of different types for three random assets with an asset type of mooring, platform and sensor.
+        Create a duplicate (and fail) for each event type for each asset type.
+        Verbose output sample:
+
+        Processing event_types(8):
+        ['ACQUISITION', 'ASSET_STATUS', 'ATVENDOR', 'INTEGRATION', 'LOCATION', 'RETIREMENT', 'STORAGE', 'UNSPECIFIED']
+
+         Have some assets (5628)
+
+         Note: Number of loops to get three items of interest: 1296
+
+         ----- Mooring:
+             mooring_id: 3011
+             mooring_uid: N00242
+             mooring_rd: CP03ISSM
+
+         ----- Platform:
+             platform_id: 474
+             platform_uid: A00078
+             platform_rd: CE05MOAS-GL311
+
+         ----- Instrument:
+             instrument_id: 3551
+             instrument_uid: N00306
+             instrument_rd: CE05MOAS-GL312-02-FLORTM000
+
+         -- Mooring Assets.
+
+            Creating ACQUISITION event for mooring - asset id/uid/rd: 3011/N00242/CP03ISSM
+                Created eventId: 36211 and lastModifiedTimestamp: 1474229235005
+                Creating duplicate event of type ACQUISITION
+
+            Creating ASSET_STATUS event for mooring - asset id/uid/rd: 3011/N00242/CP03ISSM
+                Created eventId: 36212 and lastModifiedTimestamp: 1474229235246
+                Creating duplicate event of type ASSET_STATUS
+
+            Creating ATVENDOR event for mooring - asset id/uid/rd: 3011/N00242/CP03ISSM
+                Created eventId: 36213 and lastModifiedTimestamp: 1474229235505
+                Creating duplicate event of type ATVENDOR
+
+            Creating INTEGRATION event for mooring - asset id/uid/rd: 3011/N00242/CP03ISSM
+                Created eventId: 36214 and lastModifiedTimestamp: 1474229235750
+                Creating duplicate event of type INTEGRATION
+
+            Creating LOCATION event for mooring - asset id/uid/rd: 3011/N00242/CP03ISSM
+                Created eventId: 36215 and lastModifiedTimestamp: 1474229235994
+                Creating duplicate event of type LOCATION
+
+            Creating RETIREMENT event for mooring - asset id/uid/rd: 3011/N00242/CP03ISSM
+                Created eventId: 36216 and lastModifiedTimestamp: 1474229236238
+                Creating duplicate event of type RETIREMENT
+
+            Creating STORAGE event for mooring - asset id/uid/rd: 3011/N00242/CP03ISSM
+                Created eventId: 36217 and lastModifiedTimestamp: 1474229236482
+                Creating duplicate event of type STORAGE
+
+            Creating UNSPECIFIED event for mooring - asset id/uid/rd: 3011/N00242/CP03ISSM
+                Created eventId: 36218 and lastModifiedTimestamp: 1474229236715
+                Creating duplicate event of type UNSPECIFIED
+
+         -- Node Assets.
+
+            Creating ACQUISITION event for platform - asset id/uid/rd: 474/A00078/CE05MOAS-GL311
+                Created eventId: 36219 and lastModifiedTimestamp: 1474229236972
+                Creating duplicate event of type ACQUISITION
+
+            Creating ASSET_STATUS event for platform - asset id/uid/rd: 474/A00078/CE05MOAS-GL311
+                Created eventId: 36220 and lastModifiedTimestamp: 1474229237247
+                Creating duplicate event of type ASSET_STATUS
+
+            Creating ATVENDOR event for platform - asset id/uid/rd: 474/A00078/CE05MOAS-GL311
+                Created eventId: 36221 and lastModifiedTimestamp: 1474229237511
+                Creating duplicate event of type ATVENDOR
+
+            Creating INTEGRATION event for platform - asset id/uid/rd: 474/A00078/CE05MOAS-GL311
+                Created eventId: 36222 and lastModifiedTimestamp: 1474229237791
+                Creating duplicate event of type INTEGRATION
+
+            Creating LOCATION event for platform - asset id/uid/rd: 474/A00078/CE05MOAS-GL311
+                Created eventId: 36223 and lastModifiedTimestamp: 1474229239097
+                Creating duplicate event of type LOCATION
+
+            Creating RETIREMENT event for platform - asset id/uid/rd: 474/A00078/CE05MOAS-GL311
+                Created eventId: 36224 and lastModifiedTimestamp: 1474229239419
+                Creating duplicate event of type RETIREMENT
+
+            Creating STORAGE event for platform - asset id/uid/rd: 474/A00078/CE05MOAS-GL311
+                Created eventId: 36225 and lastModifiedTimestamp: 1474229239691
+                Creating duplicate event of type STORAGE
+
+            Creating UNSPECIFIED event for platform - asset id/uid/rd: 474/A00078/CE05MOAS-GL311
+                Created eventId: 36226 and lastModifiedTimestamp: 1474229239966
+                Creating duplicate event of type UNSPECIFIED
+
+         -- Sensor Assets.
+
+            Creating ACQUISITION event for instrument - asset id/uid/rd: 3551/N00306/CE05MOAS-GL312-02-FLORTM000
+                Created eventId: 36227 and lastModifiedTimestamp: 1474229240249
+                Creating duplicate event of type ACQUISITION
+
+            Creating ASSET_STATUS event for instrument - asset id/uid/rd: 3551/N00306/CE05MOAS-GL312-02-FLORTM000
+                Created eventId: 36228 and lastModifiedTimestamp: 1474229240549
+                Creating duplicate event of type ASSET_STATUS
+
+            Creating ATVENDOR event for instrument - asset id/uid/rd: 3551/N00306/CE05MOAS-GL312-02-FLORTM000
+                Created eventId: 36229 and lastModifiedTimestamp: 1474229240837
+                Creating duplicate event of type ATVENDOR
+
+            Creating INTEGRATION event for instrument - asset id/uid/rd: 3551/N00306/CE05MOAS-GL312-02-FLORTM000
+                Created eventId: 36230 and lastModifiedTimestamp: 1474229241124
+                Creating duplicate event of type INTEGRATION
+
+            Creating LOCATION event for instrument - asset id/uid/rd: 3551/N00306/CE05MOAS-GL312-02-FLORTM000
+                Created eventId: 36231 and lastModifiedTimestamp: 1474229241415
+                Creating duplicate event of type LOCATION
+
+            Creating RETIREMENT event for instrument - asset id/uid/rd: 3551/N00306/CE05MOAS-GL312-02-FLORTM000
+                Created eventId: 36232 and lastModifiedTimestamp: 1474229241759
+                Creating duplicate event of type RETIREMENT
+
+            Creating STORAGE event for instrument - asset id/uid/rd: 3551/N00306/CE05MOAS-GL312-02-FLORTM000
+                Created eventId: 36233 and lastModifiedTimestamp: 1474229242044
+                Creating duplicate event of type STORAGE
+
+            Creating UNSPECIFIED event for instrument - asset id/uid/rd: 3551/N00306/CE05MOAS-GL312-02-FLORTM000
+                Created eventId: 36234 and lastModifiedTimestamp: 1474229242340
+                Creating duplicate event of type UNSPECIFIED
+
+        """
+        debug = self.debug
+        verbose = self.verbose
+        event_types = get_supported_event_types()
+
+        # Remove event_type value(s) which are not used in this test case.
+        if 'CALIBRATION_DATA' in event_types:
+            event_types.remove('CALIBRATION_DATA')
+        if 'CRUISE_INFO' in event_types:
+            event_types.remove('CRUISE_INFO')
+        if 'DEPLOYMENT' in event_types:
+            event_types.remove('DEPLOYMENT')
+
+        if verbose: print '\n\nProcessing event_types(%d): \n%s' % (len(event_types), event_types)
+
+        #===============================================================================================
+        # Get three assets, one for mooring, node and sensor; generate variety of event types for each.
+        #===============================================================================================
+        # Get some assets...
+        assets = self.get_some_assets()
+        self.assertTrue(assets is not None)
+        self.assertTrue(assets)
+        self.assertTrue(isinstance(assets, list))
+
+        number_of_assets = len(assets)
+        if verbose: print '\n Have some assets (%d)' % number_of_assets
+
+        have_mooring_id = False
+        have_platform_id = False
+        have_instrument_id = False
+
+        mooring_id = None
+        mooring_uid = None
+        mooring_rd = None
+
+        platform_id = None
+        platform_uid = None
+        platform_rd = None
+
+        instrument_id = None
+        instrument_uid = None
+        instrument_rd = None
+
+        count = 0
+        while not have_mooring_id or not have_platform_id or not have_instrument_id and count <= number_of_assets:
+
+            count +=1
+            if debug: print 'Count: %d' % count
+
+            asset_index = randint(0, (number_of_assets-1))
+            #print '\n Random asset_index: %d' % asset_index
+
+            # Select an asset...
+            asset = assets[asset_index]
+            self.assertTrue(asset is not None)
+            self.assertTrue(asset)
+            self.assertTrue(isinstance(asset, dict))
+            start_index = randint(number_of_assets/4, number_of_assets-1)
+            asset = assets[start_index]
+
+            # Get asset_id, asset_uid, rd.
+            asset_id, asset_uid, rd = self.get_id_uid_rd(asset)
+            self.assertTrue(asset_uid is not None)
+            self.assertTrue(asset_id > 0)
+            self.assertTrue('assetType' in asset)
+            asset_type = asset['assetType']
+            self.assertTrue(asset_type in get_asset_types())
+            if rd is not None:
+                self.assertEquals(asset_type, get_asset_type_by_rd(rd))
+
+            # Get asset_id, asset_uid, rd.
+            asset_id, asset_uid, rd = self.get_id_uid_rd(asset)
+            self.assertTrue(asset_uid is not None)
+            self.assertTrue(asset_id > 0)
+            if rd is None:
+                continue
+            if is_mooring(rd):
+                if not have_mooring_id:
+                    have_mooring_id = True
+                    mooring_id = asset_id
+                    mooring_uid = asset_uid
+                    mooring_rd = rd
+
+            elif is_platform(rd):
+                if not have_platform_id:
+                    have_platform_id = True
+                    platform_id = asset_id
+                    platform_uid = asset_uid
+                    platform_rd = rd
+
+            elif is_instrument(rd):
+                if not have_instrument_id:
+                    have_instrument_id = True
+                    instrument_id = asset_id
+                    instrument_uid = asset_uid
+                    instrument_rd = rd
+            else:
+                continue
+        if verbose:
+            print '\n Note: Number of loops to get three items of interest: %d ' % count
+            print '\n ----- Mooring:'
+            print '\t mooring_id: %d' % mooring_id
+            print '\t mooring_uid: %s' % mooring_uid
+            print '\t mooring_rd: %s' % mooring_rd
+            print '\n ----- Platform:'
+            print '\t platform_id: %d' % platform_id
+            print '\t platform_uid: %s' % platform_uid
+            print '\t platform_rd: %s' % platform_rd
+            print '\n ----- Instrument:'
+            print '\t instrument_id: %d' % instrument_id
+            print '\t instrument_uid: %s' % instrument_uid
+            print '\t instrument_rd: %s' % instrument_rd
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Mooring asset. Add event(s).
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if verbose: print '\n -- Mooring Assets.'
+        for event_type in event_types:
+            if verbose: print '\n\tCreating %s event for mooring - asset id/uid/rd: %d/%s/%s' % (event_type,
+                                                                                mooring_id, mooring_uid, mooring_rd)
+            # Create events.
+            uid, input = self.create_event_data(event_type, mooring_uid, mooring_rd)
+            #print '\n event_type: ', event_type
+            event_id, last_modified = self._create_event_type(event_type, uid, input)
+            if verbose:
+                print '\t\tCreated eventId: %d and lastModifiedTimestamp: %d' % (event_id, last_modified)
+            self._create_duplicate_event_type(event_type, uid, input, verbose)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Platform asset. Add event(s).
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if verbose: print '\n -- Node Assets.'
+        for event_type in event_types:
+            #print '\n processing event_type: ', event_type
+            if verbose: print '\n\tCreating %s event for platform - asset id/uid/rd: %d/%s/%s' % (event_type,
+                                                                                platform_id, platform_uid, platform_rd)
+            # Create events.
+            uid, input = self.create_event_data(event_type, platform_uid, platform_rd)
+            #print '\n event_type: ', event_type
+            event_id, last_modified = self._create_event_type(event_type, uid, input)
+            if verbose:
+                print '\t\tCreated eventId: %d and lastModifiedTimestamp: %d' % (event_id, last_modified)
+
+            self._create_duplicate_event_type(event_type, uid, input, verbose)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Instrument asset. Add event(s).
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if verbose: print '\n -- Sensor Assets.'
+        for event_type in event_types:
+            if verbose: print '\n\tCreating %s event for instrument - asset id/uid/rd: %d/%s/%s' % (event_type,
+                                                                        instrument_id, instrument_uid, instrument_rd)
+            # Create events.
+            uid, input = self.create_event_data(event_type, instrument_uid, instrument_rd)
+            #print '\n event_type: ', event_type
+            event_id, last_modified = self._create_event_type(event_type, uid, input)
+            if verbose:
+                print '\t\tCreated eventId: %d and lastModifiedTimestamp: %d' % (event_id, last_modified)
+            self._create_duplicate_event_type(event_type, uid, input, verbose)
 
         if verbose: print '\n'
 
@@ -654,7 +962,6 @@ class EventsTestCase(unittest.TestCase):
             if rd is not None:
                 self.assertEquals(asset_type, get_asset_type_by_rd(rd))
 
-            if verbose: print '\n***********************************************************************'
             message = '(%d) Processing %s asset...' % ((count + 1), asset_type)
             if verbose: print '\n%s' % message
             count +=1
@@ -977,9 +1284,7 @@ class EventsTestCase(unittest.TestCase):
         debug = self.debug
         verbose = self.verbose
         headers = self.get_api_headers('admin', 'test')
-        if debug:
-            print '\n ===== Enter test::_create_event_type....'
-            print '\n _event_type: ', _event_type
+
         not_supported = ['CALIBRATION_DATA', 'CRUISE_INFO', 'DEPLOYMENT']
         self.assertTrue(_event_type not in not_supported)
         self.assertTrue(_event_type is not None)
@@ -1026,13 +1331,13 @@ class EventsTestCase(unittest.TestCase):
         if debug: print '\n create url: ', url
         data = json.dumps(input)
         response = self.client.post(url, headers=headers, data=data)
-        if debug:
+        if response.status_code != 200:
+            print '\n Creating an event of type ', _event_type
             print '\n Create event -- response.status_code: ', response.status_code
-            response_error = json.loads(response.data)
-            print '\n response_data: ', response_error
+            if response.data:
+                response_error = json.loads(response.data)
+                print '\n response_data: ', response_error
 
-        if debug: print '\n response.status_code: ', response.status_code
-        if debug: print '\n response_data: ', json.loads(response.data)
         self.assertEquals(response.status_code, 200)
         self.assertTrue(response.data is not None)
         response_data = json.loads(response.data)
@@ -1049,6 +1354,75 @@ class EventsTestCase(unittest.TestCase):
         self.assertTrue(last_modified is not None)
         if debug: print '\n ===== Exit test::_create_event_type....'
         return event_id, last_modified
+
+    #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    # Create duplicate event_type, anticipate failure.
+    #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def _create_duplicate_event_type(self, _event_type, uid, input, verbose=False):
+        """
+        Create event.
+        """
+        debug = self.debug
+        verbose = verbose
+        headers = self.get_api_headers('admin', 'test')
+
+        not_supported = ['CALIBRATION_DATA', 'CRUISE_INFO', 'DEPLOYMENT']
+        self.assertTrue(_event_type not in not_supported)
+        self.assertTrue(_event_type is not None)
+        self.assertTrue(uid is not None)
+        self.assertTrue(input is not None)
+
+        # Define variables specific to event type
+        if verbose: print '\t\tCreating duplicate event of type %s' % _event_type
+        target_event_type = _event_type
+        key = target_event_type
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Positive) GET event types
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        test_url = url_for('uframe.get_event_type')
+        response = self.client.get(test_url, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        results = json.loads(response.data)
+        self.assertTrue('event_types' in results)
+        if debug: print '\n -- len(results): ', len(results)
+        self.assertTrue(results is not None)
+        self.assertTrue(isinstance(results, dict))
+
+        # Verify event_types is a list and not empty.
+        events_by_type = results['event_types']
+        self.assertTrue(events_by_type is not None)
+        self.assertTrue(isinstance(events_by_type, list))
+        if debug: print '\n -- len(events_by_type): ', len(events_by_type)
+
+        if _event_type == 'ACQUISITION':
+            self.assertTrue('purchasePrice' in input)
+            if debug:
+                if input['purchasePrice'] is not None:
+                    print '\n Update %s event, attribute purchasePrice type: %r' % (_event_type, type(input['purchasePrice']))
+                    #self.assertTrue(isinstance(input['purchasePrice'], float))
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Create duplicate event, expect failure.
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if debug:
+            print '\n -- Create %s event' % key
+            dump_dict((input, debug))
+
+        url = url_for('uframe.create_event')
+        if debug: print '\n create url: ', url
+        data = json.dumps(input)
+        response = self.client.post(url, headers=headers, data=data)
+        if response.status_code != 400:
+            print '\n (Negative) Create duplicate event -- response.status_code: ', response.status_code
+            if response.data:
+                response_error = json.loads(response.data)
+                print '\n response_data: ', response_error
+
+        self.assertEquals(response.status_code, 400)
+        self.assertTrue(response.data is not None)
+
+        return
 
     #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # Create event_type using requests (to self.root url - localhost:4000/etc)
@@ -1110,7 +1484,7 @@ class EventsTestCase(unittest.TestCase):
         if debug: print '\n debug -- Test: Create response.status_code: ', response.status_code
 
         if response.status_code != 200:
-            if debug: print '\n Failed to execute localhost:4000 create event, status_code: %d' % response.status_code
+            if debug: print '\n Failed to execute create event, status_code: %d' % response.status_code
             dump_dict(input, debug)
             if response.content:
                 response_data = json.loads(response.content)
@@ -1315,6 +1689,7 @@ class EventsTestCase(unittest.TestCase):
             eventName = rd
         if event_type == 'ACQUISITION':
             eventStartTime = 1398039060000 + (unique_num*10)
+            eventStopTime = eventStartTime + (unique_num*2)
             purchasePrice =  unique_float
 
             input = {
@@ -1329,9 +1704,9 @@ class EventsTestCase(unittest.TestCase):
                       'authorizationForPayment': None,
                       'invoiceNumber': 'invoice number: ' + str(unique_num),
                       'eventType': 'ACQUISITION',
-                      'eventName': eventName,
+                      'eventName': eventName + str(datetime.datetime.now()),
                       'eventStartTime': eventStartTime,
-                      'eventStopTime': None,
+                      'eventStopTime': eventStopTime,
                       'notes': notes,
                       'tense': 'UNKNOWN',
                       'dataSource': 'Test case.' + str(datetime.datetime.now()),
@@ -1343,14 +1718,14 @@ class EventsTestCase(unittest.TestCase):
                     'severity': 5,
                     'reason': str(unique_num),
                     'location': None,
-                    'status': None,
+                    'status': str(datetime.datetime.now()),
                     'eventType': 'ASSET_STATUS',
                     'eventStartTime': 1398039060000,
                     'eventStopTime': 1405382400000,
                     'notes': notes,
-                    'eventName': eventName,
+                    'eventName': eventName + str(datetime.datetime.now()),
                     'tense': 'UNKNOWN',
-                    'dataSource': str(unique_num),
+                    'dataSource': str(unique_num) + str(datetime.datetime.now()),
                     'assetUid': uid
                     }
 
@@ -1368,7 +1743,7 @@ class EventsTestCase(unittest.TestCase):
                     'eventStartTime': 1398039060000,
                     'eventStopTime': 1405382400000,
                     'notes': notes,
-                    'eventName': eventName,
+                    'eventName': eventName + str(datetime.datetime.now()),
                     'tense': 'UNKNOWN',
                     'dataSource': str(unique_num),
                     'assetUid': uid
@@ -1384,7 +1759,7 @@ class EventsTestCase(unittest.TestCase):
                     'versionNumber': 1,
                     'integratedBy': 'Engineer, RPS ASA',
                     'eventType': 'INTEGRATION',
-                    'eventName':  eventName,
+                    'eventName':  eventName + str(datetime.datetime.now()),
                     'eventStartTime': eventStartTime,
                     'eventStopTime': 1405382400000,
                     'notes': notes + str(unique_num),
@@ -1395,13 +1770,18 @@ class EventsTestCase(unittest.TestCase):
 
         elif event_type == 'LOCATION':
             unique_num = randint(201, 300)
+            small_increment = (randint(400, 500))/10000.00
+            latitude = 40.36341 + small_increment
+            longitude = -70.77599 - small_increment
+            depth = 551.27 + small_increment
             eventStartTime = 1398039060000 + unique_num
             eventStopTime = eventStartTime + (unique_num*2)
+            orbitRadius = small_increment
             input = {
                     'depth': 551.27,
-                    'longitude': -70.77599,
-                    'latitude': 40.36341,
-                    'orbitRadius': 0.0,
+                    'longitude': longitude,
+                    'latitude': latitude,
+                    'orbitRadius': orbitRadius,
                     'eventType': 'LOCATION',
                     'eventStartTime': eventStartTime,
                     'eventStopTime': eventStopTime,
@@ -1424,7 +1804,7 @@ class EventsTestCase(unittest.TestCase):
                     'eventStartTime': eventStartTime,
                     'eventStopTime': eventStopTime,
                     'notes': notes,
-                    'eventName': eventName + str(unique_num),
+                    'eventName': eventName + str(unique_num) + str(datetime.datetime.now()),
                     'tense': 'UNKNOWN',
                     'dataSource': str(unique_num),
                     'assetUid': uid
@@ -1436,7 +1816,7 @@ class EventsTestCase(unittest.TestCase):
             eventStopTime = eventStartTime + (unique_num*3)
             input = {
                     'buildingName': 'Tower' + str(unique_num),
-                    'eventName': eventName,
+                    'eventName': eventName + str(datetime.datetime.now()),
                     'eventStartTime': eventStartTime,
                     'eventStopTime': eventStopTime,
                     'eventType': 'STORAGE',
@@ -1451,8 +1831,8 @@ class EventsTestCase(unittest.TestCase):
                     }
 
         elif event_type == 'UNSPECIFIED':
-            unique_num = randint(401, 500)
-            eventStartTime = 1398039060000 + unique_num
+            unique_num = randint(4500, 5500)
+            eventStartTime = 1398049060000 + unique_num
             eventStopTime = eventStartTime + (unique_num*2)
             input = {
                     'dataSource': str(unique_num),
@@ -1460,8 +1840,8 @@ class EventsTestCase(unittest.TestCase):
                     'eventStartTime': eventStartTime,
                     'eventStopTime': eventStopTime,
                     'eventType': 'UNSPECIFIED',
-                    'notes': notes + str(unique_num),
-                    'tense': 'UNKNOWN',
+                    'notes': str(datetime.datetime.now()) + ' ' + notes + str(unique_num),
+                    'tense': 'UNKNOWN-' + str(unique_num),
                     'assetUid': uid
                     }
         else:

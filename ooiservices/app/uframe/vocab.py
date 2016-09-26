@@ -113,7 +113,7 @@ def get_display_name_by_rd(rd):
 
 
 # Get RS array name.
-def get_rs_array_display_name_by_rd(rd):
+def get_rs_array_name_by_rd(rd):
     """ Get display name for a reference designator.
     """
     name = None

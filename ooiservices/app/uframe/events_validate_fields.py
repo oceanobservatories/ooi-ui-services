@@ -1,5 +1,5 @@
 """
-Events: Validate required event fields based on event type.
+Asset Management - Events: Validate required event fields based on event type.
 """
 
 __author__ = 'Edna Donoughe'
@@ -7,7 +7,7 @@ __author__ = 'Edna Donoughe'
 from flask import current_app
 from ooiservices.app.uframe.common_convert import convert_ui_data
 from ooiservices.app.uframe.cruise_tools import (uniqueCruiseIdentifier_exists, _get_cruise)
-from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types,
+from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types, dump_dict,
                                                  is_instrument, is_platform, is_mooring, event_edit_phase_values)
 
 
@@ -152,6 +152,10 @@ def events_validate_all_required_fields_are_provided(event_type, data, action=No
                     if not isinstance(converted_data[field], list):
                         message = 'Field \'%s\' provided, but value is not of type %s.' % (field, field_types[field])
                         raise Exception(message)
+                elif field_types[field] == 'multiple':
+                    if not isinstance(converted_data[field], list) and not isinstance(converted_data[field], float):
+                        message = 'Field \'%s\' provided, but value is not of type list or float.' % field
+                        raise Exception(message)
                 # Error
                 else:
                     message = 'Required field %s provided, but value is unknown type. %s' % (field, field_types[field])
@@ -255,22 +259,21 @@ def get_required_fields_and_types(event_type, action):
         # Event type: CALIBRATION_DATA
         #- - - - - - - - - - - - - - - - - - - - - - -
         elif event_type == 'CALIBRATION_DATA':
-            required_fields = ['assetUid', 'cardinality', 'comments', 'dimensions', 'eventName',
-                               'eventStartTime', 'eventType', 'values', 'notes', 'dataSource',
-                               'eventStopTime', 'tense']
+            required_fields = ['assetUid', 'comments',  'eventName', 'eventStartTime', 'eventType',
+                               'notes', 'dataSource', 'eventStopTime', 'tense',
+                               'value']
+
             field_types = {'assetUid': 'string',
-                           'cardinality': 'int',
                            'comments': 'string',
-                           'dimensions': 'intlist',
                            'eventName': 'string',
                            'eventStartTime': 'long',
                            'eventType': 'string',
-                           'values': 'floatlist',
                            'notes': 'string',
                            'dataSource': 'string',
                            'eventStopTime': 'long',
-                           'tense': 'string'
-                            }
+                           'tense': 'string',
+                           'value': 'multiple'}
+
         #- - - - - - - - - - - - - - - - - - - - - - -
         # Event type: CRUISE_INFO
         # removed: 'cruiseIdentifier',
@@ -292,12 +295,12 @@ def get_required_fields_and_types(event_type, action):
         #- - - - - - - - - - - - - - - - - - - - - - -
         elif event_type == 'DEPLOYMENT':
             required_fields = ['eventName', 'eventStartTime', 'eventStopTime', 'eventType',
-                       'notes', 'dataSource', 'tense', 'assetUid',
+                       'notes', 'dataSource', 'tense', 'assetUid', 'depth',
                        'inductiveId', 'deployedBy', 'location', 'sensor', 'mooring', 'node',
                        'recoverCruiseInfo', 'recoveredBy', 'deploymentNumber', 'ingestInfo',
                        'referenceDesignator', 'versionNumber', 'deployCruiseInfo']
 
-            field_types = {'eventName': 'string', 'eventId': 'int',
+            field_types = {'eventName': 'string', 'eventId': 'int', 'depth': 'float',
                             'eventStartTime': 'long', 'eventStopTime': 'long', 'eventType': 'string',
                             'lastModifiedTimestamp': 'long', 'notes': 'string', 'dataSource': 'string',
                             'tense': 'string', 'assetUid': 'string',
@@ -430,7 +433,6 @@ def convert_required_fields(event_type, data, action=None):
             data['assetUid'] = None
 
         converted_data = convert_ui_data(data, required_fields, field_types)
-
         return converted_data
 
     except Exception as err:
@@ -597,7 +599,7 @@ def events_validate_user_required_fields_are_provided(event_type, valid_data, ac
 
 
 def get_user_fields_populated(event_type):
-    """ For an event type [and action], get fields the user shall populate. Return list.
+    """ For an event type [and action], get the fields the user must populate. Return list.
     """
     event_fields = []
     try:
@@ -615,7 +617,7 @@ def get_user_fields_populated(event_type):
 
         # Event type: CALIBRATION_DATA
         elif event_type == 'CALIBRATION_DATA':
-            event_fields = ['dimensions', 'cardinality', 'values', ]    # 'editPhase'
+            event_fields = ['value']
 
         # Sum up all required fields
         if event_fields:

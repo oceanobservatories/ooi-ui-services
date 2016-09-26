@@ -1,30 +1,189 @@
 #!/usr/bin/env python
 
 """
-Deployments - supporting functions.
+Asset Management - Deployments: supporting functions.
 """
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
-from ooiservices.app.uframe.config import (get_deployments_url_base, get_uframe_deployments_info)
-from ooiservices.app.uframe.toc_tools import (process_toc_reference_designators, get_toc_information)
-from ooiservices.app.uframe.asset_tools import _get_rd_assets
-from ooiservices.app.uframe.common_tools import (is_instrument, is_platform, is_mooring, get_asset_type_by_rd,
-                                                 get_supported_asset_types)
+from ooiservices.app.uframe.toc_tools import (get_toc_reference_designators)
+from ooiservices.app.uframe.common_tools import (is_instrument, is_platform, is_mooring, dump_dict)
+from ooiservices.app.uframe.config import (get_deployments_url_base, get_uframe_deployments_info,
+                                           get_url_info_deployments_inv)
 import requests
 import requests.exceptions
 from requests.exceptions import (ConnectionError, Timeout)
-import json
+from copy import deepcopy
 
 
-CACHE_TIMEOUT = 172800
+def format_deployment_for_ui(modified_deployment):
+    """ Format uframe deployment into ui deployment.
+    """
+    debug = False
+    updated_deployment = {}
+    regular_fields = ['assetUid', 'dataSource', 'deployedBy', 'deploymentNumber',
+                      'editPhase', 'eventId', 'eventName', 'eventStartTime', 'eventStopTime', 'eventType',
+                      'inductiveId', 'lastModifiedTimestamp', 'notes', 'recoveredBy', 'versionNumber']
+    try:
+        if debug: print '\n debug -- format_deployment_for_ui - Step 1...'
+        # Get values from location dictionary.
+        latitude = 0.0
+        longitude = 0.0
+        depth = 0.0
+        orbitRadius = 0.0
+        updated_deployment['location'] = None
+        if 'location' in modified_deployment:
+            if debug: print '\n debug -- location in modified deployment'
+            if modified_deployment['location'] is not None:
+                updated_deployment['location'] = {}
+                if debug: print '\n debug -- location is not None'
+                if 'latitude' in modified_deployment['location']:
+                    latitude = modified_deployment['location']['latitude']
+                if 'longitude' in modified_deployment['location']:
+                    longitude = modified_deployment['location']['longitude']
+                if 'depth' in modified_deployment['location']:
+                    if debug: print '\n debug -- depth in modified_deployment'
+                    depth = modified_deployment['location']['depth']
+                    if debug: print '\n debug -- depth in modified_deployment: ', depth
+                if 'orbitRadius' in modified_deployment['location']:
+                    orbitRadius = modified_deployment['location']['orbitRadius']
+                if latitude is None or longitude is None:
+                    updated_deployment['latitude'] = None
+                    updated_deployment['longitude'] = None
+                    updated_deployment['location']['location'] = []
+                else:
+                    updated_deployment['latitude'] = latitude
+                    updated_deployment['longitude'] = longitude
+            updated_deployment['depth'] = depth
+            updated_deployment['orbitRadius'] = orbitRadius
+            updated_deployment['tense'] = modified_deployment['tense']
+
+        if debug:
+            print '\n debug -- value of depth now: ', depth
+            updated_deployment['depth'] = depth
+
+        # Get reference designator from attribute 'referenceDesignator'.
+        if debug: print '\n debug -- format_deployment_for_ui - Step 2...'
+        rd = None
+        subsite = None
+        node = None
+        sensor = None
+        if 'referenceDesignator' in modified_deployment:
+            if 'subsite' in modified_deployment['referenceDesignator']:
+                subsite = modified_deployment['referenceDesignator']['subsite']
+            if 'node' in modified_deployment['referenceDesignator']:
+                node = modified_deployment['referenceDesignator']['node']
+            if 'sensor' in modified_deployment['referenceDesignator']:
+                sensor = modified_deployment['referenceDesignator']['sensor']
+            if subsite is None or node is None or sensor is None:
+                message = 'The subsite, node or sensor provided for deployment is empty.'
+                raise Exception(message)
+            rd = '-'.join([subsite, node, sensor])
+        if debug: print '\n debug -- rd: ', rd
+        if not is_instrument(rd):
+            message = 'The referenceDesignator provided cannot be formed into instrument reference designator.'
+            raise Exception(message)
+
+        if debug: print '\n debug -- format_deployment_for_ui - Step 3...'
+        updated_deployment['rd'] = rd
+        updated_deployment['lastModifiedTimestamp'] = modified_deployment['lastModifiedTimestamp']
+
+        # Get mooring, node and sensor uid values.
+        if debug: print '\n debug -- format_deployment_for_ui - Step 4...'
+        mooring_uid = None
+        node_uid = None
+        sensor_uid = None
+        if debug: print '\n debug -- format_deployment_for_ui - Step 4a...'
+        if 'mooring' in modified_deployment:
+            if modified_deployment['mooring']:
+                if 'uid' in modified_deployment['mooring']:
+                    if modified_deployment['mooring']['uid']:
+                        mooring_uid = modified_deployment['mooring']['uid'][:]
+                    else:
+                        mooring_uid = None
+            #del modified_deployment['mooring']
+        if debug: print '\n debug -- format_deployment_for_ui - Step 4b...'
+        if 'node' in modified_deployment:
+            if modified_deployment['node']:
+                if 'uid' in modified_deployment['node']:
+                    if modified_deployment['node']['uid']:
+                        node_uid = modified_deployment['node']['uid'][:]
+                    else:
+                        node_uid = None
+            #del modified_deployment['node']
+        if debug: print '\n debug -- format_deployment_for_ui - Step 4c...'
+        if 'sensor' in modified_deployment:
+            if modified_deployment['sensor']:
+                if 'uid' in modified_deployment['sensor']:
+                    if modified_deployment['sensor']['uid']:
+                        sensor_uid = modified_deployment['sensor']['uid'][:]
+                    else:
+                        sensor_uid = None
+            #del modified_deployment['sensor']
+        updated_deployment['mooring_uid'] = mooring_uid
+        updated_deployment['node_uid'] = node_uid
+        updated_deployment['sensor_uid'] = sensor_uid
+
+        if debug: print '\n debug -- format_deployment_for_ui - Step 5...'
+        # Get deployCruiseInfo, recoverCruiseInfo and ingestInfo.
+        updated_deployment['deployCruiseInfo'] = None
+        if modified_deployment['deployCruiseInfo'] is not None:
+            updated_deployment['deployCruiseInfo'] = deepcopy(modified_deployment['deployCruiseInfo'])
+        updated_deployment['recoverCruiseInfo'] = None
+        if modified_deployment['recoverCruiseInfo'] is not None:
+            updated_deployment['recoverCruiseInfo'] = deepcopy(modified_deployment['recoverCruiseInfo'])
+        updated_deployment['ingestInfo'] = None
+        if modified_deployment['ingestInfo'] is not None:
+            updated_deployment['ingestInfo'] = deepcopy(modified_deployment['ingestInfo'])
+
+        # Get the rest of the fields and values.
+        if debug: print '\n debug -- format_deployment_for_ui - Step 6...'
+        for key in regular_fields:
+            if key in modified_deployment:
+                #updated_deployment[key] = modified_deployment.pop(key)
+                updated_deployment[key] = modified_deployment[key]
+        if not updated_deployment or updated_deployment is None:
+            raise Exception('Deployment compilation failed to return a result.')
+
+        # todo - check uframe required fields for deployments
+
+        if debug:
+            print '\n debug -- ui formatted deployment(%d): ' % len(updated_deployment)
+            dump_dict(updated_deployment, debug)
+
+        if debug: print '\n debug -- format_deployment_for_ui - Step 7...'
+
+        return updated_deployment
+
+    except Exception as err:
+        message = str(err)
+        if debug: print '\n debug -- format_deployment_for_ui exception: ', message
+        raise Exception(message)
+
+
+# todo - finish
+def refresh_deployment_cache(id, deployment, action, remote_id=None):
+    """ Perform asset cache add or update depending on action provided.
+    """
+    debug = False
+    try:
+        if action == 'create':
+            #deployment_cache_add(id, deployment)
+            if debug: print '\n debug -- refresh_deployment_cache -- finish %s' % action
+        elif action == 'update':
+            #update_deployment_cache(id, deployment, remote_id)
+            if debug: print '\n debug -- refresh_deployment_cache -- finish %s' % action
+        else:
+            message = 'Failed to refresh deployment cache, unknown action(\'%s\').' % action
+            raise Exception(message)
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
 
 
 # New: Deployments added to rd information inventory
 def _compile_rd_assets():
     """ Get dictionary, keyed by reference designator, holding reference maps for deployments and asset_ids.
-
-    Exercise this function using development route: http://localhost:4000/uframe/get_rd_assets
 
     For a reference designator, this function is used to determine the following [deployment based] information:
         all associated asset ids
@@ -43,331 +202,66 @@ def _compile_rd_assets():
 
     This supports all reference designators referenced in /sensor/inv/toc structure; On error, log and raise exception.
     Note: All reference designators are determined from toc structure and not just what /sensor/inv/toc provides.
-
-    [Proposed] Sample response:         TODO correct this comment.
-        {
-            "CE02SHSM-RID26-08-SPKIRB000":
-                {
-                    "current_deployment": 4,
-                    "deployments": [1,2,3,4],
-                    1:  {
-                        "beginDT": 1397767980000,
-                        "endDT": 1412899200000,
-                        "asset_ids": [1022, 3089, 100],     # deployment 1 has these asset ids (Note 100) - all types
-                        # deployment 1 has these asset ids by type
-                        "asset_ids_by_type":
-                            {
-                                'mooring': [1022],
-                                'node': [3089],
-                                'sensor': [100]
-                            },
-                        "tense": "PAST",
-                        "location": {
-                            "depth" : 0.0,
-                            "location" : [ -124.09817, 44.6584 ],
-                            "longitude" : -124.09817,
-                            "latitude" : 44.6584,
-                            "orbitRadius" : 0.0
-                          }
-                        },
-                    2: {
-                        "beginDT": 1397767980000,
-                        "endDT": 1412899200000,
-                        "asset_ids": [100],                         # deployment 2 has these asset ids
-                        "tense": "PAST",
-                        "location": {
-                            "depth" : 0.0,
-                            "location" : [ -124.09817, 44.6584 ],
-                            "longitude" : -124.09817,
-                            "latitude" : 44.6584,
-                            "orbitRadius" : 0.0
-                          }
-                        },
-                    3: {
-                        "beginDT": 1433352120000,
-                        "endDT": 1444003200000,
-                        "asset_ids": [200],                         # deployment 3 has these asset ids
-                        "tense": "PAST",
-                        "location": {
-                            "depth" : 0.0,
-                            "location" : [ -124.09817, 44.6584 ],
-                            "longitude" : -124.09817,
-                            "latitude" : 44.6584,
-                            "orbitRadius" : 0.0
-                          }
-                        },
-                    4: {
-                        "beginDT": 1444003200100,
-                        "endDT": 1444003200500,
-                        "asset_ids": [300, 100],                    # deployment 4 has these asset ids
-                        "tense": "PRESENT",
-                        "location": {
-                            "depth" : 0.0,
-                            "location" : [ -124.09817, 44.6584 ],
-                            "longitude" : -124.09817,
-                            "latitude" : 44.6584,
-                            "orbitRadius" : 0.0
-                          }
-                        },
-
-                    # actual asset id deployment number (bingo? what if list? yikes)
-                    "asset_ids": {1022: [1], 3089: [1], 100: [1, 2, 4], 200: 3, 300: 4}
-                }
-            "CP02PMUI-WFP01":
-                {
-                "current_deployment": 4,
-                "deployments": [1, 2],
-                1: {
-                    "asset_ids": [600],                         # deployment 1 has these asset ids
-                    "tense": "PAST",
-                    "location": {
-                        "depth" : 0.0,
-                        "location" : [ -124.09817, 44.6584 ],
-                        "longitude" : -124.09817,
-                        "latitude" : 44.6584,
-                        "orbitRadius" : 0.0
-                      }
-                    },
-                2: {
-                    "asset_ids": [700, 800],                    # deployment 2 has these asset ids
-                    "tense": "PRESENT",
-                    "location": {
-                        "depth" : 0.0,
-                        "location" : [ -124.09817, 44.6584 ],
-                        "longitude" : -124.09817,
-                        "latitude" : 44.6584,
-                        "orbitRadius" : 0.0
-                      }
-                    },
-                "asset_ids": {600: [1], 700: [2], 800: [2]}    # actual asset id deployment number
-                }
-                . . .
-        }
-
     """
-    debug = False
     result = {}
     try:
-        if debug: print '\n debug -- entered _compile_rd_assets...'
-        # Get contents of /sensor/inv/toc
-        toc = get_toc_information()
-
-        # If toc is of type dict, then processing newer style toc format
-        if isinstance(toc, dict):
-            if 'instruments' not in toc:
-                message = 'TOC does not have attribute \'instruments\', unable to process for reference designators.'
-                raise Exception(message)
-
-            # Verify toc attribute 'instruments' is not None or empty, if so, raise Exception.
-            toc = toc['instruments']
-            if not toc or toc is None:
-                message = 'TOC attribute \'instruments\' is None or empty, unable to process for reference designators.'
-                raise Exception(message)
-
-        # Process toc to get lists of:
-        # (1) reference designators (generated by accumulation),
-        # (2) actual reference designators called out in each element of toc response,
-        # (3)list of differences
-
-        #uframe_url, timeout, timeout_read = get_uframe_deployments_info()
-        reference_designators, toc_only, difference = process_toc_reference_designators(toc)
-        if not reference_designators:
-            message = 'No reference_designators identified when processing toc information.'
-            raise Exception(message)
-
-        #print '\n debug ***** Number of reference designators from toc: ', len(reference_designators)
-
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        reference_designators, toc_only, difference  = get_toc_reference_designators()
         if reference_designators and toc_only:
-            for rd in reference_designators:
-                try:
-                    if debug: print '\n debug ====================================================== rd: ', rd
-                    # If reference designator for instrument, get dictionary map to add to result
-                    if (is_instrument(rd)):
-                        if rd not in result:
-                            work = get_instrument_deployment_work(rd)
-                            if work:
-                                if work['asset_ids']:       # work['asset_ids_by_type']
-                                    result[rd] = work
-                        else:
-                            if debug: print '\n debug -- instrument rd %s is a duplicate in reference_designators!' % rd
-
-                    elif(is_mooring(rd)):
-                        if rd not in result:
-                            work = get_mooring_deployment_work(rd)
-                            if work:
-                                result[rd] = work
-                        else:
-                            if debug: print '\n debug -- mooring rd %s is a duplicate in reference_designators!' % rd
-
-                    elif (is_platform(rd)):
-                        if rd not in result:
-                            work = get_platform_deployment_work(rd)
-                            if work:
-                                result[rd] = work
-                        else:
-                            if debug: print '\n debug -- platform rd %s is a duplicate in reference_designators!' % rd
-                    else:
-                        if debug: print '\n debug -- %s not instrument, platform or mooring...' % rd
-
-                except Exception as err:
-                    message = 'Exception raised in _compile_rd_assets: %s' % str(err)
-                    raise Exception(message)
-
+            result = get_rd_assets(reference_designators)
         return result
 
-    except ConnectionError:
-        message = 'ConnectionError for _compile_rd_assets.'
-        current_app.logger.info(message)
-        return {}
-    except Timeout:
-        message = 'Timeout for _compile_rd_assets.'
-        current_app.logger.info(message)
-        return {}
     except Exception as err:
         message = err.message
         current_app.logger.info(message)
         return {}
 
 
-def get_asset_deployment_map(asset_id, ref_des):
-    """ For an asset id and associated reference designator, get deployment [map] information.
-    Process deployment information to obtain/return the following for the asset id/reference designator:
-        depth (float, default: 0.0)
-        location (list, [0.0, 0.0])
-        has_deployment_event (bool, default: False)
-        deployment_numbers (str, default: '')
-        tense (str, default: '')
-
-    Each asset displays the following information related to deployment(s):
-      New deployment display grid covers these deployment related items on per deployment basis:
-        deployment_number, beginDT, endDT, tense, and
-        location dict with: latitude, longitude, location [], orbit radius and depth
-    Note: on current deployment the endDT will be null if deployment is active.
-
+def get_rd_assets(reference_designators):
+    """ Create rd_asset dictionary for reference designators provided.
     """
-    # Valid processing types are those assetTypes which are subsequently mapped to reference designators.
-    valid_processing_types_uc = get_supported_asset_types()
-    valid_processing_types = []
-    for type in valid_processing_types_uc:
-        valid_processing_types.append(type.lower())
-
     debug = False
-    depth = 0.0
-    location = [0.0, 0.0]
-    has_deployment_event = False
-    deployment_numbers = ''
-    _deployment_numbers = []
-    tense = ''
-    cumulative_tense = ''
+    result = {}
     try:
-        # Get type of asset we are processing, using reference designator.
-        asset_type = get_asset_type_by_rd(ref_des)
-        if asset_type:
-            asset_type = asset_type.lower()
-        if debug:
-            if asset_type not in valid_processing_types:
-                message = 'Processing %s for deployments, invalid asset type \'%s\'.' % (ref_des, asset_type)
-                current_app.logger.info(message)
-                if debug: print '\n debug -- ', message
+        for rd in reference_designators:
+            try:
+                if debug: print '\n debug ====================================================== rd: ', rd
+                # If reference designator for instrument, get dictionary map to add to result
+                if (is_instrument(rd)):
+                    if rd not in result:
+                        work = get_instrument_deployment_work(rd)
+                        if work:
+                            if work['asset_ids']:       # work['asset_ids_by_type']
+                                result[rd] = work
+                    else:
+                        if debug: print '\n debug -- instrument rd %s is a duplicate in reference_designators!' % rd
 
-        no_deployments_nums = []
-        if asset_type in valid_processing_types:
-            if debug: print '\n debug -- Processing asset_type: ', asset_type
-            deployments_info = get_asset_deployment_info(asset_id, ref_des)
-            if deployments_info:
-                deployments_list = deployments_info['deployments']
+                elif(is_mooring(rd)):
+                    if rd not in result:
+                        work = get_mooring_deployment_work(rd)
+                        if work:
+                            result[rd] = work
+                    else:
+                        if debug: print '\n debug -- mooring rd %s is a duplicate in reference_designators!' % rd
 
-                # Determine if has_deployment_event and location
-                if deployments_list:
-                    has_deployment_event = True
-                    deployments_list.sort(reverse=True)
+                elif (is_platform(rd)):
+                    if rd not in result:
+                        work = get_platform_deployment_work(rd)
+                        if work:
+                            result[rd] = work
+                    else:
+                        if debug: print '\n debug -- platform rd %s is a duplicate in reference_designators!' % rd
+                else:
+                    if debug: print '\n debug -- %s not instrument, platform or mooring...' % rd
 
-                    # Get coordinate information from most recent deployment
-                    current_deployment_number = deployments_info['current_deployment']
-                    current_deployment = deployments_info[current_deployment_number]
-                    latitude = round(current_deployment['location']['latitude'], 4)
-                    longitude = round(current_deployment['location']['longitude'], 4)
-                    location = [longitude, latitude]
-                    depth = current_deployment['location']['depth']
-                    if debug:
-                        print '\n debug -- Most recent deployment number: %d -- tense %s' % \
-                              (current_deployment_number, current_deployment['tense'])
-
-                    # Get deployment number(s) for this asset id
-                    _deployment_numbers = []
-                    for deploy_number in deployments_list:
-
-                        tense = deployments_info[deploy_number]['tense']
-                        # Get asset ids, based on asset type (of associated) reference designator being processed,
-                        tmp = deployments_info[deploy_number]['asset_ids_by_type'][asset_type]
-                        if tmp:
-                            if debug: print '\n debug -- %s %s deployment %d has asset ids: %s' % \
-                                            (ref_des, asset_type, deploy_number, tmp)
-                            if asset_id in tmp:
-                                if deploy_number not in _deployment_numbers:
-                                    _deployment_numbers.append(deploy_number)
-                        else:
-                            # In this case there is a deployments_list, but deployments_info for this deploy_number
-                            # does not have asset ids for asset_type in assets map. (uframe missing data problem)
-                            # Basically 'sensor' data does not have assetId for deploy_number deployment.
-                            # This MAY lead to incorrectly identifying the most recent or current deployment for
-                            # this asset id; certainly deployment asset map will have 'holes' if data is missing.
-                            # Example: CP02PMUO-SBS01-01-MOPAK0000 (sensor) has 7 deployments, and deployment 7
-                            # does not have a node value which identifies an assetId. So deployment 7 will not have
-                            # a value in deployment_info[7][asset_ids_by_type]['sensor'] but instead is [].
-                            # http://host:12587/events/deployment/inv/CP02PMUO/SBS01/01-MOPAK0000/7
-                            # [{
-                            #   "@class" : ".XDeployment",
-                            #   "location" : {
-                            #       "depth" : 0.0,
-                            #       "location" : [ -70.7800166, 39.942116 ],
-                            #       "longitude" : -70.7800166,
-                            #       "latitude" : 39.942116,
-                            #       "orbitRadius" : 0.0
-                            #   },
-                            #   "sensor" : null,
-                            #   "node" : null,
-                            #   "referenceDesignator" : {
-                            #       "subsite" : "CP02PMUO",
-                            #       "sensor" : "01-MOPAK0000",
-                            #       "node" : "SBS01",
-                            #       "full" : true
-                            #   }, . . .
-                            # }]
-                            if deploy_number not in no_deployments_nums:
-                                no_deployments_nums.append(deploy_number)
-                            message = 'No asset ids for %s %s, deployment number %d.' % \
-                                      (asset_type, ref_des, deploy_number)
-                            #current_app.logger.info(message)
-                            if debug: print '\n debug -- %s %s deployments_list: %s' % (asset_type, ref_des, deployments_list)
-
-                    # Get cumulative tense value for last deployment provided
-                    if _deployment_numbers:
-                        _deployment_numbers.sort(reverse=True)
-                        recent_deployment_number = _deployment_numbers[0]
-                        if current_deployment_number != recent_deployment_number:
-                            if debug: print '\n debug -- reporting recent_deployment number %d, as last, not %d' % \
-                                            (recent_deployment_number, current_deployment_number)
-                        cumulative_tense = deployments_info[recent_deployment_number]['cumulative_tense']
-                        _deployment_numbers.sort()
-                        for dn in _deployment_numbers:
-                                deployment_numbers += str(dn) + ', '
-                        if deployment_numbers:
-                            deployment_numbers = deployment_numbers.strip(', ')
-
-                    # Highlight (*) deployments if most recent deployment has an empty 'node' attribute.
-                    if no_deployments_nums:
-                        if current_deployment_number in no_deployments_nums:
-                            deployment_numbers += ' *'
-
-        return depth, location, has_deployment_event, deployment_numbers, cumulative_tense, tense, no_deployments_nums, _deployment_numbers
+            except Exception as err:
+                message = 'Exception raised in _compile_rd_assets: %s' % str(err)
+                raise Exception(message)
+        return result
 
     except Exception as err:
-        message = str(err)
+        message = err.message
         current_app.logger.info(message)
-        return None
+        return {}
 
 
 def get_instrument_deployments_list(rd):
@@ -461,9 +355,8 @@ def get_instrument_deployments(rd):
         raise Exception(message)
 
 
-# todo review to see if we can use /deployments/query?refdes=CE05MOAS-GL326-04-DOSTAM000 instead
 def get_rd_deployments(rd):
-    """ Get all deployments for mooring and platform.
+    """ Get all deployments for reference designator, whether mooring, platform or instrument.
 
     Use urls such as:
         (http://host:12587/events/deployment/query?refdes=CE05MOAS-GL326-04-DOSTAM000)
@@ -476,7 +369,7 @@ def get_rd_deployments(rd):
     try:
         # Verify rd is valid.
         if not is_instrument(rd) and not is_mooring(rd) and not is_platform(rd):
-            message = 'The reference designator %s is not a mooring, platform or instrument.'
+            message = 'The reference designator %s is not a mooring, platform or instrument.' % rd
             current_app.logger.info(message)
             return result
 
@@ -507,6 +400,126 @@ def get_rd_deployments(rd):
         current_app.logger.info(message)
         return []
 
+
+def get_rd_deployment(rd, deployment_number):
+    """ Get all deployments for reference designator, whether mooring, platform or instrument.
+
+    Use urls such as:
+        (http://host:12587/events/deployment/query?refdes=CE05MOAS-GL326-04-DOSTAM000)
+         http://host:12587/events/deployment/query?refdes=CE05MOAS-GL326
+         http://host:12587/events/deployment/query?refdes=CE05MOAS
+         http://host:12587/events/deployment/query?refdes=CP02PMUI
+    """
+    check = True
+    deployment = None
+    try:
+        # Check deployment_number
+        if deployment_number < 1:
+            message = 'The deployment number provided (%d) is invalid.' % deployment_number
+            raise Exception(message)
+
+        # Verify rd is valid.
+        if not is_instrument(rd) and not is_mooring(rd) and not is_platform(rd):
+            message = 'The reference designator \'%s\' is not a mooring, platform or instrument.' % rd
+            current_app.logger.info(message)
+            return result
+
+        # Get uframe deployments request variables
+        uframe_url, timeout, timeout_read = get_uframe_deployments_info()
+
+        # Build uframe url: host:port/events/deployment/query?refdes=XXXXXXXX
+        url = '/'.join([uframe_url, get_deployments_url_base(), 'query'])
+        url += '?refdes=' + rd
+        if check: print '\n Check -- [get_rd_deployments] url: ', url
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Failed to get deployments from uframe for %r.' % rd
+            raise Exception(message)
+        results = response.json()
+
+        # If result, then get deployment_number, if available, from result.
+        if results:
+            for result in results:
+                if result:
+                    if 'deploymentNumber' in result:
+                        if result['deploymentNumber'] == deployment_number:
+                            deployment = result
+                            break
+        return deployment
+
+    except ConnectionError:
+        message = 'ConnectionError for uframe get_rd_deployments %s.' % rd
+        current_app.logger.info(message)
+        return []
+    except Timeout:
+        message = 'Timeout for for uframe get_rd_deployments %s.' % rd
+        current_app.logger.info(message)
+        return []
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return []
+
+
+'''
+def get_deployments_inv_by_rd(rd):
+    """ Get all deployments for an instrument reference designator.
+    Note: The deployment inventory query will only return deployments for instrument reference designators.
+
+    Use this to get all of the deployments:
+        http://host:12587/events/deployment/inv/GS01SUMO/SBD12/08-FDCHPA000/-1
+    """
+    debug = False
+    check = False
+    result = []
+    try:
+        # Verify rd is valid.
+        if not is_instrument(rd):
+            message = 'The reference designator \'%s\' is not an instrument.'
+            current_app.logger.info(message)
+            return result
+
+        # Build query suffix for reference designator.
+        rd_suffix = ''
+        subsite, node, sensor = rd.split('-', 2)
+        if subsite and subsite is not None:
+            rd_suffix = '/'.join([rd_suffix, subsite])
+            if node and node is not None:
+                rd_suffix = '/'.join([rd_suffix, node])
+                if sensor and sensor is not None:
+                    rd_suffix = '/'.join([rd_suffix, sensor])
+        if rd_suffix:
+            rd_suffix = rd_suffix.strip('/')
+            rd_suffix = '/'.join([rd_suffix, '-1'])
+        else:
+            if debug: print '\n debug -- Unable to determine an rd_suffix for rd: %s' % rd
+            return result
+
+        if debug: print '\n debug -- rd_suffix: ', rd_suffix
+        # Get uframe deployments inventory request variables
+        uframe_url, timeout, timeout_read = get_url_info_deployments_inv()
+        url = '/'.join([uframe_url, rd_suffix])
+        if check: print '\n Check -- [get_rd_deployments] url: ', url
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Failed to get deployments from uframe for %r.' % rd
+            raise Exception(message)
+        result = response.json()
+        return result
+
+    except ConnectionError:
+        message = 'ConnectionError for uframe get_rd_deployments %s.' % rd
+        current_app.logger.info(message)
+        return []
+    except Timeout:
+        message = 'Timeout for for uframe get_rd_deployments %s.' % rd
+        current_app.logger.info(message)
+        return []
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return []
+'''
 
 def get_mooring_deployments_list(rd):
     """ Get list of deployments for mooring reference designator.
@@ -777,119 +790,6 @@ def get_platform_deployments_list(rd):
         message = str(err)
         current_app.logger.info(message)
         return None, None
-
-
-def get_asset_deployment_info(asset_id, rd):
-    """ Use rd to fetch dict from 'rd_assets' cache. Process dict and create result info.
-    On error, log and return {}.
-
-    The result dict value returned is described in get_asset_deployment_detail function.
-    """
-    result = {}
-    try:
-        # Get asset and deployment data for reference designator.
-        data = get_asset_deployment_data(rd)
-
-        # If data is returned, process into result and return. On error, log and return empty dict {}.
-        if data:
-            # Get specific info for asset id from data
-            result = get_asset_deployment_detail(asset_id, data)
-
-        return result
-
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return {}
-
-
-def get_asset_deployment_detail(id, data):
-    """ Using deployment info in data, process and return specific details. (Only instruments)
-    {
-        "deployments": [4,3,2,1],
-        "current_deployment": 4,
-        # Multiple entries as follows, one for each deployment in 'deployments' list #
-        "4": {
-              "asset_ids": [
-                1799,
-                3085,
-                3628
-              ],
-              "asset_ids_by_type": {
-                "mooring": [
-                  3085
-                ],
-                "node": [
-                  3628
-                ],
-                "sensor": [
-                  1799
-                ]
-              },
-              "beginDT": 1439850000000,
-              "endDT": null,
-              "location": {
-                "depth": 0.0,
-                "latitude": 44.65602,
-                "location": [
-                  -124.09524,
-                  44.65602
-                ],
-                "longitude": -124.09524,
-                "orbitRadius": 0.0
-              },
-              "cumulative_tense": "PRESENT",
-              "tense": "UNKNOWN"
-            }
-    }
-
-    """
-    try:
-        # Determine if asset_id in data['asset_ids'], if not log and return empty dict.
-        if id not in data['asset_ids']:
-            message = 'Unable to find asset id %s for %s in rd_assets entry.' % (str(id), rd)
-            raise Exception(message)
-
-        result = data.copy()
-        del result['asset_ids']
-        del result['asset_ids_by_type']
-
-        return result
-
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return {}
-
-
-def get_asset_deployment_data(rd):
-    """ Get deployment specific information for a reference designator from rd_cache. Returns dictionary from cache.
-    """
-    result = {}
-    try:
-        # Validate reference designator
-        if not is_instrument(rd) and not is_mooring(rd) and not is_platform(rd):
-            message = 'The reference designator provided (%s) is not a mooring, platform, or instrument.' % rd
-            message += 'unable to provide asset deployment info.'
-            raise Exception(message)
-
-        # Verify rd_assets cache available, if raise exception.
-        rd_assets = _get_rd_assets()
-        if not rd_assets:
-            message = 'The \'rd_assets\' cache is empty; unable to provide asset deployment info for %s.' % rd
-            print '\n Error: ', message
-            raise Exception(message)
-
-        # Pluck from rd_assets information required
-        if rd in rd_assets:
-            result = rd_assets[rd]
-
-        return result
-
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return {}
 
 
 def get_deployment_asset_ids(deployment):
@@ -1193,7 +1093,6 @@ def get_instrument_deployment_work(rd):
             # Get all deployments for reference designator
             deployments = get_instrument_deployments(rd)
             #if debug: print '\n Number of deployments for rd: %d: ' % len(deployments)
-
             if deployments is None:
                 #continue
                 message = 'Failed to get deployments for %s from uframe.' % rd

@@ -1,6 +1,6 @@
 
 """
-Event routes.
+Asset Management - Event routes.
 
 Routes:
 [GET]  /events/<int:id>           # Get event.
@@ -15,6 +15,7 @@ Routes:
 [PUT]  /events/<int:id>           # Update event.
 
 """
+__author__ = 'Edna Donoughe'
 
 from flask import (jsonify, request, current_app)
 from ooiservices.app.main.errors import bad_request

@@ -1,6 +1,6 @@
 
 """
-Common functions and definitions.
+Asset Management - Common functions and definitions.
     Functions.
         is_instrument(rd)
         is_platform(rd)
@@ -25,6 +25,7 @@ from flask import current_app
 import datetime as dt
 import calendar
 import json
+
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Common functions
@@ -197,6 +198,8 @@ def get_asset_class_by_asset_type(asset_type):
             asset_class = '.XInstrument'
         elif asset_type == 'Array':
             asset_class = '.XArray'
+        elif asset_type == 'notClassified':
+            asset_class = '.XAsset'
         else:
             if asset_type not in get_asset_types():
                 message = 'Unknown asset_type provided (%s), using .XAsset for class.' % asset_type
@@ -259,8 +262,12 @@ def get_supported_asset_classes():
 
 
 def get_class_remote_resource():
-    class_remote_resource = '.XRemoteResource'
-    return class_remote_resource
+    result = '.XRemoteResource'
+    return result
+
+def get_class_deployment():
+    result = '.XDeployment'
+    return result
 
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -372,9 +379,27 @@ def get_supported_array_codes():
     return values
 
 def dump_dict(dict, debug=False):
-        if debug:
-            print '\n --------------\n %s' % json.dumps(dict, indent=4, sort_keys=True)
+    if debug:
+        print '\n --------------\n %s' % json.dumps(dict, indent=4, sort_keys=True)
 
+def verify_action(action):
+    """ Simple error checking for input data.
+    """
+    valid_actions = ['create', 'update']
+    try:
+        # Verify action for which we are validating the field (create or update).
+        if action is None:
+            message = 'Action value of \'create\' or \'update\' required to validate deployment fields.'
+            raise Exception(message)
+        if not action:
+            message = 'Invalid action (empty) provided, use either \'create\' or \'update\'.'
+            raise Exception(message)
+        if action not in valid_actions:
+            message = 'Invalid action (%s) provided, use either \'create\' or \'update\'.' % action
+            raise Exception(message)
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Common datetime functions

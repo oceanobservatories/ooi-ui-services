@@ -1,17 +1,14 @@
 #!/usr/bin/env python
-'''
-Specific testing for assets routes
+"""
+Asset Management - Specific testing for assets routes
 
 Routes:
 [GET]    /assets                 # Get all assets from uframe and reformat for UI; get single asset reformatted for UI
                                  # def get_assets(use_min=False, normal_data=False, reset=False):
-[GET]    /assets/types           # [dup] Get asset types used by those assets loaded into asset management display
-[GET]    /assets/types/used      # [dup] Get asset types used by those assets loaded into asset management display
-[GET]    /assets/types/uframe    # List of all asset types supported by uframe.
+[GET]    /assets/types           # Get asset types used by those assets loaded into asset management display
 [GET]    /assets/<int:id>        # Get asset
-[GET]    /assets/<int:id>/events # Get all events for an asset; option 'type' parameter provided toget one or more types.
-[DELETE] /asset                  # Deprecated.
-'''
+[GET]    /assets/<int:id>/events # Get all events for an asset; option 'type' parameter provided for one or more types.
+"""
 __author__ = 'Edna Donoughe'
 
 import unittest
@@ -24,8 +21,8 @@ from flask import url_for
 from ooiservices.app import (create_app, db)
 from ooiservices.app.models import (User, UserScope, Organization)
 from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_asset_types)
-from ooiservices.app.uframe.asset_tools import (uframe_get_asset_by_id, uframe_get_asset_by_uid,
-                                                uframe_get_remote_resource_by_id, _get_asset)
+from ooiservices.app.uframe.uframe_tools import (uframe_get_asset_by_uid, uframe_get_remote_resource_by_id)
+from ooiservices.app.uframe.asset_tools import (uframe_get_asset_by_id,  _get_asset)
 from ooiservices.app.uframe.assets_validate_fields import (assets_validate_required_fields_are_provided,
                                                            asset_ui_get_required_fields_and_types,
                                                            convert_required_fields)
@@ -92,10 +89,10 @@ class AssetsTestCase(unittest.TestCase):
     # Remote Resources:
     #   test_create_remote_resource
     #   test_update_remote_resource
+    #   test_create_remote_resource_negative
+    # * [proposed] test_negative_update_remote_resource
     # * [proposed] test_get_remote_resources (by id and by uid)
     # * [proposed] test_get_remote_resource (by remoteResourceId)
-    #   test_negative_create_remote_resource
-    # * [proposed] test_negative_update_remote_resource
     #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     def test_get_assets(self):
         """
@@ -140,13 +137,31 @@ class AssetsTestCase(unittest.TestCase):
         result = json.loads(response.data)
         self.assertTrue(result is not None)
 
+        url = url_for('uframe.get_remote_resources_by_asset_id', asset_id=asset_id)
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        result = json.loads(response.data)
+        self.assertTrue(result is not None)
+
+        url = url_for('uframe.get_remote_resources_by_asset_id', asset_id=9999999)
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 400)
+        result = json.loads(response.data)
+        self.assertTrue(result is not None)
+
+        url = url_for('uframe.get_remote_resource_by_resource_id', resource_id=9999999)
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 400)
+        result = json.loads(response.data)
+        self.assertTrue(result is not None)
+
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # (Positive) Get asset by uid
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         self.assertTrue('uid' in asset)
         uid = asset['uid']
         self.assertTrue(uid is not None)
-        url = url_for('uframe.get_asset_by_uid', uid=uid)
+        url = url_for('uframe.get_ui_asset_by_uid', uid=uid)
         if debug:
             print '\n test -- uid: ', uid
             print '\n test -- url: ', url
@@ -158,11 +173,46 @@ class AssetsTestCase(unittest.TestCase):
         result = json.loads(response.data)
         self.assertTrue(result is not None)
 
+        url = url_for('uframe.get_remote_resources_by_asset_uid', asset_uid=uid)
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        result = json.loads(response.data)
+        self.assertTrue(result is not None)
+
+        url = url_for('uframe.get_remote_resources_by_asset_uid', asset_uid='bad-uid')
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 400)
+        result = json.loads(response.data)
+        self.assertTrue(result is not None)
+
+        remote_resource_data = {
+            "@class": ".XRemoteResource",
+            "dataSource": str(datetime.datetime.now()),
+            "keywords": str(datetime.datetime.now()) + ',' + 'test',
+            "label": "testresource",
+            "remoteResourceId": -1,
+            "resourceNumber": "1258.1548.58756.098",
+            "status": "active",
+            "url": None
+            }
+        url = url_for('uframe.create_remote_resource', asset_uid=uid)
+        response = self.client.post(url, headers=headers, data=json.dumps(remote_resource_data))
+        self.assertEquals(response.status_code, 201)
+        result = json.loads(response.data)
+        self.assertTrue(result is not None)
+
+        remote_resource_data = {}
+        url = url_for('uframe.create_remote_resource', asset_uid='bad-uid')
+        response = self.client.post(url, headers=headers, data={})
+        self.assertEquals(response.status_code, 400)
+        result = json.loads(response.data)
+        self.assertTrue(result is not None)
+
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # (Negative) Get asset by uid
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        response = self.client.get(url_for('uframe.get_asset_by_uid', uid='baduid'), headers=headers)
-        self.assertEquals(response.status_code, 409)
+        response = self.client.get(url_for('uframe.get_ui_asset_by_uid', uid='bad-uid'), headers=headers)
+        self.assertEquals(response.status_code, 400)
         result = json.loads(response.data)
         self.assertTrue(result is not None)
 
@@ -194,6 +244,51 @@ class AssetsTestCase(unittest.TestCase):
             self.assertTrue(event_type in event_types)
             if verbose: print '\n debug -- event_type: ', event_type
             self.assertTrue(isinstance(events_by_type[event_type], list))
+
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Positive) Get events for asset by id and parameter of event types (?type=)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        type_string = ''
+        #print '\n event_types: ', get_event_types()
+        some_event_types = get_event_types()
+        for event_type in some_event_types:
+            if event_type is not None:
+                type_string += event_type + ','
+
+        url = url_for('uframe.get_asset_events', id=asset_id)
+        if type_string:
+            #print '\n (before) type_string: ', type_string
+            type_string = type_string.rstrip(',')
+            #print '\n (after) type_string: ', type_string
+            url += '?type='+ type_string
+        #print '\n get_asset_events url: ', url
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        result = json.loads(response.data)
+        self.assertTrue(result is not None)
+        self.assertTrue(isinstance(result, dict))
+        self.assertTrue('events' in result)
+        self.assertTrue(isinstance(result['events'], dict))
+        events_by_type = result['events']
+        self.assertTrue(events_by_type is not None)
+        self.assertTrue(isinstance(events_by_type, dict))
+        self.assertTrue(len(events_by_type) > 0)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Negative) Get events for asset by id and parameter of event types (?type=foo)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        url = url_for('uframe.get_asset_events', id=asset_id)
+        type_string = 'foo'
+        if type_string is not None:
+            url += '?type='+ type_string
+        #print '\n get_asset_events url: ', url
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 400)
+        result = json.loads(response.data)
+        self.assertTrue(result is not None)
+        self.assertTrue(isinstance(result, dict))
+
 
         # (Negative)
         response = self.client.get(url_for('uframe.get_asset_events', id=999999), headers=headers)
@@ -428,7 +523,7 @@ class AssetsTestCase(unittest.TestCase):
 
     def test_create_assets(self):
         """
-        There are five (5) kinds of assets, identified by the assetType.
+        Create an asset of each assetType.
 
         Sample verbose output:
         	Create notClassified asset.
@@ -445,82 +540,6 @@ class AssetsTestCase(unittest.TestCase):
 
             Create Array asset.
                 Created Array asset id/uid: 5240/ASA-TEST-8102504
-
-        Example of a base asset:
-            {
-              "@class" : ".XAsset",
-              "events" : [ ],
-              "assetId" : 4220,
-              "remoteResources" : [ ],
-              "name" : "3",
-              "location" : null,
-              "owner" : null,
-              "notes" : null,
-              "serialNumber" : "3",
-              "description" : "LOAD CELL U/W 3500  LBS TEST",
-              "physicalInfo" : {
-                "length" : -1.0,
-                "height" : -1.0,
-                "width" : -1.0,
-                "weight" : -1.0
-              },
-              "firmwareVersion" : null,
-              "softwareVersion" : null,
-              "powerRequirements" : null,
-              "uid" : "A00003",
-              "assetType" : "notClassified",
-              "mobile" : false,
-              "manufacturer" : "SENSING SYST",
-              "modelNumber" : "10740-3C/3500",
-              "purchasePrice" : null,
-              "purchaseDate" : null,
-              "deliveryDate" : null,
-              "depthRating" : null,
-              "ooiPropertyNumber" : null,
-              "ooiPartNumber" : null,
-              "ooiSerialNumber" : null,
-              "deliveryOrderNumber" : null,
-              "institutionPropertyNumber" : null,
-              "institutionPurchaseOrderNumber" : null,
-              "shelfLifeExpirationDate" : null,
-              "dataSource" : "/home/asadev/uframes/uframe_ooi_20160727_90f4540c71d3fc4f6a4fc8262903c92c722535ee/uframe-1.0/edex/data/ooi/xasset_spreadsheet/bulk_load-AssetRecord.csv",
-              "lastModifiedTimestamp" : 1469665637289
-            }
-
-            Base asset fields:
-            base_required_fields = [
-                                    '@class',
-                                    'events',
-                                    'assetId',
-                                    'remoteResources',
-                                    'name',
-                                    'location',
-                                    'owner',
-                                    'notes',
-                                    'serialNumber',
-                                    'description',
-                                    'physicalInfo',
-                                    'firmwareVersion',
-                                    'softwareVersion',
-                                    'powerRequirements',
-                                    'uid',
-                                    'assetType',
-                                    'mobile',
-                                    'manufacturer',
-                                    'modelNumber',
-                                    'purchasePrice',
-                                    'purchaseDate',
-                                    'deliveryDate',
-                                    'depthRating',
-                                    'ooiPropertyNumber',
-                                    'ooiPartNumber',
-                                    'ooiSerialNumber',
-                                    'deliveryOrderNumber',
-                                    'institutionPropertyNumber',
-                                    'institutionPurchaseOrderNumber',
-                                    'shelfLifeExpirationDate',
-                                    'dataSource'
-                                    ]
 
         """
         debug = self.debug
@@ -567,6 +586,83 @@ class AssetsTestCase(unittest.TestCase):
             self.assertTrue('uid' in new_asset)
             asset_uid = new_asset['uid']
             if verbose: print '\t\tCreated %s asset id/uid: %d/%s' % (asset_type, asset_id, asset_uid)
+
+        if verbose: print '\n '
+
+    def test_create_assets_uid(self):
+        """
+        Create an asset of each assetType using uid containing spaces and or slashes.
+        Currently not permitting spaces or slashes in uids for assets.
+
+        Sample verbose output:
+
+        Create assets with uid containing spaces and/or slashes.
+
+        Create notClassified asset.
+
+            response.status_code:  400
+
+            response.data:  {u'message': u'Asset uid should not contain spaces or slashes, unable to create asset.', u'error': u'bad request'}
+
+        Create Sensor asset.
+
+            response.status_code:  400
+
+            response.data:  {u'message': u'Asset uid should not contain spaces or slashes, unable to create asset.', u'error': u'bad request'}
+
+        Create Node asset.
+
+            response.status_code:  400
+
+            response.data:  {u'message': u'Asset uid should not contain spaces or slashes, unable to create asset.', u'error': u'bad request'}
+
+        Create Mooring asset.
+
+            response.status_code:  400
+
+            response.data:  {u'message': u'Asset uid should not contain spaces or slashes, unable to create asset.', u'error': u'bad request'}
+
+        Create Array asset.
+
+            response.status_code:  400
+
+            response.data:  {u'message': u'Asset uid should not contain spaces or slashes, unable to create asset.', u'error': u'bad request'}
+        """
+        debug = self.debug
+        verbose = self.verbose
+        headers = self.get_api_headers('admin', 'test')
+
+        # Get all event types.
+        asset_types = get_supported_asset_types()
+        asset_types.sort(reverse=True)
+        self.assertTrue(isinstance(asset_types, list))
+        self.assertTrue(len(asset_types) > 0)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Create asset: get base UI data to create an asset
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        #asset_types = ['notClassified']
+        if verbose: print '\nCreate assets with uid containing spaces and/or slashes.'
+        for asset_type in asset_types:
+            if verbose: print '\nCreate %s asset. ' % asset_type
+            # Create asset with space and or slash in uid
+            data = self.get_basic_UI_asset_data(asset_type)
+            data['uid'] += ' / something extra'
+            string_data = get_asset_input_as_string(data)
+            url = url_for('uframe.create_asset')
+            if debug: print '\n\tcreate url: ', url
+            keys = data.keys()
+            keys.sort()
+            #print '\n keys(%d): %s' % (len(keys), keys)
+            data = json.dumps(string_data)
+            response = self.client.post(url, headers=headers, data=data)
+            if verbose:
+                if response.status_code != 201:
+                    print '\n\tresponse.status_code: ', response.status_code
+                    if response.data:
+                        print '\n\tresponse.data: ', json.loads(response.data)
+            self.assertEquals(response.status_code, 400)
+            response_data = json.loads(response.data)
+            if debug: print '\n\tresponse_data: ', response_data
 
         if verbose: print '\n '
 
@@ -1202,7 +1298,7 @@ class AssetsTestCase(unittest.TestCase):
             self.assertTrue(asset_type in get_supported_asset_types())
 
             if verbose: print '\n\t b. Get uframe %s asset by uid (\'%s\').' % (asset_type, asset_uid)
-            url = url_for('uframe.get_asset_by_uid', uid=asset_uid)
+            url = url_for('uframe.get_ui_asset_by_uid', uid=asset_uid)
             response = self.client.get(url, headers=headers)
             self.assertEquals(response.status_code, 200)
             asset = json.loads(response.data)
@@ -1224,7 +1320,7 @@ class AssetsTestCase(unittest.TestCase):
             remote_resource_id = self._create_remote_resource(asset_uid, asset_id)
 
             if verbose: print '\n\t e. Get updated %s asset by uid (\'%s\').' % (asset_type, asset_uid)
-            url = url_for('uframe.get_asset_by_uid', uid=asset_uid)
+            url = url_for('uframe.get_ui_asset_by_uid', uid=asset_uid)
             response = self.client.get(url, headers=headers)
             self.assertEquals(response.status_code, 200)
             asset_by_uid = json.loads(response.data)
@@ -1284,35 +1380,129 @@ class AssetsTestCase(unittest.TestCase):
             """
             # Set data fields...
             dataSource = 'Manual - vendor website.' + str(datetime.datetime.now())
-            keywords = ['SEABIRD', 'SBE', 'vendor', 'ph', 'sensor', 'carousel']
+            keywords = "'SEABIRD', 'SBE', 'vendor', 'ph', 'sensor', 'carousel'"
             label = 'Seabird website'
             resourceNumber = None
             status = 'active'
 
             #_url = 'http://www.seabird.com/ph-sensor-calibration'
             remote_resource['dataSource'] = dataSource
-            #remote_resource['keywords'] = keywords
+            remote_resource['keywords'] = keywords
             remote_resource['label'] = label
-            #remote_resource['resourceNumber'] = resourceNumber
-            #remote_resource['status'] = status
+            remote_resource['resourceNumber'] = resourceNumber
+            remote_resource['status'] = status
             remote_resource['url'] = 'http://www.seabird.com/ph-sensor-calibration'
 
             if debug:
                 print '\n debug -- (after) remote resource, id: ', remote_resource_id
                 dump_dict(remote_resource, debug)
 
-            # Get remote resource by remote resource id.
+            # Update remote resource by remote resource id.
             # Response info on update:
             # {u'message': u'Element updated successfully.', u'id': 5481, u'statusCode': u'OK'}
             url = url_for('uframe.update_remote_resource', asset_uid=asset_uid)
             if debug: print '\n debug -- url: ', url
             data = json.dumps(remote_resource)
+
             response = self.client.put(url, data=data, headers=headers)
-            if debug:
+            if response.status_code != 200:
                 print '\n remote resource update '
                 print '\n status code: ', response.status_code
                 print '\n content: ', json.loads(response.data)
 
+            self.assertEquals(response.status_code, 200)
+            result = json.loads(response.data)
+
+            # Get remote resource by remote resource id.
+            url = url_for('uframe.get_remote_resource_by_resource_id', resource_id=remote_resource_id)
+            response = self.client.get(url, headers=headers)
+            self.assertEquals(response.status_code, 200)
+            result = json.loads(response.data)
+            if debug: print '\n result: ', result
+            self.assertTrue('remote_resource' in result)
+            self.assertTrue('lastModifiedTimestamp' in result['remote_resource'])
+            last_modified = result['remote_resource']['lastModifiedTimestamp']
+            # - - - - - - - - - - - - -
+
+            # (Negative) Add negative test for int rather than string in status.
+            remote_resource['lastModifiedTimestamp'] = last_modified
+            negative_status = 999
+            remote_resource['status'] = negative_status
+            url = url_for('uframe.update_remote_resource', asset_uid=asset_uid)
+            if debug: print '\n debug -- url: ', url
+            data = json.dumps(remote_resource)
+            if debug:
+                print '\n update_remote_resource: '
+                dump_dict(data, debug)
+            response = self.client.put(url, data=data, headers=headers)
+            if debug:
+                if response.status_code == 400:
+                    print '\n (Negative) remote resource update '
+                    print '\n status code: ', response.status_code
+                    print '\n content: ', json.loads(response.data)
+
+            self.assertEquals(response.status_code, 400)
+            result = json.loads(response.data)
+            # Get remote resource by remote resource id.
+            url = url_for('uframe.get_remote_resource_by_resource_id', resource_id=remote_resource_id)
+            response = self.client.get(url, headers=headers)
+            self.assertEquals(response.status_code, 200)
+            result = json.loads(response.data)
+            if debug: print '\n result: ', result
+            self.assertTrue('remote_resource' in result)
+            self.assertTrue('lastModifiedTimestamp' in result['remote_resource'])
+            last_modified = result['remote_resource']['lastModifiedTimestamp']
+            # - - - - - - - - - - - - -
+
+            # (Negative) Add keywords as a list and not string that has comma delimited values.
+            remote_resource['lastModifiedTimestamp'] = last_modified
+            status = 'active'
+            negative_keywords = ['SEABIRD', 'SBE', 'vendor', 'ph', 'sensor', 'carousel']
+            remote_resource['status'] = status
+            remote_resource['keywords'] = negative_keywords
+            url = url_for('uframe.update_remote_resource', asset_uid=asset_uid)
+            if debug: print '\n debug -- url: ', url
+            data = json.dumps(remote_resource)
+            if debug:
+                print '\n update_remote_resource: '
+                dump_dict(data, debug)
+            response = self.client.put(url, data=data, headers=headers)
+            if debug:
+                if response.status_code == 400:
+                    print '\n (Negative) remote resource update '
+                    print '\n status code: ', response.status_code
+                    print '\n content: ', json.loads(response.data)
+            self.assertEquals(response.status_code, 400)
+            result = json.loads(response.data)
+            # Get remote resource by remote resource id.
+            url = url_for('uframe.get_remote_resource_by_resource_id', resource_id=remote_resource_id)
+            response = self.client.get(url, headers=headers)
+            self.assertEquals(response.status_code, 200)
+            result = json.loads(response.data)
+            if debug: print '\n result: ', result
+            self.assertTrue('remote_resource' in result)
+            self.assertTrue('lastModifiedTimestamp' in result['remote_resource'])
+            last_modified = result['remote_resource']['lastModifiedTimestamp']
+            # - - - - - - - - - - - - -
+
+            # (Positive) Add keywords as a malformed string that has comma delimited values. (Actually a 200)
+            remote_resource['lastModifiedTimestamp'] = last_modified
+            status = 'active'
+            negative_keywords = "'SEABIRD',,, SBE 'ph', 'sensor', 'carousel'"
+            remote_resource['status'] = status
+            remote_resource['keywords'] = negative_keywords
+            url = url_for('uframe.update_remote_resource', asset_uid=asset_uid)
+            if debug: print '\n debug -- url: ', url
+            data = json.dumps(remote_resource)
+            if debug:
+                print '\n update_remote_resource: '
+                dump_dict(data, debug)
+            response = self.client.put(url, data=data, headers=headers)
+            #if debug:
+            if response.status_code != 200:
+                print '\n (Positive) remote resource update '
+                print '\n status code: ', response.status_code
+                print '\n content: ', json.loads(response.data)
             self.assertEquals(response.status_code, 200)
             result = json.loads(response.data)
             if debug: print '\n debug -- result: ', result
@@ -1325,7 +1515,7 @@ class AssetsTestCase(unittest.TestCase):
         Using string asset input to simulate UI data from jgrid.
 
         Outline:
-        a. Set target asset type to mooring.
+        a. Set target asset type to as asset type (for instance mooring).
         b. Get mooring required fields and field types.
         c. Get a mooring asset (from some_assets).
         d. Save original asset (for reference and comparison later in script).
@@ -1347,9 +1537,8 @@ class AssetsTestCase(unittest.TestCase):
 
         # Get some assets to update
         some_assets = self.get_some_assets()
-
         asset_types = get_supported_asset_types()
-        #asset_types = ['Array']
+        asset_types = ['notClassified']
         if verbose: print '\n\n Processing assets of types: %s ' % asset_types
         for asset_type in asset_types:
             if verbose: print '\n---------- Processing %s asset. ' % asset_type
@@ -1404,13 +1593,20 @@ class AssetsTestCase(unittest.TestCase):
             # Save original converted asset.
             original_converted = deepcopy(asset)
             asset_copy = deepcopy(asset)
-            if debug: print '\n ---------- converted asset (with original values): '
+            if debug:
+                print '\n ---------- converted asset (with original values): '
             self.display_ui_asset_information(original_converted)
 
             #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             # e. Modify selected fields and save.
             #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             if verbose: print '\n\t e. Modify selected fields and save.'
+
+            self.assertTrue('tense' in original_converted)
+            if debug: print '\n test -- original_converted[tense]: ', original_converted['tense']
+            if not original_converted['tense'] or original_converted is not None:
+                asset_copy['tense'] = 'UNKNOWN'
+
             # Update some field values to test asset update.
             new_description = original_converted['assetInfo']['description'] + ' ' + str(datetime.datetime.now())
             if original_converted['assetInfo']['owner'] is None:
@@ -1581,15 +1777,9 @@ class AssetsTestCase(unittest.TestCase):
 
         if verbose: print '\n '
 
-    def test_negative_create_remote_resource(self):
+    def test_create_remote_resource_negative(self):
         """
-        Negative test update assets of type array, mooring, node and sensor assets.
-        Using string asset input to simulate UI data from jgrid.
-
-        Outline:
-        a. Set target asset type to mooring.
-        b. Get mooring required fields and field types.
-        c. Get a mooring asset (from some_assets).
+        Negative test cases for remote resources; property of assets.
 
         remote_resource_data = {
             "dataSource": None,
@@ -1610,7 +1800,6 @@ class AssetsTestCase(unittest.TestCase):
         some_assets = self.get_some_assets()
         asset_types = get_supported_asset_types()
         if verbose: print '\n\n Processing assets of types: %s ' % asset_types
-        #asset_types = ['Node']
         for asset_type in asset_types:
             if verbose: print '\n---------- Processing %s asset. ' % asset_type
             #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -1,24 +1,18 @@
 #!/usr/bin/env python
 
 """
-Assets: Supporting functions.
+Asset Management - Assets: Supporting functions.
 """
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
 from ooiservices.app import cache
 from ooiservices.app.uframe.controller import dfs_streams
-from ooiservices.app.uframe.toc_tools import _compile_asset_rds
-from ooiservices.app.uframe.config import (get_uframe_assets_info, get_assets_url_base, headers, get_url_info_resources)
 from ooiservices.app.uframe.common_tools import (get_asset_type_by_rd, get_asset_classes, get_supported_asset_types)
-from ooiservices.app.uframe.vocab import (get_vocab, get_vocab_dict_by_rd, get_rs_array_display_name_by_rd,
-                                          get_display_name_by_rd)
-from copy import deepcopy
-import requests
-import requests.exceptions
-from requests.exceptions import (ConnectionError, Timeout)
-import datetime as dt
-
+from ooiservices.app.uframe.vocab import (get_vocab, get_vocab_dict_by_rd, get_rs_array_name_by_rd, get_display_name_by_rd)
+from ooiservices.app.uframe.uframe_tools import (get_assets_from_uframe, uframe_get_asset_by_id, uframe_get_asset_by_uid)
+from ooiservices.app.uframe.asset_cache_tools import (_get_rd_assets, get_asset_deployment_info, get_asset_rds_cache,
+                                                      asset_rds_cache_update)
 CACHE_TIMEOUT = 172800
 
 
@@ -27,7 +21,6 @@ def verify_cache(refresh=False):
     """
     verify_cache_required = False
     try:
-
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Ensure cached: 'vocab_dict' and 'vocab_codes'; 'stream_list'
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -39,7 +32,6 @@ def verify_cache(refresh=False):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         if not cache.get('asset_list') or not cache.get('assets_dict') or \
            not cache.get('asset_rds') or not cache.get('rd_assets'):
-            #or not cache.get('assets_not_classified') or not cache.get('assets_no_deployments'):
             verify_cache_required = True
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -72,7 +64,7 @@ def get_assets_payload():
     """
     debug = False
     try:
-        print '\n [NEW] Compiling assets...\n'
+        print '\n-- Compiling assets...\n'
         try:
             # Clear all cache
             if cache.get('asset_list'):
@@ -83,10 +75,6 @@ def get_assets_payload():
                 cache.delete('asset_rds')
             if cache.get('rd_assets'):
                 cache.delete('rd_assets')
-            if cache.get('assets_not_classified'):
-                cache.delete('assets_not_classified')
-            if cache.get('assets_no_deployments'):
-                cache.delete('assets_no_deployments')
         except Exception as err:
             message = str(err)
             raise Exception(message)
@@ -128,17 +116,7 @@ def get_assets_payload():
             message = 'Empty rd_assets returned from asset data.'
             raise Exception(message)
 
-        # Cache get assets_not_classified
-        assets_not_classified = cache.get('assets_not_classified')
-        if assets_not_classified:
-            if debug: print '\n get_assets_payload: assets_not_classified: %d' % len(assets_not_classified)
-
-        # Cache get assets_no_deployments
-        assets_no_deployments = cache.get('assets_no_deployments')
-        if assets_no_deployments:
-            if debug: print '\n get_assets_payload: assets_no_deployments: %d' % len(assets_no_deployments)
-
-        print '\n [New] Completed compiling assets...\n'
+        print '\n-- Completed compiling assets...\n'
         return data
 
     except Exception as err:
@@ -166,7 +144,6 @@ def get_stream_list():
             else:
                 message = 'stream_list failed to return value, error.'
                 current_app.logger.info(message)
-
         return stream_list
 
     except Exception as err:
@@ -200,44 +177,6 @@ def populate_assets_dict(data):
         return None
 
 
-# Get all assets from uframe.
-def get_assets_from_uframe():
-    """ Get all assets from uframe.
-    """
-    time = True
-    try:
-        # Get uframe connect and timeout information
-        if time: print '\n-- Getting assets from uframe... '
-        start = dt.datetime.now()
-        if time: print '\n-- Start time: ', start
-        uframe_url, timeout, timeout_read = get_uframe_assets_info()
-        timeout_extended = timeout_read * 2
-        url = '/'.join([uframe_url, get_assets_url_base()])
-        response = requests.get(url, timeout=(timeout, timeout_extended))
-        end = dt.datetime.now()
-        if time: print '\n-- End time:   ', end
-        if time: print '\n-- Time to get uframe assets: %s' % str(end - start)
-        if response.status_code != 200:
-            message = '(%d) Failed to get uframe assets.' % response.status_code
-            raise Exception(message)
-        result = response.json()
-        print '\n-- Number of assets from uframe: ', len(result)
-        return result
-
-    except ConnectionError:
-        message = 'ConnectionError getting uframe assets.'
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout:
-        message = 'Timeout getting uframe assets.'
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        raise
-
-
 def get_assets_dict_from_list(assets_list):
     """ From list of (ooi-ui-services versioned) list of assets, create assets dictionary by (key) id.
     """
@@ -259,65 +198,39 @@ def _get_asset(id):
     """
     asset = {}
     try:
-        if id == 0:
-            message = 'Zero (0) is an invalid asset id value.'
+        if id < 1:
+            message = 'Invalid asset id value.'
             raise Exception(message)
-
         assets_dict = cache.get('assets_dict')
         if assets_dict is not None:
             if id in assets_dict:
                 asset = assets_dict[id]
         else:
-            uframe_url, timeout, timeout_read = get_uframe_assets_info()
-            url = '/'.join([uframe_url, get_assets_url_base(), str(id)])
-            payload = requests.get(url, timeout=(timeout, timeout_read))
-            if payload.status_code != 200:
-                message = 'Unable to locate an asset with an id of %d.' % id
-                raise Exception(message)
-            data = payload.json()
+            data = uframe_get_asset_by_id(id)
             if data:
                 data_list = [data]
                 result, _ = new_compile_assets(data_list)
                 if result:
                     asset = result[0]
-
         return asset
-    except ConnectionError:
-        message = 'Error: ConnectionError getting asset with id %d from uframe.' % id
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout:
-        message = 'Error: Timeout getting asset with id %d from uframe.' % id
-        current_app.logger.info(message)
-        raise Exception(message)
     except Exception as err:
         message = str(err)
         raise Exception(message)
 
 
-# Get asset from uframe by asset id.
-def uframe_get_asset_by_id(id):
-    """ Get asset from uframe by asset id.
+# Get asset from uframe by asset uid.
+def _get_ui_asset_by_uid(uid):
+    """ Get asset from uframe by asset uid, return ui asset.
     """
+    asset = {}
     try:
-        # Get uframe asset
-        uframe_url, timeout, timeout_read = get_uframe_assets_info()
-        url = '/'.join([uframe_url, get_assets_url_base(), str(id)])
-        payload = requests.get(url, timeout=(timeout, timeout_read), headers=headers())
-        if payload.status_code != 200:
-            message = 'Failed to get asset (id: %d) from uframe.' % id
-            current_app.logger.info(message)
-            raise Exception(message)
-        asset = payload.json()
+        data = uframe_get_asset_by_uid(uid)
+        if data:
+            data_list = [data]
+            result, _ = new_compile_assets(data_list)
+            if result:
+                asset = result[0]
         return asset
-    except ConnectionError:
-        message = 'ConnectionError getting asset (id: %d) from uframe.' % id
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout:
-        message = 'Timeout getting asset (id: %d) from uframe.' % id
-        current_app.logger.info(message)
-        raise Exception(message)
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
@@ -325,196 +238,18 @@ def uframe_get_asset_by_id(id):
 
 
 # Get asset from uframe by asset uid.
-def uframe_get_asset_by_uid(uid):
-    """ Get asset from uframe by asset uid.
+def get_uframe_asset_by_uid(uid):
+    """ Get asset from uframe by asset uid, return ui asset.
     """
+    data = {}
     try:
-        # Get uframe asset by uid.
-        query = '?uid=' + uid
-        uframe_url, timeout, timeout_read = get_uframe_assets_info()
-        url = '/'.join([uframe_url, get_assets_url_base()])
-        url += query
-        response = requests.get(url, timeout=(timeout, timeout_read), headers=headers())
-        if response.status_code == 204:
-            message = 'Failed to receive content from uframe for asset with uid \'%s\'.' % uid
-            raise Exception(message)
-        elif response.status_code != 200:
-            message = 'Failed to get asset from uframe with uid: \'%s\'.' % uid
-            raise Exception(message)
-        asset = response.json()
-        return asset
-    except ConnectionError:
-        message = 'ConnectionError getting asset (uid %s) from uframe.' % uid
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout:
-        message = 'Timeout getting asset (uid %s) from uframe.' % uid
-        current_app.logger.info(message)
-        raise Exception(message)
+        data = uframe_get_asset_by_uid(uid)
+        return data
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
         raise Exception(message)
 
-
-# Get remote resource from uframe by remote resource id.
-def uframe_get_remote_resource_by_id(id):
-    """ Get remote resource from uframe by remoteResourceId..
-    """
-    try:
-        # Get uframe asset by uid.
-        uframe_url, timeout, timeout_read = get_url_info_resources()
-        url = '/'.join([uframe_url, str(id)])
-        response = requests.get(url, timeout=(timeout, timeout_read), headers=headers())
-        if response.status_code == 204:
-            message = 'Failed to get content from uframe for remote resource with id \'%d\'.' % id
-            raise Exception(message)
-        elif response.status_code != 200:
-            message = 'Failed to get remote resource from uframe with id: %d.' % id
-            raise Exception(message)
-        remote_resource = response.json()
-        return remote_resource
-    except ConnectionError:
-        message = 'ConnectionError getting remote resource (uid %d) from uframe.' % id
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout:
-        message = 'Timeout getting remote resource (uid %d) from uframe.' % id
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        raise Exception(message)
-
-
-def _get_rd_assets():
-    """ Get 'rd_assets', if not available get and set cache; return 'rd_assets' dictionary.
-    """
-    from ooiservices.app.uframe.deployment_tools import _compile_rd_assets
-    rd_assets = {}
-    try:
-        # Get 'rd_assets' if cached
-        rd_assets_cached = cache.get('rd_assets')
-        if rd_assets_cached:
-            rd_assets = rd_assets_cached
-
-        # Get 'rd_assets' - compile them
-        else:
-            try:
-                rd_assets = _compile_rd_assets()
-            except Exception as err:
-                message = 'Error processing _compile_rd_assets: ', err.message
-                current_app.logger.warning(message)
-
-            # Cache rd_assets
-            if rd_assets:
-                cache.set('rd_assets', rd_assets, timeout=CACHE_TIMEOUT)
-
-        return rd_assets
-
-    except Exception as err:
-        message = 'Exception processing _get_rd_assets: %s' % str(err)
-        current_app.logger.info(message)
-        return {}
-
-
-def _get_asset_from_assets_dict(id):
-    """ Get 'assets_dict', if not available get and set cache; return 'assets_dict' dictionary.
-    """
-    asset = None
-    try:
-        # Get 'assets_dict' if cached
-        cached = cache.get('assets_dict')
-        if cached:
-            assets_dict = cached
-
-        # Get 'assets_dict' - compile them
-        else:
-            verify_cache()
-            assets_dict = cache.get('assets_dict')
-
-        if id in assets_dict:
-            asset = assets_dict[id]
-        return asset
-
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return None
-
-
-def get_asset_rds_cache():
-    asset_rds = None
-    try:
-        cached = cache.get('asset_rds')
-        if cached:
-            asset_rds = cached
-        else:
-            try:
-                asset_rds, rds_wo_assets = _compile_asset_rds()
-            except Exception as err:
-                message = 'Error processing _compile_asset_rds: ', err.message
-                raise Exception(message)
-            # Cache rd_assets
-            if asset_rds:
-                cache.set('asset_rds', asset_rds, timeout=CACHE_TIMEOUT)
-        return asset_rds
-
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-
-def asset_rds_cache_update(dict_asset_ids):
-    if dict_asset_ids:
-        cache.set('asset_rds', dict_asset_ids, timeout=CACHE_TIMEOUT)
-
-'''
-def update_bad_asset_list(bad_data):
-    # Update cache for 'bad_asset_list'
-    bad_assets_cached = cache.get('bad_asset_list')
-    if bad_assets_cached:
-        cache.delete('bad_asset_list')
-        cache.set('bad_asset_list', bad_data, timeout=CACHE_TIMEOUT)
-    else:
-        cache.set('bad_asset_list', bad_data, timeout=CACHE_TIMEOUT)
-    return
-
-
-# Cache of assets 'notClassified'
-def update_assets_not_classified(assets_not_classified):
-    # Update cache for 'assets_not_classified'
-    try:
-        cached = cache.get('assets_not_classified')
-        if cached:
-            cache.delete('assets_not_classified')
-            cache.set('assets_not_classified', cached, timeout=CACHE_TIMEOUT)
-        else:
-            cache.set('assets_not_classified', assets_not_classified, timeout=CACHE_TIMEOUT)
-        return
-    except Exception as err:
-        message = str(err)
-        print '\n exception: update_assets_not_classified: ', message
-        raise Exception(message)
-
-
-# Cache of assets wo deployments
-def update_assets_no_deployments(assets_no_deployments):
-    # Update cache for 'assets_no_deployments'
-    try:
-        cached = cache.get('assets_no_deployments')
-        if cached:
-            cache.delete('assets_no_deployments')
-            cache.set('assets_no_deployments', cached, timeout=CACHE_TIMEOUT)
-        else:
-            cache.set('assets_no_deployments', assets_no_deployments, timeout=CACHE_TIMEOUT)
-        return
-    except Exception as err:
-        message = str(err)
-        print '\n exception: update_assets_no_deployments: ', message
-        raise Exception(message)
-'''
 
 def format_asset_for_ui(modified_asset):
     """ Format uframe asset into ui asset.
@@ -560,207 +295,6 @@ def post_process_remote_resources(resources):
 
     except Exception as err:
         message = 'Error post-processing event for display. %s' % str(err)
-        raise Exception(message)
-
-
-def refresh_asset_cache(id, asset, action, remote_id=None):
-    """ Perform asset cache add or update depending on action provided.
-    """
-    try:
-        if action == 'create':
-            asset_cache_add(id, asset)
-        elif action == 'update':
-            update_asset_cache(id, asset, remote_id)
-        else:
-            message = 'Failed to refresh asset cache, unknown action(\'%s\').' % action
-            raise Exception(message)
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-
-def update_asset_cache(id, asset, remote_id=None):
-    """ Update an asset stored in cache.
-
-    if asset_cache:
-        if debug: print '\n debug -- have asset...'
-        cache.delete('asset_list')
-        for row in asset_cache:
-            if row['id'] == id:
-                row.update(compiled_data[0])
-                break
-        cache.set('asset_list', asset_cache, timeout=CACHE_TIMEOUT)
-    """
-    debug = False
-    try:
-        if debug:
-            print '\n **************** debug -- update_asset_cache, asset id: %d' % id
-            """
-            if 'remoteResources' in asset:
-                remoteResources = asset['remoteResources']
-                print '\n debug -- Number of remote resources in asset provided: %d' % len(remoteResources)
-                if remote_id is not None:
-                    for res in remoteResources:
-                        if res['remoteResourceId'] == remote_id:
-                            if debug:
-                                print '\n located remote resource we are updating (%d)' % remote_id
-                                print '\n lastModifiedTimestamp: ', res['lastModifiedTimestamp']
-                                break
-            """
-        # Update asset cache ('asset_list')
-        asset_cache = cache.get('asset_list')
-        if asset_cache:
-            if debug: print '\n **************** debug -- asset_cache available....'
-            found_asset = False
-            for item in asset_cache:
-                if item['id'] == id:
-                    item.update(asset)
-                    found_asset = True
-                    break
-
-            if not found_asset:
-                if debug: print '\n DID NOT FIND ASSET IN ASSET_LIST CACHE!!! WILL NOT UPDATE CACHE....'
-            if found_asset:
-                if debug: print '\n debug -- asset_cache update....'
-                #cache.delete('asset_list')
-                cache.set('asset_list', asset_cache, timeout=CACHE_TIMEOUT)
-
-                """
-                # Query cache for element to ensure it has been updated...
-                test = cache.get('asset_list')
-                if test is not None:
-                    for item in test:
-                        if item['id'] == id:
-                            if debug: print '\n located asset in asset_list cache....'
-                            remote_resources = item['remoteResources']
-                            for rr in remote_resources:
-                                if rr['remoteResourceId'] == remote_id:
-                                    if debug:
-                                        print '\n Found remote resource %d in asset id %d' % (remote_id, id)
-                                        print '\n Reviewing remote resource we UPDATED (%d)' % remote_id
-                                        print '\n UPDATED lastModifiedTimestamp: ', rr['lastModifiedTimestamp']
-                                        break
-                """
-                # Update assets_dict cache ('assets_dict')
-                assets_dict_cache = cache.get('assets_dict')
-                if assets_dict_cache:
-                    if debug: print '\n Found assets_dict cache available, processing...'
-                    if id in assets_dict_cache:
-                        if debug: print '\n Found asset id %d in assets_dict...' % id
-                        assets_dict_cache[id] = deepcopy(asset)
-                        #cache.delete('assets_dict')
-                        cache.set('assets_dict', assets_dict_cache, timeout=CACHE_TIMEOUT)
-
-                        """
-                        # Verify asset id return expected asset contents for remote resource.
-                        if debug: print '\n Verifying update of assets_dict...'
-                        test2 = cache.get('assets_dict')
-                        if test2 is None:
-                            print '\n Could NOT RETRIEVE ASSETS_DICT CACHE AFTER UPDATE...'
-                        if test2 is not None:
-                            if id in test2:
-                                if debug: print '\n Found asset id %d in assets_dict, processing...'
-                                test_asset = test2[id]
-                                if debug: print '\n len(test_asset[remoteResources]): ', len(test_asset['remoteResources'])
-                                for remote_res in test_asset['remoteResources']:
-                                    if remote_res['remoteResourceId'] == remote_id:
-                                        if debug:
-                                            print '\n Located remote resource which should have been updated...'
-                                            print '\n lastModifiedTimestamp: ', remote_res['lastModifiedTimestamp']
-                                            break
-                        """
-
-        else:
-            if debug: print '\n **************** debug -- asset_cache NOT available....'
-        return
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-
-def asset_cache_add(id, asset):
-    """ Add an asset to cache.
-    """
-    debug = False
-    try:
-        # Add asset to asset cache ('asset_list')
-        asset_cache = cache.get('asset_list')
-        add_success = False
-        if asset_cache:
-            asset_list = asset_cache
-            if isinstance(asset_list, list):
-                found_asset = False
-                for item in asset_cache:
-                    if item['id'] == id:
-                        del item
-                        found_asset = True
-                        break
-                if found_asset:
-                    message = '[asset_cache_add] asset already in cache, cannot create (use update).'
-                    raise Exception(message)
-
-
-                asset_list.append(asset)
-                cache.set('asset_list', asset_list, timeout=CACHE_TIMEOUT)
-                asset_cache = cache.get('asset_list')
-                if asset_cache:
-                    if len(asset_cache) == len(asset_list):
-                        add_success = True
-                else:
-                    if debug: print '\n debug -- asset_list empty after setting cache...'
-            else:
-                if debug: print '\n debug -- asset_list is NOT a list...'
-
-        if add_success:
-            if debug: print '\n debug -- Successful addition of new asset to asset list cache...'
-            # Add asset to assets_dict cache ('assets_dict')
-            assets_dict_cache = cache.get('assets_dict')
-            if assets_dict_cache:
-                if debug: print '\n debug -- Have assets_dict cache...'
-                if id not in assets_dict_cache:
-                    if debug: print '\n Asset %d not in assets_dict cache, add...' % id
-                    assets_dict_cache[id] = asset
-                    cache.set('assets_dict', assets_dict_cache, timeout=CACHE_TIMEOUT)
-            else:
-                if debug: print '\n debug -- Do NOT have assets_dict cache...'
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-
-# Get asset id using asset uid.
-def _get_id_by_uid(uid):
-    """ Get asset id using asset uid.
-    """
-    try:
-        # Get uframe asset by uid.
-        query = '?uid=' + uid
-        uframe_url, timeout, timeout_read = get_uframe_assets_info()
-        url = '/'.join([uframe_url, get_assets_url_base()])
-        url += query
-        payload = requests.get(url, timeout=(timeout, timeout_read), headers=headers())
-        if payload.status_code == 204:
-            return None
-        elif payload.status_code != 200:
-            message = 'Failed to get asset with uid: \'%s\'.' % uid
-            raise Exception(message)
-        asset = payload.json()
-        id = None
-        if asset:
-            if 'assetId' in asset:
-                id = asset['assetId']
-        return id
-    except ConnectionError:
-        message = 'ConnectionError getting asset (uid %s) from uframe. %s' % (uid, str(err))
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout:
-        message = 'Timeout getting asset (uid %s) from uframe. %s' % (uid, str(err))
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
         raise Exception(message)
 
 
@@ -816,7 +350,7 @@ def get_events_by_ref_des(data, ref_des):
 def new_compile_assets(data, compile_all=False):
     """ Process list of asset dictionaries from uframe; transform into (ooi-ui-services) list of asset dictionaries.
     """
-    debug = True
+    debug = False
     info = True                 # Log missing vocab items when unable to create display name(s), etc. (default is True)
     new_data = []               # (assets) Mooring, Node and Sensor assets which have been deployed
     bad_data = []               # (assets with unknown asset type or error.)
@@ -849,13 +383,7 @@ def new_compile_assets(data, compile_all=False):
     no_deployments_title = '\nFollowing reference designators are missing assets ids for deployment(s) listed: '
     all_no_deployments_message = ''
     all_no_deployments_dict = {}
-
-    # todo - refactor
-    from ooiservices.app.uframe.deployment_tools import get_asset_deployment_map
-
     asset_supported_types = get_supported_asset_types()
-    if 'Array' not in asset_supported_types:
-        asset_supported_types.append('Array')
 
     for row in data:
         ref_des = ''
@@ -876,7 +404,6 @@ def new_compile_assets(data, compile_all=False):
                 del row['events']
             if 'calibration' in row:
                 del row['calibration']
-
             if 'location' in row:
                 del row['location']
 
@@ -979,8 +506,8 @@ def new_compile_assets(data, compile_all=False):
                 'array': '',
                 'assembly': '',
                 'asset_name': '',
-                'mindepth': 0,
-                'maxdepth': 0
+                'mindepth': 0.0,
+                'maxdepth': 0.0
             }
             # Asset owner
             row['assetInfo']['owner'] = row.pop('owner')
@@ -999,8 +526,8 @@ def new_compile_assets(data, compile_all=False):
 
             name = None
             longName = None
-            mindepth = 0
-            maxdepth = 0
+            mindepth = 0.0
+            maxdepth = 0.0
             row['assetInfo']['mindepth'] = mindepth
             row['assetInfo']['maxdepth'] = maxdepth
             row['assetInfo']['name'] = name
@@ -1023,9 +550,10 @@ def new_compile_assets(data, compile_all=False):
                     continue
 
                 # Get deployment information for this asset_id-rd; populate asset values using deployment information.
+                #if debug: print '\n debug -- Calling get_asset_deployment_map...'
                 depth, location, has_deployment_event, deployment_numbers, cumulative_tense, tense, \
                     no_deployments_nums, deployments_list = get_asset_deployment_map(asset_id, ref_des)
-
+                #if debug: print '\n debug -- After calling get_asset_deployment_map...'
                 # If reference designator has deployments which do not have associated asset ids, compile information.
                 if no_deployments_nums:
                     # if ref_des not in all collection, add
@@ -1037,6 +565,8 @@ def new_compile_assets(data, compile_all=False):
                                 all_no_deployments_dict[ref_des].append(did)
 
                 row['depth'] = depth
+                if not location:
+                    print '\n No location: ', location
                 row['longitude'] = location[0]
                 row['latitude'] = location[1]
                 row['deployment_number'] = deployment_numbers
@@ -1051,8 +581,8 @@ def new_compile_assets(data, compile_all=False):
                     # Get vocabulary dict for ref_des; contains name, long_name, mindepth, maxdepth, model, manufacturer
                     name = None
                     longName = None
-                    mindepth = 0
-                    maxdepth = 0
+                    mindepth = 0.0
+                    maxdepth = 0.0
                     vocab_dict = get_vocab_dict_by_rd(ref_des)
                     if vocab_dict:
                         row['assetInfo']['mindepth'] = vocab_dict['mindepth']
@@ -1087,7 +617,7 @@ def new_compile_assets(data, compile_all=False):
                     # Populate assetInfo - array and assembly
                     if len(ref_des) >= 8:
                         if ref_des[:2] == 'RS':
-                            row['assetInfo']['array'] = get_rs_array_display_name_by_rd(ref_des[:8])
+                            row['assetInfo']['array'] = get_rs_array_name_by_rd(ref_des[:8])
                         else:
                             row['assetInfo']['array'] = get_display_name_by_rd(ref_des[:2])
                     if len(ref_des) >= 14:
@@ -1116,7 +646,8 @@ def new_compile_assets(data, compile_all=False):
                     update_asset_rds_cache = True
 
         except Exception as err:
-            current_app.logger.info(str(err))
+            message = str(err)
+            current_app.logger.info(message)
             continue
 
     # If reference designators with missing deployment(s), log sorted by reference designator.
@@ -1142,10 +673,154 @@ def new_compile_assets(data, compile_all=False):
         if dict_asset_ids:
             if update_asset_rds_cache:
                 asset_rds_cache_update(dict_asset_ids)
-
         if bad_data:
             if debug: print '\n -- Number of bad assets: ', len(bad_data)
-        if debug: print '\n -- Total_assets: ', len(new_data)
+
+        print '\n-- Total number of assets compiled: ', len(new_data)
 
     return new_data, dict_asset_ids
 
+#=============================================
+
+def get_asset_deployment_map(asset_id, ref_des):
+    """ For an asset id and associated reference designator, get deployment [map] information.
+    Process deployment information to obtain/return the following for the asset id/reference designator:
+        depth (float, default: 0.0)
+        location (list, [0.0, 0.0])
+        has_deployment_event (bool, default: False)
+        deployment_numbers (str, default: '')
+        tense (str, default: '')
+
+    Each asset displays the following information related to deployment(s):
+      New deployment display grid covers these deployment related items on per deployment basis:
+        deployment_number, beginDT, endDT, tense, and
+        location dict with: latitude, longitude, location [], orbit radius and depth
+    Note: on current deployment the endDT will be null if deployment is active.
+
+    """
+    # Valid processing types are those assetTypes which are subsequently mapped to reference designators.
+    valid_processing_types_uc = get_supported_asset_types()
+    valid_processing_types = []
+    for type in valid_processing_types_uc:
+        valid_processing_types.append(type.lower())
+
+    debug = False
+    depth = 0.0
+    location = [0.0, 0.0]
+    has_deployment_event = False
+    deployment_numbers = ''
+    _deployment_numbers = []
+    tense = ''
+    cumulative_tense = ''
+    try:
+        if debug: print '\n debug -- get_asset_deployment_map id/rd: %d/%s' % (asset_id, ref_des)
+        # Get type of asset we are processing, using reference designator.
+        asset_type = get_asset_type_by_rd(ref_des)
+        if asset_type:
+            asset_type = asset_type.lower()
+        if debug:
+            if asset_type not in valid_processing_types:
+                message = 'Processing %s for deployments, invalid asset type \'%s\'.' % (ref_des, asset_type)
+                current_app.logger.info(message)
+                if debug: print '\n debug -- ', message
+
+        no_deployments_nums = []
+        if asset_type in valid_processing_types:
+            if debug: print '\n debug -- Processing asset_type: ', asset_type
+            deployments_info = get_asset_deployment_info(asset_id, ref_des)
+            if deployments_info:
+                deployments_list = deployments_info['deployments']
+
+                # Determine if has_deployment_event and location
+                if deployments_list:
+                    has_deployment_event = True
+                    deployments_list.sort(reverse=True)
+
+                    if debug: print '\n debug -- %s - Step 1...' % ref_des
+                    # Get coordinate information from most recent deployment
+                    current_deployment_number = deployments_info['current_deployment']
+                    current_deployment = deployments_info[current_deployment_number]
+                    if debug: print '\n debug -- %s - Step 2...' % ref_des
+                    if current_deployment['location'] is not None:
+                        latitude = round(current_deployment['location']['latitude'], 4)
+                        longitude = round(current_deployment['location']['longitude'], 4)
+                        location = [longitude, latitude]
+                        depth = current_deployment['location']['depth']
+                    if debug: print '\n debug -- %s - Step 3...' % ref_des
+                    if debug:
+                        print '\n debug -- Most recent deployment number: %d -- tense %s' % \
+                              (current_deployment_number, current_deployment['tense'])
+
+                    # Get deployment number(s) for this asset id
+                    _deployment_numbers = []
+                    for deploy_number in deployments_list:
+
+                        tense = deployments_info[deploy_number]['tense']
+                        # Get asset ids, based on asset type (of associated) reference designator being processed,
+                        tmp = deployments_info[deploy_number]['asset_ids_by_type'][asset_type]
+                        if tmp:
+                            if debug: print '\n debug -- %s %s deployment %d has asset ids: %s' % \
+                                            (ref_des, asset_type, deploy_number, tmp)
+                            if asset_id in tmp:
+                                if deploy_number not in _deployment_numbers:
+                                    _deployment_numbers.append(deploy_number)
+                        else:
+                            # In this case there is a deployments_list, but deployments_info for this deploy_number
+                            # does not have asset ids for asset_type in assets map. (uframe missing data problem)
+                            # Basically 'sensor' data does not have assetId for deploy_number deployment.
+                            # This MAY lead to incorrectly identifying the most recent or current deployment for
+                            # this asset id; certainly deployment asset map will have 'holes' if data is missing.
+                            # Example: CP02PMUO-SBS01-01-MOPAK0000 (sensor) has 7 deployments, and deployment 7
+                            # does not have a node value which identifies an assetId. So deployment 7 will not have
+                            # a value in deployment_info[7][asset_ids_by_type]['sensor'] but instead is [].
+                            # http://host:12587/events/deployment/inv/CP02PMUO/SBS01/01-MOPAK0000/7
+                            # [{
+                            #   "@class" : ".XDeployment",
+                            #   "location" : {
+                            #       "depth" : 0.0,
+                            #       "location" : [ -70.7800166, 39.942116 ],
+                            #       "longitude" : -70.7800166,
+                            #       "latitude" : 39.942116,
+                            #       "orbitRadius" : 0.0
+                            #   },
+                            #   "sensor" : null,
+                            #   "node" : null,
+                            #   "referenceDesignator" : {
+                            #       "subsite" : "CP02PMUO",
+                            #       "sensor" : "01-MOPAK0000",
+                            #       "node" : "SBS01",
+                            #       "full" : true
+                            #   }, . . .
+                            # }]
+                            if deploy_number not in no_deployments_nums:
+                                no_deployments_nums.append(deploy_number)
+                            #message = 'No asset ids for %s %s, deployment number %d.' % \
+                            #          (asset_type, ref_des, deploy_number)
+                            #current_app.logger.info(message)
+                            if debug: print '\n debug -- %s %s deployments_list: %s' % (asset_type, ref_des, deployments_list)
+
+                    # Get cumulative tense value for last deployment provided
+                    if _deployment_numbers:
+                        _deployment_numbers.sort(reverse=True)
+                        recent_deployment_number = _deployment_numbers[0]
+                        if current_deployment_number != recent_deployment_number:
+                            if debug: print '\n debug -- reporting recent_deployment number %d, as last, not %d' % \
+                                            (recent_deployment_number, current_deployment_number)
+                        cumulative_tense = deployments_info[recent_deployment_number]['cumulative_tense']
+                        _deployment_numbers.sort()
+                        for dn in _deployment_numbers:
+                                deployment_numbers += str(dn) + ', '
+                        if deployment_numbers:
+                            deployment_numbers = deployment_numbers.strip(', ')
+
+                    # Highlight (*) deployments if most recent deployment has an empty 'node' attribute.
+                    if no_deployments_nums:
+                        if current_deployment_number in no_deployments_nums:
+                            deployment_numbers += ' *'
+
+        return depth, location, has_deployment_event, deployment_numbers, cumulative_tense, tense, no_deployments_nums, _deployment_numbers
+
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None

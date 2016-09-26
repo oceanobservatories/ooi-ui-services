@@ -1,36 +1,34 @@
 """
-Asset Management - Assets: Validate required fields based on asset type.
+Asset Management - Deployments: Validate required fields.
 """
 __author__ = 'Edna Donoughe'
 
 
-from ooiservices.app.uframe.common_tools import (get_asset_types, asset_edit_phase_values, verify_action)
+from ooiservices.app.uframe.common_tools import (deployment_edit_phase_values, verify_action)
 from ooiservices.app.uframe.common_convert import convert_ui_data
 
 
-def assets_validate_required_fields_are_provided(asset_type, data, action=None):
-    """ Verify for the asset_type and action, the required fields have been provided in the input data.
+def deployments_validate_required_fields_are_provided(data, action=None):
+    """ Verify for the selected action, the required fields have been provided in the input data.
     """
     try:
-        # Verify input, on error will raise exception; no error indicates success.
-        verify_inputs(asset_type, data, action)
+        # Verify input, on error raise exception.
+        verify_inputs(data, action)
 
         # Get fields required (from UI) for action.
-        required_fields, field_types = asset_ui_get_required_fields_and_types(asset_type, action)
+        required_fields, field_types = deployment_ui_get_required_fields_and_types(action)
         if not required_fields:
-            message = 'Asset type %s action %s requires specific fields.' % (asset_type, action)
+            message = 'Deployment action %s requires specific fields.' % action
             raise Exception(message)
 
         if not field_types:
-            message = 'Asset type %s action %s requires specific field types.' % (asset_type, action)
+            message = 'Deployment action %s requires specific field types.' % action
             raise Exception(message)
 
         # Convert field values - for all field values, convert into target type.
-        converted_data = convert_required_fields(asset_type, data, required_fields, field_types, action)
+        converted_data = convert_required_fields(data, required_fields, field_types, action)
         check_required_fields(converted_data, action, required_fields, field_types)
-
         return converted_data
-
     except Exception as err:
         message = str(err)
         raise Exception(message)
@@ -102,23 +100,21 @@ def check_required_fields(converted_data, action, required_fields, field_types):
                         extra_fields.append(field)
         if extra_fields:
             message = 'Data contains extra fields %s, ' % extra_fields
-            message += 'correct and re-submit request to validate fields for %s asset request.' % action.upper()
+            message += 'correct and re-submit request to validate fields for %s deployment request.' % action.upper()
             raise Exception(message)
-
         return
     except Exception as err:
         message = str(err)
         raise Exception(message)
 
 
-def verify_inputs(asset_type, data, action):
+def verify_inputs(data, action):
     """ Simple error checking for input data.
     """
+    valid_actions = ['create', 'update']
     try:
-        # Verify action.
+        # Verify action for which we are validating the field (create or update).
         verify_action(action)
-
-        # Verify valid data.
         if not data:
             message = 'Field validation requires event type, data dict and a defined action; data is empty.'
             raise Exception(message)
@@ -126,233 +122,197 @@ def verify_inputs(asset_type, data, action):
             message = 'Field validation requires data to be of type dictionary.'
             raise Exception(message)
 
-        # Verify valid asset_type provided.
-        if not asset_type:
-            message = 'Field validation requires asset_type to be provided, not empty.'
-            raise Exception(message)
-        if asset_type not in get_asset_types():
-            message = 'Valid asset type is required to validate asset fields. Invalid value: %s' % asset_type
-            raise Exception(message)
     except Exception as err:
         message = str(err)
         raise Exception(message)
 
 
-def asset_ui_get_required_fields_and_types(asset_type, action):
-    """ Get required fields and field types for asset_type being processed.
+def deployment_ui_get_required_fields_and_types(action):
+    """ Get required fields and field types for deployment being processed.
     """
-    required_fields = []
-    field_types = {}
     try:
         # Check parameters.
         verify_action(action)
-        if not asset_type:
-            message = 'Asset type %s is required to get asset required fields and types for ui.' % asset_type
-            raise Exception(message)
-        if asset_type not in get_asset_types():
-            message ='Asset type %s is required to get asset required fields and types for ui.' % asset_type
-            raise Exception(message)
 
-        # Set base required fields
-        base_required_fields = get_base_required_fields()
-        base_required_field_types = get_base_required_field_types()
-        if asset_type in ['notClassified', 'Mooring', 'Node', 'Array']:
-            required_fields = base_required_fields
-            field_types = base_required_field_types
-        elif asset_type == 'Sensor':
-            required_fields = base_required_fields
-            field_types = base_required_field_types
-            #required_fields.append('calibration')
-            #field_types['calibration'] = 'list'
-
+        # Set required fields
+        required_fields = get_required_fields()
+        field_types = get_required_field_types()
         if required_fields and field_types:
-            # Note additional fields: 'id', 'uid', 'lastModifiedTimestamp'
+            # Note additional fields: 'eventId', 'assetUid', 'lastModifiedTimestamp'
             if action == 'update':
-                if 'id' not in required_fields:
-                    required_fields.append('id')
-                if 'id' not in field_types:
-                    field_types['id'] = 'int'
-                if 'uid' not in required_fields:
-                    required_fields.append('uid')
-                if 'uid' not in field_types:
-                    field_types['uid'] = 'int'
+                if 'eventId' not in required_fields:
+                    required_fields.append('eventId')
+                if 'eventId' not in field_types:
+                    field_types['eventId'] = 'int'
+                if 'assetUid' not in required_fields:
+                    required_fields.append('assetUid')
+                if 'assetUid' not in field_types:
+                    field_types['assetUid'] = 'int'
                 if 'lastModifiedTimestamp' not in required_fields:
                     required_fields.append('lastModifiedTimestamp')
                 if 'lastModifiedTimestamp' not in field_types:
                     field_types['lastModifiedTimestamp'] = 'long'
             required_fields.sort()
-
         else:
-            message = 'Asset type %s does not have required fields for ui %s (%d): %s' % \
-                      (asset_type, action, len(required_fields), required_fields)
+            message = 'Deployment does not have required fields for ui %s (%d): %s' % \
+                      (action, len(required_fields), required_fields)
             raise Exception(message)
         return required_fields, field_types
-
     except Exception as err:
         message = str(err)
         raise Exception(message)
 
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Required fields in UI asset.
+# Required fields in UI deployment.
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-def get_base_required_fields():
-    """ Get required fields for base asset from UI.
-    Fields required for update only: 'id', 'uid', ['lastModifiedTimestamp', 'location', 'events', 'calibration']
-    Present in input, not required for output:
-        'coordinates', 'hasDeploymentEvent', 'augmented', 'deployment_numbers', 'deployment_number',
-        'Ref Des', 'depth',
-    2016-08-24: removed 'coordinates'
-    2016-08-26: removed 'augmented', 'Ref Des', 'remoteDocuments', 'hasDeploymentEvent',
+def get_required_fields():
+    """ Get required fields for the deployment from UI.
+    Fields required for update only:
+        eventId, rd, deploymentNumber, versionNumber,
+        [lastModifiedTimestamp, deployCruiseInfo, recoverCruiseInfo, ingestInfo]
+
+        At a minimum, deploymentNumber, versionNumber and rd must be provided.
     """
-    base_required_fields = [
-                            'assetInfo',
-                            'assetType',
-                            'dataSource',
-                            'deployment_numbers',
-                            'deployment_number',
-                            'depth',
-                            'editPhase',
-                            'latitude',
-                            'longitude',
-                            'manufactureInfo',
-                            'mobile',
-                            'notes',
-                            'partData',
-                            'physicalInfo',
-                            'purchaseAndDeliveryInfo',
-                            'ref_des',
-                            'remoteResources',
-                            'tense',
-                            'uid'
-                            ]
+    required_fields = [
+                        '@class',
+                        'assetUid',
+                        'editPhase',
+                        'eventName',
+                        'eventStartTime',
+                        'eventStopTime',
+                        'eventType',
+                        'dataSource',
+                        'deployedBy',
+                        'deployCruiseInfo',
+                        'deploymentNumber',
+                        'depth',
+                        'inductiveId',
+                        'ingestInfo',
+                        'latitude',
+                        'longitude',
+                        'orbitRadius',
+                        'mooring_uid',
+                        'node_uid',
+                        'notes',
+                        'recoveredBy',
+                        'recoverCruiseInfo',
+                        'rd',
+                        'sensor_uid',
+                        'tense',
+                        'versionNumber'
+                    ]
 
-    return base_required_fields
+    return required_fields
 
 
-def get_base_required_field_types():
-    """ Get field types for UI asset required fields.
-    2016-08-24: removed 'coordinates': 'floatlist',
-    2016-08-26" remove 'augmented': 'bool', 'Ref Des': 'string','hasDeploymentEvent': 'bool','remoteDocuments': 'list',
-    added 'editPhase' can have values: EDIT, STAGED, OPERATIONAL
+def get_required_field_types():
+    """ Get field types for UI deployment required fields.
     """
-    base_required_field_types = {
-                            'assetInfo': 'dict',
-                            'assetType': 'string',
-                            'dataSource': 'string',
-                            'deployment_number': 'string',
-                            'deployment_numbers': 'intlist',
-                            'depth': 'float',
+    required_field_types = {
+                            '@class': 'string',
+                            'assetUid': 'string',
                             'editPhase': 'string',
-                            'id': 'int',
+                            'eventName': 'string',
+                            'eventStartTime': 'long',
+                            'eventStopTime': 'long',
+                            'eventType': 'string',
+                            'dataSource': 'string',
+                            'deployedBy': 'string',
+                            'deployCruiseInfo': 'dict',
+                            'deploymentNumber': 'int',
+                            'depth': 'float',
+                            'inductiveId': 'int',
+                            'ingestInfo': 'list',
                             'latitude': 'float',
                             'longitude': 'float',
-                            'lastModifiedTimestamp': 'long',
-                            'manufactureInfo': 'dict',
-                            'mobile': 'bool',
+                            'orbitRadius': 'float',
+                            'mooring_uid': 'string',
+                            'node_uid': 'string',
                             'notes': 'string',
-                            'partData': 'dict',
-                            'physicalInfo': 'dict',
-                            'purchaseAndDeliveryInfo': 'dict',
-                            'ref_des': 'string',
-                            'remoteResources': 'dictlist',
+                            'recoveredBy': 'string',
+                            'recoverCruiseInfo': 'dict',
+                            'rd': 'string',
+                            'sensor_uid': 'string',
                             'tense': 'string',
-                            'uid': 'string'
+                            'versionNumber': 'int'
                             }
-
-    return base_required_field_types
+    return required_field_types
 
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Required fields for uframe asset.
+# Required fields for uframe deployment.
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-def get_base_required_fields_uframe():
-    """ Get required fields for base asset in uframe.
+def get_required_fields_uframe():
+    """ Get required fields for deployment in uframe.
     """
-    base_required_fields = [
-                            'assetId',
-                            'assetType',
-                            '@class',
-                            'dataSource'
-                            'deliveryDate',
-                            'deliveryOrderNumber',
-                            'depthRating',
-                            'description',
-                            'events',
-                            'firmwareVersion',
-                            'institutionPropertyNumber',
-                            'institutionPurchaseOrderNumber',
-                            'location',
-                            'manufacturer',
-                            'mobile',
-                            'modelNumber',
-                            'name',
-                            'notes',
-                            'owner',
-                            'ooiPropertyNumber',
-                            'ooiPartNumber',
-                            'ooiSerialNumber',
-                            'serialNumber',
-                            'remoteResources',
-                            'softwareVersion',
-                            'physicalInfo',
-                            'powerRequirements',
-                            'purchaseDate',
-                            'purchasePrice',
-                            'shelfLifeExpirationDate',
-                            'uid'
-                            ]
+    required_fields =  [
+                        '@class',
+                        'assetUid',
+                        'editPhase',
+                        'eventName',
+                        'eventStartTime',
+                        'eventStopTime',
+                        'eventType',
+                        'dataSource',
+                        'deployedBy',
+                        'deployCruiseInfo',
+                        'deploymentNumber',
+                        'inductiveId',
+                        'ingestInfo',
+                        'location',
+                        'mooring',
+                        'node',
+                        'notes',
+                        'orbitRadius'
+                        'recoveredBy',
+                        'recoverCruiseInfo',
+                        'referenceDesignator',
+                        'sensor',
+                        'tense',
+                        'versionNumber'
+                        ]
 
-    return base_required_fields
+    return required_fields
 
 
-def get_base_required_field_types_uframe():
-    """ Get field types for uframe asset required fields.
-
+def get_required_field_types_uframe():
+    """ Get field types for uframe deployment required fields.
     Field types supported: int, long, float, list, intlist, floatlist, string, bool and dict.
     """
-    base_required_field_types = {
-                            'assetId': 'int',
-                            'assetType': 'string',
+    required_field_types = {
                             '@class': 'string',
+                            'assetUid': 'string',
+                            'editPhase': 'string',
+                            'eventName': 'string',
+                            'eventStartTime': 'long',
+                            'eventStopTime': 'long',
+                            'eventType': 'string',
                             'dataSource': 'string',
-                            'description': 'string',
-                            'deliveryDate': 'long',
-                            'deliveryOrderNumber': 'string',
-                            'depthRating': 'float',
-                            'events': 'list',
-                            'firmwareVersion': 'string',
-                            'institutionPropertyNumber': 'string',
-                            'institutionPurchaseOrderNumber': 'string',
+                            'deployedBy': 'string',
+                            'deployCruiseInfo': 'dict',
+                            'deploymentNumber': 'int',
+                            'inductiveId': 'int',
+                            'ingestInfo': 'list',
                             'location': 'dict',
-                            'manufacturer': 'string',
-                            'mobile': 'bool',
-                            'modelNumber': 'string',
-                            'name': 'string',
-                            'notes': 'string',
-                            'ooiPropertyNumber': 'string',
-                            'ooiPartNumber': 'string',
-                            'ooiSerialNumber': 'string',
-                            'owner': 'string',
-                            'physicalInfo': 'dict',
-                            'powerRequirements': 'string',
-                            'purchaseDate': 'long',
-                            'purchasePrice': 'float',
-                            'remoteResources': 'list',
-                            'shelfLifeExpirationDate': 'int',
-                            'serialNumber': 'string',
-                            'softwareVersion': 'string',
-                            'uid': 'string'
+                            'mooring': 'dict',
+                            'node': 'dict',
+                            'notes': 'dict',
+                            'orbitRadius': 'float',
+                            'recoveredBy': 'string',
+                            'recoverCruiseInfo': 'dict',
+                            'referenceDesignator': 'dict',
+                            'sensor': 'dict',
+                            'tense': 'string',
+                            'versionNumber': 'int'
                             }
 
-    return base_required_field_types
+    return required_field_types
 
 
-def asset_get_required_fields_and_types_uframe(asset_type, action):
-    """ Get uframe required fields (list) and field types (dict) for asset_type being processed.
+def deployment_get_required_fields_and_types_uframe(action):
+    """ Get uframe required fields (list) and field types (dict) for deployment.
     """
-    required_fields = []
-    field_types = {}
     valid_actions = ['create', 'update']
     try:
         if not action:
@@ -361,39 +321,21 @@ def asset_get_required_fields_and_types_uframe(asset_type, action):
         if action not in valid_actions:
             message = 'Invalid action (%s) provided, use either \'create\' or \'update\'.' % action
             raise Exception(message)
-        if not asset_type:
-            message ='Asset type %s is required to get asset required fields and types for uframe.' % asset_type
-            raise Exception(message)
-        if asset_type not in get_asset_types():
-            message ='Asset type %s is required to get asset required fields and types for uframe.' % asset_type
-            raise Exception(message)
 
-        base_required_fields = get_base_required_fields_uframe()
-        base_required_field_types = get_base_required_field_types_uframe()
-        if asset_type in ['notClassified', 'Mooring', 'Node', 'Array']:
-            required_fields = base_required_fields
-            field_types = base_required_field_types
-
-        elif asset_type == 'Sensor':
-            required_fields = base_required_fields
-            field_types = base_required_field_types
-            if 'calibration' not in base_required_fields:
-                required_fields.append('calibration')
-            if 'calibration' not in base_required_field_types:
-                field_types['calibration'] = 'list'
-
+        required_fields = get_required_fields_uframe()
+        field_types = get_required_field_types_uframe()
         if required_fields and field_types:
-            update_additional_fields = ['assetId', 'lastModifiedTimestamp']
+            update_additional_fields = ['eventId', 'lastModifiedTimestamp'] # 'deploymentNumber', 'versionNumber'
             if action == 'update':
                 required_fields += update_additional_fields
-                if 'assetId' not in field_types:
-                    field_types['assetId'] = 'int'
+                if 'eventId' not in field_types:
+                    field_types['eventId'] = 'int'
                 if 'lastModifiedTimestamp' not in field_types:
                     field_types['lastModifiedTimestamp'] = 'int'
             required_fields.sort()
         else:
-            message = 'Asset type %s does not have required fields for uframe %s (%d): %s' % \
-                      (asset_type, action, len(required_fields), required_fields)
+            message = 'Deployment does not have required fields for uframe %s (%d): %s' % \
+                      (action, len(required_fields), required_fields)
             raise Exception(message)
 
         return required_fields, field_types
@@ -403,23 +345,27 @@ def asset_get_required_fields_and_types_uframe(asset_type, action):
         raise Exception(message)
 
 
-def convert_required_fields(asset_type, data, required_fields, field_types, action=None):
-    """ Verify for the asset_type and action, the required fields have been provided in the input data.
+def convert_required_fields(data, required_fields, field_types, action=None):
+    """ Verify for the supplied action, the required fields have been provided in the input data.
     """
     try:
         # General convert
         converted_data = convert_ui_data(data, required_fields, field_types)
 
-        valid_edit_phases = asset_edit_phase_values()
-        if 'editPhase' in converted_data:
-            edit_phase = converted_data['editPhase']
-            if edit_phase not in valid_edit_phases:
-                message = 'Invalid editPhase value (not one of %s).' % valid_edit_phases
-                raise Exception(message)
+        # Verify editPhase value is present and valid.
+        valid_edit_phases = deployment_edit_phase_values()
+        if 'editPhase' not in converted_data:
+            message = 'Invalid editPhase value (not one of %s).' % valid_edit_phases
+            raise Exception(message)
+        edit_phase = converted_data['editPhase']
+        if edit_phase not in valid_edit_phases:
+            message = 'Invalid editPhase value (not one of %s).' % valid_edit_phases
+            raise Exception(message)
 
         # Dictionary convert
         for field in required_fields:
             if field_types[field] == 'dict':
+                """
                 if field == 'manufactureInfo':
                     convert_manufactureInfo_fields(converted_data)
                 elif field == 'purchaseAndDeliveryInfo':
@@ -433,6 +379,8 @@ def convert_required_fields(asset_type, data, required_fields, field_types, acti
                 else:
                     message = 'Unknown asset dict %s to convert: ' % field
                     raise Exception(message)
+                """
+                continue
             elif field_types[field] == 'dictlist':
                 if field == 'remoteResources':
                     convert_remoteResources_fields(converted_data)

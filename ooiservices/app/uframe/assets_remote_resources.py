@@ -1,18 +1,17 @@
 
 """
-Asset Remote Resources routes.
+Asset Management - Asset Remote Resources routes.
 
 Routes:
 [GET]  /remote_resources/<int:asset_id>             # Get all remote resources for asset using asset id.
 [GET]  /remote_resources/<string:asset_uid>         # Get all remote resources for asset using asset uid.
 [GET]  /remote_resource/<int:resource_id>           # Get remote resource by remoteResourceId.
 
-[POST]  /remote_resource/<string:asset_uid>       # Create a remote resource for an asset
-[PUT]   /remote_resource/<string:asset_uid>       # Update a remote resource for an asset
+[POST]  /remote_resource/<string:asset_uid>         # Create a remote resource for an asset
+[PUT]   /remote_resource/<string:asset_uid>         # Update a remote resource for an asset
 
 """
 __author__ = 'Edna Donoughe'
-
 
 from flask import request, jsonify, current_app
 from ooiservices.app.main.errors import (bad_request, conflict)
@@ -38,7 +37,7 @@ def get_remote_resources_by_asset_id(asset_id):
     """
     try:
         remote_resources = _get_remote_resources_by_asset_id(asset_id)
-        result = jsonify({'remote_resources': remote_resources}), 201
+        result = jsonify({'remote_resources': remote_resources})
         return result
     except Exception as err:
         message = str(err)
@@ -55,7 +54,7 @@ def get_remote_resources_by_asset_uid(asset_uid):
     """
     try:
         remote_resources = _get_remote_resources_by_asset_uid(asset_uid)
-        result = jsonify({'remote_resources': remote_resources}), 201
+        result = jsonify({'remote_resources': remote_resources})
         return result
     except Exception as err:
         message = str(err)

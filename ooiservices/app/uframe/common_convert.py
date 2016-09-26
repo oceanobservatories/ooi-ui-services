@@ -1,17 +1,20 @@
 """
-Common conversion for UI input for events and assets.
+Asset Management - Common conversion of UI input for events and assets.
 """
 __author__ = 'Edna Donoughe'
 import ast
 
+
 def convert_ui_data(data, required_fields, field_types):
     """ Convert string values to target type for field. Dictionary processing performed by caller.
     """
+    debug = False
     converted_data = {}
     try:
+        if debug: print '\n debug -- entered convert_ui_data...'
         # Verify required fields are present in the data and each field has input data of correct type.
         for field in required_fields:
-
+            if debug: print '\n debug -- field: %s' % field
             # Verify field is provided in data
             if field not in data:
                 message = 'Required field \'%s\' not provided in data.' % field
@@ -27,14 +30,15 @@ def convert_ui_data(data, required_fields, field_types):
                 converted_data[field] = None
 
             elif data[field] is not None:
-
                 # 'string'
                 if field_types[field] == 'string':
                     if not isinstance(data[field], str) and not isinstance(data[field], unicode):
                             message = 'Required field \'%s\' provided, but value is not of type %s.' % (field, field_types[field])
                             raise Exception(message)
                     if data[field] and len(data[field]) > 0:
-                        tmp = str(data[field])
+                        if debug: print '\n before encode...'
+                        #tmp = str(data[field])
+                        tmp = str((data[field]).encode('utf-8'))
                         if not isinstance(tmp, str) and not isinstance(tmp, unicode):
                             message = 'Required field \'%s\' provided, but value is not of type %s.' % (field, field_types[field])
                             raise Exception(message)
@@ -184,6 +188,8 @@ def convert_ui_data(data, required_fields, field_types):
                     converted_data[field] = tmp
 
                 elif field_types[field] == 'intlist' or field_types[field] == 'floatlist':
+
+                    #===============================================
                     field_type_text = 'list of integers.'
                     try:
                         if field_types[field] == 'intlist':
@@ -193,7 +199,6 @@ def convert_ui_data(data, required_fields, field_types):
                         if isinstance(data[field], list):
                             tmp = data[field]
                         else:
-
                             tmp = data[field].strip()
                             if len(tmp) < 2:
                                 message = 'Invalid input value (%s) for list.' % data[field]
@@ -231,13 +236,34 @@ def convert_ui_data(data, required_fields, field_types):
                         message = 'Required field \'%s\' provided, but type conversion error (not a %s).' % \
                                   (field, field_type_text)
                         raise Exception(message)
+                    #===============================================
                     if not isinstance(tmp, list):
                         message = 'Required field \'%s\' provided, but value is not %s.' % (field, field_type_text)
                         raise Exception(message)
                     converted_data[field] = tmp
+                elif field_types[field] == 'multiple':
+                    try:
+                        if isinstance(data[field], list) or isinstance(data[field], float):
+                                tmp = data[field]
+                        else:
+                            # convert the data
+                            tmp = ast.literal_eval(data[field])
+                            if isinstance(tmp, list):
+                                converted_data[field] = tmp
+                            elif isinstance(tmp, float):
+                                converted_data[field] = tmp
+                            else:
+                                message = 'Field \'%s\' value is not of type list or float.' % field
+                                raise Exception(message)
+                    except Exception as err:
+                        message = 'Required field \'%s\' provided, but type conversion error. %s' % (field, str(err))
+                        raise Exception(message)
+                    #converted_data[field] = tmp
                 else:
                     message = 'Field \'%s\' has unknown field type provided.' % field
                     raise Exception(message)
+
+        if debug: print '\n debug -- exit convert_ui_data...'
         return converted_data
     except Exception as err:
         message = str(err)

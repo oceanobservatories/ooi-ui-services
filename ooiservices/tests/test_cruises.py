@@ -1,18 +1,17 @@
 #!/usr/bin/env python
 """
-Specific testing for cruise [event] routes and supporting functions.
+Asset Management - Specific testing for cruise [event] routes and supporting functions.
 
 Routes:
 [GET]   /cruises                                 # Get all cruises in inventory.
 [GET]   /cruises/<int:id>                        # Get cruise by event id.
-[GET]   /cruises/<string:cruise_id>              # Get cruise by unique cruise id.
-[GET]   /cruises/<string:cruise_id>/deployments  # Get all deployments for a cruise.
-[GET]   /cruises/deployment/<int:event_id>       # Get a specific deployment for a specific cruise.
+[GET]   /cruises/<string:event_id>               # Get cruise by unique event id.
+[GET]   /cruises/<string:event_id>/deployments   # Get all deployments for a cruise by event id.
+[GET]   /cruises/<int:event_id>/deployment       # Get a specific deployment for a specific cruise.
 
 """
 __author__ = 'Edna Donoughe'
 
-# For unit test:
 import unittest
 from base64 import b64encode
 from ooiservices.app import (create_app, db)
@@ -24,8 +23,7 @@ from flask import (url_for)
 from ooiservices.app.uframe.event_tools import get_rd_by_asset_id
 from ooiservices.app.uframe.cruise_tools import uniqueCruiseIdentifier_exists
 from ooiservices.app.uframe.common_tools import get_event_types
-from ooiservices.tests.common_tools import (dump_dict, get_event_input_as_unicode,
-                                            get_event_input_as_string)
+from ooiservices.tests.common_tools import (dump_dict, get_event_input_as_unicode, get_event_input_as_string)
 from random import randint
 import json
 import urllib
@@ -75,20 +73,12 @@ class CruisesTestCase(unittest.TestCase):
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
-    """
-    def suite(self):
-        suite = unittest.TestSuite()
-        suite.addTest(unittest.makeSuite(self.test_get_cruises()))
-        return suite
 
-    if __name__ == "__main__":
-        unittest.main()
-    """
-
-
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Test cases
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    # Test cases:
+    #   test_get_cruises
+    #   test_cruise_events
+    #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     def test_get_cruises(self):
         """
         Exercise event routes:
@@ -219,41 +209,12 @@ class CruisesTestCase(unittest.TestCase):
         result = json.loads(response.data)
         self.assertTrue(result is not None)
 
-        '''
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # (Positive) Get deployments list view for a cruise
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        url = url_for('uframe.get_cruise_deployments_by_cruise_id', cruise_id=cruise_id)
-        if verbose: print '\n ----- url: ', url
-        response = self.client.get(url, headers=headers)
-        self.assertEquals(response.status_code, 200)
-        result = json.loads(response.data)
-        self.assertTrue(result is not None)
-        self.assertTrue(isinstance(result, dict))
-        self.assertTrue('cruise_deployments' in result)
-        self.assertTrue(isinstance(result['cruise_deployments'], list))
-        cruise_deployments = result['cruise_deployments']
-        self.assertTrue(cruise_deployments is not None)
-        self.assertTrue(isinstance(cruise_deployments, list))
-        self.assertTrue(len(cruise_deployments) > 0)
-
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # (Negative) Get cruise deployments list view for a cruise
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        url = url_for('uframe.get_cruise_deployments_by_cruise_id', cruise_id='bad-cruise-id')
-        if verbose: print '\n ----- url: ', url
-        response = self.client.get(url, headers=headers)
-        self.assertEquals(response.status_code, 400)
-        result = json.loads(response.data)
-        self.assertTrue(result is not None)
-        '''
-
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # (Positive) Process cruise deployment, validate fields
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         self.assertTrue(len(cruise_deployments) > 0)
-        test_deployment = cruise_deployments[0]
         """
+        test_deployment = cruise_deployments[0]
         event_types = get_event_types()
         for event_type in events_by_type:
             if debug: print '\n debug -- Event_type: ', event_type
@@ -297,38 +258,15 @@ class CruisesTestCase(unittest.TestCase):
         deployment = result['deployment']
         self.assertTrue(deployment is not None)
 
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # (Positive) Process cruise deployment, validate fields
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        self.assertTrue(len(deployment) > 0)
-        """
-        event_types = get_event_types()
-        for event_type in events_by_type:
-            if debug: print '\n debug -- Event_type: ', event_type
-            self.assertTrue(event_type in event_types)
-            self.assertTrue(event_type in events_by_type)
-            self.assertTrue(isinstance(events_by_type[event_type], list))
-            event_ids = []
-            if events_by_type[event_type]:
-                if debug: print '\n Have events of %s event type.' % event_type
-                events = events_by_type[event_type]
-                for event in events:
-                    self.assertTrue(event is not None)
-                    self.assertTrue(isinstance(event, dict))
-                    self.assertTrue('eventId' in event)
-                    self.assertTrue(event['eventId'])
-                    if event['eventId'] not in event_ids:
-                        event_ids.append(event['eventId'])
-        """
-
         # Get supported event types (/events/edit_phase_values)
-        url = url_for('uframe.get_edit_phase_values')
+        url = url_for('uframe.get_event_edit_phase_values')
         if verbose: print '\n ----- url: ', url
         response = self.client.get(url, headers=headers)
         self.assertEquals(response.status_code, 200)
         result = json.loads(response.data)
         self.assertTrue(result is not None)
         self.assertTrue(isinstance(result, dict))
+
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # (Negative) Get deployment using deployment eventId.
@@ -518,7 +456,7 @@ class CruisesTestCase(unittest.TestCase):
                 # Get a unique cruise identifier
                 # Make some unique key in form: 'EE-2016-0102'
                 unique_num = randint(105, 990)
-                uniqueCruiseIdentifer = 'XX-2016-0' + str(unique_num)
+                uniqueCruiseIdentifer = 'XX-2016-0' + str(unique_num) + '  R/V'
                 if uniqueCruiseIdentifier_exists(uniqueCruiseIdentifer):
                     if debug: print '\n Do not have unique cruise identifier: ', uniqueCruiseIdentifer
                     continue
