@@ -193,10 +193,144 @@ class DeploymentTestCase(unittest.TestCase):
         self.assertTrue(result is not None)
         self.assertTrue(isinstance(result, dict))
 
+        # (Negative) Update deployment using bad event_id
+        # Get some assets to use in new deployment.
+        array, mooring, node, sensor = self.create_some_assets(editPhase='STAGED', verbose=verbose)
+        self.assertTrue(array is not None)
+        self.assertTrue(mooring is not None)
+        self.assertTrue(node is not None)
+        self.assertTrue(sensor is not None)
+        self.assertTrue('uid' in array)
+        self.assertTrue('uid' in mooring)
+        self.assertTrue('uid' in node)
+        self.assertTrue('uid' in sensor)
+        mooring_uid = mooring['uid']
+        node_uid = node['uid']
+        sensor_uid = sensor['uid']
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Negative) update_deployment.
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        deployment_data = self.get_minimum_deployment_data_for_create(mooring_uid, node_uid, sensor_uid)
+        url = url_for('uframe.update_deployment', event_id=999999)
+        response = self.client.put(url, data=json.dumps(deployment_data), headers=headers)
+        self.assertEquals(response.status_code, 400)
+        ui_result = json.loads(response.data)
+        self.assertTrue(ui_result is not None)
+        self.assertTrue(isinstance(ui_result, dict))
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Negative) update_deployment.
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        url = url_for('uframe.update_deployment', event_id=999999)
+        response = self.client.put(url, headers=headers)
+        self.assertEquals(response.status_code, 400)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Negative) update_deployment.
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        deployment_data = self.get_minimum_deployment_data_for_create(mooring_uid, node_uid, sensor_uid)
+        url = url_for('uframe.update_deployment', event_id=999999)
+        response = self.client.put(url, data=json.dumps({}), headers=headers)
+        self.assertEquals(response.status_code, 400)
+        ui_result = json.loads(response.data)
+        self.assertTrue(ui_result is not None)
+        self.assertTrue(isinstance(ui_result, dict))
+
+        # Get deployment/inv subsites
+        url = url_for('uframe.get_deployment_subsites')
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        results = json.loads(response.data)
+        self.assertTrue('subsites' in results)
+        subsites = results['subsites']
+
+        #print '\n debug -- subsites: ', subsites
+        self.assertTrue(subsites is not None)
+        self.assertTrue(subsites)
+        self.assertTrue(isinstance(subsites, list))
+        self.assertTrue(len(subsites) > 0)
+        #subsite_index = (int(len(subsites_list)/2))
+        some_subsite = subsites[0]  #(int(len(subsites)/2))]
+        self.assertTrue(some_subsite is not None)
+        self.assertTrue('key' in some_subsite)
+        self.assertTrue(some_subsite['key'] is not None)
+        some_subsite_key = some_subsite['key']
+
+        # Get deployment/inv nodes by subsite
+        url = url_for('uframe.get_deployment_nodes', subsite=some_subsite_key)
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        results = json.loads(response.data)
+        self.assertTrue('nodes' in results)
+        nodes = results['nodes']
+        self.assertTrue(nodes is not None)
+        self.assertTrue(isinstance(nodes, list))
+        self.assertTrue(len(nodes) > 0)
+        if len(nodes) == 1:
+            index = 0
+        else:
+            index = int(len(nodes)/2)
+        some_node = nodes[index]
+        self.assertTrue(some_node is not None)
+        self.assertTrue('key' in some_node)
+        some_node_key = some_node['key']
+
+        # (Negative) Get deployment/inv nodes by bad-subsite
+        url = url_for('uframe.get_deployment_nodes', subsite='bad-subsite')
+        #print '\n debug -- url: ', url
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 200)
+
+        # Get deployment/inv sensors by subsite and node
+        url = url_for('uframe.get_deployment_sensors', subsite=some_subsite_key, node=some_node_key)
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        results = json.loads(response.data)
+        self.assertTrue('sensors' in results)
+        sensors = results['sensors']
+        self.assertTrue(isinstance(sensors, list))
+        self.assertTrue(len(sensors) > 0)
+        some_sensor = sensors[len(sensors)/2]
+        self.assertTrue(some_node is not None)
+
+        # (Negative) Get deployment/inv sensors by bad-subsite and node
+        url = url_for('uframe.get_deployment_sensors', subsite='', node=some_node)
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 404)
+
+        # (Negative) Get deployment/inv sensors by subsite and bad-node
+        url = url_for('uframe.get_deployment_sensors', subsite=some_subsite, node='')
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 404)
+
+        url = url_for('uframe.get_deployment_sensors', subsite='', node='')
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 404)
+
+        # (Negative) Get deployment/inv sensors by subsite and bad-node
+        url = url_for('uframe.get_deployment_sensors', subsite=some_subsite, node='foo')
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        result = json.loads(response.data)
+        print '\n result: ', result
+        self.assertTrue('sensors' in result)
+        sensors = result['sensors']
+        self.assertTrue(isinstance(sensors, list))
+        self.assertEquals(len(sensors), 0)
+
+        url = url_for('uframe.create_deployment')
+        response = self.client.post(url, headers=headers, data=json.dumps({'wrong':'thing'}))
+        self.assertEquals(response.status_code, 400)
+
+        url = url_for('uframe.create_deployment')
+        response = self.client.post(url, headers=headers)
+        self.assertEquals(response.status_code, 400)
+
         if verbose: print '\n'
 
 
-    def test_uframe_create_deployment(self):
+    def test_uframe_create_deployment_no_uids(self):
         """
         Create assets for a deployment, then create a deployment
 
@@ -243,7 +377,181 @@ class DeploymentTestCase(unittest.TestCase):
         # Check next deployment number using:
         #   http://uframe-3-test.ooi.rutgers.edu:12587/events/deployment/inv/CE01ISSM/RID16/07-NUTNRB000
 
+        mooring_uid = None
+        node_uid = None
+        sensor_uid = None
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Get data for deployment create.
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if verbose: print '\n\tCreate deployment data...'
+        #CE01ISSM, RID16, 07-NUTNRB000
+        deployment_data = self.get_minimum_deployment_data_for_create(mooring_uid, node_uid, sensor_uid)
+        if debug:
+            print '\n\tCreate deployment data: '
+            dump_dict(deployment_data, verbose)
+
         """
+        deployment_data['referenceDesignator']['subsite'] = 'CE01ISSM'
+        deployment_data['referenceDesignator']['node'] = 'RID16'
+        deployment_data['referenceDesignator']['sensor'] = '07-NUTNRB000'
+        """
+        deployment_data['editPhase'] = 'OPERATIONAL'
+        deployment_data['rd'] = 'CE01ISSM-RID16-07-NUTNRB000'
+
+        # Get next deploymentNumber
+        base_url, timeout, timeout_read = get_url_info_deployments_inv()
+        rd = deployment_data['rd']
+        subsite, node, sensor = rd.split('-', 2)
+        url = '/'.join([base_url, subsite, node, sensor])
+        if verbose: print '\n Get deployments list ----- url: ', url
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        self.assertEquals(response.status_code, 200)
+        deployments_list = json.loads(response.content)
+        self.assertTrue(deployments_list is not None)
+        self.assertTrue(isinstance(deployments_list, list))
+        deploymentNumber = None
+        versionNumber = None
+        if not deployments_list:
+            deploymentNumber = 1
+            versionNumber = 1
+        elif deployments_list:
+            deployments_list.sort(reverse=True)
+            current_number = deployments_list[0]
+            deploymentNumber = current_number + 1
+
+            if verbose: print '\n debug Next deployment number: ', deploymentNumber
+            # Get versionNumber
+            url = '/'.join([base_url, subsite, node, sensor, str(current_number)])
+            if verbose: print '\n Get actual deployment ----- url: ', url
+            response = requests.get(url, timeout=(timeout, timeout_read))
+            self.assertEquals(response.status_code, 200)
+            deployment_item = json.loads(response.content)
+            self.assertTrue(deployment_item is not None)
+            self.assertTrue(isinstance(deployment_item, list))
+            current_deployment = deployment_item[0]
+            self.assertTrue(isinstance(current_deployment, dict))
+            self.assertTrue('versionNumber' in current_deployment)
+            current_version = current_deployment['versionNumber']
+            versionNumber = current_version + 1
+        else:
+            print '\n debug -- Unable to determine deployment numbers from uframe query:'
+            print '\n debug result returned: deployments_list: ', deployments_list
+            self.assertTrue('Exception: ', deployments_list)
+
+
+        if verbose:
+            print '\n Using deployment/version numbers: %d/%d' % (deploymentNumber, versionNumber)
+        deployment_data['deploymentNumber'] = deploymentNumber
+        deployment_data['versionNumber'] = versionNumber
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Post deployment to uframe for update (host:12587/events/deployment)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if debug:
+            print '\n\tCreate deployment data: '
+            dump_dict(deployment_data, verbose)
+
+        url = url_for('uframe.create_deployment')
+        response = self.client.post(url, data=json.dumps(deployment_data), headers=headers)
+        if response.status_code != 201:
+            print '\n\ttest_uframe_create_deployment -- response.status_code: ', response.status_code
+            if response.data:
+                print '\n\ttest_uframe_create_deployment -- response.data: ', json.loads(response.data)
+
+        self.assertEquals(response.status_code, 201)
+        result = json.loads(response.data)
+        self.assertTrue(result is not None)
+        self.assertTrue(isinstance(result, dict))
+        self.assertTrue('deployment' in result)
+        self.assertTrue(result['deployment']['eventId'] is not None)
+        self.assertTrue(isinstance(result['deployment']['eventId'], int) or isinstance(result['deployment']['eventId'], long))
+        deployment_id = result['deployment']['eventId']
+
+        # ========================== START HERE ===========================================
+        if verbose: print '\n\tCreated deployment: event id: %d ' % deployment_id
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Get deployment using deployment eventId. (host:12587/events/id)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        base_url, timeout, timeout_read = get_uframe_deployments_info()
+        url = '/'.join([base_url, get_events_url_base(), str(deployment_id)])
+        if debug: print '\n debug -- Get url: ', url
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            print '\n\ttest_uframe_create_deployment -- response.status_code: ', response.status_code
+            if response.content:
+                print '\n\ttest_uframe_create_deployment -- response.content: ', json.loads(response.content)
+            elif response.data:
+                print '\n\ttest_uframe_create_deployment -- response.data: ', json.loads(response.data)
+        self.assertEquals(response.status_code, 200)
+        result = json.loads(response.content)
+        self.assertTrue(result is not None)
+        self.assertTrue(isinstance(result, dict))
+        if verbose: print '\n\tNew deployment: event id: %d ' % deployment_id
+
+        # Get deployment using deployment_id
+        if verbose: print '\n\tGet new deployment: event id: %d ' % deployment_id
+        deployment = get_uframe_event(deployment_id)
+        # Check result structure.
+        self.assertTrue('dataSource' in deployment)
+        self.assertTrue('deployedBy' in deployment)
+        self.assertTrue('location' in deployment)
+        self.assertTrue('versionNumber' in deployment)
+
+        # Verify fields have been created as expected.
+        self.assertEquals(deployment['dataSource'], deployment_data['dataSource'])
+        self.assertEquals(deployment['deployedBy'], deployment_data['deployedBy'])
+        self.assertEquals(deployment['versionNumber'], deployment_data['versionNumber'])
+
+    def test_uframe_create_deployment_with_uids(self):
+        """
+        Create assets for a deployment, then create a deployment
+
+        Sample verbose output:
+
+        Create deployment
+
+            Create assets for the deployment
+
+            Create Sensor asset.
+
+                Valid editPhase value 'STAGED' for Sensor asset.
+
+                Created asset id/uid: 7519/2016-09-17:TEST-ASA-446-4
+
+            Create Node asset.
+
+                Valid editPhase value 'STAGED' for Node asset.
+
+                Created asset id/uid: 7520/2016-09-17:TEST-ASA-244-7
+
+            Create Mooring asset.
+
+                Valid editPhase value 'STAGED' for Mooring asset.
+
+                Created asset id/uid: 7521/2016-09-17:TEST-ASA-125-8
+
+            Create Array asset.
+
+                Valid editPhase value 'STAGED' for Array asset.
+
+                Created asset id/uid: 7522/2016-09-17:TEST-ASA-127-9
+
+            Create actual deployment
+
+            Created deployment: event id: 35084
+        """
+        debug = self.debug
+        verbose = self.verbose
+        headers = self.get_api_headers('admin', 'test')
+
+        if verbose: print '\n\nCreate deployment'
+
+        # Check next deployment number using:
+        #   http://uframe-3-test.ooi.rutgers.edu:12587/events/deployment/inv/CE01ISSM/RID16/07-NUTNRB000
+
+
         # Get some assets to use in new deployment.
         if verbose: print '\n\tCreate assets for the deployment'
         array, mooring, node, sensor = self.create_some_assets(editPhase='STAGED', verbose=verbose)
@@ -256,15 +564,9 @@ class DeploymentTestCase(unittest.TestCase):
         self.assertTrue('uid' in node)
         self.assertTrue('uid' in sensor)
 
-        array_uid = array['uid']
         mooring_uid = mooring['uid']
         node_uid = node['uid']
         sensor_uid = sensor['uid']
-        """
-
-        mooring_uid = None
-        node_uid = None
-        sensor_uid = None
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Get data for deployment create.
@@ -944,7 +1246,8 @@ class DeploymentTestCase(unittest.TestCase):
             if editPhase not in deployment_edit_phase_values():
                 prefix = '(Negative) '
             if verbose: print '\n\t%sCreate %s asset.' % (prefix, asset_type)
-            data = self.get_basic_UI_asset_data(asset_type, editPhase=editPhase)
+            uid_root = 'foo'+ str(datetime.datetime.now())
+            data = self.get_basic_UI_asset_data(asset_type, editPhase=editPhase, uid_root=uid_root)
             url = url_for('uframe.create_asset')
             if debug: print '\n\tcreate url: ', url
             string_data = get_asset_input_as_string(data)
@@ -996,14 +1299,19 @@ class DeploymentTestCase(unittest.TestCase):
         return array, mooring, node, sensor
 
 
-    def get_basic_UI_asset_data(self, type, editPhase=None):
+    def get_basic_UI_asset_data(self, type, editPhase=None, uid_root=None):
         self.assertTrue(editPhase is not None)
         #self.assertTrue(editPhase in deployment_edit_phase_values())
+        if uid_root is None:
+            uid_root = self.asset_uid_root
         debug = False
-        uid_suffix = str(randint(100,1000))
-        unique_int = randint(1000,5000)
+        uid_suffix = str(randint(100, 1000))
+        unique_int = randint(1000, 5000)
         description = type + '-' + str(unique_int)
-        small_int = randint(1,10)
+        small_int = randint(1, 10)
+        uid = '2016-09-21:'+ uid_root + uid_suffix + '-' + str(small_int)
+        uid = uid.replace(' ', '')
+        #print '\n debug *** uid: ', uid
         data = {
           'events': [],
           'assetInfo': {
@@ -1021,6 +1329,7 @@ class DeploymentTestCase(unittest.TestCase):
           'assetType': 'Mooring',
           'latitude': 40.3595,
           'longitude': -70.885,
+          'orbitRadius': 1.0,
           'dataSource': 'some.csv' + uid_suffix + description,
           'deployment_number': '3',
           'deployment_numbers': [
@@ -1061,7 +1370,7 @@ class DeploymentTestCase(unittest.TestCase):
           'ref_des': 'CE01ISSM-RID16-07-NUTNRB000',
           'remoteResources': [],
           'tense': 'UNKNOWN',
-          'uid': '2016-09-21:'+ self.asset_uid_root + uid_suffix + '-' + str(small_int),
+          'uid': uid,
           'editPhase': editPhase
         }
         # original: CP03ISSM-MFD37-00-DCLENG000

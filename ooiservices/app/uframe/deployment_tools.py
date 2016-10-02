@@ -6,8 +6,11 @@ Asset Management - Deployments: supporting functions.
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
+from ooiservices.app.uframe.vocab import (get_vocab_dict_by_rd, get_rs_array_name_by_rd, get_display_name_by_rd)
 from ooiservices.app.uframe.toc_tools import (get_toc_reference_designators)
 from ooiservices.app.uframe.common_tools import (is_instrument, is_platform, is_mooring, dump_dict)
+from ooiservices.app.uframe.uframe_tools import (uframe_get_deployment_inv,
+                                                 uframe_get_deployment_inv_nodes, uframe_get_deployment_inv_sensors)
 from ooiservices.app.uframe.config import (get_deployments_url_base, get_uframe_deployments_info,
                                            get_url_info_deployments_inv)
 import requests
@@ -145,8 +148,6 @@ def format_deployment_for_ui(modified_deployment):
         if not updated_deployment or updated_deployment is None:
             raise Exception('Deployment compilation failed to return a result.')
 
-        # todo - check uframe required fields for deployments
-
         if debug:
             print '\n debug -- ui formatted deployment(%d): ' % len(updated_deployment)
             dump_dict(updated_deployment, debug)
@@ -158,26 +159,6 @@ def format_deployment_for_ui(modified_deployment):
     except Exception as err:
         message = str(err)
         if debug: print '\n debug -- format_deployment_for_ui exception: ', message
-        raise Exception(message)
-
-
-# todo - finish
-def refresh_deployment_cache(id, deployment, action, remote_id=None):
-    """ Perform asset cache add or update depending on action provided.
-    """
-    debug = False
-    try:
-        if action == 'create':
-            #deployment_cache_add(id, deployment)
-            if debug: print '\n debug -- refresh_deployment_cache -- finish %s' % action
-        elif action == 'update':
-            #update_deployment_cache(id, deployment, remote_id)
-            if debug: print '\n debug -- refresh_deployment_cache -- finish %s' % action
-        else:
-            message = 'Failed to refresh deployment cache, unknown action(\'%s\').' % action
-            raise Exception(message)
-    except Exception as err:
-        message = str(err)
         raise Exception(message)
 
 
@@ -410,7 +391,7 @@ def get_rd_deployment(rd, deployment_number):
          http://host:12587/events/deployment/query?refdes=CE05MOAS
          http://host:12587/events/deployment/query?refdes=CP02PMUI
     """
-    check = True
+    check = False
     deployment = None
     try:
         # Check deployment_number
@@ -460,66 +441,6 @@ def get_rd_deployment(rd, deployment_number):
         current_app.logger.info(message)
         return []
 
-
-'''
-def get_deployments_inv_by_rd(rd):
-    """ Get all deployments for an instrument reference designator.
-    Note: The deployment inventory query will only return deployments for instrument reference designators.
-
-    Use this to get all of the deployments:
-        http://host:12587/events/deployment/inv/GS01SUMO/SBD12/08-FDCHPA000/-1
-    """
-    debug = False
-    check = False
-    result = []
-    try:
-        # Verify rd is valid.
-        if not is_instrument(rd):
-            message = 'The reference designator \'%s\' is not an instrument.'
-            current_app.logger.info(message)
-            return result
-
-        # Build query suffix for reference designator.
-        rd_suffix = ''
-        subsite, node, sensor = rd.split('-', 2)
-        if subsite and subsite is not None:
-            rd_suffix = '/'.join([rd_suffix, subsite])
-            if node and node is not None:
-                rd_suffix = '/'.join([rd_suffix, node])
-                if sensor and sensor is not None:
-                    rd_suffix = '/'.join([rd_suffix, sensor])
-        if rd_suffix:
-            rd_suffix = rd_suffix.strip('/')
-            rd_suffix = '/'.join([rd_suffix, '-1'])
-        else:
-            if debug: print '\n debug -- Unable to determine an rd_suffix for rd: %s' % rd
-            return result
-
-        if debug: print '\n debug -- rd_suffix: ', rd_suffix
-        # Get uframe deployments inventory request variables
-        uframe_url, timeout, timeout_read = get_url_info_deployments_inv()
-        url = '/'.join([uframe_url, rd_suffix])
-        if check: print '\n Check -- [get_rd_deployments] url: ', url
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        if response.status_code != 200:
-            message = 'Failed to get deployments from uframe for %r.' % rd
-            raise Exception(message)
-        result = response.json()
-        return result
-
-    except ConnectionError:
-        message = 'ConnectionError for uframe get_rd_deployments %s.' % rd
-        current_app.logger.info(message)
-        return []
-    except Timeout:
-        message = 'Timeout for for uframe get_rd_deployments %s.' % rd
-        current_app.logger.info(message)
-        return []
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return []
-'''
 
 def get_mooring_deployments_list(rd):
     """ Get list of deployments for mooring reference designator.
@@ -983,7 +904,6 @@ def get_deployment_asset_ids(deployment):
         }]
     """
     debug = False
-    # todo - deployment structure has been modified 07-21-2016; add additional required fields ****************
     required_deployment_attributes = ['mooring', 'node', 'sensor',
                                       'deploymentNumber', 'versionNumber', 'ingestInfo',
                                       'eventId', 'eventType', 'eventName',
@@ -1271,7 +1191,6 @@ def get_platform_deployment_work(rd):
             current_deployment_number = deployments_list[0]
             if debug: print '\n debug -- current deployment %s' % str(current_deployment_number)
         work['current_deployment'] = current_deployment_number
-
         return work
 
     except ConnectionError:
@@ -1287,3 +1206,187 @@ def get_platform_deployment_work(rd):
         current_app.logger.info(message)
         return {}
 
+
+def _get_deployment_subsites():
+    """ Get deployment inventory for subsites.
+    Sample response:
+        {
+          "subsites": {
+            "CE01ISSM": {
+              "array": "Coastal Endurance",
+              "name": "Oregon Inshore Surface Mooring",
+              "rd": "CE01ISSM"
+            },
+            ...
+            ,
+            "CE04OSSM": {
+              "array": "Coastal Endurance",
+              "name": "Oregon Offshore Surface Mooring",
+              "rd": "CE04OSSM"
+            },
+          }
+        }
+    """
+    results = None
+    try:
+        result_list = uframe_get_deployment_inv()
+        results = process_rds_for_names(result_list)
+        return results
+    except Exception as err:
+        message = err.message
+        current_app.logger.info(message)
+        return results
+
+
+def _get_deployment_nodes(subsite):
+    """ Get uframe deployment inventory list of nodes for a subsite.
+    Sample
+        request: http://localhost:4000/uframe/deployments/inv/CE04OSSM
+        response:
+            {
+              "nodes": {
+                "RIC21": {
+                  "array": "Coastal Endurance",
+                  "name": "Oregon Offshore Surface Mooring - Near Surface Instrument Frame",
+                  "rd": "CE04OSSM-RIC21"
+                },
+                "RID26": {
+                  "array": "Coastal Endurance",
+                  "name": "Oregon Offshore Surface Mooring - Near Surface Instrument Frame",
+                  "rd": "CE04OSSM-RID26"
+                },
+                ...
+              }
+            }
+    """
+    results = None
+    try:
+        result_list = uframe_get_deployment_inv_nodes(subsite)
+        results = process_rds_for_names(result_list, subsite)
+        return results
+    except Exception as err:
+        message = err.message
+        current_app.logger.info(message)
+        return results
+
+
+def _get_deployment_sensors(subsite, node):
+    """ Get uframe deployment inventory list of sensors for a subsite and node.
+    Sample:
+        request: http://localhost:4000/uframe/deployments/inv/CE04OSSM/RID27
+        response:
+        {
+          "sensors": {
+            "00-DCLENG000": {
+              "array": "Coastal Endurance",
+              "name": "Data Concentrator Logger (DCL)",
+              "rd": "CE04OSSM-RID27-00-DCLENG000"
+            },
+            "01-OPTAAD000": {
+              "array": "Coastal Endurance",
+              "name": "Spectrophotometer",
+              "rd": "CE04OSSM-RID27-01-OPTAAD000"
+            },
+            ...
+            }
+        }
+
+    """
+    results = None
+    try:
+        result_list = uframe_get_deployment_inv_sensors(subsite, node)
+        results = process_rds_for_names(result_list, subsite, node)
+        return results
+    except Exception as err:
+        message = err.message
+        current_app.logger.info(message)
+        return results
+
+
+def process_rds_for_names(rds, subsite=None, node=None):
+    """ For each rd in list, get vocab name and long name. Return list of dictionaries.
+    """
+    debug = True
+    results = []
+    try:
+        for rd_dict in rds:
+
+            # Get the key
+            if isinstance(rd_dict, dict):
+                rd = rd_dict['key']
+            else:
+                rd = rd_dict
+
+            # Form prefix
+            if subsite is not None and node is None:
+                prefix = subsite
+            elif subsite is not None and node is not None:
+                prefix = '-'.join([subsite, node])
+            else:
+                prefix = None
+            if prefix is not None:
+                tmp_rd = '-'.join([prefix, rd])
+            else:
+                tmp_rd = rd
+            # Populate the dictionary, add to list.
+            tmp = {'key': rd, 'rd': tmp_rd, 'name': '', 'array': ''}
+            tmp['name'], tmp['array'] = get_vocab_info(tmp_rd)
+            results.append(tmp)
+        return results
+    except Exception as err:
+        message = err.message
+        current_app.logger.info(message)
+        return results
+
+
+def get_vocab_info(rd):
+    try:
+        # Get array name
+        if rd[:2] == 'RS':
+            if len(rd) >= 8:
+                array = get_rs_array_name_by_rd(rd[:8])
+            else:
+                array = get_display_name_by_rd(rd[:2])
+        else:
+            array = get_display_name_by_rd(rd[:2])
+
+        # Get name for reference designator from vocabulary.
+        vocab_dict = get_vocab_dict_by_rd(rd)
+        if vocab_dict:
+            name = vocab_dict['name']
+        else:
+            name = rd
+        return name, array
+    except Exception as err:
+        message = err.message
+        current_app.logger.info(message)
+        return results
+
+
+# Get list of deployments, return formatted for ui.
+def _get_deployments_by_rd(rd):
+    """ Get list of deployments for a reference designator; return formatted for UI.
+    """
+    ui_deployments = []
+    try:
+        if not is_instrument(rd) and not is_mooring(rd) and not is_platform(rd):
+            message = 'The reference designator provided (\'%s\') is not a mooring, platform or instrument.' % rd
+            raise Exception(message)
+
+        # Get deployment event from uframe.
+        uframe_deployments = get_rd_deployments(rd)
+        if not uframe_deployments or uframe_deployments is None:
+            message = 'Failed to get deployments using reference designator \'%s\' from uframe.' % rd
+            raise Exception(message)
+
+        # Format deployment event for ui.
+        for uframe_deployment in uframe_deployments:
+            ui_deployment = format_deployment_for_ui(uframe_deployment)
+            if not ui_deployment and ui_deployment is not None:
+                continue
+            ui_deployments.append(ui_deployment)
+        return ui_deployments
+
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)

@@ -130,8 +130,9 @@ def get_rs_array_name_by_rd(rd):
             name = 'Cabled'
 
         return name
-    except Exception:
-        raise
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
 
 
 # Get vocabulary item for reference designator.

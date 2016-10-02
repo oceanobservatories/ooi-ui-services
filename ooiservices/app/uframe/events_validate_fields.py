@@ -295,12 +295,12 @@ def get_required_fields_and_types(event_type, action):
         #- - - - - - - - - - - - - - - - - - - - - - -
         elif event_type == 'DEPLOYMENT':
             required_fields = ['eventName', 'eventStartTime', 'eventStopTime', 'eventType',
-                       'notes', 'dataSource', 'tense', 'assetUid', 'depth',
+                       'notes', 'dataSource', 'tense', 'assetUid',
                        'inductiveId', 'deployedBy', 'location', 'sensor', 'mooring', 'node',
                        'recoverCruiseInfo', 'recoveredBy', 'deploymentNumber', 'ingestInfo',
                        'referenceDesignator', 'versionNumber', 'deployCruiseInfo']
 
-            field_types = {'eventName': 'string', 'eventId': 'int', 'depth': 'float',
+            field_types = {'eventName': 'string', 'eventId': 'int',
                             'eventStartTime': 'long', 'eventStopTime': 'long', 'eventType': 'string',
                             'lastModifiedTimestamp': 'long', 'notes': 'string', 'dataSource': 'string',
                             'tense': 'string', 'assetUid': 'string',

@@ -174,8 +174,7 @@ def _compile_asset_rds():
                 if rd and rd is not None:
                     try:
                         len_rd = len(rd)
-                        ids, mrd, mids, nrd, nids = get_asset_id_by_rd(rd, uframe_url,
-                                                                                         timeout, timeout_read)
+                        ids, mrd, mids, nrd, nids = get_asset_id_by_rd(rd, uframe_url, timeout, timeout_read)
                     except Exception as err:
                         message = 'Exception raised in get_asset_id_by_rd: %s' % err.message
                         raise Exception(message)
@@ -234,6 +233,7 @@ def get_asset_id_by_rd(rd, uframe_url=None, timeout=None, timeout_read=None):
     """
     info = False
     #debug = False
+    check = False
     ids = []
     mooring_ids = []
     node_ids = []
@@ -278,6 +278,7 @@ def get_asset_id_by_rd(rd, uframe_url=None, timeout=None, timeout_read=None):
             return [], None, [], None, []
 
         # Query uframe for reference designator asset ids.
+        if check: print '\n get_asset_id_by_rd -- url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
             if info:
@@ -346,11 +347,11 @@ def get_asset_id_by_rd(rd, uframe_url=None, timeout=None, timeout_read=None):
         return ids, mooring, mooring_ids, node_name, node_ids
 
     except ConnectionError:
-        message = 'ConnectionError for get_asset_id_by_rd'
+        message = 'ConnectionError for get_asset_id_by_rd, reference designator rd: ', rd
         current_app.logger.info(message)
         raise Exception(message)
     except Timeout:
-        message = 'Timeout for get_asset_id_by_rd'
+        message = 'Timeout error for get_asset_id_by_rd, reference designator rd: ', rd
         current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:

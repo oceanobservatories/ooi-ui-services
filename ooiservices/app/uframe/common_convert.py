@@ -8,13 +8,10 @@ import ast
 def convert_ui_data(data, required_fields, field_types):
     """ Convert string values to target type for field. Dictionary processing performed by caller.
     """
-    debug = False
     converted_data = {}
     try:
-        if debug: print '\n debug -- entered convert_ui_data...'
         # Verify required fields are present in the data and each field has input data of correct type.
         for field in required_fields:
-            if debug: print '\n debug -- field: %s' % field
             # Verify field is provided in data
             if field not in data:
                 message = 'Required field \'%s\' not provided in data.' % field
@@ -33,12 +30,11 @@ def convert_ui_data(data, required_fields, field_types):
                 # 'string'
                 if field_types[field] == 'string':
                     if not isinstance(data[field], str) and not isinstance(data[field], unicode):
-                            message = 'Required field \'%s\' provided, but value is not of type %s.' % (field, field_types[field])
-                            raise Exception(message)
+                        message = 'Required field \'%s\' provided, but value is not of type %s.' % (field, field_types[field])
+                        raise Exception(message)
                     if data[field] and len(data[field]) > 0:
-                        if debug: print '\n before encode...'
-                        #tmp = str(data[field])
-                        tmp = str((data[field]).encode('utf-8'))
+                        tmp = str(data[field])
+                        #tmp = str((data[field]).encode('utf-8'))
                         if not isinstance(tmp, str) and not isinstance(tmp, unicode):
                             message = 'Required field \'%s\' provided, but value is not of type %s.' % (field, field_types[field])
                             raise Exception(message)
@@ -111,10 +107,6 @@ def convert_ui_data(data, required_fields, field_types):
                 elif field_types[field] == 'bool':
                     try:
                         value = str(data[field])
-                        if not value:
-                            message = 'Boolean value provided is empty; unable to convert asset field %s' % field
-                            raise Exception(message)
-
                         if value.lower() == 'true':
                             converted_data[field] = True
                         else:
@@ -171,31 +163,37 @@ def convert_ui_data(data, required_fields, field_types):
                     converted_data[field] = tmp
 
                 elif field_types[field] == 'dictlist':
+                    field_type_text = 'list of dictionaries'
                     try:
-                        field_type_text = 'list of dictionaries'
+                        tmp = None
+                        """
                         if isinstance(data[field], list):
                             tmp = data[field]
-                        else:
+                        elif data[field] and len(data[field]) > 0:
                             tmp = ast.literal_eval(data[field])
+                        else:
+                            tmp = None
+                        """
                     except:
                         message = 'Required field \'%s\' provided, but type conversion error (not a %s).' % \
-                                  (field, field_types[field])
+                                  (field, field_type_text)
                         raise Exception(message)
 
-                    if not isinstance(tmp, list):
-                        message = 'Required field \'%s\' provided, but value is not a %s.' % (field, field_type_text)
-                        raise Exception(message)
+                    if tmp is not None:
+                        if not isinstance(tmp, list):
+                            message = 'Required field \'%s\' provided, but value is not a %s.' % (field, field_type_text)
+                            raise Exception(message)
                     converted_data[field] = tmp
 
                 elif field_types[field] == 'intlist' or field_types[field] == 'floatlist':
 
                     #===============================================
-                    field_type_text = 'list of integers.'
+                    if field_types[field] == 'intlist':
+                        field_type_text = 'list of integer values'
+                    else:
+                        field_type_text = 'list of float values'
                     try:
-                        if field_types[field] == 'intlist':
-                            field_type_text = 'list of integer values'
-                        else:
-                            field_type_text = 'list of float values'
+
                         if isinstance(data[field], list):
                             tmp = data[field]
                         else:
@@ -244,7 +242,7 @@ def convert_ui_data(data, required_fields, field_types):
                 elif field_types[field] == 'multiple':
                     try:
                         if isinstance(data[field], list) or isinstance(data[field], float):
-                                tmp = data[field]
+                            tmp = data[field]
                         else:
                             # convert the data
                             tmp = ast.literal_eval(data[field])
@@ -263,7 +261,6 @@ def convert_ui_data(data, required_fields, field_types):
                     message = 'Field \'%s\' has unknown field type provided.' % field
                     raise Exception(message)
 
-        if debug: print '\n debug -- exit convert_ui_data...'
         return converted_data
     except Exception as err:
         message = str(err)

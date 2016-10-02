@@ -17,13 +17,15 @@ Routes:
 __author__ = 'Edna Donoughe'
 
 from flask import request, jsonify, current_app
-from ooiservices.app.main.errors import (bad_request, conflict)
+from ooiservices.app.main.errors import bad_request
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.decorators import scope_required
 from ooiservices.app.uframe.common_tools import deployment_edit_phase_values
+from ooiservices.app.uframe.deployment_tools import (_get_deployment_subsites, _get_deployment_nodes,
+                                                     _get_deployment_sensors, _get_deployments_by_rd)
 from ooiservices.app.uframe.deployments_create_update import (_create_deployment, _update_deployment,
-                                                              _get_deployment_by_event_id, _get_deployments_by_rd)
+                                                              _get_deployment_by_event_id )
 import json
 
 
@@ -46,11 +48,6 @@ def get_deployment_by_event_id(event_id):
     """
     try:
         result = _get_deployment_by_event_id(event_id)
-        """
-        if not result:
-            message = 'No deployment with event id %d.' % event_id
-            return conflict(message)
-        """
         return jsonify(result)
     except Exception as err:
         message = str(err)
@@ -132,9 +129,6 @@ def update_deployment(event_id):
             raise Exception(message)
         data = json.loads(request.data)
         deployment = _update_deployment(event_id, data)
-        if not deployment:
-            message = 'Unable to get updated deployment with event id %d.' % event_id
-            return conflict(message)
         result = jsonify({'deployment': deployment})
         return result
     except Exception as err:
@@ -142,12 +136,33 @@ def update_deployment(event_id):
         current_app.logger.info(message)
         return bad_request(message)
 
-'''
-# todo - Potential deployment inventory navigation. Review.
-# Get deployment mooring inventory.
-@api.route('/deployments/subsites', methods=['GET'])
+
+# Get subsites in deployment inventory.
+@api.route('/deployments/inv', methods=['GET'])
 def get_deployment_subsites():
-    """ Get list of deployment subsites.
+    """ Get list of subsites in deployment inventory.
+
+    Sample:
+        request:    http://localhost:4000/uframe/deployments/inv
+        response:
+            {
+              "subsites": [
+                {
+                  "array": "Coastal Endurance",
+                  "key": "CE01ISSM",
+                  "name": "Oregon Inshore Surface Mooring",
+                  "rd": "CE01ISSM"
+                },
+                {
+                  "array": "Coastal Endurance",
+                  "key": "CE01ISSP",
+                  "name": "Oregon Inshore Surface Piercing Profiler Mooring",
+                  "rd": "CE01ISSP"
+                },
+                . . .
+              }
+            }
+
     """
     try:
         subsites_list = _get_deployment_subsites()
@@ -158,10 +173,30 @@ def get_deployment_subsites():
         return bad_request(message)
 
 
-# Get deployment node inventory for a mooring.
-@api.route('/deployments/<string:subsite>/nodes', methods=['GET'])
+# Get nodes in deployment inventory for a subsite.
+@api.route('/deployments/inv/<string:subsite>', methods=['GET'])
 def get_deployment_nodes(subsite):
-    """ Get list of deployment nodes.
+    """ Get list of deployment nodes in inventory for a subsite.
+    Sample:
+        request:    http://localhost:4000/uframe/deployments/inv/CE01ISSM
+        response:
+            {
+              "nodes": [
+                {
+                  "array": "Coastal Endurance",
+                  "key": "MFC31",
+                  "name": "Oregon Inshore Surface Mooring - Seafloor Multi-Function Node (MFN)",
+                  "rd": "CE01ISSM-MFC31"
+                },
+                {
+                  "array": "Coastal Endurance",
+                  "key": "MFD35",
+                  "name": "Oregon Inshore Surface Mooring - Seafloor Multi-Function Node (MFN)",
+                  "rd": "CE01ISSM-MFD35"
+                },
+                . . .
+              }
+            }
     """
     try:
         nodes_list = _get_deployment_nodes(subsite)
@@ -172,10 +207,24 @@ def get_deployment_nodes(subsite):
         return bad_request(message)
 
 
-# Get deployment sensor inventory for a mooring and node.
-@api.route('/deployments/<string:subsite>/<string:node>/sensors', methods=['GET'])
+# Get sensors in deployment inventory for a subsite and node.
+@api.route('/deployments/inv/<string:subsite>/<string:node>', methods=['GET'])
 def get_deployment_sensors(subsite, node):
-    """ Get list of deployment sensors for a mooring and node.
+    """ Get list of deployment sensors in inventory for a mooring and node.
+    Sample
+        request: http://localhost:4000/uframe/deployments/inv/CE01ISSM/MFC31
+        response:
+            {
+              "sensors": [
+                {
+                  "array": "Coastal Endurance",
+                  "key": "00-CPMENG000",
+                  "name": "Platform Controller",
+                  "rd": "CE01ISSM-MFC31-00-CPMENG000"
+                }
+              ]
+            }
+
     """
     try:
         sensors_list = _get_deployment_sensors(subsite, node)
@@ -184,62 +233,3 @@ def get_deployment_sensors(subsite, node):
         message = str(err)
         current_app.logger.info(message)
         return bad_request(message)
-'''
-
-'''
-# Get deployment mooring by deployment event id.
-@auth.login_required
-@scope_required(u'asset_manager')
-@api.route('/deployment/<int:event_id>/mooring', methods=['GET'])
-def get_deployment_mooring(event_id):
-    """ Get deployment mooring by deployment event id.
-    """
-    try:
-        result = _get_deployment_mooring(event_id)
-        if not result:
-            message = 'No mooring defined for deployment with event id %d.' % event_id
-            return conflict(message)
-        return jsonify(result)
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return bad_request(message)
-
-
-# Get node by deployment event id.
-@auth.login_required
-@scope_required(u'asset_manager')
-@api.route('/deployment/<int:event_id>/node', methods=['GET'])
-def get_deployment_node(event_id):
-    """ Get deployment node by deployment event id.
-    """
-    try:
-        result = _get_deployment_node(event_id)
-        if not result:
-            message = 'No node defined for deployment with event id %d.' % event_id
-            return conflict(message)
-        return jsonify(result)
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return bad_request(message)
-
-
-# Get sensor by deployment event id.
-@auth.login_required
-@scope_required(u'asset_manager')
-@api.route('/deployment/<int:event_id>/sensor', methods=['GET'])
-def get_deployment_sensor(event_id):
-    """ Get deployment sensor by deployment event id.
-    """
-    try:
-        result = _get_deployment_sensor(event_id)
-        if not result:
-            message = 'No sensor defined for deployment with event id %d.' % event_id
-            return conflict(message)
-        return jsonify(result)
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return bad_request(message)
-'''

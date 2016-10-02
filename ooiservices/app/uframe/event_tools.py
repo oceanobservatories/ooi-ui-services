@@ -124,12 +124,10 @@ def _get_events_by_id(id, _type):
 def get_and_process_events(id, uid, _type, asset_type):
     """ Get and process events for an asset.
     """
-    debug = False
     events = {}
     types = ''
     types_list = []
     try:
-        if debug: print '\n debug -- asset_type: ', asset_type
         # Determine if type parameter provided, if so process
         if _type:
             types, types_list = get_event_query_types(_type)
@@ -138,7 +136,6 @@ def get_and_process_events(id, uid, _type, asset_type):
         # Get reference designator
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         rd = get_rd_by_asset_id(id)
-        if debug: print '\n debug -- rd: ', rd
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Prepare events dictionary
@@ -148,12 +145,9 @@ def get_and_process_events(id, uid, _type, asset_type):
             for type in event_types:
                 events[type] = []
         else:
-            if debug: print '\n debug -- before get event types by asset_type...'
             event_types = get_event_types_by_asset_type(asset_type)
-            if debug: print '\n debug -- [1] event_types: ', event_types
             for type in event_types:
                 events[type] = []
-            if debug: print '\n debug -- [2] event_types: ', event_types
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Get events, filtering by types provided. Process results
@@ -189,7 +183,6 @@ def get_and_process_events(id, uid, _type, asset_type):
                             message = 'Unknown or invalid event type provided: %s' % event['eventType']
                             current_app.logger.info(message)
             #=========================================================
-        if debug: print '\n debug -- Check for deployment and calibration events...'
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # For asset id, get deployments and calibration (calibration only if is_instrument(rd))
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -378,7 +371,6 @@ def get_deployment_maps(rd, id, uid):
             else:
                 tmp = asset['deployment_number']
                 deployments = get_deployments_list(tmp)
-
         if not deployments:
             return events
 
@@ -420,13 +412,13 @@ def convert_maps_to_deployment_events(maps, uid):
     events = []
     if not maps:
         return events
-    #'eventName': '',
+    # depth should be None and location [] if not provided (i.e. asset location attribute was None)
     events_template = {'deployment_number': 0,
                        'depth': 0.0,
                        'eventStartTime': None,
                        'eventStopTime': None,
                        'eventType': 'DEPLOYMENT',
-                       'location': [ 0.0, 0.0],
+                       'location': [0.0, 0.0],
                        'notes': '',
                        'tense': '',
                        'assetUid': uid}
@@ -439,12 +431,26 @@ def convert_maps_to_deployment_events(maps, uid):
             event['deployment_number'] = k
             event['eventStartTime'] = v['beginDT']
             event['eventStopTime'] = v['endDT']
-            event['eventId'] = v['eventId']                                # todo - add to rd_assets
-            #event['lastModifiedTimestamp'] = v['lastModifiedTimestamp']    # todo - add to rd_assets
-            event['location'] = [v['location']['longitude'], v['location']['latitude']]
-            event['depth'] = v['location']['depth']
+            event['eventId'] = v['eventId']
+            #event['lastModifiedTimestamp'] = v['lastModifiedTimestamp']
+            if v['location'] is not None:
+                if 'longitude' in v['location']:
+                    longitude = 0.0
+                    if v['location']['longitude']:
+                        longitude = v['location']['longitude']
+                    latitude = 0.0
+                    if v['location']['latitude']:
+                        latitude = v['location']['latitude']
+                    #event['location'] = [v['location']['longitude'], v['location']['latitude']]
+                    event['location'] = [longitude, latitude]
+                if 'depth' in v['location']:
+                    event['depth'] = v['location']['depth']
+
+            else:
+                event['depth'] = None
+                #event['location'] = None
             event['tense'] = v['tense']
-            event['notes'] = ''                             # todo - add to rd_assets
+            event['notes'] = ''                             # todo - review wrt rd_assets
             events.append(event)
         return events
 

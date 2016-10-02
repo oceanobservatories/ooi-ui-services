@@ -168,7 +168,7 @@ class AssetsTestCase(unittest.TestCase):
         response = self.client.get(url, headers=headers)
         if debug:
             print '\n debug -- response.status_code: ', response.status_code
-            print '\n debug -- response.data: ', json.loads(response.data)
+            #print '\n debug -- response.data: ', json.loads(response.data)
         self.assertEquals(response.status_code, 200)
         result = json.loads(response.data)
         self.assertTrue(result is not None)
@@ -332,7 +332,7 @@ class AssetsTestCase(unittest.TestCase):
         asset_id = asset['id']
         if debug: print '\n asset_id: ', asset_id
 
-        # Update asset wit current contents
+        # Update asset with current contents
         string_asset = get_asset_input_as_string(asset)
         if debug:
             print '\n debug ********\n string_asset(%d): ' % len(string_asset)
@@ -341,6 +341,9 @@ class AssetsTestCase(unittest.TestCase):
         url = url_for('uframe.update_asset', id=asset_id)
         if verbose: print '\n\t ----- url: ', url
         response = self.client.put(url, headers=headers, data=data)
+        #print '\n debug -- response.status_code: ', response.status_code
+        #if response.data:
+        #    print '\n response.data: ', json.loads(response.data)
         self.assertEquals(response.status_code, 200)
         results = json.loads(response.data)
         self.assertTrue(results is not None)
@@ -555,10 +558,14 @@ class AssetsTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Create asset: get base UI data to create an asset
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        #asset_types = ['notClassified']
+        #asset_types = ['Mooring'] #['notClassified']
         for asset_type in asset_types:
             if verbose: print '\n\tCreate %s asset.' % asset_type
             data = self.get_basic_UI_asset_data(asset_type)
+
+            if verbose:
+                print '\n Create asset data: ------------------------------------'
+                dump_dict(data, verbose)
 
             string_data = get_asset_input_as_string(data)
             url = url_for('uframe.create_asset')
@@ -568,8 +575,12 @@ class AssetsTestCase(unittest.TestCase):
             #print '\n keys(%d): %s' % (len(keys), keys)
             data = json.dumps(string_data)
             response = self.client.post(url, headers=headers, data=data)
-            if debug: print '\n\tdebug -- received response data on asset create...'
-            if debug: print '\n\tresponse.status_code: ', response.status_code
+            if debug:
+                print '\n\tdebug -- received response data on asset create...'
+                print '\n\tresponse.status_code: ', response.status_code
+                #if response.status_code != 201:
+                #    if response.data:
+                #        print '\n\tresponse.data: ', json.loads(response.data)
             self.assertEquals(response.status_code, 201)
             response_data = json.loads(response.data)
             if debug: print '\n\tresponse_data: ', response_data
@@ -695,7 +706,7 @@ class AssetsTestCase(unittest.TestCase):
         # All asset types = ['Mooring', 'Node', 'Sensor', 'notClassified', 'Array']
         # Supported asset types = ['Mooring', 'Node', 'Sensor']
         asset_types = get_supported_asset_types()
-        asset_types = ['Mooring']
+        #asset_types = ['Mooring']
         for target_type in asset_types:
             #- - - - - - -
             # a. Get an asset by id of a certain asset type, from some_assets.
@@ -1538,7 +1549,7 @@ class AssetsTestCase(unittest.TestCase):
         # Get some assets to update
         some_assets = self.get_some_assets()
         asset_types = get_supported_asset_types()
-        asset_types = ['notClassified']
+        asset_types = ['Node']
         if verbose: print '\n\n Processing assets of types: %s ' % asset_types
         for asset_type in asset_types:
             if verbose: print '\n---------- Processing %s asset. ' % asset_type
@@ -2111,7 +2122,7 @@ class AssetsTestCase(unittest.TestCase):
         some_assets = self.get_some_assets()
         asset_types = get_supported_asset_types()
         if verbose: print '\n\n Processing assets of types: %s ' % asset_types
-        asset_types = ['Node']
+        #asset_types = ['Node']
         for asset_type in asset_types:
             if verbose: print '\n---------- Processing %s asset. ' % asset_type
             #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2300,6 +2311,7 @@ class AssetsTestCase(unittest.TestCase):
           'assetType': 'Mooring',
           'latitude': 40.3595,
           'longitude': -70.885,
+          'orbitRadius': 0.0,
           'dataSource': '/home/asadev/uframes/uframe_ooi_20160727_90f4540c71d3fc4f6a4fc8262903c92c722535ee/uframe-1.0/edex/data/ooi/xasset_spreadsheet/bulk_load-AssetRecord.csv',
           'deployment_number': '3',
           'deployment_numbers': [
@@ -2340,10 +2352,11 @@ class AssetsTestCase(unittest.TestCase):
           'ref_des': 'CP03ISSM-MFD37-00-DCLENG000',
           'remoteResources': [],
           'tense': 'PAST',
-          'uid': 'ASA-TEST-' + uid_suffix + str(unique_int),
+          'uid': 'ASA-TEST2-' + uid_suffix + str(unique_int),
           'editPhase': 'EDIT'
         }
 
+        self.assertTrue(type in get_supported_asset_types())
         if type in get_supported_asset_types():
             data['assetType'] = type
         if type == 'Sensor':

@@ -250,9 +250,3 @@ def post_process_cruise(data):
     except Exception as err:
         message = str(err)
         raise Exception(message)
-
-
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Functions which get data from uframe server.
-# Note: all functions shall start with 'uframe_'.
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

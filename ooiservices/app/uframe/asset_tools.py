@@ -8,6 +8,7 @@ __author__ = 'Edna Donoughe'
 from flask import current_app
 from ooiservices.app import cache
 from ooiservices.app.uframe.controller import dfs_streams
+from copy import deepcopy
 from ooiservices.app.uframe.common_tools import (get_asset_type_by_rd, get_asset_classes, get_supported_asset_types)
 from ooiservices.app.uframe.vocab import (get_vocab, get_vocab_dict_by_rd, get_rs_array_name_by_rd, get_display_name_by_rd)
 from ooiservices.app.uframe.uframe_tools import (get_assets_from_uframe, uframe_get_asset_by_id, uframe_get_asset_by_uid)
@@ -400,13 +401,20 @@ def new_compile_assets(data, compile_all=False):
                     bad_data.append(row)
                     continue
 
+            if 'uid' in row:
+                row['uid'] = row.pop('uid')
+                asset_uid = row['uid']
+                if asset_uid is None:
+                    bad_data.append(row)
+                    continue
+                if not asset_uid:
+                    bad_data.append(row)
+                    continue
+
             if 'events' in row:
                 del row['events']
             if 'calibration' in row:
                 del row['calibration']
-            if 'location' in row:
-                del row['location']
-
             if len(row['remoteResources']) == 0:
                 row['remoteResources'] = []
 
@@ -436,11 +444,20 @@ def new_compile_assets(data, compile_all=False):
             row['manufactureInfo']['firmwareVersion'] = row.pop('firmwareVersion')
             row['manufactureInfo']['softwareVersion'] = row.pop('softwareVersion')
             row['manufactureInfo']['shelfLifeExpirationDate'] = row.pop('shelfLifeExpirationDate')
+
             row['purchaseAndDeliveryInfo'] = {}
-            row['purchaseAndDeliveryInfo']['deliveryDate'] = row.pop('deliveryDate')
-            row['purchaseAndDeliveryInfo']['purchaseDate'] = row.pop('purchaseDate')
+            if not row['deliveryDate'] or row['deliveryDate'] is None:
+                row['purchaseAndDeliveryInfo']['deliveryDate'] = None
+            else:
+                row['purchaseAndDeliveryInfo']['deliveryDate'] = row.pop('deliveryDate')
+
+            if not row['purchaseDate'] or row['purchaseDate'] is None:
+                row['purchaseAndDeliveryInfo']['purchaseDate'] = None
+            else:
+                row['purchaseAndDeliveryInfo']['purchaseDate'] = row.pop('purchaseDate')
             row['purchaseAndDeliveryInfo']['purchasePrice'] = row.pop('purchasePrice')
             row['purchaseAndDeliveryInfo']['deliveryOrderNumber'] = row.pop('deliveryOrderNumber')
+
             row['partData'] = {}
             row['partData']['ooiPropertyNumber'] = row.pop('ooiPropertyNumber')
             row['partData']['ooiPartNumber'] = row.pop('ooiPartNumber')
@@ -449,9 +466,14 @@ def new_compile_assets(data, compile_all=False):
             row['partData']['institutionPurchaseOrderNumber'] = row.pop('institutionPurchaseOrderNumber')
 
             # Move powerRequirements and depthRating into physicalInfo dictionary
+            row['physicalInfo'] = {}
+            row['physicalInfo']['depthRating'] = None
+            row['physicalInfo']['powerRequirements'] = None
             if 'physicalInfo' in row:
-                row['physicalInfo']['depthRating'] = row.pop('depthRating')
-                row['physicalInfo']['powerRequirements'] = row.pop('powerRequirements')     # [req 3.1.6.10]
+                if 'depthRating' in row:
+                    row['physicalInfo']['depthRating'] = row.pop('depthRating')
+                if 'powerRequirements' in row:
+                    row['physicalInfo']['powerRequirements'] = row.pop('powerRequirements')
 
             # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             # Get asset class based on reference designator
@@ -480,19 +502,19 @@ def new_compile_assets(data, compile_all=False):
             # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             if not ref_des or ref_des is None:
                 if _asset_type not in asset_supported_types:
-                    if debug: print '\n debug -- asset (id:%d) bad asset' % asset_id
                     bad_data_ids.append(asset_id)
                     bad_data.append(row)
                     continue
 
             # Set default field values for assets without deployment/reference designators.
-            row['depth'] = 0
-            row['longitude'] = 0.0
-            row['latitude'] = 0.0
+            row['depth'] = None
+            row['orbitRadius'] = None
+            row['longitude'] = None
+            row['latitude'] = None
             row['deployment_number'] = ''
             row['deployment_numbers'] = []
-            row['cumulative_tense'] = ''      # tense based on review of deployment numbers
-            row['tense'] = ''                 # uframe deployment tense
+            #row['cumulative_tense'] = ''      # tense based on review of deployment numbers
+            row['tense'] = 'UNKNOWN'           # uframe deployment tense
 
             # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             # Prepare assetInfo dictionary, populate with information or defaults.
@@ -537,7 +559,38 @@ def new_compile_assets(data, compile_all=False):
             row['ref_des'] = None
 
             # Refactor out of here.
-            if ref_des:
+            if not ref_des or ref_des is None:
+                if 'location' in row:
+                    copy_location = deepcopy(row['location'])
+                    if copy_location is not None:
+                        if 'depth' in copy_location:
+                            row['depth'] = copy_location['depth']
+                        else:
+                            row['depth'] = -9999
+
+                        if 'orbitRadius' in copy_location:
+                            row['orbitRadius'] = copy_location['orbitRadius']
+                        else:
+                            row['orbitRadius'] = -9999
+
+                        if 'latitude' in copy_location:
+                            if copy_location['latitude'] is not None:
+                                row['latitude'] = copy_location['latitude']
+                            else:
+                                row['latitude'] = None
+
+                            if copy_location['longitude'] is not None:
+                                row['longitude'] = copy_location['longitude']
+                            else:
+                                row['longitude'] = None
+
+                            if row['latitude'] is None and row['longitude'] is None:
+                                row['longitude'] = 0.0
+                                row['latitude'] = 0.0
+
+                    del row['location']
+
+            elif ref_des:
                 #======================================================================
                 # Set row values with reference designator
                 row['ref_des'] = ref_des
@@ -552,7 +605,7 @@ def new_compile_assets(data, compile_all=False):
                 # Get deployment information for this asset_id-rd; populate asset values using deployment information.
                 #if debug: print '\n debug -- Calling get_asset_deployment_map...'
                 depth, location, has_deployment_event, deployment_numbers, cumulative_tense, tense, \
-                    no_deployments_nums, deployments_list = get_asset_deployment_map(asset_id, ref_des)
+                    no_deployments_nums, deployments_list, orbit_radius = get_asset_deployment_map(asset_id, ref_des)
                 #if debug: print '\n debug -- After calling get_asset_deployment_map...'
                 # If reference designator has deployments which do not have associated asset ids, compile information.
                 if no_deployments_nums:
@@ -565,14 +618,18 @@ def new_compile_assets(data, compile_all=False):
                                 all_no_deployments_dict[ref_des].append(did)
 
                 row['depth'] = depth
-                if not location:
-                    print '\n No location: ', location
-                row['longitude'] = location[0]
-                row['latitude'] = location[1]
+                row['orbitRadius'] = orbit_radius
+                if not location or location is None:
+                    row['longitude'] = 0.0
+                    row['latitude'] = 0.0
+                else:
+                    row['longitude'] = location[0]
+                    row['latitude'] = location[1]
+
                 row['deployment_number'] = deployment_numbers
                 row['deployment_numbers'] = deployments_list
-                row['cumulative_tense'] = cumulative_tense      # tense based on review of deployment numbers
-                row['tense'] = tense                            # uframe deployment tense
+                #row['cumulative_tense'] = cumulative_tense      # remove - tense based on review of deployment numbers
+                #row['tense'] = tense                            # remove - uframe deployment tense
 
                 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                 # Populate assetInfo dictionary
@@ -604,7 +661,6 @@ def new_compile_assets(data, compile_all=False):
                     row['assetInfo']['name'] = name
 
                     # Populate assetInfo - long name, if failure to get long name then use ref_des, log failure.
-                    #longName = get_ldn_by_rd(ref_des)
                     if longName is None:
                         if ref_des not in vocab_failures:
                             vocab_failures.append(ref_des)
@@ -626,7 +682,8 @@ def new_compile_assets(data, compile_all=False):
 
                 except Exception as err:
                     # asset info error
-                    current_app.logger.info('asset (with rd) processing error: ' + str(err.message))
+                    message = 'asset (with rd) processing error: ' + str(err.message)
+                    current_app.logger.info()
                     if asset_id not in bad_data_ids:
                         bad_data_ids.append(asset_id)
                         bad_data.append(row)
@@ -636,14 +693,15 @@ def new_compile_assets(data, compile_all=False):
             if row['assetType']:
                 if row['assetType'] not in all_asset_types:
                     all_asset_types.append(row['assetType'])
-
             # Add new row to output dictionary
             if asset_id:# and ref_des:
                 new_data.append(row)
                 # if new item for dictionary of asset ids, add id with value of reference designator
-                if asset_id not in dict_asset_ids and ref_des:
-                    dict_asset_ids[asset_id] = ref_des
-                    update_asset_rds_cache = True
+                if asset_id not in dict_asset_ids:
+                    if ref_des:
+                        if ref_des is not None:
+                            dict_asset_ids[asset_id] = ref_des
+                            update_asset_rds_cache = True
 
         except Exception as err:
             message = str(err)
@@ -673,8 +731,10 @@ def new_compile_assets(data, compile_all=False):
         if dict_asset_ids:
             if update_asset_rds_cache:
                 asset_rds_cache_update(dict_asset_ids)
+        """
         if bad_data:
-            if debug: print '\n -- Number of bad assets: ', len(bad_data)
+            print '\n -- Number of bad assets: ', len(bad_data)
+        """
 
         print '\n-- Total number of assets compiled: ', len(new_data)
 
@@ -705,8 +765,9 @@ def get_asset_deployment_map(asset_id, ref_des):
         valid_processing_types.append(type.lower())
 
     debug = False
-    depth = 0.0
-    location = [0.0, 0.0]
+    depth = None
+    location = []
+    orbit_radius = None
     has_deployment_event = False
     deployment_numbers = ''
     _deployment_numbers = []
@@ -722,7 +783,6 @@ def get_asset_deployment_map(asset_id, ref_des):
             if asset_type not in valid_processing_types:
                 message = 'Processing %s for deployments, invalid asset type \'%s\'.' % (ref_des, asset_type)
                 current_app.logger.info(message)
-                if debug: print '\n debug -- ', message
 
         no_deployments_nums = []
         if asset_type in valid_processing_types:
@@ -736,20 +796,27 @@ def get_asset_deployment_map(asset_id, ref_des):
                     has_deployment_event = True
                     deployments_list.sort(reverse=True)
 
-                    if debug: print '\n debug -- %s - Step 1...' % ref_des
                     # Get coordinate information from most recent deployment
                     current_deployment_number = deployments_info['current_deployment']
                     current_deployment = deployments_info[current_deployment_number]
-                    if debug: print '\n debug -- %s - Step 2...' % ref_des
                     if current_deployment['location'] is not None:
-                        latitude = round(current_deployment['location']['latitude'], 4)
-                        longitude = round(current_deployment['location']['longitude'], 4)
-                        location = [longitude, latitude]
+                        latitude = None
+                        longitude = None
+                        location = []
+                        lat_tmp = current_deployment['location']['latitude']
+                        lon_tmp = round(current_deployment['location']['longitude'])
+                        if lat_tmp and lat_tmp is not None:
+                            latitude = round(current_deployment['location']['latitude'], 4)
+                        if lon_tmp and lon_tmp is not None:
+                            longitude = round(current_deployment['location']['longitude'], 4)
+                        if latitude is not None and longitude is not None:
+                            location = [longitude, latitude]
                         depth = current_deployment['location']['depth']
-                    if debug: print '\n debug -- %s - Step 3...' % ref_des
-                    if debug:
-                        print '\n debug -- Most recent deployment number: %d -- tense %s' % \
-                              (current_deployment_number, current_deployment['tense'])
+                        orbit_radius = current_deployment['location']['orbitRadius']
+                    else:
+                        depth = None
+                        location = []
+                        orbit_radius = None
 
                     # Get deployment number(s) for this asset id
                     _deployment_numbers = []
@@ -818,7 +885,8 @@ def get_asset_deployment_map(asset_id, ref_des):
                         if current_deployment_number in no_deployments_nums:
                             deployment_numbers += ' *'
 
-        return depth, location, has_deployment_event, deployment_numbers, cumulative_tense, tense, no_deployments_nums, _deployment_numbers
+        return depth, location, has_deployment_event, deployment_numbers, cumulative_tense, tense, \
+               no_deployments_nums, _deployment_numbers, orbit_radius
 
     except Exception as err:
         message = str(err)

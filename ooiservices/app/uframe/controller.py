@@ -226,7 +226,7 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
         data_dict['units'] = {}
         data_dict['variables_shape'] = {}
         if ref[:2] == 'RS':
-            data_dict['array_name'] = get_rs_array_display_name_by_rd(ref[:8])
+            data_dict['array_name'] = get_rs_array_name_by_rd(ref[:8])
         else:
             data_dict['array_name'] = get_display_name_by_rd(ref[:2])
         data_dict['assembly_name'] = get_display_name_by_rd(ref[:14])
@@ -2549,6 +2549,7 @@ def get_stream_names(streams):
             if stream['stream'] not in stream_names:
                 stream_names.append(stream['stream'])
     return stream_names
+
 
 def get_events_by_ref_des(data, ref_des):
     """

@@ -172,7 +172,7 @@ def get_required_fields():
         eventId, rd, deploymentNumber, versionNumber,
         [lastModifiedTimestamp, deployCruiseInfo, recoverCruiseInfo, ingestInfo]
 
-        At a minimum, deploymentNumber, versionNumber and rd must be provided.
+        At a minimum, deploymentNumber, versionNumber and (instrument) rd must be provided to create a deployment.
     """
     required_fields = [
                         '@class',

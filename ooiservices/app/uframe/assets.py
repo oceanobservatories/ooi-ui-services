@@ -21,7 +21,8 @@ from ooiservices.app.main.errors import (bad_request, conflict, internal_server_
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.uframe.asset_tools import (verify_cache, _get_asset, _get_ui_asset_by_uid)
 from ooiservices.app.uframe.event_tools import _get_events_by_id
-from ooiservices.app.uframe.common_tools import (get_supported_asset_types, get_asset_types, asset_edit_phase_values)
+from ooiservices.app.uframe.common_tools import (get_supported_asset_types, get_asset_types, asset_edit_phase_values,
+                                                 dump_dict)
 from ooiservices.app.uframe.assets_create_update import (_create_asset, _update_asset)
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.decorators import scope_required
@@ -239,6 +240,8 @@ def get_assets(use_min=False, normal_data=False):
                     del obj['lastModifiedTimestamp']
                 if 'partData' in obj:
                     del obj['partData']
+                if 'remoteResources' in obj:
+                    del obj['remoteResources']
                 #if 'remoteDocuments' in obj:
                 #    del obj['remoteDocuments']
 
@@ -249,15 +252,18 @@ def get_assets(use_min=False, normal_data=False):
             for obj in data:
                 asset = {}
                 if 'ref_des' in obj and obj['ref_des']:
-                    if len(obj['ref_des']) <= 14 and 'latitude' in obj and 'longitude' in obj:
-
+                    if len(obj['ref_des']) <= 14 and 'latitude' in obj and 'longitude' in obj and 'depth' in obj:
                         if obj['ref_des'] not in unique:
                             unique.add(obj['ref_des'])
                             asset['assetInfo'] = obj.pop('assetInfo')
-                            asset['assetInfo']['refDes'] = obj.pop('ref_des')
-                            asset['latitude'] = obj.pop('latitude')
-                            asset['longitude'] = obj.pop('longitude')
+                            rd = obj.pop('ref_des')
+                            asset['assetInfo']['refDes'] = rd
+                            latitude = obj.pop('latitude')
+                            longitude = obj.pop('longitude')
+                            asset['latitude'] = latitude
+                            asset['longitude'] = longitude
                             asset['assetInfo']['depth'] = obj.pop('depth')
+
                             mindepth = 0
                             if 'mindepth' in asset['assetInfo']:
                                 mindepth = asset['assetInfo']['mindepth']
@@ -267,14 +273,19 @@ def get_assets(use_min=False, normal_data=False):
                                 maxdepth = asset['assetInfo']['maxdepth']
 
                             name = asset['assetInfo']['name']
+                            if latitude is None or longitude is None:
+                                #coordinates = []
+                                coordinates = [-1, -1]
+                            else:
+                                coordinates = [
+                                    round(longitude, 4),
+                                    round(latitude, 4)
+                                    ]
                             json = {
                                     'array_id': asset['assetInfo']['refDes'][:2],
                                     'display_name': name,
                                     'geo_location': {
-                                        'coordinates': [
-                                            round(asset['longitude'], 4),
-                                            round(asset['latitude'], 4)
-                                            ],
+                                        'coordinates': coordinates,
                                         'depth': asset['assetInfo']['depth']
                                         },
                                     'mindepth': mindepth,

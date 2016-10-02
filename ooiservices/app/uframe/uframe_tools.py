@@ -9,7 +9,8 @@ from ooiservices.app.uframe.config import (get_uframe_deployments_info, get_even
                                            get_uframe_assets_info, get_assets_url_base, headers,
                                            get_url_info_resources, get_uframe_info_calibration,
                                            get_url_info_cruises, get_url_info_cruises_inv,
-                                           get_uframe_events_info, get_url_info_cruises_rec)
+                                           get_uframe_events_info, get_url_info_cruises_rec,
+                                           get_url_info_deployments_inv)
 import requests
 from requests.exceptions import (ConnectionError, Timeout)
 import datetime as dt
@@ -434,22 +435,15 @@ def get_uframe_calibration_events_by_uid(id, uid):
 
 
 def uframe_put_event(event_type, id, data):
-    debug = False
+    """ Update event with id using data provided. Returns id from update
+    """
     try:
-        if debug: print '\n debug -- Entered uframe_put_event...'
         #=================================
         # Get configuration url and timeout information, build request url.
         base_url, timeout, timeout_read = get_uframe_deployments_info()
         url = '/'.join([base_url, get_events_url_base(), str(id)])
-        if debug: print '\n debug -- uframe_put_event -- url: ', url
         # Issue uframe PUT to update, process response status_code and content.
         response = requests.put(url, data=json.dumps(data), headers=headers())
-        if debug:
-            print '\n debug -- uframe_put_event -- response.status_code: ', response.status_code
-            if response.content:
-                response_data = json.loads(response.content)
-                print '\n debug -- uframe_put_event -- response.content: ', json.loads(response.content)
-
         if response.status_code != 200:
             if response.content is None:
                 message = 'Failed to create %s event in uframe.' % event_type
@@ -485,7 +479,6 @@ def uframe_put_event(event_type, id, data):
                     message = response_data['error'] + ': ' + response_data['message']
                     raise Exception(message)
         #=================================
-        if debug: print '\n debug -- uframe_put_event -- id: ', id
         return id
 
     except ConnectionError as err:
@@ -515,7 +508,7 @@ def get_assets_from_uframe():
         start = dt.datetime.now()
         if time: print '\n\t-- Start time: ', start
         uframe_url, timeout, timeout_read = get_uframe_assets_info()
-        timeout_extended = timeout_read * 2
+        timeout_extended = timeout_read * 3
         url = '/'.join([uframe_url, get_assets_url_base()])
         response = requests.get(url, timeout=(timeout, timeout_extended))
         end = dt.datetime.now()
@@ -600,7 +593,6 @@ def uframe_get_asset_by_uid(uid):
         raise Exception(message)
     except Exception as err:
         message = str(err)
-        current_app.logger.info(message)
         raise Exception(message)
 
 
@@ -671,7 +663,6 @@ def uframe_get_remote_resource(resource_id):
 def uframe_update_asset(asset):
     """ Update asset in uframe. On success return updated asset, on error, raise exception.
     """
-    debug = False
     id = None
     uid = None
     try:
@@ -690,12 +681,7 @@ def uframe_update_asset(asset):
         # Update asset in uframe.
         base_url, timeout, timeout_read = get_uframe_assets_info()
         url = '/'.join([base_url, get_assets_url_base(), str(id)])
-        if debug: print '\n debug -- before preform asset update...'
         response = requests.put(url, data=json.dumps(asset), headers=headers())
-        if debug:
-            print '\n debug -- response.status_code: ', response.status_code
-            if response.content:
-                print '\n debug -- response.content: ', json.loads(response.content)
         if response.status_code != 200:
             message = '(%d) Failed to update asset %d.' % (response.status_code, id)
             raise Exception(message)
@@ -891,14 +877,10 @@ def uframe_update_remote_resource_by_asset_uid(uid, resource_id, data):
 
 
 def uframe_update_remote_resource_by_resource_id(resource_id, data):
-    debug = False
     try:
         # Put remote resource.
         base_url, timeout, timeout_read = get_url_info_resources()
         url = '/'.join([base_url, str(resource_id)])
-        if debug:
-            print '\n data for update remote resource in uframe: '
-            dump_dict(data, debug)
         response = requests.put(url, data=json.dumps(data), headers=headers())
         if response.status_code != 200:
             message = 'Failed to update remote resource in uframe using remoteResourceId: %d.' % resource_id
@@ -1106,6 +1088,82 @@ def uframe_get_event(event_id):
         raise Exception(message)
     except Timeout:
         message = 'Timeout getting uframe event, event id: %d.' % event_id
+        raise Exception(message)
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Deployments.
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Get deployment inventory.
+def uframe_get_deployment_inv():
+    """ Get subsites in deployment inventory.
+    """
+    try:
+        url, timeout, timeout_read = get_url_info_deployments_inv()
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Unable to get uframe deployment inventory for subsite \'%s\'.' % subsite
+            raise Exception(message)
+        result = response.json()
+        return result
+
+    except ConnectionError:
+        message = 'ConnectionError getting uframe deployment inventory for subsite \'%s\'.' % subsite
+        raise Exception(message)
+    except Timeout:
+        message = 'Timeout getting uframe deployment inventory for subsite \'%s\'.' % subsite
+        raise Exception(message)
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+def uframe_get_deployment_inv_nodes(subsite):
+    """
+    """
+    try:
+        base_url, timeout, timeout_read = get_url_info_deployments_inv()
+        url = '/'.join([base_url, subsite])
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Unable to get uframe deployment inventory for subsite \'%s\'.' % subsite
+            raise Exception(message)
+        result = response.json()
+        return result
+
+    except ConnectionError:
+        message = 'ConnectionError getting uframe deployment inventory for subsite \'%s\'.' % subsite
+        raise Exception(message)
+    except Timeout:
+        message = 'Timeout getting uframe deployment inventory for subsite \'%s\'.' % subsite
+        raise Exception(message)
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+def uframe_get_deployment_inv_sensors(subsite, node):
+    """
+    """
+    try:
+        base_url, timeout, timeout_read = get_url_info_deployments_inv()
+        url = '/'.join([base_url, subsite, node])
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Unable to get uframe deployment inventory for subsite \'%s\' and node \'%s\'.' % (subsite, node)
+            raise Exception(message)
+        result = response.json()
+        return result
+
+    except ConnectionError:
+        message = 'ConnectionError getting uframe deployment inventory for subsite \'%s\' and node \'%s\'.' % \
+                  (subsite, node)
+        raise Exception(message)
+    except Timeout:
+        message = 'Timeout getting uframe deployment inventory for subsite \'%s\' and node \'%s\'.' % (subsite, node)
         raise Exception(message)
     except Exception as err:
         message = str(err)

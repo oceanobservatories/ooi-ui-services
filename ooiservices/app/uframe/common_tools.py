@@ -326,7 +326,7 @@ def get_event_types():
 def get_supported_event_types():
     # Get all event type values. Missing 'DEPLOYMENT'.
     event_types = ['ACQUISITION', 'ASSET_STATUS', 'ATVENDOR', 'CALIBRATION_DATA', 'CRUISE_INFO',
-                   'INTEGRATION', 'LOCATION', 'RETIREMENT', 'STORAGE', 'UNSPECIFIED']
+                   'DEPLOYMENT', 'INTEGRATION', 'LOCATION', 'RETIREMENT', 'STORAGE', 'UNSPECIFIED']
     event_types.sort()
     return event_types
 
@@ -400,6 +400,7 @@ def verify_action(action):
     except Exception as err:
         message = str(err)
         raise Exception(message)
+
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Common datetime functions

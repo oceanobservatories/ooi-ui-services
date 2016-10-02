@@ -102,7 +102,7 @@ def post_process_event(event):
 def update_event_type(id, data):
     """ Update an existing event, no success return event, on error raise exception.
     """
-    event_type = None
+    debug = False
     action = 'update'
     try:
         # Verify minimum required fields to proceed with update (event_type and uid)
@@ -132,7 +132,7 @@ def update_event_type(id, data):
 
         # Verify uid provided in data for all event types except CRUISE_INFO.
         uid = None
-        if event_type != 'CRUISE_INFO':
+        if event_type != 'CRUISE_INFO' and event_type != 'DEPLOYMENT':
             # Required field: assetUid
             if 'assetUid' not in data:
                 message = 'No assetUid in request data to update event %s.' % event_type
@@ -155,15 +155,18 @@ def update_event_type(id, data):
             message = 'The event id (\'%r\') provided in data is not equal to id (%d) in url.' % (data['eventId'], id)
             raise Exception(message)
 
-        # Get event class
+        # Get event class and add @class field to data
         event_class = get_event_class(event_type)
-
-        # Add @class field to data
         data['@class'] = event_class
 
         # Update event in uframe
-        id = uframe_put_event(event_type, id, data)
+        updated_id = uframe_put_event(event_type, id, data)
+        if updated_id <= 0:
+            message = 'Failed to update %s event in uframe for id %d.' % (event_type, id)
+            raise Exception(message)
 
+        if updated_id != id:
+            message = 'The event id returned from event update (%d) is not equal to original id (%d).' % (updated_id, id)
         # Get updated event, return event
         event = get_uframe_event(id)
         return event
