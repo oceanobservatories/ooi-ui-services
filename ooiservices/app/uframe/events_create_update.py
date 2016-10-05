@@ -102,7 +102,6 @@ def post_process_event(event):
 def update_event_type(id, data):
     """ Update an existing event, no success return event, on error raise exception.
     """
-    debug = False
     action = 'update'
     try:
         # Verify minimum required fields to proceed with update (event_type and uid)
@@ -151,6 +150,7 @@ def update_event_type(id, data):
             message = 'The event id value (%r) must be an integer, it is type: %s' % \
                       (data['eventId'], str(type(data['eventId'])))
             raise Exception(message)
+
         if data['eventId'] != id:
             message = 'The event id (\'%r\') provided in data is not equal to id (%d) in url.' % (data['eventId'], id)
             raise Exception(message)
@@ -164,7 +164,6 @@ def update_event_type(id, data):
         if updated_id <= 0:
             message = 'Failed to update %s event in uframe for id %d.' % (event_type, id)
             raise Exception(message)
-
         if updated_id != id:
             message = 'The event id returned from event update (%d) is not equal to original id (%d).' % (updated_id, id)
         # Get updated event, return event
@@ -200,7 +199,7 @@ def perform_uframe_create_event(event_type, uid, data):
         # Create event using /events/postto/uid POST
         else:
             if event_type == 'DEPLOYMENT':
-                message = 'Create event type DEPLOYMENT is not supported at this time.'
+                message = 'Create event type DEPLOYMENT is not supported through the events create/update interface.'
                 raise Exception(message)
 
             id = uframe_postto(event_type, uid, data)

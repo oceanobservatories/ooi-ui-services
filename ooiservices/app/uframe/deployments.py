@@ -21,7 +21,7 @@ from ooiservices.app.main.errors import bad_request
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.decorators import scope_required
-from ooiservices.app.uframe.common_tools import deployment_edit_phase_values
+from ooiservices.app.uframe.common_tools import (deployment_edit_phase_values)
 from ooiservices.app.uframe.deployment_tools import (_get_deployment_subsites, _get_deployment_nodes,
                                                      _get_deployment_sensors, _get_deployments_by_rd)
 from ooiservices.app.uframe.deployments_create_update import (_create_deployment, _update_deployment,

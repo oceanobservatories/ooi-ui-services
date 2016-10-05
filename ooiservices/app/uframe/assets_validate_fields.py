@@ -7,9 +7,6 @@ __author__ = 'Edna Donoughe'
 from ooiservices.app.uframe.common_tools import (get_asset_types, asset_edit_phase_values, verify_action)
 from ooiservices.app.uframe.common_convert import convert_ui_data
 
-from flask import current_app
-import math
-
 
 def assets_validate_required_fields_are_provided(asset_type, data, action=None):
     """ Verify for the asset_type and action, the required fields have been provided in the input data.
@@ -23,7 +20,6 @@ def assets_validate_required_fields_are_provided(asset_type, data, action=None):
         if not required_fields:
             message = 'Asset type %s action %s requires specific fields.' % (asset_type, action)
             raise Exception(message)
-
         if not field_types:
             message = 'Asset type %s action %s requires specific field types.' % (asset_type, action)
             raise Exception(message)
@@ -31,7 +27,6 @@ def assets_validate_required_fields_are_provided(asset_type, data, action=None):
         # Convert field values - for all field values, convert into target type.
         converted_data = convert_required_fields(asset_type, data, required_fields, field_types, action)
         check_required_fields(converted_data, action, required_fields, field_types)
-
         return converted_data
 
     except Exception as err:
@@ -642,9 +637,6 @@ def convert_purchaseAndDeliveryInfo_fields(asset):
                     tmp = long(purchaseAndDeliveryInfo['deliveryDate'])
                     purchaseAndDeliveryInfo['deliveryDate'] = tmp
                 except:
-                    message = 'Failed to convert purchaseAndDeliveryInfo field: deliveryDate to long.'
-                    current_app.logger.info(message)
-                    #raise Exception(message)
                     purchaseAndDeliveryInfo['deliveryDate'] = ''
 
         # purchaseDate - Convert to long
@@ -654,9 +646,6 @@ def convert_purchaseAndDeliveryInfo_fields(asset):
                     tmp = long(purchaseAndDeliveryInfo['purchaseDate'])
                     purchaseAndDeliveryInfo['purchaseDate'] = tmp
                 except:
-                    message = 'Failed to convert purchaseAndDeliveryInfo field: purchaseDate to long.'
-                    current_app.logger.info(message)
-                    #raise Exception(message)
                     purchaseAndDeliveryInfo['purchaseDate'] = ''
 
 
@@ -667,15 +656,11 @@ def convert_purchaseAndDeliveryInfo_fields(asset):
                     tmp = float(purchaseAndDeliveryInfo['purchasePrice'])
                     purchaseAndDeliveryInfo['purchasePrice'] = tmp
                 except:
-                    message = 'Failed to convert purchaseAndDeliveryInfo field: purchasePrice to float. '
-                    current_app.logger.info(message)
-                    #raise Exception(message)
                     purchaseAndDeliveryInfo['purchasePrice'] = ''
 
         return
     except Exception as err:
         message = str(err)
-        current_app.logger.info(message)
         raise Exception(message)
 
 
@@ -699,10 +684,6 @@ def convert_remoteResources_fields(asset):
         if 'remoteResources' in asset:
             remoteResources = asset['remoteResources']
         if remoteResources is None:
-            """
-            message = 'Malformed asset, missing required field \'remoteResources\'.'
-            raise Exception(message)
-            """
             asset['remoteResources'] = []
             return
 

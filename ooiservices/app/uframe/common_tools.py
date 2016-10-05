@@ -374,13 +374,21 @@ def deployment_edit_phase_values():
     return values
 
 
+# todo - get this dynamically, sprint 2, or 3
 def get_supported_array_codes():
     values = ['CP', 'CE', 'RS',  'GI', 'GS', 'GP', 'GA', 'SS']
     return values
 
+
+def operational_status_values():
+    values = ['Operational', 'Degraded', 'Failed', 'notTracked']
+    return values
+
+
 def dump_dict(dict, debug=False):
     if debug:
         print '\n --------------\n %s' % json.dumps(dict, indent=4, sort_keys=True)
+
 
 def verify_action(action):
     """ Simple error checking for input data.

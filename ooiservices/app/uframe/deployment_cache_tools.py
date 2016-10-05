@@ -21,7 +21,6 @@ def refresh_deployment_cache(id, deployment, action):
         raise Exception(message)
 
 
-#def deployment_cache_add(id, deployment):
 def deployment_cache_refresh(id, deployment, action):
     """ Add an deployment to 'rd_assets' for deployment cache.
     {

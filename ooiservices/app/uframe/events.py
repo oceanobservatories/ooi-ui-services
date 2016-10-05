@@ -25,7 +25,8 @@ from ooiservices.app.decorators import scope_required
 from ooiservices.app.uframe.event_tools import (_get_events_by_uid, _get_all_events_by_uid)
 from ooiservices.app.uframe.events_create_update import (create_event_type, update_event_type)
 from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types, get_supported_asset_types,
-                                                 event_edit_phase_values, get_event_types_by_asset_type)
+                                                 event_edit_phase_values, get_event_types_by_asset_type,
+                                                 operational_status_values)
 import json
 
 
@@ -45,6 +46,15 @@ def get_supported_event_type():
     """ Get all valid event types supported in uframe asset web services.
     """
     return jsonify({'event_types': get_supported_event_types()})
+
+
+@auth.login_required
+@scope_required(u'asset_manager')
+@api.route('/events/operational_status_values', methods=['GET'])
+def get_operational_status_values():
+    """ Get all valid event types supported in uframe asset web services.
+    """
+    return jsonify({'operational_status_values': operational_status_values()})
 
 
 @auth.login_required

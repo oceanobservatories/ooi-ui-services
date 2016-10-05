@@ -7,11 +7,11 @@ __author__ = 'Edna Donoughe'
 from flask import current_app
 from ooiservices.app import cache
 from ooiservices.app.uframe.common_tools import is_instrument
-from ooiservices.app.uframe.uframe_tools import (uframe_get_asset_by_id, get_uframe_events_by_uid, _get_id_by_uid,
-                                                 get_uframe_calibration_events_by_uid)
 from ooiservices.app.uframe.common_tools import (get_event_types, get_event_types_by_rd, get_event_types_by_asset_type)
 from ooiservices.app.uframe.events_validate_fields import get_rd_from_integrationInto
 from ooiservices.app.uframe.asset_cache_tools import get_rd_from_rd_assets
+from ooiservices.app.uframe.uframe_tools import (uframe_get_asset_by_id, get_uframe_events_by_uid, _get_id_by_uid,
+                                                 get_uframe_calibration_events_by_uid)
 
 
 # Get events by asset uid and type.
@@ -75,7 +75,7 @@ def _get_all_events_by_uid(uid, _type):
                 if calib_results:
                     results = results + calib_results
 
-        # todo - Add deployment events here; get rd and then deployment events.
+        # todo - Sprint N. Add deployment events here; get rd and then deployment events.
         # Deployment events.
         # events = get_and_process_events(id, uid, _type, asset_type)
         return results
@@ -223,7 +223,6 @@ def get_and_process_events(id, uid, _type, asset_type):
                     calibration_events = get_calibration_events(id, uid)
                     if calibration_events:
                         events['CALIBRATION_DATA'] = calibration_events
-
 
         return events
 
@@ -450,7 +449,7 @@ def convert_maps_to_deployment_events(maps, uid):
                 event['depth'] = None
                 #event['location'] = None
             event['tense'] = v['tense']
-            event['notes'] = ''                             # todo - review wrt rd_assets
+            event['notes'] = ''                             # remove
             events.append(event)
         return events
 
@@ -472,7 +471,6 @@ def get_calibration_events(id, uid):
         raise Exception(message)
 
 
-# todo - review for calibration api changes (2016-09-14)
 # Process calibration results from uframe.
 def process_calibration_results(results, uid):
     """
@@ -574,278 +572,3 @@ def _get_uid_by_id(id):
     except Exception as err:
         message = str(err)
         raise Exception(message)
-
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Functions requiring uframe.
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-'''
-def get_uframe_events_by_uid(uid, types=None):
-    """ For a specific asset uid and optional list of event types, get list of events from uframe.
-    On status_code(s):
-        200     Success, return events
-        204     Error, raise exception unknown uid
-        not 200 Error, raise exception
-    """
-    check = False
-    try:
-        if not uid:
-            message = 'Malformed request, no uid parameter value provided.'
-            raise Exception(message)
-
-        # Build query_suffix for uframe url if required
-        query_suffix = None
-        if types:
-            query_suffix = '?type=' + types
-
-        # Build uframe request for events.
-        base_url, timeout, timeout_read = get_uframe_deployments_info()
-        url = '/'.join([base_url, get_events_url_base(), 'uid', uid ])
-        if query_suffix:
-            url += query_suffix
-        if check: print '\n check -- [get_uframe_events_by_uid] url: ', url
-        payload = requests.get(url, timeout=(timeout, timeout_read))
-
-        # If no content, return empty result
-        if payload.status_code == 204:
-            # Return None when unknown uid is provided; log invalid request.
-            message = '(204) Unknown asset uid %s, unable to get events.' % uid
-            current_app.logger.info(message)
-            return None
-
-        # If error, raise exception
-        elif payload.status_code != 200:
-            message = 'Error getting event information for uid \'%s\'' % uid
-            raise Exception(message)
-
-        # Process events returned (status_code success)
-        else:
-            result = payload.json()
-            if result:
-                for event in result:
-                    # Add uid to each event if not present todo - remove if provided by uframe
-                    if 'assetUid' not in event:
-                        event['assetUid'] = uid
-
-        return result
-
-    except ConnectionError as err:
-        message = 'ConnectionError getting events from uframe for %s;  %s' % (uid, str(err))
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout as err:
-        message = 'Timeout getting events from uframe for %s;  %s' % (uid, str(err))
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        raise Exception(message)
-
-
-# Get event from uframe by event id.
-def get_uframe_event(id):
-    """ Get event from uframe by id, some error checking applied for return event.
-    """
-    check = False
-    try:
-        # Build uframe request for events, issue request
-        uframe_url, timeout, timeout_read = get_uframe_assets_info()
-        url = '/'.join([uframe_url, get_events_url_base(), str(id)])
-        if check: print '\n check -- [get_uframe_event] url: ', url
-        payload = requests.get(url, timeout=(timeout, timeout_read))
-
-        # If no content, return empty result
-        if payload.status_code == 204:
-            # Return None when unknown uid is provided; log invalid request.
-            message = '(204) Unknown event id %d, failed to get event.' % id
-            current_app.logger.info(message)
-            return None
-
-        # If error, raise exception
-        elif payload.status_code != 200:
-            message = '(%d) Error getting event id %d from uframe.' % (payload.status_code, id)
-            raise Exception(message)
-        event = payload.json()
-        if not event:
-            message = 'Unable to get event %d from uframe.' % id
-            raise Exception(message)
-
-        # Get event_type
-        event_type = None
-        if 'eventType' in event:
-            event_type = event['eventType']
-        if not event_type:
-            message = 'Failed to obtain valid eventType from uframe event, event id: %d' % id
-            raise Exception(message)
-
-        # Post process event content for display.
-        event = post_process_event(event)
-        return event
-
-    except ConnectionError:
-        message = 'ConnectionError getting event (id %d) from uframe.' % id
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout:
-        message = 'Timeout getting event (id %d) from uframe; unable to process events.' % id
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Exception as err:
-        message = 'Error processing GET request for event (id %d). %s' % (id, str(err))
-        current_app.logger.info(message)
-        raise Exception(message)
-
-
-# Get asset id and asset type using asset uid.
-def _get_id_by_uid(uid):
-    """ Get asset id using asset uid.
-    """
-    check = False
-    try:
-        # Get uframe asset by uid.
-        query = '?uid=' + uid
-        uframe_url, timeout, timeout_read = get_uframe_assets_info()
-        url = '/'.join([uframe_url, get_assets_url_base()])
-        url += query
-        if check: print '\n check -- [_get_id_by_uid] url to get asset %s: %s' % (uid, url)
-        payload = requests.get(url, timeout=(timeout, timeout_read), headers=headers())
-        if payload.status_code == 204:
-            return None
-        elif payload.status_code != 200:
-            message = 'Failed to get asset with uid: \'%s\'.' % uid
-            raise Exception(message)
-        asset = payload.json()
-        id = None
-        asset_type = None
-        if asset:
-            if 'assetId' in asset:
-                id = asset['assetId']
-            if 'assetType' in asset:
-                asset_type = asset['assetType']
-        return id, asset_type
-    except ConnectionError:
-        message = 'ConnectionError getting asset (uid %s) from uframe.' % uid
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout:
-        message = 'Timeout getting asset (uid %s) from uframe.' % uid
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        raise Exception(message)
-
-
-# todo - review/modify for new calibration api changes. (2016-09-14)
-def get_uframe_calibration_events_by_uid(id, uid):
-    """ Get list of calibration events from uframe for a specific sensor asset uid.
-
-    Function also outfitted for using asset id instead of uid. Both required for error processing at this time.
-    On status_code(s):
-        200     Success, return events
-        204     Error, raise exception unknown uid
-        not 200 Error, raise exception
-
-    Sample request (using uid): http://host:12587/asset/cal?uid=A00089
-    (Sample request (sing id): http://host:12587/asset/cal?assetid=500)
-    Sample response:
-    {
-      "@class" : ".XInstrument",
-      "calibration" : [ {
-        "@class" : ".XCalibration",
-        "name" : "CC_scale_factor1",
-        "calData" : [ {
-          "@class" : ".XCalibrationData",
-          "comments" : "units = mm",
-          "values" : [ 0.45 ],
-          "dimensions" : [ 1 ],
-          "cardinality" : 0,
-          "eventId" : 71,
-          "eventType" : "CALIBRATION_DATA",
-          "eventName" : "CC_scale_factor1",
-          "eventStartTime" : 1361318400000,
-          "eventStopTime" : null,
-          "notes" : null,
-          "tense" : null,
-          "dataSource" : null,
-          "lastModifiedTimestamp" : 1468511911189
-        } ]
-      }, {
-        "@class" : ".XCalibration",
-        "name" : "CC_scale_factor3",
-        "calData" : [ {
-          "@class" : ".XCalibrationData",
-          "comments" : null,
-          "values" : [ 0.45 ],
-          "dimensions" : [ 1 ],
-          "cardinality" : 0,
-          "eventId" : 73,
-          "eventType" : "CALIBRATION_DATA",
-          "eventName" : "CC_scale_factor3",
-          "eventStartTime" : 1361318400000,
-          "eventStopTime" : null,
-          "notes" : null,
-          "tense" : null,
-          "dataSource" : null,
-          "lastModifiedTimestamp" : 1468511911189
-        } ]
-      },
-      . . .
-
-    """
-    try:
-        if not uid:
-            message = 'Malformed request, no uid request argument provided.'
-            raise Exception(message)
-
-        # Build query_suffix for uframe url if required
-        #query_suffix = 'cal?assetid=' + str(id)        # by id
-        query_suffix = 'cal?uid=' + uid                 # by uid
-
-        # Build uframe request for events, issue request
-        uframe_url, timeout, timeout_read = get_uframe_assets_info()
-        url = '/'.join([uframe_url, get_assets_url_base(), query_suffix])
-        payload = requests.get(url, timeout=(timeout, timeout_read))
-
-        # If no content, return empty result
-        if payload.status_code == 204:
-            # Return None when unknown uid is provided; log invalid request.
-            message = '(204) Unknown asset uid %s, unable to get calibration events.' % uid
-            current_app.logger.info(message)
-            return None
-
-        # If error, raise exception
-        elif payload.status_code != 200:
-            message = '(%d) Error getting calibration event information for uid \'%s\'' % (payload.status_code, uid)
-            raise Exception(message)
-
-        # Process events returned (status_code success)
-        else:
-            result = payload.json()
-            calibrations = []
-            if result:
-                if 'calibration' in result:
-                    calibrations = result['calibration']
-                # Process calibration data - add uid if not present, remove '@class' and 'lastModifiedTimestamp'.
-                for event in calibrations:
-                    # Remove '@class'
-                    if '@class' in event:
-                        del event['@class']
-
-        return calibrations
-
-    except ConnectionError as err:
-        message = 'ConnectionError getting calibration events from uframe for asset id/uid: %d/%s;  %s' % (id, uid, str(err))
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout as err:
-        message = 'Timeout getting calibration events from uframe for asset id/uid: %d/%s;  %s' % (id, uid, str(err))
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        raise Exception(message)
-'''

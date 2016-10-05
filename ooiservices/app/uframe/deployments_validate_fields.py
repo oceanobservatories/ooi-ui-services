@@ -102,6 +102,7 @@ def check_required_fields(converted_data, action, required_fields, field_types):
             message = 'Data contains extra fields %s, ' % extra_fields
             message += 'correct and re-submit request to validate fields for %s deployment request.' % action.upper()
             raise Exception(message)
+
         return
     except Exception as err:
         message = str(err)
@@ -111,7 +112,6 @@ def check_required_fields(converted_data, action, required_fields, field_types):
 def verify_inputs(data, action):
     """ Simple error checking for input data.
     """
-    valid_actions = ['create', 'update']
     try:
         # Verify action for which we are validating the field (create or update).
         verify_action(action)
@@ -219,7 +219,7 @@ def get_required_field_types():
                             'eventType': 'string',
                             'dataSource': 'string',
                             'deployedBy': 'string',
-                            'deployCruiseInfo': 'dict',
+                            'deployCruiseInfo': 'string',
                             'deploymentNumber': 'int',
                             'depth': 'float',
                             'inductiveId': 'int',
@@ -231,7 +231,7 @@ def get_required_field_types():
                             'node_uid': 'string',
                             'notes': 'string',
                             'recoveredBy': 'string',
-                            'recoverCruiseInfo': 'dict',
+                            'recoverCruiseInfo': 'string',
                             'rd': 'string',
                             'sensor_uid': 'string',
                             'tense': 'string',
@@ -361,30 +361,6 @@ def convert_required_fields(data, required_fields, field_types, action=None):
         if edit_phase not in valid_edit_phases:
             message = 'Invalid editPhase value (not one of %s).' % valid_edit_phases
             raise Exception(message)
-
-        # Dictionary convert
-        for field in required_fields:
-            if field_types[field] == 'dict':
-                """
-                if field == 'manufactureInfo':
-                    convert_manufactureInfo_fields(converted_data)
-                elif field == 'purchaseAndDeliveryInfo':
-                    convert_purchaseAndDeliveryInfo_fields(converted_data)
-                elif field == 'physicalInfo':
-                    convert_physicalInfo_fields(converted_data)
-                elif field == 'assetInfo':
-                    convert_assetInfo_fields(converted_data)
-                elif field == 'partData':
-                    continue
-                else:
-                    message = 'Unknown asset dict %s to convert: ' % field
-                    raise Exception(message)
-                """
-                continue
-            elif field_types[field] == 'dictlist':
-                if field == 'remoteResources':
-                    convert_remoteResources_fields(converted_data)
-
         return converted_data
 
     except Exception as err:

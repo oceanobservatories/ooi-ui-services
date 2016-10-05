@@ -8,11 +8,10 @@ __author__ = 'Edna Donoughe'
 from flask import current_app
 from ooiservices.app.uframe.vocab import (get_vocab_dict_by_rd, get_rs_array_name_by_rd, get_display_name_by_rd)
 from ooiservices.app.uframe.toc_tools import (get_toc_reference_designators)
-from ooiservices.app.uframe.common_tools import (is_instrument, is_platform, is_mooring, dump_dict)
+from ooiservices.app.uframe.common_tools import (is_instrument, is_platform, is_mooring)
 from ooiservices.app.uframe.uframe_tools import (uframe_get_deployment_inv,
                                                  uframe_get_deployment_inv_nodes, uframe_get_deployment_inv_sensors)
-from ooiservices.app.uframe.config import (get_deployments_url_base, get_uframe_deployments_info,
-                                           get_url_info_deployments_inv)
+from ooiservices.app.uframe.config import (get_deployments_url_base, get_uframe_deployments_info)
 import requests
 import requests.exceptions
 from requests.exceptions import (ConnectionError, Timeout)
@@ -22,13 +21,11 @@ from copy import deepcopy
 def format_deployment_for_ui(modified_deployment):
     """ Format uframe deployment into ui deployment.
     """
-    debug = False
     updated_deployment = {}
     regular_fields = ['assetUid', 'dataSource', 'deployedBy', 'deploymentNumber',
                       'editPhase', 'eventId', 'eventName', 'eventStartTime', 'eventStopTime', 'eventType',
                       'inductiveId', 'lastModifiedTimestamp', 'notes', 'recoveredBy', 'versionNumber']
     try:
-        if debug: print '\n debug -- format_deployment_for_ui - Step 1...'
         # Get values from location dictionary.
         latitude = 0.0
         longitude = 0.0
@@ -36,20 +33,20 @@ def format_deployment_for_ui(modified_deployment):
         orbitRadius = 0.0
         updated_deployment['location'] = None
         if 'location' in modified_deployment:
-            if debug: print '\n debug -- location in modified deployment'
-            if modified_deployment['location'] is not None:
+
+            modified_deployment_location = deepcopy(modified_deployment['location'])
+            #del modified_deployment['location']
+
+            if modified_deployment_location is not None:
                 updated_deployment['location'] = {}
-                if debug: print '\n debug -- location is not None'
-                if 'latitude' in modified_deployment['location']:
-                    latitude = modified_deployment['location']['latitude']
-                if 'longitude' in modified_deployment['location']:
-                    longitude = modified_deployment['location']['longitude']
-                if 'depth' in modified_deployment['location']:
-                    if debug: print '\n debug -- depth in modified_deployment'
-                    depth = modified_deployment['location']['depth']
-                    if debug: print '\n debug -- depth in modified_deployment: ', depth
-                if 'orbitRadius' in modified_deployment['location']:
-                    orbitRadius = modified_deployment['location']['orbitRadius']
+                if 'latitude' in modified_deployment_location:
+                    latitude = modified_deployment_location['latitude']
+                if 'longitude' in modified_deployment_location:
+                    longitude = modified_deployment_location['longitude']
+                if 'depth' in modified_deployment_location:
+                    depth = modified_deployment_location['depth']
+                if 'orbitRadius' in modified_deployment_location:
+                    orbitRadius = modified_deployment_location['orbitRadius']
                 if latitude is None or longitude is None:
                     updated_deployment['latitude'] = None
                     updated_deployment['longitude'] = None
@@ -57,16 +54,29 @@ def format_deployment_for_ui(modified_deployment):
                 else:
                     updated_deployment['latitude'] = latitude
                     updated_deployment['longitude'] = longitude
+
             updated_deployment['depth'] = depth
             updated_deployment['orbitRadius'] = orbitRadius
             updated_deployment['tense'] = modified_deployment['tense']
 
-        if debug:
-            print '\n debug -- value of depth now: ', depth
-            updated_deployment['depth'] = depth
+        else:
+            if 'latitude' in modified_deployment:
+                latitude = modified_deployment['latitude']
+            if 'longitude' in modified_deployment:
+                longitude = modified_deployment['longitude']
+            if 'depth' in modified_deployment:
+                depth = modified_deployment['depth']
+            if 'orbitRadius' in modified_deployment:
+                orbitRadius = modified_deployment['orbitRadius']
+            if latitude is None or longitude is None:
+                updated_deployment['latitude'] = None
+                updated_deployment['longitude'] = None
+                updated_deployment['location']['location'] = []
+            else:
+                updated_deployment['latitude'] = latitude
+                updated_deployment['longitude'] = longitude
 
         # Get reference designator from attribute 'referenceDesignator'.
-        if debug: print '\n debug -- format_deployment_for_ui - Step 2...'
         rd = None
         subsite = None
         node = None
@@ -82,21 +92,17 @@ def format_deployment_for_ui(modified_deployment):
                 message = 'The subsite, node or sensor provided for deployment is empty.'
                 raise Exception(message)
             rd = '-'.join([subsite, node, sensor])
-        if debug: print '\n debug -- rd: ', rd
         if not is_instrument(rd):
             message = 'The referenceDesignator provided cannot be formed into instrument reference designator.'
             raise Exception(message)
 
-        if debug: print '\n debug -- format_deployment_for_ui - Step 3...'
         updated_deployment['rd'] = rd
         updated_deployment['lastModifiedTimestamp'] = modified_deployment['lastModifiedTimestamp']
 
         # Get mooring, node and sensor uid values.
-        if debug: print '\n debug -- format_deployment_for_ui - Step 4...'
         mooring_uid = None
         node_uid = None
         sensor_uid = None
-        if debug: print '\n debug -- format_deployment_for_ui - Step 4a...'
         if 'mooring' in modified_deployment:
             if modified_deployment['mooring']:
                 if 'uid' in modified_deployment['mooring']:
@@ -105,7 +111,6 @@ def format_deployment_for_ui(modified_deployment):
                     else:
                         mooring_uid = None
             #del modified_deployment['mooring']
-        if debug: print '\n debug -- format_deployment_for_ui - Step 4b...'
         if 'node' in modified_deployment:
             if modified_deployment['node']:
                 if 'uid' in modified_deployment['node']:
@@ -114,7 +119,6 @@ def format_deployment_for_ui(modified_deployment):
                     else:
                         node_uid = None
             #del modified_deployment['node']
-        if debug: print '\n debug -- format_deployment_for_ui - Step 4c...'
         if 'sensor' in modified_deployment:
             if modified_deployment['sensor']:
                 if 'uid' in modified_deployment['sensor']:
@@ -127,20 +131,22 @@ def format_deployment_for_ui(modified_deployment):
         updated_deployment['node_uid'] = node_uid
         updated_deployment['sensor_uid'] = sensor_uid
 
-        if debug: print '\n debug -- format_deployment_for_ui - Step 5...'
         # Get deployCruiseInfo, recoverCruiseInfo and ingestInfo.
         updated_deployment['deployCruiseInfo'] = None
         if modified_deployment['deployCruiseInfo'] is not None:
-            updated_deployment['deployCruiseInfo'] = deepcopy(modified_deployment['deployCruiseInfo'])
+            if 'uniqueCruiseIdentifier' in modified_deployment['deployCruiseInfo']:
+                #updated_deployment['deployCruiseInfo'] = deepcopy(modified_deployment['deployCruiseInfo'])
+                updated_deployment['deployCruiseInfo'] = modified_deployment['deployCruiseInfo']['uniqueCruiseIdentifier']
         updated_deployment['recoverCruiseInfo'] = None
         if modified_deployment['recoverCruiseInfo'] is not None:
-            updated_deployment['recoverCruiseInfo'] = deepcopy(modified_deployment['recoverCruiseInfo'])
+            if 'uniqueCruiseIdentifier' in modified_deployment['recoverCruiseInfo']:
+                #updated_deployment['recoverCruiseInfo'] = deepcopy(modified_deployment['recoverCruiseInfo'])
+                updated_deployment['recoverCruiseInfo'] = modified_deployment['recoverCruiseInfo']['uniqueCruiseIdentifier']
         updated_deployment['ingestInfo'] = None
         if modified_deployment['ingestInfo'] is not None:
-            updated_deployment['ingestInfo'] = deepcopy(modified_deployment['ingestInfo'])
+            updated_deployment['ingestInfo'] = None #deepcopy(modified_deployment['ingestInfo'])
 
         # Get the rest of the fields and values.
-        if debug: print '\n debug -- format_deployment_for_ui - Step 6...'
         for key in regular_fields:
             if key in modified_deployment:
                 #updated_deployment[key] = modified_deployment.pop(key)
@@ -148,17 +154,12 @@ def format_deployment_for_ui(modified_deployment):
         if not updated_deployment or updated_deployment is None:
             raise Exception('Deployment compilation failed to return a result.')
 
-        if debug:
-            print '\n debug -- ui formatted deployment(%d): ' % len(updated_deployment)
-            dump_dict(updated_deployment, debug)
-
-        if debug: print '\n debug -- format_deployment_for_ui - Step 7...'
-
+        if 'location' in updated_deployment:
+            del updated_deployment['location']
         return updated_deployment
 
     except Exception as err:
         message = str(err)
-        if debug: print '\n debug -- format_deployment_for_ui exception: ', message
         raise Exception(message)
 
 
@@ -359,7 +360,8 @@ def get_rd_deployments(rd):
 
         # Build uframe url: host:port/events/deployment/query?refdes=XXXXXXXX
         url = '/'.join([uframe_url, get_deployments_url_base(), 'query'])
-        url += '?refdes=' + rd
+        #url += '?refdes=' + rd
+        url += '?refdes=' + rd + '&notes=true'
         if check: print '\n Check -- [get_rd_deployments] url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
@@ -1306,7 +1308,6 @@ def _get_deployment_sensors(subsite, node):
 def process_rds_for_names(rds, subsite=None, node=None):
     """ For each rd in list, get vocab name and long name. Return list of dictionaries.
     """
-    debug = True
     results = []
     try:
         for rd_dict in rds:
@@ -1382,7 +1383,7 @@ def _get_deployments_by_rd(rd):
         # Format deployment event for ui.
         for uframe_deployment in uframe_deployments:
             ui_deployment = format_deployment_for_ui(uframe_deployment)
-            if not ui_deployment and ui_deployment is not None:
+            if not ui_deployment or ui_deployment is None:
                 continue
             ui_deployments.append(ui_deployment)
         return ui_deployments

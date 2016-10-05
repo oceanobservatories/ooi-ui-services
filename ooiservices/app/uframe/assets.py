@@ -21,8 +21,7 @@ from ooiservices.app.main.errors import (bad_request, conflict, internal_server_
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.uframe.asset_tools import (verify_cache, _get_asset, _get_ui_asset_by_uid)
 from ooiservices.app.uframe.event_tools import _get_events_by_id
-from ooiservices.app.uframe.common_tools import (get_supported_asset_types, get_asset_types, asset_edit_phase_values,
-                                                 dump_dict)
+from ooiservices.app.uframe.common_tools import (get_supported_asset_types, get_asset_types, asset_edit_phase_values)
 from ooiservices.app.uframe.assets_create_update import (_create_asset, _update_asset)
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.decorators import scope_required

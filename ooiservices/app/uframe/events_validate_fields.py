@@ -7,8 +7,8 @@ __author__ = 'Edna Donoughe'
 from flask import current_app
 from ooiservices.app.uframe.common_convert import convert_ui_data
 from ooiservices.app.uframe.cruise_tools import (uniqueCruiseIdentifier_exists, _get_cruise)
-from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types, dump_dict,
-                                                 is_instrument, is_platform, is_mooring, event_edit_phase_values)
+from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types, event_edit_phase_values,
+                                                 is_instrument, is_platform, is_mooring, operational_status_values)
 
 
 def events_validate_all_required_fields_are_provided(event_type, data, action=None):
@@ -49,6 +49,11 @@ def events_validate_all_required_fields_are_provided(event_type, data, action=No
         # Set location dictionary to None for ASSET_STATUS event type.
         elif event_type == 'ASSET_STATUS':
             converted_data['location'] = None
+            if 'status' in converted_data:
+                valid_status_values = operational_status_values()
+                if converted_data['status'] not in valid_status_values:
+                    message = 'Invalid operational status value provided; must be one of: %s' % valid_status_values
+                    raise Exception(message)
 
         # Set uniqueCruiseIdentifier field
         elif event_type == 'CRUISE_INFO':

@@ -4,15 +4,15 @@ Asset Management - Deployments: Create and update functions.
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
-from ooiservices.app.uframe.common_tools import (get_class_deployment, get_asset_class_by_asset_type, is_instrument,
-                                                 dump_dict)
 from ooiservices.app.uframe.config import (get_uframe_deployments_info, get_deployments_url_base, headers)
 from ooiservices.app.uframe.deployments_validate_fields import deployments_validate_required_fields_are_provided
 from ooiservices.app.uframe.uframe_tools import get_uframe_event
 from ooiservices.app.uframe.deployment_cache_tools import refresh_deployment_cache
+from ooiservices.app.uframe.deployment_tools import format_deployment_for_ui
 from ooiservices.app.uframe.events_create_update import update_event_type
-from ooiservices.app.uframe.deployment_tools import (format_deployment_for_ui, get_rd_deployments)
 from ooiservices.app.uframe.assets_create_update import refresh_asset_deployment
+from ooiservices.app.uframe.common_tools import (get_class_deployment, get_asset_class_by_asset_type, is_instrument,
+                                                 get_event_class, dump_dict)
 from copy import deepcopy
 import requests
 from requests.exceptions import (ConnectionError, Timeout)
@@ -52,7 +52,6 @@ def _create_deployment(data):
         "versionNumber": 3027
     }
     """
-    debug = False
     action = 'create'
     try:
         if not data:
@@ -62,13 +61,10 @@ def _create_deployment(data):
         # Transform input data from UI into format required by uframe for create.
         xdeployment = transform_deployment_for_uframe(None, data, action=action)
         if not xdeployment or xdeployment is None:
-            print '\n debug -- Failed to receive xdeployment from transform_deployment_for_uframe...'
+            message = 'Failed to receive xdeployment from transform_deployment_for_uframe.'
+            raise Exception(message)
 
-        if debug:
-            print '\n debug -- xdeployment: '
-            dump_dict(xdeployment, debug)
-
-        # Create new asset in uframe.
+        # Create new deployment in uframe.
         new_uframe_deployment = uframe_create_deployment(xdeployment)
 
         # Get deployment event id
@@ -96,38 +92,25 @@ def _create_deployment(data):
             del deployment_store['ingestInfo']
         if 'location' in deployment_store:
             del deployment_store['location']
-        if debug:
-            print '\n debug -- deployment_store...'
-            dump_dict(deployment_store, debug)
 
-        # Refresh deployment cache - todo - finish refresh_deployment_cache, move to asset_cache_tools
-        if debug: print '\n debug -- calling refresh_deployment_cache...'
+        # Refresh deployment cache.
         refresh_deployment_cache(id, deployment_store, action)
 
         # Refresh deployment information for assets associated with deployment.
         if 'mooring_uid' in ui_deployment:
             mooring_uid = ui_deployment['mooring_uid']
             if mooring_uid and mooring_uid is not None:
-                if debug: print '\n\t debug -- refresh_asset_deployment: mooring_uid: ', mooring_uid
                 refresh_asset_deployment(mooring_uid)
         if 'node_uid' in ui_deployment:
             node_uid = ui_deployment['node_uid']
             if node_uid and node_uid is not None:
-                if debug: print '\n\t debug -- refresh_asset_deployment: node_uid: ', node_uid
                 refresh_asset_deployment(node_uid)
         if 'sensor_uid' in ui_deployment:
             sensor_uid = ui_deployment['sensor_uid']
             if sensor_uid and sensor_uid is not None:
-                if debug: print '\n\t debug -- refresh_asset_deployment: sensor_uid: ', sensor_uid
                 refresh_asset_deployment(sensor_uid)
-
-        if debug: print '\n debug -- after calling refresh_deployment_cache...'
-
-
         # return updated deployment
         return ui_deployment
-
-
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
@@ -137,8 +120,8 @@ def _create_deployment(data):
 # Update deployment.
 def _update_deployment(id, data):
     """ Update deployment, deployment is returned on success. On failure, log and raise exception.
-    curl -H "Content-Type: application/json" -X PUT --upload-file ui_deployment_update.txt  http://localhost:4000/uframe/deployments/38105
     """
+    debug = False
     action = 'update'
     try:
         # Transform input data for uframe.
@@ -150,7 +133,7 @@ def _update_deployment(id, data):
         xdeployment_keys = xdeployment.keys()
         xdeployment_keys.sort()
 
-        # Verify asset exists:
+        # Verify deployment exists:
         # Get uframe deployment (for 'ingestInfo', 'lastModifiedTimestamp')
         deployment = get_uframe_event(id)
         if not deployment or deployment is None:
@@ -160,7 +143,8 @@ def _update_deployment(id, data):
         keys = []
         if deployment:
             keys = deployment.keys()
-            keys.sort()
+            if keys:
+                keys.sort()
 
         # Deployments: Reserved fields: fields which may not be modified by UI once assigned in uframe:
         #   eventId, lastModifiedTimestamp, assetUid
@@ -169,7 +153,7 @@ def _update_deployment(id, data):
         # Determine any missing items are in valid items list, is not error.
         valid_missing_keys = ['ingestInfo']
 
-        # Assets: Fields location and events are not provided by UI, get from asset. If asset is Sensor, calibration too.
+        # Deployments: Fields location and events are not provided by UI, get from deployment.
         missing_keys = []
         for key in keys:
             if key not in xdeployment_keys:
@@ -196,25 +180,16 @@ def _update_deployment(id, data):
                 raise Exception(message)
 
         # Update deployment in uframe.
-        #modified_deployment = uframe_update_deployment(xdeployment)
-
-        # Update deployment event.
+        if debug:
+            print '\n debug -- _update_deployment: '
+            dump_dict(xdeployment, debug)
         modified_deployment = update_event_type(id, xdeployment)
-        """
-        id = uframe_put_event(event_type, id, xdeployment)
-        # Get updated event, return event
-        modified_deployment = get_uframe_event(id)
-        """
 
-        # Format modified asset from uframe for UI.
+        # Format modified deployment from uframe for UI.
         ui_deployment = format_deployment_for_ui(modified_deployment)
 
         # Minimize data for cache.
         deployment_store = deepcopy(ui_deployment)
-        if 'deployCruiseInfo' in deployment_store:
-            del deployment_store['deployCruiseInfo']
-        if 'recoverCruiseInfo' in deployment_store:
-            del deployment_store['recoverCruiseInfo']
         if 'ingestInfo' in deployment_store:
             del deployment_store['ingestInfo']
         if 'location' in deployment_store:
@@ -236,7 +211,7 @@ def _update_deployment(id, data):
             if sensor_uid and sensor_uid is not None:
                 refresh_asset_deployment(sensor_uid)
 
-        # return updated asset
+        # return updated deployment
         return ui_deployment
 
     except Exception as err:
@@ -251,15 +226,12 @@ def transform_deployment_for_uframe(id, deployment, action=None):
     uframe_deployment = {}
     valid_actions = ['create', 'update']
     try:
-
         if action is None:
             message = 'Failed to transform deployment, action value is None.'
             raise Exception(message)
         if action not in valid_actions:
             message = 'Invalid action (%s) for transform deployment for uframe.' % action
             raise Exception(message)
-
-        deployment['@class'] = get_class_deployment()
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Perform basic checks on input data
@@ -268,12 +240,14 @@ def transform_deployment_for_uframe(id, deployment, action=None):
             message = 'No input provided, unable to process transform for deployment %s.' % action
             raise Exception(message)
 
+        deployment['@class'] = get_class_deployment()
+
         #- - - - - - - - - - - - - - - - - - - - - -
-        # Convert values for fields in 'string asset'
+        # Convert values for fields.
         #- - - - - - - - - - - - - - - - - - - - - -
         converted_deployment = deployments_validate_required_fields_are_provided(deployment, action)
 
-        # Action 'update' specific check: verify asset id in data is same as asset id on PUT
+        # Action 'update' specific check: verify event id in data is same as event id on PUT
         if action == 'update':
             if 'eventId' in converted_deployment:
                 if converted_deployment['eventId'] != id:
@@ -294,9 +268,14 @@ def transform_deployment_for_uframe(id, deployment, action=None):
             message = 'The reference designator provided does not contain subsite, node and sensor.'
             raise Exception(message)
 
-        # Build referenceDesignator
-        subsite, node, sensor = rd.split('-', 2)
-        referenceDesignator = { 'subsite': subsite, 'node': node, 'sensor': sensor}
+        # Build referenceDesignator     todo work here
+        if is_instrument(rd):
+            subsite, node, sensor = rd.split('-', 2)
+        else:
+            message = 'Transform received reference designator which is not an istrument. rd: %s' % rd
+            raise Exception(message)
+
+        referenceDesignator = {'subsite': subsite, 'node': node, 'sensor': sensor}
         uframe_deployment['referenceDesignator'] = referenceDesignator
 
         # Build location dictionary attribute.
@@ -315,15 +294,22 @@ def transform_deployment_for_uframe(id, deployment, action=None):
             depth = converted_deployment['depth']
 
         # If latitude and longitude both provided, build location dictionary.
-        if latitude is None or longitude is None:
-            location = None
+        if latitude is None and longitude is None:
+            if orbitRadius is None and depth is None:
+                location = None
+            else:
+                location = {}
+                location['latitude'] = 0.0
+                location['longitude'] = 0.0
+                location['orbitRadius'] = orbitRadius
+                location['depth'] = depth
+                location['location'] = [0.0, 0.0]
         else:
             location = {}
             location['latitude'] = latitude
             location['longitude'] = longitude
             location['orbitRadius'] = orbitRadius
             location['depth'] = depth
-            location['location'] = {}
             location['location'] = [longitude, latitude]
         uframe_deployment['location'] = location
 
@@ -378,14 +364,18 @@ def transform_deployment_for_uframe(id, deployment, action=None):
         # Get deployCruiseInfo provided.
         if 'deployCruiseInfo' in converted_deployment:
             if converted_deployment['deployCruiseInfo'] is not None:
-                uframe_deployment['deployCruiseInfo'] = converted_deployment['deployCruiseInfo']
+                tmp = {'@class': get_event_class('CRUISE_INFO'),
+                       'uniqueCruiseIdentifier': converted_deployment['deployCruiseInfo']}
+                uframe_deployment['deployCruiseInfo'] = tmp
             else:
                 uframe_deployment['deployCruiseInfo'] = None
 
         # Get recoverCruiseInfo provided.
         if 'recoverCruiseInfo' in converted_deployment:
             if converted_deployment['recoverCruiseInfo'] is not None:
-                uframe_deployment['recoverCruiseInfo'] = converted_deployment['recoverCruiseInfo']
+                tmp = {'@class': get_event_class('CRUISE_INFO'),
+                       'uniqueCruiseIdentifier': converted_deployment['recoverCruiseInfo']}
+                uframe_deployment['recoverCruiseInfo'] = tmp
             else:
                 uframe_deployment['recoverCruiseInfo'] = None
 
@@ -397,7 +387,7 @@ def transform_deployment_for_uframe(id, deployment, action=None):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Get the rest of the fields and values.
         regular_fields = ['assetUid', 'dataSource', 'deployedBy',
-                          'editPhase', 'eventId', 'eventName', 'eventStartTime', 'eventStopTime', 'eventType',
+                          'editPhase', 'eventId', 'eventName', 'eventStartTime', 'eventStopTime',
                           'inductiveId', 'notes', 'recoveredBy']
         for key in regular_fields:
             if key in converted_deployment:
@@ -405,6 +395,7 @@ def transform_deployment_for_uframe(id, deployment, action=None):
 
         # Fields: eventId, assetUid, lastModifiedTimestamp
         uframe_deployment['@class'] = get_class_deployment()
+        uframe_deployment['eventType'] = 'DEPLOYMENT'
         if action == 'update':
             uframe_deployment['eventId'] = converted_deployment['eventId']
             uframe_deployment['lastModifiedTimestamp'] = converted_deployment['lastModifiedTimestamp']
@@ -425,17 +416,14 @@ def transform_deployment_for_uframe(id, deployment, action=None):
         raise Exception(message)
 
 
-# Create asset in uframe.
+# Create deployment in uframe.
 def uframe_create_deployment(deployment):
-    """ Create deployment in uframe. On success return updated asset, on error, raise exception.
+    """ Create deployment in uframe. On success return updated deployment, on error, raise exception.
     """
     debug = False
     check = False
     success = 'CREATED'
     try:
-        if debug:
-            print '\n debug -- entered uframe_create_deployment...'
-            dump_dict(deployment, debug)
         # Check deployment data provided.
         if not deployment or deployment is None:
             message = 'Deployment data must be provided to create deployment in uframe.'
@@ -444,13 +432,17 @@ def uframe_create_deployment(deployment):
             message = 'Deployment data must be provided in dict form to create deployment in uframe.'
             raise Exception(message)
 
+        if debug:
+            print '\n debug -- [uframe_create_deployment] deployment: '
+            dump_dict(deployment, debug)
+
         # Create deployment in uframe.
         base_url, timeout, timeout_read = get_uframe_deployments_info()
         url = '/'.join([base_url, get_deployments_url_base()])
         if check: print '\n check: url: ', url
         response = requests.post(url, data=json.dumps(deployment), headers=headers())
         if debug:
-            print '\n response.status_code: ', response.status_code
+            print '\n debug -- response.status_code: ', response.status_code
             if response.content:
                 print '\n debug -- response.content: ', json.loads(response.content)
         if response.status_code != 201:
@@ -465,13 +457,13 @@ def uframe_create_deployment(deployment):
 
         # Get id for new deployment.
         if not response.content:
-            message = 'No response content returned from create asset.'
+            message = 'No response content returned from create deployment.'
             raise Exception(message)
 
         # Review response.content:
         #   {u'message': u'Element created successfully.', u'id': 4292, u'statusCode': u'CREATED'}
+        if debug: print '\n debug -- process response.content...'
         response_data = json.loads(response.content)
-        if debug: print '\n debug -- response_data: ', response_data
         id = None
         if 'id' in response_data and 'statusCode' in response_data:
             if response_data['statusCode'] and response_data['id']:
@@ -482,6 +474,7 @@ def uframe_create_deployment(deployment):
             raise Exception(message)
 
         # Get new deployment from uframe.
+        if debug: print '\n debug -- get_uframe_event: %d' % id
         new_deployment = get_uframe_event(id)
         if not new_deployment or new_deployment is None:
             message = 'Failed to get deployment with event id %d from uframe.' % id
@@ -519,26 +512,3 @@ def _get_deployment_by_event_id(event_id):
         raise Exception(message)
 
 
-# Get list of deployments, return formatted for ui.
-def _get_deployments_by_rd(rd):
-    """ Get list of deployments for a reference designator; return formatted for UI.
-    """
-    ui_deployments = []
-    try:
-        # Get deployment event from uframe.
-        uframe_deployments = get_rd_deployments(rd)
-        if not uframe_deployments or uframe_deployments is None:
-            message = 'Failed to get deployments using reference designator \'%s\' from uframe.' % rd
-            raise Exception(message)
-
-        # Format deployment event for ui.
-        for uframe_deployment in uframe_deployments:
-            ui_deployment = format_deployment_for_ui(uframe_deployment)
-            if not ui_deployment and ui_deployment is not None:
-                continue
-            ui_deployments.append(ui_deployment)
-        return ui_deployments
-
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
