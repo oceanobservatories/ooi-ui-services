@@ -1607,7 +1607,7 @@ def get_uframe_multi_stream_contents(stream1_dict, stream2_dict, start_time, end
         #         ('-'.join([refdes1+stream1, refdes1+stream2]), '-'.join([start_time, end_time]))
 
         query = ('sensor?r=r1&r=r2&r1.refdes=%s&r2.refdes=%s&r1.method=%s&r2.method=%s'
-                 '&r1.stream=%s&r2.stream=%s&r1.params=%s&r2.params=%s&limit=%s&startDT=%s&endDT=%s'
+                 '&r1.stream=%s&r2.stream=%s&r1.params=%s&r2.params=%s&limit=%s&startDT=%s&endDT=%s&user=plotting'
                  % (refdes1, refdes2, method1, method2, stream1, stream2,
                     params1, params2, limit, start_time, end_time))
 
@@ -1632,15 +1632,15 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
     dataBlock = ''
     try:
         if dpa_flag == '0' and len(parameter_ids) < 1:
-            query = '?beginDT=%s&endDT=%s&limit=%s' % (start_time, end_time, current_app.config['DATA_POINTS'])
+            query = '?beginDT=%s&endDT=%s&limit=%s&user=plotting' % (start_time, end_time, current_app.config['DATA_POINTS'])
         elif dpa_flag == '1' and len(parameter_ids) < 1:
-            query = '?beginDT=%s&endDT=%s&limit=%s&execDPA=true' % \
+            query = '?beginDT=%s&endDT=%s&limit=%s&user=plotting' % \
                     (start_time, end_time, current_app.config['DATA_POINTS'])
         elif dpa_flag == '0' and len(parameter_ids) > 0:
-            query = '?beginDT=%s&endDT=%s&limit=%s&parameters=%s' % \
+            query = '?beginDT=%s&endDT=%s&limit=%s&parameters=%s&user=plotting' % \
                     (start_time, end_time, current_app.config['DATA_POINTS'], ','.join(parameter_ids))
         elif dpa_flag == '1' and len(parameter_ids) > 0:
-            query = '?beginDT=%s&endDT=%s&limit=%s&execDPA=true&parameters=%s' % \
+            query = '?beginDT=%s&endDT=%s&limit=%strue&parameters=%s&user=plotting' % \
                     (start_time, end_time, current_app.config['DATA_POINTS'], ','.join(map(str, parameter_ids)))
 
         GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=plot&ea=%s&el=%s' % \
@@ -1707,10 +1707,7 @@ def get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_typ
     """ Gets the bounded stream contents, start_time and end_time need to be datetime objects.
     """
     try:
-        if dpa_flag == '0':
-            query = '?beginDT=%s&endDT=%s' % (start_time, end_time)
-        else:
-            query = '?beginDT=%s&endDT=%s&execDPA=true' % (start_time, end_time)
+        query = '?beginDT=%s&endDT=%s&user=download' % (start_time, end_time)
         UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
 
         url = "/".join([UFRAME_DATA, mooring, platform, instrument, stream_type, stream + query])
