@@ -105,6 +105,11 @@ def remap_ui_to_uframe(anno_record):
     anno_record['sensor'] = sensor
     anno_record['beginDT'] = timestamp_to_millis(anno_record['beginDT'])
     anno_record['endDT'] = timestamp_to_millis(anno_record['endDT'])
+    anno_record['method'] = anno_record['stream_name'].split('_')[0]
+    anno_record['stream_name'] = anno_record['stream_name'].split('_')[1]
+
+    anno_record['@class'] = '.AnnotationRecord'
+
     return anno_record
 
 
