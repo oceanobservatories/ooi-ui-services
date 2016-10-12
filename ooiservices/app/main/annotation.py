@@ -91,6 +91,11 @@ def remap_uframe_to_ui(anno_record):
     :return: remapped record
     """
     current_app.logger.debug('remap_uframe_to_ui(%r)', anno_record)
+    method = anno_record['method']
+    stream = anno_record['stream']
+    method = '' if method is None else method.replace('_', '-')
+    stream = '' if stream is None else stream.replace('_', '-')
+    anno_record['stream_name'] = '_'.join((method, stream))
     anno_record['referenceDesignator'] = get_refdes(anno_record)
     anno_record['beginDT'] = millis_to_timestamp(anno_record.get('beginDT'))
     anno_record['endDT'] = millis_to_timestamp(anno_record.get('endDT'))
@@ -100,16 +105,21 @@ def remap_uframe_to_ui(anno_record):
 def remap_ui_to_uframe(anno_record):
     current_app.logger.debug('remap_ui_to_uframe(%r)', anno_record)
     subsite, node, sensor = get_refdes_parts(anno_record)
-    method, stream = anno_record['stream_name'].split('_')
-    method = method.replace('-', '_')
-    stream = stream.replace('-', '_')
+    stream_name = anno_record['stream_name']
+    if '_' in stream_name:
+        method, stream = stream_name.split('_')
+        method = method.replace('-', '_')
+        stream = stream.replace('-', '_')
+    else:
+        method = None
+        stream = None
     anno_record['subsite'] = subsite
     anno_record['node'] = node
     anno_record['sensor'] = sensor
     anno_record['beginDT'] = timestamp_to_millis(anno_record['beginDT'])
     anno_record['endDT'] = timestamp_to_millis(anno_record['endDT'])
     anno_record['method'] = method
-    anno_record['stream_name'] = stream
+    anno_record['stream'] = stream
     anno_record['@class'] = '.AnnotationRecord'
 
     return anno_record
