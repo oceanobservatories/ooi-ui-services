@@ -100,14 +100,16 @@ def remap_uframe_to_ui(anno_record):
 def remap_ui_to_uframe(anno_record):
     current_app.logger.debug('remap_ui_to_uframe(%r)', anno_record)
     subsite, node, sensor = get_refdes_parts(anno_record)
+    method, stream = anno_record['stream_name'].split('_')
+    method = method.replace('-', '_')
+    stream = stream.replace('-', '_')
     anno_record['subsite'] = subsite
     anno_record['node'] = node
     anno_record['sensor'] = sensor
     anno_record['beginDT'] = timestamp_to_millis(anno_record['beginDT'])
     anno_record['endDT'] = timestamp_to_millis(anno_record['endDT'])
-    anno_record['method'] = anno_record['stream_name'].split('_')[0]
-    anno_record['stream_name'] = anno_record['stream_name'].split('_')[1]
-
+    anno_record['method'] = method
+    anno_record['stream_name'] = stream
     anno_record['@class'] = '.AnnotationRecord'
 
     return anno_record
@@ -132,6 +134,7 @@ def get_annotations():
     """
     method_stream = request.args.get('stream_name')
     method, stream = method_stream.split('_')
+    method = method.replace('-', '_')
     stream = stream.replace('-', '_')
     startdate = timestamp_to_millis(request.args.get('startdate'))
     enddate = timestamp_to_millis(request.args.get('enddate'))
