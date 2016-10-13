@@ -33,7 +33,7 @@ COMMON: &common
     UFRAME_DEPLOYMENTS_URL:  'http://localhost:12587'
 
     UFRAME_MISSIONS_BASE:   '/missions'
-    UFRAME_ANNOTATION_BASE: '/annotations'
+    UFRAME_ANNOTATION_BASE: '/anno'
     UFRAME_URL_BASE:        '/sensor/inv'
     UFRAME_TOC:             '/sensor/inv/toc'
     UFRAME_INST_BASE:       '/instrument/api'
