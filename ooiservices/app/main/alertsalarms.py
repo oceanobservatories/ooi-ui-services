@@ -81,13 +81,15 @@ def get_asset_list():
     ref_list = []
     name_list = []
     for d in data:
-        if ('ref_des' in d) and (len(d['ref_des']) > 2) and ('-' in d['ref_des']):
-            split_ref = d['ref_des'].split('-')
-            if d['ref_des'] not in name_list and len(split_ref) > 1:
-                ref_list.append(d)
-                name_list.append(d['ref_des'])
-        else:
-            if debug: current_app.logger.info('ref_des not in assets.')
+        if 'ref_des' in d:
+            if d['ref_des'] and d['ref_des'] is not None:
+                if ('ref_des' in d) and (len(d['ref_des']) > 2) and ('-' in d['ref_des']):
+                    split_ref = d['ref_des'].split('-')
+                    if d['ref_des'] not in name_list and len(split_ref) > 1:
+                        ref_list.append(d)
+                        name_list.append(d['ref_des'])
+                else:
+                    if debug: current_app.logger.info('ref_des not in assets.')
     return ref_list, name_list
 
 
@@ -158,53 +160,55 @@ def get_alert_alarm_status():
     #use all the info to create status
     for asset in assets_dict:
         d = asset['ref_des']
+        if not d or d is None:
+            continue
 
-        # todo - add function to support hasDeployments (bool) for a reference designator.
-        # todo - hasDeployments = hasDeployments(d)
-        if 'hasDeploymentEvent' in asset and asset['hasDeploymentEvent']:
+        if 'deployment_numbers' in asset:
+            if asset['deployment_numbers']:
 
-            # Create initial entry
-            if 'manufactureInfo' in asset:
-                entry = {'reference_designator': d, 'count': 0,
-                        'event_type': 'unknown',
-                        'coordinates': asset['coordinates'],
-                        'asset_type': asset['assetType'],           #asset['assetInfo']['type'],
-                        'longName': asset['assetInfo']['longName'],
-                        'name': asset['assetInfo']['name'],
-                        'instrumentClass': asset['assetType'],      #instrument_class,
-                        'manufacturer': asset['manufactureInfo']['manufacturer'],
-                        'modelNumber': asset['manufactureInfo']['modelNumber'],
-                        'serialNumber': asset['manufactureInfo']['serialNumber'],
-                        'owner': asset['assetInfo']['owner'],
-                        'description': asset['assetInfo']['description']}
-            else:
-                entry = {'reference_designator': d, 'count': 0,
-                        'event_type': 'unknown',
-                        'coordinates': asset['coordinates'],
-                        'asset_type': asset['assetType'],           #asset['assetInfo']['type'],
-                        'longName': asset['assetInfo']['longName'],
-                        'name': asset['assetInfo']['name'],
-                        'instrumentClass': asset['assetType'],      #instrument_class,
-                        'manufacturer': 'N/A',
-                        'modelNumber': 'N/A',
-                        'serialNumber': 'N/A',
-                        'owner': asset['assetInfo']['owner'],
-                        'description': asset['assetInfo']['description']}
+                # Create initial entry
+                # Removed:
+                # 'coordinates': asset['coordinates'],
+                # 'coordinates': asset['coordinates'],
+                if 'manufactureInfo' in asset:
+                    entry = {'reference_designator': d, 'count': 0,
+                            'event_type': 'unknown',
+                            'asset_type': asset['assetType'],
+                            'longName': asset['assetInfo']['longName'],
+                            'name': asset['assetInfo']['name'],
+                            'instrumentClass': asset['assetType'],      # Wrong: The asset type is not the class.
+                            'manufacturer': asset['manufactureInfo']['manufacturer'],
+                            'modelNumber': asset['manufactureInfo']['modelNumber'],
+                            'serialNumber': asset['manufactureInfo']['serialNumber'],
+                            'owner': asset['assetInfo']['owner'],
+                            'description': asset['assetInfo']['description']}
+                else:
+                    entry = {'reference_designator': d, 'count': 0,
+                            'event_type': 'unknown',
+                            'asset_type': asset['assetType'],
+                            'longName': asset['assetInfo']['longName'],
+                            'name': asset['assetInfo']['name'],
+                            'instrumentClass': asset['assetType'],      # Wrong: The asset type is not the class.
+                            'manufacturer': 'N/A',
+                            'modelNumber': 'N/A',
+                            'serialNumber': 'N/A',
+                            'owner': asset['assetInfo']['owner'],
+                            'description': asset['assetInfo']['description']}
 
-            # use alert alarms status (alarm or alert)
-            if d in status_outline.keys():
-                entry['count'] = status_outline[d]['count']
-                entry['event_type'] = status_outline[d]['event_type']
-            #healthly
-            elif d in aa_def_list:
-                #used to identify health sensors
-                entry['event_type'] = 'inactive'
-            #no status, unknown
-            else:
-                #nothing to do here
-                pass
+                # use alert alarms status (alarm or alert)
+                if d in status_outline.keys():
+                    entry['count'] = status_outline[d]['count']
+                    entry['event_type'] = status_outline[d]['event_type']
+                #healthly
+                elif d in aa_def_list:
+                    #used to identify health sensors
+                    entry['event_type'] = 'inactive'
+                #no status, unknown
+                else:
+                    #nothing to do here
+                    pass
 
-            status_info.append(entry)
+                status_info.append(entry)
     return jsonify({'alert_alarm':status_info})
 
 
