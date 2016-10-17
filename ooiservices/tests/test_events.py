@@ -34,8 +34,9 @@ The remaining event types are tested in separate files:
 __author__ = 'Edna Donoughe'
 
 import unittest
-from ooiservices.tests.common_tools import (dump_dict, get_event_input_as_unicode, get_event_input_as_string)
 from ooiservices.app import (create_app, db)
+from ooiservices.tests.common_tools import (dump_dict, get_event_input_as_unicode, get_event_input_as_string)
+from ooiservices.app.uframe.common_tools import operational_status_values
 from ooiservices.app.uframe.common_tools import (get_asset_types, get_asset_type_by_rd)
 from base64 import b64encode
 from random import randint
@@ -173,7 +174,6 @@ class EventsTestCase(unittest.TestCase):
         response = self.client.get(url, headers=headers)
         self.assertEquals(response.status_code, 200)
         result = json.loads(response.data)
-        #if debug: print '\n -- fetched asset(%d): %s' % (asset_id, result)
         self.assertTrue(result is not None)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -242,10 +242,15 @@ class EventsTestCase(unittest.TestCase):
         self.update_event_negative('{}')
         self.update_event_negative(None)
 
+        self.assertTrue(asset is not None)
         asset_id, asset_uid, rd = self.get_id_uid_rd(asset)
+        self.assertTrue(asset_uid is not None)
+        self.assertTrue(rd is not None)
         uid, input = self.create_event_data('STORAGE', asset_uid, rd)
         input['eventName'] = None
-        self.create_event_negative(input)
+        self.assertTrue(input is not None)
+        uid = uid + str(datetime.datetime.now())
+        event_id, last_modified = self._create_event_type('STORAGE', uid, input)
 
         # Get event types (/uframe/events/types)
         url = url_for('uframe.get_event_type', id=asset_id)
@@ -264,6 +269,30 @@ class EventsTestCase(unittest.TestCase):
         result = json.loads(response.data)
         self.assertTrue(result is not None)
         self.assertTrue(isinstance(result, dict))
+
+        # Get valid operational status values
+        url = url_for('uframe.get_operational_status_values')
+        if verbose: print '\n ----- url: ', url
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        result = json.loads(response.data)
+        self.assertTrue(result is not None)
+        self.assertTrue(isinstance(result, dict))
+        self.assertTrue('operational_status_values' in result)
+
+        # Get event tabs for asset types
+        asset_types = get_asset_types()
+        for asset_type in asset_types:
+
+            url = url_for('uframe.get_event_tabs_by_asset_type', asset_type=asset_type)
+            if verbose: print '\n ----- url: ', url
+            response = self.client.get(url, headers=headers)
+            self.assertEquals(response.status_code, 200)
+            result = json.loads(response.data)
+            self.assertTrue(result is not None)
+            self.assertTrue(isinstance(result, dict))
+            self.assertTrue('tabs' in result)
+            self.assertTrue(len(result['tabs']) > 0)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Negative test - use bad uid
@@ -294,6 +323,15 @@ class EventsTestCase(unittest.TestCase):
         self.assertTrue(isinstance(result, dict))
         self.assertTrue('events' in result)
         self.assertTrue(len(result['events']) > 0)
+
+        # Get all events for an asset uid.
+        url = url_for('uframe.get_all_events_by_uid', uid='bad-uid')
+        if verbose: print '\n ----- url: ', url
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 400)
+        result = json.loads(response.data)
+        self.assertTrue(result is not None)
+        self.assertTrue(isinstance(result, dict))
 
         if verbose: print '\n'
 
@@ -984,7 +1022,8 @@ class EventsTestCase(unittest.TestCase):
                 if event_type == 'ACQUISITION':
                     self.assertTrue('purchasePrice' in input)
                     if input['purchasePrice'] is not None:
-                        if debug: print '\n test:: Update %s event, attribute purchasePrice type: %r' % (event_type, type(input['purchasePrice']))
+                        if debug: print '\n test:: Update %s event, attribute purchasePrice type: %r' % \
+                                        (event_type, type(input['purchasePrice']))
                         #self.assertTrue(isinstance(input['purchasePrice'], float))
 
                 event_id, last_modified = self._create_event_type(event_type, uid, input)
@@ -1334,7 +1373,7 @@ class EventsTestCase(unittest.TestCase):
         if response.status_code != 200:
             print '\n Creating an event of type ', _event_type
             print '\n Create event -- response.status_code: ', response.status_code
-            if response.data:
+            if response.data and response.data is not None:
                 response_error = json.loads(response.data)
                 print '\n response_data: ', response_error
 
@@ -1714,11 +1753,16 @@ class EventsTestCase(unittest.TestCase):
                       }
 
         elif event_type == 'ASSET_STATUS':
+            valid_status_values = operational_status_values()
+            status_index = randint(0, (len(valid_status_values)-1))
+            #print '\n status_index: ', status_index
+            status_value = valid_status_values[status_index]
+            #print '\n debug -- status_value: ', status_value
             input = {
                     'severity': 5,
                     'reason': str(unique_num),
                     'location': None,
-                    'status': str(datetime.datetime.now()),
+                    'status': status_value,
                     'eventType': 'ASSET_STATUS',
                     'eventStartTime': 1398039060000,
                     'eventStopTime': 1405382400000,

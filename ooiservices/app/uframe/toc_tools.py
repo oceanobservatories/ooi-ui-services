@@ -12,7 +12,6 @@ import requests
 import requests.exceptions
 from requests.exceptions import (ConnectionError, Timeout)
 
-
 def process_toc_reference_designators(toc):
     """
     Get list of unique reference designators in /sensor/inv/toc; sorted ascending.
@@ -139,7 +138,6 @@ def _compile_asset_rds():
           . . .
         }
     """
-    #debug = False
     result = {}
     rds_wo_assets = []
     try:

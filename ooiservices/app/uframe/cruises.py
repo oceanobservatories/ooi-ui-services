@@ -5,7 +5,6 @@ Asset Management - Cruise routes.
 Routes:
 [GET]   /cruises                                 # Get all cruises in inventory.
 [GET]   /cruises/<int:id>                        # Get cruise by event id.
-[GET]   /cruises/<string:cruise_id>              # Get cruise by unique cruise id.
 [GET]   /cruises/<string:event_id>/deployments   # Get all deployments for a cruise by unique cruise identifier.
 [GET]   /cruises/<int:event_id>/deployment       # Get a specific deployment for a specific cruise.
 """
@@ -40,7 +39,6 @@ def get_cruise(event_id):
     try:
         result = _get_cruise(event_id)
         return jsonify(result)
-
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
@@ -61,14 +59,12 @@ def get_cruise_deployments(event_id):
         if event_id < 1:
             message = 'Invalid event id (%d), must be a valid event id.' % event_id
             raise Exception(message)
-
         # Determine if phase parameter provided, if so process
         type = None
         if request.args.get('phase'):
             type = request.args.get('phase')
         deployments = _get_cruise_deployments(event_id, type)
         return jsonify({'cruise_deployments': deployments})
-
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
@@ -84,10 +80,8 @@ def get_cruise_deployment(event_id):
         if event_id < 1:
             message = 'Invalid event id, failed to get deployment event id %d.' % event_id
             raise Exception(message)
-
         deployment = _get_cruise_deployment(event_id)
         return jsonify({'deployment': deployment})
-
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)

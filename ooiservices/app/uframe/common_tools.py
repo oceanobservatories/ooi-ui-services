@@ -324,18 +324,17 @@ def get_event_types():
     return event_types
 
 def get_supported_event_types():
-    # Get all event type values. Missing 'DEPLOYMENT'.
+    # Get all event type values. (remove 'INTEGRATION', 'LOCATION', , 'UNSPECIFIED')
     event_types = ['ACQUISITION', 'ASSET_STATUS', 'ATVENDOR', 'CALIBRATION_DATA', 'CRUISE_INFO',
-                   'DEPLOYMENT', 'INTEGRATION', 'LOCATION', 'RETIREMENT', 'STORAGE', 'UNSPECIFIED']
+                   'DEPLOYMENT',  'RETIREMENT', 'STORAGE']
     event_types.sort()
     return event_types
 
 
 def get_event_types_by_rd(rd):
-    # Get all supported event types values.
+    # Get all supported event types values. (remove 'INTEGRATION', 'LOCATION', 'UNSPECIFIED')
     len_rd = len(rd)
-    event_types = ['ACQUISITION', 'ASSET_STATUS', 'ATVENDOR', 'CRUISE_INFO',
-                   'DEPLOYMENT', 'INTEGRATION', 'LOCATION', 'RETIREMENT', 'STORAGE', 'UNSPECIFIED']
+    event_types = ['ACQUISITION', 'ASSET_STATUS', 'ATVENDOR', 'CRUISE_INFO', 'DEPLOYMENT',  'RETIREMENT', 'STORAGE']
 
     # For sensor assets, add event type 'CALIBRATION_DATA'.
     if len_rd >14 and len_rd <=27:
@@ -345,9 +344,8 @@ def get_event_types_by_rd(rd):
 
 
 def get_event_types_by_asset_type(asset_type):
-    # Get all supported event types values.
-    event_types = ['ACQUISITION', 'ASSET_STATUS', 'ATVENDOR', 'CRUISE_INFO',
-                   'DEPLOYMENT', 'INTEGRATION', 'LOCATION', 'RETIREMENT', 'STORAGE', 'UNSPECIFIED']
+    # Get all supported event types values. (remove , 'INTEGRATION', 'LOCATION', 'UNSPECIFIED')
+    event_types = ['ACQUISITION', 'ASSET_STATUS', 'ATVENDOR', 'CRUISE_INFO', 'DEPLOYMENT',  'RETIREMENT', 'STORAGE']
 
     # For sensor assets, add event type 'CALIBRATION_DATA'.
     if asset_type == 'Sensor':
@@ -382,6 +380,11 @@ def get_supported_array_codes():
 
 def operational_status_values():
     values = ['Operational', 'Degraded', 'Failed', 'notTracked']
+    return values
+
+
+def boolean_values():
+    values = ['True', 'False']
     return values
 
 
@@ -454,3 +457,107 @@ def convert_from_utc(u):
 
 def ut(d):
     return calendar.timegm(d.timetuple())
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Location dictionary processing for Assets and Deployments
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Create location dictionary from fields.
+def get_location_dict(latitude, longitude, depth, orbitRadius):
+    try:
+        location = {}
+        # Provide latitude, but no longitude
+        if latitude is not None and longitude is None:
+            message = 'Provide both latitude and longitude; longitude not provided.'
+            raise Exception(message)
+        # Provide longitude, but no latitude
+        elif longitude is not None and latitude is None:
+            message = 'Provide both latitude and longitude; latitude not provided.'
+            raise Exception(message)
+
+        # Both latitude and longitude are None
+        if latitude is None and longitude is None:
+            location['location'] = None
+
+        # Both latitude and longitude are provided
+        else:
+            location['location'] = [longitude, latitude]
+        location['latitude'] = latitude
+        location['longitude'] = longitude
+        location['depth'] = depth
+        location['orbitRadius'] = orbitRadius
+        return location
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+# Get location fields from location dictionary.
+def get_location_fields(location):
+    """ Get fields from location dictionary.
+    """
+    try:
+        lat = None
+        lon = None
+        location_list = None
+        depth = None
+        orbitRadius = None
+        if location is not None:
+            if location['latitude'] is not None and location['longitude'] is None:
+                message = 'Provide both latitude and longitude; longitude not provided.'
+                raise Exception(message)
+            elif location['longitude'] is not None and location['latitude'] is None:
+                message = 'Provide both latitude and longitude; latitude not provided.'
+                raise Exception(message)
+            elif location['latitude'] is not None and location['longitude'] is not None:
+                lat = convert_float_field('latitude', location['latitude'])
+                lon = convert_float_field('longitude', location['longitude'])
+                location_list = [lon, lat]
+            depth = location['depth']
+            orbitRadius = location['orbitRadius']
+
+        return lat, lon, depth, orbitRadius, location_list
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+# Used to convert float fields.
+def convert_float_field(field, data_field):
+    field_type = 'float'
+    try:
+        if isinstance(data_field, float):
+            converted_data_field = data_field
+        else:
+            if data_field and len(data_field) > 0:
+                tmp = float(data_field)
+                if not isinstance(tmp, float):
+                    raise Exception
+                converted_data_field = tmp
+            else:
+                converted_data_field = None
+        return converted_data_field
+    except Exception:
+        message = 'Invalid value provided for field \'%s\', provide a number.' %field
+        raise Exception(message)
+
+
+# Ensure no duplicates in list. On error return empty list.
+def scrub_list(data):
+    result = []
+    try:
+        if data is None:
+            return result
+        elif not isinstance(data, list):
+            message = 'Data provided is not a list.'
+            raise Exception(message)
+        else:
+            for item in data:
+                if item not in result:
+                    result.append(item)
+            if result:
+                result.sort()
+        return result
+    except Exception as err:
+        message = err.message
+        current_app.logger.info(message)
+        return result

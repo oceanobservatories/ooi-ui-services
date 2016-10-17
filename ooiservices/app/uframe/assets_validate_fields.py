@@ -4,7 +4,7 @@ Asset Management - Assets: Validate required fields based on asset type.
 __author__ = 'Edna Donoughe'
 
 
-from ooiservices.app.uframe.common_tools import (get_asset_types, asset_edit_phase_values, verify_action)
+from ooiservices.app.uframe.common_tools import (get_supported_asset_types, asset_edit_phase_values, verify_action)
 from ooiservices.app.uframe.common_convert import convert_ui_data
 
 
@@ -18,10 +18,10 @@ def assets_validate_required_fields_are_provided(asset_type, data, action=None):
         # Get fields required (from UI) for action.
         required_fields, field_types = asset_ui_get_required_fields_and_types(asset_type, action)
         if not required_fields:
-            message = 'Asset type %s action %s requires specific fields.' % (asset_type, action)
+            message = 'Asset type %s action %s missing required fields.' % (asset_type, action)
             raise Exception(message)
         if not field_types:
-            message = 'Asset type %s action %s requires specific field types.' % (asset_type, action)
+            message = 'Asset type %s action %s missing required field types.' % (asset_type, action)
             raise Exception(message)
 
         # Convert field values - for all field values, convert into target type.
@@ -129,7 +129,7 @@ def verify_inputs(asset_type, data, action):
         if not asset_type:
             message = 'Field validation requires asset_type to be provided, not empty.'
             raise Exception(message)
-        if asset_type not in get_asset_types():
+        if asset_type not in get_supported_asset_types():
             message = 'Valid asset type is required to validate asset fields. Invalid value: %s' % asset_type
             raise Exception(message)
     except Exception as err:
@@ -138,7 +138,7 @@ def verify_inputs(asset_type, data, action):
 
 
 def asset_ui_get_required_fields_and_types(asset_type, action):
-    """ Get required fields and field types for asset_type being processed.
+    """ Get required fields ([]) and field types ({}) for asset_type being processed.
     """
     required_fields = []
     field_types = {}
@@ -148,21 +148,13 @@ def asset_ui_get_required_fields_and_types(asset_type, action):
         if not asset_type:
             message = 'Asset type %s is required to get asset required fields and types for ui.' % asset_type
             raise Exception(message)
-        if asset_type not in get_asset_types():
+        if asset_type not in get_supported_asset_types():
             message ='Asset type %s is required to get asset required fields and types for ui.' % asset_type
             raise Exception(message)
 
         # Set base required fields
-        base_required_fields = get_base_required_fields()
-        base_required_field_types = get_base_required_field_types()
-        if asset_type in ['notClassified', 'Mooring', 'Node', 'Array']:
-            required_fields = base_required_fields
-            field_types = base_required_field_types
-        elif asset_type == 'Sensor':
-            required_fields = base_required_fields
-            field_types = base_required_field_types
-            #required_fields.append('calibration')
-            #field_types['calibration'] = 'list'
+        required_fields = get_base_required_fields()
+        field_types = get_base_required_field_types()
 
         if required_fields and field_types:
             # Note additional fields: 'id', 'uid', 'lastModifiedTimestamp'
@@ -175,10 +167,12 @@ def asset_ui_get_required_fields_and_types(asset_type, action):
                     required_fields.append('uid')
                 if 'uid' not in field_types:
                     field_types['uid'] = 'int'
+                """
                 if 'lastModifiedTimestamp' not in required_fields:
                     required_fields.append('lastModifiedTimestamp')
                 if 'lastModifiedTimestamp' not in field_types:
                     field_types['lastModifiedTimestamp'] = 'long'
+                """
             required_fields.sort()
 
         else:
@@ -204,6 +198,7 @@ def get_base_required_fields():
     2016-08-24: removed 'coordinates'
     2016-08-26: removed 'augmented', 'Ref Des', 'remoteDocuments', 'hasDeploymentEvent',
     2016-09-26: removed 'tense',
+    2016-10-11: removed 'tense',
     """
     base_required_fields = [
                             'assetInfo',
@@ -224,7 +219,6 @@ def get_base_required_fields():
                             'purchaseAndDeliveryInfo',
                             'ref_des',
                             'remoteResources',
-                            'tense',
                             'uid'
                             ]
 
@@ -236,6 +230,7 @@ def get_base_required_field_types():
     2016-08-24: removed 'coordinates': 'floatlist',
     2016-08-26" remove 'augmented': 'bool', 'Ref Des': 'string','hasDeploymentEvent': 'bool','remoteDocuments': 'list',
     added 'editPhase' can have values: EDIT, STAGED, OPERATIONAL
+    removed 'lastModifiedTimestamp': 'long',
     """
     base_required_field_types = {
                             'assetInfo': 'dict',
@@ -248,7 +243,6 @@ def get_base_required_field_types():
                             'id': 'int',
                             'latitude': 'float',
                             'longitude': 'float',
-                            'lastModifiedTimestamp': 'long',
                             'manufactureInfo': 'dict',
                             'mobile': 'bool',
                             'notes': 'string',
@@ -258,7 +252,6 @@ def get_base_required_field_types():
                             'purchaseAndDeliveryInfo': 'dict',
                             'ref_des': 'string',
                             'remoteResources': 'dictlist',
-                            'tense': 'string',
                             'uid': 'string'
                             }
     return base_required_field_types
@@ -365,7 +358,7 @@ def asset_get_required_fields_and_types_uframe(asset_type, action):
         if not asset_type:
             message ='Asset type %s is required to get asset required fields and types for uframe.' % asset_type
             raise Exception(message)
-        if asset_type not in get_asset_types():
+        if asset_type not in get_supported_asset_types():
             message ='Asset type %s is required to get asset required fields and types for uframe.' % asset_type
             raise Exception(message)
 
@@ -384,13 +377,13 @@ def asset_get_required_fields_and_types_uframe(asset_type, action):
                 field_types['calibration'] = 'list'
 
         if required_fields and field_types:
-            update_additional_fields = ['assetId', 'lastModifiedTimestamp']
+            update_additional_fields = ['assetId'] #, 'lastModifiedTimestamp']
             if action == 'update':
                 required_fields += update_additional_fields
                 if 'assetId' not in field_types:
                     field_types['assetId'] = 'int'
-                if 'lastModifiedTimestamp' not in field_types:
-                    field_types['lastModifiedTimestamp'] = 'int'
+                #if 'lastModifiedTimestamp' not in field_types:
+                #    field_types['lastModifiedTimestamp'] = 'int'
             required_fields.sort()
         else:
             message = 'Asset type %s does not have required fields for uframe %s (%d): %s' % \
@@ -468,7 +461,7 @@ def convert_assetInfo_fields(asset):
         if 'assetInfo' in asset:
             assetInfo = asset['assetInfo']
         if assetInfo is None:
-            message = 'Malformed asset, missing required field \'assetInfo\'.'
+            message = 'Malformed asset, missing required dictionary field \'assetInfo\'.'
             raise Exception(message)
 
         # Convert to float
@@ -478,7 +471,7 @@ def convert_assetInfo_fields(asset):
                     tmp = float(assetInfo['maxdepth'])
                     assetInfo['maxdepth'] = tmp
                 except:
-                    message = 'Failed to convert assetInfo field: maxdepth to float. '
+                    message = 'Invalid value provided for field \'maxdepth\', internal float conversion error.'
                     raise Exception(message)
 
         # Convert to float
@@ -488,7 +481,7 @@ def convert_assetInfo_fields(asset):
                     tmp = float(assetInfo['mindepth'])
                     assetInfo['mindepth'] = tmp
                 except:
-                    message = 'Failed to convert assetInfo field: mindepth to float. '
+                    message = 'Invalid value provided for field \'mindepth\', internal float conversion error.'
                     raise Exception(message)
 
         return
@@ -512,7 +505,7 @@ def convert_manufactureInfo_fields(asset):
         if 'manufactureInfo' in asset:
             manufactureInfo = asset['manufactureInfo']
         if manufactureInfo is None:
-            message = 'Malformed asset, missing required field \'manufactureInfo\'.'
+            message = 'Malformed asset, missing required dictionary field \'manufactureInfo\'.'
             raise Exception(message)
 
         # Convert to int
@@ -522,7 +515,7 @@ def convert_manufactureInfo_fields(asset):
                     tmp = long(manufactureInfo['shelfLifeExpirationDate'])
                     manufactureInfo['shelfLifeExpirationDate'] = tmp
                 except:
-                    message = 'Failed to convert manufactureInfo field: shelfLifeExpirationDate to long. '
+                    message = 'Invalid data entered for \'Shelf Life Expiration Date\'.'
                     raise Exception(message)
         return
     except Exception as err:
@@ -545,7 +538,7 @@ def convert_physicalInfo_fields(asset):
         if 'physicalInfo' in asset:
             physicalInfo = asset['physicalInfo']
         if physicalInfo is None:
-            message = 'Malformed asset, missing required field \'physicalInfo\'.'
+            message = 'Malformed asset, missing required dictionary field \'physicalInfo\'.'
             raise Exception(message)
 
         # Convert to float
@@ -555,7 +548,7 @@ def convert_physicalInfo_fields(asset):
                     tmp = float(physicalInfo['depthRating'])
                     physicalInfo['depthRating'] = tmp
                 except:
-                    message = 'Failed to convert physicalInfo field: depthRating to float.'
+                    message = 'Invalid value provided for \'Depth Rating\', provide a number.'
                     raise Exception(message)
 
         # Convert to float
@@ -565,7 +558,7 @@ def convert_physicalInfo_fields(asset):
                     tmp = float(physicalInfo['height'])
                     physicalInfo['height'] = tmp
                 except:
-                    message = 'Failed to convert physicalInfo field: height to float.'
+                    message = 'Invalid value provided for \'Height\', provide a number.'
                     raise Exception(message)
 
         # Convert to float
@@ -575,7 +568,7 @@ def convert_physicalInfo_fields(asset):
                     tmp = float(physicalInfo['length'])
                     physicalInfo['length'] = tmp
                 except:
-                    message = 'Failed to convert physicalInfo field: length to float.'
+                    message = 'Invalid value provided for \'Length\', provide a number.'
                     raise Exception(message)
 
         # Convert to float
@@ -585,7 +578,7 @@ def convert_physicalInfo_fields(asset):
                     tmp = float(physicalInfo['powerRequirements'])
                     physicalInfo['powerRequirements'] = tmp
                 except:
-                    message = 'Failed to convert physicalInfo field: powerRequirements to float.'
+                    message = 'Invalid value provided for \'Power Requirements\', provide a number.'
                     raise Exception(message)
 
         # Convert to float
@@ -595,7 +588,7 @@ def convert_physicalInfo_fields(asset):
                     tmp = float(physicalInfo['weight'])
                     physicalInfo['weight'] = tmp
                 except:
-                    message = 'Failed to convert physicalInfo field: weight to float.'
+                    message = 'Invalid value provided for \'Weight\', provide a number.'
                     raise Exception(message)
 
         # Convert to float
@@ -605,7 +598,7 @@ def convert_physicalInfo_fields(asset):
                     tmp = float(physicalInfo['width'])
                     physicalInfo['width'] = tmp
                 except:
-                    message = 'Failed to convert physicalInfo field: width to float.'
+                    message = 'Invalid value provided for \'Width\', provide a number.'
                     raise Exception(message)
 
         return
@@ -637,7 +630,8 @@ def convert_purchaseAndDeliveryInfo_fields(asset):
                     tmp = long(purchaseAndDeliveryInfo['deliveryDate'])
                     purchaseAndDeliveryInfo['deliveryDate'] = tmp
                 except:
-                    purchaseAndDeliveryInfo['deliveryDate'] = ''
+                    message = 'Invalid data entered for \'Delivery Date\'.'
+                    raise Exception(message)
 
         # purchaseDate - Convert to long
         if 'purchaseDate' in purchaseAndDeliveryInfo:
@@ -646,8 +640,8 @@ def convert_purchaseAndDeliveryInfo_fields(asset):
                     tmp = long(purchaseAndDeliveryInfo['purchaseDate'])
                     purchaseAndDeliveryInfo['purchaseDate'] = tmp
                 except:
-                    purchaseAndDeliveryInfo['purchaseDate'] = ''
-
+                    message = 'Invalid data entered for \'Purchase Date\'.'
+                    raise Exception(message)
 
         # Convert to float
         if 'purchasePrice' in purchaseAndDeliveryInfo:
@@ -656,7 +650,8 @@ def convert_purchaseAndDeliveryInfo_fields(asset):
                     tmp = float(purchaseAndDeliveryInfo['purchasePrice'])
                     purchaseAndDeliveryInfo['purchasePrice'] = tmp
                 except:
-                    purchaseAndDeliveryInfo['purchasePrice'] = ''
+                    message = 'Invalid data entered for \'Purchase Price\'.'
+                    raise Exception(message)
 
         return
     except Exception as err:
@@ -695,7 +690,7 @@ def convert_remoteResources_fields(asset):
                         tmp = long(remote['lastModifiedTimestamp'])
                         remote['lastModifiedTimestamp'] = tmp
                     except:
-                        message = 'Failed to convert remoteResources field: lastModifiedTimestamp to long. '
+                        message = 'Failed to convert remoteResources lastModifiedTimestamp field to long. '
                         raise Exception(message)
 
             # Convert to int
@@ -705,7 +700,7 @@ def convert_remoteResources_fields(asset):
                         tmp = int(remote['remoteResourceId'])
                         remote['remoteResourceId'] = tmp
                     except:
-                        message = 'Failed to convert remoteResources field: remoteResourceId to int. '
+                        message = 'Failed to convert remoteResources remoteResourceId field to int. '
                         raise Exception(message)
         return
     except Exception as err:

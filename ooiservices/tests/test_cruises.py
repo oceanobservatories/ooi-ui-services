@@ -132,16 +132,6 @@ class CruisesTestCase(unittest.TestCase):
         #self.assertTrue(asset_uid is None)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # (Positive) Get cruise by uniqueCruiseIdentifier
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        url = url_for('uframe.get_cruise', event_id=cruise_event_id)
-        if verbose: print '\n ----- url: ', url
-        response = self.client.get(url, headers=headers)
-        self.assertEquals(response.status_code, 200)
-        result = json.loads(response.data)
-        self.assertTrue(result is not None)
-
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # (Positive) Get cruise by eventId
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         url = url_for('uframe.get_cruise', event_id=cruise_event_id)
@@ -187,7 +177,50 @@ class CruisesTestCase(unittest.TestCase):
         cruise_deployments = result['cruise_deployments']
         self.assertTrue(cruise_deployments is not None)
         self.assertTrue(isinstance(cruise_deployments, list))
-        self.assertTrue(len(cruise_deployments) > 0)
+
+
+        # Get a cruise, get cruise_event_id, get deployments for cruise.
+        # Repeat until a cruise is located with deployments or max count is reached.
+        cruise_deployments = None
+        cruise_event_id = None
+        max_count = 100
+        count = 0
+        self.assertTrue(len(cruises) > 0)
+        if len(cruises) > 0:
+
+            while cruise_deployments is None and count < max_count:
+                tmp_cruise_event_id = -1
+                cruise = cruises[count]
+                count += 1
+                self.assertTrue(cruise is not None)
+                if 'eventId' in cruise:
+                    tmp_cruise_event_id = cruise['eventId']
+                if tmp_cruise_event_id < 0:
+                    continue
+                url = url_for('uframe.get_cruise_deployments', event_id=tmp_cruise_event_id)
+                if verbose: print '\n ----- url: ', url
+                response = self.client.get(url, headers=headers)
+                #print '\n test_get_cruises -- response.status_code: ', response.status_code
+                #print '\n test_get_cruises -- response.data:', json.loads(response.data)
+                self.assertEquals(response.status_code, 200)
+                result = json.loads(response.data)
+                self.assertTrue(result is not None)
+                self.assertTrue(isinstance(result, dict))
+                self.assertTrue('cruise_deployments' in result)
+                self.assertTrue(isinstance(result['cruise_deployments'], list))
+                tmp_cruise_deployments = result['cruise_deployments']
+                self.assertTrue(tmp_cruise_deployments is not None)
+                self.assertTrue(isinstance(tmp_cruise_deployments, list))
+                #print '\n Number of deployments: ', len(tmp_cruise_deployments)
+                if len(tmp_cruise_deployments) > 0:
+                    cruise_event_id = tmp_cruise_event_id
+                    cruise_deployments = tmp_cruise_deployments
+                    break
+
+        self.assertTrue(cruise_event_id is not None)
+        self.assertTrue(cruise_deployments is not None)
+        if debug: print '\n Using cruise_event_id: ', cruise_event_id
+        if debug: print '\n Number of deployments: ', len(cruise_deployments)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # (Negative) Get cruise deployments list view for a cruise

@@ -4,6 +4,7 @@ Asset Management - Cruise supporting functions.
 """
 __author__ = 'Edna Donoughe'
 
+from flask import current_app
 from ooiservices.app.uframe.uframe_tools import (uframe_get_cruise_inv, uframe_get_cruise_by_event_id,
                                                  uframe_get_deployments_by_cruise_id, uframe_get_event,
                                                  uframe_get_cruise_by_cruise_id)
@@ -72,7 +73,8 @@ def _get_cruise_deployments(event_id, type):
         deployments = uframe_get_deployments_by_cruise_id(cruise_id, type=type)
         if not deployments or deployments is None:
             message = 'No deployments associated with cruise identifier \'%s\'.' % cruise_id
-            raise Exception(message)
+            current_app.logger.info(message)
+            return []
         for deploy in deployments:
             result = process_deployment_row(deploy)
             if result is not None:
@@ -140,10 +142,11 @@ def uniqueCruiseIdentifier_exists(cruise_id):
         raise Exception(message)
 
 
-# todo -- process deployment data as required for UI display.
+# todo --Consider process deployment data as required for UI Deployment display. Future Sprint.
 # (internal)
 def process_deployment_view(data):
     """ Process deployment data for UI display, where data represents a complete deployment object.
+    Consideration: Re-use the deployment display developed for Deployments and permit edit. Future Sprint.
     """
     try:
         result = data

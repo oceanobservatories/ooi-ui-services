@@ -49,6 +49,10 @@ def create_event_type(request_data):
                 message = 'The assetUid is empty or null, unable to create a %s event.' % event_type
                 raise Exception(message)
 
+        # Event name not really provided by UI, fill with event type unless CALIBRATION event.
+        if event_type != 'CALIBRATION_DATA':
+            request_data['eventName'] = event_type
+
         # Validate data fields to ensure required fields are provided for create.
         data = events_validate_all_required_fields_are_provided(event_type, request_data, action=action)
         events_validate_user_required_fields_are_provided(event_type, data, action=action)
@@ -124,6 +128,10 @@ def update_event_type(id, data):
         if event_type not in get_supported_event_types():
             message = 'Event type %s \'%s\' is not supported.' % (event_type, action)
             raise Exception(message)
+
+        # Event name not really provided by UI, fill with event type unless CALIBRATION event.
+        if event_type != 'CALIBRATION_DATA':
+            data['eventName'] = event_type
 
         # Validate data fields to ensure required fields are provided for update.
         data = events_validate_all_required_fields_are_provided(event_type, data, action=action)
@@ -254,7 +262,6 @@ def get_calibration_event_id(uid, event_name):
           "eventStartTime" : 1443614400000,
           "eventStopTime" : null,
           "notes" : null,
-          "tense" : "UNKNOWN",
           "dataSource" : "API:createCalibration:2016-08-31T22:37:22.096Z",
           "lastModifiedTimestamp" : 1472683042096
         } ]
@@ -275,11 +282,11 @@ def get_calibration_event_id(uid, event_name):
                                 id = item['eventId']
                                 last_modified = item['lastModifiedTimestamp']
                                 break
+
         if id is None:
             message = 'Failed to locate calibration name \'%s\' in asset with uid %s.' % (event_name, uid)
             raise Exception(message)
         return id, last_modified
-
     except Exception as err:
         message = str(err)
         raise Exception(message)

@@ -14,9 +14,9 @@ from unittest import skipIf
 import os
 
 from flask import (url_for)
-from ooiservices.app.uframe.event_tools import (get_rd_by_asset_id)
-from ooiservices.app.uframe.uframe_tools import (get_uframe_event)
-from ooiservices.app.uframe.common_tools import (is_instrument)
+from ooiservices.app.uframe.event_tools import get_rd_by_asset_id
+from ooiservices.app.uframe.uframe_tools import get_uframe_event
+from ooiservices.app.uframe.common_tools import is_instrument
 from ooiservices.app.uframe.events_create_update import get_calibration_event_id
 from random import randint
 import datetime
@@ -83,25 +83,26 @@ class CalibrationEventsTestCase(unittest.TestCase):
 
         New calibration data format:
           {
-              "@class" : ".XCalibration",
-              "name" : "CC_tcal",
-              "calData" : [ {
-                "@class" : ".XCalibrationData",
-                "value" : 19.4,
-                "comments" : null,
-                "eventId" : 46803,
-                "assetUid" : "N00589",
-                "eventType" : "CALIBRATION_DATA",
-                "eventName" : "CC_tcal",
-                "eventStartTime" : 1451606400000,
-                "eventStopTime" : null,
-                "notes" : null,
-                "tense" : "UNKNOWN",
-                "dataSource" : "Profilers-Coastal_Cal_Info.xlsx",
-                "lastModifiedTimestamp" : 1472585909032
+              "@class" : ".XInstrument",
+              "calibration" : [ {
+                "@class" : ".XCalibration",
+                "name" : "CC_scale_factor_volume_scatter",
+                "calData" : [ {
+                  "@class" : ".XCalibrationData",
+                  "value" : 1.883E-6,
+                  "comments" : null,
+                  "eventId" : 15238,
+                  "assetUid" : "A00992",
+                  "eventType" : "CALIBRATION_DATA",
+                  "eventName" : "CC_scale_factor_volume_scatter",
+                  "eventStartTime" : 1394755200000,
+                  "eventStopTime" : null,
+                  "notes" : null,
+                  "tense" : "UNKNOWN",
+                  "dataSource" : "FLORT_Cal_Info.xlsx",
+                  "lastModifiedTimestamp" : 1473180383529
+                } ]
               },
-              . . .
-              ]
           }
 
         Three different (basic) calibration data types:
@@ -293,6 +294,238 @@ class CalibrationEventsTestCase(unittest.TestCase):
 
             # Save copy of 'update' data before issuing update request.
             update_data = update_input.copy()
+            if debug:
+                print '\n ----- calibration event update data: '
+                dump_dict(update_data, debug)
+
+            # Update calibration event, returns event id.
+            update_event_id = self.update_calibration_event(event_type, update_input, event_id, instrument_uid, event_name)
+            self.assertTrue(update_event_id is not None)
+            self.assertTrue(isinstance(update_event_id, int))
+            if verbose: print '\n\tUpdated eventId: %d' % update_event_id
+
+            # Check eventId against the eventId returned on update.
+            if verbose: print '\n\tCalibration update - check results...'
+            if debug:
+                print '\n instrument_uid: ', instrument_uid
+                print '\n event_name: ', event_name
+            event_id, last_modified = self.get_calibration_event_id_last_modified(instrument_uid, event_name)
+            self.assertTrue(event_id is not None)
+            self.assertTrue(last_modified is not None)
+            self.assertEquals(update_event_id, event_id)
+
+            # Get calibration event by event id
+            event = get_uframe_event(event_id)
+            if debug: print '\n\tUpdated calibration data event(id: %d): %s' % (event_id, event)
+            self.assertTrue(event is not None)
+            if verbose:
+                print '\n Updated uframe calibration data event (2d): '
+                dump_dict(event, verbose)
+
+            # Check calibration content changes are reflected in 'updated' calibration event.
+            update_data_keys = update_data.keys()
+            event_keys = event.keys()
+            self.assertEquals(len(event_keys), len(update_data_keys))
+            for key in event_keys:
+                self.assertTrue(key in update_data_keys)
+            for key in update_data_keys:
+                if key != '@class':
+                    self.assertTrue(key in event_keys)
+
+
+        if verbose: print '\n'
+
+    def test_calibration_events_two_dimensional(self):
+        """
+        Create CALIBRATION_DATA event. Only applied for instrument ('Sensor') assets.
+        http://uframe-3-test.ooi.rutgers.edu:12587/asset/cal?uid=A00679, or,
+        http://uframe-3-test.ooi.rutgers.edu:12587/asset?uid=A00679
+
+        New calibration data format:
+          {
+              "@class" : ".XInstrument",
+              "calibration" : [ {
+                "@class" : ".XCalibration",
+                "name" : "CC_scale_factor_volume_scatter",
+                "calData" : [ {
+                  "@class" : ".XCalibrationData",
+                  "value" : 1.883E-6,
+                  "comments" : null,
+                  "eventId" : 15238,
+                  "assetUid" : "A00992",
+                  "eventType" : "CALIBRATION_DATA",
+                  "eventName" : "CC_scale_factor_volume_scatter",
+                  "eventStartTime" : 1394755200000,
+                  "eventStopTime" : null,
+                  "notes" : null,
+                  "tense" : "UNKNOWN",
+                  "dataSource" : "FLORT_Cal_Info.xlsx",
+                  "lastModifiedTimestamp" : 1473180383529
+                } ]
+              },
+          }
+
+        Test two dimensional array calibration data types:
+
+        Descriptions:
+
+        Two dimensional array of m times n values (2 x 5, two per row, 5 rows)
+          "value" : [[10.0, 11.0], [20.0, 21.0], [30.0, 31.0], [40.0, 41.0], [50.0, 51.0]],   // 2 x 5 array
+
+        http://host:12587/asset/cal/A00679
+
+        Sample verbose output:
+
+            Creating CALIBRATION_DATA event ...
+
+             Have some assets (4917)
+
+             Note: Number of loops to get instrument asset: 4
+
+             ----- Instrument:
+
+                 instrument_id: 3723
+
+                 instrument_uid: N00104
+
+                 instrument_rd: CP02PMUO-WFP01-01-VEL3DK000
+
+            Processing calibration data type of two_dimensional.
+
+                Calibration create...
+
+                Creating new event of type CALIBRATION_DATA
+
+                Created eventId: 34449 and lastModifiedTimestamp: 1473974541435
+
+                Now performing an UPDATE on event we just created...
+
+                Calibration update...
+
+                Updated eventId: 34449
+
+                Update CALIBRATION_DATA event, event id: 34449
+
+                Updated eventId: 34449
+
+                Calibration update - check results...
+        """
+        debug = self.debug
+        verbose = self.verbose
+        event_type = 'CALIBRATION_DATA'
+        if verbose: print '\n'
+        #if verbose: print '\n event_types: ', event_types
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Add calibration event to an instrument asset.
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if verbose:
+            print '\n ----------------------------------'
+            print '\n Creating %s event ...' % event_type
+
+        # Get some assets...
+        assets = self.get_some_assets()
+        self.assertTrue(assets is not None)
+        self.assertTrue(assets)
+        self.assertTrue(isinstance(assets, list))
+        data_types = ['two_dimensional']
+
+        number_of_assets = len(assets)
+        if verbose: print '\n Have some assets (%d)' % number_of_assets
+
+        have_instrument_id = False
+        instrument_id = None
+        instrument_uid = None
+        instrument_rd = None
+        two_dimensional_test_values = [[10.0, 11.0], [20.0, 21.0], [30.0, 31.0], [40.0, 41.0], [50.0, 51.0]]
+
+        count = 0
+        while not have_instrument_id and count <= number_of_assets:
+
+            count +=1
+            asset_index = randint(0, (number_of_assets-1))
+            #if debug: print '\n Random asset_index: %d' % asset_index
+
+            # Select an asset...
+            asset = assets[asset_index]
+            self.assertTrue(asset is not None)
+            self.assertTrue(asset)
+            self.assertTrue(isinstance(asset, dict))
+
+            # do not touch asset id 1.
+            if asset['id'] == 1:
+                continue
+
+            # Get asset_id, asset_uid, rd.
+            asset_id, asset_uid, rd = self.get_id_uid_rd(asset)
+            if is_instrument(rd):
+                if not have_instrument_id:
+                    have_instrument_id = True
+                    instrument_id = asset_id
+                    instrument_uid = asset_uid
+                    instrument_rd = rd
+        if verbose:
+            print '\n Note: Number of loops to get instrument asset: %d ' % count
+            print '\n ----- Instrument:'
+            print '\n\t instrument_id: %d' % instrument_id
+            print '\n\t instrument_uid: %s' % instrument_uid
+            print '\n\t instrument_rd: %s' % instrument_rd
+
+        for data_type in data_types:
+
+            if verbose: print '\nProcessing calibration data type of %s.' % data_type
+            # Get data to create calibration event.
+            input = self.calibration_data_for_create_two_dimensional(event_type, instrument_uid, instrument_rd)
+
+            event_name = input['eventName']
+            if verbose: print '\n\tCalibration create...'
+
+            # Create calibration event.
+            event_id, last_modified = self.create_calibration_event(event_type, instrument_uid, input, event_name)
+            if verbose:
+                print '\n\tCalibration create input: '
+                dump_dict(input, verbose)
+            self.assertTrue(input is not None)
+            self.assertTrue('assetUid' in input)
+            self.assertTrue(input['assetUid'] is not None)
+            if verbose:
+                print '\n\tCreated eventId: %d and lastModifiedTimestamp: %d' % (event_id, last_modified)
+
+            # Get calibration event just created.
+            # Get calibration event by event id
+            uframe_event = get_uframe_event(event_id)
+            if debug: print '\n\tUpdated calibration data event(id: %d):' % event_id
+            self.assertTrue(uframe_event is not None)
+            if verbose:
+                print '\n Updated uframe calibration data event (2d): '
+                dump_dict(uframe_event, verbose)
+
+            """
+            #- - - - - - - - - - - - - - - - - - - - - - - - - - -
+            # todo - Add 2d special update function for this test.
+            #- - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+            if verbose:
+                print '\n\tNow performing an UPDATE on event we just created...'
+
+            # Update calibration event.
+            if verbose: print '\n\tCalibration update...'
+            update_input = self.calibration_data_for_update(event_type, instrument_uid, event_id, last_modified, event_name)
+            self.assertTrue(update_input is not None)
+            self.assertTrue('eventId' in update_input)
+            self.assertEquals(int(update_input['eventId']), event_id)
+            self.assertTrue('assetUid' in update_input)
+            self.assertEquals(update_input['assetUid'], instrument_uid)
+            if not isinstance(update_input['eventId'], int):
+                update_input['eventId'] = int(str(update_input['eventId']))
+                self.assertTrue(isinstance(update_input['eventId'], int))
+            if verbose: print '\n\tUpdated eventId: %d' % update_input['eventId']
+
+            # Save copy of 'update' data before issuing update request.
+            update_data = update_input.copy()
+            if debug:
+                print '\n ----- calibration event update data: '
+                dump_dict(update_data, debug)
 
             # Update calibration event, returns event id.
             update_event_id = self.update_calibration_event(event_type, update_input, event_id, instrument_uid, event_name)
@@ -327,9 +560,10 @@ class CalibrationEventsTestCase(unittest.TestCase):
             for key in update_data_keys:
                 if key != '@class':
                     self.assertTrue(key in event_keys)
-
+            """
 
         if verbose: print '\n'
+
 
     def test_negative_create_duplicate_calibration_events(self):
         """
@@ -806,6 +1040,42 @@ class CalibrationEventsTestCase(unittest.TestCase):
         self.assertTrue(input is not None)
         return string_input
 
+    def calibration_data_for_create_two_dimensional(self, event_type, uid, rd):
+        # two_dimensional_test_values
+        two_dimensional_test_values =  [[10.0, 11.0], [20.0, 21.0], [30.0, 31.0], [40.0, 41.0], [50.0, 51.0]]
+        debug = False
+        if debug: print '\n Create new %s event for %s, (assetUid: %s)' % (event_type, rd, uid)
+        self.assertEquals(event_type, 'CALIBRATION_DATA')
+        self.assertTrue(event_type is not None)
+        self.assertTrue(uid is not None)
+        self.assertTrue(rd is not None)
+        self.assertTrue(is_instrument(rd))
+        self.assertEquals(event_type, 'CALIBRATION_DATA')
+
+        #"@class" : ".XCalibrationData",
+        unique_int = randint(5000, 10000)
+        event_name = 'CC_test_' + uid + str(unique_int)
+        # 'CC_a0'
+        unique_num = randint(1000, 2000)
+
+        if debug: print '\n Create new %s...' % event_type
+        input = {
+                  'assetUid': uid,
+                  'comments': 'Test entry (scalar) ' + str(unique_num),
+                  'eventType': 'CALIBRATION_DATA',
+                  'eventName': event_name,
+                  'eventStartTime': 1443644400000,
+                  'value':  two_dimensional_test_values,
+                  'notes': 'Create calibration at ' + str(datetime.datetime.now()),
+                  'dataSource': 'Test data ' + str(datetime.datetime.now()),
+                  'eventStopTime': None,
+                  'tense': 'UNKNOWN'
+                }
+
+        string_input = get_event_input_as_string(input, debug)
+        self.assertTrue(input is not None)
+        return string_input
+
     def bad_calibration_data_for_create(self, event_type, uid, rd, data_type):
         input = {}
         debug = False
@@ -995,7 +1265,7 @@ class CalibrationEventsTestCase(unittest.TestCase):
         if debug:
             print '\n get_calibration_event_id_last_modified: uid: ', uid
             print '\n get_calibration_event_id_last_modified: event_name: ', event_name
-        error_text = ' uid: ' + uid + ', event name: ' + event_name
+        error_text = ' uid: %s, event name: %s' % (uid, event_name)
         try:
             # Get asset by uid, retrieve eventId and name from calibration event.
             event_id = None

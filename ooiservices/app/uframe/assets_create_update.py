@@ -4,9 +4,10 @@ Asset Management - Assets: Create and update functions.
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
-from ooiservices.app.uframe.common_tools import (get_asset_types, get_asset_class_by_asset_type,
-                                                 get_class_remote_resource, verify_action)
-from ooiservices.app.uframe.asset_tools import format_asset_for_ui
+from ooiservices.app.uframe.common_tools import (get_asset_types, get_asset_class_by_asset_type, verify_action,
+                                                 get_class_remote_resource, asset_edit_phase_values, get_location_dict,
+                                                 convert_float_field)
+from ooiservices.app.uframe.asset_tools import (format_asset_for_ui)
 from ooiservices.app.uframe.asset_cache_tools import refresh_asset_cache
 from ooiservices.app.uframe.assets_validate_fields import (assets_validate_required_fields_are_provided,
                                                            asset_get_required_fields_and_types_uframe,
@@ -31,7 +32,7 @@ def _create_asset(data):
         # Transform input data for uframe create.
         xasset = transform_asset_for_uframe(None, data, action=action)
 
-        # Check asset uid BEFORE creating in uframe. (added 2016-09-28)
+        # Check asset uid BEFORE creating in uframe.
         # Get proposed asset uid.
         uid = None
         if xasset:
@@ -128,69 +129,6 @@ def refresh_asset_deployment(uid):
         current_app.logger.info(message)
         raise Exception(message)
 
-def _update_remote_resource(uid, data):
-    """ Update a remote resource for an asset.
-    """
-    action = 'update'
-    try:
-        if not uid or uid is None:
-            message = 'Failed to receive asset uid in request data, unable to update remote resource.'
-            raise Exception(message)
-        if not data:
-            message = 'No data received to process remote resource update.'
-            raise Exception(message)
-
-        # Remove extra 'uid', add '@class' and 'remoteResourceId' fields to data
-        if 'uid' in data:
-            del data['uid']
-
-        # Get asset uid to post remote resource to.
-        class_value, remoteResourceId, lastModifiedTimeStamp = get_remote_resource_info(data, action)
-        data['@class'] = class_value
-        data['remoteResourceId'] = remoteResourceId
-        data['lastModifiedTimeStamp'] = lastModifiedTimeStamp
-
-        # Verify remote resource fields and required values are provided.
-        validate_required_fields_remote_resource('update', data, action=None)
-
-        # Check: Current number of remote resources
-        current_remote_resources = None
-        current_asset = uframe_get_asset_by_uid(uid)
-        if 'remoteResources' in current_asset:
-            current_remote_resources = current_asset['remoteResources']
-
-        # Post remote resource to asset, returns asset.
-        remote_resource = uframe_update_remote_resource_by_resource_id(remoteResourceId, data)
-        updated_remote_resource = uframe_get_remote_resource_by_id(remoteResourceId)
-        if remote_resource['lastModifiedTimestamp'] != updated_remote_resource['lastModifiedTimestamp']:
-            message = 'The updated remote resource lastModifiedTimestamp does not match timestamp after uframe get...'
-            raise Exception(message)
-
-        # Check: Current number of remote resources
-        after_remote_resources = None
-        updated_asset = uframe_get_asset_by_uid(uid)
-        if 'remoteResources' in updated_asset:
-            after_remote_resources = updated_asset['remoteResources']
-        if len(after_remote_resources) != len(current_remote_resources):
-            message = 'Created remote resource rather than updated?'
-            raise Exception(message)
-
-        ui_asset = format_asset_for_ui(updated_asset)
-        id = None
-        if 'id' in ui_asset:
-            id = ui_asset['id']
-        if 'events' in ui_asset:
-            del ui_asset['events']
-        if 'calibration' in ui_asset:
-            del ui_asset['calibration']
-        refresh_asset_cache(id, updated_asset, action, remote_id=remoteResourceId)
-        # Return complete asset with new remote resource
-        return remote_resource
-
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
 
 # Update asset.
 def _update_asset(id, data):
@@ -226,8 +164,8 @@ def _update_asset(id, data):
         existing_asset_type = asset['assetType']
         proposed_asset_type = xasset['assetType']
         if existing_asset_type != proposed_asset_type:
-            message = 'The assetType (\'%s\') may not be modified.' % existing_asset_type
-            raise Exception(message)
+            message = 'The assetType \'%s\' modified to \'%s\'.' % (existing_asset_type, proposed_asset_type)
+            current_app.logger.info('Update Asset: %s ' % message)
 
         keys = []
         if asset:
@@ -243,7 +181,7 @@ def _update_asset(id, data):
         # Determine any missing items are in valid items list, is not error.
         valid_missing_keys = ['events', 'remoteResources'] # 'location',
 
-        # Assets: Fields location and events are not provided by UI, get from asset. If asset is Sensor, calibration too.
+        # Assets: Field events are not provided by UI, get from asset. If asset is Sensor, calibration too.
         if asset_type == 'Sensor':
             valid_missing_keys.append('calibration')
 
@@ -298,8 +236,472 @@ def _update_asset(id, data):
         raise Exception(message)
 
 
+def transform_asset_for_uframe(id, asset, action=None):
+    """ Transform UI asset into uframe asset structure.
+    """
+    uframe_asset = {}
+    try:
+        verify_action(action)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Perform basic checks on input data
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if not asset:
+            message = 'No input provided, unable to process transform for asset %s.' % action
+            raise Exception(message)
+        if 'assetType' not in asset:
+            message = 'Malformed asset; missing required attribute \'assetType\'.'
+            raise Exception(message)
+        asset_type = asset['assetType']
+        if asset_type not in get_asset_types():
+            message = 'Unknown assetType identified in asset during transform: \'%s\'.' % asset_type
+            raise Exception(message)
+
+        # Must have an asset uid, otherwise do not proceed.
+        if 'uid' not in asset:
+            message = 'Malformed asset; missing required attribute \'uid\'.'
+            raise Exception(message)
+        if not asset['uid'] or  asset['uid'] is None:
+            message = 'The uid is undefined.'
+            raise Exception(message)
+
+        #- - - - - - - - - - - - - - - - - - - - - -
+        # Convert values for fields in 'string asset'
+        #- - - - - - - - - - - - - - - - - - - - - -
+        converted_asset = assets_validate_required_fields_are_provided(asset_type, asset, action)
+
+        if 'uid' not in converted_asset:
+            message = 'Malformed asset; missing required attribute \'uid\'.'
+            raise Exception(message)
+        if not converted_asset['uid'] or converted_asset['uid'] is None:
+            message = '%s asset uid is empty or undefined.' % asset_type
+            raise Exception(message)
+
+        # Verify editPhase is provided and valid.
+        edit_phase = None
+        if 'editPhase' in converted_asset:
+            edit_phase = converted_asset['editPhase']
+            if edit_phase not in asset_edit_phase_values():
+                message = 'The edit phase value provided (\'%s\') is invalid, not one of %s.' % \
+                          (edit_phase, asset_edit_phase_values())
+                raise Exception(message)
+
+        # Action 'update' specific check.
+        if action == 'update':
+            # verify asset id in data is same as asset id on PUT.
+            if 'id' in converted_asset:
+                if converted_asset['id'] != id:
+                    message = 'The asset id provided in url does not match id provided in data.'
+                    raise Exception(message)
+            if 'ref_des' not in converted_asset:
+                message = 'Unable to process asset provided, no reference designator field provided.'
+                raise Exception(message)
+        else:
+            # Processing create request.
+            # Verify uid is not None.
+            if 'uid' in converted_asset:
+                if not converted_asset['uid']:
+                    message = 'Asset \'uid\' provided is empty; unable to create asset.'
+                    raise Exception(message)
+                if converted_asset['uid'] is None:
+                    message = 'Asset \'uid\' provided is null; unable to create asset.'
+                    raise Exception(message)
+
+            # Verify asset uid is unique, if not unique, present error here.
+            uid = converted_asset['uid']
+            test = None
+            try:
+                test = uframe_get_asset_by_uid(uid)
+            except Exception:
+                pass
+            if test is not None:
+                message = 'An asset already exists with this uid: \'%s\'.' % uid
+                raise Exception(message)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Marshall all data for creation of uframe_asset.
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        uframe_asset['editPhase'] = edit_phase
+        uframe_asset['assetType'] = asset_type
+
+        # Marshall data from asset into uframe_asset.
+        # Field: @class
+        asset_class = get_asset_class_by_asset_type(asset_type)
+        uframe_asset['@class'] = asset_class
+
+        # Fields: description, owner, name (assetInfo)
+        description, owner, name = marshall_assetInfo_fields(converted_asset)
+        uframe_asset['description'] = description
+        uframe_asset['owner'] = owner
+        uframe_asset['name'] = name
+        del asset['assetInfo']
+
+        # Fields: firmwareVersion, manufacturer, modelNumber, serialNumber, shelfLifeExpirationDate, softwareVersion
+        firmwareVersion, manufacturer, modelNumber, serialNumber, shelfLifeExpirationDate, softwareVersion = \
+            marshall_manufactureInfo_fields(converted_asset)
+        uframe_asset['firmwareVersion'] = firmwareVersion
+        uframe_asset['manufacturer'] = manufacturer
+        uframe_asset['modelNumber'] = modelNumber
+        uframe_asset['serialNumber'] = serialNumber
+        uframe_asset['shelfLifeExpirationDate'] = shelfLifeExpirationDate
+        uframe_asset['softwareVersion'] = softwareVersion
+        del asset['manufactureInfo']
+
+        # Fields:
+        # institutionPropertyNumber, institutionPurchaseOrderNumber, ooiPartNumber, ooiPropertyNumber, ooiSerialNumber
+        institutionPropertyNumber, institutionPurchaseOrderNumber, ooiPartNumber, \
+               ooiPropertyNumber, ooiSerialNumber = marshall_partData_fields(converted_asset)
+        uframe_asset['institutionPropertyNumber'] = institutionPropertyNumber
+        uframe_asset['institutionPurchaseOrderNumber'] = institutionPurchaseOrderNumber
+        uframe_asset['ooiPartNumber'] = ooiPartNumber
+        uframe_asset['ooiPropertyNumber'] = ooiPropertyNumber
+        uframe_asset['ooiSerialNumber'] = ooiSerialNumber
+        del asset['partData']
+
+        # Fields: depthRating, powerRequirements, physicalInfo
+        depthRating, powerRequirements, physicalInfo = marshall_physicalInfo_fields(converted_asset)
+        # height, length, weight, width =
+        uframe_asset['depthRating'] = depthRating
+        uframe_asset['powerRequirements'] = powerRequirements
+        uframe_asset['physicalInfo'] = physicalInfo
+
+        # height, length, weight, width
+        del asset['physicalInfo']
+
+        # Fields: deliveryDate, deliveryOrderNumber, purchaseDate, purchasePrice
+        deliveryDate, deliveryOrderNumber, purchaseDate, purchasePrice = marshall_purchaseAndDeliveryInfo_fields(converted_asset)
+        uframe_asset['deliveryDate'] = deliveryDate
+        uframe_asset['deliveryOrderNumber'] = deliveryOrderNumber
+        uframe_asset['purchaseDate'] = purchaseDate
+        uframe_asset['purchasePrice'] = purchasePrice
+        #del asset['purchaseAndDeliveryInfo']
+
+        # Fields: assetId, uid, lastModifiedTimestamp [reserved]
+        uframe_asset['uid'] = converted_asset['uid']
+
+        if action == 'update':
+            uframe_asset['assetId'] = converted_asset['id']
+            uframe_asset['lastModifiedTimestamp'] = None #converted_asset['lastModifiedTimestamp']
+        else:
+            #uframe_asset['lastModifiedTimestamp'] = None
+            uframe_asset['assetId'] = -1
+
+        # Fields: mobile, notes, remoteDocuments, remoteResources, dataSource
+        uframe_asset['mobile'] = converted_asset['mobile']
+        uframe_asset['notes'] = converted_asset['notes']
+        uframe_asset['remoteResources'] = converted_asset['remoteResources']
+        uframe_asset['dataSource'] = converted_asset['dataSource']
+
+        # Set location.
+        location = get_location_dict(converted_asset['latitude'], converted_asset['longitude'],
+                                     converted_asset['depth'], converted_asset['orbitRadius'])
+        uframe_asset['location'] = location
+
+        # remoteResources, events and, when necessary, calibration
+        if action == 'create':
+            #- - - - - - - - - - - - - - - - - - - -
+            # Create processing.
+            #- - - - - - - - - - - - - - - - - - - -
+            uframe_asset['remoteResources'] = None
+            uframe_asset['events'] = None
+            if asset_type == 'Sensor':
+                uframe_asset['calibration'] = None
+        else:
+            #- - - - - - - - - - - - - - - - - - - -
+            # Update processing
+            #- - - - - - - - - - - - - - - - - - - -
+            # Remote Resources.
+            if 'remoteResources' in converted_asset:
+                if not converted_asset['remoteResources']:
+                    uframe_asset['remoteResources'] = None
+                else:
+                    uframe_asset['remoteResources'] = converted_asset['remoteResources']
+            else:
+                uframe_asset['remoteResources'] = None
+
+            # Events.
+            if 'events' in converted_asset:
+                if not converted_asset['events']:
+                    uframe_asset['events'] = None
+                else:
+                    uframe_asset['events'] = converted_asset['events']
+            else:
+                uframe_asset['events'] = None
+
+        uframe_asset['tense'] = 'UNKNOWN'
+
+        #- - - - - - - - - - - - - - - - - - - - - -
+        # Validate uframe_asset object - fields present
+        #- - - - - - - - - - - - - - - - - - - - - -
+        #required_fields, field_types = asset_get_required_fields_and_types_uframe(asset_type, action)
+        uframe_asset_keys = uframe_asset.keys()
+        uframe_asset_keys.sort()
+        return uframe_asset
+
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+# Marshall fields from assetInfo.
+def marshall_assetInfo_fields(asset):
+    try:
+        asset_info = None
+        if 'assetInfo' in asset:
+            asset_info = asset['assetInfo'].copy()
+        if asset_info is None:
+            message = 'Malformed asset, missing required field \'assetInfo\'.'
+            raise Exception(message)
+
+        description = None
+        if 'description' in asset_info:
+            description = convert_string_field('description', asset_info['description'])
+        owner = None
+        if 'owner' in asset_info:
+            owner = convert_string_field('owner', asset_info['owner'])
+        name = None
+        if 'name' in asset_info:
+            name = convert_string_field('name', asset_info['asset_name'])
+
+        return description, owner, name
+    except Exception as err:
+        raise Exception(str(err))
+
+
+# Marshall fields from manufactureInfo.
+def marshall_manufactureInfo_fields(asset):
+    """
+    "manufactureInfo": {
+            "firmwareVersion": null,
+            "manufacturer": "WHOI",
+            "modelNumber": "DCL",
+            "serialNumber": "CP03ISSM-00003-DCL37",
+            "shelfLifeExpirationDate": null,
+            "softwareVersion": null
+          }
+    """
+    try:
+        manufacture_info = None
+        if 'manufactureInfo' in asset:
+            manufacture_info = asset['manufactureInfo']
+        if manufacture_info is None:
+            message = 'Malformed asset, missing required field \'manufactureInfo\'.'
+            raise Exception(message)
+
+
+        firmwareVersion = None
+        if 'firmwareVersion' in manufacture_info:
+            firmwareVersion = convert_string_field('firmwareVersion', manufacture_info['firmwareVersion'])
+
+        manufacturer = None
+        if 'manufacturer' in manufacture_info:
+            manufacturer = convert_string_field('manufacturer', manufacture_info['manufacturer'])
+
+        modelNumber = None
+        if 'modelNumber' in manufacture_info:
+            modelNumber = convert_string_field('modelNumber', manufacture_info['modelNumber'])
+
+        serialNumber = None
+        if 'serialNumber' in manufacture_info:
+            serialNumber = convert_string_field('serialNumber', manufacture_info['serialNumber'])
+
+
+        shelfLifeExpirationDate = None
+        if 'shelfLifeExpirationDate' in manufacture_info:
+            try:
+                if manufacture_info['shelfLifeExpirationDate'] and manufacture_info['shelfLifeExpirationDate'] is not None:
+                    shelfLifeExpirationDate = long(manufacture_info['shelfLifeExpirationDate'])
+            except Exception as err:
+                message = 'Failed to convert shelfLifeExpirationDate to long, set to None. %s' % str(err)
+                current_app.logger.info(message)
+                raise Exception(message)
+
+        softwareVersion = None
+        if 'softwareVersion' in manufacture_info:
+            softwareVersion = manufacture_info['softwareVersion']
+
+        return firmwareVersion, manufacturer, modelNumber, serialNumber, shelfLifeExpirationDate, softwareVersion
+    except Exception as err:
+        raise Exception(str(err))
+
+
+# Marshall fields from partData.
+def marshall_partData_fields(asset):
+    """
+    "partData": {
+            "institutionPropertyNumber": null,
+            "institutionPurchaseOrderNumber": null,
+            "ooiPartNumber": null,
+            "ooiPropertyNumber": null,
+            "ooiSerialNumber": null
+          },
+    """
+    try:
+        part_info = None
+        if 'partData' in asset:
+            part_info = asset['partData']
+        if part_info is None:
+            message = 'Malformed asset, missing required field \'partData\'.'
+            raise Exception(message)
+
+        institutionPropertyNumber = None
+        if 'institutionPropertyNumber' in part_info:
+            institutionPropertyNumber = convert_string_field('institutionPropertyNumber',
+                                                             part_info['institutionPropertyNumber'])
+
+        institutionPurchaseOrderNumber = None
+        if 'institutionPurchaseOrderNumber' in part_info:
+            institutionPurchaseOrderNumber = convert_string_field('institutionPurchaseOrderNumber',
+                                                                  part_info['institutionPurchaseOrderNumber'])
+
+        ooiPartNumber = None
+        if 'ooiPartNumber' in part_info:
+            ooiPartNumber = convert_string_field('ooiPartNumber', part_info['ooiPartNumber'])
+
+        ooiPropertyNumber = None
+        if 'ooiPropertyNumber' in part_info:
+            ooiPropertyNumber = convert_string_field('ooiPropertyNumber', part_info['ooiPropertyNumber'])
+
+        ooiSerialNumber = None
+        if 'ooiSerialNumber' in part_info:
+            ooiSerialNumber = convert_string_field('ooiSerialNumber', part_info['ooiSerialNumber'])
+
+        return institutionPropertyNumber, institutionPurchaseOrderNumber, ooiPartNumber, \
+               ooiPropertyNumber, ooiSerialNumber
+    except Exception as err:
+        raise Exception(str(err))
+
+
+def convert_string_field(field, data_field):
+    field_type = 'string'
+    try:
+        if data_field is None:
+            return None
+        if not isinstance(data_field, str) and not isinstance(data_field, unicode):
+            message = 'Required field \'%s\' provided, but value is not of type %s.' % (field, field_type)
+            raise Exception(message)
+        if data_field and len(data_field) > 0:
+            tmp = str(data_field)
+            if not isinstance(tmp, str) and not isinstance(tmp, unicode):
+                message = 'Required field \'%s\' provided, but value is not of type %s.' % (field, field_type)
+                raise Exception(message)
+            converted_data_field = tmp
+        else:
+            converted_data_field = None
+        return converted_data_field
+
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def marshall_physicalInfo_fields(asset):
+    """
+    "physicalInfo": {
+            "depthRating": null,
+            "height": -1.0,
+            "length": -1.0,
+            "powerRequirements": null,
+            "weight": -1.0,
+            "width": -1.0
+          },
+    """
+    try:
+        physicalInfo = None
+        if 'physicalInfo' in asset:
+            physicalInfo = deepcopy(asset['physicalInfo'])
+        if physicalInfo is None:
+            message = 'Malformed asset, missing required field \'physicalInfo\'.'
+            raise Exception(message)
+
+        depthRating = None
+        if 'depthRating' in physicalInfo:
+            depthRating = convert_float_field('depthRating', physicalInfo['depthRating'])
+        del physicalInfo['depthRating']
+
+        powerRequirements = None
+        if 'powerRequirements' in physicalInfo:
+            powerRequirements = convert_float_field('powerRequirements', physicalInfo['powerRequirements'])
+        del physicalInfo['powerRequirements']
+
+        if 'height' in physicalInfo:
+            height = convert_float_field('height', physicalInfo['height'])
+            physicalInfo['height'] = height
+
+        if 'length' in physicalInfo:
+            length = convert_float_field('length', physicalInfo['length'])
+            physicalInfo['length'] = length
+
+        if 'weight' in physicalInfo:
+            weight = convert_float_field('weight', physicalInfo['weight'])
+            physicalInfo['weight'] = weight
+
+        if 'width' in physicalInfo:
+            width = convert_float_field('width', physicalInfo['width'])
+            physicalInfo['width'] = width
+
+        return depthRating, powerRequirements, physicalInfo
+    except Exception as err:
+        raise Exception(str(err))
+
+
+def marshall_purchaseAndDeliveryInfo_fields(asset):
+    """
+    "purchaseAndDeliveryInfo": {
+            "deliveryDate": 1358812800000,
+            "deliveryOrderNumber": null,
+            "purchaseDate": 1358812800000,
+            "purchasePrice": null
+          },
+    """
+    try:
+        purchaseAndDeliveryInfo = None
+        if 'purchaseAndDeliveryInfo' in asset:
+            purchaseAndDeliveryInfo = deepcopy(asset['purchaseAndDeliveryInfo'])
+        if purchaseAndDeliveryInfo is None:
+            message = 'Malformed asset, missing required field \'purchaseAndDeliveryInfo\'.'
+            raise Exception(message)
+
+        deliveryDate = None
+        if 'deliveryDate' in purchaseAndDeliveryInfo:
+            try:
+                if purchaseAndDeliveryInfo['deliveryDate'] and purchaseAndDeliveryInfo['deliveryDate'] is not None:
+                    deliveryDate = long(purchaseAndDeliveryInfo['deliveryDate'])
+                else:
+                    deliveryDate = None
+            except Exception as err:
+                message = 'Failed to convert deliveryDate to long, set to None. %s' % str(err)
+                current_app.logger.info(message)
+                raise Exception(message)
+
+        deliveryOrderNumber = None
+        if 'deliveryOrderNumber' in purchaseAndDeliveryInfo:
+            deliveryOrderNumber = convert_string_field('deliveryOrderNumber', purchaseAndDeliveryInfo['deliveryOrderNumber'])
+
+        purchaseDate = None
+        if 'purchaseDate' in purchaseAndDeliveryInfo:
+            try:
+                if purchaseAndDeliveryInfo['purchaseDate'] and purchaseAndDeliveryInfo['purchaseDate'] is not None:
+                    purchaseDate = long(purchaseAndDeliveryInfo['purchaseDate'])
+            except Exception as err:
+                message = 'Failed to convert purchaseDate to long, set to None. %s' % str(err)
+                current_app.logger.info(message)
+                raise Exception(message)
+
+        purchasePrice = None
+        if 'purchasePrice' in purchaseAndDeliveryInfo:
+            purchasePrice = convert_float_field('purchasePrice', purchaseAndDeliveryInfo['purchasePrice'])
+
+        return deliveryDate, deliveryOrderNumber, purchaseDate, purchasePrice
+    except Exception as err:
+        message = str(err)
+        raise Exception(str(err))
+
+
+# Asset update for remoteResources (or child objects).
 def process_asset_update(uid, xasset=None, action='update'):
-    """ Process asset update, for instance after create or update remoteResources.
+    """ Process asset update after child object updated, for instance after create or update remoteResources.
     """
     asset_type = None
     try:
@@ -372,7 +774,6 @@ def process_asset_update(uid, xasset=None, action='update'):
 
         # Format modified asset from uframe for UI.
         ui_asset = format_asset_for_ui(modified_asset)
-        # todo -- location
 
         # Minimize data for cache.
         asset_store = deepcopy(ui_asset)
@@ -388,550 +789,6 @@ def process_asset_update(uid, xasset=None, action='update'):
         message = str(err)
         current_app.logger.info(message)
         raise Exception(message)
-
-
-def transform_asset_for_uframe(id, asset, action=None):
-    """ Transform UI asset into uframe asset structure.
-    """
-    uframe_asset = {}
-    try:
-        verify_action(action)
-
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Perform basic checks on input data
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if not asset:
-            message = 'No input provided, unable to process transform for asset %s.' % action
-            raise Exception(message)
-        if 'assetType' not in asset:
-            message = 'Malformed asset; missing required attribute \'assetType\'.'
-            raise Exception(message)
-        asset_type = asset['assetType']
-        if asset_type not in get_asset_types():
-            message = 'Unknown assetType identified in asset during transform: \'%s\'.' % asset_type
-            raise Exception(message)
-
-        # Must have an asset uid, otherwise do not proceed.
-        if 'uid' not in asset:
-            message = 'Malformed asset; missing required attribute \'uid\'.'
-            raise Exception(message)
-        if not asset['uid'] or  asset['uid'] is None:
-            message = 'The uid is undefined.'
-            raise Exception(message)
-
-        #- - - - - - - - - - - - - - - - - - - - - -
-        # Convert values for fields in 'string asset'
-        #- - - - - - - - - - - - - - - - - - - - - -
-        converted_asset = assets_validate_required_fields_are_provided(asset_type, asset, action)
-
-        if 'uid' not in converted_asset:
-            message = 'Malformed asset; missing required attribute \'uid\'.'
-            raise Exception(message)
-        if not converted_asset['uid'] or converted_asset['uid'] is None:
-            message = '%s asset uid is empty or undefined.' % asset_type
-            raise Exception(message)
-
-        # Verify editPhase is valid.
-        edit_phase = None
-        if 'editPhase' in converted_asset:
-            edit_phase = converted_asset['editPhase']
-
-        # Action 'update' specific check: verify asset id in data is same as asset id on PUT
-        if action == 'update':
-            if 'id' in converted_asset:
-                if converted_asset['id'] != id:
-                    message = 'The asset id provided in url does not match id provided in data.'
-                    raise Exception(message)
-
-            # Fields in assetInfo: description, asset_type
-            if 'ref_des' not in converted_asset:
-                message = 'Unable to process asset provided, no reference designator.'
-                raise Exception(message)
-        else:
-            # process create request
-            if 'uid' in converted_asset:
-                if not converted_asset['uid']:
-                    message = 'Asset \'uid\' provided is empty; unable to create asset.'
-                    raise Exception(message)
-                if converted_asset['uid'] is None:
-                    message = 'Asset \'uid\' provided is null; unable to create asset.'
-                    raise Exception(message)
-
-            uid = converted_asset['uid']
-            # verify asset uid is unique, if not error here.
-            test = None
-            try:
-                test = uframe_get_asset_by_uid(uid)
-            except Exception:
-                pass
-
-            # test resulting asset query...
-            if test is not None:
-                message = 'An asset already exists with this uid: \'%s\'.' % uid
-                raise Exception(message)
-
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Marshall all data for creation of uframe_asset.
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        uframe_asset['editPhase'] = edit_phase
-        # Field: assetType [reserved]
-        uframe_asset['assetType'] = asset_type
-
-        # Marshall data from asset into uframe_asset.
-        # Field: @class
-        asset_class = get_asset_class_by_asset_type(asset_type)
-        uframe_asset['@class'] = asset_class
-
-        # Fields: description, owner, name (assetInfo)
-        description, owner, name = marshall_assetInfo_fields(converted_asset)
-        uframe_asset['description'] = description
-        uframe_asset['owner'] = owner
-        uframe_asset['name'] = name
-        del asset['assetInfo']
-
-        # Fields: firmwareVersion, manufacturer, modelNumber, serialNumber, shelfLifeExpirationDate, softwareVersion
-        firmwareVersion, manufacturer, modelNumber, serialNumber, shelfLifeExpirationDate, softwareVersion = \
-            marshall_manufactureInfo_fields(converted_asset)
-        uframe_asset['firmwareVersion'] = firmwareVersion
-        uframe_asset['manufacturer'] = manufacturer
-        uframe_asset['modelNumber'] = modelNumber
-        uframe_asset['serialNumber'] = serialNumber
-        uframe_asset['shelfLifeExpirationDate'] = shelfLifeExpirationDate
-        uframe_asset['softwareVersion'] = softwareVersion
-        del asset['manufactureInfo']
-
-        # Fields:
-        # institutionPropertyNumber, institutionPurchaseOrderNumber, ooiPartNumber, ooiPropertyNumber, ooiSerialNumber
-        institutionPropertyNumber, institutionPurchaseOrderNumber, ooiPartNumber, \
-               ooiPropertyNumber, ooiSerialNumber = marshall_partData_fields(converted_asset)
-        uframe_asset['institutionPropertyNumber'] = institutionPropertyNumber
-        uframe_asset['institutionPurchaseOrderNumber'] = institutionPurchaseOrderNumber
-        uframe_asset['ooiPartNumber'] = ooiPartNumber
-        uframe_asset['ooiPropertyNumber'] = ooiPropertyNumber
-        uframe_asset['ooiSerialNumber'] = ooiSerialNumber
-        del asset['partData']
-
-        # Fields: depthRating, powerRequirements, physicalInfo
-        depthRating, powerRequirements, physicalInfo = marshall_physicalInfo_fields(converted_asset)
-        # height, length, weight, width =
-        uframe_asset['depthRating'] = depthRating
-        uframe_asset['powerRequirements'] = powerRequirements
-        uframe_asset['physicalInfo'] = physicalInfo
-        del asset['physicalInfo']
-
-        # Fields: deliveryDate, deliveryOrderNumber, purchaseDate, purchasePrice
-        deliveryDate, deliveryOrderNumber, purchaseDate, purchasePrice = marshall_purchaseAndDeliveryInfo_fields(converted_asset)
-        uframe_asset['deliveryDate'] = deliveryDate
-        uframe_asset['deliveryOrderNumber'] = deliveryOrderNumber
-        uframe_asset['purchaseDate'] = purchaseDate
-        uframe_asset['purchasePrice'] = purchasePrice
-        del asset['purchaseAndDeliveryInfo']
-
-        # Fields: assetId, uid, lastModifiedTimestamp [reserved]
-        uframe_asset['uid'] = converted_asset['uid']
-        if action == 'update':
-            uframe_asset['assetId'] = converted_asset['id']
-            uframe_asset['lastModifiedTimestamp'] = converted_asset['lastModifiedTimestamp']
-        else:
-            uframe_asset['lastModifiedTimestamp'] = None
-            uframe_asset['assetId'] = -1
-            uframe_asset['events'] = []
-            uframe_asset['remoteResources'] = []
-            if asset_type == 'Sensor':
-                uframe_asset['calibration'] = []
-            uframe_asset['location'] = None
-
-        # Fields: mobile, notes, remoteDocuments, remoteResources, dataSource
-        uframe_asset['mobile'] = converted_asset['mobile']
-        uframe_asset['notes'] = converted_asset['notes']
-        uframe_asset['remoteResources'] = converted_asset['remoteResources']
-        uframe_asset['dataSource'] = converted_asset['dataSource']
-
-        # Set location.
-        location = {}
-        location['depth'] = converted_asset['depth']
-        location['orbitRadius'] = converted_asset['orbitRadius']
-        location['latitude'] = converted_asset['latitude']
-        location['longitude'] = converted_asset['longitude']
-        if converted_asset['latitude'] is None and converted_asset['longitude'] is None:
-            location['location'] = []
-        else:
-            location['location'] = [converted_asset['longitude'], converted_asset['latitude']]
-
-        if location['depth'] is None and location['orbitRadius'] is None:
-            if not location['location']:
-                uframe_asset['location'] = None
-            else:
-                if converted_asset['latitude'] is None:
-                    location['latitude'] = 0.0
-                if converted_asset['longitude'] is None:
-                    location['longitude'] = 0.0
-                location['location'] = [location['longitude'], location['latitude']]
-                uframe_asset['location'] = location
-
-        else:
-            if converted_asset['latitude'] is None:
-                location['latitude'] = 0.0
-            if converted_asset['longitude'] is None:
-                location['longitude'] = 0.0
-            location['location'] = [location['longitude'], location['latitude']]
-            uframe_asset['location'] = location
-
-        # remoteResources, events and, when necessary, calibration
-        if action == 'create':
-            #- - - - - - - - - - - - - - - - - - - -
-            # Create processing.
-            #- - - - - - - - - - - - - - - - - - - -
-            uframe_asset['remoteResources'] = None
-            uframe_asset['events'] = None
-            if asset_type == 'Sensor':
-                uframe_asset['calibration'] = None
-        else:
-            #- - - - - - - - - - - - - - - - - - - -
-            # Update processing
-            #- - - - - - - - - - - - - - - - - - - -
-            # Remote Resources.
-            if 'remoteResources' in converted_asset:
-                if not converted_asset['remoteResources']:
-                    uframe_asset['remoteResources'] = None
-                else:
-                    uframe_asset['remoteResources'] = converted_asset['remoteResources']
-            else:
-                uframe_asset['remoteResources'] = None
-
-            # Events.
-            if 'events' in converted_asset:
-                if not converted_asset['events']:
-                    uframe_asset['events'] = None
-                else:
-                    uframe_asset['events'] = converted_asset['events']
-            else:
-                uframe_asset['events'] = None
-
-            # Calibration. (if sensor asset.)
-            if asset_type == 'Sensor':
-                uframe_asset['calibration'] = None
-                """
-                if 'calibration' in converted_asset:
-                    if not converted_asset['calibration']:
-                        uframe_asset['calibration'] = None
-                    else:
-                        uframe_asset['calibration'] = converted_asset['calibration']
-                else:
-                    uframe_asset['calibration'] = None
-                """
-
-        uframe_asset['tense'] = 'UNKNOWN'
-
-        #- - - - - - - - - - - - - - - - - - - - - -
-        # Validate uframe_asset object - fields present
-        #- - - - - - - - - - - - - - - - - - - - - -
-        #required_fields, field_types = asset_get_required_fields_and_types_uframe(asset_type, action)
-        uframe_asset_keys = uframe_asset.keys()
-        uframe_asset_keys.sort()
-        return uframe_asset
-
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-
-# Marshall fields from assetInfo.
-def marshall_assetInfo_fields(asset):
-    try:
-        asset_info = None
-        if 'assetInfo' in asset:
-            asset_info = asset['assetInfo'].copy()
-        if asset_info is None:
-            message = 'Malformed asset, missing required field \'assetInfo\'.'
-            raise Exception(message)
-
-        description = None
-        if 'description' in asset_info:
-            description = convert_string_field('description', asset_info['description'])
-        owner = None
-        if 'owner' in asset_info:
-            owner = convert_string_field('owner', asset_info['owner'])
-        name = None
-        if 'name' in asset_info:
-            name = convert_string_field('name', asset_info['asset_name'])
-
-        return description, owner, name #, mindepth, maxdepth
-    except Exception as err:
-        raise Exception(str(err))
-
-
-# Marshall fields from manufactureInfo.
-def marshall_manufactureInfo_fields(asset):
-    """
-    "manufactureInfo": {
-            "firmwareVersion": null,
-            "manufacturer": "WHOI",
-            "modelNumber": "DCL",
-            "serialNumber": "CP03ISSM-00003-DCL37",
-            "shelfLifeExpirationDate": null,
-            "softwareVersion": null
-          }
-    """
-    try:
-        manufacture_info = None
-        if 'manufactureInfo' in asset:
-            manufacture_info = asset['manufactureInfo']
-        if manufacture_info is None:
-            message = 'Malformed asset, missing required field \'manufactureInfo\'.'
-            raise Exception(message)
-
-
-        firmwareVersion = None
-        if 'firmwareVersion' in manufacture_info:
-            firmwareVersion = convert_string_field('firmwareVersion', manufacture_info['firmwareVersion'])
-
-        manufacturer = None
-        if 'manufacturer' in manufacture_info:
-            manufacturer = convert_string_field('manufacturer', manufacture_info['manufacturer'])
-
-        modelNumber = None
-        if 'modelNumber' in manufacture_info:
-            modelNumber = convert_string_field('modelNumber', manufacture_info['modelNumber'])
-
-        serialNumber = None
-        if 'serialNumber' in manufacture_info:
-            serialNumber = convert_string_field('serialNumber', manufacture_info['serialNumber'])
-
-        """
-        shelfLifeExpirationDate = None
-        if 'shelfLifeExpirationDate' in manufacture_info:
-            shelfLifeExpirationDate = manufacture_info['shelfLifeExpirationDate']
-        """
-
-        shelfLifeExpirationDate = None
-        if 'shelfLifeExpirationDate' in manufacture_info:
-            try:
-                if manufacture_info['shelfLifeExpirationDate'] and manufacture_info['shelfLifeExpirationDate'] is not None:
-                    shelfLifeExpirationDate = long(manufacture_info['shelfLifeExpirationDate'])
-            except Exception as err:
-                message = 'Failed to convert shelfLifeExpirationDate to long, set to None. %s' % str(err)
-                current_app.logger.info(message)
-                raise Exception(message)
-
-        softwareVersion = None
-        if 'softwareVersion' in manufacture_info:
-            softwareVersion = manufacture_info['softwareVersion']
-
-        return firmwareVersion, manufacturer, modelNumber, serialNumber, shelfLifeExpirationDate, softwareVersion
-    except Exception as err:
-        raise Exception(str(err))
-
-
-# Marshall fields from partData.
-def marshall_partData_fields(asset):
-    """
-    "partData": {
-            "institutionPropertyNumber": null,
-            "institutionPurchaseOrderNumber": null,
-            "ooiPartNumber": null,
-            "ooiPropertyNumber": null,
-            "ooiSerialNumber": null
-          },
-    """
-    try:
-        part_info = None
-        if 'partData' in asset:
-            part_info = asset['partData']
-        if part_info is None:
-            message = 'Malformed asset, missing required field \'partData\'.'
-            raise Exception(message)
-
-        institutionPropertyNumber = None
-        if 'institutionPropertyNumber' in part_info:
-            institutionPropertyNumber = convert_string_field('institutionPropertyNumber',
-                                                             part_info['institutionPropertyNumber'])
-            #institutionPropertyNumber = part_info['institutionPropertyNumber']
-
-        institutionPurchaseOrderNumber = None
-        if 'institutionPurchaseOrderNumber' in part_info:
-            institutionPurchaseOrderNumber = convert_string_field('institutionPurchaseOrderNumber',
-                                                                  part_info['institutionPurchaseOrderNumber'])
-            #institutionPurchaseOrderNumber = part_info['institutionPurchaseOrderNumber']
-
-        ooiPartNumber = None
-        if 'ooiPartNumber' in part_info:
-            ooiPartNumber = convert_string_field('ooiPartNumber', part_info['ooiPartNumber'])
-            #ooiPartNumber = part_info['ooiPartNumber']
-
-        ooiPropertyNumber = None
-        if 'ooiPropertyNumber' in part_info:
-            ooiPropertyNumber = convert_string_field('ooiPropertyNumber', part_info['ooiPropertyNumber'])
-            #ooiPropertyNumber = part_info['ooiPropertyNumber']
-
-        ooiSerialNumber = None
-        if 'ooiSerialNumber' in part_info:
-            ooiSerialNumber = convert_string_field('ooiSerialNumber', part_info['ooiSerialNumber'])
-            #ooiSerialNumber = part_info['ooiSerialNumber']
-
-        return institutionPropertyNumber, institutionPurchaseOrderNumber, ooiPartNumber, \
-               ooiPropertyNumber, ooiSerialNumber
-    except Exception as err:
-        raise Exception(str(err))
-
-
-def convert_string_field(field, data_field):
-    field_type = 'string'
-    try:
-        if data_field is None:
-            return None
-        if not isinstance(data_field, str) and not isinstance(data_field, unicode):
-            message = 'Required field \'%s\' provided, but value is not of type %s.' % (field, field_type)
-            raise Exception(message)
-        if data_field and len(data_field) > 0:
-            tmp = str(data_field)
-            if not isinstance(tmp, str) and not isinstance(tmp, unicode):
-                message = 'Required field \'%s\' provided, but value is not of type %s.' % (field, field_type)
-                raise Exception(message)
-            converted_data_field = tmp
-        else:
-            converted_data_field = None
-        return converted_data_field
-
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        raise Exception(message)
-
-
-def convert_float_field(field, data_field):
-    field_type = 'float'
-    try:
-        if isinstance(data_field, float):
-            converted_data_field = data_field
-        elif data_field and len(data_field) > 0:
-            tmp = float(data_field)
-            if not isinstance(tmp, float):
-                message = 'Required field \'%s\' provided, but value is not of type %s.' % (field, field_type)
-                raise Exception(message)
-            converted_data_field = tmp
-        else:
-            converted_data_field = 0.0
-        return converted_data_field
-
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        raise Exception(message)
-
-def marshall_physicalInfo_fields(asset):
-    """
-    "physicalInfo": {
-            "depthRating": null,
-            "height": -1.0,
-            "length": -1.0,
-            "powerRequirements": null,
-            "weight": -1.0,
-            "width": -1.0
-          },
-    """
-    try:
-        physicalInfo = None
-        if 'physicalInfo' in asset:
-            physicalInfo = (asset['physicalInfo']).copy()
-        if physicalInfo is None:
-            message = 'Malformed asset, missing required field \'physicalInfo\'.'
-            raise Exception(message)
-
-        depthRating = 0.0
-        if 'depthRating' in physicalInfo:
-            depthRating = convert_float_field('depthRating', physicalInfo['depthRating'])
-            #depthRating = physicalInfo['depthRating']
-        del physicalInfo['depthRating']
-
-        powerRequirements = 0.0
-        if 'powerRequirements' in physicalInfo:
-            powerRequirements = convert_float_field('powerRequirements', physicalInfo['powerRequirements'])
-            #powerRequirements = physicalInfo['powerRequirements']
-        del physicalInfo['powerRequirements']
-
-        if 'height' in physicalInfo:
-            height = convert_float_field('height', physicalInfo['height'])
-            physicalInfo['height'] = height
-        else:
-            physicalInfo['height'] = 0.0
-
-        if 'length' in physicalInfo:
-            length = convert_float_field('length', physicalInfo['length'])
-            physicalInfo['length'] = length
-        else:
-            physicalInfo['length'] = 0.0
-
-        if 'weight' in physicalInfo:
-            weight = convert_float_field('weight', physicalInfo['weight'])
-            physicalInfo['weight'] = weight
-        else:
-            physicalInfo['weight'] = 0.0
-
-        if 'width' in physicalInfo:
-            width = convert_float_field('width', physicalInfo['width'])
-            physicalInfo['width'] = width
-        else:
-            physicalInfo['width'] = 0.0
-
-        return depthRating, powerRequirements, physicalInfo #, height, length, weight, width
-    except Exception as err:
-        raise Exception(str(err))
-
-
-def marshall_purchaseAndDeliveryInfo_fields(asset):
-    """
-    "purchaseAndDeliveryInfo": {
-            "deliveryDate": 1358812800000,
-            "deliveryOrderNumber": null,
-            "purchaseDate": 1358812800000,
-            "purchasePrice": null
-          },
-    """
-    try:
-        purchaseAndDeliveryInfo = None
-        if 'purchaseAndDeliveryInfo' in asset:
-            purchaseAndDeliveryInfo = asset['purchaseAndDeliveryInfo']
-        if purchaseAndDeliveryInfo is None:
-            message = 'Malformed asset, missing required field \'purchaseAndDeliveryInfo\'.'
-            raise Exception(message)
-
-        deliveryDate = None
-        if 'deliveryDate' in purchaseAndDeliveryInfo:
-            try:
-                if purchaseAndDeliveryInfo['deliveryDate'] and purchaseAndDeliveryInfo['deliveryDate'] is not None:
-                    deliveryDate = long(purchaseAndDeliveryInfo['deliveryDate'])
-                else:
-                    deliveryDate = None
-            except Exception as err:
-                #purchaseDate = None
-                message = 'Failed to convert deliveryDate to long, set to None. %s' % str(err)
-                current_app.logger.info(message)
-                raise Exception(message)
-
-        deliveryOrderNumber = None
-        if 'deliveryOrderNumber' in purchaseAndDeliveryInfo:
-            deliveryOrderNumber = convert_string_field('deliveryOrderNumber', purchaseAndDeliveryInfo['deliveryOrderNumber'])
-
-        purchaseDate = None
-        if 'purchaseDate' in purchaseAndDeliveryInfo:
-            try:
-                if purchaseAndDeliveryInfo['purchaseDate'] and purchaseAndDeliveryInfo['purchaseDate'] is not None:
-                    purchaseDate = long(purchaseAndDeliveryInfo['purchaseDate'])
-            except Exception as err:
-                #purchaseDate = None
-                message = 'Failed to convert purchaseDate to long, set to None. %s' % str(err)
-                current_app.logger.info(message)
-                raise Exception(message)
-
-        purchasePrice = 0.0
-        if 'purchasePrice' in purchaseAndDeliveryInfo:
-            purchasePrice = convert_float_field('purchasePrice', purchaseAndDeliveryInfo['purchasePrice'])
-
-
-        return deliveryDate, deliveryOrderNumber, purchaseDate, purchasePrice
-    except Exception as err:
-        raise Exception(str(err))
 
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -961,6 +818,70 @@ def _create_remote_resource(uid, data):
             message = 'Failed to return updated asset from uframe.'
             raise Exception(message)
 
+        # Return complete asset with new remote resource
+        return remote_resource
+
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+def _update_remote_resource(uid, data):
+    """ Update a remote resource for an asset.
+    """
+    action = 'update'
+    try:
+        if not uid or uid is None:
+            message = 'Failed to receive asset uid in request data, unable to update remote resource.'
+            raise Exception(message)
+        if not data:
+            message = 'No data received to process remote resource update.'
+            raise Exception(message)
+
+        # Remove extra 'uid', add '@class' and 'remoteResourceId' fields to data
+        if 'uid' in data:
+            del data['uid']
+
+        # Get asset uid to post remote resource to.
+        class_value, remoteResourceId, lastModifiedTimeStamp = get_remote_resource_info(data, action)
+        data['@class'] = class_value
+        data['remoteResourceId'] = remoteResourceId
+        data['lastModifiedTimeStamp'] = lastModifiedTimeStamp
+
+        # Verify remote resource fields and required values are provided.
+        validate_required_fields_remote_resource('update', data, action=None)
+
+        # Check: Current number of remote resources
+        current_remote_resources = None
+        current_asset = uframe_get_asset_by_uid(uid)
+        if 'remoteResources' in current_asset:
+            current_remote_resources = current_asset['remoteResources']
+
+        # Post remote resource to asset, returns asset.
+        remote_resource = uframe_update_remote_resource_by_resource_id(remoteResourceId, data)
+        updated_remote_resource = uframe_get_remote_resource_by_id(remoteResourceId)
+        if remote_resource['lastModifiedTimestamp'] != updated_remote_resource['lastModifiedTimestamp']:
+            message = 'The updated remote resource lastModifiedTimestamp does not match timestamp after uframe get...'
+            raise Exception(message)
+
+        # Check: Current number of remote resources
+        after_remote_resources = None
+        updated_asset = uframe_get_asset_by_uid(uid)
+        if 'remoteResources' in updated_asset:
+            after_remote_resources = updated_asset['remoteResources']
+        if len(after_remote_resources) != len(current_remote_resources):
+            message = 'Created remote resource rather than updated?'
+            raise Exception(message)
+
+        ui_asset = format_asset_for_ui(updated_asset)
+        id = None
+        if 'id' in ui_asset:
+            id = ui_asset['id']
+        if 'events' in ui_asset:
+            del ui_asset['events']
+        if 'calibration' in ui_asset:
+            del ui_asset['calibration']
+        refresh_asset_cache(id, updated_asset, action, remote_id=remoteResourceId)
         # Return complete asset with new remote resource
         return remote_resource
 

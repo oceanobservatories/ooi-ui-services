@@ -11,13 +11,13 @@ from ooiservices.app.uframe.toc_tools import _compile_asset_rds
 from ooiservices.app.uframe.common_tools import (is_instrument, is_platform, is_mooring)
 from ooiservices.app.uframe.deployment_tools import _compile_rd_assets
 from copy import deepcopy
-
 CACHE_TIMEOUT = 172800
 
 
 def _get_rd_assets():
     """ Get 'rd_assets', if not available get and set cache; return 'rd_assets' dictionary.
     """
+    debug = True
     rd_assets = {}
     try:
         # Get 'rd_assets' if cached
@@ -26,6 +26,7 @@ def _get_rd_assets():
             rd_assets = rd_assets_cached
         # Get 'rd_assets' - compile them
         else:
+            #if debug: print '\n rd_assets not cached, compile rd_assets'
             try:
                 rd_assets = _compile_rd_assets()
             except Exception as err:
@@ -128,9 +129,7 @@ def get_asset_deployment_detail(id, data, rd=None):
                 ],
                 "longitude": -124.09524,
                 "orbitRadius": 0.0
-              },
-              "cumulative_tense": "PRESENT",
-              "tense": "UNKNOWN"
+              }
             }
     }
 
@@ -149,7 +148,8 @@ def get_asset_deployment_detail(id, data, rd=None):
         return result
     except Exception as err:
         message = str(err)
-        current_app.logger.info(message)
+        print '\tNote: %s' % message
+        #current_app.logger.info(message)
         return {}
 
 
@@ -237,8 +237,8 @@ def update_asset_cache(id, asset, remote_id=None):
                 if assets_dict_cache:
                     if id in assets_dict_cache:
                         assets_dict_cache[id] = deepcopy(asset)
-                        #cache.delete('assets_dict')
                         cache.set('assets_dict', assets_dict_cache, timeout=CACHE_TIMEOUT)
+
         return
     except Exception as err:
         message = str(err)

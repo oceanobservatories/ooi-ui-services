@@ -5,7 +5,6 @@ from ooiservices.app import create_celery_app
 from flask.globals import current_app
 from flask.ext.cache import Cache
 
-
 CACHE_TIMEOUT = 172800
 
 """
@@ -16,12 +15,11 @@ Then initialize it.
 celery = create_celery_app('PRODUCTION')
 celery.config_from_object('ooiservices.app.celeryconfig')
 
-from ooiservices.app.uframe.controller import dfs_streams
+
 from ooiservices.app.uframe.controller import _compile_cam_images
 from ooiservices.app.uframe.controller import _compile_large_format_files
 from ooiservices.app.main.c2 import _compile_c2_toc
-from ooiservices.app.uframe.vocab import compile_vocab
-from ooiservices.app.uframe.asset_tools import verify_cache
+
 
 """
 Define the list of processes to run on a scheduled basis.
@@ -31,30 +29,16 @@ Caches created/utilized:
     For Command and Control (C2): c2_toc
     For asset information: asset_list, assets_dict, asset_types, asset_rds, rd_assets, bad_asset_list
 
-Disabled for now: glider_tracks
+Not used:
+glider_tracks
+
+Disabled:
+compile_asset_information,
+compile_vocabulary,
+compile_streams
 
 """
 
-
-# streams_list
-@celery.task(name='tasks.compile_streams')
-def compile_streams():
-    try:
-        with current_app.test_request_context():
-            print "[+] Starting stream cache reset..."
-            cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
-            cache.init_app(current_app)
-
-            streams = dfs_streams()
-
-            if "error" not in streams:
-                cache.set('stream_list', streams, timeout=CACHE_TIMEOUT)
-                print "[+] Streams cache reset."
-            else:
-                print "[-] Error in cache update"
-    except Exception as err:
-        message = 'compile_streams exception: %s' % err.message
-        current_app.logger.warning(message)
 
 
 # cam_images
@@ -104,26 +88,6 @@ def compile_c2_toc():
         current_app.logger.warning(message)
 
 
-# vocab_dict, vocab_codes
-@celery.task(name='tasks.compile_vocabulary')
-def compile_vocabulary():
-    try:
-        with current_app.test_request_context():
-            print "[+] Starting vocabulary cache reset..."
-            cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
-            cache.init_app(current_app)
-            vocab_dict, vocab_codes = compile_vocab()
-            if "error" not in vocab_dict:
-                cache.set('vocab_dict', vocab_dict, timeout=CACHE_TIMEOUT)
-                cache.set('vocab_codes', vocab_codes, timeout=CACHE_TIMEOUT)
-                print "[+] Vocabulary cache reset"
-            else:
-                print "[-] Error in cache update"
-    except Exception as err:
-        message = 'compile_vocabulary exception: %s' % err.message
-        current_app.logger.warning(message)
-
-
 # large_format
 @celery.task(name='tasks.compile_large_format_files')
 def compile_large_format_files():
@@ -143,23 +107,6 @@ def compile_large_format_files():
     except Exception as err:
         message = 'compile_large_format_files exception: %s' % err.message
         current_app.logger.warning(message)
-
-
-# asset information: asset_list, assets_dict, asset_types, asset_rds, rd_assets, bad_asset_list
-@celery.task(name='tasks.compile_asset_information')
-def compile_asset_information():
-    try:
-        print '\n debug - *** tasks - compile_asset_information()'
-        with current_app.test_request_context():
-
-            asset_list = verify_cache(refresh=True)
-            print '\n Completed compiling asset information.'
-            print '\n Number of assets: ', len(asset_list)
-
-    except Exception as err:
-        message = 'compile_assets exception: %s' % err.message
-        current_app.logger.warning(message)
-        raise Exception(message)
 
 
 # - - - - - - - - - - - - - - - - - - - - -
@@ -189,5 +136,85 @@ def compile_glider_tracks():
 
     except Exception as err:
         message = 'compile_glider_tracks exception: %s' % err.message
+        current_app.logger.warning(message)
+'''
+
+"""
+'get-asset-information': {
+        'task': 'tasks.compile_asset_information',
+        'schedule': crontab(minute=0, hour='*/8'),
+        'args': (),
+        },
+    'get-vocabulary': {
+        'task': 'tasks.compile_vocabulary',
+        'schedule': crontab(minute=0, hour='*/8'),
+        'args': (),
+        },
+    'get-streams': {
+        'task': 'tasks.compile_streams',
+        'schedule': crontab(minute=0, hour='*/8'),
+        'args': (),
+        },
+
+"""
+
+'''
+# asset information: asset_list, assets_dict, asset_types, asset_rds, rd_assets, bad_asset_list
+@celery.task(name='tasks.compile_asset_information')
+def compile_asset_information():
+    try:
+        print '\n debug - *** tasks - compile_asset_information()'
+        with current_app.test_request_context():
+
+            asset_list = verify_cache(refresh=True)
+            print '\n Completed compiling asset information.'
+            print '\n Number of assets: ', len(asset_list)
+
+    except Exception as err:
+        message = 'compile_assets exception: %s' % err.message
+        current_app.logger.warning(message)
+        raise Exception(message)
+'''
+
+'''
+# streams_list
+@celery.task(name='tasks.compile_streams')
+def compile_streams():
+    try:
+        with current_app.test_request_context():
+            print "[+] Starting stream cache reset..."
+            cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
+            cache.init_app(current_app)
+
+            streams = dfs_streams()
+
+            if "error" not in streams:
+                cache.set('stream_list', streams, timeout=CACHE_TIMEOUT)
+                print "[+] Streams cache reset."
+            else:
+                print "[-] Error in cache update"
+    except Exception as err:
+        message = 'compile_streams exception: %s' % err.message
+        current_app.logger.warning(message)
+'''
+
+'''
+# vocab_dict, vocab_codes
+@celery.task(name='tasks.compile_vocabulary')
+def compile_vocabulary():
+    try:
+        with current_app.test_request_context():
+            print "[+] Starting vocabulary cache reset..."
+            cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
+            cache.init_app(current_app)
+            vocab_dict, vocab_codes = compile_vocab()
+            if "error" not in vocab_dict:
+                cache.set('vocab_dict', vocab_dict, timeout=CACHE_TIMEOUT)
+                cache.set('vocab_codes', vocab_codes, timeout=CACHE_TIMEOUT)
+                print "[+] Vocabulary cache reset"
+            else:
+                print "[-] Error in cache update"
+    except Exception as err:
+        message = 'compile_vocabulary exception: %s' % err.message
         current_app.logger.warning(message)
 '''

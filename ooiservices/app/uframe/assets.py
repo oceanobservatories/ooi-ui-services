@@ -4,27 +4,30 @@ Asset Management - Asset routes.
 
 Routes:
 
-[GET]  /assets/types             # Get all asset types used by those assets loaded into asset management display
-[GET]  /assets/types/uframe      # Get all asset types supported by uframe.
-[GET]  /assets/<int:id>          # Get asset by asset id.
-[GET]  /assets/uid/<string:uid>  # Get asset by asset uid.
-[GET]  /assets/<int:id>/events   # Get all events for an asset; optional 'type' parameter for one or more types.
-[GET]  /assets                   # Get all assets from uframe and format for UI
+[GET]  /assets/types                 # Get all asset types used by those assets loaded into asset management display
+[GET]  /assets/types/supported       # Get all asset types supported by uframe.
+[GET]  /assets/edit_phase_values     # Get list of valid edit phase values for assets.
+[GET]  /assets/available/<string:rd> # Get boolean indicating whether or not asset available for reference designator.
+[GET]  /assets/<int:id>              # Get asset by asset id.
+[GET]  /assets/uid/<string:uid>      # Get asset by asset uid.
+[GET]  /assets/<int:id>/events       # Get all events for an asset; optional 'type' parameter for one or more types.
+[GET]  /assets                       # Get all assets from uframe and format for UI
 
-[POST]  /assets                  # Create an asset
-[PUT]   /assets/<int:id>         # Update an existing asset
+[POST]  /assets                      # Create an asset
+[PUT]   /assets/<int:id>             # Update an existing asset
 """
 __author__ = 'Edna Donoughe'
 
 from flask import request, jsonify, current_app
-from ooiservices.app.main.errors import (bad_request, conflict, internal_server_error)
-from ooiservices.app.uframe import uframe as api
-from ooiservices.app.uframe.asset_tools import (verify_cache, _get_asset, _get_ui_asset_by_uid)
-from ooiservices.app.uframe.event_tools import _get_events_by_id
-from ooiservices.app.uframe.common_tools import (get_supported_asset_types, get_asset_types, asset_edit_phase_values)
-from ooiservices.app.uframe.assets_create_update import (_create_asset, _update_asset)
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.decorators import scope_required
+from ooiservices.app.main.errors import (bad_request, conflict, internal_server_error)
+from ooiservices.app.uframe import uframe as api
+from ooiservices.app.uframe.asset_tools import (verify_cache, _get_asset, _get_ui_asset_by_uid, _has_asset)
+from ooiservices.app.uframe.event_tools import _get_events_by_id
+from ooiservices.app.uframe.assets_create_update import (_create_asset, _update_asset)
+from ooiservices.app.uframe.common_tools import (get_supported_asset_types, get_asset_types, asset_edit_phase_values,
+                                                 boolean_values)
 from operator import itemgetter
 import json
 
@@ -45,6 +48,7 @@ def get_supported_asset_type():
     return jsonify({'asset_types': get_supported_asset_types()})
 
 
+# Get edit phase values.
 @auth.login_required
 @scope_required(u'asset_manager')
 @api.route('/assets/edit_phase_values', methods=['GET'])
@@ -52,6 +56,34 @@ def get_asset_edit_phase_values():
     """ Get all valid event types supported in uframe asset web services.
     """
     return jsonify({'values': asset_edit_phase_values()})
+
+
+# Get boolean values.
+@auth.login_required
+@scope_required(u'asset_manager')
+@api.route('/boolean_values', methods=['GET'])
+def get_boolean_values():
+    """ Get all valid event types supported in uframe asset web services.
+    """
+    return jsonify({'values': boolean_values()})
+
+
+# Does reference designator have an associated asset?
+@auth.login_required
+@scope_required(u'asset_manager')
+@api.route('/assets/available/<string:rd>', methods=['GET'])
+def has_asset(rd):
+    """ Does reference designator have an associated asset?
+    Sample
+        request: http://localhost:4000/uframe/assets/available/CE01ISSM
+        response: { "available": true}
+    """
+    try:
+        return jsonify({'available': _has_asset(rd)})
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
 
 
 # Get asset by asset id.

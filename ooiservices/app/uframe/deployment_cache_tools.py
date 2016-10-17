@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Asset Management - Assets: Support for cache related functions.
+Asset Management - Deployments: Support for cache related functions.
 """
 __author__ = 'Edna Donoughe'
 
@@ -47,7 +47,6 @@ def deployment_cache_refresh(id, deployment, action):
         "recoverCruiseInfo": null,
         "recoveredBy": "Test engineer",
         "sensor_uid": "N00580",
-        "tense": "UNKNOWN",
         "versionNumber": 3027
     }
     """
@@ -65,10 +64,12 @@ def deployment_cache_refresh(id, deployment, action):
 
                 # Determine if rd in deployments dictionary.
                 if rd in deployments_dict:
+                    if debug: print '\n debug -- the rd: %s is already in the deployments_dict...' % rd
                     work = deployments_dict[rd]
 
                     # If deployment number in dictionary, verify asset ids are represented.
                     if deploymentNumber in work:
+                        if debug: print '\n debug -- deploymentNumber is already in work...'
                         #------------
                         # Update deployment asset ids with mooring, node and sensor id information
                         # Mooring
@@ -133,7 +134,7 @@ def deployment_cache_refresh(id, deployment, action):
                         work[deploymentNumber]['endDT'] = stopTime
                         work[deploymentNumber]['eventId'] = eventId
                         work[deploymentNumber]['location'] = location
-                        work[deploymentNumber]['tense'] = 'UNKNOWN'
+                        #work[deploymentNumber]['tense'] = 'UNKNOWN'
 
                         # deploymentNumber in work, therefore should be in work[deployments, verify and update is not.
                         if deploymentNumber not in work['deployments']:
@@ -141,25 +142,27 @@ def deployment_cache_refresh(id, deployment, action):
                             work['deployments'].append(deploymentNumber)
                         if work['deployments']:
                             work['deployments'].sort(reverse=True)
-                            current_deployment_number = work['deployments'][0]
+                            #current_deployment_number = work['deployments'][0]
 
                         #------------
-
+                            """
                             # Set all deployment cumulative tense values to 'PAST', then update current to 'PRESENT'
                             for number in work['deployments']:
                                 work[number]['cumulative_tense'] = 'PAST'
                             work[current_deployment_number]['cumulative_tense'] = 'PRESENT'
+                            """
                         else:
                             work['current_deployment'] = deploymentNumber
-                            work[deploymentNumber]['cumulative_tense'] = 'PRESENT'
+                            #work[deploymentNumber]['cumulative_tense'] = 'PRESENT'
 
                     else:
+                        if debug: print '\n debug -- deploymentNumber NOT in work...'
                         new_deployment = {}
                         new_deployment['beginDT'] = startTime
                         new_deployment['endDT'] = stopTime
                         new_deployment['eventId'] = eventId
                         new_deployment['location'] = location
-                        new_deployment['tense'] = 'UNKNOWN'
+                        #new_deployment['tense'] = 'UNKNOWN'
                         new_deployment['asset_ids_by_type'] = {'mooring': [], 'node': [], 'sensor': []}
                         new_deployment['asset_ids'] = []
                         work[deploymentNumber] = new_deployment
@@ -196,10 +199,12 @@ def deployment_cache_refresh(id, deployment, action):
                         deployments_list.sort(reverse=True)
                         current_deployment_number = deployments_list[0]
                         work['current_deployment'] = current_deployment_number
+                        """
                         # Set all deployment cumulative tense values to 'PAST', then update current to 'PRESENT'
                         for number in work['deployments']:
                             work[number]['cumulative_tense'] = 'PAST'
                         work[current_deployment_number]['cumulative_tense'] = 'PRESENT'
+                        """
                     #---------
 
                 # Build dictionary for rd, then add to rd_assets
@@ -213,9 +218,9 @@ def deployment_cache_refresh(id, deployment, action):
                     work[deploymentNumber]['endDT'] = stopTime
                     work[deploymentNumber]['eventId'] = eventId
                     work[deploymentNumber]['location'] = location
-                    work[deploymentNumber]['tense'] = 'UNKNOWN'
                     work[deploymentNumber]['current_deployment'] = deploymentNumber
-                    work[deploymentNumber]['cumulative_tense'] = 'PRESENT'
+                    #work[deploymentNumber]['tense'] = 'UNKNOWN'
+                    #work[deploymentNumber]['cumulative_tense'] = 'PRESENT'
                     work[deploymentNumber]['asset_ids_by_type'] = {'mooring': [], 'node': [], 'sensor': []}
                     work[deploymentNumber]['asset_ids'] = []
                     work['asset_ids'] = []

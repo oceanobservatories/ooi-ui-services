@@ -3,6 +3,7 @@ Asset Management - Common conversion of UI input for events and assets.
 """
 __author__ = 'Edna Donoughe'
 import ast
+from ooiservices.app.uframe.common_tools import convert_float_field
 
 
 def convert_ui_data(data, required_fields, field_types):
@@ -34,7 +35,6 @@ def convert_ui_data(data, required_fields, field_types):
                         raise Exception(message)
                     if data[field] and len(data[field]) > 0:
                         tmp = str(data[field])
-                        #tmp = str((data[field]).encode('utf-8'))
                         if not isinstance(tmp, str) and not isinstance(tmp, unicode):
                             message = 'Required field \'%s\' provided, but value is not of type %s.' % (field, field_types[field])
                             raise Exception(message)
@@ -81,26 +81,14 @@ def convert_ui_data(data, required_fields, field_types):
                 # 'float'
                 elif field_types[field] == 'float':
                     try:
-                        if isinstance(data[field], float):
-                            converted_data[field] = data[field]
-                        else:
-                            if data[field] and len(data[field]) > 0:
-                                tmp = float(data[field])
-                                if not isinstance(tmp, float):
-                                    message = 'Required field \'%s\' provided, but value is not of type %s.' % (field, field_types[field])
-                                    raise Exception(message)
-                                converted_data[field] = tmp
-                            else:
-                                converted_data[field] = None
-                    except:
-                        message = 'Required field \'%s\' provided, but type conversion error (type %s).' % (field, field_types[field])
+                        converted_data[field] = convert_float_field(field, data[field])
+                    except Exception as err:
+                        message = str(err)
                         raise Exception(message)
 
                 # 'dict'
                 elif field_types[field] == 'dict':
                     converted_data[field] = data[field]
-                    #message = 'Unknown dict field to convert: ', field
-                    #raise Exception(message)
                     continue
 
                 # 'bool'
@@ -241,8 +229,8 @@ def convert_ui_data(data, required_fields, field_types):
                     converted_data[field] = tmp
                 elif field_types[field] == 'multiple':
                     try:
-                        if isinstance(data[field], list) or isinstance(data[field], float):
-                            tmp = data[field]
+                        if isinstance(data[field], list) or isinstance(data[field], float) or isinstance(data[field], int):
+                            converted_data[field] = data[field]
                         else:
                             # convert the data
                             tmp = ast.literal_eval(data[field])
@@ -250,8 +238,10 @@ def convert_ui_data(data, required_fields, field_types):
                                 converted_data[field] = tmp
                             elif isinstance(tmp, float):
                                 converted_data[field] = tmp
+                            elif isinstance(tmp, int):
+                                converted_data[field] = float(tmp)
                             else:
-                                message = 'Field \'%s\' value is not of type list or float.' % field
+                                message = 'Field \'%s\' value is not of type list or number.' % field
                                 raise Exception(message)
                     except Exception as err:
                         message = 'Required field \'%s\' provided, but type conversion error. %s' % (field, str(err))

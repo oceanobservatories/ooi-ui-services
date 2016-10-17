@@ -5,12 +5,13 @@ Asset Management - Upstream server (uframe) interface functions.
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
+from ooiservices.app.uframe.common_tools import dump_dict
 from ooiservices.app.uframe.config import (get_uframe_deployments_info, get_events_url_base,
                                            get_uframe_assets_info, get_assets_url_base, headers,
                                            get_url_info_resources, get_uframe_info_calibration,
                                            get_url_info_cruises, get_url_info_cruises_inv,
                                            get_uframe_events_info, get_url_info_cruises_rec,
-                                           get_url_info_deployments_inv)
+                                           get_url_info_deployments_inv, get_deployments_url_base)
 import requests
 from requests.exceptions import (ConnectionError, Timeout)
 import datetime as dt
@@ -506,19 +507,19 @@ def get_assets_from_uframe():
         # Get uframe connect and timeout information
         if time: print '\n-- Getting assets from uframe... '
         start = dt.datetime.now()
-        if time: print '\n\t-- Start time: ', start
+        if time: print '\t-- Start time: ', start
         uframe_url, timeout, timeout_read = get_uframe_assets_info()
         timeout_extended = timeout_read * 3
         url = '/'.join([uframe_url, get_assets_url_base()])
         response = requests.get(url, timeout=(timeout, timeout_extended))
         end = dt.datetime.now()
-        if time: print '\n\t-- End time:   ', end
-        if time: print '\n\t-- Time to get uframe assets: %s' % str(end - start)
+        if time: print '\t-- End time:   ', end
+        if time: print '\t-- Time to get uframe assets: %s' % str(end - start)
         if response.status_code != 200:
             message = '(%d) Failed to get uframe assets.' % response.status_code
             raise Exception(message)
         result = response.json()
-        print '\n\t-- Number of assets from uframe: ', len(result)
+        print '\t-- Number of assets from uframe: ', len(result)
         return result
 
     except ConnectionError:
@@ -683,7 +684,7 @@ def uframe_update_asset(asset):
         url = '/'.join([base_url, get_assets_url_base(), str(id)])
         response = requests.put(url, data=json.dumps(asset), headers=headers())
         if response.status_code != 200:
-            message = '(%d) Failed to update asset %d.' % (response.status_code, id)
+            message = '(%d) Uframe failed to update asset (id/uid: %d/%s).' % (response.status_code, id, uid)
             raise Exception(message)
 
         # Get updated asset from uframe and return.
@@ -1168,3 +1169,78 @@ def uframe_get_deployment_inv_sensors(subsite, node):
     except Exception as err:
         message = str(err)
         raise Exception(message)
+
+
+# Create deployment in uframe.
+def uframe_create_deployment(deployment):
+    """ Create deployment in uframe. On success return updated deployment, on error, raise exception.
+    """
+    debug = False
+    check = False
+    success = 'CREATED'
+    try:
+        # Check deployment data provided.
+        if not deployment or deployment is None:
+            message = 'Deployment data must be provided to create deployment in uframe.'
+            raise Exception(message)
+        if not isinstance(deployment, dict):
+            message = 'Deployment data must be provided in dictionary form to create a deployment in uframe.'
+            raise Exception(message)
+
+        # Create deployment in uframe.
+        base_url, timeout, timeout_read = get_uframe_deployments_info()
+        url = '/'.join([base_url, get_deployments_url_base()])
+        if check: print '\n check: url: ', url
+        response = requests.post(url, data=json.dumps(deployment), headers=headers())
+        if debug:
+            print '\n uframe update deployment:'
+            dump_dict(deployment, debug)
+            print '\n debug -- response.status_code: ', response.status_code
+            print '\n debug -- response.content: ', json.loads(response.content)
+
+        if response.status_code != 201:
+            message = '(%d) uframe failed to create deployment.' % response.status_code
+            if response.content:
+                uframe_message = json.loads(response.content)
+                if 'message' in uframe_message:
+                    uframe_message = uframe_message['message']
+                message += ' %s' % uframe_message
+            current_app.logger.info(message)
+            raise Exception(message)
+
+        # Get id for new deployment.
+        if not response.content:
+            message = 'No response content returned from create deployment.'
+            raise Exception(message)
+
+        # Review response.content:
+        #   {u'message': u'Element created successfully.', u'id': 4292, u'statusCode': u'CREATED'}
+        response_data = json.loads(response.content)
+        id = None
+        if 'id' in response_data and 'statusCode' in response_data:
+            if response_data['statusCode'] and response_data['id']:
+                if response_data['statusCode'] == success and response_data['id'] > 0:
+                    id = response_data['id']
+        if id is None:
+            message = 'Failed to create uframe deployment.'
+            raise Exception(message)
+
+        # Get new deployment from uframe.
+        new_deployment = get_uframe_event(id)
+        if not new_deployment or new_deployment is None:
+            message = 'Failed to get deployment with event id %d from uframe.' % id
+            raise Exception(message)
+        return new_deployment
+    except ConnectionError:
+        message = 'Error: ConnectionError during uframe create deployment.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Error: Timeout during during uframe create deployment.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+

@@ -6,8 +6,8 @@ __author__ = 'Edna Donoughe'
 
 from flask import current_app
 from ooiservices.app import cache
-from ooiservices.app.uframe.common_tools import is_instrument
-from ooiservices.app.uframe.common_tools import (get_event_types, get_event_types_by_rd, get_event_types_by_asset_type)
+from ooiservices.app.uframe.common_tools import (get_event_types, get_event_types_by_rd, get_event_types_by_asset_type,
+                                                 is_instrument)
 from ooiservices.app.uframe.events_validate_fields import get_rd_from_integrationInto
 from ooiservices.app.uframe.asset_cache_tools import get_rd_from_rd_assets
 from ooiservices.app.uframe.uframe_tools import (uframe_get_asset_by_id, get_uframe_events_by_uid, _get_id_by_uid,
@@ -35,8 +35,9 @@ def _get_events_by_uid(uid, _type):
 def _get_all_events_by_uid(uid, _type):
     """ Get all events by asset uid, shown common field across all events.
     Display line items containing one or more of the following:
-        eventId, eventType, eventName, StartTime, EndTime, lastModifiedTimestamp, dataSource | Tense,  notes
+        eventId, eventType, StartTime, EndTime, lastModifiedTimestamp, dataSource,  notes
 
+    Removed attributes: eventName,  Tense
     Sample output:
     [
         {
@@ -71,7 +72,7 @@ def _get_all_events_by_uid(uid, _type):
         if asset_type == 'Sensor':
             calibrations = get_calibration_events(id, uid)
             if calibrations and calibrations is not None:
-                calib_results = condense_events(calibrations)
+                calib_results = condense_events(calibrations, calibration=True)
                 if calib_results:
                     results = results + calib_results
 
@@ -85,12 +86,15 @@ def _get_all_events_by_uid(uid, _type):
         raise Exception(message)
 
 
-def condense_events(events):
+def condense_events(events, calibration=False):
     """ For a set of events, condense to fields common to all events.
+    2016-10-07  Remove 'eventName', 'tense',
     """
     results = []
-    columns = ['eventId', 'eventType', 'eventName', 'eventStartTime', 'eventStopTime',
-               'lastModifiedTimestamp', 'dataSource', 'tense', 'notes']
+    columns = ['eventId', 'eventType', 'eventStartTime', 'eventStopTime',
+               'lastModifiedTimestamp', 'dataSource', 'notes']
+    if calibration:
+        columns.append('eventName')
     try:
         for event in events:
             temp = {}
@@ -419,7 +423,6 @@ def convert_maps_to_deployment_events(maps, uid):
                        'eventType': 'DEPLOYMENT',
                        'location': [0.0, 0.0],
                        'notes': '',
-                       'tense': '',
                        'assetUid': uid}
     ordered_keys = (maps.keys())
     ordered_keys.sort(reverse=True)
@@ -448,7 +451,6 @@ def convert_maps_to_deployment_events(maps, uid):
             else:
                 event['depth'] = None
                 #event['location'] = None
-            event['tense'] = v['tense']
             event['notes'] = ''                             # remove
             events.append(event)
         return events
@@ -481,16 +483,13 @@ def process_calibration_results(results, uid):
         "calData" : [ {
           "@class" : ".XCalibrationData",
           "comments" : "units = mm",
-          "values" : [ 0.45 ],
-          "dimensions" : [ 1 ],
-          "cardinality" : 0,
+          "value" : [ 0.45 ],
           "eventId" : 71,
           "eventType" : "CALIBRATION_DATA",
           "eventName" : "CC_scale_factor1",
           "eventStartTime" : 1361318400000,
           "eventStopTime" : null,
           "notes" : null,
-          "tense" : null,
           "dataSource" : null,
           "lastModifiedTimestamp" : 1468511911189
         } ]
@@ -511,7 +510,6 @@ def process_calibration_results(results, uid):
         "eventType": "CALIBRATION_DATA",
         "lastModifiedTimestamp": 1468511911189,
         "notes": null,
-        "tense": "UNKNOWN",
         "assetUid": "A00089",
         "values": [
           0.45
@@ -541,11 +539,14 @@ def process_calibration_results(results, uid):
             if 'calData' in calibration:
                 cal_data = calibration['calData']
                 for cal in cal_data:
-                    #cal['uid'] = uid
+                    #----------------------
+                    if 'value' in cal:
+                        if cal['value'] is not None:
+                            cal['value'] = str(cal['value'])
+                    #----------------------
                     if '@class' in cal:
                         del cal['@class']
                     calibrations.append(cal)
-
         return calibrations
 
     except Exception as err:

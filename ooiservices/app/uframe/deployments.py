@@ -4,12 +4,15 @@ Asset Management - Deployment routes.
 
 Routes:
 
-[GET]  /deployments/edit_phase_values   # Get edit phase values for deployments.
-[GET]  /deployments/<int:event_id>      # Get deployment by event id.
-[GET]  /deployments/<string:rd>         # Get deployments list by reference designator.
+[GET]  /deployments/edit_phase_values                   # Get edit phase values for deployments.
+[GET]  /deployments/<int:event_id>                      # Get deployment by event id.
+[GET]  /deployments/<string:rd>                         # Get deployments list by reference designator.
+[GET]  /deployments/inv                                 # Get subsites in deployment inventory.
+[GET]  /deployments/inv/<string:subsite>                # Get nodes in deployment inventory for a subsite.
+[GET]  /deployments/inv/<string:subsite>/<string:node>  # Get sensors in deployment inventory for a subsite and node.
 
-[POST]  /deployments                    # Create a deployment
-[PUT]   /assets/<int:id>                # Update a deployment
+[POST]  /deployments                                    # Create a deployment
+[PUT]   /assets/<int:id>                                # Update a deployment
 
 *[GET]  /deployments/<string:rd>/deployment/<int:deployment_number> # Get deployment by reference designator and deployment_number
 
@@ -21,7 +24,7 @@ from ooiservices.app.main.errors import bad_request
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.decorators import scope_required
-from ooiservices.app.uframe.common_tools import (deployment_edit_phase_values)
+from ooiservices.app.uframe.common_tools import (deployment_edit_phase_values, dump_dict)
 from ooiservices.app.uframe.deployment_tools import (_get_deployment_subsites, _get_deployment_nodes,
                                                      _get_deployment_sensors, _get_deployments_by_rd)
 from ooiservices.app.uframe.deployments_create_update import (_create_deployment, _update_deployment,
@@ -103,11 +106,15 @@ def get_deployments_by_rd(rd):
 def create_deployment():
     """ Create deployment. Returns newly created deployment dictionary or error.
     """
+    debug = False
     try:
         if not request.data:
             message = 'No data provided to create a deployment.'
             raise Exception(message)
         data = json.loads(request.data)
+        if debug:
+            print '\n debug -- create deployment (request data received): '
+            dump_dict(data, debug)
         deployment = _create_deployment(data)
         return jsonify({'deployment': deployment}), 201
     except Exception as err:
@@ -123,11 +130,15 @@ def create_deployment():
 def update_deployment(event_id):
     """ Update deployment. Returns updated deployment or error
     """
+    debug = False
     try:
         if not request.data:
             message = 'No data provided to update deployment %d.' % event_id
             raise Exception(message)
         data = json.loads(request.data)
+        if debug:
+            print '\n debug -- Update deployment request data: '
+            dump_dict(data, debug)
         deployment = _update_deployment(event_id, data)
         result = jsonify({'deployment': deployment})
         return result

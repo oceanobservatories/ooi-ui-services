@@ -199,7 +199,6 @@ def get_required_fields():
                         'recoverCruiseInfo',
                         'rd',
                         'sensor_uid',
-                        'tense',
                         'versionNumber'
                     ]
 
@@ -234,7 +233,6 @@ def get_required_field_types():
                             'recoverCruiseInfo': 'string',
                             'rd': 'string',
                             'sensor_uid': 'string',
-                            'tense': 'string',
                             'versionNumber': 'int'
                             }
     return required_field_types
@@ -269,7 +267,6 @@ def get_required_fields_uframe():
                         'recoverCruiseInfo',
                         'referenceDesignator',
                         'sensor',
-                        'tense',
                         'versionNumber'
                         ]
 
@@ -303,7 +300,6 @@ def get_required_field_types_uframe():
                             'recoverCruiseInfo': 'dict',
                             'referenceDesignator': 'dict',
                             'sensor': 'dict',
-                            'tense': 'string',
                             'versionNumber': 'int'
                             }
 

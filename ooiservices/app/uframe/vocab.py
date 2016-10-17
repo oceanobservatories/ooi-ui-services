@@ -46,12 +46,12 @@ def get_vocab():
     try:
         # Get 'vocab_dict' if cached
         dict_cached = cache.get('vocab_dict')
-        if dict_cached:
+        if dict_cached and dict_cached is not None:
             vocab_dict = dict_cached
 
         # Get 'vocab_codes' if cached
         codes_cached = cache.get('vocab_codes')
-        if codes_cached:
+        if codes_cached and codes_cached is not None:
             vocab_codes = codes_cached
 
         # If either 'vocab_dict' or 'vocab_codes' is not cached, get and place in cache.
@@ -82,9 +82,12 @@ def get_long_display_name_by_rd(rd):
             if rd in vocab_dict:
                 result = vocab_dict[rd]['long_name']
             else:
+                """
                 result = build_long_display_name(rd)
                 if result is None:
                     if debug: print '\n rd: ', rd
+                """
+                result = rd
 
         return result
     except Exception:
@@ -102,10 +105,13 @@ def get_display_name_by_rd(rd):
             if rd in vocab_dict:
                 result = vocab_dict[rd]['name']
             else:
+                """
                 # Build display name
                 result = build_display_name(rd)
                 if result is None:
                     result = rd
+                """
+                result = rd
 
         return result
     except Exception:
@@ -329,7 +335,7 @@ def compile_vocab():
     codes = {}
     debug = False
     try:
-        print '\n Compiling vocabulary...'
+        print '\nCompiling vocabulary...'
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Get vocabulary. Try uframe, if error, then get COL vocabulary. Must have vocabulary
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -478,7 +484,6 @@ def compile_vocab():
         if debug:
             print '\n -- codes: %s' % json.dumps(codes, indent=4, sort_keys=True)
             print '\n -- final len(results): ', len(results)
-
             """
             keys = results.keys()
             keys.sort()
@@ -486,7 +491,7 @@ def compile_vocab():
             """
 
         # Return vocabulary results (list) and codes (dict)
-        print '\n Completed compiling vocabulary...'
+        print 'Completed compiling vocabulary...'
         return results, codes
 
     except Exception as err:

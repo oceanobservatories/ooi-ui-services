@@ -3,9 +3,9 @@
 Asset Management - Event routes.
 
 Routes:
-[GET]  /events/<int:id>           # Get event.
 [GET]  /events/types              # Get all event types.
 [GET]  /events/types/supported    # Get all supported event types.
+[GET]  /events/<int:id>           # Get event by event id.
 [GET]  /events/uid/<string:uid>   # Get all events of all types for asset with uid.
        /events/uid/<string:uid>?type=EventType   # Get all events for asset with uid, but only type(s) identified.
        # Example: /uframe/events/uid/A00228?type=ATVENDOR

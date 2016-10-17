@@ -31,6 +31,7 @@ from ooiservices.app.uframe.common_tools import (get_supported_asset_types, depl
 from ooiservices.app.uframe.uframe_tools import get_uframe_event
 from ooiservices.app.uframe.deployment_tools import format_deployment_for_ui
 from ooiservices.tests.common_tools import get_asset_input_as_string
+from ooiservices.app.uframe.deployments_validate_fields import deployments_validate_required_fields_are_provided
 from ooiservices.app.uframe.config import (get_url_info_deployments_inv, get_uframe_deployments_info,
                                            get_events_url_base, get_deployments_url_base)
 from copy import deepcopy
@@ -313,7 +314,7 @@ class DeploymentTestCase(unittest.TestCase):
         response = self.client.get(url, headers=headers)
         self.assertEquals(response.status_code, 200)
         result = json.loads(response.data)
-        print '\n result: ', result
+        #print '\n result: ', result
         self.assertTrue('sensors' in result)
         sensors = result['sensors']
         self.assertTrue(isinstance(sensors, list))
@@ -695,7 +696,7 @@ class DeploymentTestCase(unittest.TestCase):
     def _test_uframe_create_deployment_editphase(self):
         """
         Problem:
-        There is correlation of editPhase with operational status.
+        There is correlation between editPhase and operational status.
         There does not appear to be checking on uframe side for editPhase value for assets particpating in deployment.
         It is to be determined whether the UI is expected to manage the asset editPhase prior to submission of
         create/update deployment or not.
@@ -956,6 +957,7 @@ class DeploymentTestCase(unittest.TestCase):
             modify contents,
             format for ui,
             issue ui update_deployment, expect success.
+            compare updated uframe deployment value to values returned in ui formatted update response.
         """
         debug = self.debug
         verbose = self.verbose
@@ -964,7 +966,7 @@ class DeploymentTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Get a random deployment object from inventory
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        uframe_deployment = self.get_deployment(verbose=verbose)
+        uframe_deployment = self.get_deployment(verbose=debug)
         self.assertTrue(uframe_deployment is not None)
         self.assertTrue(isinstance(uframe_deployment, dict))
         self.assertTrue('eventId' in uframe_deployment)
@@ -987,6 +989,32 @@ class DeploymentTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Copy and update deployment object selected from deployment inventory (uframe_deployment).
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if verbose: print '\n Get deployment without deployCruiseInfo or recoverCruiseInfo'
+        count = 0
+        max_count = 500
+        deploy_found_deployment = False
+        recover_found_deployment = False
+        uframe_deployment = None
+        while not deploy_found_deployment and count <= max_count:
+            uframe_deployment = self.get_deployment()
+            count += 1
+            if 'deployCruiseInfo' in uframe_deployment or 'recoverCruiseInfo' in uframe_deployment:
+                if uframe_deployment['deployCruiseInfo'] is not None:
+                    continue
+                if uframe_deployment['recoverCruiseInfo'] is not None:
+                    continue
+                break
+
+
+        if verbose: print '\n Number of attempts to locate deployment with deployCruiseInfo: %d' % count
+        self.assertTrue(uframe_deployment is not None)
+        self.assertTrue(isinstance(uframe_deployment, dict))
+        self.assertTrue('eventId' in uframe_deployment)
+        self.assertTrue(uframe_deployment['eventId'] is not None)
+        self.assertTrue(isinstance(uframe_deployment['eventId'], int))
+        deployment_id = uframe_deployment['eventId']
+        self.assertTrue(deployment_id > 0)
+
         deployment = deepcopy(uframe_deployment)
         unique_int = randint(1000,50000)
         unique_small_int = randint(1,10)
@@ -1033,18 +1061,216 @@ class DeploymentTestCase(unittest.TestCase):
             if deployment['location'] is not None:
                 print '\n debug -- deployment[location][orbitRadius]: ', deployment['location']['orbitRadius']
                 #dump_dict(deployment['location'], debug)
-
+        deployment['notes'] = 'Some updated notes here.'
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Format uframe deployment for ui, send as input to ui update_deployment.
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         ui_deployment = format_deployment_for_ui(deployment)
         if verbose:
             print '\n debug -- Update Deployment (ui_deployment) data for update: -----------------------'
-            dump_dict(ui_deployment, debug)
+            dump_dict(ui_deployment, verbose)
+
+        #print '\n debug -- Update Deployment (ui_deployment) data for update: -----------------------'
+        #dump_dict(ui_deployment, True)
         self.assertTrue(ui_deployment is not None)
         self.assertTrue(len(ui_deployment) > 0)
         url = url_for('uframe.update_deployment', event_id=deployment_id)
         response = self.client.put(url, data=json.dumps(ui_deployment), headers=headers)
+        if verbose:
+            print '\n test -- response.status_code: ', response.status_code
+            if response.data:
+                print '\n test -- response.data: ', json.loads(response.data)
+        self.assertEquals(response.status_code, 200)
+        ui_result = json.loads(response.data)
+        self.assertTrue(ui_result is not None)
+        self.assertTrue(isinstance(ui_result, dict))
+        if debug: print '\n debug -- Updated deployment: event id: %d ' % deployment_id
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Get updated uframe deployment using deployment eventId. (host:12587/events/id)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        base_url, timeout, timeout_read = get_uframe_deployments_info()
+        url = '/'.join([base_url, get_events_url_base(), str(deployment_id)])
+        response = requests.get(url, data=json.dumps(deployment), headers=headers)
+        if debug:
+            print '\n response.status_code: ', response.status_code
+            #print '\n response.content: ', json.loads(response.content)
+        self.assertEquals(response.status_code, 200)
+        updated_uframe_result = json.loads(response.content)
+        if verbose:
+            print '\n test -- tmp:'
+            dump_dict(updated_uframe_result, verbose)
+        self.assertTrue(updated_uframe_result is not None)
+        self.assertTrue(isinstance(updated_uframe_result, dict))
+        if verbose:
+            print '\n debug -- (ui format) Updated uframe deployment (updated_uframe_result) event_id: %d' % deployment_id
+            dump_dict(updated_uframe_result, verbose)
+
+        # Check result structure. Note: Expecting location attribute to populated in this test.
+        self.assertTrue('dataSource' in updated_uframe_result)
+        self.assertTrue('deployedBy' in updated_uframe_result)
+        self.assertTrue('location' in updated_uframe_result)
+        self.assertTrue('orbitRadius' in updated_uframe_result['location'])
+        self.assertTrue( updated_uframe_result['location']['orbitRadius'] is not None)
+        if debug: print '\n debug ** Updated_result location orbitRadius: ', updated_uframe_result['location']['orbitRadius']
+        self.assertTrue('versionNumber' in updated_uframe_result)
+
+        # Verify fields have been updated as expected.
+        self.assertTrue('dataSource' in deployment)
+        self.assertTrue('deployedBy' in deployment)
+        self.assertTrue('versionNumber' in deployment)
+
+        self.assertEquals(deployment['dataSource'], updated_uframe_result['dataSource'])
+        self.assertEquals(deployment['deployedBy'], updated_uframe_result['deployedBy'])
+        if verbose:
+            print '\n test -- uframe deployment dictionary:'
+            dump_dict(deployment, verbose)
+            keys = deployment.keys()
+            if keys:
+                keys.sort()
+            self.assertTrue(keys is not None)
+            self.assertTrue(len(keys) > 0)
+            print '\n test -- keys(%d): %s ' % (len(keys), keys)
+            self.assertTrue('location' in deployment)
+            self.assertTrue(deployment['location'] is not None)
+            self.assertTrue('location' in updated_uframe_result)
+            self.assertTrue(updated_uframe_result['location'] is not None)
+            print '\n test -- deployment[location][orbitRadius]: ', deployment['location']['orbitRadius']
+            print '\n test -- updated_uframe_result[location][orbitRadius]: ', updated_uframe_result['location']['orbitRadius']
+        self.assertEquals(deployment['location']['orbitRadius'], updated_uframe_result['location']['orbitRadius'])
+        self.assertEquals(deployment['versionNumber'], updated_uframe_result['versionNumber'])
+
+    def test_uframe_update_deployment_cruise_info(self):
+        """
+        Test update deployment with deployCruiseInfo and/or recoverCruiseInfo values for uniqueCruiseIdentifier..
+        Scenario:
+        Get existing deployment from uframe.
+            modify contents,
+            format for ui,
+            issue ui update_deployment, expect success.
+        """
+        debug = self.debug
+        verbose = self.verbose
+        headers = self.get_api_headers('admin', 'test')
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Get a random deployment object from inventory where deployment has value for deployCruiseInfo
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if verbose: print '\n Get deployment with deployCruiseInfo'
+        count = 0
+        max_count = 300
+        deploy_found_deployment = False
+        recover_found_deployment = False
+        uframe_deployment = None
+        while (deploy_found_deployment == recover_found_deployment) and count <= max_count:
+            uframe_deployment = self.get_deployment(verbose=debug)
+            # Verify whether or not there is a deployCruiseInfo
+            if 'deployCruiseInfo' in uframe_deployment:
+                if uframe_deployment['deployCruiseInfo'] is not None:
+                    if verbose: print '\n debug -- deploy_found_deployment: ', deploy_found_deployment
+                    deploy_found_deployment = True
+            # Verify whether or not there is a recoverCruiseInfo
+            if 'recoverCruiseInfo' in uframe_deployment:
+                if uframe_deployment['recoverCruiseInfo'] is not None:
+                    if verbose: print '\n debug -- recover_found_deployment: ', recover_found_deployment
+                    recover_found_deployment = True
+            if (deploy_found_deployment and not recover_found_deployment) or \
+               (not deploy_found_deployment and recover_found_deployment):
+                    break
+
+            count += 1
+
+        if verbose: print '\n Number of attempts to locate deployment with deployCruiseInfo: %d' % count
+        self.assertTrue(uframe_deployment is not None)
+        self.assertTrue(isinstance(uframe_deployment, dict))
+        self.assertTrue('eventId' in uframe_deployment)
+        self.assertTrue(uframe_deployment['eventId'] is not None)
+        self.assertTrue(isinstance(uframe_deployment['eventId'], int))
+        deployment_id = uframe_deployment['eventId']
+        self.assertTrue(deployment_id > 0)
+        if debug:
+            if uframe_deployment['location'] is not None:
+                print '\n *******************************************************************************'
+                print '\n debug -- Source deployment[location][depth]: ', uframe_deployment['location']['depth']
+                dump_dict(uframe_deployment['location'], debug)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Compare deployment objects - deployment from inventory versus deployment by eventId.
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Suggested:
+        # verify deployment response from inventory and by eventId; look for equivalence in fields and values.
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Copy and update deployment object selected from deployment inventory (uframe_deployment).
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        deployment = deepcopy(uframe_deployment)
+        unique_int = randint(1000,50000)
+        unique_small_int = randint(1,10)
+        unique_timestamp = str(datetime.datetime.now())
+
+        # Prepare new field values and perform field updates: dataSource, deployedBy, orbitRadius, versionNumber
+        data_source = unique_timestamp
+        deployed_by = 'Test user - ' + str(unique_int) + unique_timestamp
+        orbit_radius = unique_small_int
+        current_version_number = deployment['versionNumber']
+        """
+        if current_version_number and current_version_number is not None:
+            if isinstance(current_version_number, int):
+                current_version_number = current_version_number + unique_small_int
+        """
+
+        # Update data fields.
+        # dataSource field.
+        if deployment['dataSource'] is not None:
+            deployment['dataSource'] = deployment['dataSource'] + data_source
+        else:
+            deployment['dataSource'] = data_source
+        if debug: print '\n debug -- updated dataSource: ', deployment['dataSource']
+
+        # deployedBy field.
+        if deployment['deployedBy'] is not None:
+            deployment['deployedBy'] = deployment['deployedBy'] + deployed_by
+        else:
+            deployment['deployedBy'] = deployed_by
+        if debug: print '\n debug -- updated deployedBy: ', deployment['deployedBy']
+
+        # orbitRadius field.
+        if deployment['location'] is not None:
+            if deployment['location']['orbitRadius'] is not None:
+                if debug: print '\n updating orbitRadius, adding: ', orbit_radius
+                deployment['location']['orbitRadius'] = deployment['location']['orbitRadius'] + orbit_radius
+                if debug: print '\n updated deployment location orbitRadius: ', deployment['location']['orbitRadius']
+            else:
+                deployment['location']['orbitRadius'] = orbit_radius
+        if debug: print '\n debug -- updated location orbitRadius: ', deployment['location']['orbitRadius']
+
+        # versionNumber field.
+        #===========deployment['versionNumber'] = current_version_number
+        #bkp_deployment = deepcopy(deployment)
+        if debug:
+            if deployment['location'] is not None:
+                print '\n debug -- deployment[location][orbitRadius]: ', deployment['location']['orbitRadius']
+                #dump_dict(deployment['location'], debug)
+        deployment['notes'] = 'Some updated notes here.'
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Format uframe deployment for ui, send as input to ui update_deployment.
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        #converted_deployment = deployments_validate_required_fields_are_provided(deployment, 'update')
+        #if verbose: print '\n -- Format deployment for UI'
+        ui_deployment = format_deployment_for_ui(deployment)
+        if verbose:
+            print '\n debug -- Update Deployment (ui_deployment) data for update: -----------------------'
+            dump_dict(ui_deployment, verbose)
+
+        self.assertTrue(ui_deployment is not None)
+        self.assertTrue(len(ui_deployment) > 0)
+        url = url_for('uframe.update_deployment', event_id=deployment_id)
+        #print '\n url: ', url
+        response = self.client.put(url, data=json.dumps(ui_deployment), headers=headers)
+        if debug:
+            print '\n response.status_code: ', response.status_code
+            if response.data:
+                print '\n debug -- response.data: ', json.loads(response.data)
         self.assertEquals(response.status_code, 200)
         ui_result = json.loads(response.data)
         self.assertTrue(ui_result is not None)
@@ -1080,10 +1306,12 @@ class DeploymentTestCase(unittest.TestCase):
         # Verify fields have been updated as expected.
         self.assertTrue('dataSource' in deployment)
         self.assertTrue('deployedBy' in deployment)
+        """
         self.assertTrue('location' in deployment)
         self.assertTrue('orbitRadius' in deployment['location'])
         self.assertTrue( deployment['location']['orbitRadius'] is not None)
         if debug: print '\n debug ** deployment location orbitRadius: ', deployment['location']['orbitRadius']
+        """
         self.assertTrue('versionNumber' in deployment)
 
         self.assertEquals(deployment['dataSource'], updated_uframe_result['dataSource'])
@@ -1149,37 +1377,37 @@ class DeploymentTestCase(unittest.TestCase):
         sensor_index = randint(0, len(sensor_list) - 1)
         sensor = sensor_list[sensor_index]
         if debug: print '\n debug -- Working with sensor: ', sensor
-        if verbose:
+        if debug:
             print '\n Working with subsite/node/sensor: %s/%s/%s' % (subsite, node, sensor)
             print '\n Get deployments for subsite/node/sensor: %s/%s/%s' % (subsite, node, sensor)
         url = '/'.join([base_url, subsite, node, sensor])
-        if verbose: print '\n Get sensor list ----- url: ', url
+        if debug: print '\n Get sensor list ----- url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read))
         self.assertEquals(response.status_code, 200)
         deployments_list = json.loads(response.content)
         self.assertTrue(deployments_list is not None)
         self.assertTrue(isinstance(deployments_list, list))
         self.assertTrue(len(deployments_list) > 0)
-        if verbose: print '\n Have deployments list: ', deployments_list
+        if debug: print '\n Have deployments list: ', deployments_list
         if len(deployments_list) > 1:
             deployment_index = randint(0, len(deployments_list)-1)
             deployment_number = deployments_list[deployment_index]
         else:
             deployment_number = deployments_list[0]
-        if verbose:
+        if debug:
             print '\n Get deployment for subsite/node/sensor: %s/%s/%s deployment number %d ' % \
                           (subsite, node, sensor, deployment_number)
         url = '/'.join([base_url, subsite, node, sensor, str(deployment_number)])
-        if verbose: print '\n Get actual deployment ----- url: ', url
+        if debug: print '\n Get actual deployment ----- url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read))
         self.assertEquals(response.status_code, 200)
         deployment_list = json.loads(response.content)
         self.assertTrue(deployment_list is not None)
         self.assertTrue(isinstance(deployment_list, list))
         self.assertTrue(len(deployment_list) > 0)
-        self.assertEquals(len(deployment_list), 1)
+        #self.assertEquals(len(deployment_list), 1)
         deployment = deployment_list[0]
-        if verbose:
+        if debug:
             print '\n Deployment to be processed: subsite/node/sensor: %s/%s/%s deployment number %d ' % \
                           (subsite, node, sensor, deployment_number)
             dump_dict(deployment, debug)
