@@ -17,7 +17,6 @@ CACHE_TIMEOUT = 172800
 def _get_rd_assets():
     """ Get 'rd_assets', if not available get and set cache; return 'rd_assets' dictionary.
     """
-    debug = True
     rd_assets = {}
     try:
         # Get 'rd_assets' if cached
@@ -26,7 +25,6 @@ def _get_rd_assets():
             rd_assets = rd_assets_cached
         # Get 'rd_assets' - compile them
         else:
-            #if debug: print '\n rd_assets not cached, compile rd_assets'
             try:
                 rd_assets = _compile_rd_assets()
             except Exception as err:

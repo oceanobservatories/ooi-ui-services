@@ -157,6 +157,7 @@ def get_asset_events(id):
 def create_asset():
     """ Create asset.
     """
+    from ooiservices.app.uframe.common_tools import dump_dict
     try:
         if not request.data:
             message = 'No data provided to create an asset.'
@@ -177,6 +178,7 @@ def create_asset():
 def update_asset(id):
     """ Update asset.
     """
+    from ooiservices.app.uframe.common_tools import dump_dict
     try:
         if not request.data:
             message = 'No data provided to update asset %d.' % id

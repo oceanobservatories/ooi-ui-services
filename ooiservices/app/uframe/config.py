@@ -250,6 +250,19 @@ def get_url_info_deployments_inv():
         current_app.logger.info(message)
         raise Exception(message)
 
+
+def deployment_inv_load():
+    use_deployments_on_load = False
+    try:
+        tmp = current_app.config['DEPLOYMENTS_INV_LOAD']
+        if tmp == True:
+            use_deployments_on_load = True
+        return use_deployments_on_load
+    except:
+        message = 'Unable to obtain DEPLOYMENT_INV_LOAD using current config file variables.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Events
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

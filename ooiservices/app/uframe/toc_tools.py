@@ -6,7 +6,9 @@ TOC: Supporting functions.
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
-from ooiservices.app.uframe.config import (get_uframe_toc_url, get_uframe_assets_info, get_deployments_url_base)
+from ooiservices.app.uframe.config import (get_uframe_toc_url, get_uframe_assets_info,
+                                           get_deployments_url_base, deployment_inv_load)
+from ooiservices.app.uframe.uframe_tools import compile_deployment_rds
 import json
 import requests
 import requests.exceptions
@@ -138,6 +140,7 @@ def _compile_asset_rds():
           . . .
         }
     """
+    debug = False
     result = {}
     rds_wo_assets = []
     try:
@@ -165,6 +168,20 @@ def _compile_asset_rds():
         if not reference_designators:
             message = 'No reference_designators identified when processing toc information.'
             raise Exception(message)
+
+        #-----------------------------------
+        if deployment_inv_load():
+            # Add deployment reference designators to total reference designators processed.
+            if debug: print '\n\tNumber of reference designators from toc: ', len(reference_designators)
+            deployment_rds = compile_deployment_rds()
+            if debug: print '\n\tNumber of reference designators from deployments: ', len(deployment_rds)
+            if deployment_rds and deployment_rds is not None:
+                for rd in deployment_rds:
+                    if rd not in reference_designators:
+                        reference_designators.append(rd)
+            if debug:
+                print '\n\tNumber of reference designators (toc and deployments): ', len(reference_designators)
+        #-----------------------------------
 
         if reference_designators and toc_only:
 
@@ -212,14 +229,6 @@ def _compile_asset_rds():
 
         return result, rds_wo_assets
 
-    except ConnectionError:
-        message = 'ConnectionError for _compile_asset_rds.'
-        current_app.logger.info(message)
-        return {}, []
-    except Timeout:
-        message = 'Timeout for _compile_asset_rds.'
-        current_app.logger.info(message)
-        return {}, []
     except Exception as err:
         message = err.message
         current_app.logger.info(message)

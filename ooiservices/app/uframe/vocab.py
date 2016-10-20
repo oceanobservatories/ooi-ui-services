@@ -12,7 +12,6 @@ from requests.exceptions import (ConnectionError, Timeout)
 from ooiservices.app.models import (Stream, StreamParameter)
 from ooiservices.app.main.errors import bad_request
 from ooiservices.app.uframe.config import get_uframe_vocab_info
-
 import requests
 import requests.exceptions
 import requests.adapters

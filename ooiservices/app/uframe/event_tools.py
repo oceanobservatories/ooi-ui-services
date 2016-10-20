@@ -7,7 +7,7 @@ __author__ = 'Edna Donoughe'
 from flask import current_app
 from ooiservices.app import cache
 from ooiservices.app.uframe.common_tools import (get_event_types, get_event_types_by_rd, get_event_types_by_asset_type,
-                                                 is_instrument)
+                                                 is_instrument, dump_dict)
 from ooiservices.app.uframe.events_validate_fields import get_rd_from_integrationInto
 from ooiservices.app.uframe.asset_cache_tools import get_rd_from_rd_assets
 from ooiservices.app.uframe.uframe_tools import (uframe_get_asset_by_id, get_uframe_events_by_uid, _get_id_by_uid,
@@ -128,10 +128,12 @@ def _get_events_by_id(id, _type):
 def get_and_process_events(id, uid, _type, asset_type):
     """ Get and process events for an asset.
     """
+    debug = False
     events = {}
     types = ''
     types_list = []
     try:
+        if debug: print '\n debug -- get_and_process_events entered...'
         # Determine if type parameter provided, if so process
         if _type:
             types, types_list = get_event_query_types(_type)
@@ -156,6 +158,7 @@ def get_and_process_events(id, uid, _type, asset_type):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Get events, filtering by types provided. Process results
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if debug: print '\n debug -- Step 1...'
         results = get_uframe_events_by_uid(uid, types)
         if results is None:
             # Unknown uid provided (204)
@@ -190,6 +193,7 @@ def get_and_process_events(id, uid, _type, asset_type):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # For asset id, get deployments and calibration (calibration only if is_instrument(rd))
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if debug: print '\n debug -- Step 2...'
         events['DEPLOYMENT'] = []
         if rd:
             if is_instrument(rd):
@@ -199,8 +203,10 @@ def get_and_process_events(id, uid, _type, asset_type):
             if types_list and ('DEPLOYMENT' not in types_list):
                 add_deployments = False
             if add_deployments:
+                if debug: print '\n debug -- Step 3...'
                 # Get deployment events
                 deployment_events = get_deployment_events(rd, id, uid)
+                if debug: print '\n debug -- Step 4...'
                 if deployment_events:
                     events['DEPLOYMENT'] = deployment_events
 
@@ -229,7 +235,6 @@ def get_and_process_events(id, uid, _type, asset_type):
                         events['CALIBRATION_DATA'] = calibration_events
 
         return events
-
     except Exception as err:
         message = str(err)
         raise Exception(message)
@@ -246,7 +251,6 @@ def get_rd_by_asset_id(id):
             if id in asset_rds:
                 rd = asset_rds[id]
         return rd
-
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
@@ -355,9 +359,11 @@ def get_deployments_list(data):
 def get_deployment_maps(rd, id, uid):
     """ Get list of all deployment events associated with this asset id.
     """
+    debug = False
     events = []
     maps = {}
     try:
+        if debug: print '\n debug -- Entered get_deployment_maps...'
         # Get asset dict.
         assets_dict = cache.get('assets_dict')
         if not assets_dict:
@@ -378,16 +384,7 @@ def get_deployment_maps(rd, id, uid):
             return events
 
         # Determine if deployment events are available for this reference designator.
-        '''
-        rd_assets = cache.get('rd_assets')
-        if not rd_assets:
-            return events
-        if rd not in rd_assets:
-            return events
-
         # Get all deployment maps for reference designator
-        deployment_map = rd_assets[rd]
-        '''
         deployment_map = get_rd_from_rd_assets(rd)
         if deployment_map is None:
             return events
@@ -400,7 +397,9 @@ def get_deployment_maps(rd, id, uid):
         # Process maps into list of deployment events
         events = []
         if maps:
+            if debug: print '\n debug -- Step 1...'
             events = convert_maps_to_deployment_events(maps, uid)
+            if debug: print '\n debug -- Step 2...'
         return events
 
     except Exception as err:
@@ -412,46 +411,73 @@ def get_deployment_maps(rd, id, uid):
 def convert_maps_to_deployment_events(maps, uid):
     """ Generate list of deployment events, with most recent first (reverse order).
     """
+    debug = False
     events = []
+    if debug: print '\n debug -- Entered convert_maps_to_deployment_events...'
     if not maps:
         return events
     # depth should be None and location [] if not provided (i.e. asset location attribute was None)
-    events_template = {'deployment_number': 0,
-                       'depth': 0.0,
+    # Removed notes - 'notes': '',
+    # Remove location - 'location': [0.0, 0.0],
+    events_template = {'deployment_number': None,
+                       'depth': None,
                        'eventStartTime': None,
                        'eventStopTime': None,
                        'eventType': 'DEPLOYMENT',
-                       'location': [0.0, 0.0],
-                       'notes': '',
-                       'assetUid': uid}
+                       'assetUid': uid,
+                       'eventId': None,
+                       'latitude': None,
+                       'longitude': None,
+                       'orbitRadius': None,
+                       'versionNumber': None
+                        }
     ordered_keys = (maps.keys())
     ordered_keys.sort(reverse=True)
     try:
         for k in ordered_keys:
             v = maps[k]
+            if debug:
+                print '\n debug -- deployment map:'
+                dump_dict(v, debug)
             event = events_template.copy()
             event['deployment_number'] = k
             event['eventStartTime'] = v['beginDT']
             event['eventStopTime'] = v['endDT']
             event['eventId'] = v['eventId']
-            #event['lastModifiedTimestamp'] = v['lastModifiedTimestamp']
-            if v['location'] is not None:
-                if 'longitude' in v['location']:
-                    longitude = 0.0
-                    if v['location']['longitude']:
-                        longitude = v['location']['longitude']
-                    latitude = 0.0
-                    if v['location']['latitude']:
-                        latitude = v['location']['latitude']
-                    #event['location'] = [v['location']['longitude'], v['location']['latitude']]
-                    event['location'] = [longitude, latitude]
-                if 'depth' in v['location']:
-                    event['depth'] = v['location']['depth']
-
+            if 'versionNumber' in v:
+                event['versionNumber'] = v['versionNumber']
+            if 'location' not in v:
+                if debug:
+                    print '\n debug -- [convert_maps_to_deployment_events] '
+                    print '\n debug -- no location attribute for event id: ', v['eventId']
             else:
-                event['depth'] = None
-                #event['location'] = None
-            event['notes'] = ''                             # remove
+                if v['location'] and v['location'] is not None:
+                    if 'latitude' in v['location']:
+                        event['latitude'] = v['location']['latitude']
+                    if 'longitude' in v['location']:
+                        event['longitude'] = v['location']['longitude']
+                    if 'depth' in v['location']:
+                        event['depth'] = v['location']['depth']
+                    if 'orbitRadius' in v['location']:
+                        event['orbitRadius'] = v['location']['orbitRadius']
+                    """
+                    if 'longitude' in v['location']:
+                        longitude = 0.0
+                        if v['location']['longitude']:
+                            longitude = v['location']['longitude']
+                        latitude = 0.0
+                        if v['location']['latitude']:
+                            latitude = v['location']['latitude']
+                        #event['location'] = [v['location']['longitude'], v['location']['latitude']]
+                        event['location'] = [longitude, latitude]
+
+                    if 'depth' in v['location']:
+                        event['depth'] = v['location']['depth']
+                else:
+                    event['depth'] = None
+                    #event['location'] = None
+                event['notes'] = ''                             # remove
+                """
             events.append(event)
         return events
 

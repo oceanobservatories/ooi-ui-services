@@ -7,6 +7,7 @@ __author__ = 'Edna Donoughe'
 
 from ooiservices.app import cache
 from ooiservices.app.uframe.uframe_tools import _get_id_by_uid
+from ooiservices.app.uframe.common_tools import dump_dict
 
 CACHE_TIMEOUT = 172800
 
@@ -52,9 +53,22 @@ def deployment_cache_refresh(id, deployment, action):
     """
     debug = False
     try:
-        if debug: print '\n debug -- Entered deployment_cache_refresh...action: ', action
+        if debug:
+            print '\n debug---------------------------------------------------------------------'
+            print '\n debug -- Entered deployment_cache_refresh...action: ', action
         mooring_id, node_id, sensor_id, eventId, rd, deploymentNumber, location, startTime, stopTime = \
             get_deployment_cache_info(deployment)
+
+        if debug:
+            print '\n debug -- mooring_id: ', mooring_id
+            print '\n debug -- node_id: ', node_id
+            print '\n debug -- eventId: ', eventId
+            print '\n debug -- rd: ', rd
+            print '\n debug -- deploymentNumber: ', deploymentNumber
+            print '\n debug -- location: ', location
+            print '\n debug -- startTime: ', startTime
+            print '\n debug -- stopTime: ', stopTime
+            print '\n debug -- action: ', action
 
         # Add deployment to deployment cache ('rd_assets')
         deployment_cache = cache.get('rd_assets')
@@ -64,16 +78,18 @@ def deployment_cache_refresh(id, deployment, action):
 
                 # Determine if rd in deployments dictionary.
                 if rd in deployments_dict:
-                    if debug: print '\n debug -- the rd: %s is already in the deployments_dict...' % rd
+                    if debug:
+                        print '\n\t---------------------'
+                        print '\n\t debug -- the rd: %s is already in the deployments_dict...' % rd
                     work = deployments_dict[rd]
 
                     # If deployment number in dictionary, verify asset ids are represented.
                     if deploymentNumber in work:
-                        if debug: print '\n debug -- deploymentNumber is already in work...'
+                        if debug: print '\n\t Branch 1. debug -- deploymentNumber is already in work...'
                         #------------
                         # Update deployment asset ids with mooring, node and sensor id information
                         # Mooring
-                        if debug: print '\n debug -- processing mooring_id...'
+                        if debug: print '\n\t debug -- processing mooring_id...'
                         if mooring_id is not None:
                             target_asset_type = 'mooring'
                             if mooring_id not in work[deploymentNumber]['asset_ids']:
@@ -90,9 +106,11 @@ def deployment_cache_refresh(id, deployment, action):
                                 work['asset_ids'].append(mooring_id)
                             if mooring_id not in work['asset_ids_by_type'][target_asset_type]:
                                 work['asset_ids_by_type'][target_asset_type].append(mooring_id)
-
+                        else:
+                            if debug:
+                                print '\n\t mooring_id is None'
                         # Node
-                        if debug: print '\n debug -- processing node_id...'
+                        if debug: print '\n\t debug -- processing node_id...'
                         if node_id is not None:
                             target_asset_type = 'node'
                             if node_id not in work[deploymentNumber]['asset_ids']:
@@ -109,9 +127,12 @@ def deployment_cache_refresh(id, deployment, action):
                                 work['asset_ids'].append(node_id)
                             if node_id not in work['asset_ids_by_type'][target_asset_type]:
                                 work['asset_ids_by_type'][target_asset_type].append(node_id)
+                        else:
+                            if debug:
+                                print '\n\t node_id is None'
 
                         # Sensor
-                        if debug: print '\n debug -- processing sensor_id...'
+                        if debug: print '\n\t debug -- processing sensor_id...'
                         if sensor_id is not None:
                             target_asset_type = 'sensor'
                             if sensor_id not in work[deploymentNumber]['asset_ids']:
@@ -128,13 +149,15 @@ def deployment_cache_refresh(id, deployment, action):
                                 work['asset_ids'].append(sensor_id)
                             if sensor_id not in work['asset_ids_by_type'][target_asset_type]:
                                 work['asset_ids_by_type'][target_asset_type].append(sensor_id)
+                        else:
+                            if debug:
+                                print '\n\t sensor_id is None'
 
-                        if debug: print '\n debug -- processing beginDT block...'
+                        if debug: print '\n debug\t -- processing beginDT block...'
                         work[deploymentNumber]['beginDT'] = startTime
                         work[deploymentNumber]['endDT'] = stopTime
                         work[deploymentNumber]['eventId'] = eventId
                         work[deploymentNumber]['location'] = location
-                        #work[deploymentNumber]['tense'] = 'UNKNOWN'
 
                         # deploymentNumber in work, therefore should be in work[deployments, verify and update is not.
                         if deploymentNumber not in work['deployments']:
@@ -142,21 +165,16 @@ def deployment_cache_refresh(id, deployment, action):
                             work['deployments'].append(deploymentNumber)
                         if work['deployments']:
                             work['deployments'].sort(reverse=True)
-                            #current_deployment_number = work['deployments'][0]
 
                         #------------
-                            """
-                            # Set all deployment cumulative tense values to 'PAST', then update current to 'PRESENT'
-                            for number in work['deployments']:
-                                work[number]['cumulative_tense'] = 'PAST'
-                            work[current_deployment_number]['cumulative_tense'] = 'PRESENT'
-                            """
                         else:
                             work['current_deployment'] = deploymentNumber
-                            #work[deploymentNumber]['cumulative_tense'] = 'PRESENT'
+
+                        # Update deployment entry for rd.
+                        deployments_dict[rd] = work
 
                     else:
-                        if debug: print '\n debug -- deploymentNumber NOT in work...'
+                        if debug: print '\n Branch 2. debug -- deploymentNumber NOT in work...'
                         new_deployment = {}
                         new_deployment['beginDT'] = startTime
                         new_deployment['endDT'] = stopTime
@@ -199,17 +217,15 @@ def deployment_cache_refresh(id, deployment, action):
                         deployments_list.sort(reverse=True)
                         current_deployment_number = deployments_list[0]
                         work['current_deployment'] = current_deployment_number
-                        """
-                        # Set all deployment cumulative tense values to 'PAST', then update current to 'PRESENT'
-                        for number in work['deployments']:
-                            work[number]['cumulative_tense'] = 'PAST'
-                        work[current_deployment_number]['cumulative_tense'] = 'PRESENT'
-                        """
+
                     #---------
+                        deployments_dict[rd] = work
 
                 # Build dictionary for rd, then add to rd_assets
                 else:
-                    if debug: print '\n debug -- Build dictionary for rd, then add to rd_assets...'
+                    if debug:
+                        print '\n\t---------------------rd NOT in rd_assets'
+                        print '\n Branch 3. debug -- Build dictionary for rd, then add to rd_assets...'
                     work = {}
                     work['current_deployment'] = deploymentNumber
                     work['deployments'] = [deploymentNumber]
@@ -219,8 +235,6 @@ def deployment_cache_refresh(id, deployment, action):
                     work[deploymentNumber]['eventId'] = eventId
                     work[deploymentNumber]['location'] = location
                     work[deploymentNumber]['current_deployment'] = deploymentNumber
-                    #work[deploymentNumber]['tense'] = 'UNKNOWN'
-                    #work[deploymentNumber]['cumulative_tense'] = 'PRESENT'
                     work[deploymentNumber]['asset_ids_by_type'] = {'mooring': [], 'node': [], 'sensor': []}
                     work[deploymentNumber]['asset_ids'] = []
                     work['asset_ids'] = []
@@ -247,6 +261,9 @@ def deployment_cache_refresh(id, deployment, action):
 
                     deployments_dict[rd] = work
 
+                if debug:
+                    print '\n Updated deployment[rd]: '
+                    dump_dict(deployments_dict[rd], debug)
                 cache.set('rd_assets', deployments_dict, timeout=CACHE_TIMEOUT)
 
         return

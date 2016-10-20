@@ -6,12 +6,12 @@ Asset Management - Deployments: supporting functions.
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
-from ooiservices.app.uframe.config import (get_deployments_url_base, get_uframe_deployments_info)
+from ooiservices.app.uframe.config import (get_deployments_url_base, get_uframe_deployments_info, deployment_inv_load)
 from ooiservices.app.uframe.vocab import (get_vocab_dict_by_rd, get_rs_array_name_by_rd, get_display_name_by_rd)
 from ooiservices.app.uframe.toc_tools import (get_toc_reference_designators)
 from ooiservices.app.uframe.common_tools import (is_instrument, is_platform, is_mooring,get_location_fields, scrub_list)
-from ooiservices.app.uframe.uframe_tools import (uframe_get_deployment_inv,
-                                                 uframe_get_deployment_inv_nodes, uframe_get_deployment_inv_sensors)
+from ooiservices.app.uframe.uframe_tools import (uframe_get_deployment_inv, uframe_get_deployment_inv_nodes,
+                                                 uframe_get_deployment_inv_sensors, compile_deployment_rds)
 import requests
 import requests.exceptions
 from requests.exceptions import (ConnectionError, Timeout)
@@ -139,6 +139,7 @@ def _compile_rd_assets():
     This supports all reference designators referenced in /sensor/inv/toc structure; On error, log and raise exception.
     Note: All reference designators are determined from toc structure and not just what /sensor/inv/toc provides.
     """
+    debug = False
     time = True
     result = {}
     try:
@@ -147,6 +148,18 @@ def _compile_rd_assets():
             print '\n\t-- Compile  rd_assets '
             print '\t\t-- Start time: ', start
         reference_designators, toc_only, difference  = get_toc_reference_designators()
+        #-----------------------------------
+        if deployment_inv_load():
+            # Add deployment reference designators to total reference designators processed.
+            if debug: print '\t\t\tNo. of reference designators from toc: ', len(reference_designators)
+            deployment_rds = compile_deployment_rds()
+            if debug: print '\t\t\tNo. of reference designators from deployments: ', len(deployment_rds)
+            if deployment_rds and deployment_rds is not None:
+                for rd in deployment_rds:
+                    if rd not in reference_designators:
+                        reference_designators.append(rd)
+            if debug: print '\t\t\tNo. of reference designators (toc and deployments): ', len(reference_designators)
+        #-----------------------------------
         if reference_designators and toc_only:
             result = get_rd_assets(reference_designators)
 
@@ -170,7 +183,7 @@ def get_rd_assets(reference_designators):
     try:
         for rd in reference_designators:
             try:
-                if debug: print '\n debug ====================================================== rd: ', rd
+                #if debug: print '\n debug ====================================================== rd: ', rd
                 # If reference designator for instrument, get dictionary map to add to result
                 if (is_instrument(rd)):
                     if rd not in result:
@@ -462,15 +475,13 @@ def get_mooring_deployments_list(rd):
             if 'eventId' in item:
                 eventId = item['eventId']
 
-            """
-            tense = None
-            if 'tense' in item:
-                tense = item['tense']
-            """
+            # Added 2016-10-18
+            versionNumber = None
+            if 'versionNumber' in item:
+                versionNumber = item['versionNumber']
 
             asset_id = None
             if 'mooring' in item:
-
                 # Get 'mooring' component from item, check it empty or None.
                 _item = item['mooring']
                 if not _item or _item is None:
@@ -483,7 +494,6 @@ def get_mooring_deployments_list(rd):
                         asset_id = _item['assetId']
                         if asset_id not in all_asset_ids:
                             all_asset_ids.append(asset_id)
-
                 if deployment_number:
                     if asset_id:
                         if asset_id not in deployment_asset_ids:
@@ -500,7 +510,7 @@ def get_mooring_deployments_list(rd):
                     info[deployment_number]['beginDT'] = beginDT
                     info[deployment_number]['endDT'] = endDT
                     info[deployment_number]['eventId'] = eventId
-                    #info[deployment_number]['tense'] = tense
+                    info[deployment_number]['versionNumber'] = versionNumber        # Added 2016-10-18
 
                     if deployment_asset_ids:
                         deployment_asset_ids.sort()
@@ -519,24 +529,14 @@ def get_mooring_deployments_list(rd):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Get current deployment number, if there are deployment(s).
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if not deployments_list:
-            message = 'Mooring %s does not have a deployments_list!' % rd
-            print '\n debug -- [get_mooring_deployments_list] (list) result: ', result
-            current_app.logger.info(message)
+        if debug:
+            if not deployments_list:
+                message = 'Mooring %s does not have a deployments_list!' % rd
+                print '\n debug -- [get_mooring_deployments_list] (list) result: ', result
+                current_app.logger.info(message)
 
         if deployments_list:
             deployments_list.sort(reverse=True)
-            current_deployment_number = deployments_list[0]
-
-            """
-            # Set tense to Past if deployment number not equal to current_deployment_number
-            # Get 'cumulative_tense' for each deployment
-            for num in deployments_list:
-                tense = 'PAST'
-                if num == current_deployment_number:
-                    tense = 'PRESENT'
-                results[num]['cumulative_tense'] = tense
-            """
 
         if debug:
             print '\n debug -- [get_mooring_deployments_list] (list) result: ', result
@@ -604,11 +604,10 @@ def get_platform_deployments_list(rd):
             if 'eventId' in item:
                 eventId = item['eventId']
 
-            """
-            tense = None
-            if 'tense' in item:
-                tense = item['tense']
-            """
+            # Added 2016-10-18
+            versionNumber = None
+            if 'versionNumber' in item:
+                versionNumber = item['versionNumber']
 
             asset_id = None
             if 'node' in item:
@@ -647,7 +646,7 @@ def get_platform_deployments_list(rd):
                     info[deployment_number]['beginDT'] = beginDT
                     info[deployment_number]['endDT'] = endDT
                     info[deployment_number]['eventId'] = eventId
-                    #info[deployment_number]['tense'] = tense
+                    info[deployment_number]['versionNumber'] = versionNumber    # Added 2016-10-18
                     if deployment_asset_ids:
                         deployment_asset_ids.sort()
                     info[deployment_number]['asset_ids'] = deployment_asset_ids
@@ -661,24 +660,6 @@ def get_platform_deployments_list(rd):
         results['deployments'] = deployments_list
         results['asset_ids'] = all_asset_ids
         results['asset_ids_by_type'] = {'sensor': [], 'mooring': [], 'node': all_asset_ids}
-
-        """
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Get current deployment number, if there are deployment(s).
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if deployments_list:
-            deployments_list.sort(reverse=True)
-            current_deployment_number = deployments_list[0]
-
-            # Set tense to Past if deployment number not equal to current_deployment_number
-            # Get 'tense' for each deployment
-            for num in deployments_list:
-                tense = 'PAST'
-                if num == current_deployment_number:
-                    tense = 'PRESENT'
-                results[num]['cumulative_tense'] = tense
-        """
-
         return result, results
 
     except Exception as err:
@@ -953,6 +934,7 @@ def get_deployment_asset_ids(deployment):
 def get_instrument_deployment_work(rd):
     """ Create instrument deployment information breakout. Return dict or empty dict. Log exceptions.
     """
+    test = False
     debug = False
     work = {}
     try:
@@ -997,17 +979,30 @@ def get_instrument_deployment_work(rd):
 
                 # Get deployment number, create container for deployment number
                 deployment_number = deployment['deploymentNumber']
+
                 #if debug: print '\n debug -- processing deployment %d' % deployment_number
+                if test:
+                    if deployment_number in work:
+                        versionNumber = deployment['versionNumber']
+                        print '\n test/debug -- (current) rd %s deployment number %d' % (rd, deployment_number)
+                        print '\n test/debug -- (current) version %d' % versionNumber
+                        print '\n test/debug -- (previous) version %d' % work[deployment_number]['versionNumber']
+                        if versionNumber < work[deployment_number]['versionNumber']:
+                            print '\n debug -- Skip version number %d, use previous version number %d' % \
+                                  (versionNumber, work[deployment_number]['versionNumber'])
+                        else:
+                            print '\n Use CURRENT version number %d instead of previous version %d' % \
+                                    (versionNumber, work[deployment_number]['versionNumber'])
                 work[deployment_number] = {}
 
                 # Get deployment beginDT, endDT and eventId
                 work[deployment_number]['beginDT'] = deployment['eventStartTime']
                 work[deployment_number]['endDT'] = deployment['eventStopTime']
                 work[deployment_number]['eventId'] = deployment['eventId']
+                work[deployment_number]['versionNumber'] = deployment['versionNumber'] # Added 2016-10-18
                 work[deployment_number]['asset_ids'] = []
 
                 # Get location for this deployment
-                location = deployment['location']
                 work[deployment_number]['location'] = deployment['location']
 
                 # Get asset ids for this deployment - all and by type dict
@@ -1026,6 +1021,7 @@ def get_instrument_deployment_work(rd):
             all_sensor_ids = []
             all_mooring_ids = []
             all_node_ids = []
+
             for index in deployments_list:
 
                 # Process the deployment work info

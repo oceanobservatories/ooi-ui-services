@@ -9,6 +9,7 @@ from ooiservices.app.uframe.common_tools import convert_float_field
 def convert_ui_data(data, required_fields, field_types):
     """ Convert string values to target type for field. Dictionary processing performed by caller.
     """
+    debug = False
     converted_data = {}
     try:
         # Verify required fields are present in the data and each field has input data of correct type.
@@ -185,38 +186,45 @@ def convert_ui_data(data, required_fields, field_types):
                         if isinstance(data[field], list):
                             tmp = data[field]
                         else:
-                            tmp = data[field].strip()
-                            if len(tmp) < 2:
-                                message = 'Invalid input value (%s) for list.' % data[field]
-                                raise Exception(message)
-                            if len(tmp) == 2:
-                                if '[' in data[field] and ']' in data[field]:
-                                    tmp = []
+                            if debug:
+                                print '\n debug -- processing intlist...'
+                            if not data[field] or len(data[field]) == 0:
+                                if debug: print '\n debug -- not data[field] or len() == 0'
+                                tmp = []
                             else:
-                                if '[' in data[field]:
-                                    tmp = tmp.replace('[', '')
-                                if ']' in data[field]:
-                                    tmp = tmp.replace(']', '')
-                                tmp = tmp.strip()
-                                if ',' not in tmp:
-                                    if field_types[field] == 'floatlist':
-                                        tmp = [float(tmp)]
-                                    else:
-                                        tmp = [int(tmp)]
-                                elif ',' in tmp:
-                                    subs = tmp.split(',')
-                                    newtmp = []
-                                    for sub in subs:
-                                        sub = sub.strip()
-                                        if sub:
-                                            if field_types[field] == 'floatlist':
-                                                val = float(sub)
-                                                newtmp.append(val)
-                                            else:
-                                                val = int(sub)
-                                                newtmp.append(val)
 
-                                    tmp = newtmp
+                                tmp = data[field].strip()
+                                if len(tmp) < 2:
+                                    message = 'Invalid input value (%s) for list.' % data[field]
+                                    raise Exception(message)
+                                if len(tmp) == 2:
+                                    if '[' in data[field] and ']' in data[field]:
+                                        tmp = []
+                                else:
+                                    if '[' in data[field]:
+                                        tmp = tmp.replace('[', '')
+                                    if ']' in data[field]:
+                                        tmp = tmp.replace(']', '')
+                                    tmp = tmp.strip()
+                                    if ',' not in tmp:
+                                        if field_types[field] == 'floatlist':
+                                            tmp = [float(tmp)]
+                                        else:
+                                            tmp = [int(tmp)]
+                                    elif ',' in tmp:
+                                        subs = tmp.split(',')
+                                        newtmp = []
+                                        for sub in subs:
+                                            sub = sub.strip()
+                                            if sub:
+                                                if field_types[field] == 'floatlist':
+                                                    val = float(sub)
+                                                    newtmp.append(val)
+                                                else:
+                                                    val = int(sub)
+                                                    newtmp.append(val)
+
+                                        tmp = newtmp
 
                     except:
                         message = 'Required field \'%s\' provided, but type conversion error (not a %s).' % \

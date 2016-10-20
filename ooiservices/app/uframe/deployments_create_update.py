@@ -79,6 +79,22 @@ def _create_deployment(data):
             print '\n debug -- create deployment (data received from uframe): '
             dump_dict(new_uframe_deployment, debug)
 
+        # Get reference designator from request data.
+        rd = None
+        if 'rd' in data:
+            rd = data['rd']
+        if not rd or rd is None:
+            message = 'Unable to refresh assets associated with deployment, no reference designator in request data.'
+            raise Exception(message)
+
+        # Get deployment number from newly created uframe deployment.
+        deploymentNumber = None
+        if 'deploymentNumber' in new_uframe_deployment:
+            deploymentNumber = new_uframe_deployment['deploymentNumber']
+        if not deploymentNumber or deploymentNumber is None:
+            message = 'Unable to refresh assets associated with deployment, no deployment number.'
+            raise Exception(message)
+
         # Format uframe deployment data for UI.
         ui_deployment = format_deployment_for_ui(new_uframe_deployment)
         if not ui_deployment or ui_deployment is None:
@@ -96,22 +112,29 @@ def _create_deployment(data):
         if 'location' in deployment_store:
             del deployment_store['location']
 
-        # Refresh deployment cache.
+        # Refresh deployment cache for newly created deployment.
         refresh_deployment_cache(id, deployment_store, action)
 
-        # Refresh deployment information for assets associated with deployment.
-        if 'mooring_uid' in ui_deployment:
-            mooring_uid = ui_deployment['mooring_uid']
-            if mooring_uid and mooring_uid is not None:
-                refresh_asset_deployment(mooring_uid)
-        if 'node_uid' in ui_deployment:
-            node_uid = ui_deployment['node_uid']
-            if node_uid and node_uid is not None:
-                refresh_asset_deployment(node_uid)
-        if 'sensor_uid' in ui_deployment:
-            sensor_uid = ui_deployment['sensor_uid']
-            if sensor_uid and sensor_uid is not None:
-                refresh_asset_deployment(sensor_uid)
+        # Get reference designator from request data.
+        rd = None
+        if 'rd' in data:
+            rd = data['rd']
+        if not rd or rd is None:
+            message = 'Unable to refresh assets associated with deployment, no reference designator in request data.'
+            raise Exception(message)
+
+        """
+        deploymentNumber = None
+        if 'deploymentNumber' in data:
+            deploymentNumber = data['deploymentNumber']
+        if not deploymentNumber or deploymentNumber is None:
+            message = 'Unable to refresh assets associated with deployment, no deployment number in request data.'
+            raise Exception(message)
+        """
+
+        # update deployment assets. Any asset associated with this deployment will have cache updated here.
+        update_deployment_assets(ui_deployment, rd, deploymentNumber)
+
         # return updated deployment
         return ui_deployment
     except Exception as err:
@@ -191,7 +214,7 @@ def _update_deployment(id, data):
         # Format modified deployment from uframe for UI.
         ui_deployment = format_deployment_for_ui(modified_deployment)
         if debug:
-            print '\n debug -- Update deployment -- ui_deployment:'
+            print '\n debug -- Updated deployment -- ui_deployment:'
             dump_dict(ui_deployment, debug)
         # Minimize data for cache.
         deployment_store = deepcopy(ui_deployment)
@@ -200,24 +223,75 @@ def _update_deployment(id, data):
         if 'location' in deployment_store:
             del deployment_store['location']
 
+        # Do cache refresh for deployment
         refresh_deployment_cache(id, deployment_store, action)
+        if debug:
+            print '\n debug -- Updated deployment -- ui_deployment (after refresh_deployment_cache):'
+            dump_dict(ui_deployment, debug)
+        # Get reference designator from request data.
+        rd = None
+        if 'rd' in data:
+            rd = data['rd']
+        if not rd or rd is None:
+            message = 'Unable to refresh assets associated with deployment, no reference designator in request data.'
+            raise Exception(message)
 
-        # Refresh deployment information for assets associated with deployment.
-        if 'mooring_uid' in ui_deployment:
-            mooring_uid = ui_deployment['mooring_uid']
-            if mooring_uid and mooring_uid is not None:
-                refresh_asset_deployment(mooring_uid)
-        if 'node_uid' in ui_deployment:
-            node_uid = ui_deployment['node_uid']
-            if node_uid and node_uid is not None:
-                refresh_asset_deployment(node_uid)
-        if 'sensor_uid' in ui_deployment:
-            sensor_uid = ui_deployment['sensor_uid']
-            if sensor_uid and sensor_uid is not None:
-                refresh_asset_deployment(sensor_uid)
+        # Get deployment number from uframe modified/updated deployment.
+        deploymentNumber = None
+        if 'deploymentNumber' in modified_deployment:
+            deploymentNumber = modified_deployment['deploymentNumber']
+        if not deploymentNumber or deploymentNumber is None:
+            message = 'Unable to refresh assets associated with deployment, no deployment number.'
+            raise Exception(message)
+        if debug:
+            print '\n debug -- deployment reference designator: ', rd
+        if not is_instrument(rd):
+            message = 'The reference designator provided is not a valid instrument reference designator.'
+            raise Exception(message)
+
+        # update deployment assets. Any asset associated with this deployment will have cache updated here.
+        update_deployment_assets(ui_deployment, rd, deploymentNumber)
 
         # return updated deployment
         return ui_deployment
+
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def update_deployment_assets(ui_deployment, rd, deploymentNumber):
+    """ Refresh deployment information for assets associated with deployment.
+    """
+    debug = False
+    try:
+        if debug:
+            print '\n debug -- Updated deployment -- ui_deployment (after refresh_deployment_cache):'
+            dump_dict(ui_deployment, debug)
+
+        # Refresh deployment information for assets associated with deployment.
+        mooring_rd, node_rd, sensor_rd = rd.split('-',2)
+        if 'mooring_uid' in ui_deployment:
+            mooring_uid = ui_deployment['mooring_uid']
+            if debug:
+                print '\n Refreshing deployment mooring asset: %r' % mooring_uid
+            if mooring_uid and mooring_uid is not None:
+                refresh_asset_deployment(mooring_uid, mooring_rd, deploymentNumber)
+        if 'node_uid' in ui_deployment:
+            node_uid = ui_deployment['node_uid']
+            if debug:
+                print '\n Refreshing deployment node asset: %r' % node_uid
+            if node_uid and node_uid is not None:
+                target_rd = '-'.join([mooring_rd, node_rd])
+                refresh_asset_deployment(node_uid, target_rd, deploymentNumber)
+        if 'sensor_uid' in ui_deployment:
+            sensor_uid = ui_deployment['sensor_uid']
+            if debug:
+                print '\n Refreshing deployment sensor asset: %r' % sensor_uid
+            if sensor_uid and sensor_uid is not None:
+                refresh_asset_deployment(sensor_uid, rd, deploymentNumber)
+        return
 
     except Exception as err:
         message = str(err)

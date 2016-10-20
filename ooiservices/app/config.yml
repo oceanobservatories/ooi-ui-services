@@ -48,6 +48,7 @@ COMMON: &common
     UFRAME_DATA_REQUEST_LIMIT: 2880
     UFRAME_PLOT_TIMEOUT: 60
     DATA_POINTS: 1000
+    DEPLOYMENTS_INV_LOAD: False
       #Red Mine values should be left alone on test servers and set to the production settings on the production server 
     REDMINE_KEY: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     REDMINE_URL: 'https://redmine-asa.ooi.rutgers.edu' #'https://uframe-cm.ooi.rutgers.edu'

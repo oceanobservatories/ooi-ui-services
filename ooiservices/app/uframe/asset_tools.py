@@ -7,12 +7,12 @@ __author__ = 'Edna Donoughe'
 
 from flask import current_app
 from ooiservices.app import cache
-from ooiservices.app.uframe.controller import dfs_streams
 from copy import deepcopy
-from ooiservices.app.uframe.common_tools import (get_asset_type_by_rd, get_asset_classes, get_supported_asset_types,
-                                                 get_location_fields)
+from ooiservices.app.uframe.controller import dfs_streams
 from ooiservices.app.uframe.vocab import (get_vocab, get_vocab_dict_by_rd, get_rs_array_name_by_rd, get_display_name_by_rd)
 from ooiservices.app.uframe.uframe_tools import (get_assets_from_uframe, uframe_get_asset_by_id, uframe_get_asset_by_uid)
+from ooiservices.app.uframe.common_tools import (get_asset_type_by_rd, get_asset_classes, get_supported_asset_types,
+                                                 get_location_fields)
 from ooiservices.app.uframe.asset_cache_tools import (_get_rd_assets, get_asset_deployment_info, get_asset_rds_cache,
                                                       asset_rds_cache_update, get_rd_from_rd_assets)
 import datetime as dt
@@ -133,14 +133,12 @@ def get_stream_list():
     """ [Used by verify_cache.] Get 'stream_list' from cache; if not cached, get and set cache.
     """
     time = True
-    debug = True
     stream_list = None
     try:
 
         stream_list_cached = cache.get('stream_list')
         if not stream_list_cached:
-            if debug:
-                print '\nCompiling stream list'
+            if time: print '\nCompiling stream list'
             try:
                 start = dt.datetime.now()
                 if time: print '\t-- Start time: ', start
@@ -155,8 +153,8 @@ def get_stream_list():
 
             if stream_list:
                 cache.set('stream_list', stream_list, timeout=CACHE_TIMEOUT)
-            if debug:
-                print 'Completed compiling stream list'
+                if time:
+                    print 'Completed compiling stream list'
             else:
                 message = 'stream_list failed to return value, error.'
                 current_app.logger.info(message)
@@ -381,7 +379,7 @@ def new_compile_assets(data, compile_all=False):
     """ Process list of asset dictionaries from uframe; transform into (ooi-ui-services) list of asset dictionaries.
     """
     debug = False
-    info = True                 # Log missing vocab items when unable to create display name(s), etc. (default is True)
+    info = False                 # Log missing vocab items when unable to create display name(s), etc. (default is True)
     new_data = []               # (assets) Mooring, Node and Sensor assets which have been deployed
     bad_data = []               # (assets with unknown asset type or error.)
     bad_data_ids = []

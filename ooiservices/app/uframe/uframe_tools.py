@@ -1244,3 +1244,87 @@ def uframe_create_deployment(deployment):
         raise Exception(message)
 
 
+# include deployment inventory reference designators.
+def compile_deployment_rds():
+    """ Get reference designators identified in deployment inventory.
+    """
+    rds = []
+    try:
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Get deployment inventory url for uframe
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        base_url, timeout, timeout_read = get_url_info_deployments_inv()
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Positive) Get deployment inventory
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        url = base_url
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Unable to get deployment inventory from uframe.'
+            raise Exception(message)
+
+        result = json.loads(response.content)
+        if result is not None and isinstance(result, list) and len(result) > 0:
+
+            subsite_list = result[:]
+            subsite_list.sort()
+            #if debug: print '\n debug -- subsite_list: ', subsite_list
+            set_subsite_list = []
+            for subsite in subsite_list:
+                if subsite not in set_subsite_list:
+                    set_subsite_list.append(subsite)
+
+            for subsite in subsite_list:
+                if subsite not in rds:
+                    rds.append(subsite)
+                # Get deployment/inv/{subsite} (list)
+                url = '/'.join([base_url, subsite])
+                response = requests.get(url, timeout=(timeout, timeout_read))
+                if response.status_code != 200:
+                    message = 'Unable to get deployment %s node inventory from uframe.' % subsite
+                    raise Exception(message)
+                node_list = json.loads(response.content)
+                if node_list is not None and isinstance(node_list, list) and len(node_list) > 0:
+
+                    # Verify no duplicates in list of deployment nodes for a subsite.
+                    set_node_list = []
+                    for item in node_list:
+                        if item not in set_node_list:
+                            set_node_list.append(item)
+
+                    #if debug: print '\n debug -- %s node_list: %s' % (subsite, node_list)
+                    for node in node_list:
+                        # Get deployment/inv/{subsite}/{node} (list)
+                        node_rd = '-'.join([subsite, node])
+                        if node_rd not in rds:
+                            rds.append(node_rd)
+                        url = '/'.join([base_url, subsite, node])
+                        response = requests.get(url, timeout=(timeout, timeout_read))
+                        if response.status_code != 200:
+                            message = 'Unable to get deployment %s node inventory from uframe.' % node_rd
+                            raise Exception(message)
+                        sensor_list = json.loads(response.content)
+
+                        # Verify no duplicates in list of deployment sensors for a subsite/node.
+                        for sensor in sensor_list:
+                            sensor_rd = '-'.join([subsite, node, sensor])
+                            if sensor_rd not in rds:
+                                rds.append(sensor_rd)
+        if rds:
+            rds.sort()
+        return rds
+    except ConnectionError:
+        message = 'Error: ConnectionError during compile_deployment_rds.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Error: Timeout during during compile_deployment_rds.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+

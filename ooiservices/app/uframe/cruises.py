@@ -11,7 +11,7 @@ Routes:
 __author__ = 'Edna Donoughe'
 
 from flask import request, jsonify, current_app
-from ooiservices.app.main.errors import (bad_request)
+from ooiservices.app.main.errors import bad_request
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.uframe.cruise_tools import (_get_cruises, _get_cruise,
                                                  _get_cruise_deployments, _get_cruise_deployment)
