@@ -11,13 +11,11 @@ from ooiservices.app.main.authentication import auth
 from ooiservices.app.main.errors import (internal_server_error, bad_request)
 from ooiservices.app.uframe.vocab import get_parameter_name_by_parameter as get_param_names
 from ooiservices.app.uframe.vocab import get_stream_name_by_stream as get_stream_name
-from ooiservices.app.uframe.vocab import (get_display_name_by_rd, get_long_display_name_by_rd,
-                                          get_rs_array_display_name_by_rd)
+from ooiservices.app.uframe.vocab import (get_display_name_by_rd, get_long_display_name_by_rd, get_rs_array_name_by_rd)
 
 # data imports
 from ooiservices.app.uframe.data import (get_data, get_simple_data, find_parameter_ids, get_multistream_data)
 from ooiservices.app.uframe.plotting import generate_plot
-# from ooiservices.app.uframe.asset_tools import get_events_by_ref_des
 from ooiservices.app.uframe.config import get_uframe_toc_url
 
 from urllib import urlencode
@@ -228,7 +226,7 @@ def dict_from_stream(mooring, platform, instrument, stream_type, stream, referen
         data_dict['units'] = {}
         data_dict['variables_shape'] = {}
         if ref[:2] == 'RS':
-            data_dict['array_name'] = get_rs_array_display_name_by_rd(ref[:8])
+            data_dict['array_name'] = get_rs_array_name_by_rd(ref[:8])
         else:
             data_dict['array_name'] = get_display_name_by_rd(ref[:2])
         data_dict['assembly_name'] = get_display_name_by_rd(ref[:14])
@@ -2551,6 +2549,7 @@ def get_stream_names(streams):
             if stream['stream'] not in stream_names:
                 stream_names.append(stream['stream'])
     return stream_names
+
 
 def get_events_by_ref_des(data, ref_des):
     """

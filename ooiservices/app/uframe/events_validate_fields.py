@@ -1,14 +1,14 @@
 """
-Events: Validate required event fields based on event type.
+Asset Management - Events: Validate required event fields based on event type.
 """
 
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
 from ooiservices.app.uframe.common_convert import convert_ui_data
-from ooiservices.app.uframe.cruise_tools import (uniqueCruiseIdentifier_exists, _get_cruise_by_event_id)
-from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types,
-                                                 is_instrument, is_platform, is_mooring, get_event_phase_values)
+from ooiservices.app.uframe.cruise_tools import (uniqueCruiseIdentifier_exists, _get_cruise)
+from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types, event_edit_phase_values,
+                                                 is_instrument, is_platform, is_mooring, operational_status_values)
 
 
 def events_validate_all_required_fields_are_provided(event_type, data, action=None):
@@ -49,6 +49,11 @@ def events_validate_all_required_fields_are_provided(event_type, data, action=No
         # Set location dictionary to None for ASSET_STATUS event type.
         elif event_type == 'ASSET_STATUS':
             converted_data['location'] = None
+            if 'status' in converted_data:
+                valid_status_values = operational_status_values()
+                if converted_data['status'] not in valid_status_values:
+                    message = 'Invalid operational status value provided; must be one of: %s' % valid_status_values
+                    raise Exception(message)
 
         # Set uniqueCruiseIdentifier field
         elif event_type == 'CRUISE_INFO':
@@ -61,7 +66,7 @@ def events_validate_all_required_fields_are_provided(event_type, data, action=No
                 message = 'Invalid uniqueCruiseIdentifier (empty).'
                 raise Exception(message)
 
-            valid_edit_phases = get_event_phase_values()
+            valid_edit_phases = event_edit_phase_values()
             if 'editPhase' in converted_data:
                 edit_phase = converted_data['editPhase']
                 if edit_phase not in valid_edit_phases and edit_phase is not None:
@@ -87,7 +92,7 @@ def events_validate_all_required_fields_are_provided(event_type, data, action=No
                     raise Exception(message)
 
                 # Get current cruise event to ensure unique cruise id remains same.
-                cruise = _get_cruise_by_event_id(eventId)
+                cruise = _get_cruise(eventId)
                 if not cruise or cruise is None:
                     message = 'Failed to update %s, unable to get %s event for eventId %d.' % (event_type, event_type, eventId)
                     raise Exception(message)
@@ -152,6 +157,10 @@ def events_validate_all_required_fields_are_provided(event_type, data, action=No
                     if not isinstance(converted_data[field], list):
                         message = 'Field \'%s\' provided, but value is not of type %s.' % (field, field_types[field])
                         raise Exception(message)
+                elif field_types[field] == 'multiple':
+                    if not isinstance(converted_data[field], list) and not isinstance(converted_data[field], float):
+                        message = 'Field \'%s\' provided, but value is not of type list or float.' % field
+                        raise Exception(message)
                 # Error
                 else:
                     message = 'Required field %s provided, but value is unknown type. %s' % (field, field_types[field])
@@ -172,7 +181,7 @@ def events_validate_all_required_fields_are_provided(event_type, data, action=No
             current_app.logger.info(message)
             raise Exception(message)
 
-        # todo - deprecate when cruiseIdentifier is removed as a field in uframe from CRUISE_INFO event.
+        # todo - deprecate when cruiseIdentifier removed from uframe CRUISE_INFO event.
         if event_type == 'CRUISE_INFO':
             converted_data['cruiseIdentifier'] = ''
         return converted_data
@@ -182,7 +191,6 @@ def events_validate_all_required_fields_are_provided(event_type, data, action=No
         raise Exception(message)
 
 
-# todo - Verify DEPLOYMENT fields here.
 def get_required_fields_and_types(event_type, action):
     """ Get required fields and field types for event_type being processed.
     """
@@ -205,7 +213,7 @@ def get_required_fields_and_types(event_type, action):
         #- - - - - - - - - - - - - - - - - - - - - - -
         if event_type == 'ACQUISITION':
             required_fields = ['eventName', 'eventStartTime', 'eventStopTime', 'eventType',
-                       'notes', 'dataSource', 'tense', 'assetUid',
+                       'notes', 'dataSource', 'assetUid',
                        'purchasedBy', 'purchaseDate', 'deliveryDate',
                        'vendorIdentification', 'vendorPointOfContact',
                        'receivedFromVendorBy', 'authorizationNumber',
@@ -213,7 +221,7 @@ def get_required_fields_and_types(event_type, action):
             field_types = { 'eventName': 'string', 'eventId': 'int',
                     'eventStartTime': 'long', 'eventStopTime': 'long', 'eventType': 'string',
                     'lastModifiedTimestamp': 'long', 'notes': 'string', 'dataSource': 'string',
-                    'tense': 'string', 'assetUid': 'string',
+                    'assetUid': 'string',
                     'purchasedBy': 'string', 'purchaseDate': 'long', 'deliveryDate': 'long',
                     'vendorIdentification': 'string', 'vendorPointOfContact': 'string',
                     'receivedFromVendorBy': 'string', 'authorizationNumber': 'string',
@@ -226,11 +234,11 @@ def get_required_fields_and_types(event_type, action):
         elif event_type == 'ASSET_STATUS':
             required_fields = ['eventName', 'eventStartTime', 'eventStopTime', 'eventType',
                        'severity', 'reason', 'status', 'location',
-                       'notes', 'dataSource', 'tense', 'assetUid']
+                       'notes', 'dataSource', 'assetUid']
             field_types = { 'eventName': 'string', 'eventId': 'int',
                     'eventStartTime': 'long', 'eventStopTime': 'long', 'eventType': 'string',
                     'lastModifiedTimestamp': 'long', 'notes': 'string', 'dataSource': 'string',
-                    'tense': 'string', 'assetUid': 'string', 'location': 'dict', 'status': 'string',
+                    'assetUid': 'string', 'location': 'dict', 'status': 'string',
                     'severity': 'int', 'reason': 'string'}
 
         #- - - - - - - - - - - - - - - - - - - - - - -
@@ -241,12 +249,12 @@ def get_required_fields_and_types(event_type, action):
                        'reason', 'vendorIdentification', 'authorizationNumber',
                        'authorizationForPayment', 'invoiceNumber', 'vendorPointOfContact',
                        'sentToVendorBy', 'receivedFromVendorBy',
-                       'notes', 'dataSource', 'tense', 'assetUid']
+                       'notes', 'dataSource', 'assetUid']
 
             field_types = { 'eventName': 'string', 'eventId': 'int',
                     'eventStartTime': 'long', 'eventStopTime': 'long', 'eventType': 'string',
                     'lastModifiedTimestamp': 'long', 'notes': 'string', 'dataSource': 'string',
-                    'tense': 'string', 'assetUid': 'string',
+                    'assetUid': 'string',
                     'reason': 'string', 'vendorIdentification': 'string', 'authorizationNumber': 'string',
                     'authorizationForPayment': 'string', 'invoiceNumber': 'string', 'vendorPointOfContact': 'string',
                     'sentToVendorBy': 'string', 'receivedFromVendorBy': 'string'}
@@ -255,21 +263,19 @@ def get_required_fields_and_types(event_type, action):
         # Event type: CALIBRATION_DATA
         #- - - - - - - - - - - - - - - - - - - - - - -
         elif event_type == 'CALIBRATION_DATA':
-            required_fields = ['assetUid', 'cardinality', 'comments', 'dimensions', 'eventName',
-                               'eventStartTime', 'eventType', 'values', 'notes', 'dataSource',
-                               'eventStopTime']
+            required_fields = ['assetUid', 'comments',  'eventName', 'eventStartTime', 'eventType',
+                               'notes', 'dataSource', 'eventStopTime', 'value']
+
             field_types = {'assetUid': 'string',
-                           'cardinality': 'int',
                            'comments': 'string',
-                           'dimensions': 'intlist',
                            'eventName': 'string',
                            'eventStartTime': 'long',
                            'eventType': 'string',
-                           'values': 'floatlist',
                            'notes': 'string',
                            'dataSource': 'string',
-                           'eventStopTime': 'long'
-                            }
+                           'eventStopTime': 'long',
+                           'value': 'multiple'}
+
         #- - - - - - - - - - - - - - - - - - - - - - -
         # Event type: CRUISE_INFO
         # removed: 'cruiseIdentifier',
@@ -278,12 +284,12 @@ def get_required_fields_and_types(event_type, action):
         elif event_type == 'CRUISE_INFO':
             required_fields = ['eventName', 'eventStartTime', 'eventStopTime', 'eventType',
                        'uniqueCruiseIdentifier', 'shipName',
-                       'notes', 'dataSource', 'tense', 'assetUid', 'editPhase']
+                       'notes', 'dataSource', 'assetUid', 'editPhase']
 
             field_types = { 'eventName': 'string', 'eventId': 'int',
                     'eventStartTime': 'long', 'eventStopTime': 'long', 'eventType': 'string',
                     'lastModifiedTimestamp': 'long', 'notes': 'string', 'dataSource': 'string',
-                    'tense': 'string', 'assetUid': 'string',
+                    'assetUid': 'string',
                     'uniqueCruiseIdentifier': 'string',  'shipName': 'string', 'editPhase': 'string'}
 
         #- - - - - - - - - - - - - - - - - - - - - - -
@@ -291,7 +297,7 @@ def get_required_fields_and_types(event_type, action):
         #- - - - - - - - - - - - - - - - - - - - - - -
         elif event_type == 'DEPLOYMENT':
             required_fields = ['eventName', 'eventStartTime', 'eventStopTime', 'eventType',
-                       'notes', 'dataSource', 'tense', 'assetUid',
+                       'notes', 'dataSource', 'assetUid',
                        'inductiveId', 'deployedBy', 'location', 'sensor', 'mooring', 'node',
                        'recoverCruiseInfo', 'recoveredBy', 'deploymentNumber', 'ingestInfo',
                        'referenceDesignator', 'versionNumber', 'deployCruiseInfo']
@@ -299,7 +305,7 @@ def get_required_fields_and_types(event_type, action):
             field_types = {'eventName': 'string', 'eventId': 'int',
                             'eventStartTime': 'long', 'eventStopTime': 'long', 'eventType': 'string',
                             'lastModifiedTimestamp': 'long', 'notes': 'string', 'dataSource': 'string',
-                            'tense': 'string', 'assetUid': 'string',
+                            'assetUid': 'string',
                             'inductiveId': 'string', 'deployedBy': 'string',
                             'location': 'dict', 'sensor': 'dict', 'mooring': 'dict', 'node': 'dict',
                             'recoverCruiseInfo': 'dict', 'recoveredBy': 'string',
@@ -313,13 +319,13 @@ def get_required_fields_and_types(event_type, action):
         elif event_type == 'INTEGRATION':
             required_fields = ['eventName', 'eventStartTime', 'eventStopTime', 'eventType',
                        'integrationInto', 'deploymentNumber', 'versionNumber', 'integratedBy',
-                       'notes', 'dataSource', 'tense', 'assetUid']
+                       'notes', 'dataSource', 'assetUid']
 
             field_types = {
                             'eventName': 'string', 'eventId': 'int',
                             'eventStartTime': 'long', 'eventStopTime': 'long', 'eventType': 'string',
                             'lastModifiedTimestamp': 'long', 'notes': 'string', 'dataSource': 'string',
-                            'tense': 'string', 'assetUid': 'string', 'location': 'string', 'status': 'string',
+                            'assetUid': 'string', 'location': 'string', 'status': 'string',
                             'integrationInto': 'string', 'deploymentNumber': 'int',
                             'versionNumber': 'int', 'integratedBy': 'string'
                           }
@@ -330,12 +336,12 @@ def get_required_fields_and_types(event_type, action):
         elif event_type == 'LOCATION':
             required_fields = ['eventName', 'eventStartTime', 'eventStopTime', 'eventType',
                        'depth',  'longitude', 'latitude', 'orbitRadius',
-                       'notes', 'dataSource', 'tense', 'assetUid']
+                       'notes', 'dataSource', 'assetUid']
 
             field_types = {'eventName': 'string', 'eventId': 'int',
                     'eventStartTime': 'long', 'eventStopTime': 'long', 'eventType': 'string',
                     'lastModifiedTimestamp': 'long', 'notes': 'string', 'dataSource': 'string',
-                    'tense': 'string', 'assetUid': 'string',
+                    'assetUid': 'string',
                     'depth': 'float', 'location': 'dict',
                     'longitude': 'float', 'latitude': 'float', 'orbitRadius': 'float'}
 
@@ -345,12 +351,12 @@ def get_required_fields_and_types(event_type, action):
         elif event_type == 'RETIREMENT':
             required_fields = ['eventName', 'eventStartTime', 'eventStopTime', 'eventType',
                        'reason', 'disposition', 'retiredBy',
-                       'notes', 'dataSource', 'tense', 'assetUid']
+                       'notes', 'dataSource', 'assetUid']
 
             field_types = { 'eventName': 'string', 'eventId': 'int',
                     'eventStartTime': 'long', 'eventStopTime': 'long', 'eventType': 'string',
                     'lastModifiedTimestamp': 'long', 'notes': 'string', 'dataSource': 'string',
-                    'tense': 'string', 'assetUid': 'string', 'location': 'string', 'status': 'string',
+                    'assetUid': 'string', 'location': 'string', 'status': 'string',
                     'reason': 'string', 'disposition': 'string', 'retiredBy': 'string'}
 
         #- - - - - - - - - - - - - - - - - - - - - - -
@@ -359,23 +365,23 @@ def get_required_fields_and_types(event_type, action):
         elif event_type == 'STORAGE':
             required_fields = ['buildingName', 'eventName', 'eventStartTime', 'eventStopTime', 'eventType',
                        'notes', 'performedBy', 'physicalLocation', 'roomIdentification',
-                       'shelfIdentification', 'dataSource', 'tense', 'assetUid']
+                       'shelfIdentification', 'dataSource', 'assetUid']
             field_types = { 'buildingName': 'string', 'eventName': 'string', 'eventId': 'int',
                     'eventStartTime': 'long', 'eventStopTime': 'long', 'eventType': 'string',
                     'lastModifiedTimestamp': 'long', 'notes': 'string', 'performedBy': 'string',
                     'physicalLocation': 'string', 'roomIdentification': 'string',
-                    'shelfIdentification': 'string', 'dataSource': 'string', 'tense': 'string', 'assetUid': 'string'}
+                    'shelfIdentification': 'string', 'dataSource': 'string', 'assetUid': 'string'}
 
         #- - - - - - - - - - - - - - - - - - - - - - -
         # Event type: UNSPECIFIED
         #- - - - - - - - - - - - - - - - - - - - - - -
         elif event_type == 'UNSPECIFIED':
             required_fields = ['eventName', 'eventStartTime', 'eventStopTime', 'eventType',
-                       'notes', 'dataSource', 'tense', 'assetUid']
+                       'notes', 'dataSource', 'assetUid']
             field_types = { 'eventName': 'string', 'eventId': 'int',
                     'eventStartTime': 'long', 'eventStopTime': 'long', 'eventType': 'string',
                     'lastModifiedTimestamp': 'long', 'notes': 'string', 'dataSource': 'string',
-                     'tense': 'string', 'assetUid': 'string'}
+                     'assetUid': 'string'}
 
         #- - - - - - - - - - - - - - - - - - - - - - -
         # Event type: Unknown - error.
@@ -429,7 +435,6 @@ def convert_required_fields(event_type, data, action=None):
             data['assetUid'] = None
 
         converted_data = convert_ui_data(data, required_fields, field_types)
-
         return converted_data
 
     except Exception as err:
@@ -596,13 +601,10 @@ def events_validate_user_required_fields_are_provided(event_type, valid_data, ac
 
 
 def get_user_fields_populated(event_type):
-    """ For an event type [and action], get fields the user shall populate. Return list.
+    """ For an event type [and action], get the fields the user must populate. Return list.
     """
     event_fields = []
     try:
-        # event type: All
-        user_populated_fields = ['eventName']
-
         # Event type: INTEGRATION
         if event_type == 'INTEGRATION':
             # For action(s): create and update
@@ -610,16 +612,17 @@ def get_user_fields_populated(event_type):
 
         # Event type: CRUISE_INFO
         elif event_type == 'CRUISE_INFO':
-            event_fields = ['uniqueCruiseIdentifier', 'shipName']       # 'editPhase'
+            event_fields = ['uniqueCruiseIdentifier', 'shipName', 'editPhase']
 
         # Event type: CALIBRATION_DATA
         elif event_type == 'CALIBRATION_DATA':
-            event_fields = ['dimensions', 'cardinality', 'values', ]    # 'editPhase'
+            event_fields = ['value', 'eventName']
 
-        # Sum up all required fields
-        if event_fields:
-            user_populated_fields = user_populated_fields + event_fields
-        return user_populated_fields
+        # Event type: DEPLOYMENT
+        if event_type == 'DEPLOYMENT':
+            # For action(s): create and update
+            event_fields = ['referenceDesignator', 'versionNumber', 'deploymentNumber']
+        return event_fields
     except Exception as err:
         message = str(err)
         raise Exception(message)

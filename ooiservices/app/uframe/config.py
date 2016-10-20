@@ -1,7 +1,6 @@
 #!/usr/bin/env python
-
 """
-Support functions used for configurations and connections.
+Asset Management - Configuration and connection support functions.
     TOC
     Vocabulary
     C2
@@ -13,12 +12,12 @@ Support functions used for configurations and connections.
     Deployments
     Events
     common
-
 """
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
 from requests.exceptions import (ConnectionError, Timeout)
+
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # TOC
@@ -226,6 +225,7 @@ def get_deployments_url_base():
     return deployments
 
 
+#def get_url_info_deployment():
 def get_uframe_deployments_info():
     """ Get uframe deployments configuration information.
     """
@@ -235,6 +235,31 @@ def get_uframe_deployments_info():
         return uframe_url, timeout, timeout_read
     except:
         message = 'Unable to locate UFRAME_DEPLOYMENTS_URL, UFRAME_TIMEOUT_CONNECT or UFRAME_TIMEOUT_READ in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+def get_url_info_deployments_inv():
+    """ Get complete url to query uframe cruises ('uframe-host:12587/events/deployment/inv')
+    """
+    try:
+        url, timeout, timeout_read = get_uframe_deployments_info()
+        uframe_url = '/'.join([url, get_deployments_url_base(), 'inv'])
+        return uframe_url, timeout, timeout_read
+    except:
+        message = 'Unable to form uframe url for cruises using config file variables.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def deployment_inv_load():
+    use_deployments_on_load = False
+    try:
+        tmp = current_app.config['DEPLOYMENTS_INV_LOAD']
+        if tmp == True:
+            use_deployments_on_load = True
+        return use_deployments_on_load
+    except:
+        message = 'Unable to obtain DEPLOYMENT_INV_LOAD using current config file variables.'
         current_app.logger.info(message)
         raise Exception(message)
 
@@ -316,6 +341,48 @@ def get_url_info_resources():
         return uframe_url, timeout, timeout_read
     except:
         message = 'Unable to form uframe url for asset resources using config file variables.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Status
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+def get_status_url_base():
+    """ Returns configuration file value for UFRAME_STATUS. ('status') If error, raise exception.
+    'events/cruise'
+    """
+    try:
+        cruises = current_app.config['UFRAME_STATUS']
+        return cruises
+    except:
+        message = 'Unable to locate UFRAME_STATUS in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_url_info_status():
+    """ Get complete url to query uframe status ('uframe-host:12587/status/inv')
+    """
+    try:
+        timeout, timeout_read = get_uframe_timeout_info()
+        uframe_url = '/'.join([current_app.config['UFRAME_DEPLOYMENTS_URL'], get_status_url_base()])
+        return uframe_url, timeout, timeout_read
+    except:
+        message = 'Unable to form uframe url for status using config file variables.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_url_info_status_inv():
+    """ Get complete url to query uframe cruises ('uframe-host:12587/status/inv')
+    """
+    try:
+        url, timeout, timeout_read = get_url_info_status()
+        uframe_url = '/'.join([url, 'inv'])
+        return uframe_url, timeout, timeout_read
+    except:
+        message = 'Unable to form uframe url for status using config file variables.'
         current_app.logger.info(message)
         raise Exception(message)
 

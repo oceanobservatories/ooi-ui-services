@@ -1,26 +1,18 @@
 """
-Events: Create and update functions.
+Asset Management - Events: Create and update functions.
 """
 
 __author__ = 'Edna Donoughe'
 
-from flask import current_app
-from requests.exceptions import (ConnectionError, Timeout)
-from ooiservices.app.uframe.event_tools import get_uframe_event
-from ooiservices.app.uframe.asset_tools import uframe_get_asset_by_uid
+from ooiservices.app.uframe.uframe_tools import (uframe_get_asset_by_uid, get_uframe_event, uframe_put_event,
+                                                 uframe_postto, uframe_create_cruise, uframe_create_calibration)
 from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types, get_event_class)
-from ooiservices.app.uframe.config import (get_uframe_deployments_info, get_events_url_base,
-                                           headers, get_url_info_cruises, get_uframe_info_calibration)
 from ooiservices.app.uframe.events_validate_fields import (events_validate_all_required_fields_are_provided,
                                                            events_validate_user_required_fields_are_provided)
-import json
-import requests
-
 
 # Create event.
 def create_event_type(request_data):
     """ Create a new event. Return new event on success, or raise exception on error.
-
     Response on success:
     {
         "message" : "Element created successfully.",
@@ -57,6 +49,10 @@ def create_event_type(request_data):
                 message = 'The assetUid is empty or null, unable to create a %s event.' % event_type
                 raise Exception(message)
 
+        # Event name not really provided by UI, fill with event type unless CALIBRATION event.
+        if event_type != 'CALIBRATION_DATA':
+            request_data['eventName'] = event_type
+
         # Validate data fields to ensure required fields are provided for create.
         data = events_validate_all_required_fields_are_provided(event_type, request_data, action=action)
         events_validate_user_required_fields_are_provided(event_type, data, action=action)
@@ -71,23 +67,38 @@ def create_event_type(request_data):
         data['eventId'] = -1
 
         # Create event.
+        id = 0
         id = perform_uframe_create_event(event_type, uid, data)
-        if id <= 0:
+        if id < 1:
             message = 'Failed to create %s event for asset with uid %s' % (event_type, uid)
             raise Exception(message)
 
         # Get newly created event and return.
         event = get_uframe_event(id)
-        return event
 
-    except ConnectionError as err:
-        message = 'ConnectionError during create %s event, %s.' % (event_type, str(err))
-        raise Exception(message)
-    except Timeout as err:
-        message = 'Timeout during create %s event, %s.' % (event_type, str(err))
-        raise Exception(message)
+        # Post process event content for display.
+        event = post_process_event(event)
+
+        return event
     except Exception as err:
         message = str(err)
+        raise Exception(message)
+
+
+# Prepare event for display.
+def post_process_event(event):
+    """ Process event from uframe before returning for display (in UI).
+    """
+    try:
+        if not event:
+            message = 'The event provided for post processing is empty.'
+            raise Exception(message)
+        if '@class' in event:
+            del event['@class']
+        return event
+
+    except Exception as err:
+        message = 'Error post-processing event for display. %s' % str(err)
         raise Exception(message)
 
 
@@ -95,7 +106,6 @@ def create_event_type(request_data):
 def update_event_type(id, data):
     """ Update an existing event, no success return event, on error raise exception.
     """
-    event_type = None
     action = 'update'
     try:
         # Verify minimum required fields to proceed with update (event_type and uid)
@@ -119,13 +129,17 @@ def update_event_type(id, data):
             message = 'Event type %s \'%s\' is not supported.' % (event_type, action)
             raise Exception(message)
 
+        # Event name not really provided by UI, fill with event type unless CALIBRATION event.
+        if event_type != 'CALIBRATION_DATA':
+            data['eventName'] = event_type
+
         # Validate data fields to ensure required fields are provided for update.
         data = events_validate_all_required_fields_are_provided(event_type, data, action=action)
         events_validate_user_required_fields_are_provided(event_type, data, action=action)
 
         # Verify uid provided in data for all event types except CRUISE_INFO.
         uid = None
-        if event_type != 'CRUISE_INFO':
+        if event_type != 'CRUISE_INFO' and event_type != 'DEPLOYMENT':
             # Required field: assetUid
             if 'assetUid' not in data:
                 message = 'No assetUid in request data to update event %s.' % event_type
@@ -144,69 +158,26 @@ def update_event_type(id, data):
             message = 'The event id value (%r) must be an integer, it is type: %s' % \
                       (data['eventId'], str(type(data['eventId'])))
             raise Exception(message)
+
         if data['eventId'] != id:
             message = 'The event id (\'%r\') provided in data is not equal to id (%d) in url.' % (data['eventId'], id)
             raise Exception(message)
 
-        # Get event class
+        # Get event class and add @class field to data
         event_class = get_event_class(event_type)
-
-        # Add @class field to data
         data['@class'] = event_class
 
-        # Get configuration url and timeout information, build request url.
-        base_url, timeout, timeout_read = get_uframe_deployments_info()
-        url = '/'.join([base_url, get_events_url_base(), str(id)])
-
-        # Issue uframe PUT to update, process response status_code and content.
-        response = requests.put(url, data=json.dumps(data), headers=headers())
-        if response.status_code != 200:
-            if response.content is None:
-                message = 'Failed to create %s event in uframe.' % event_type
-                raise Exception(message)
-            elif response.content is not None:
-                response_data = json.loads(response.content)
-                # Determine if success or failure.
-                if 'error' not in response_data:
-                    # Success? If success get id.
-                    if 'statusCode' in response_data:
-                        # Failure? If failure build error message.
-                        if 'message' in response_data and 'statusCode' in response_data:
-                            message = str(response_data['statusCode']) + ': ' + str(response_data['message'])
-                            raise Exception(message)
-                else:
-                    # Failure? If failure build error message.
-                    if 'message' in response_data and 'statusCode' in response_data:
-                        message = str(response_data['statusCode']) + ': ' + str(response_data['message'])
-                        raise Exception(message)
-
-        # Get response data, check status code returned from uframe.
-        id = 0
-        if response.content is not None:
-            response_data = json.loads(response.content)
-            # Determine if success or failure.
-            if 'error' not in response_data:
-                # Success? If success get id.
-                if 'id' in response_data:
-                    id = response_data['id']
-            else:
-                # Failure? If failure build error message.
-                if 'message' in response_data:
-                    message = response_data['error'] + ': ' + response_data['message']
-                    raise Exception(message)
-
+        # Update event in uframe
+        updated_id = uframe_put_event(event_type, id, data)
+        if updated_id <= 0:
+            message = 'Failed to update %s event in uframe for id %d.' % (event_type, id)
+            raise Exception(message)
+        if updated_id != id:
+            message = 'The event id returned from event update (%d) is not equal to original id (%d).' % (updated_id, id)
         # Get updated event, return event
         event = get_uframe_event(id)
         return event
 
-    except ConnectionError as err:
-        message = 'ConnectionError updating %s event; %s.' % (event_type, str(err))
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout as err:
-        message = 'Timeout updating %s event; %s.' % (event_type, str(err))
-        current_app.logger.info(message)
-        raise Exception(message)
     except Exception as err:
         message = str(err)
         raise Exception(message)
@@ -236,18 +207,19 @@ def perform_uframe_create_event(event_type, uid, data):
         # Create event using /events/postto/uid POST
         else:
             if event_type == 'DEPLOYMENT':
-                message = 'Create event type DEPLOYMENT is not supported at this time.'
+                message = 'Create event type DEPLOYMENT is not supported through the events create/update interface.'
                 raise Exception(message)
+
             id = uframe_postto(event_type, uid, data)
 
         if id is None or id <= 0:
             message = 'Failed to create and retrieve event from uframe for asset uid: \'%s\'. ' % uid
             raise Exception(message)
         return id
-
     except Exception as err:
         message = str(err)
         raise Exception(message)
+
 
 def create_calibration_data_event(event_type, uid, data):
     success_codes = [201, 204]
@@ -267,7 +239,6 @@ def create_calibration_data_event(event_type, uid, data):
         # Get eventId for calibration data event where eventName is event_name and asset uid is uid.
         id, _ = get_calibration_event_id(uid, event_name)
         return id
-
     except Exception as err:
         message = str(err)
         raise Exception(message)
@@ -291,7 +262,6 @@ def get_calibration_event_id(uid, event_name):
           "eventStartTime" : 1443614400000,
           "eventStopTime" : null,
           "notes" : null,
-          "tense" : "UNKNOWN",
           "dataSource" : "API:createCalibration:2016-08-31T22:37:22.096Z",
           "lastModifiedTimestamp" : 1472683042096
         } ]
@@ -312,12 +282,11 @@ def get_calibration_event_id(uid, event_name):
                                 id = item['eventId']
                                 last_modified = item['lastModifiedTimestamp']
                                 break
+
         if id is None:
             message = 'Failed to locate calibration name \'%s\' in asset with uid %s.' % (event_name, uid)
             raise Exception(message)
-
         return id, last_modified
-
     except Exception as err:
         message = str(err)
         raise Exception(message)
@@ -335,144 +304,6 @@ def calibration_data_exists(uid, event_name):
         if event_id > 0:
             result = True
         return result
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-
-def uframe_postto(event_type, uid, data):
-    try:
-        # Set uframe query parameter, get configuration url and timeout information, build request url.
-        query = 'postto'
-        base_url, timeout, timeout_read = get_uframe_deployments_info()
-        url = '/'.join([base_url, get_events_url_base(), query, uid])
-        response = requests.post(url, data=json.dumps(data), headers=headers())
-        # Process error.
-        if response.status_code != 201:
-            if response.content is None:
-                message = 'Failed to create %s event; status code: %d' % (event_type, response.status_code)
-                raise Exception(message)
-
-            elif response.content is not None:
-                response_data = json.loads(response.content)
-
-                # Determine if success or failure.
-                if 'error' not in response_data:
-                    # Success? If success get id.
-                    if 'statusCode' in response_data:
-                        # Failure? If failure build error message.
-                        if 'message' in response_data and 'statusCode' in response_data:
-                            message = str(response_data['statusCode']) + ': ' + str(response_data['message'])
-                            raise Exception(message)
-                else:
-                    # Failure? If failure build error message.
-                    if 'message' in response_data and 'statusCode' in response_data:
-                        message = str(response_data['statusCode']) + ': ' + str(response_data['message'])
-                        raise Exception(message)
-
-        # Get response data, check status code returned from uframe.
-        id = 0
-        if response.content is not None:
-            response_data = json.loads(response.content)
-
-            # Determine if success or failure.
-            if 'error' not in response_data:
-                # Success? If success get id.
-                if 'statusCode' in response_data:
-                    if response_data['statusCode'] == 'CREATED':
-                        id = response_data['id']
-                    else:
-                        message = 'Failed to create %s event; statusCode from uframe: %s' % \
-                                  (event_type, response_data['statusCode'])
-                        raise Exception(message)
-            else:
-                # Failure? If failure build error message.
-                if 'message' in response_data and 'statusCode' in response_data:
-                    message = response_data['statusCode'] + ': ' + response_data['message']
-                    raise Exception(message)
-        return id
-
-    except ConnectionError as err:
-        message = 'ConnectionError during create %s event, %s.' % (event_type, str(err))
-        raise Exception(message)
-    except Timeout as err:
-        message = 'Timeout during create %s event, %s.' % (event_type, str(err))
-        raise Exception(message)
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-
-def uframe_create_cruise(event_type, data):
-    """ Create a cruise event; assetUid for cruise event shall be None.
-    """
-    try:
-        data['assetUid'] = None
-        # Set uframe query parameter, get configuration url and timeout information, build request url.
-        url, timeout, timeout_read = get_url_info_cruises()
-        response = requests.post(url, data=json.dumps(data), headers=headers())
-
-        # Process error.
-        if response.status_code != 201:
-            message = 'Failed to create %s event in uframe; status code: %d' % (event_type, response.status_code)
-            raise Exception(message)
-
-        # Get response data, check status code returned from uframe.
-        id = 0
-        if response.content is not None:
-            response_data = json.loads(response.content)
-            # Determine if success or failure.
-            if 'error' not in response_data:
-                # Success? If success get id.
-                if 'statusCode' in response_data:
-                    if response_data['statusCode'] == 'CREATED':
-                        id = response_data['id']
-                    else:
-                        message = 'Failed to create %s event; statusCode from uframe: %s' % \
-                                  (event_type, response_data['statusCode'])
-                        raise Exception(message)
-            else:
-                # Failure? If failure build error message.
-                if 'message' in response_data and 'statusCode' in response_data:
-                    message = response_data['statusCode'] + ': ' + response_data['message']
-                    raise Exception(message)
-        return id
-
-    except ConnectionError as err:
-        message = 'ConnectionError during create %s event, %s.' % (event_type, str(err))
-        raise Exception(message)
-    except Timeout as err:
-        message = 'Timeout during create %s event, %s.' % (event_type, str(err))
-        raise Exception(message)
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-
-def uframe_create_calibration(event_type, uid, data):
-    """ Create a calibration event.
-    """
-    try:
-        if 'eventId' in data:
-            del data['eventId']
-        # Set uframe query parameter, get configuration url and timeout information, build request url.
-        base_url, timeout, timeout_read = get_uframe_info_calibration()
-        url = '/'.join([base_url, uid])
-        response = requests.post(url, data=json.dumps(data), headers=headers())
-
-        # Process error.
-        if response.status_code != 201 and response.status_code != 204:
-            message = 'Failed to create %s event in uframe; status code: %d' % (event_type, response.status_code)
-            raise Exception(message)
-
-        return response.status_code
-
-    except ConnectionError as err:
-        message = 'ConnectionError during create %s event, %s.' % (event_type, str(err))
-        raise Exception(message)
-    except Timeout as err:
-        message = 'Timeout during create %s event, %s.' % (event_type, str(err))
-        raise Exception(message)
     except Exception as err:
         message = str(err)
         raise Exception(message)

@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 
 """
-Assets: Supporting functions.
+TOC: Supporting functions.
 """
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
-from ooiservices.app.uframe.config import (get_uframe_toc_url, get_uframe_assets_info, get_deployments_url_base)
+from ooiservices.app.uframe.config import (get_uframe_toc_url, get_uframe_assets_info,
+                                           get_deployments_url_base, deployment_inv_load)
+from ooiservices.app.uframe.uframe_tools import compile_deployment_rds
 import json
 import requests
 import requests.exceptions
 from requests.exceptions import (ConnectionError, Timeout)
-
 
 def process_toc_reference_designators(toc):
     """
@@ -139,7 +140,7 @@ def _compile_asset_rds():
           . . .
         }
     """
-    #debug = False
+    debug = False
     result = {}
     rds_wo_assets = []
     try:
@@ -168,14 +169,27 @@ def _compile_asset_rds():
             message = 'No reference_designators identified when processing toc information.'
             raise Exception(message)
 
+        #-----------------------------------
+        if deployment_inv_load():
+            # Add deployment reference designators to total reference designators processed.
+            if debug: print '\n\tNumber of reference designators from toc: ', len(reference_designators)
+            deployment_rds = compile_deployment_rds()
+            if debug: print '\n\tNumber of reference designators from deployments: ', len(deployment_rds)
+            if deployment_rds and deployment_rds is not None:
+                for rd in deployment_rds:
+                    if rd not in reference_designators:
+                        reference_designators.append(rd)
+            if debug:
+                print '\n\tNumber of reference designators (toc and deployments): ', len(reference_designators)
+        #-----------------------------------
+
         if reference_designators and toc_only:
 
             for rd in reference_designators:
                 if rd and rd is not None:
                     try:
                         len_rd = len(rd)
-                        ids, mrd, mids, nrd, nids = get_asset_id_by_rd(rd, uframe_url,
-                                                                                         timeout, timeout_read)
+                        ids, mrd, mids, nrd, nids = get_asset_id_by_rd(rd, uframe_url, timeout, timeout_read)
                     except Exception as err:
                         message = 'Exception raised in get_asset_id_by_rd: %s' % err.message
                         raise Exception(message)
@@ -215,14 +229,6 @@ def _compile_asset_rds():
 
         return result, rds_wo_assets
 
-    except ConnectionError:
-        message = 'ConnectionError for _compile_asset_rds.'
-        current_app.logger.info(message)
-        return {}, []
-    except Timeout:
-        message = 'Timeout for _compile_asset_rds.'
-        current_app.logger.info(message)
-        return {}, []
     except Exception as err:
         message = err.message
         current_app.logger.info(message)
@@ -234,6 +240,7 @@ def get_asset_id_by_rd(rd, uframe_url=None, timeout=None, timeout_read=None):
     """
     info = False
     #debug = False
+    check = False
     ids = []
     mooring_ids = []
     node_ids = []
@@ -278,6 +285,7 @@ def get_asset_id_by_rd(rd, uframe_url=None, timeout=None, timeout_read=None):
             return [], None, [], None, []
 
         # Query uframe for reference designator asset ids.
+        if check: print '\n get_asset_id_by_rd -- url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
             if info:
@@ -346,13 +354,49 @@ def get_asset_id_by_rd(rd, uframe_url=None, timeout=None, timeout_read=None):
         return ids, mooring, mooring_ids, node_name, node_ids
 
     except ConnectionError:
-        message = 'ConnectionError for get_asset_id_by_rd'
+        message = 'ConnectionError for get_asset_id_by_rd, reference designator rd: ', rd
         current_app.logger.info(message)
         raise Exception(message)
     except Timeout:
-        message = 'Timeout for get_asset_id_by_rd'
+        message = 'Timeout error for get_asset_id_by_rd, reference designator rd: ', rd
         current_app.logger.info(message)
         raise Exception(message)
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return [], None, [], None, []
+
+
+def get_toc_reference_designators():
+    """ Get toc and process for reference designators.
+    """
+    try:
+        # Get contents of /sensor/inv/toc
+        toc = get_toc_information()
+
+        # If toc is of type dict, then processing newer style toc format
+        if isinstance(toc, dict):
+            if 'instruments' not in toc:
+                message = 'TOC does not have attribute \'instruments\', unable to process for reference designators.'
+                raise Exception(message)
+
+            # Verify toc attribute 'instruments' is not None or empty, if so, raise Exception.
+            toc = toc['instruments']
+            if not toc or toc is None:
+                message = 'TOC attribute \'instruments\' is None or empty, unable to process for reference designators.'
+                raise Exception(message)
+
+        # Process toc to get lists of:
+        # (1) reference designators (generated by accumulation),
+        # (2) actual reference designators called out in each element of toc response,
+        # (3)list of differences
+        uframe_url, timeout, timeout_read = get_uframe_assets_info()
+        reference_designators, toc_only, difference = process_toc_reference_designators(toc)
+        if not reference_designators:
+            message = 'No reference_designators identified when processing toc information.'
+            raise Exception(message)
+
+        return reference_designators, toc_only, difference
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)

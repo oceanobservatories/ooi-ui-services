@@ -1,39 +1,36 @@
 #!/usr/bin/env python
 """
-Specific testing for events routes
+Asset Management - Specific testing for cruise [event] routes and supporting functions.
 
 Routes:
 [GET]   /cruises                                 # Get all cruises in inventory.
 [GET]   /cruises/<int:id>                        # Get cruise by event id.
-[GET]   /cruises/<string:cruise_id>              # Get cruise by unique cruise id.
-[GET]   /cruises/<string:cruise_id>/deployments  # Get all deployments for a cruise.
-[GET]   /cruises/deployment/<int:event_id>       # Get a specific deployment for a specific cruise.
+[GET]   /cruises/<string:event_id>               # Get cruise by unique event id.
+[GET]   /cruises/<string:event_id>/deployments   # Get all deployments for a cruise by event id.
+[GET]   /cruises/<int:event_id>/deployment       # Get a specific deployment for a specific cruise.
 
 """
 __author__ = 'Edna Donoughe'
 
 import unittest
-import json
 from base64 import b64encode
-from random import randint
-from flask import (url_for)
 from ooiservices.app import (create_app, db)
 from ooiservices.app.models import (User, UserScope, Organization)
-from ooiservices.app.uframe.event_tools import get_rd_by_asset_id
-from ooiservices.app.uframe.cruise_tools import uniqueCruiseIdentifier_exists
 from unittest import skipIf
 import os
-import requests
 
-'''
-These tests are additional to the normal testing performed by coverage; each of
-these tests are to validate model logic outside of db management.
-
-'''
+from flask import (url_for)
+from ooiservices.app.uframe.event_tools import get_rd_by_asset_id
+from ooiservices.app.uframe.cruise_tools import uniqueCruiseIdentifier_exists
+from ooiservices.app.uframe.common_tools import get_event_types
+from ooiservices.tests.common_tools import (dump_dict, get_event_input_as_unicode, get_event_input_as_string)
+from random import randint
+import json
+import urllib
 
 
 @skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
-class CruiseEventTestCase(unittest.TestCase):
+class CruisesTestCase(unittest.TestCase):
 
     # enable verbose (during development and documentation) to get a list of
     # urls used throughout test cases. Always set to False before check in.
@@ -76,20 +73,12 @@ class CruiseEventTestCase(unittest.TestCase):
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
-    """
-    def suite(self):
-        suite = unittest.TestSuite()
-        suite.addTest(unittest.makeSuite(self.test_get_cruises()))
-        return suite
 
-    if __name__ == "__main__":
-        unittest.main()
-    """
-
-
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Test cases
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    # Test cases:
+    #   test_get_cruises
+    #   test_cruise_events
+    #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     def test_get_cruises(self):
         """
         Exercise event routes:
@@ -109,7 +98,6 @@ class CruiseEventTestCase(unittest.TestCase):
         response = self.client.get(url, headers=headers)
         self.assertEquals(response.status_code, 200)
         result = json.loads(response.data)
-        #if debug: print '\n -- fetched asset(%d): %s' % (asset_id, result)
         self.assertTrue(result is not None)
         self.assertTrue('cruises' in result)
         cruises = result['cruises']
@@ -126,12 +114,13 @@ class CruiseEventTestCase(unittest.TestCase):
         self.assertTrue(cruise)
         self.assertTrue(isinstance(cruise, dict))
 
-        # Get asset_id
+        # Get uniqueCruiseIdentifier.
         self.assertTrue('uniqueCruiseIdentifier' in cruise)
         cruise_id = cruise['uniqueCruiseIdentifier']
         self.assertTrue(cruise_id is not None)
         self.assertTrue(cruise_id)
 
+        # Get eventId.
         self.assertTrue('eventId' in cruise)
         cruise_event_id = cruise['eventId']
         self.assertTrue(cruise_event_id is not None)
@@ -142,41 +131,10 @@ class CruiseEventTestCase(unittest.TestCase):
         #asset_uid = cruise['assetUid']
         #self.assertTrue(asset_uid is None)
 
-
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # (Positive) Get cruise by uniqueCruiseIdentifier
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        url = url_for('uframe.get_cruise_by_cruise_id', cruise_id=cruise_id)
-        if verbose: print '\n ----- url: ', url
-        response = self.client.get(url, headers=headers)
-        self.assertEquals(response.status_code, 200)
-        result = json.loads(response.data)
-        #if debug: print '\n -- fetched asset(%d): %s' % (asset_id, result)
-        self.assertTrue(result is not None)
-
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # (Negative) Get cruise by bad uniqueCruiseIdentifier
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        url = url_for('uframe.get_cruise_by_cruise_id', cruise_id='notgood')
-        if verbose: print '\n ----- url: ', url
-        response = self.client.get(url, headers=headers)
-        self.assertEquals(response.status_code, 400)
-        result = json.loads(response.data)
-        self.assertTrue(result is not None)
-        self.assertTrue(result)
-
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # (Negative) Get cruise by bad uniqueCruiseIdentifier
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        url = url_for('uframe.get_cruise_by_cruise_id', cruise_id='')
-        if verbose: print '\n ----- url: ', url
-        response = self.client.get(url, headers=headers)
-        self.assertEquals(response.status_code, 404)
-
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # (Positive) Get cruise by eventId
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        url = url_for('uframe.get_cruise_by_event_id', event_id=cruise_event_id)
+        url = url_for('uframe.get_cruise', event_id=cruise_event_id)
         if verbose: print '\n ----- url: ', url
         response = self.client.get(url, headers=headers)
         self.assertEquals(response.status_code, 200)
@@ -186,30 +144,28 @@ class CruiseEventTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # (Negative) Get cruise by bad eventId
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        bad_cruise_event_id = 12345
-        url = url_for('uframe.get_cruise_by_event_id', event_id=999999)
+        bad_cruise_event_id = 9999999
+        url = url_for('uframe.get_cruise', event_id=bad_cruise_event_id)
         if verbose: print '\n ----- url: ', url
         response = self.client.get(url, headers=headers)
         self.assertEquals(response.status_code, 400)
         result = json.loads(response.data)
-        #if debug: print '\n -- fetched cruise(%d): %s' % (cruise_event_id, result)
         self.assertTrue(result is not None)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # (Negative) Get cruise by bad eventId
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        url = url_for('uframe.get_cruise_by_event_id', event_id=0)
+        url = url_for('uframe.get_cruise', event_id=0)
         if verbose: print '\n ----- url: ', url
         response = self.client.get(url, headers=headers)
         self.assertEquals(response.status_code, 400)
         result = json.loads(response.data)
-        #if debug: print '\n -- fetched cruise(%d): %s' % (cruise_event_id, result)
         self.assertTrue(result is not None)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # (Positive) Get deployments list view for a cruise
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        url = url_for('uframe.get_cruise_deployments', cruise_id=cruise_id)
+        url = url_for('uframe.get_cruise_deployments', event_id=cruise_event_id)
         if verbose: print '\n ----- url: ', url
         response = self.client.get(url, headers=headers)
         self.assertEquals(response.status_code, 200)
@@ -221,12 +177,65 @@ class CruiseEventTestCase(unittest.TestCase):
         cruise_deployments = result['cruise_deployments']
         self.assertTrue(cruise_deployments is not None)
         self.assertTrue(isinstance(cruise_deployments, list))
-        self.assertTrue(len(cruise_deployments) > 0)
+
+
+        # Get a cruise, get cruise_event_id, get deployments for cruise.
+        # Repeat until a cruise is located with deployments or max count is reached.
+        cruise_deployments = None
+        cruise_event_id = None
+        max_count = 100
+        count = 0
+        self.assertTrue(len(cruises) > 0)
+        if len(cruises) > 0:
+
+            while cruise_deployments is None and count < max_count:
+                tmp_cruise_event_id = -1
+                cruise = cruises[count]
+                count += 1
+                self.assertTrue(cruise is not None)
+                if 'eventId' in cruise:
+                    tmp_cruise_event_id = cruise['eventId']
+                if tmp_cruise_event_id < 0:
+                    continue
+                url = url_for('uframe.get_cruise_deployments', event_id=tmp_cruise_event_id)
+                if verbose: print '\n ----- url: ', url
+                response = self.client.get(url, headers=headers)
+                #print '\n test_get_cruises -- response.status_code: ', response.status_code
+                #print '\n test_get_cruises -- response.data:', json.loads(response.data)
+                self.assertEquals(response.status_code, 200)
+                result = json.loads(response.data)
+                self.assertTrue(result is not None)
+                self.assertTrue(isinstance(result, dict))
+                self.assertTrue('cruise_deployments' in result)
+                self.assertTrue(isinstance(result['cruise_deployments'], list))
+                tmp_cruise_deployments = result['cruise_deployments']
+                self.assertTrue(tmp_cruise_deployments is not None)
+                self.assertTrue(isinstance(tmp_cruise_deployments, list))
+                #print '\n Number of deployments: ', len(tmp_cruise_deployments)
+                if len(tmp_cruise_deployments) > 0:
+                    cruise_event_id = tmp_cruise_event_id
+                    cruise_deployments = tmp_cruise_deployments
+                    break
+
+        self.assertTrue(cruise_event_id is not None)
+        self.assertTrue(cruise_deployments is not None)
+        if debug: print '\n Using cruise_event_id: ', cruise_event_id
+        if debug: print '\n Number of deployments: ', len(cruise_deployments)
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # (Negative) Get cruise deployments list view for a cruise
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        url = url_for('uframe.get_cruise_deployments', cruise_id='bad-cruise-id')
+        url = url_for('uframe.get_cruise_deployments', event_id=0)
+        if verbose: print '\n ----- url: ', url
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 400)
+        result = json.loads(response.data)
+        self.assertTrue(result is not None)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Negative) Get cruise deployments list view for a cruise
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        url = url_for('uframe.get_cruise_deployments', event_id=999999999999)
         if verbose: print '\n ----- url: ', url
         response = self.client.get(url, headers=headers)
         self.assertEquals(response.status_code, 400)
@@ -237,8 +246,8 @@ class CruiseEventTestCase(unittest.TestCase):
         # (Positive) Process cruise deployment, validate fields
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         self.assertTrue(len(cruise_deployments) > 0)
-        test_deployment = cruise_deployments[0]
         """
+        test_deployment = cruise_deployments[0]
         event_types = get_event_types()
         for event_type in events_by_type:
             if debug: print '\n debug -- Event_type: ', event_type
@@ -270,7 +279,7 @@ class CruiseEventTestCase(unittest.TestCase):
         #print '\n debug -- deployment_event_id: ', deployment_event_id
 
         #Get deployment using deployment eventId.
-        url = url_for('uframe.get_deployment_by_event_id', event_id=deployment_event_id)
+        url = url_for('uframe.get_cruise_deployment', event_id=deployment_event_id)
         if verbose: print '\n ----- url: ', url
         response = self.client.get(url, headers=headers)
         self.assertEquals(response.status_code, 200)
@@ -282,31 +291,8 @@ class CruiseEventTestCase(unittest.TestCase):
         deployment = result['deployment']
         self.assertTrue(deployment is not None)
 
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # (Positive) Process cruise deployment, validate fields
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        self.assertTrue(len(deployment) > 0)
-        """
-        event_types = get_event_types()
-        for event_type in events_by_type:
-            if debug: print '\n debug -- Event_type: ', event_type
-            self.assertTrue(event_type in event_types)
-            self.assertTrue(event_type in events_by_type)
-            self.assertTrue(isinstance(events_by_type[event_type], list))
-            event_ids = []
-            if events_by_type[event_type]:
-                if debug: print '\n Have events of %s event type.' % event_type
-                events = events_by_type[event_type]
-                for event in events:
-                    self.assertTrue(event is not None)
-                    self.assertTrue(isinstance(event, dict))
-                    self.assertTrue('eventId' in event)
-                    self.assertTrue(event['eventId'])
-                    if event['eventId'] not in event_ids:
-                        event_ids.append(event['eventId'])
-        """
         # Get supported event types (/events/edit_phase_values)
-        url = url_for('uframe.get_edit_phase_values')
+        url = url_for('uframe.get_event_edit_phase_values')
         if verbose: print '\n ----- url: ', url
         response = self.client.get(url, headers=headers)
         self.assertEquals(response.status_code, 200)
@@ -314,16 +300,103 @@ class CruiseEventTestCase(unittest.TestCase):
         self.assertTrue(result is not None)
         self.assertTrue(isinstance(result, dict))
 
+
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # (Negative) Get deployment using deployment eventId.
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        url = url_for('uframe.get_deployment_by_event_id', event_id=99999)
+        url = url_for('uframe.get_cruise_deployment', event_id=99999)
         if verbose: print '\n ----- url: ', url
         response = self.client.get(url, headers=headers)
         self.assertEquals(response.status_code, 400)
         result = json.loads(response.data)
         self.assertTrue(result is not None)
         self.assertTrue(isinstance(result, dict))
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Negative) Get deployment using deployment eventId.
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        url = url_for('uframe.get_cruise_deployment', event_id=0)
+        if verbose: print '\n ----- url: ', url
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 400)
+        result = json.loads(response.data)
+        self.assertTrue(result is not None)
+        self.assertTrue(isinstance(result, dict))
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Positive) Get deployments list view for a cruise
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        url = url_for('uframe.get_cruise_deployments', event_id=cruise_event_id)
+        url += '?phase=deploy'
+        if verbose: print '\n ----- url: ', url
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        result = json.loads(response.data)
+        self.assertTrue(result is not None)
+        self.assertTrue(isinstance(result, dict))
+        self.assertTrue('cruise_deployments' in result)
+        self.assertTrue(isinstance(result['cruise_deployments'], list))
+        deployments_phase_deploy = result['cruise_deployments']
+        self.assertTrue(deployments_phase_deploy is not None)
+        self.assertTrue(isinstance(deployments_phase_deploy, list))
+        self.assertTrue(len(deployments_phase_deploy) > 0)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Positive) Get deployments list view for a cruise
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        url = url_for('uframe.get_cruise_deployments', event_id=cruise_event_id)
+        url += '?phase=recover'
+        if verbose: print '\n ----- url: ', url
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        result = json.loads(response.data)
+        self.assertTrue(result is not None)
+        self.assertTrue(isinstance(result, dict))
+        self.assertTrue('cruise_deployments' in result)
+        self.assertTrue(isinstance(result['cruise_deployments'], list))
+        deployments_phase_recover = result['cruise_deployments']
+        self.assertTrue(deployments_phase_recover is not None)
+        self.assertTrue(isinstance(deployments_phase_recover, list))
+        self.assertTrue(len(deployments_phase_recover) > 0)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Positive) Get deployments list view for a cruise
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        url = url_for('uframe.get_cruise_deployments', event_id=cruise_event_id)
+        url += '?phase=all'
+        if verbose: print '\n ----- url: ', url
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        result = json.loads(response.data)
+        self.assertTrue(result is not None)
+        self.assertTrue(isinstance(result, dict))
+        self.assertTrue('cruise_deployments' in result)
+        self.assertTrue(isinstance(result['cruise_deployments'], list))
+        deployments_phase_all = result['cruise_deployments']
+        self.assertTrue(deployments_phase_all is not None)
+        self.assertTrue(isinstance(deployments_phase_all, list))
+        self.assertTrue(len(deployments_phase_all) > 0)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # (Negative) Get deployments list view for a cruise using invalid phase value.
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        url = url_for('uframe.get_cruise_deployments', event_id=cruise_event_id)
+        url += '?phase=NOT_A_VALID_PHASE_VALUE'
+        if verbose: print '\n ----- url: ', url
+        response = self.client.get(url, headers=headers)
+        self.assertEquals(response.status_code, 200)
+        result = json.loads(response.data)
+        self.assertTrue(result is not None)
+        self.assertTrue(isinstance(result, dict))
+        self.assertTrue('cruise_deployments' in result)
+        self.assertTrue(isinstance(result['cruise_deployments'], list))
+        deployments_phase_all = result['cruise_deployments']
+        self.assertTrue(deployments_phase_all is not None)
+        self.assertTrue(isinstance(deployments_phase_all, list))
+        self.assertTrue(len(deployments_phase_all) > 0)
+        if debug:
+            print '\n get_cruise_deployments -- ?phase=NOT_A_VALID_PHASE_VALUE'
+            dump_dict(deployments_phase_all, True)
 
         if verbose: print '\n'
 
@@ -346,7 +419,7 @@ class CruiseEventTestCase(unittest.TestCase):
             print '\n Creating %s event ...' % event_type
 
         # Get unique cruise identifier.
-        cruise_id, input = self.get_cruise_by_cruise_id(None, None)
+        cruise_id, input = self.get_cruise_by_event_id(None, None)
         self.assertTrue(cruise_id is not None)
         self.assertTrue(input is not None)
 
@@ -379,25 +452,29 @@ class CruiseEventTestCase(unittest.TestCase):
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Supporting functions
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    def get_cruise_by_cruise_id(self, uid, rd):
-
+    def get_cruise_by_event_id(self, uid, rd):
         """ http://uframe-test.ooi.rutgers.edu:12587/events/cruise/inv/EE-2016-0191
         """
         debug = self.debug
         verbose = self.verbose
         headers = self.get_api_headers('admin', 'test')
-
-        if verbose: print '\n test -- Entered get_cruise_by_cruise_id...'
+        event_type = 'CRUISE_INFO'
+        if verbose: print '\n test -- Entered get_cruise using event_id...'
 
         # Make create initial cruise data.
         event_type = 'CRUISE_INFO'
-        uid, input = self.create_event_data(event_type, None, None) # for cruise set uid and rd equal to None.
+        input = self.create_event_data(event_type)
 
-        # Get value for uniqueCruiseIdentifer
+        # Create a cruise event
+        event_id, last_modified = self._create_event_type(event_type, None, input)
+
+        # Get value for uniqueCruiseIdentifier
+        self.assertTrue('uniqueCruiseIdentifier' in input)
         cruise_id = input['uniqueCruiseIdentifier']
+        #_cruise_id = (urllib.quote(cruise_id, ''))
 
         # Verify uniqueCruiseIdentifer does not already exist in cruises.
-        url = url_for('uframe.get_cruise_by_cruise_id', cruise_id=cruise_id)
+        url = url_for('uframe.get_cruise', event_id=event_id)
         if verbose: print '\n ----- url: ', url
         response = self.client.get(url, headers=headers)
         if debug: print '\n test -- response.status_code: ', response.status_code
@@ -412,10 +489,7 @@ class CruiseEventTestCase(unittest.TestCase):
                 # Get a unique cruise identifier
                 # Make some unique key in form: 'EE-2016-0102'
                 unique_num = randint(105, 990)
-                uniqueCruiseIdentifer = 'XX-2016-0' + str(unique_num)
-
-                exists = uniqueCruiseIdentifier_exists(uniqueCruiseIdentifer)
-                #print '\n ============> uniqueCruiseIdentifier %s exists?: %r' % (uniqueCruiseIdentifer, exists)
+                uniqueCruiseIdentifer = 'XX-2016-0' + str(unique_num) + '  R/V'
                 if uniqueCruiseIdentifier_exists(uniqueCruiseIdentifer):
                     if debug: print '\n Do not have unique cruise identifier: ', uniqueCruiseIdentifer
                     continue
@@ -424,23 +498,9 @@ class CruiseEventTestCase(unittest.TestCase):
                     cruise_id = uniqueCruiseIdentifer
                     break
 
-
-                """
-                if debug: print '\n test -- Try uniqueCruiseIdentifier: ', uniqueCruiseIdentifer
-                # Verify uniqueCruiseIdentifer does not exist in cruises
-                url = url_for('uframe.get_cruise_by_cruise_id', cruise_id=uniqueCruiseIdentifer)
-                if debug: print '\n ----- url: ', url
-                response = self.client.get(url, headers=headers)
-                if debug: print '\n test -- response.status_code: ', response.status_code
-                if response.status_code == 409:
-                    cruise_id = uniqueCruiseIdentifer
-                    break
-                """
-
         self.assertTrue(cruise_id is not None)
         if verbose: print '\n Unique cruise id: ', cruise_id
         input['uniqueCruiseIdentifier'] = cruise_id
-
         return cruise_id, input
 
     def get_id_uid_rd(self, asset):
@@ -465,16 +525,11 @@ class CruiseEventTestCase(unittest.TestCase):
             # Get reference designator
             rd = get_rd_by_asset_id(asset_id)
             if debug: print '\n Have rd: %s ' % rd
-
             return asset_id, asset_uid, rd
 
         except Exception:
             print '\n exception getting asset id, uid and rd.'
             return None, None, None
-
-    def request_headers(self):
-        """ Headers for uframe PUT and POST. """
-        return {"Content-Type": "application/json"}
 
     #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # Update event_type - regular
@@ -496,8 +551,8 @@ class CruiseEventTestCase(unittest.TestCase):
             print '\n **** Update input: %r' % input
 
         if debug:
-            print '\n debug ********\n test update (line 756) UPDATE request_data(%d): %r' % (len(input),
-                                                              json.dumps(input, indent=4, sort_keys=True))
+            print '\n debug ******** Update request_data(%d): ' % len(input)
+            dump_dict(input, debug)
 
         url = url_for('uframe.update_event', id=event_id)
         if verbose: print '\n **** Update url: ', url
@@ -522,11 +577,13 @@ class CruiseEventTestCase(unittest.TestCase):
         return event_id
 
     # Data used to create different event types.
-    def create_event_data(self, event_type, uid, rd):
+    def create_event_data(self, event_type):
         input = {}
+        self.assertTrue(event_type is not None)
+        self.assertTrue(event_type in get_event_types())
         unique_num = randint(1, 1000)
         unique_float = randint(1, 1000) * 100.0
-        notes = 'Create new %s event for %s, (assetUid: %s); unique number: %d' % (event_type, rd, uid, unique_num)
+        notes = 'Create new %s event.' % event_type
         if event_type == 'CRUISE_INFO':
             # Make some unique key in form: 'EE-2016-0102'
             unique_num = randint(105, 990)
@@ -543,12 +600,12 @@ class CruiseEventTestCase(unittest.TestCase):
                     'tense': 'UNKNOWN',
                     'dataSource': str(unique_num),
                     'assetUid': None,
-                    'editPhase': None
+                    'editPhase': 'EDIT'
                     }
 
         self.assertTrue(input is not None)
-        string_input = self.get_event_input_as_string(input)
-        return uid, string_input
+        string_input = get_event_input_as_string(input)
+        return string_input
 
     # Data used to update CRUISE_INFO event types.
     def update_event_data_cruise(self, event_type, event_id, last_modified, cruise_id=None):
@@ -578,10 +635,10 @@ class CruiseEventTestCase(unittest.TestCase):
                     'assetUid': None,
                     'eventId': event_id,
                     'lastModifiedTimestamp': last_modified,
-                    'editPhase': 'OPERATIONAL'
+                    'editPhase': 'STAGED'
                     }
 
-        string_input = self.get_event_input_as_unicode(input)
+        string_input = get_event_input_as_unicode(input, debug)
         return string_input
 
     #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -626,8 +683,8 @@ class CruiseEventTestCase(unittest.TestCase):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         if debug:
             print '\n Create %s event' % key
-            print '\n debug ********\n test CREATE request_data(%d): %r' % (len(input),
-                                                              json.dumps(input, indent=4, sort_keys=True))
+            print '\n Create request_data(%d): ' % len(input)
+            dump_dict(input, debug)
 
         url = url_for('uframe.create_event')
         if debug: print '\n create url: ', url
@@ -657,56 +714,3 @@ class CruiseEventTestCase(unittest.TestCase):
 
         if debug: print '\n ***************************************** exit'
         return event_id, last_modified
-
-    def get_event_input_as_string(self, data):
-        """ Take input from UI and present all values as string type. Leaves nulls.
-        Handles one dict level down. Used to simulate UI data from jgrid submit.
-        """
-        debug = False
-        try:
-            if debug: print '\n debug -- get_event_input_as_string'
-            string_data = data.copy()
-            keys = data.keys()
-            for key in keys:
-                if data[key] is not None:
-                    if not isinstance(data[key], dict):
-                        string_data[key] = str(data[key])
-                    else:
-                        if debug: print '\n Field is dict: ', key
-                        tmp_dict = data[key].copy()
-                        for k,v in tmp_dict.iteritems():
-                            if v is not None:
-                                if not isinstance(v, dict):
-                                    string_data[key][k] = str(v)
-            return string_data
-
-        except Exception as err:
-            if debug: print '\n exception: ', str(err)
-            raise
-
-    def get_event_input_as_unicode(self, data):
-        """ Take input from UI and present all values as string type. Leaves nulls.
-        Handles one dict level down. Used to simulate UI data from jgrid submit.
-        """
-        debug = False
-        try:
-            if debug: print '\n debug -- get_event_input_as_unicode'
-            string_data = data.copy()
-            keys = data.keys()
-            for key in keys:
-                if data[key] is not None:
-                    if not isinstance(data[key], dict):
-                        string_data[key] = unicode(data[key])
-                    else:
-                        if debug: print '\n Field is dict: ', key
-                        tmp_dict = data[key].copy()
-                        for k,v in tmp_dict.iteritems():
-                            if v is not None:
-                                if not isinstance(v, dict):
-                                    string_data[key][k] = unicode(v)
-            return string_data
-
-        except Exception as err:
-            if debug: print '\n exception: ', str(err)
-            raise
-
