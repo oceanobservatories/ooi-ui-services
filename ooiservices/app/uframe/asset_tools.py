@@ -12,7 +12,7 @@ from ooiservices.app.uframe.controller import dfs_streams
 from ooiservices.app.uframe.vocab import (get_vocab, get_vocab_dict_by_rd, get_rs_array_name_by_rd, get_display_name_by_rd)
 from ooiservices.app.uframe.uframe_tools import (get_assets_from_uframe, uframe_get_asset_by_id, uframe_get_asset_by_uid)
 from ooiservices.app.uframe.common_tools import (get_asset_type_by_rd, get_asset_classes, get_supported_asset_types,
-                                                 get_location_fields)
+                                                 get_location_fields, get_uframe_asset_type, get_asset_type_display_name)
 from ooiservices.app.uframe.asset_cache_tools import (_get_rd_assets, get_asset_deployment_info, get_asset_rds_cache,
                                                       asset_rds_cache_update, get_rd_from_rd_assets)
 import datetime as dt
@@ -35,6 +35,9 @@ def verify_cache(refresh=False):
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         if not cache.get('asset_list') or not cache.get('assets_dict') or \
            not cache.get('asset_rds') or not cache.get('rd_assets'):
+            verify_cache_required = True
+        elif cache.get('asset_list') is None or cache.get('assets_dict') is None or \
+            cache.get('asset_rds') is None or cache.get('rd_assets') is None:
             verify_cache_required = True
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -379,7 +382,7 @@ def new_compile_assets(data, compile_all=False):
     """ Process list of asset dictionaries from uframe; transform into (ooi-ui-services) list of asset dictionaries.
     """
     debug = False
-    info = False                 # Log missing vocab items when unable to create display name(s), etc. (default is True)
+    info = False                # Log missing vocab items when unable to create display name(s), etc. (default is True)
     new_data = []               # (assets) Mooring, Node and Sensor assets which have been deployed
     bad_data = []               # (assets with unknown asset type or error.)
     bad_data_ids = []
@@ -456,17 +459,31 @@ def new_compile_assets(data, compile_all=False):
             row['asset_class'] = row.pop('@class')
 
             # If ref_des not provided in row, use dictionary lookup.
-            if asset_id in dict_asset_ids:
-                ref_des = dict_asset_ids[asset_id]
+            ref_des = None
+            if 'ref_des' in row:
+                if row['ref_des'] and row['ref_des'] is not None:
+                    ref_des = row['ref_des']
+
+            if ref_des is None:
+                if asset_id in dict_asset_ids:
+                    ref_des = dict_asset_ids[asset_id]
 
             # Gather list of all assetType values RECEIVED (for information only)
-            _asset_type = None
-            if row['assetType']:
-                _asset_type = row['assetType']
-                if row['assetType'] not in all_asset_types_received:
-                    if row['assetType']:
+            asset_type = None
+            uframe_asset_type = get_uframe_asset_type(row['assetType'])
+            if row['assetType'] and row['assetType'] is not None:
+                try:
+                    asset_type = get_asset_type_display_name(row['assetType'])
+                    row['assetType'] = asset_type
+
+                    # Values processed
+                    if uframe_asset_type not in all_asset_types_received:
                         all_asset_types_received.append(row['assetType'])
-            if _asset_type is None:
+
+                except Exception as err:
+                    message = 'get_uframe_asset_type: %s; error: %s' % (row['assetType'], str(err))
+                    current_app.logger.info(message)
+            else:
                 message = 'Asset (id: %d) has a null or empty assetType value.' % asset_id
                 current_app.logger.info(message)
                 continue
@@ -543,7 +560,7 @@ def new_compile_assets(data, compile_all=False):
             # If no reference designator available, but have asset id then continue to next row.
             # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             if not ref_des or ref_des is None:
-                if _asset_type not in asset_supported_types:
+                if uframe_asset_type not in asset_supported_types:
                     bad_data_ids.append(asset_id)
                     bad_data.append(row)
                     continue
@@ -573,7 +590,7 @@ def new_compile_assets(data, compile_all=False):
             row['assetInfo']['owner'] = row.pop('owner')
 
             # Populate assetInfo 'type' with uframe provided assetType.
-            asset_type = row['assetType']
+            #asset_type = row['assetType']
             row['assetInfo']['type'] = asset_type
 
             # Verify all necessary attributes are available, if not create and set to empty.
@@ -620,10 +637,14 @@ def new_compile_assets(data, compile_all=False):
                 if processing_asset_type:
                     processing_asset_type = processing_asset_type.lower()
                 if processing_asset_type not in valid_processing_types:
+                    #if debug: print '\n debug *** processing_asset_type %s not in valid_processing_types: %s' % \
+                    #                (processing_asset_type, valid_processing_types)
                     continue
 
                 # Get deployment information for this asset_id-rd; populate asset values using deployment information.
                 deployment_numbers, no_deployments_nums, deployments_list = get_asset_deployment_map(asset_id, ref_des)
+                row['deployment_number'] = deployment_numbers
+                row['deployment_numbers'] = deployments_list
 
                 # If reference designator has deployments which do not have associated asset ids, compile information.
                 if no_deployments_nums:
@@ -634,9 +655,6 @@ def new_compile_assets(data, compile_all=False):
                         for did in no_deployments_nums:
                             if did not in all_no_deployments_dict[ref_des]:
                                 all_no_deployments_dict[ref_des].append(did)
-
-                row['deployment_number'] = deployment_numbers
-                row['deployment_numbers'] = deployments_list
 
                 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                 # Populate assetInfo dictionary
@@ -700,6 +718,8 @@ def new_compile_assets(data, compile_all=False):
             if row['assetType']:
                 if row['assetType'] not in all_asset_types:
                     all_asset_types.append(row['assetType'])
+
+            #row['assetType'] = row['type']
             # Add new row to output dictionary
             if asset_id:    # and ref_des:
                 new_data.append(row)
@@ -714,6 +734,8 @@ def new_compile_assets(data, compile_all=False):
             message = str(err)
             current_app.logger.info(message)
             continue
+
+        # end of asset processing loop
 
     if compile_all:
         # If reference designators with missing deployment(s), log sorted by reference designator.
@@ -739,6 +761,10 @@ def new_compile_assets(data, compile_all=False):
         if dict_asset_ids:
             if update_asset_rds_cache:
                 asset_rds_cache_update(dict_asset_ids)
+
+        if debug:
+            print '\n All asset types processed: ', all_asset_types
+            print '\n All asset types received: ', all_asset_types_received
 
         print '\n\t-- Total number of assets compiled: ', len(new_data)
 
@@ -768,7 +794,6 @@ def get_asset_deployment_map(asset_id, ref_des):
     Note: on current deployment the endDT will be null if deployment is active.
 
     """
-    debug = False
     try:
         # Valid processing types are those assetTypes which are subsequently mapped to reference designators.
         valid_processing_types_uc = get_supported_asset_types()
@@ -779,14 +804,9 @@ def get_asset_deployment_map(asset_id, ref_des):
         _deployment_numbers = []
 
         # Get type of asset we are processing, using reference designator.
-        #print '\n debug -- get_asset_deployment_map id/rd: %d/%s' % (asset_id, ref_des)
         asset_type = get_asset_type_by_rd(ref_des)
         if asset_type:
             asset_type = asset_type.lower()
-        if debug:
-            if asset_type not in valid_processing_types:
-                message = 'Processing %s for deployments, invalid asset type \'%s\'.' % (ref_des, asset_type)
-                current_app.logger.info(message)
 
         no_deployments_nums = []
         if asset_type in valid_processing_types:
@@ -851,7 +871,6 @@ def get_asset_deployment_map(asset_id, ref_des):
                     if no_deployments_nums:
                         if current_deployment_number in no_deployments_nums:
                             deployment_numbers += ' *'
-
         return deployment_numbers, no_deployments_nums, _deployment_numbers
 
     except Exception as err:

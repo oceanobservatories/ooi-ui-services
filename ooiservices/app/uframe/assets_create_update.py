@@ -6,9 +6,9 @@ __author__ = 'Edna Donoughe'
 from flask import current_app
 from ooiservices.app.uframe.common_tools import (get_asset_types, get_asset_class_by_asset_type, verify_action,
                                                  get_class_remote_resource, asset_edit_phase_values, get_location_dict,
-                                                 convert_float_field, dump_dict)
+                                                 convert_float_field, get_uframe_asset_type)
 from ooiservices.app.uframe.asset_tools import (format_asset_for_ui)
-from ooiservices.app.uframe.asset_cache_tools import refresh_asset_cache
+from ooiservices.app.uframe.asset_cache_tools import (refresh_asset_cache, asset_cache_refresh)
 from ooiservices.app.uframe.assets_validate_fields import (assets_validate_required_fields_are_provided,
                                                            asset_get_required_fields_and_types_uframe,
                                                            validate_required_fields_remote_resource)
@@ -88,13 +88,12 @@ def _create_asset(data):
         raise Exception(message)
 
 
-def refresh_asset_deployment(uid, rd, deploymentNumber):
+def refresh_asset_deployment(uid, rd):
     """ When a deployment is created, each asset cache must be updated to reflect deployment map updates.
     """
-    debug = False
-    action = 'update'
     try:
-        if debug: print '\n debug -- Entered refresh_asset_deployment...'
+        if uid is None:
+            return
         # Get asset from uframe by uid.
         asset = uframe_get_asset_by_uid(uid)
         if not asset:
@@ -115,15 +114,6 @@ def refresh_asset_deployment(uid, rd, deploymentNumber):
             message = 'Failed to format uframe asset for UI; asset id/uid: %d/%s' % (id, uid)
             raise Exception(message)
 
-        if debug:
-            print '\n debug -- Asset cache update after deployment modification.'
-            print '\n debug -- After format_asset_for_ui...'
-            dump_dict(ui_asset, debug)
-
-        # Force update reference designator to one provided with deployment.
-        if 'ref_des' in ui_asset:
-            ui_asset['ref_des'] = rd
-
         # Minimize data for cache.
         asset_store = deepcopy(ui_asset)
         if 'events' in asset_store:
@@ -132,12 +122,7 @@ def refresh_asset_deployment(uid, rd, deploymentNumber):
             del asset_store['calibration']
 
         # Refresh asset cache.
-        refresh_asset_cache(id, asset_store, action)
-        if debug:
-            print '\n debug -- After refresh_asset_cache...'
-            dump_dict(asset_store, debug)
-
-        if debug: print '\n debug -- Exit refresh_asset_deployment...'
+        asset_cache_refresh(id, asset_store, rd)
         return
 
     except Exception as err:
@@ -268,7 +253,11 @@ def transform_asset_for_uframe(id, asset, action=None):
         if 'assetType' not in asset:
             message = 'Malformed asset; missing required attribute \'assetType\'.'
             raise Exception(message)
-        asset_type = asset['assetType']
+
+        #asset_type = asset['assetType']
+
+        # Convert asset type display names to valid assetType value.
+        asset_type = get_uframe_asset_type(asset['assetType'])
         if asset_type not in get_asset_types():
             message = 'Unknown assetType identified in asset during transform: \'%s\'.' % asset_type
             raise Exception(message)
@@ -285,7 +274,6 @@ def transform_asset_for_uframe(id, asset, action=None):
         # Convert values for fields in 'string asset'
         #- - - - - - - - - - - - - - - - - - - - - -
         converted_asset = assets_validate_required_fields_are_provided(asset_type, asset, action)
-
         if 'uid' not in converted_asset:
             message = 'Malformed asset; missing required attribute \'uid\'.'
             raise Exception(message)

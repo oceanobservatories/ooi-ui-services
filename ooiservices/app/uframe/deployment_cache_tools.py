@@ -6,23 +6,25 @@ Asset Management - Deployments: Support for cache related functions.
 __author__ = 'Edna Donoughe'
 
 from ooiservices.app import cache
+from copy import deepcopy
 from ooiservices.app.uframe.uframe_tools import _get_id_by_uid
-from ooiservices.app.uframe.common_tools import dump_dict
+from ooiservices.app.uframe.common_tools import is_instrument
 
 CACHE_TIMEOUT = 172800
 
 
-def refresh_deployment_cache(id, deployment, action):
+def refresh_deployment_cache(id, deployment, action, mid, nid, sid):
     """ Perform deployment cache refresh.
     """
     try:
-        deployment_cache_refresh(id, deployment, action)
+        # Refresh deployment cache.
+        deployment_cache_refresh(id, deployment, action, mid, nid, sid)
     except Exception as err:
         message = str(err)
         raise Exception(message)
 
 
-def deployment_cache_refresh(id, deployment, action):
+def deployment_cache_refresh(id, deployment, action, mid, nid, sid):
     """ Add an deployment to 'rd_assets' for deployment cache.
     {
         "assetUid" : null,
@@ -51,220 +53,245 @@ def deployment_cache_refresh(id, deployment, action):
         "versionNumber": 3027
     }
     """
-    debug = False
     try:
-        if debug:
-            print '\n debug---------------------------------------------------------------------'
-            print '\n debug -- Entered deployment_cache_refresh...action: ', action
-        mooring_id, node_id, sensor_id, eventId, rd, deploymentNumber, location, startTime, stopTime = \
+        mooring_id, node_id, sensor_id, eventId, deployment_rd, deploymentNumber, location, startTime, stopTime = \
             get_deployment_cache_info(deployment)
 
-        if debug:
-            print '\n debug -- mooring_id: ', mooring_id
-            print '\n debug -- node_id: ', node_id
-            print '\n debug -- eventId: ', eventId
-            print '\n debug -- rd: ', rd
-            print '\n debug -- deploymentNumber: ', deploymentNumber
-            print '\n debug -- location: ', location
-            print '\n debug -- startTime: ', startTime
-            print '\n debug -- stopTime: ', stopTime
-            print '\n debug -- action: ', action
+        if not is_instrument(deployment_rd):
+            message = 'The reference designator provided for refreshing deployment cache is not an instrument.'
+            raise Exception(message)
 
-        # Add deployment to deployment cache ('rd_assets')
-        deployment_cache = cache.get('rd_assets')
-        if deployment_cache:
-            deployments_dict = deployment_cache
-            if isinstance(deployments_dict, dict):
+        mooring_rd, node, sensor = deployment_rd.split('-', 2)
+        node_rd = '-'.join([mooring_rd, node])
+        sensor_rd = deployment_rd
+        rds = [mooring_rd, node_rd, sensor_rd]
+        for rd in rds:
 
-                # Determine if rd in deployments dictionary.
-                if rd in deployments_dict:
-                    if debug:
-                        print '\n\t---------------------'
-                        print '\n\t debug -- the rd: %s is already in the deployments_dict...' % rd
-                    work = deployments_dict[rd]
+            # Add deployment to deployment cache ('rd_assets')
+            deployment_cache = cache.get('rd_assets')
+            if deployment_cache:
+                deployments_dict = deployment_cache
+                if isinstance(deployments_dict, dict):
 
-                    # If deployment number in dictionary, verify asset ids are represented.
-                    if deploymentNumber in work:
-                        if debug: print '\n\t Branch 1. debug -- deploymentNumber is already in work...'
-                        #------------
-                        # Update deployment asset ids with mooring, node and sensor id information
-                        # Mooring
-                        if debug: print '\n\t debug -- processing mooring_id...'
-                        if mooring_id is not None:
-                            target_asset_type = 'mooring'
-                            if mooring_id not in work[deploymentNumber]['asset_ids']:
-                                work[deploymentNumber]['asset_ids'].append(mooring_id)
+                    # Determine if rd in deployments dictionary.
+                    if rd in deployments_dict:
+                        work = deepcopy(deployments_dict[rd])
 
-                            if target_asset_type in work[deploymentNumber]['asset_ids_by_type']:
-                                if mooring_id not in work[deploymentNumber]['asset_ids_by_type'][target_asset_type]:
-                                    work[deploymentNumber]['asset_ids_by_type'][target_asset_type].append(mooring_id)
+                        # If deployment number in dictionary, verify asset ids are represented.
+                        if deploymentNumber in work:
+                            #------------
+                            # Update deployment asset ids with mooring, node and sensor id information
+                            # Mooring
+                            if mooring_id is not None:
+                                target_asset_type = 'mooring'
+                                if mooring_id not in work[deploymentNumber]['asset_ids']:
+                                    work[deploymentNumber]['asset_ids'].append(mooring_id)
+
+                                if target_asset_type in work[deploymentNumber]['asset_ids_by_type']:
+                                    if mooring_id not in work[deploymentNumber]['asset_ids_by_type'][target_asset_type]:
+                                        work[deploymentNumber]['asset_ids_by_type'][target_asset_type].append(mooring_id)
+                                else:
+                                    work[deploymentNumber]['asset_ids_by_type'][target_asset_type] = [mooring_id]
+
+                                # Main dictionary asset_ids list
+                                if mooring_id not in work['asset_ids']:
+                                    work['asset_ids'].append(mooring_id)
+                                if mooring_id not in work['asset_ids_by_type'][target_asset_type]:
+                                    work['asset_ids_by_type'][target_asset_type].append(mooring_id)
                             else:
-                                work[deploymentNumber]['asset_ids_by_type'][target_asset_type] = [mooring_id]
+                                # Mooring id is None or empty...use original mooring id provided (mid).
+                                # If original mooring id (mid) is None and current setting is None, no change (go on).
+                                # else we are removing this mooring id from deployment map.
+                                if mid is not None:
+                                    target_asset_type = 'mooring'
+                                    if mid in work[deploymentNumber]['asset_ids']:
+                                        work[deploymentNumber]['asset_ids'].remove(mid)
+                                    if target_asset_type in work[deploymentNumber]['asset_ids_by_type']:
+                                        if mid in work[deploymentNumber]['asset_ids_by_type'][target_asset_type]:
+                                            work[deploymentNumber]['asset_ids_by_type'][target_asset_type].remove(mid)
+                                    # Main dictionary asset_ids list
+                                    if mid in work['asset_ids']:
+                                        work['asset_ids'].remove(mid)
+                                    if mid in work['asset_ids_by_type'][target_asset_type]:
+                                        work['asset_ids_by_type'][target_asset_type].remove(mid)
 
-                            # Main dictionary asset_ids list
-                            if mooring_id not in work['asset_ids']:
-                                work['asset_ids'].append(mooring_id)
-                            if mooring_id not in work['asset_ids_by_type'][target_asset_type]:
-                                work['asset_ids_by_type'][target_asset_type].append(mooring_id)
-                        else:
-                            if debug:
-                                print '\n\t mooring_id is None'
-                        # Node
-                        if debug: print '\n\t debug -- processing node_id...'
-                        if node_id is not None:
-                            target_asset_type = 'node'
-                            if node_id not in work[deploymentNumber]['asset_ids']:
-                                work[deploymentNumber]['asset_ids'].append(node_id)
+                            # Node
+                            if node_id is not None:
+                                target_asset_type = 'node'
+                                if node_id not in work[deploymentNumber]['asset_ids']:
+                                    work[deploymentNumber]['asset_ids'].append(node_id)
 
-                            if target_asset_type in work[deploymentNumber]['asset_ids_by_type']:
-                                if node_id not in work[deploymentNumber]['asset_ids_by_type'][target_asset_type]:
-                                    work[deploymentNumber]['asset_ids_by_type'][target_asset_type].append(node_id)
+                                if target_asset_type in work[deploymentNumber]['asset_ids_by_type']:
+                                    if node_id not in work[deploymentNumber]['asset_ids_by_type'][target_asset_type]:
+                                        work[deploymentNumber]['asset_ids_by_type'][target_asset_type].append(node_id)
+                                else:
+                                    work[deploymentNumber]['asset_ids_by_type'][target_asset_type] = [node_id]
+
+                                # Main dictionary asset_ids list
+                                if node_id not in work['asset_ids']:
+                                    work['asset_ids'].append(node_id)
+
+                                if node_id not in work['asset_ids_by_type'][target_asset_type]:
+                                    work['asset_ids_by_type'][target_asset_type].append(node_id)
                             else:
-                                work[deploymentNumber]['asset_ids_by_type'][target_asset_type] = [node_id]
+                                # Node id is None or empty...use original node id provided (nid).
+                                # If original node id (nid) is None and current setting is None, no change (go on).
+                                # else we are removing this node id from deployment map.
+                                if nid is not None:
+                                    target_asset_type = 'node'
+                                    if nid in work[deploymentNumber]['asset_ids']:
+                                        work[deploymentNumber]['asset_ids'].remove(nid)
+                                    if target_asset_type in work[deploymentNumber]['asset_ids_by_type']:
+                                        if nid in work[deploymentNumber]['asset_ids_by_type'][target_asset_type]:
+                                            work[deploymentNumber]['asset_ids_by_type'][target_asset_type].remove(nid)
 
-                            # Main dictionary asset_ids list
-                            if node_id not in work['asset_ids']:
-                                work['asset_ids'].append(node_id)
-                            if node_id not in work['asset_ids_by_type'][target_asset_type]:
-                                work['asset_ids_by_type'][target_asset_type].append(node_id)
-                        else:
-                            if debug:
-                                print '\n\t node_id is None'
+                                    # Main dictionary asset_ids list
+                                    if nid in work['asset_ids']:
+                                        work['asset_ids'].remove(nid)
+                                    if nid in work['asset_ids_by_type'][target_asset_type]:
+                                        work['asset_ids_by_type'][target_asset_type].remove(nid)
 
-                        # Sensor
-                        if debug: print '\n\t debug -- processing sensor_id...'
-                        if sensor_id is not None:
-                            target_asset_type = 'sensor'
-                            if sensor_id not in work[deploymentNumber]['asset_ids']:
-                                work[deploymentNumber]['asset_ids'].append(deploymentNumber)
+                            # Sensor
+                            if sensor_id is not None:
+                                target_asset_type = 'sensor'
+                                if sensor_id not in work[deploymentNumber]['asset_ids']:
+                                    work[deploymentNumber]['asset_ids'].append(sensor_id)
 
-                            if target_asset_type in work[deploymentNumber]['asset_ids_by_type']:
-                                if sensor_id not in work[deploymentNumber]['asset_ids_by_type'][target_asset_type]:
-                                    work[deploymentNumber]['asset_ids_by_type'][target_asset_type].append(sensor_id)
+                                if target_asset_type in work[deploymentNumber]['asset_ids_by_type']:
+                                    if sensor_id not in work[deploymentNumber]['asset_ids_by_type'][target_asset_type]:
+                                        work[deploymentNumber]['asset_ids_by_type'][target_asset_type].append(sensor_id)
+                                else:
+                                    work[deploymentNumber]['asset_ids_by_type'][target_asset_type] = [sensor_id]
+
+                                #- - - - - - - - - - - - - - - - - - - - - - - - - -
+                                # Main dictionary asset_ids list
+                                #- - - - - - - - - - - - - - - - - - - - - - - - - -
+                                if sensor_id not in work['asset_ids']:
+                                    work['asset_ids'].append(sensor_id)
+                                if sensor_id not in work['asset_ids_by_type'][target_asset_type]:
+                                    work['asset_ids_by_type'][target_asset_type].append(sensor_id)
                             else:
-                                work[deploymentNumber]['asset_ids_by_type'][target_asset_type] = [sensor_id]
+                                # Sensor id is None or empty...use original sensor id provided (nid).
+                                # If original sensor id (sid) is None and current setting is None, no change (go on).
+                                # else we are removing this sensor id from deployment map.
+                                if sid is not None:
+                                    target_asset_type = 'sensor'
+                                    if sid in work[deploymentNumber]['asset_ids']:
+                                        work[deploymentNumber]['asset_ids'].remove(sid)
+                                    if target_asset_type in work[deploymentNumber]['asset_ids_by_type']:
+                                        if sid in work[deploymentNumber]['asset_ids_by_type'][target_asset_type]:
+                                            work[deploymentNumber]['asset_ids_by_type'][target_asset_type].remove(sid)
+                                    # Main dictionary asset_ids list
+                                    if sid in work['asset_ids']:
+                                        work['asset_ids'].remove(sid)
+                                    if sid in work['asset_ids_by_type'][target_asset_type]:
+                                        work['asset_ids_by_type'][target_asset_type].remove(sid)
 
-                            # Main dictionary asset_ids list
-                            if sensor_id not in work['asset_ids']:
-                                work['asset_ids'].append(sensor_id)
-                            if sensor_id not in work['asset_ids_by_type'][target_asset_type]:
-                                work['asset_ids_by_type'][target_asset_type].append(sensor_id)
+
+                            # Common elements in work[deploymentNumber]
+                            work[deploymentNumber]['beginDT'] = startTime
+                            work[deploymentNumber]['endDT'] = stopTime
+                            work[deploymentNumber]['eventId'] = eventId
+                            work[deploymentNumber]['location'] = location
+
+                            # deploymentNumber in work, therefore should be in work[deployments, verify and update is not.
+                            if deploymentNumber not in work['deployments']:
+                                #print '\n *** Added deploymentNumber %d for rd %s...' % (deploymentNumber, rd)
+                                work['deployments'].append(deploymentNumber)
+                            if work['deployments']:
+                                work['deployments'].sort(reverse=True)
+
+                            #------------
+                            else:
+                                work['current_deployment'] = deploymentNumber
+
+                            # Update deployment entry for rd.
+                            deployments_dict[rd] = work
+
                         else:
-                            if debug:
-                                print '\n\t sensor_id is None'
+                            new_deployment = {}
+                            new_deployment['beginDT'] = startTime
+                            new_deployment['endDT'] = stopTime
+                            new_deployment['eventId'] = eventId
+                            new_deployment['location'] = location
+                            new_deployment['asset_ids_by_type'] = {'mooring': [], 'node': [], 'sensor': []}
+                            new_deployment['asset_ids'] = []
+                            work[deploymentNumber] = new_deployment
+                            if mooring_id is not None:
+                                if mooring_id not in work['asset_ids']:
+                                    work['asset_ids'].append(mooring_id)
+                                if mooring_id not in work['asset_ids_by_type']['mooring']:
+                                    work['asset_ids_by_type']['mooring'].append(mooring_id)
+                                if mooring_id not in work[deploymentNumber]['asset_ids']:
+                                    work[deploymentNumber]['asset_ids'].append(mooring_id)
+                                if mooring_id not in work[deploymentNumber]['asset_ids_by_type']['mooring']:
+                                    work[deploymentNumber]['asset_ids_by_type']['mooring'].append(mooring_id)
+                            if node_id is not None:
+                                if node_id not in work['asset_ids']:
+                                    work['asset_ids'].append(node_id)
+                                if node_id not in work[deploymentNumber]['asset_ids']:
+                                    work[deploymentNumber]['asset_ids'].append(node_id)
+                                if node_id not in work['asset_ids_by_type']['node']:
+                                    work['asset_ids_by_type']['node'].append(node_id)
+                                if node_id not in work[deploymentNumber]['asset_ids_by_type']['node']:
+                                    work[deploymentNumber]['asset_ids_by_type']['node'].append(node_id)
+                            if sensor_id is not None:
+                                if sensor_id not in work['asset_ids']:
+                                    work['asset_ids'].append(sensor_id)
+                                if sensor_id not in work[deploymentNumber]['asset_ids']:
+                                    work[deploymentNumber]['asset_ids'].append(sensor_id)
+                                if sensor_id not in work['asset_ids_by_type']['sensor']:
+                                    work['asset_ids_by_type']['sensor'].append(sensor_id)
+                                if sensor_id not in work[deploymentNumber]['asset_ids_by_type']['sensor']:
+                                    work[deploymentNumber]['asset_ids_by_type']['sensor'].append(sensor_id)
+                            if deploymentNumber not in work['deployments']:
+                                work['deployments'].append(deploymentNumber)
+                            deployments_list = work['deployments']
+                            deployments_list.sort(reverse=True)
+                            current_deployment_number = deployments_list[0]
+                            work['current_deployment'] = current_deployment_number
 
-                        if debug: print '\n debug\t -- processing beginDT block...'
+                        #---------
+                            deployments_dict[rd] = work
+
+                    # Build dictionary for rd, then add to rd_assets
+                    else:
+                        work = {}
+                        work['current_deployment'] = deploymentNumber
+                        work['deployments'] = [deploymentNumber]
+                        work[deploymentNumber] = {}
                         work[deploymentNumber]['beginDT'] = startTime
                         work[deploymentNumber]['endDT'] = stopTime
                         work[deploymentNumber]['eventId'] = eventId
                         work[deploymentNumber]['location'] = location
-
-                        # deploymentNumber in work, therefore should be in work[deployments, verify and update is not.
-                        if deploymentNumber not in work['deployments']:
-                            print '\n *** Added deploymentNumber %d for rd %s...' % (deploymentNumber, rd)
-                            work['deployments'].append(deploymentNumber)
-                        if work['deployments']:
-                            work['deployments'].sort(reverse=True)
-
-                        #------------
-                        else:
-                            work['current_deployment'] = deploymentNumber
-
-                        # Update deployment entry for rd.
-                        deployments_dict[rd] = work
-
-                    else:
-                        if debug: print '\n Branch 2. debug -- deploymentNumber NOT in work...'
-                        new_deployment = {}
-                        new_deployment['beginDT'] = startTime
-                        new_deployment['endDT'] = stopTime
-                        new_deployment['eventId'] = eventId
-                        new_deployment['location'] = location
-                        #new_deployment['tense'] = 'UNKNOWN'
-                        new_deployment['asset_ids_by_type'] = {'mooring': [], 'node': [], 'sensor': []}
-                        new_deployment['asset_ids'] = []
-                        work[deploymentNumber] = new_deployment
+                        work[deploymentNumber]['current_deployment'] = deploymentNumber
+                        work[deploymentNumber]['asset_ids_by_type'] = {'mooring': [], 'node': [], 'sensor': []}
+                        work[deploymentNumber]['asset_ids'] = []
+                        work['asset_ids'] = []
+                        work['asset_ids_by_type'] = {'mooring': [], 'node': [], 'sensor': []}
                         if mooring_id is not None:
-                            if mooring_id not in work['asset_ids']:
-                                work['asset_ids'].append(mooring_id)
-                            if mooring_id not in work['asset_ids_by_type']['mooring']:
-                                work['asset_ids_by_type']['mooring'].append(mooring_id)
-                            if mooring_id not in work[deploymentNumber]['asset_ids']:
-                                work[deploymentNumber]['asset_ids'].append(mooring_id)
-                            if mooring_id not in work[deploymentNumber]['asset_ids_by_type']['mooring']:
-                                work[deploymentNumber]['asset_ids_by_type']['mooring'].append(mooring_id)
+                            work['asset_ids'].append(mooring_id)
+                            work['asset_ids_by_type']['mooring'].append(mooring_id)
+                            work[deploymentNumber]['asset_ids'].append(mooring_id)
+                            work[deploymentNumber]['asset_ids_by_type']['mooring'].append(mooring_id)
                         if node_id is not None:
                             if node_id not in work['asset_ids']:
                                 work['asset_ids'].append(node_id)
                             if node_id not in work[deploymentNumber]['asset_ids']:
                                 work[deploymentNumber]['asset_ids'].append(node_id)
-                            if node_id not in work['asset_ids_by_type']['node']:
-                                work['asset_ids_by_type']['node'].append(node_id)
-                            if node_id not in work[deploymentNumber]['asset_ids_by_type']['node']:
-                                work[deploymentNumber]['asset_ids_by_type']['node'].append(node_id)
+                            work['asset_ids_by_type']['node'].append(node_id)
+                            work[deploymentNumber]['asset_ids_by_type']['node'].append(node_id)
                         if sensor_id is not None:
                             if sensor_id not in work['asset_ids']:
                                 work['asset_ids'].append(sensor_id)
                             if sensor_id not in work[deploymentNumber]['asset_ids']:
                                 work[deploymentNumber]['asset_ids'].append(sensor_id)
-                            if sensor_id not in work['asset_ids_by_type']['sensor']:
-                                work['asset_ids_by_type']['sensor'].append(sensor_id)
-                            if sensor_id not in work[deploymentNumber]['asset_ids_by_type']['sensor']:
-                                work[deploymentNumber]['asset_ids_by_type']['sensor'].append(sensor_id)
-                        if deploymentNumber not in work['deployments']:
-                            work['deployments'].append(deploymentNumber)
-                        deployments_list = work['deployments']
-                        deployments_list.sort(reverse=True)
-                        current_deployment_number = deployments_list[0]
-                        work['current_deployment'] = current_deployment_number
+                            work['asset_ids_by_type']['sensor'].append(sensor_id)
+                            work[deploymentNumber]['asset_ids_by_type']['sensor'].append(sensor_id)
 
-                    #---------
                         deployments_dict[rd] = work
 
-                # Build dictionary for rd, then add to rd_assets
-                else:
-                    if debug:
-                        print '\n\t---------------------rd NOT in rd_assets'
-                        print '\n Branch 3. debug -- Build dictionary for rd, then add to rd_assets...'
-                    work = {}
-                    work['current_deployment'] = deploymentNumber
-                    work['deployments'] = [deploymentNumber]
-                    work[deploymentNumber] = {}
-                    work[deploymentNumber]['beginDT'] = startTime
-                    work[deploymentNumber]['endDT'] = stopTime
-                    work[deploymentNumber]['eventId'] = eventId
-                    work[deploymentNumber]['location'] = location
-                    work[deploymentNumber]['current_deployment'] = deploymentNumber
-                    work[deploymentNumber]['asset_ids_by_type'] = {'mooring': [], 'node': [], 'sensor': []}
-                    work[deploymentNumber]['asset_ids'] = []
-                    work['asset_ids'] = []
-                    work['asset_ids_by_type'] = {'mooring': [], 'node': [], 'sensor': []}
-                    if mooring_id is not None:
-                        work['asset_ids'].append(mooring_id)
-                        work['asset_ids_by_type']['mooring'].append(mooring_id)
-                        work[deploymentNumber]['asset_ids'].append(mooring_id)
-                        work[deploymentNumber]['asset_ids_by_type']['mooring'].append(mooring_id)
-                    if node_id is not None:
-                        if node_id not in work['asset_ids']:
-                            work['asset_ids'].append(node_id)
-                        if node_id not in work[deploymentNumber]['asset_ids']:
-                            work[deploymentNumber]['asset_ids'].append(node_id)
-                        work['asset_ids_by_type']['node'].append(node_id)
-                        work[deploymentNumber]['asset_ids_by_type']['node'].append(node_id)
-                    if sensor_id is not None:
-                        if sensor_id not in work['asset_ids']:
-                            work['asset_ids'].append(sensor_id)
-                        if sensor_id not in work[deploymentNumber]['asset_ids']:
-                            work[deploymentNumber]['asset_ids'].append(sensor_id)
-                        work['asset_ids_by_type']['sensor'].append(sensor_id)
-                        work[deploymentNumber]['asset_ids_by_type']['sensor'].append(sensor_id)
-
-                    deployments_dict[rd] = work
-
-                if debug:
-                    print '\n Updated deployment[rd]: '
-                    dump_dict(deployments_dict[rd], debug)
-                cache.set('rd_assets', deployments_dict, timeout=CACHE_TIMEOUT)
+                    cache.set('rd_assets', deployments_dict, timeout=CACHE_TIMEOUT)
 
         return
     except Exception as err:

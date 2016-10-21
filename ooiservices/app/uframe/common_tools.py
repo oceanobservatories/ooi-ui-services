@@ -249,6 +249,17 @@ def get_supported_asset_types():
     return asset_types
 
 
+def get_asset_types_for_display():
+    # Get all supported asset types in vocabulary friendly display names.
+    asset_types = ['Array', 'Platform', 'Node', 'Instrument', 'Not Classified']
+    return asset_types
+
+def get_supported_asset_types_for_display():
+    # Get all supported asset types in vocabulary friendly display names.
+    asset_types = ['Array', 'Platform', 'Node', 'Instrument', 'Not Classified']
+    return asset_types
+
+
 def get_asset_classes():
     # Get all asset classes.
     asset_classes = ['.XArray', '.XMooring', '.XNode', '.XInstrument', '.XAsset']
@@ -260,6 +271,62 @@ def get_supported_asset_classes():
     asset_classes = ['.XArray', '.XInstrument', '.XNode', '.XMooring', '.XAsset']
     return asset_classes
 
+
+def get_uframe_asset_type(value):
+    try:
+        if value in get_supported_asset_types():
+            result = value
+        elif value in get_supported_asset_types_for_display():
+            if value == 'Platform':
+                result = 'Mooring'
+            elif value == 'Instrument':
+                result = 'Sensor'
+            elif value == 'Not Classified':
+                result = 'notClassified'
+            else:
+                message = 'The value \'%s\' provided is not a valid asset type.' % value
+                raise Exception(message)
+        else:
+            message = 'The value \'%s\' provided is not a valid asset type.' % value
+            raise Exception(message)
+
+        if result not in get_supported_asset_types():
+            message = 'The value \'%s\' is not a supported asset type.' % value
+            raise Exception(message)
+
+        return result
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        raise Exception(message)
+
+def get_asset_type_display_name(value):
+    try:
+        if value in get_supported_asset_types_for_display():
+            result = value
+        elif value in get_supported_asset_types():
+            if value == 'Mooring':
+                result = 'Platform'
+            elif value == 'Sensor':
+                result = 'Instrument'
+            elif value == 'notClassified':
+                result = 'Not Classified'
+            else:
+                message = 'The value \'%s\' provided is not a valid asset type for display.' % value
+                raise Exception(message)
+        else:
+            message = 'The value \'%s\' provided is not a valid asset type for display.' % value
+            raise Exception(message)
+
+        if result not in get_supported_asset_types_for_display():
+            message = 'The value \'%s\' is not a supported asset type.' % value
+            raise Exception(message)
+
+        return result
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        raise Exception(message)
 
 def get_class_remote_resource():
     result = '.XRemoteResource'
@@ -311,7 +378,6 @@ def get_event_class(event_type):
 
     except Exception as err:
         message = str(err)
-
         current_app.logger.info(message)
         raise Exception(message)
 

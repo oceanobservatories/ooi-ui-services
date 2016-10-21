@@ -37,7 +37,7 @@ import unittest
 from ooiservices.app import (create_app, db)
 from ooiservices.tests.common_tools import (dump_dict, get_event_input_as_unicode, get_event_input_as_string)
 from ooiservices.app.uframe.common_tools import operational_status_values
-from ooiservices.app.uframe.common_tools import (get_asset_types, get_asset_type_by_rd)
+from ooiservices.app.uframe.common_tools import (get_asset_types, get_asset_type_by_rd, get_uframe_asset_type)
 from base64 import b64encode
 from random import randint
 from flask import (url_for)
@@ -504,6 +504,7 @@ class EventsTestCase(unittest.TestCase):
             self.assertTrue(asset_id > 0)
             self.assertTrue('assetType' in asset)
             asset_type = asset['assetType']
+            asset_type = get_uframe_asset_type(asset_type)
             self.assertTrue(asset_type in get_asset_types())
             if rd is not None:
                 self.assertEquals(asset_type, get_asset_type_by_rd(rd))
@@ -792,6 +793,7 @@ class EventsTestCase(unittest.TestCase):
             self.assertTrue(asset_id > 0)
             self.assertTrue('assetType' in asset)
             asset_type = asset['assetType']
+            asset_type = get_uframe_asset_type(asset_type)
             self.assertTrue(asset_type in get_asset_types())
             if rd is not None:
                 self.assertEquals(asset_type, get_asset_type_by_rd(rd))
@@ -996,6 +998,7 @@ class EventsTestCase(unittest.TestCase):
             self.assertTrue(asset_id > 0)
             self.assertTrue('assetType' in asset)
             asset_type = asset['assetType']
+            asset_type = get_uframe_asset_type(asset_type)
             self.assertTrue(asset_type in get_asset_types())
             if rd is not None:
                 self.assertEquals(asset_type, get_asset_type_by_rd(rd))
@@ -1160,6 +1163,7 @@ class EventsTestCase(unittest.TestCase):
 
             # Get asset type, verify valid asset type provided.
             asset_type = asset['assetType']
+            asset_type = get_uframe_asset_type(asset_type)
             self.assertTrue(asset_type in get_asset_types())
             if rd is not None:
                 self.assertEquals(asset_type, get_asset_type_by_rd(rd))

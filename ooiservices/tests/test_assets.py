@@ -20,7 +20,7 @@ from base64 import b64encode
 from flask import url_for
 from ooiservices.app import (create_app, db)
 from ooiservices.app.models import (User, UserScope, Organization)
-from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_asset_types)
+from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_asset_types, get_uframe_asset_type)
 from ooiservices.app.uframe.uframe_tools import (uframe_get_asset_by_uid, uframe_get_remote_resource_by_id)
 from ooiservices.app.uframe.asset_tools import (uframe_get_asset_by_id,  _get_asset)
 from ooiservices.app.uframe.assets_validate_fields import (assets_validate_required_fields_are_provided,
@@ -747,7 +747,7 @@ class AssetsTestCase(unittest.TestCase):
             if verbose: print '\n\t Get asset of type %s.' % target_type
             asset = None
             for some_asset in some_assets:
-                if some_asset['assetType'] == target_type:
+                if get_uframe_asset_type(some_asset['assetType']) == target_type:
                     asset = some_asset
                     break
             self.assertTrue(asset is not None)
@@ -964,7 +964,7 @@ class AssetsTestCase(unittest.TestCase):
             if verbose: print '\n\t c. Get a %s asset (from some_assets).' % asset_type
             asset = None
             for some_asset in some_assets:
-                if some_asset['assetType'] == target_type:
+                if get_uframe_asset_type(some_asset['assetType']) == target_type:
                     asset = some_asset
                     break
             self.assertTrue(asset is not None)
@@ -1619,7 +1619,7 @@ class AssetsTestCase(unittest.TestCase):
             if verbose: print '\n\t c. Get a %s asset (from some_assets).' % asset_type
             asset = None
             for some_asset in some_assets:
-                if some_asset['assetType'] == target_type:
+                if get_uframe_asset_type(some_asset['assetType']) == target_type:
                     asset = some_asset
                     break
             self.assertTrue(asset is not None)
@@ -1881,7 +1881,7 @@ class AssetsTestCase(unittest.TestCase):
             if verbose: print '\n\t c. Get a %s asset (from some_assets).' % asset_type
             asset = None
             for some_asset in some_assets:
-                if some_asset['assetType'] == target_type:
+                if get_uframe_asset_type(some_asset['assetType']) == target_type:
                     asset = some_asset
                     break
             self.assertTrue(asset is not None)
@@ -2194,7 +2194,7 @@ class AssetsTestCase(unittest.TestCase):
             asset = None
             remote_resources = []
             for some_asset in some_assets:
-                if some_asset['assetType'] == target_type:
+                if get_uframe_asset_type(some_asset['assetType']) == target_type:
                     if 'remoteResources' in some_asset:
                         if len(some_asset['remoteResources']) > 0:
                             asset = deepcopy(some_asset)
