@@ -26,7 +26,7 @@ from ooiservices.app.uframe.event_tools import (_get_events_by_uid, _get_all_eve
 from ooiservices.app.uframe.events_create_update import (create_event_type, update_event_type)
 from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types, get_supported_asset_types,
                                                  event_edit_phase_values, get_event_types_by_asset_type,
-                                                 operational_status_values)
+                                                 operational_status_values, get_uframe_asset_type)
 import json
 
 
@@ -68,10 +68,13 @@ def get_event_tabs_by_asset_type(asset_type):
         http://localhost:4000/uframe/events/tabs/Sensor
         http://localhost:4000/uframe/events/tabs/Array
         http://localhost:4000/uframe/events/tabs/notClassified
+        http://localhost:4000/uframe/events/tabs/Instrument
+        http://localhost:4000/uframe/events/tabs/Platform
     """
     tabs = []
-    if asset_type in get_supported_asset_types():
-        tabs = get_event_types_by_asset_type(asset_type)
+    uframe_asset_type = get_uframe_asset_type(asset_type)
+    if uframe_asset_type in get_supported_asset_types():
+        tabs = get_event_types_by_asset_type(uframe_asset_type)
     return jsonify({'tabs': tabs})
 
 

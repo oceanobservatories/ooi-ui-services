@@ -9,7 +9,6 @@ from ooiservices.app.uframe.common_tools import convert_float_field
 def convert_ui_data(data, required_fields, field_types):
     """ Convert string values to target type for field. Dictionary processing performed by caller.
     """
-    debug = False
     converted_data = {}
     try:
         # Verify required fields are present in the data and each field has input data of correct type.
@@ -186,10 +185,7 @@ def convert_ui_data(data, required_fields, field_types):
                         if isinstance(data[field], list):
                             tmp = data[field]
                         else:
-                            if debug:
-                                print '\n debug -- processing intlist...'
                             if not data[field] or len(data[field]) == 0:
-                                if debug: print '\n debug -- not data[field] or len() == 0'
                                 tmp = []
                             else:
 

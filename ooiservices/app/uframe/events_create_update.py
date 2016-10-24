@@ -20,7 +20,6 @@ def create_event_type(request_data):
         "statusCode" : "CREATED"
     }
     """
-    event_type = None
     action = 'create'
     try:
         # Verify minimum required fields to proceed with create (event_type and uid)

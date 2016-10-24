@@ -140,7 +140,6 @@ def _compile_asset_rds():
           . . .
         }
     """
-    debug = False
     result = {}
     rds_wo_assets = []
     try:
@@ -172,15 +171,11 @@ def _compile_asset_rds():
         #-----------------------------------
         if deployment_inv_load():
             # Add deployment reference designators to total reference designators processed.
-            if debug: print '\n\tNumber of reference designators from toc: ', len(reference_designators)
             deployment_rds = compile_deployment_rds()
-            if debug: print '\n\tNumber of reference designators from deployments: ', len(deployment_rds)
             if deployment_rds and deployment_rds is not None:
                 for rd in deployment_rds:
                     if rd not in reference_designators:
                         reference_designators.append(rd)
-            if debug:
-                print '\n\tNumber of reference designators (toc and deployments): ', len(reference_designators)
         #-----------------------------------
 
         if reference_designators and toc_only:
@@ -199,7 +194,6 @@ def _compile_asset_rds():
                                 rds_wo_assets.append(rd)
                     if len_rd > 14 and len_rd <= 27:
                         if ids:
-                            #if debug: print '\n debug -- rd %s has ids: %s' % (rd, ids)
                             ids.sort()
                             for id in ids:
                                 if id not in result:
@@ -207,16 +201,12 @@ def _compile_asset_rds():
 
                     if len_rd == 8:
                         if mids:
-                            #if debug: print '\n debug -- %s has mooring ids: %s' %(mrd, mids)
-                            #mids.sort()
                             for id in mids:
                                 if id not in result:
                                     result[id] = rd
 
                     if len_rd == 14:
                         if nids:
-                            #if debug: print '\n debug -- rd %s has node ids: %s' % (rd, nids)
-                            #nids.sort()
                             for id in nids:
                                 if id not in result:
                                     result[id] = nrd
@@ -226,7 +216,6 @@ def _compile_asset_rds():
             message = 'The following reference designators do not have an associated asset(%d): %s ' % \
                       (len(rds_wo_assets), rds_wo_assets)
             current_app.logger.info(message)
-
         return result, rds_wo_assets
 
     except Exception as err:
@@ -239,7 +228,6 @@ def get_asset_id_by_rd(rd, uframe_url=None, timeout=None, timeout_read=None):
     """ Get asset_ids in uframe by reference designator; return list of asset ids; On error return [].
     """
     info = False
-    #debug = False
     check = False
     ids = []
     mooring_ids = []
@@ -278,7 +266,6 @@ def get_asset_id_by_rd(rd, uframe_url=None, timeout=None, timeout_read=None):
         elif len_rd > 14 and len_rd < 27:
             mooring, platform, instrument = rd.split('-', 2)
             url = "/".join([url_root, mooring, platform, instrument])
-            #print '\n debug (irregular) -- url: ', url
         else:
             message = 'Malformed reference designator: %s' % rd
             current_app.logger.info(message)
@@ -303,7 +290,6 @@ def get_asset_id_by_rd(rd, uframe_url=None, timeout=None, timeout_read=None):
 
         # If result returned, process for ids
         if result:
-            #if debug: print '\n debug -------------------------------------------- item:'
             for item in result:
                 # This gets asset ids from deployment 'sensor', 'mooring' OR 'node' based on rd type.
                 # Reference Designator of Instrument (assetType sensor)
@@ -338,18 +324,13 @@ def get_asset_id_by_rd(rd, uframe_url=None, timeout=None, timeout_read=None):
 
         if ids:
             ids.sort(reverse=True)
-            #if debug: print '\n debug -- rd %s has ids: %s' % (rd, ids)
-
         if mooring_ids:
             mooring_ids.sort(reverse=True)
-            #if debug: print '\n debug -- mooring %s has mooring_ids: %s' % (rd, mooring_ids)
-
         node_name = None
         if node_ids:
             if len(rd) >= 14 and len(rd) <= 27:
                 node_name = rd[:14]             # "-".join([mooring, platform])
             node_ids.sort(reverse=True)
-            #if debug: print '\n debug -- node %s has node_ids: %s' % (node_name, node_ids)
 
         return ids, mooring, mooring_ids, node_name, node_ids
 

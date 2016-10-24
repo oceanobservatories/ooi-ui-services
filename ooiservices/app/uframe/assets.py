@@ -26,8 +26,8 @@ from ooiservices.app.uframe import uframe as api
 from ooiservices.app.uframe.asset_tools import (verify_cache, _get_asset, _get_ui_asset_by_uid, _has_asset)
 from ooiservices.app.uframe.event_tools import _get_events_by_id
 from ooiservices.app.uframe.assets_create_update import (_create_asset, _update_asset)
-from ooiservices.app.uframe.common_tools import (get_supported_asset_types, get_asset_types, asset_edit_phase_values,
-                                                 boolean_values)
+from ooiservices.app.uframe.common_tools import (asset_edit_phase_values, boolean_values,
+                                                 get_supported_asset_types_for_display, get_asset_types_for_display)
 from operator import itemgetter
 import json
 
@@ -37,15 +37,18 @@ import json
 def get_asset_type():
     """ Get list of all asset types.
     """
-    return jsonify({'asset_types': get_asset_types()})
+    #return jsonify({'asset_types': get_asset_types()})
+    return jsonify({'asset_types': get_asset_types_for_display()})
 
 
 # Get supported asset types.
 @api.route('/assets/types/supported', methods=['GET'])
 def get_supported_asset_type():
     """ Get list of all supported asset types.
+    on deck: get_supported_asset_types_for_display
     """
-    return jsonify({'asset_types': get_supported_asset_types()})
+    #return jsonify({'asset_types': get_supported_asset_types()})
+    return jsonify({'asset_types': get_supported_asset_types_for_display()})
 
 
 # Get edit phase values.

@@ -279,3 +279,64 @@ def asset_cache_add(id, asset):
     except Exception as err:
         message = str(err)
         raise Exception(message)
+
+
+def asset_cache_refresh(id, asset, rd):
+    """ Add an asset to asset_list and assets_dict cache.
+    """
+    try:
+        # Add asset to asset cache ('asset_list')
+        asset_cache = cache.get('asset_list')
+        add_success = False
+        if asset_cache:
+            asset_list = asset_cache
+            if isinstance(asset_list, list):
+                found_asset = False
+
+                # If in cache, update asset in 'asset_list' cache.
+                for item in asset_cache:
+                    if item['id'] == id:
+                        #del item
+                        #------------
+                        # update asset in 'asset_list' cache.
+                        item.update(asset)
+                        cache.set('asset_list', asset_cache, timeout=CACHE_TIMEOUT)
+
+                        # Update assets_dict cache ('assets_dict')
+                        assets_dict_cache = cache.get('assets_dict')
+                        if assets_dict_cache:
+                            if id in assets_dict_cache:
+                                assets_dict_cache[id] = deepcopy(asset)
+                                cache.set('assets_dict', assets_dict_cache, timeout=CACHE_TIMEOUT)
+                        #------------
+                        found_asset = True
+                        break
+
+                # If not in cache, add asset to cache.
+                if not found_asset:
+                    asset_list.append(asset)
+                    cache.set('asset_list', asset_list, timeout=CACHE_TIMEOUT)
+                    asset_cache = cache.get('asset_list')
+                    if asset_cache:
+                        if len(asset_cache) == len(asset_list):
+                            add_success = True
+
+                    if add_success:
+                        # Add asset to assets_dict cache ('assets_dict')
+                        assets_dict_cache = cache.get('assets_dict')
+                        if assets_dict_cache:
+                            assets_dict_cache[id] = asset
+                            cache.set('assets_dict', assets_dict_cache, timeout=CACHE_TIMEOUT)
+
+                        # Update cache 'asset_rds'.
+                        cached = cache.get('asset_rds')
+                        if cached:
+                            asset_rds = cached
+                            asset_rds[id] = rd
+                            cache.set('asset_rds', asset_rds, timeout=CACHE_TIMEOUT)
+
+        return
+
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)

@@ -26,7 +26,6 @@ def format_deployment_for_ui(modified_deployment):
     regular_fields = ['assetUid', 'dataSource', 'deployedBy', 'deploymentNumber',
                       'editPhase', 'eventId', 'eventName', 'eventStartTime', 'eventStopTime', 'eventType',
                       'inductiveId', 'lastModifiedTimestamp', 'notes', 'recoveredBy', 'versionNumber']
-    debug = False
     try:
         # Process location information.
         latitude = None
@@ -98,15 +97,11 @@ def format_deployment_for_ui(modified_deployment):
 
         # Get deployCruiseInfo, recoverCruiseInfo and ingestInfo.
         updated_deployment['deployCruiseInfo'] = None
-        if debug: print '\n (before) format for ui: modified_deployment[deployCruiseInfo]: ', modified_deployment['deployCruiseInfo']
-        if debug: print '\n (before) format for ui: modified_deployment[recoverCruiseInfo]: ', modified_deployment['recoverCruiseInfo']
         if modified_deployment['deployCruiseInfo'] is not None:
-            if debug: print '\n format for ui: modified_deployment[deployCruiseInfo]: ', modified_deployment['deployCruiseInfo']
             if 'uniqueCruiseIdentifier' in modified_deployment['deployCruiseInfo']:
                 updated_deployment['deployCruiseInfo'] = modified_deployment['deployCruiseInfo']['uniqueCruiseIdentifier']
         updated_deployment['recoverCruiseInfo'] = None
         if modified_deployment['recoverCruiseInfo'] is not None:
-            if debug: print '\n format for ui: modified_deployment[recoverCruiseInfo]: ', modified_deployment['recoverCruiseInfo']
             if 'uniqueCruiseIdentifier' in modified_deployment['recoverCruiseInfo']:
                 updated_deployment['recoverCruiseInfo'] = modified_deployment['recoverCruiseInfo']['uniqueCruiseIdentifier']
 
@@ -139,7 +134,6 @@ def _compile_rd_assets():
     This supports all reference designators referenced in /sensor/inv/toc structure; On error, log and raise exception.
     Note: All reference designators are determined from toc structure and not just what /sensor/inv/toc provides.
     """
-    debug = False
     time = True
     result = {}
     try:
@@ -151,14 +145,11 @@ def _compile_rd_assets():
         #-----------------------------------
         if deployment_inv_load():
             # Add deployment reference designators to total reference designators processed.
-            if debug: print '\t\t\tNo. of reference designators from toc: ', len(reference_designators)
             deployment_rds = compile_deployment_rds()
-            if debug: print '\t\t\tNo. of reference designators from deployments: ', len(deployment_rds)
             if deployment_rds and deployment_rds is not None:
                 for rd in deployment_rds:
                     if rd not in reference_designators:
                         reference_designators.append(rd)
-            if debug: print '\t\t\tNo. of reference designators (toc and deployments): ', len(reference_designators)
         #-----------------------------------
         if reference_designators and toc_only:
             result = get_rd_assets(reference_designators)
@@ -183,7 +174,6 @@ def get_rd_assets(reference_designators):
     try:
         for rd in reference_designators:
             try:
-                #if debug: print '\n debug ====================================================== rd: ', rd
                 # If reference designator for instrument, get dictionary map to add to result
                 if (is_instrument(rd)):
                     if rd not in result:
@@ -424,25 +414,18 @@ def get_rd_deployment(rd, deployment_number):
 def get_mooring_deployments_list(rd):
     """ Get list of deployments for mooring reference designator.
     """
-    debug = False
     result = []
     results = {}
     try:
-        if debug: print '\n debug -- get_mooring_deployments_list for rd: ', rd
-
         # Verify rd is valid format
         if not(is_mooring(rd)):
-            if debug: print '\n debug -- %s is not a mooring id: ', rd
             return result, results
 
         # Get all deployments associated with this mooring rd
         mooring_deployments = get_rd_deployments(rd)
         if not mooring_deployments or mooring_deployments is None:
             # If no deployments, return empty result and results ([], {})
-            if debug: print '\n debug -- get_mooring_deployments_list for rd %s: No deployments' % rd
             return result, results
-        else:
-            if debug: print '\n debug -- get_mooring_deployments_list: len(mooring_deployments): ', len(mooring_deployments)
 
         deployments_list = []
         all_asset_ids = []
@@ -525,28 +508,13 @@ def get_mooring_deployments_list(rd):
         results['deployments'] = deployments_list
         results['asset_ids'] = all_asset_ids
         results['asset_ids_by_type'] = {'sensor': [], 'mooring': all_asset_ids, 'node': []}
-
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Get current deployment number, if there are deployment(s).
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if debug:
-            if not deployments_list:
-                message = 'Mooring %s does not have a deployments_list!' % rd
-                print '\n debug -- [get_mooring_deployments_list] (list) result: ', result
-                current_app.logger.info(message)
-
         if deployments_list:
             deployments_list.sort(reverse=True)
-
-        if debug:
-            print '\n debug -- [get_mooring_deployments_list] (list) result: ', result
-            #print '\n debug -- results: ', json.dumps(results, indent=4, sort_keys=True)
 
         return result, results
 
     except Exception as err:
         message = str(err)
-        print '\n debug -- exception [get_mooring_deployments_list]: ', message
         current_app.logger.info(message)
         return None, None
 
@@ -554,12 +522,9 @@ def get_mooring_deployments_list(rd):
 def get_platform_deployments_list(rd):
     """ Get list of deployments for mooring reference designator.
     """
-    debug = False
     result = []
     results = {}
     try:
-        if debug: print '\n debug -- get_platform_deployments_list for rd: ', rd
-
         # Verify rd is valid format
         if not(is_platform(rd)):
             return result, results
@@ -568,7 +533,6 @@ def get_platform_deployments_list(rd):
         platform_deployments = get_rd_deployments(rd)
         if not platform_deployments or platform_deployments is None:
             # If no deployments, return empty result and results ([], {})
-            if debug: print '\n debug -- get_platform_deployments_list for rd %s: No deployments' % rd
             return result, results
         deployments_list = []
         all_asset_ids = []
@@ -584,12 +548,10 @@ def get_platform_deployments_list(rd):
             deployment_number = None
             if 'deploymentNumber' in item:
                 deployment_number = item['deploymentNumber']
-            if debug: print '\n debug -- deployment_number: ', deployment_number
 
             location = None
             if 'location' in item:
                 location = item['location']
-            if debug: print '\n debug -- location: ', location
 
             # Get deployment beginDT and endDT
             beginDT = None
@@ -625,21 +587,15 @@ def get_platform_deployments_list(rd):
                         if asset_id not in all_asset_ids:
                             all_asset_ids.append(asset_id)
 
-                if debug: print '\n debug -- all_asset_ids: ', all_asset_ids
                 if deployment_number:
-                    if debug: print '\n debug -- have deployment_number... '
                     if asset_id:
-                        if debug: print '\n debug -- have asset_id... '
                         if asset_id not in deployment_asset_ids:
-                            if debug: print '\n debug -- add asset_id to deployment_asset_ids... '
                             deployment_asset_ids.append(asset_id)
 
-                    if debug: print '\n debug -- processing info[deployment_number][asset_ids_by_type]...'
                     info[deployment_number] = {}
                     info[deployment_number]['asset_ids_by_type'] = {'sensor': [], 'mooring': [], 'node': deployment_asset_ids}
                     if deployment_number not in deployments_list:
                         deployments_list.append(deployment_number)
-                    if debug: print '\n debug -- processing info[deployment_number][location]...'
 
                     # Valuable luggage
                     info[deployment_number]['location'] = location
@@ -858,7 +814,6 @@ def get_deployment_asset_ids(deployment):
           "lastModifiedTimestamp" : 1467039270676
         }]
     """
-    debug = False
     required_deployment_attributes = ['mooring', 'node', 'sensor',
                                       'deploymentNumber', 'versionNumber', 'ingestInfo',
                                       'eventId', 'eventType', 'eventName',
@@ -885,14 +840,6 @@ def get_deployment_asset_ids(deployment):
         for item in required_referenceDesignator_attributes:
             if item not in ref_des:
                 return result
-        rd = '-'.join([ref_des['subsite'], ref_des['node'], ref_des['sensor']])
-        if debug: print ' debug -- get_deployment_asset_ids for rd: ', rd
-
-        # Check structure of deployment provided
-        if debug:
-            for item in required_deployment_attributes:
-                if item not in deployment:
-                    print '\n debug -- Required attribute \'%s\' not in deployment object.'
 
         # Get asset ids for mooring, node and sensor; for each mooring, node or sensor there shall be one assetId.
         ids = []
@@ -926,7 +873,6 @@ def get_deployment_asset_ids(deployment):
 
     except Exception as err:
         message = str(err)
-        if debug: print '\n debug -- exception [get_deployment_asset_ids]: ', message
         current_app.logger.info(message)
         return result
 
@@ -935,11 +881,8 @@ def get_instrument_deployment_work(rd):
     """ Create instrument deployment information breakout. Return dict or empty dict. Log exceptions.
     """
     test = False
-    debug = False
     work = {}
     try:
-        if debug: print '\n debug -- entered get_instrument_deployment_work **************** ', rd
-
         # Create dictionary container for unique asset_ids (key) where value is deployment number
         work['asset_ids'] = {}
         work['current_deployment'] = None
@@ -947,19 +890,16 @@ def get_instrument_deployment_work(rd):
 
         # Get deployments list for reference designator
         _deployments_list = get_instrument_deployments_list(rd)
-        #if debug: print '\n debug -- deployments_list: ', _deployments_list
         _deployments_list.sort(reverse=True)
         deployments_list = []
         for d in _deployments_list:
             deployments_list.append(int(str(d)))
-        if debug: print '\n debug -- deployments_list: ', deployments_list
         work['deployments'] = deployments_list
 
         # Determine current deployment number, if no deployments then None
         current_deployment_number = None
         if deployments_list:
             current_deployment_number = deployments_list[0]
-            #if debug: print '\n debug -- current deployment %s' % str(current_deployment_number)
         work['current_deployment'] = current_deployment_number
 
         # If deployments, process all deployments for: location info, asset ids.
@@ -967,7 +907,6 @@ def get_instrument_deployment_work(rd):
 
             # Get all deployments for reference designator
             deployments = get_instrument_deployments(rd)
-            #if debug: print '\n Number of deployments for rd: %d: ' % len(deployments)
             if deployments is None:
                 #continue
                 message = 'Failed to get deployments for %s from uframe.' % rd
@@ -979,8 +918,6 @@ def get_instrument_deployment_work(rd):
 
                 # Get deployment number, create container for deployment number
                 deployment_number = deployment['deploymentNumber']
-
-                #if debug: print '\n debug -- processing deployment %d' % deployment_number
                 if test:
                     if deployment_number in work:
                         versionNumber = deployment['versionNumber']
@@ -1009,13 +946,11 @@ def get_instrument_deployment_work(rd):
                 work[deployment_number]['asset_ids'] = []
                 work[deployment_number]['asset_ids_by_type'] = {'sensor': [], 'mooring': [], 'node': []}
                 info = get_deployment_asset_ids(deployment)
-                #if debug: print ' debug -- info: ', info
                 if info:
                     work[deployment_number]['asset_ids'] = info['asset_ids']
                     work[deployment_number]['asset_ids_by_type'] = info['asset_ids_by_type']
 
             # Process work dictionary for all asset_ids and all asset_ids_by_type
-            #if debug: print '\n debug -- Processing final asset_ids and asset_ids_by_type...'
             all_asset_ids = []
             all_asset_ids_by_type = {'sensor': [], 'mooring': [], 'node': []}
             all_sensor_ids = []
@@ -1053,16 +988,6 @@ def get_instrument_deployment_work(rd):
 
         return work
 
-        """
-        except ConnectionError:
-            message = 'ConnectionError in get_instrument_deployment_work.'
-            current_app.logger.info(message)
-            return {}
-        except Timeout:
-            message = 'Timeout in get_instrument_deployment_work.'
-            current_app.logger.info(message)
-            return {}
-        """
     except Exception as err:
         message = err.message
         current_app.logger.info(message)
@@ -1072,33 +997,25 @@ def get_instrument_deployment_work(rd):
 def get_mooring_deployment_work(rd):
     """ Create mooring deployment information breakout. Return dict or empty dict. Log exceptions.
     """
-    debug = False
     try:
-        if debug: print '\n debug -- entered get_mooring_deployment_work **************** ', rd
-
         # Get deployments list for mooring and process deployment information
         _deployments_list, work = get_mooring_deployments_list(rd)
 
         #If no deployment information, return empty dict {}
         if not _deployments_list or _deployments_list is None:
-            if debug: print '\n debug -- No deployment information for mooring rd: %s' % rd
             return {}
 
-        #if debug: print '\n debug -- _deployments_list: ', _deployments_list
         _deployments_list.sort(reverse=True)
         deployments_list = []
         for d in _deployments_list:
             deployments_list.append(int(str(d)))
         work['deployments'] = deployments_list
-        if debug: print '\n debug -- deployments_list: ', deployments_list
 
         # Determine current deployment number, if no deployments then None
         current_deployment_number = None
         if deployments_list:
             current_deployment_number = deployments_list[0]
-            if debug: print '\n debug -- current deployment %s' % str(current_deployment_number)
         work['current_deployment'] = current_deployment_number
-
         return work
 
     except ConnectionError:
@@ -1118,31 +1035,24 @@ def get_mooring_deployment_work(rd):
 def get_platform_deployment_work(rd):
     """ Create platform deployment information breakout. Return dict or empty dict. Log exceptions.
     """
-    debug = False
     try:
-        if debug: print '\n debug -- entered get_platform_deployment_work **************** ', rd
-
         # Get deployments list for mooring and process deployment information
         _deployments_list, work = get_platform_deployments_list(rd)
 
         #If no deployment information, return empty dict {}
         if not _deployments_list or _deployments_list is None:
-            if debug: print '\n debug -- No deployment information for platform rd: %s' % rd
             return {}
 
-        if debug: print '\n debug -- deployments_list: ', _deployments_list
         _deployments_list.sort(reverse=True)
         deployments_list = []
         for d in _deployments_list:
             deployments_list.append(int(str(d)))
         work['deployments'] = deployments_list
-        if debug: print '\n debug -- deployments_list: ', deployments_list
 
         # Determine current deployment number, if no deployments then None
         current_deployment_number = None
         if deployments_list:
             current_deployment_number = deployments_list[0]
-            if debug: print '\n debug -- current deployment %s' % str(current_deployment_number)
         work['current_deployment'] = current_deployment_number
         return work
 

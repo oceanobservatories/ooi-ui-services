@@ -5,7 +5,6 @@ Asset Management - Upstream server (uframe) interface functions.
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
-from ooiservices.app.uframe.common_tools import dump_dict
 from ooiservices.app.uframe.config import (get_uframe_deployments_info, get_events_url_base,
                                            get_uframe_assets_info, get_assets_url_base, headers,
                                            get_url_info_resources, get_uframe_info_calibration,
@@ -1175,7 +1174,6 @@ def uframe_get_deployment_inv_sensors(subsite, node):
 def uframe_create_deployment(deployment):
     """ Create deployment in uframe. On success return updated deployment, on error, raise exception.
     """
-    debug = False
     check = False
     success = 'CREATED'
     try:
@@ -1192,12 +1190,6 @@ def uframe_create_deployment(deployment):
         url = '/'.join([base_url, get_deployments_url_base()])
         if check: print '\n check: url: ', url
         response = requests.post(url, data=json.dumps(deployment), headers=headers())
-        if debug:
-            print '\n uframe update deployment:'
-            dump_dict(deployment, debug)
-            print '\n debug -- response.status_code: ', response.status_code
-            print '\n debug -- response.content: ', json.loads(response.content)
-
         if response.status_code != 201:
             message = '(%d) uframe failed to create deployment.' % response.status_code
             if response.content:
@@ -1269,7 +1261,6 @@ def compile_deployment_rds():
 
             subsite_list = result[:]
             subsite_list.sort()
-            #if debug: print '\n debug -- subsite_list: ', subsite_list
             set_subsite_list = []
             for subsite in subsite_list:
                 if subsite not in set_subsite_list:
@@ -1292,8 +1283,6 @@ def compile_deployment_rds():
                     for item in node_list:
                         if item not in set_node_list:
                             set_node_list.append(item)
-
-                    #if debug: print '\n debug -- %s node_list: %s' % (subsite, node_list)
                     for node in node_list:
                         # Get deployment/inv/{subsite}/{node} (list)
                         node_rd = '-'.join([subsite, node])
