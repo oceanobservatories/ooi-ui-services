@@ -90,6 +90,14 @@ python ooiservices/manage.py deploy --password <admin-password> --psqluser <post
     add more admin user information, choose the target schema and schema owner.
 
 
+### Dropping the database
+
+``` 
+$ python ooiservices/manage.py destroy
+```
+
+You'll be asked to verify the target database should be dropped and remove all data.
+
 ### Debugging Database Problems
 
 If you attempt to deploy the database `ooiservices/manage.py deploy` and
