@@ -4,7 +4,7 @@
 Asset Management - Assets: Supporting functions.
 """
 __author__ = 'Edna Donoughe'
-
+import requests
 from flask import current_app
 from ooiservices.app import cache
 from copy import deepcopy
@@ -620,8 +620,27 @@ def new_compile_assets(data, compile_all=False):
                 if row['location'] is not None:
                     tmp = deepcopy(row['location'])
                     latitude, longitude, depth, orbitRadius, loc_list = get_location_fields(tmp)
+           
+            #This section of code is used to popualte lat/lons in assets.  Assets no longer have lat/lon
+            #in uFrame, so this must pull from the asset's deployments.
+            debug = False
+            uframe_url = current_app.config['UFRAME_DEPLOYMENTS_URL']
+            asset_deployments = requests.get(uframe_url+'/asset/deployments/'+str(asset_uid)).json()
+            most_recent_time = 0
+            try:
+                for deployment in asset_deployments:
+                    if deployment['startTime'] > most_recent_time:
+                        most_recent_time = deployment['startTime']
+                        data_to_use = deployment
+                latitude = data_to_use['latitude']
+                longitude = data_to_use['longitude'] 
+            except:
+                if debug == True:
+                    current_app.logger.info('No Lat/Lon for Asset ' + asset_uid)
             row['latitude'] = latitude
             row['longitude'] = longitude
+
+
             row['depth'] = depth
             row['orbitRadius'] = orbitRadius
             if 'location' in row:
