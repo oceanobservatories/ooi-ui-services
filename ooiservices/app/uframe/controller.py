@@ -1638,7 +1638,7 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
             query = '?beginDT=%s&endDT=%s&limit=%s&parameters=%s&user=plotting' % \
                     (start_time, end_time, current_app.config['DATA_POINTS'], ','.join(parameter_ids))
         elif dpa_flag == '1' and len(parameter_ids) > 0:
-            query = '?beginDT=%s&endDT=%s&limit=%strue&parameters=%s&user=plotting' % \
+            query = '?beginDT=%s&endDT=%s&limit=%s&parameters=%s&user=plotting' % \
                     (start_time, end_time, current_app.config['DATA_POINTS'], ','.join(map(str, parameter_ids)))
 
         GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=plot&ea=%s&el=%s' % \
