@@ -15,5 +15,20 @@ CELERYBEAT_SCHEDULE = {
         'task': 'tasks.compile_c2_toc',
         'schedule': crontab(minute=0, hour='*/1'),
         'args': (),
-        }
+        },
+    'get-asset-information': {
+        'task': 'tasks.compile_asset_information',
+        'schedule': crontab(minute=0, hour='4'),
+        'args': (),
+        },
+    'get-vocabulary': {
+        'task': 'tasks.compile_vocabulary',
+        'schedule': crontab(minute=0, hour='3'),
+        'args': (),
+        },
+    'get-streams': {
+        'task': 'tasks.compile_streams',
+        'schedule': crontab(minute=0, hour='3'),
+        'args': (),
+        },
     }

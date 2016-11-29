@@ -5,14 +5,11 @@ Asset Management - Events: supporting functions.
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
-from ooiservices.app import cache
-from ooiservices.app.uframe.common_tools import (get_event_types, get_event_types_by_rd, get_event_types_by_asset_type,
-                                                 is_instrument)
-from ooiservices.app.uframe.events_validate_fields import get_rd_from_integrationInto
-from ooiservices.app.uframe.asset_cache_tools import get_rd_from_rd_assets
+from ooiservices.app.uframe.common_tools import (get_event_types, get_event_types_by_asset_type)
 from ooiservices.app.uframe.uframe_tools import (uframe_get_asset_by_id, get_uframe_events_by_uid, _get_id_by_uid,
                                                  get_uframe_calibration_events_by_uid)
-
+from ooiservices.app.uframe.uframe_tools import get_deployments_digest_by_uid
+# from ooiservices.app.uframe.events_validate_fields import get_rd_from_integrationInto
 
 # Get events by asset uid and type.
 def _get_events_by_uid(uid, _type):
@@ -27,7 +24,6 @@ def _get_events_by_uid(uid, _type):
         return events
     except Exception as err:
         message = str(err)
-        current_app.logger.info(message)
         raise Exception(message)
 
 
@@ -76,13 +72,17 @@ def _get_all_events_by_uid(uid, _type):
                 if calib_results:
                     results = results + calib_results
 
-        # todo - Sprint N. Add deployment events here; get rd and then deployment events.
+        # todo - Sprint 3. Add deployment events here; get rd and then deployment events.
         # Deployment events.
+        #digests = get_deployments_digest(uid)
+        #[u'node', u'eventId', u'endTime', u'orbitRadius', u'subsite', u'node_uid', u'waterDepth',
+        # u'deploymentNumber', u'longitude', u'editPhase', u'depth', u'recoverCruiseIdentifier',
+        # u'startTime', u'latitude', u'mooring_uid', u'versionNumber', u'deployCruiseIdentifier',
+        # u'sensor', u'sensor_uid']
         # events = get_and_process_events(id, uid, _type, asset_type)
         return results
     except Exception as err:
         message = str(err)
-        current_app.logger.info(message)
         raise Exception(message)
 
 
@@ -95,6 +95,7 @@ def condense_events(events, calibration=False):
                'lastModifiedTimestamp', 'dataSource', 'notes']
     if calibration:
         columns.append('eventName')
+
     try:
         for event in events:
             temp = {}
@@ -128,40 +129,37 @@ def _get_events_by_id(id, _type):
 def get_and_process_events(id, uid, _type, asset_type):
     """ Get and process events for an asset.
     """
+    debug = False
     events = {}
     types = ''
     types_list = []
     try:
+        if debug: print '\n debug -- get_event_types_by_asset_type: ', asset_type
+        event_types = get_event_types_by_asset_type(asset_type)
+
         # Determine if type parameter provided, if so process
         if _type:
             types, types_list = get_event_query_types(_type)
-
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Get reference designator
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        rd = get_rd_by_asset_id(id)
-
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Prepare events dictionary
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if rd is not None:
-            event_types = get_event_types_by_rd(rd)
-            for type in event_types:
-                events[type] = []
         else:
-            event_types = get_event_types_by_asset_type(asset_type)
-            for type in event_types:
-                events[type] = []
+            types_list = event_types
+
+        if debug: print '\n debug -- get_event_types_by_asset_type: ', asset_type
+        event_types = get_event_types_by_asset_type(asset_type)
+        if debug: print '\n debug -- event_types: ', event_types
+        for type in event_types:
+            events[type] = []
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Get events, filtering by types provided. Process results
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        if debug: print '\n debug -- calling get_uframe_events_by_uid: uid/types: %s/%s' % (uid, types)
         results = get_uframe_events_by_uid(uid, types)
         if results is None:
             # Unknown uid provided (204)
             message = 'Unknown asset uid %s, unable to get events.' % uid
             raise Exception(message)
         elif results:
+            if debug: print '\n debug -- results: ', results
             #refactor into function
             #events = process_event_by_types(result)
             #========================================================
@@ -173,6 +171,7 @@ def get_and_process_events(id, uid, _type, asset_type):
                     event_type = event['eventType']
                     if not types_list or event_type in types_list:
                         if event_type in event_types:
+                            """
                             if event_type == 'INTEGRATION':
                                 if 'integrationInto' in event:
                                     if event['integrationInto'] is not None:
@@ -181,7 +180,7 @@ def get_and_process_events(id, uid, _type, asset_type):
                                             event['integrationInto'] = _rd
                                         else:
                                             event['integrationInto'] = None
-
+                            """
                             events[event['eventType']].append(event)
                         else:
                             message = 'Unknown or invalid event type provided: %s' % event['eventType']
@@ -191,21 +190,26 @@ def get_and_process_events(id, uid, _type, asset_type):
         # For asset id, get deployments and calibration (calibration only if is_instrument(rd))
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         events['DEPLOYMENT'] = []
-        if rd:
-            if is_instrument(rd):
-                events['CALIBRATION_DATA'] = []
-        if rd:
-            add_deployments = True
-            if types_list and ('DEPLOYMENT' not in types_list):
-                add_deployments = False
-            if add_deployments:
-                # Get deployment events
-                deployment_events = get_deployment_events(rd, id, uid)
-                if deployment_events:
-                    events['DEPLOYMENT'] = deployment_events
+
+        #if rd:
+        #    if is_instrument(rd):
+        if asset_type == 'Instrument' or asset_type == 'Sensor':
+            events['CALIBRATION_DATA'] = []
+        #if rd:
+        add_deployments = True
+        if types_list and ('DEPLOYMENT' not in types_list):
+            add_deployments = False
+        if add_deployments:
+            if debug: print '\n debug -- add_deployments...'
+            # Get deployment events
+            #deployment_events = get_deployment_events(rd, id, uid)
+            deployment_events = get_deployment_events(uid)
+            if deployment_events:
+                events['DEPLOYMENT'] = deployment_events
 
             # If rd is instrument, get calibration events
-            if is_instrument(rd):
+            #if is_instrument(rd):
+            if asset_type == 'Instrument' or asset_type == 'Sensor':
                 events['CALIBRATION_DATA'] = []
                 add_calibrations = True
                 if types_list and 'CALIBRATION_DATA' not in types_list:
@@ -218,36 +222,21 @@ def get_and_process_events(id, uid, _type, asset_type):
             # Assets which do not have deployments but are of asset type 'Sensor' should be
             # permitted to create and edit calibration values. The calibration values, if any, are
             # gathered here for UI.
-            if asset_type == 'Sensor':
+            if asset_type == 'Instrument' or asset_type == 'Sensor':
                 events['CALIBRATION_DATA'] = []
                 add_calibrations = True
                 if types_list and 'CALIBRATION_DATA' not in types_list:
+                    if debug: print '\n debug -- types_list: ', types_list
                     add_calibrations = False
                 if add_calibrations:
                     calibration_events = get_calibration_events(id, uid)
+                    if debug: print '\n debug -- len(calibration_events): ', len(calibration_events)
                     if calibration_events:
                         events['CALIBRATION_DATA'] = calibration_events
 
         return events
     except Exception as err:
         message = str(err)
-        raise Exception(message)
-
-
-# Get reference designator for asset_id.
-def get_rd_by_asset_id(id):
-    """ Get reference designator for a given asset id; return None if not found. raise exception onerror.
-    """
-    try:
-        rd = None
-        asset_rds = cache.get('asset_rds')
-        if asset_rds:
-            if id in asset_rds:
-                rd = asset_rds[id]
-        return rd
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
         raise Exception(message)
 
 
@@ -310,142 +299,16 @@ def get_event_query_types(_type):
         raise Exception(message)
 
 
-def get_deployment_events(rd, id, uid):
+#def get_deployment_events(rd, id, uid):
+def get_deployment_events(uid):
     """ Get deployment maps for and asset/reference designator.
     """
     try:
-        results = get_deployment_maps(rd, id, uid)
+        results = get_deployments_digest_by_uid(uid)
         return results
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
-        raise Exception(message)
-
-
-# todo deprecate and use 'deployment_numbers'.
-def get_deployments_list(data):
-    """ Convert deployment_number string to list of deployments.
-    """
-    result = []
-    try:
-        if not data:
-            return result
-        tmp = data.split(',')
-        for item in tmp:
-            txt = item.strip()
-            value = None
-            try:
-                value = int(txt)
-            except:
-                pass
-            if value is not None:
-                if value not in result:
-                    result.append(value)
-        return result
-
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        raise Exception(message)
-
-
-# Get list of all deployment events associated with an asset id.
-def get_deployment_maps(rd, id, uid):
-    """ Get list of all deployment events associated with this asset id.
-    """
-    events = []
-    maps = {}
-    try:
-        # Get asset dict.
-        assets_dict = cache.get('assets_dict')
-        if not assets_dict:
-            return events
-        if id not in assets_dict:
-            return events
-
-        # Get asset from asset dict.
-        asset = assets_dict[id]
-        deployments = []
-        if asset:
-            if 'deployment_numbers' in asset:
-                deployments = asset['deployment_numbers']
-            else:
-                tmp = asset['deployment_number']
-                deployments = get_deployments_list(tmp)
-        if not deployments:
-            return events
-
-        # Determine if deployment events are available for this reference designator.
-        # Get all deployment maps for reference designator
-        deployment_map = get_rd_from_rd_assets(rd)
-        if deployment_map is None:
-            return events
-
-        # Compile maps dictionary using only deployments associated with the asset.
-        for number in deployments:
-            if number not in maps:
-                maps[number] = deployment_map[number]
-
-        # Process maps into list of deployment events
-        events = []
-        if maps:
-            events = convert_maps_to_deployment_events(maps, uid)
-        return events
-
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-
-# Get deployments events list, reverse order.
-def convert_maps_to_deployment_events(maps, uid):
-    """ Generate list of deployment events, with most recent first (reverse order).
-    """
-    events = []
-    if not maps:
-        return events
-    # depth should be None and location [] if not provided (i.e. asset location attribute was None)
-    # Removed notes - 'notes': '',
-    # Remove location - 'location': [0.0, 0.0],
-    events_template = {'deployment_number': None,
-                       'depth': None,
-                       'eventStartTime': None,
-                       'eventStopTime': None,
-                       'eventType': 'DEPLOYMENT',
-                       'assetUid': uid,
-                       'eventId': None,
-                       'latitude': None,
-                       'longitude': None,
-                       'orbitRadius': None,
-                       'versionNumber': None
-                        }
-    ordered_keys = (maps.keys())
-    ordered_keys.sort(reverse=True)
-    try:
-        for k in ordered_keys:
-            v = maps[k]
-            event = events_template.copy()
-            event['deployment_number'] = k
-            event['eventStartTime'] = v['beginDT']
-            event['eventStopTime'] = v['endDT']
-            event['eventId'] = v['eventId']
-            if 'versionNumber' in v:
-                event['versionNumber'] = v['versionNumber']
-            if 'location' in v:
-                if v['location'] and v['location'] is not None:
-                    if 'latitude' in v['location']:
-                        event['latitude'] = v['location']['latitude']
-                    if 'longitude' in v['location']:
-                        event['longitude'] = v['location']['longitude']
-                    if 'depth' in v['location']:
-                        event['depth'] = v['location']['depth']
-                    if 'orbitRadius' in v['location']:
-                        event['orbitRadius'] = v['location']['orbitRadius']
-            events.append(event)
-        return events
-
-    except Exception as err:
-        message = str(err)
         raise Exception(message)
 
 
@@ -504,11 +367,15 @@ def process_calibration_results(results, uid):
           0.45
         ]
       },
+
+      {u'calData': [], u'name': u'CC_calc'}
     """
+    debug = False
     names = []
     calibrations = []
     try:
         for calibration in results:
+            if debug: print '\n debug -- calibration: ', calibration
             # Get name of calibration item, if required attribute no found, log error continue
             if 'name' not in calibration:
                 message = 'No required attribute \'name\' in .XCalibration; malformed .XCalibration for uid %s.'%uid
@@ -526,16 +393,30 @@ def process_calibration_results(results, uid):
 
             # Get calibration data for this parameter; remove '@class', 'lastModifiedTimestamp'; convert datetime fields
             if 'calData' in calibration:
+                """
+                #-------
+                if not calibration['calData']:
+                    calibration['calData'] = ''
+                    print '\n debug -- calibration: ', calibration
+                    calibrations.append(calibration)
+                else:
+                    cal_data = calibration['calData']
+                    if debug: print '\n debug -- len(cal_data): ', len(cal_data)
+                #--------
+                """
                 cal_data = calibration['calData']
                 for cal in cal_data:
                     #----------------------
                     if 'value' in cal:
                         if cal['value'] is not None:
                             cal['value'] = str(cal['value'])
+
                     #----------------------
                     if '@class' in cal:
                         del cal['@class']
                     calibrations.append(cal)
+
+        if debug: print '\n debug -- resulting calibrations(%d): %s' % (len(calibrations), calibrations)
         return calibrations
 
     except Exception as err:

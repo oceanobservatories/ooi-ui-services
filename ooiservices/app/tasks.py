@@ -19,6 +19,7 @@ celery.config_from_object('ooiservices.app.celeryconfig')
 from ooiservices.app.uframe.controller import _compile_cam_images
 from ooiservices.app.uframe.controller import _compile_large_format_files
 from ooiservices.app.main.c2 import _compile_c2_toc
+from ooiservices.app.uframe.asset_tools import verify_cache
 
 
 """
@@ -27,19 +28,11 @@ Caches created/utilized:
     For data visualization: stream_list, cam_images*, large_format*
     For vocabulary: vocab_dict, vocab_codes
     For Command and Control (C2): c2_toc
-    For asset information: asset_list, assets_dict, asset_types, asset_rds, rd_assets, bad_asset_list
+    For asset information: asset_list, assets_dict, asset_rds.
 
 Not used:
 glider_tracks
-
-Disabled:
-compile_asset_information,
-compile_vocabulary,
-compile_streams
-
 """
-
-
 
 # cam_images
 @celery.task(name='tasks.compile_cam_images')
@@ -108,6 +101,22 @@ def compile_large_format_files():
         message = 'compile_large_format_files exception: %s' % err.message
         current_app.logger.warning(message)
 
+# asset information: asset_list, assets_dict, asset_rds.
+@celery.task(name='tasks.compile_asset_information')
+def compile_asset_information():
+    try:
+        print '\n debug - *** tasks - compile_asset_information()'
+        with current_app.test_request_context():
+
+            asset_list = verify_cache(refresh=True)
+            print '\n Completed compiling asset information.'
+            print '\n Number of assets: ', len(asset_list)
+
+    except Exception as err:
+        message = 'compile_assets exception: %s' % err.message
+        current_app.logger.warning(message)
+        raise Exception(message)
+
 
 # - - - - - - - - - - - - - - - - - - - - -
 '''
@@ -140,7 +149,7 @@ def compile_glider_tracks():
 '''
 
 """
-'get-asset-information': {
+    'get-asset-information': {
         'task': 'tasks.compile_asset_information',
         'schedule': crontab(minute=0, hour='*/8'),
         'args': (),
@@ -158,23 +167,8 @@ def compile_glider_tracks():
 
 """
 
-'''
-# asset information: asset_list, assets_dict, asset_types, asset_rds, rd_assets, bad_asset_list
-@celery.task(name='tasks.compile_asset_information')
-def compile_asset_information():
-    try:
-        print '\n debug - *** tasks - compile_asset_information()'
-        with current_app.test_request_context():
 
-            asset_list = verify_cache(refresh=True)
-            print '\n Completed compiling asset information.'
-            print '\n Number of assets: ', len(asset_list)
 
-    except Exception as err:
-        message = 'compile_assets exception: %s' % err.message
-        current_app.logger.warning(message)
-        raise Exception(message)
-'''
 
 '''
 # streams_list

@@ -8,7 +8,7 @@ from flask import current_app
 from ooiservices.app.uframe.common_convert import convert_ui_data
 from ooiservices.app.uframe.cruise_tools import (uniqueCruiseIdentifier_exists, _get_cruise)
 from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types, event_edit_phase_values,
-                                                 is_instrument, is_platform, is_mooring, operational_status_values)
+                                                 is_instrument, is_platform, is_mooring, convert_status_display_value)
 
 
 def events_validate_all_required_fields_are_provided(event_type, data, action=None):
@@ -50,10 +50,10 @@ def events_validate_all_required_fields_are_provided(event_type, data, action=No
         elif event_type == 'ASSET_STATUS':
             converted_data['location'] = None
             if 'status' in converted_data:
-                valid_status_values = operational_status_values()
-                if converted_data['status'] not in valid_status_values:
-                    message = 'Invalid operational status value provided; must be one of: %s' % valid_status_values
-                    raise Exception(message)
+                converted_data['status'] = convert_status_display_value(converted_data['status'])
+            else:
+                message = 'A valid status value is required for an asset status event. None provided.'
+                raise Exception(message)
 
         # Set uniqueCruiseIdentifier field
         elif event_type == 'CRUISE_INFO':

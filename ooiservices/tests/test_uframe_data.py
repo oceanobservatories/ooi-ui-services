@@ -6,10 +6,7 @@ unit testing for simple data access
 __author__ = 'andybird'
 
 import unittest
-from flask import url_for
 from ooiservices.app import create_app, db
-import requests
-import json
 
 '''
 These tests are used to validate and test the getting of data for the ui plotting services

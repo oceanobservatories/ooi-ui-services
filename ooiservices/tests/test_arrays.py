@@ -122,7 +122,7 @@ class UserTestCase(unittest.TestCase):
         response = self.client.get(url_for('main.get_arrays'), content_type=content_type)
         self.assertTrue(response.status_code == 200)
 
-
+    """
     # Test [PUT] /arrays/<int:id> - 'main.update_array'
     def test_update_array(self):
 
@@ -353,4 +353,4 @@ class UserTestCase(unittest.TestCase):
 
         response = self.client.delete(url_for('main.delete_array', id=5), headers=headers)
         self.assertEquals(response.status_code, 409)
-
+    """

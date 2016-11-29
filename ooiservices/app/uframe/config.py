@@ -178,7 +178,7 @@ def get_cruises_url_base():
 
 
 def get_url_info_cruises():
-    """ Get complete url to query uframe cruises ('uframe-host:12587/events/cruise/inv')
+    """ Get complete url to query uframe cruises ('uframe-host:12587/events/cruise')
     """
     try:
         timeout, timeout_read = get_uframe_timeout_info()
@@ -198,20 +198,20 @@ def get_url_info_cruises_inv():
         uframe_url = '/'.join([url, 'inv'])
         return uframe_url, timeout, timeout_read
     except:
-        message = 'Unable to form uframe url for cruises using config file variables.'
+        message = 'Unable to form uframe url for cruises (inv) using config file variables.'
         current_app.logger.info(message)
         raise Exception(message)
 
 
 def get_url_info_cruises_rec():
-    """ Get complete url to query uframe cruises ('uframe-host:12587/events/cruise/inv')
+    """ Get complete url to query uframe cruises ('uframe-host:12587/events/cruise/rec')
     """
     try:
         url, timeout, timeout_read = get_url_info_cruises()
         uframe_url = '/'.join([url, 'rec'])
         return uframe_url, timeout, timeout_read
     except:
-        message = 'Unable to form uframe url for cruises using config file variables.'
+        message = 'Unable to form uframe url for cruises (rec) using config file variables.'
         current_app.logger.info(message)
         raise Exception(message)
 
@@ -221,8 +221,13 @@ def get_url_info_cruises_rec():
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def get_deployments_url_base():
     """'events/deployment' """
-    deployments = current_app.config['UFRAME_DEPLOYMENTS']
-    return deployments
+    try:
+        deployments = current_app.config['UFRAME_DEPLOYMENTS']
+        return deployments
+    except:
+        message = 'Unable to locate UFRAME_DEPLOYMENTS in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
 
 
 #def get_url_info_deployment():
@@ -238,36 +243,37 @@ def get_uframe_deployments_info():
         current_app.logger.info(message)
         raise Exception(message)
 
+
 def get_url_info_deployments_inv():
-    """ Get complete url to query uframe cruises ('uframe-host:12587/events/deployment/inv')
+    """ Get complete url to query uframe deployment inventory ('uframe-host:12587/events/deployment/inv').
     """
     try:
         url, timeout, timeout_read = get_uframe_deployments_info()
         uframe_url = '/'.join([url, get_deployments_url_base(), 'inv'])
         return uframe_url, timeout, timeout_read
     except:
-        message = 'Unable to form uframe url for cruises using config file variables.'
+        message = 'Unable to form uframe url for deployments (inv) using config file variables.'
         current_app.logger.info(message)
         raise Exception(message)
 
 
-def deployment_inv_load():
-    """ Used to enable loading of deployment inventory reference designators during cache rebuild.
-    Forced to False at this time. Use on development machines;
-    Detrimentally increases cache load time due to large increase in reference designators from deployments.
+# todo - proposed endpoint to provide deployment, version and uid for a reference designator.
+# todo - use to replace dependency for asset to reference designator mapping.
+def get_url_info_deployments_rec():
+    """ Get complete url to query uframe deployment records for a reference designator.
+    ('uframe-host:12587/events/deployment/rec)
+    Use: uframe-host:12587/events/deployment/rec/reference_designator
+        where reference designator is array, site, platform, or instrument)
     """
-    use_deployments_on_load = False
     try:
-        """
-        tmp = current_app.config['DEPLOYMENTS_INV_LOAD']
-        if tmp == True:
-            use_deployments_on_load = True
-        """
-        return use_deployments_on_load
+        url, timeout, timeout_read = get_uframe_deployments_info()
+        uframe_url = '/'.join([url, get_deployments_url_base(), 'rec'])
+        return uframe_url, timeout, timeout_read
     except:
-        message = 'Unable to obtain DEPLOYMENT_INV_LOAD using current config file variables.'
+        message = 'Unable to form uframe url for deployments (rec) using config file variables.'
         current_app.logger.info(message)
         raise Exception(message)
+
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Events
@@ -295,6 +301,7 @@ def get_uframe_events_info():
         message = 'Unable to locate UFRAME_DEPLOYMENTS_URL, UFRAME_TIMEOUT_CONNECT or UFRAME_TIMEOUT_READ in config file.'
         current_app.logger.info(message)
         raise Exception(message)
+
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Calibration
@@ -356,19 +363,45 @@ def get_url_info_resources():
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def get_status_url_base():
     """ Returns configuration file value for UFRAME_STATUS. ('status') If error, raise exception.
-    'events/cruise'
+    'status/query'
     """
     try:
-        cruises = current_app.config['UFRAME_STATUS']
-        return cruises
+        result = current_app.config['UFRAME_STATUS']
+        return result
     except:
         message = 'Unable to locate UFRAME_STATUS in config file.'
         current_app.logger.info(message)
         raise Exception(message)
 
 
+def get_status_query_base():
+    """ Returns configuration file value for UFRAME_STATUS_QUERY. ('query') If error, raise exception.
+    Used in 'status/query'
+    """
+    try:
+        result = current_app.config['UFRAME_STATUS_QUERY']
+        return result
+    except:
+        message = 'Unable to locate UFRAME_STATUS_QUERY in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_status_inv_base():
+    """ Returns configuration file value for UFRAME_STATUS_INV. ('query') If error, raise exception.
+    Used in 'status/query'
+    """
+    try:
+        result = current_app.config['UFRAME_STATUS_INV']
+        return result
+    except:
+        message = 'Unable to locate UFRAME_STATUS_INV in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
 def get_url_info_status():
-    """ Get complete url to query uframe status ('uframe-host:12587/status/inv')
+    """ Get complete url to query uframe status ('uframe-host:12587/status')
     """
     try:
         timeout, timeout_read = get_uframe_timeout_info()
@@ -380,12 +413,12 @@ def get_url_info_status():
         raise Exception(message)
 
 
-def get_url_info_status_inv():
-    """ Get complete url to query uframe cruises ('uframe-host:12587/status/inv')
+def get_url_info_status_query():
+    """ Get complete url to query uframe status ('uframe-host:12587/status/query')
     """
     try:
         url, timeout, timeout_read = get_url_info_status()
-        uframe_url = '/'.join([url, 'inv'])
+        uframe_url = '/'.join([url, get_status_query_base()])
         return uframe_url, timeout, timeout_read
     except:
         message = 'Unable to form uframe url for status using config file variables.'
@@ -393,6 +426,142 @@ def get_url_info_status_inv():
         raise Exception(message)
 
 
+def get_url_info_status_inv():
+    """ Get complete url to query uframe status ('uframe-host:12587/status/inv')
+    """
+    try:
+        url, timeout, timeout_read = get_url_info_status()
+        uframe_url = '/'.join([url, get_status_inv_base()])
+        return uframe_url, timeout, timeout_read
+    except:
+        message = 'Unable to form uframe url for status using config file variables.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def status_demo_data():
+    demo = False
+    try:
+        result = current_app.config['DEMO_STATUS_DATA']
+        if isinstance(result, bool):
+            if result:
+                demo = True
+        elif isinstance(result, str):
+            if result == 'True' or result == 'true':
+                demo = True
+        return demo
+    except:
+        return False
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Streams
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+def get_stream_url_base():
+    """'stream' """
+    try:
+        result = current_app.config['UFRAME_STREAM']
+        return result
+    except:
+        message = 'Unable to locate UFRAME_STREAM in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_stream_parameter_url_base():
+    """'parameter' """
+    try:
+        result = current_app.config['UFRAME_STREAM_PARAMETER']
+        return result
+    except:
+        message = 'Unable to locate UFRAME_STREAM_PARAMETER in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_stream_byname_url_base():
+    """'byname' """
+    try:
+        result = current_app.config['UFRAME_STREAM_BYNAME']
+        return result
+    except:
+        message = 'Unable to locate UFRAME_STREAM_BYNAME in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+# Get base url for streams processing (stream, parameter and byname)
+def get_uframe_stream_info():
+    """ Get uframe stream base url configuration information.
+    """
+    try:
+        timeout, timeout_read = get_uframe_timeout_info()
+        uframe_url = current_app.config['UFRAME_STREAMS_URL']
+        return uframe_url, timeout, timeout_read
+    except:
+        message = 'Unable to locate UFRAME_STREAMS_URL, UFRAME_TIMEOUT_CONNECT or UFRAME_TIMEOUT_READ in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_url_info_streams():
+    """ Get complete url to query uframe stream ('uframe-host:12575/stream')
+    Used to form urls:
+        host:12575/stream/byname/{name} where {name} is the stream name
+        host:12575/stream/{id} where {id} is the stream id number from preload.
+    """
+    try:
+        url, timeout, timeout_read = get_uframe_stream_info()
+        uframe_url = '/'.join([url, get_stream_byname_url_base()])
+        return uframe_url, timeout, timeout_read
+    except:
+        message = 'Unable to form uframe url for streams using config file variables.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_url_info_stream_byname():
+    """ Get complete url to query uframe stream byname ('uframe-host:12575/stream/byname')
+    Use host:12575/stream/byname/{name} where {name} is the stream name
+    """
+    try:
+        url, timeout, timeout_read = get_uframe_stream_info()
+        uframe_url = '/'.join([url, get_stream_url_base(), get_stream_byname_url_base()])
+        return uframe_url, timeout, timeout_read
+    except:
+        message = 'Unable to form uframe url for streams using config file variables.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_url_info_stream_parameters():
+    """ Get complete url to query uframe stream ('http:uframe-host:12575/parameter')
+    Use: host:12575/parameter/{id} where {id} is the parameter id number from preload.
+    """
+    try:
+        url, timeout, timeout_read = get_uframe_stream_info()
+        uframe_url = '/'.join([url, get_stream_parameter_url_base()])
+        return uframe_url, timeout, timeout_read
+    except:
+        message = 'Unable to form uframe url for stream parameters using config file variables.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+"""
+# Used while testing new stream rest api information and /stream and plotting data.
+def stream_new_data():
+    demo = False
+    try:
+        result = current_app.config['NEW_STREAM_INFO']
+        if isinstance(result, bool):
+            if result:
+                demo = True
+        elif isinstance(result, str):
+            if result == 'True' or result == 'true':
+                demo = True
+        return demo
+    except:
+        return False
+"""
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Common utility functions
 # todo - note controller.py requires review, mods and test for try/except before using.

@@ -1,18 +1,12 @@
 #!/usr/bin/env python
-'''
+"""
 Arrays endpoints
-
-'''
+"""
 __author__ = 'M@Campbell'
 
-from flask import jsonify, request, current_app, url_for
+from flask import jsonify
 from ooiservices.app.main import api
-from ooiservices.app import db
-from authentication import auth
 from ooiservices.app.models import Array
-from ooiservices.app.main.errors import conflict
-from ooiservices.app.decorators import scope_required
-import json
 
 #List all arrays
 @api.route('/arrays')
@@ -25,6 +19,14 @@ def get_arrays():
 def get_array(id):
     array = Array.query.filter_by(array_code=id).first_or_404()
     return jsonify(array.to_json())
+
+"""
+#from flask import request
+#from ooiservices.app import db
+#from authentication import auth
+#from ooiservices.app.main.errors import conflict
+#from ooiservices.app.decorators import scope_required
+#import json
 
 #Add a new array
 @api.route('/arrays/', methods=['POST'])
@@ -77,3 +79,4 @@ def delete_array(id):
         return jsonify({'message': 'Array deleted!', 'id': id})
     except:
         return conflict('Invalid array id')
+"""

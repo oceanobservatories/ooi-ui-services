@@ -7,14 +7,13 @@ from flask import current_app
 from copy import deepcopy
 from ooiservices.app.uframe.deployments_validate_fields import deployments_validate_required_fields_are_provided
 from ooiservices.app.uframe.uframe_tools import (get_uframe_event, uframe_create_deployment)
-from ooiservices.app.uframe.deployment_cache_tools import refresh_deployment_cache
 from ooiservices.app.uframe.deployment_tools import format_deployment_for_ui
 from ooiservices.app.uframe.events_create_update import update_event_type
 from ooiservices.app.uframe.assets_create_update import refresh_asset_deployment
 from ooiservices.app.uframe.common_tools import (get_class_deployment, get_asset_class_by_asset_type, get_event_class,
                                                  is_instrument, is_platform, is_mooring, get_location_dict)
 
-
+#from ooiservices.app.uframe.deployment_cache_tools import refresh_deployment_cache
 # Create deployment.
 def _create_deployment(data):
     """ Create a new deployment, return new deployment on success. On failure, log and raise exception.
@@ -107,7 +106,7 @@ def _create_deployment(data):
             del deployment_store['location']
 
         # Refresh deployment cache for newly created deployment.
-        refresh_deployment_cache(id, deployment_store, action, mid, nid, sid)
+        #refresh_deployment_cache(id, deployment_store, action, mid, nid, sid)
 
         # Get reference designator from request data.
         rd = None
@@ -206,7 +205,7 @@ def _update_deployment(id, data):
             del deployment_store['location']
 
         # Do cache refresh for deployment
-        refresh_deployment_cache(id, deployment_store, action, mid, nid, sid)
+        #refresh_deployment_cache(id, deployment_store, action, mid, nid, sid)
 
         # Get reference designator from request data.
         rd = None

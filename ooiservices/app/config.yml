@@ -49,12 +49,22 @@ COMMON: &common
     UFRAME_DEPLOYMENTS:      'events/deployment'
     UFRAME_CRUISES:          'events/cruise'
       #Values may be changed to work with uFrame performance. increase Data_Points for higher resolution plotting
-    UFRAME_TIMEOUT_CONNECT: 5
-    UFRAME_TIMEOUT_READ: 30
-    UFRAME_DATA_REQUEST_LIMIT: 2880
-    UFRAME_PLOT_TIMEOUT: 60
-    DATA_POINTS: 1000
-    DEPLOYMENTS_INV_LOAD: False
+    UFRAME_TIMEOUT_CONNECT:   5
+    UFRAME_TIMEOUT_READ:      30
+    UFRAME_DATA_REQUEST_LIMIT:  2880
+    UFRAME_PLOT_TIMEOUT:      60
+    DATA_POINTS:              1000
+    DEPLOYMENTS_INV_LOAD:     False
+
+    # Status
+    UFRAME_STATUS:            'status'
+    UFRAME_STATUS_QUERY:      'query'
+    UFRAME_STATUS_INV:        'inv'
+    DEMO_STATUS_DATA:         True
+    UFRAME_STREAMS_URL:       'http://localhost:12575'
+    UFRAME_STREAM:            'stream'
+    UFRAME_STREAM_PARAMETER:  'parameter'
+    UFRAME_STREAM_BYNAME:     'byname'
       #Red Mine values should be left alone on test servers and set to the production settings on the production server 
     REDMINE_KEY: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     REDMINE_URL: 'https://redmine-asa.ooi.rutgers.edu' #'https://uframe-cm.ooi.rutgers.edu'

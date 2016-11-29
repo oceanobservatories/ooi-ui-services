@@ -14,13 +14,14 @@ if os.environ.get('FLASK_COVERAGE'):
 from ooiservices.app import create_app, db
 from flask.ext.script import Manager, Shell, Server, prompt_bool
 from flask.ext.migrate import Migrate, MigrateCommand
-import flask.ext.whooshalchemy as whooshalchemy
-from ooiservices.app.models import PlatformDeployment, User, UserScope, UserScopeLink, DisabledStreams
+
+from ooiservices.app.models import User, UserScope, UserScopeLink, DisabledStreams
 from datetime import datetime
 import sqlalchemy.exc
 import codecs
 from ooiservices.app.main.user import id_generator
-
+# from ooiservices.app.main.user import PlatformDeployment,
+#import flask.ext.whooshalchemy as whooshalchemy
 import yaml
 if os.path.exists(os.path.join(basedir, '/app/config_local.yml')):
     with open(basedir + '/app/config_local.yml', 'r') as f:
@@ -33,8 +34,8 @@ env = doc['ENV_NAME']
 app = create_app(env)
 manager = Manager(app)
 migrate = Migrate(app,db)
-app.config['WHOOSH_BASE'] = 'ooiservices/whoosh_index'
-whooshalchemy.whoosh_index(app, PlatformDeployment)
+#app.config['WHOOSH_BASE'] = 'ooiservices/whoosh_index'
+#whooshalchemy.whoosh_index(app, PlatformDeployment)
 
 ##------------------------------------------------------------------
 ## M@Campbell 02/10/2015
@@ -46,6 +47,7 @@ whooshalchemy.whoosh_index(app, PlatformDeployment)
 #       > from ooiservices.manage import rebuild_index
 #       > rebuild_index(model_name)
 ##------------------------------------------------------------------
+'''
 def rebuild_index(model):
     import whoosh
     import flask_whooshalchemy
@@ -70,28 +72,29 @@ def rebuild_index(model):
             entry_count += 1
 
     app.logger.info("Rebuilt {0} {1} search index entries.".format(str(entry_count), model.__name__))
+'''
 
 def make_shell_context():
     from ooiservices.app.models import User, UserScope, UserScopeLink, Array
-    from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameter, Watch
-    from ooiservices.app.models import OperatorEvent
-    from ooiservices.app.models import Platformname, Instrumentname, Annotation, Organization
+    from ooiservices.app.models import Annotation, Organization, OperatorEvent, Watch
     from ooiservices.app.models import SystemEvent, SystemEventDefinition, UserEventNotification
 
+    #from ooiservices.app.models import Stream, StreamParameter
+    # InstrumentDeployment, PlatformDeployment, Platformname, Instrumentname
+    # "InstrumentDeployment": InstrumentDeployment,
+    # "PlatformDeployment": PlatformDeployment,
+    # "Platformname": Platformname,
+    # "Instrumentname": Instrumentname,
+    # "Stream": Stream,
+    # "StreamParameter": StreamParameter,
     ctx = {"app": app,
            "db": db,
            "User": User,
            "UserScope": UserScope,
            "UserScopeLink": UserScopeLink,
            "Array": Array,
-           "PlatformDeployment": PlatformDeployment,
-           "InstrumentDeployment": InstrumentDeployment,
-           "Stream": Stream,
            "Watch": Watch,
            "OperatorEvent": OperatorEvent,
-           "StreamParameter": StreamParameter,
-           "Platformname": Platformname,
-           "Instrumentname": Instrumentname,
            "Annotation": Annotation,
            "Organization": Organization,
            "SystemEvent": SystemEvent,
@@ -152,9 +155,8 @@ def test(coverage=False, testmodule=None):
 @manager.option('-p', '--password', required=True)
 @manager.option('-u', '--psqluser', default='postgres')
 def deploy(password, production, psqluser):
-    from flask.ext.migrate import upgrade
-    from ooiservices.app.models import User, UserScope, UserScopeLink, Array, Organization
-    from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameterLink
+    #from flask.ext.migrate import upgrade
+    from ooiservices.app.models import User, UserScope
     from sh import psql
     if production:
         app.logger.info('Creating PRODUCTION Database')
@@ -188,8 +190,8 @@ def deploy(password, production, psqluser):
         app.logger.info('Populating Production Database . . .')
         with open('db/ooiui_schema_data.sql') as f:
             psql('-U', psqluser, 'ooiuiprod', _in=f)
-        with open('db/ooiui_params_streams_data.sql') as h:
-            psql('-U', psqluser, 'ooiuiprod', _in=h)
+        #with open('db/ooiui_params_streams_data.sql') as h:
+        #    psql('-U', psqluser, 'ooiuiprod', _in=h)
         # with open('db/ooiui_vocab.sql') as i:
         #     psql('-U', psqluser, 'ooiuiprod', _in=i)
         app.logger.info('Production Database loaded.')
@@ -197,8 +199,8 @@ def deploy(password, production, psqluser):
         app.logger.info('Populating Dev Database . . .')
         with open('db/ooiui_schema_data.sql') as f:
             psql('-U', psqluser, 'ooiuidev', _in=f)
-        with open('db/ooiui_params_streams_data.sql') as h:
-            psql('-U', psqluser, 'ooiuidev', _in=h)
+        #with open('db/ooiui_params_streams_data.sql') as h:
+        #    psql('-U', psqluser, 'ooiuidev', _in=h)
         # with open('db/ooiui_vocab.sql') as i:
         #     psql('-U', psqluser, 'ooiuidev', _in=i)
         app.logger.info('Dev Database loaded.')
@@ -261,13 +263,9 @@ def rebuild_schema(schema, schema_owner, save_users, save_disabled_streams, admi
     load_data('ooiui_schema_data.sql')
     db.session.commit()
 
-    app.logger.info('Loading params data into database')
-    load_data(sql_file='ooiui_params_streams_data.sql')
-    db.session.commit()
-
-    # app.logger.info('Loading new vocab data into database')
-    # load_data(sql_file='ooiui_vocab.sql')
-    db.session.commit()
+    #app.logger.info('Loading params data into database')
+    #load_data(sql_file='ooiui_params_streams_data.sql')
+    #db.session.commit()
 
     if save_disabled_streams == 'True':
         app.logger.info('Re-populating disabledstreams table from backup schema')

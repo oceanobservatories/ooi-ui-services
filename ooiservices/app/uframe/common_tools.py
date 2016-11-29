@@ -23,8 +23,12 @@ __author__ = 'Edna Donoughe'
 
 from flask import current_app
 import datetime as dt
+from dateutil.parser import parse as parse_date
 import calendar
 import json
+import pytz
+
+
 
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -300,6 +304,7 @@ def get_uframe_asset_type(value):
         current_app.logger.info(message)
         raise Exception(message)
 
+
 def get_asset_type_display_name(value):
     try:
         if value in get_supported_asset_types_for_display():
@@ -321,16 +326,17 @@ def get_asset_type_display_name(value):
         if result not in get_supported_asset_types_for_display():
             message = 'The value \'%s\' is not a supported asset type.' % value
             raise Exception(message)
-
         return result
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
         raise Exception(message)
 
+
 def get_class_remote_resource():
     result = '.XRemoteResource'
     return result
+
 
 def get_class_deployment():
     result = '.XDeployment'
@@ -398,7 +404,7 @@ def get_supported_event_types():
 
 
 def get_event_types_by_rd(rd):
-    # Get all supported event types values. (remove 'INTEGRATION', 'LOCATION', 'UNSPECIFIED')
+    # Get all supported event types values. (hide 'INTEGRATION', 'LOCATION', 'UNSPECIFIED')
     len_rd = len(rd)
     event_types = ['ACQUISITION', 'ASSET_STATUS', 'ATVENDOR', 'CRUISE_INFO', 'DEPLOYMENT',  'RETIREMENT', 'STORAGE']
 
@@ -410,7 +416,7 @@ def get_event_types_by_rd(rd):
 
 
 def get_event_types_by_asset_type(asset_type):
-    # Get all supported event types values. (remove , 'INTEGRATION', 'LOCATION', 'UNSPECIFIED')
+    # Get all supported event types values. (hide 'INTEGRATION', 'LOCATION', 'UNSPECIFIED')
     event_types = ['ACQUISITION', 'ASSET_STATUS', 'ATVENDOR', 'CRUISE_INFO', 'DEPLOYMENT',  'RETIREMENT', 'STORAGE']
 
     # For sensor assets, add event type 'CALIBRATION_DATA'.
@@ -438,16 +444,57 @@ def deployment_edit_phase_values():
     return values
 
 
-# todo - get this dynamically, sprint 2, or 3
-def get_supported_array_codes():
-    values = ['CP', 'CE', 'RS',  'GI', 'GS', 'GP', 'GA', 'SS']
-    return values
-
-
 def operational_status_values():
-    values = ['Operational', 'Degraded', 'Failed', 'notTracked']
+    #values = ['Operational', 'Degraded', 'Failed', 'notTracked']
+    values = ['operational', 'degraded', 'failed', 'notTracked', 'removedFromService']
     return values
 
+
+def operational_status_display_values():
+    values = ['Operational', 'Degraded', 'Failed', 'Not Tracked', 'Removed From Service']
+    return values
+
+
+def convert_status_display_value(status_value):
+    try:
+        if not status_value or status_value is None:
+            message = 'The status value provided is empty or null.'
+            raise Exception(message)
+        if status_value in operational_status_values():
+            value = status_value
+        elif status_value in operational_status_values():
+            if status_value == 'Operational':
+                value = 'operational'
+            elif status_value == 'Degraded':
+                value = 'degraded'
+            elif status_value == 'Failed':
+                value = 'failed'
+            elif status_value == 'Not Tracked':
+                value = 'notTracked'
+            elif status_value == 'Removed From Service':
+                value = 'removedFromService'
+            else:
+                message = 'The status value provided (\'%s\') is invalid.' % status_value
+                raise Exception(message)
+        else:
+            message = 'The status value provided (\'%s\') is invalid.' % status_value
+            raise Exception(message)
+        return value
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+def get_array_locations():
+    arrays_patch = {'CE': {'latitude': 44.37, 'longitude': -124.95},
+                    'GP': {'latitude': 49.9795, 'longitude': -144.254},
+                    'CP': {'latitude': 40.1, 'longitude': -70.88},
+                    'GA': {'latitude': -42.5073, 'longitude': -42.8905},
+                    'GI': {'latitude': 60.4582, 'longitude': -38.4407},
+                    'GS': {'latitude': -54.0814, 'longitude': -89.6652},
+                    'RS': {'latitude': 44.554, 'longitude': -125.352},
+                   }
+    return arrays_patch
 
 def boolean_values():
     values = ['True', 'False']
@@ -479,9 +526,40 @@ def verify_action(action):
         raise Exception(message)
 
 
+def to_bool(value):
+    """ Converts 'something' to boolean. Raises exception for invalid formats
+           Possible True  values: 1, True, "1", "TRue", "yes", "y", "t"
+           Possible False values: 0, False, None, [], {}, "", "0", "faLse", "no", "n", "f", 0.0, ...
+    """
+    if str(value).lower() in ("yes", "y", "true",  "t", "1"):
+        return True
+    if str(value).lower() in ("no",  "n", "false", "f", "0", "0.0", "", "none", "[]", "{}"):
+        return False
+    raise Exception('Invalid value for boolean conversion: ' + str(value))
+
+
+def to_bool_str(value):
+    """
+       Converts 'something' to boolean. Raises exception for invalid formats
+           Possible True  values: 1, True, "1", "TRue", "yes", "y", "t"
+           Possible False values: 0, False, None, [], {}, "", "0", "faLse", "no", "n", "f", 0.0, ...
+    """
+    if str(value).lower() in ("yes", "y", "true",  "t", "1"):
+        return "1"
+    if str(value).lower() in ("no",  "n", "false", "f", "0", "0.0", "", "none", "[]", "{}"):
+        return "0"
+    raise Exception('Invalid value for boolean conversion: ' + str(value))
+
+
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Common datetime functions
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
+def iso_to_timestamp(iso8601):
+    parse_date_time = parse_date(iso8601)
+    t = (parse_date_time - dt.datetime(1970, 1, 1, tzinfo=pytz.utc)).total_seconds()
+    return t
+
+
 def get_timestamp_value(value):
     """ Convert float value into formatted string.
     """
@@ -506,7 +584,7 @@ def timestamp_to_string(time_float):
         if not isinstance(time_float, float):
             return None
         ts_time = convert_from_utc(time_float - offset)
-        formatted_time = dt.datetime.strftime(ts_time, "%Y-%m-%dT%H:%M:%S")
+        formatted_time = dt.strftime(ts_time, "%Y-%m-%dT%H:%M:%S")
         return formatted_time
     except Exception as err:
         current_app.logger.info(str(err.message))
@@ -518,7 +596,7 @@ def timestamp_to_string(time_float):
 # and-back-again-pair-of-time-conversion (url continued from previous line)
 # Convert a unix time u to a datetime object d, and vice versa
 def convert_from_utc(u):
-    return dt.datetime.utcfromtimestamp(u)
+    return dt.utcfromtimestamp(u)
 
 
 def ut(d):

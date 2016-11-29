@@ -525,27 +525,6 @@ class AssetsTestCase(unittest.TestCase):
         self.assertTrue(result is not None)
         self.assertTrue(isinstance(result, dict))
 
-        # Does reference designator have an asset available?
-        url = url_for('uframe.has_asset', rd='CE01ISSM')
-        if verbose: print '\n ----- url: ', url
-        response = self.client.get(url, headers=headers)
-        self.assertEquals(response.status_code, 200)
-        result = json.loads(response.data)
-        self.assertTrue(result is not None)
-        self.assertTrue(isinstance(result, dict))
-        self.assertTrue('available' in result)
-        self.assertEquals(result['available'], True)
-
-        # Does reference designator have an asset available?
-        url = url_for('uframe.has_asset', rd='NO-ASSET')
-        if verbose: print '\n ----- url: ', url
-        response = self.client.get(url, headers=headers)
-        self.assertEquals(response.status_code, 200)
-        result = json.loads(response.data)
-        self.assertTrue(result is not None)
-        self.assertTrue(isinstance(result, dict))
-        self.assertTrue('available' in result)
-        self.assertEquals(result['available'], False)
 
     def test_create_assets(self):
         """

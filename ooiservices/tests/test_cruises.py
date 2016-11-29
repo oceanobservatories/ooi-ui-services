@@ -20,7 +20,6 @@ from unittest import skipIf
 import os
 
 from flask import (url_for)
-from ooiservices.app.uframe.event_tools import get_rd_by_asset_id
 from ooiservices.app.uframe.cruise_tools import uniqueCruiseIdentifier_exists
 from ooiservices.app.uframe.common_tools import get_event_types
 from ooiservices.tests.common_tools import (dump_dict, get_event_input_as_unicode, get_event_input_as_string)
@@ -523,8 +522,8 @@ class CruisesTestCase(unittest.TestCase):
             if debug: print '\n Have asset_uid: %s ' % asset_uid
 
             # Get reference designator
-            rd = get_rd_by_asset_id(asset_id)
-            if debug: print '\n Have rd: %s ' % rd
+            self.assertTrue('ref_des' in asset)
+            rd = asset['ref_des']
             return asset_id, asset_uid, rd
 
         except Exception:
