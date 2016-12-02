@@ -109,7 +109,7 @@ def get_multistream_data(stream1, stream2, instrument1, instrument2, var1, var2)
 
 
 def get_simple_data(stream, instrument, yfields, xfields, include_time=True):
-    debug = True
+    debug = False
     from ooiservices.app.uframe.controller import split_stream_name, get_uframe_plot_contents_chunked #, validate_date_time
     """
     get data from uframe

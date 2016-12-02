@@ -6,15 +6,17 @@ TOC: Supporting functions.
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
-from ooiservices.app.uframe.config import get_uframe_assets_info
-from ooiservices.app.uframe.uframe_tools import (get_toc_information, get_rd_deployments)
+
+from ooiservices.app.uframe.uframe_tools import get_toc_information
 from ooiservices.app.uframe.vocab import (get_long_display_name_by_rd, get_display_name_by_rd)
 
 
-from ooiservices.app import cache
+#from ooiservices.app import cache
 #from ooiservices.app.uframe.vocab import get_rs_array_name_by_rd
 #from ooiservices.app import cache
 #from ooiservices.app.uframe.config import stream_new_data
+#from ooiservices.app.uframe.config import get_uframe_assets_info
+#from ooiservices.app.uframe.uframe_tools import (get_toc_information, get_rd_deployments)
 #NEW_STREAM_INFO = False
 
 def process_uframe_toc():
@@ -37,7 +39,6 @@ def process_uframe_toc():
         raise Exception(message)
 
 
-# todo - remove memoize when refactor has been completed.
 #@cache.memoize(timeout=1600)
 def get_uframe_toc(data):
     """ Process uframe response from /sensor/inv/toc into list of dictionaries for use in UI.
@@ -429,7 +430,7 @@ def _compile_asset_rds():
         return {}, []
 '''
 
-
+'''
 def get_asset_id_by_rd(rd, uframe_url=None, timeout=None, timeout_read=None):
     """ For a reference designator, get uframe asset ids. Return list of asset ids; On error return [].
     """
@@ -576,7 +577,7 @@ def get_asset_ids_for_deployments(rd, result):
         message = str(err)
         current_app.logger.info(message)
         return []
-
+'''
 
 #@cache.memoize(timeout=1600)
 def get_toc_reference_designators():
@@ -608,10 +609,10 @@ def get_toc_reference_designators():
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
-        return [], None, [], None, []
+        return [], [], []
 
 
-# todo - Under development
+'''
 def _compile_asset_rds():
     """ Retrieve asset_ids from uframe for all reference designators referenced in /sensor/inv/toc structure;
     return dictionary with key of asset_id. On error, log and raise exception.  Does NOT cache.
@@ -629,6 +630,7 @@ def _compile_asset_rds():
           . . .
         }
     """
+    print '\n Warning -- Entered _compile_asset_rds...'
     result = {}
     rds_wo_assets = []
     time = True
@@ -787,5 +789,5 @@ def _compile_asset_rds():
         message = str(err)
         current_app.logger.info(message)
         return {}, []
-
+'''
 

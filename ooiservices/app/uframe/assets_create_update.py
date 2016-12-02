@@ -89,11 +89,15 @@ def _create_asset(data):
 
 
 def refresh_asset_deployment(uid, rd):
-    """ When a deployment is created, each asset cache must be updated to reflect deployment map updates.
+    """ When a deployment is created, each asset cache must be updated to reflect deployment updates.
     """
+    from ooiservices.app.uframe.common_tools import dump_dict
+    debug = False
     try:
+        if debug: print '\n debug -- Entered refresh_asset_deployment...'
         if uid is None:
             return
+
         # Get asset from uframe by uid.
         asset = uframe_get_asset_by_uid(uid)
         if not asset:
@@ -109,7 +113,11 @@ def refresh_asset_deployment(uid, rd):
             raise Exception(message)
 
         # Format uframe asset data for UI.
+        if debug: print '\n debug -- Calling format_asset_for_ui: uid/id: %s/%d' % (uid, id)
         ui_asset = format_asset_for_ui(asset)
+        if debug:
+            print '\n debug -- After calling format_asset_for_ui: uid/id: %s/%d' % (uid, id)
+            dump_dict(ui_asset, debug)
         if not ui_asset or ui_asset is None:
             message = 'Failed to format uframe asset for UI; asset id/uid: %d/%s' % (id, uid)
             raise Exception(message)
@@ -122,7 +130,11 @@ def refresh_asset_deployment(uid, rd):
             del asset_store['calibration']
 
         # Refresh asset cache.
+        if debug:
+            print '\n debug -- Calling asset_cache_refresh for %s/%d/%s: ' % (uid, id, rd)
+            dump_dict(asset_store, debug)
         asset_cache_refresh(id, asset_store, rd)
+        if debug: print '\n debug -- Calling asset_cache_refresh...'
         return
 
     except Exception as err:

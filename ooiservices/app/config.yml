@@ -20,6 +20,56 @@ COMMON: &common
     SERVER_DNS: 'localhost'
     HOST: localhost
     PORT: 4000
+
+    # Values may be changed to work with uFrame performance. increase Data_Points for higher resolution plotting
+    UFRAME_TIMEOUT_CONNECT:   5
+    UFRAME_TIMEOUT_READ:      30
+    UFRAME_DATA_REQUEST_LIMIT:  2880
+    UFRAME_PLOT_TIMEOUT:      60
+    DATA_POINTS:              1000
+    DEPLOYMENTS_INV_LOAD:     False
+
+    # uframe configuration (uframe-test)
+    UFRAME_URL:             'http://uframe-test.ooi.rutgers.edu:12576' # 'http://ooiufs01.ooi.rutgers.edu:12576' # 'http://uft21.ooi.rutgers.edu:12576' #
+    UFRAME_ANNOTATION_URL:  'http://uframe-test.ooi.rutgers.edu:12580'
+    UFRAME_ALERTS_URL:      'http://uframe-test.ooi.rutgers.edu:12577' # 'http://ooiufs1.ooi.rutgers.edu:12577'
+    UFRAME_ANTELOPE_URL:    'http://uframe-test.ooi.rutgers.edu:12582/data/list/antelope/'
+    UFRAME_SUBSCRIBE_URL:   'http://uframe-test.ooi.rutgers.edu:12585'
+    UFRAME_URL_BASE:        '/sensor/inv'
+    UFRAME_TOC:             '/sensor/inv/toc'
+    UFRAME_ANNOTATION_BASE: '/anno'
+    UFRAME_VOCAB_URL:        'http://uframe-test.ooi.rutgers.edu:12586'
+
+    # Asset Management: Assets, Events, Deployments, Cruises, Resources, Calibration and Status
+    UFRAME_ASSETS_URL:       'http://uframe-test.ooi.rutgers.edu:12587'
+    UFRAME_DEPLOYMENTS_URL:  'http://uframe-test.ooi.rutgers.edu:12587'
+    UFRAME_ASSETS:           'asset'
+    UFRAME_EVENTS:           'events'
+    UFRAME_DEPLOYMENTS:      'events/deployment'
+    UFRAME_CRUISES:          'events/cruise'
+    UFRAME_RESOURCES:        'resource'
+    UFRAME_CALIBRATION:      'cal'
+
+    # Status
+    UFRAME_STATUS:            'status'
+    UFRAME_STATUS_QUERY:      'query'
+    UFRAME_STATUS_INV:        'inv'
+    DEMO_STATUS_DATA:         True
+
+    # Streams
+    UFRAME_STREAMS_URL:       'http://uframe-test.ooi.rutgers.edu:12575'
+    UFRAME_STREAM:            'stream'
+    UFRAME_STREAM_PARAMETER:  'parameter'
+    UFRAME_STREAM_BYNAME:     'byname'
+
+    # Instruments
+    UFRAME_INST_URL:          'http://uft21.ooi.rutgers.edu:12572'
+    UFRAME_MISSIONS_URL:      'http://uft21.ooi.rutgers.edu:8000'
+    UFRAME_MISSIONS_BASE:     '/missions'
+    UFRAME_INST_BASE:         '/instrument/api'
+    UFRAME_PLAT_BASE:         '/platform/api'
+
+
       # UFrame config - This section shold be pointed at the uFrame instance that is being used to populate the UI.
     UFRAME_HOST:            'localhost'
     UFRAME_URL:             'http://localhost:12576'

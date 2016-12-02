@@ -24,20 +24,31 @@ import datetime as dt
 def format_deployment_for_ui(modified_deployment):
     """ Format uframe deployment into ui deployment.
     """
+    debug = False
     updated_deployment = {}
     regular_fields = ['assetUid', 'dataSource', 'deployedBy', 'deploymentNumber',
                       'editPhase', 'eventId', 'eventName', 'eventStartTime', 'eventStopTime', 'eventType',
                       'inductiveId', 'lastModifiedTimestamp', 'notes', 'recoveredBy', 'versionNumber']
     try:
+        if debug: print '\n debug -- Entered format_deployment_for_ui...'
         # Process location information.
         latitude = None
         longitude = None
         depth = None
         orbitRadius = None
         if 'location' in modified_deployment:
+            if debug: print '\n debug -- Have location...'
             if modified_deployment['location'] is not None:
+                if debug: print '\n\t debug -- Location is not None...'
                 tmp = deepcopy(modified_deployment['location'])
+                if debug: print '\n\t debug -- Location: tmp: ', tmp
                 latitude, longitude, depth, orbitRadius, loc_list = get_location_fields(tmp)
+                if debug:
+                    print '\n\t debug -- latitude: ', latitude
+                    print '\n\t debug -- longitude: ', longitude
+                    print '\n\t debug -- depth: ', depth
+                    print '\n\t debug -- orbitRadius: ', orbitRadius
+
         updated_deployment['latitude'] = latitude
         updated_deployment['longitude'] = longitude
         updated_deployment['depth'] = depth
@@ -117,12 +128,20 @@ def format_deployment_for_ui(modified_deployment):
         # Get the rest of the fields and values.
         for key in regular_fields:
             if key in modified_deployment:
+                if debug:
+                    if key == 'editPhase':
+                        print '\n debug -- The modified deployment value for editPhase is: ', modified_deployment[key]
+
                 updated_deployment[key] = modified_deployment[key]
         if not updated_deployment or updated_deployment is None:
             raise Exception('Deployment compilation failed to return a result.')
 
         if 'location' in updated_deployment:
             del updated_deployment['location']
+
+        if debug: print '\n debug -- Final value for editPhase (to be returned is): ', updated_deployment['editPhase']
+
+        if debug: print '\n debug -- Exit format_deployment_for_ui...'
         return updated_deployment
 
     except Exception as err:
@@ -141,7 +160,7 @@ def _compile_rd_assets():
     try:
         start = dt.datetime.now()
         if time:
-            print '\n\t-- Compile  rd_assets '
+            print '\n\t-- Compile rd_assets '
             print '\t\t-- Start time: ', start
         reference_designators, toc_only, difference  = get_toc_reference_designators()
         if reference_designators and toc_only:
@@ -1294,6 +1313,7 @@ def _get_deployments_by_rd(rd):
         message = str(err)
         raise Exception(message)
 
+'''
 def get_deployments_digest(uid):
     """ Get list of deployment digest items for a uid; sorted in reverse by deploymentNumber.
 
@@ -1343,3 +1363,4 @@ def get_deployments_digest(uid):
         message = str(err)
         #current_app.logger.info(message)
         return None
+'''

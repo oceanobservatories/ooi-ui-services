@@ -6,51 +6,38 @@ Asset Management - Status: Supporting functions.
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
-from ooiservices.app.uframe.asset_tools import verify_cache
 from ooiservices.app.uframe.stream_tools import get_stream_list
 from ooiservices.app.uframe.vocab import (get_vocab_dict_by_rd, get_vocab_codes, get_vocabulary_arrays,
                                           get_display_name_by_rd)
-from ooiservices.app.uframe.uframe_tools import get_mock_status_for_rd, uframe_get_status_by_rd
 from ooiservices.app.uframe.common_tools import (operational_status_values, is_array, is_instrument, is_mooring)
-
-
-# development work=============================
 from ooiservices.app.uframe.common_tools import get_array_locations
-from ooiservices.app.uframe.asset_cache_tools import get_asset_rds_cache, get_assets_dict
-from ooiservices.app.uframe.toc_tools import get_asset_ids_for_deployments
-from ooiservices.app.uframe.uframe_tools import (get_rd_deployments, get_deployments_digest_by_uid,
-                                                 uframe_get_sites_for_array)
-from ooiservices.app.uframe.common_tools import dump_dict           # todo remove
-# development work=============================
+from ooiservices.app.uframe.config import status_demo_data
+from ooiservices.app.uframe.asset_cache_tools import (get_assets_dict, get_asset_list_cache)
+from ooiservices.app.uframe.uframe_tools import uframe_get_status_by_rd
+from ooiservices.app.uframe.uframe_tools import (get_assets_from_uframe, uframe_get_platforms_for_site)
+from ooiservices.app.uframe.uframe_tools import (get_deployments_digest_by_uid, uframe_get_sites_for_array)
+from ooiservices.app.uframe.toc_tools import get_toc_reference_designators
+
+# development work - remove =============================
+from ooiservices.app.uframe.common_tools import dump_dict
+from ooiservices.app.uframe.uframe_tools import get_mock_status_for_rd
+# development work - remove =============================
 
 import datetime as dt
 from ooiservices.app import cache
 CACHE_TIMEOUT = 172800
 
-# from ooiservices.app.uframe.uframe_tools import (get_deployments_digest_by_uid,
-# from operator import itemgetter
 
-
-def get_asset_list():
-    results = []
-    try:
-        data = verify_cache()
-        if not data or data is None:
-            return results
-        else:
-            results = data
-        return results
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-
+# Get status arrays.
 def _get_status_arrays():
     """ Get status for all arrays.
     """
     results = []
     try:
-        result = get_status_arrays()
+        # Get array(s) status for a site. (use bridge for now.)
+        #result = get_status_arrays()
+        # Call function to bridge mock interface and real interface (for now).
+        result = bridge_get_status_arrays()
         if result is not None:
             results = result
         return results
@@ -60,12 +47,12 @@ def _get_status_arrays():
         raise Exception(message)
 
 
+# Get status sites.
 def _get_status_sites(rd):
     """ For a specific array, get all sites with status.
     Sample request: http://localhost:4000/uframe/status/sites/CE
     """
     time = True
-    return_list = []
     try:
         # Verify rd is a valid reference designator for an array.
         if not rd or rd is None:
@@ -74,7 +61,9 @@ def _get_status_sites(rd):
         if len(rd) != 2 or not is_array(rd):
             message = 'Provide a valid array code.'
             raise Exception(message)
+
         """
+        # Get array information from vocabulary.
         array_dict = get_vocabulary_arrays()
         if rd not in array_dict:
             message = 'Unknown array code (\'%s\') provided.' % rd
@@ -87,22 +76,18 @@ def _get_status_sites(rd):
             print '\n-- Process %s site(s) status. ' % rd
             print '-- Start time: ', start
 
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Get platform(s) status for a site. (use bridge for now.)
+        #results = get_status_sites(rd)
         # Call function to bridge mock interface and real interface (for now).
         results = bridge_get_sites_for_array(rd)
-
-        # Real interface (use bridge for now.)
-        #results = get_status_sites(rd)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         end = dt.datetime.now()
         if time:
             print '-- End time:   ', end
             print '-- Time to process %s site(s) status: %s\n' % (rd, str(end - start))
-        if results is None:
+        if not results or results is None:
             results = []
-        if not results:
-            return results
-
-        if results is None:
-            results = return_list
         return results
     except Exception as err:
         message = str(err)
@@ -110,13 +95,15 @@ def _get_status_sites(rd):
         return None
 
 
+# Get status platforms.
 def _get_status_platforms(rd):
     """ Get status for all platforms associated with a specific site.
     """
     results = []
     try:
+        # Verify reference designator is proper form and valid for system.
         if not rd or rd is None:
-            message = 'Provide an array code.'
+            message = 'Provide a valid reference designator for a site.'
             raise Exception(message)
         if len(rd) != 8:
             message = 'Provide a valid site code.'
@@ -128,7 +115,14 @@ def _get_status_platforms(rd):
         if rd[:2] not in array_dict:
             message = 'Unknown array code (\'%s\') provided, unable to process request.' % rd
             raise Exception(message)
-        result = get_status_platforms(rd)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Get platform status for site provided.
+        #result = get_status_platforms(rd)
+
+        # Toggle bridge between mock data and actual (configuration switch). To be removed.
+        result = bridge_get_platforms_for_site(rd)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         if result is not None:
             results = result
         return results
@@ -138,6 +132,7 @@ def _get_status_platforms(rd):
         raise Exception(message)
 
 
+# Get status instrument.
 def _get_status_instrument(rd):
     """ Get instrument status.
     """
@@ -156,7 +151,15 @@ def _get_status_instrument(rd):
         if rd[:2] not in array_dict:
             message = 'Unknown array code (\'%s\') provided.' % rd
             raise Exception(message)
-        result = get_status_instrument(rd)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Get instrument status for instrument provided. (Use bridge for now).
+        # result = get_status_instrument(rd)
+
+        # Toggle bridge between mock data and actual (configuration switch). To be removed.
+        result = bridge_get_status_instrument(rd)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
         if result is not None:
             results = result
         return results
@@ -166,6 +169,81 @@ def _get_status_instrument(rd):
         raise Exception(message)
 
 
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Bridges to toggle between mock and uframe status.
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Get site(s) status for an array.
+def bridge_get_status_arrays():
+    try:
+        # Real interface...
+        if not status_demo_data():
+            return_list = get_status_arrays()
+        # Mock data interface
+        else:
+            return_list = mock_get_status_arrays()
+        return return_list
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+# Get site(s) status for an array.
+def bridge_get_sites_for_array(rd):
+    try:
+        # Real interface...
+        if not status_demo_data():
+            return_list = get_status_sites(rd)
+
+        # Mock data interface
+        else:
+            return_list = mock_get_sites_for_array(rd)
+
+        return return_list
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+# Get platform(s) status for site.
+def bridge_get_platforms_for_site(rd):
+    try:
+        # Real interface...
+        if not status_demo_data():
+            return_list = get_status_platforms(rd)          # todo - to be completed
+
+        # Mock data interface.
+        else:
+            data = get_asset_list_cache()
+            return_list = mock_get_status_platforms(data, rd)
+        return return_list
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+# Get instrument status for an instrument.
+def bridge_get_status_instrument(rd):
+    try:
+        # Real interface...
+        if not status_demo_data():
+            return_list = get_status_instrument(rd)
+
+        # Mock data interface.
+        else:
+            return_list = mock_get_status_instrument(rd)
+        return return_list
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# End bridges to toggle between mock and uframe status.
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Status worker functions for arrays, sites, platforms and instrument.
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Worker get status arrays.
 def get_status_arrays():
     """ Get all arrays with status information.
     Sample request: http://localhost:4000/uframe/status/arrays
@@ -176,41 +254,41 @@ def get_status_arrays():
           "display_name": "Global Southern Ocean",
           "latitude": -54.0814,
           "longitude": -89.6652,
+          "reason": null,
           "reference_designator": "GS",
           "status": {
+            "count": 1,
             "legend": {
               "degraded": 0,
-              "failed": 1,
-              "notTracked": 0,
-              "operational": 9,
+              "failed": 0,
+              "notTracked": 1,
+              "operational": 0,
               "removedFromService": 0
-            },
-            "total": 10
+            }
           }
         },
         {
           "display_name": "Global Station Papa",
           "latitude": 49.9795,
           "longitude": -144.254,
+          "reason": null,
           "reference_designator": "GP",
           "status": {
+            "count": 2,
             "legend": {
               "degraded": 0,
               "failed": 0,
-              "notTracked": 3,
-              "operational": 7,
+              "notTracked": 2,
+              "operational": 0,
               "removedFromService": 0
-            },
-            "total": 10
+            }
           }
         },
         . . .
-      ]
-    }
     """
     arrays_patch = get_array_locations()
     try:
-        # Get COL approved array information from vocabulary.
+        # Get array information from vocabulary.
         arrays = {}
         results = []
         array_dict = get_vocabulary_arrays()
@@ -219,7 +297,7 @@ def get_status_arrays():
             raise Exception(message)
 
         # Get uframe status for arrays.
-        status_arrays = get_status_data(None)
+        status_arrays = get_uframe_status_data_arrays()
         if not status_arrays or status_arrays is None:
             message = 'Unable to obtain uframe status for arrays.'
             raise Exception(message)
@@ -233,9 +311,11 @@ def get_status_arrays():
                     arrays[k]['latitude'] = arrays_patch[k]['latitude']
                     arrays[k]['longitude'] = arrays_patch[k]['longitude']
                     if k in status_arrays:
-                        arrays[k]['status'] = status_arrays[k]
+                        arrays[k]['status'] = status_arrays[k]['status']
+                        arrays[k]['reason'] = None                          #status_arrays[k]['reason']
                     else:
                         arrays[k]['status'] = None
+                        arrays[k]['reason'] = None
                     vocab_dict = get_vocab_dict_by_rd(k)
                     if vocab_dict:
                         arrays[k]['display_name'] = vocab_dict['name']
@@ -256,678 +336,7 @@ def get_status_arrays():
         current_app.logger.info(message)
         return None
 
-
-def get_status_platforms(rd):
-    """ Get all platforms for a specific site.
-    Sample requests:
-        http://localhost:4000/uframe/assets/nav/platforms/CE01ISSM
-    """
-    time = True
-    return_list = []
-    try:
-        start = dt.datetime.now()
-        if time:
-            print '\n-- Get platform status for site %s.' % rd
-            print '\t-- Start time: ', start
-        if len(rd) != 8:
-            message = 'Provide a valid reference designator for a site, (e.g. CE01ISSM).'
-            raise Exception(message)
-
-        # Get assets. If assets weren't cached this would be a problem (uframe response expensive time wise).
-        data = get_asset_list()
-        if not data or data is None:
-            return return_list
-
-        # Get platforms for rd from assets data.
-        results = get_platforms_for_site(data, rd)
-        end = dt.datetime.now()
-        if time:
-            print '\t-- End time:   ', end
-            print '\t-- Time to get platform status for site %s.: %s\n' % (rd, str(end - start))
-        if results and results is not None:
-            return results
-        return return_list
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return None
-
-
-def get_status_instrument(rd):
-    """ Get the status for a single instrument.
-    Sample requests:
-        http://localhost:4000/uframe/status/instrument/CE01ISSM-MFC31-00-CPMENG000
-        http://localhost:4000/uframe/status/instrument/GA01SUMO-RII11-02-CTDBPP031
-    """
-    return_list = []
-    try:
-        # Verify the rd provided is for an instrument.
-        if len(rd) <= 14 or not is_instrument(rd):
-            message = 'Provide a valid reference designator for an instrument, (e.g. CE01ISSM-MFC31-00-CPMENG000).'
-            raise Exception(message)
-
-        # Get assets for processing
-        data = get_asset_list()
-        if not data or data is None:
-            return return_list
-        results = None
-        for item in data:
-            if item['ref_des'] == rd:
-                work = format_site_data(item)
-                if not work or work is None:
-                    return return_list
-                result = add_deployment_info(work)
-                results = [result]
-                break
-        if results is None:
-            return results
-
-        # Stream times from time_dict
-        time_dict = get_stream_times([rd])
-        for item in results:
-            if not time_dict or time_dict is None:
-                item['start'] = None
-                item['end'] = None
-                item['display_name'] = rd
-            elif item['reference_designator'] not in time_dict:
-                item['start'] = None
-                item['end'] = None
-                item['display_name'] = rd
-            else:
-                item['start'] = time_dict[item['reference_designator']]['start']
-                item['end'] = time_dict[item['reference_designator']]['end']
-                item['display_name'] = time_dict[item['reference_designator']]['name']
-
-        if results and results is not None:
-            return_list = results
-        return return_list
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return None
-
-
-#def assets_nav_sites(data, rd=None):
-def get_platforms_for_site(data, rd=None):
-    """ Get assets which contain rd.
-
-    http://localhost:4000/uframe/assets/nav/platforms/CE01ISSM (return instruments grouped by node.)
-        returns all platforms and associated instruments for CE01ISSM, where a platform
-        is an asset containing CE01ISSM and 14 in length. All platforms are grouped by node category.
-        (Node categories are available in the vocab_codes dictionary in attribute 'nodes'.)
-        By way of an example, for site CE01ISSM, get platforms grouped by node category:
-            CE01ISSM-SB[D17]  (Bucket 1)
-            CE01ISSM-MF[D35]  (Bucket 2)
-            CE01ISSM-MF[D37]
-            CE01ISSM-MF[C31]
-            CE01ISSM-RI[D16]  (Bucket 3)
-
-    http://localhost:4000/uframe/assets/nav/sites/CE01ISSM-SBD17  (just instrument(s) for this platform)
-    """
-    debug = False
-    status = 'value'
-    if not rd or rd is None:
-        message = 'Please provide a site or platform reference designator for processing.'
-        raise Exception(message)
-
-    return_list = []
-    unique = set()
-    try:
-        # Filter asset data for processing platforms by site reference designator.
-        for obj in data:
-                tmp = None
-
-                if len(rd) != 8:
-                    continue
-                if obj['assetType'] == 'Array' or obj['assetType'] == 'notSpecified':
-                    continue
-                #if len(rd) == 8: # or len(rd) == 14:
-                if 'ref_des' not in obj or not obj['ref_des'] or obj['ref_des'] is None:
-                    continue
-
-                #if len(rd) == 8:
-                if len(obj['ref_des']) > 8:
-                    tmp = obj
-
-                if tmp is None:
-                    continue
-                if rd[0:2] != obj['ref_des'][0:2]:
-                    continue
-                if rd not in obj['ref_des']:
-                    continue
-                if rd == obj['ref_des']:
-                    continue
-                if 'latitude' in obj and 'longitude' in obj and 'depth' in obj:
-                    pass
-                else:
-                    continue
-
-                # Process object for final collection
-                if obj['ref_des'] not in unique:
-                    unique.add(str(obj['ref_des']))
-                    work = format_site_data(obj)
-                    if work is not None:
-                        return_list.append(work)
-        sections = []
-        if unique:
-            unique_list = list(unique)
-            if unique_list:
-                unique_list.sort()
-            sections = get_site_sections(unique_list, return_list)
-        return sections
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return None
-
-
-# Create list of section to display on Platforms page navigation.
-def get_site_sections(unique_list, return_list):
-    """ Using unique list of rds and list of assets generate site sections and return list.
-        List of sections where a section dictionary has two elements:
-            1. header - a dictionary for header row,
-            2. list of items in the section (instruments).
-        [
-         {
-            header: {},
-            items: [{}]
-         },
-        ]
-
-        A sample section:
-        {
-        "header": {
-                    "code": "MF",
-                    "status": "Degraded",
-                    "title": "Multi-Function Node"
-                  },
-        "items": [
-                {
-                  "depth": 0.0,
-                  "display_name": "Platform Controller",
-                  "end": "2015-10-08T00:42:54.333Z",
-                  "latitude": 44.6584,
-                  "log": [],
-                  "longitude": -124.09538,
-                  "maxdepth": 25.0,
-                  "mindepth": 25.0,
-                  "reference_designator": "CE01ISSM-MFC31-00-CPMENG000",
-                  "sensorInventory": true,
-                  "start": "2014-05-10T19:10:51.794Z",
-                  "status": "Degraded",
-                  "uid": "OL000193",
-                  "waterDepth": null
-                },
-                . . .
-            ]
-        }
-        """
-    #section_list = []
-    #sections = []
-    try:
-        # Verify there is something to process.
-        if not unique_list or unique_list is None:
-            message = 'Unable to process null or empty unique list to get site sections.'
-            raise Exceptions(message)
-
-        # Get vocabulary codes to use when processing sections.
-        vocab_codes = get_vocab_codes()
-        if vocab_codes is None:
-            message = 'Unable to process sites without vocabulary information (codes).'
-            raise Exception(message)
-
-        # Get rd_root.
-        rd_root = unique_list[0][:9]
-        # Get unique platforms (14).
-        unique_platforms = []
-        for rd in unique_list:
-            if rd[:14] not in unique_platforms:
-                unique_platforms.append(rd[:14])
-
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Get section codes.
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        section_codes = []
-        for item in unique_platforms:
-            item = item.replace(rd_root, '')
-            if item[:2] not in section_codes:
-                section_codes.append(item[:2])
-        if not section_codes:
-            message = 'No section codes found for %s.' % rd_root[:8]
-            return []
-
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Get lists of instruments and uids.
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        instruments = []
-        uids = {}
-        for item in return_list:
-            if len(item['reference_designator']) > 14:
-
-                    if item['reference_designator'] and item['reference_designator'] is not None and \
-                       item['uid'] and item['uid'] is not None:
-                            rd = item['reference_designator'][:]
-                            uid = item['uid'][:]
-                            if rd not in instruments:
-                                instruments.append(rd)
-                            if uid not in uids:
-                                uids[uid] = rd
-
-        if not instruments or not uids:
-            return None
-
-        # Get dict of start and end times
-        time_dict = get_stream_times(instruments)
-
-        # Get deployment digests for each reference designator.
-        digest_dict = get_digest_dict(uids)
-
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Create section header(s)
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        sections = []
-        headers = []
-        for code in section_codes:
-            header = {}
-            header['code'] = code
-            if code in vocab_codes['nodes']:
-                header['title'] = vocab_codes['nodes'][code]
-            header['status'] = operational_status_values()[1]   # todo - use uframe status
-            headers.append(header)
-
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Populate each section 'items' with a list of instruments.
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        for header in headers:
-            section = {}
-            section['header'] = header
-            section_code = header['code']
-            prefix = rd_root + section_code
-            cart = []
-            for item in return_list:
-                if item['reference_designator'] not in instruments:
-                    continue
-                if prefix == item['reference_designator'][:11]:
-                    # Add start and end times for reference designator.
-                    if not time_dict or time_dict is None:
-                        item['start'] = None
-                        item['end'] = None
-                        #item['display_name'] = item['reference_designator']
-                    elif item['reference_designator'] not in time_dict:
-                        item['start'] = None
-                        item['end'] = None
-                        #item['display_name'] = item['reference_designator']
-                    else:
-                        item['start'] = time_dict[item['reference_designator']]['start']
-                        item['end'] = time_dict[item['reference_designator']]['end']
-                        #item['display_name'] = time_dict[item['reference_designator']]['name']
-
-                    # Add deployment information, if available, for reference designator.
-                    # No deployment digest information.
-                    if not digest_dict or digest_dict is None:
-                        item['latitude'] = None
-                        item['longitude'] = None
-                        item['waterDepth'] = None
-                        item['depth'] = None
-                        item['waterDepth'] = None
-                    # Get digest for reference designator from digest dictionary, process.
-                    elif item['reference_designator'] in digest_dict:
-                        digest = digest_dict[item['reference_designator']]
-                        item['latitude'] = digest['latitude']
-                        item['longitude'] = digest['longitude']
-                        item['waterDepth'] = digest['waterDepth']
-                        item['depth'] = digest['depth']
-                        item['waterDepth'] = None
-                    # The reference designator is not in the digest dictionary.
-                    else:
-                        item['waterDepth'] = None
-                    cart.append(item)
-            section['items'] = cart
-            sections.append(section)
-        return sections
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return None
-
-
-def get_stream_times(instruments):
-    """ For a list of instruments, create and return dict (rd is key) with name, start and end times for rd.
-    The name provided is name in the vocabulary for the sensor in the reference designator.
-    The stat, end and name are garnered from stream information (produced by stream list processing.
-    """
-    debug = False
-    stream_times = None
-    try:
-        if not instruments or instruments is None:
-            return stream_times
-        # Get stream list once and populate all startTIme and endTime values.
-        stream_list = get_stream_list()
-        if not stream_list or stream_list is None:
-            message = 'Problem: stream_list returned null or empty.'
-            raise Exception(message)
-
-        stream_times = {}
-        count = 0
-        len_instruments = len(instruments)
-        if debug: print '\n debug -- get_stream_times: len(instruments): ', len(instruments)
-        for stream in stream_list:
-            if stream['reference_designator'] in instruments:
-                if stream['reference_designator'] not in stream_times:
-                    count += 1
-                    stream_times[stream['reference_designator']] = {}
-                    stream_times[stream['reference_designator']]['start'] = stream['start']
-                    stream_times[stream['reference_designator']]['end'] = stream['end']
-                    stream_times[stream['reference_designator']]['name'] = stream['display_name']
-            if count >= len_instruments:
-                break
-        if not stream_times:
-            return None
-        if debug:
-            print '\n debug -- len(stream_times.keys(): ', len(stream_times.keys())
-            if len(stream_times.keys()) != len(instruments):
-                instruments_missing_times = []
-                for instrument in instruments:
-                    if instrument not in stream_times:
-                        instruments_missing_times.append(instrument)
-                if instruments_missing_times:
-                    print '\n The following instruments were not available in stream_list: ', instruments_missing_times
-
-        return stream_times
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return None
-
-
-def get_digest_dict(uids):
-    try:
-        if not uids or uids is None:
-            return None
-        digest_dict = {}
-        for uid, rd in uids.iteritems():
-            digest = get_last_deployment_digest(uid)
-            if digest and digest is not None:
-                digest_dict[rd] = digest
-        if not digest_dict:
-            digest_dict = None
-        return digest_dict
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return None
-
-
-def format_site_data(obj):
-    debug = False
-    try:
-        if debug: print '\n debug -- format_site_data... '
-        work = {}
-        latitude = None
-        longitude = None
-        depth = None
-        mindepth = None
-        maxdepth = None
-        name = None
-        uid = None
-
-        reference_designator = obj['ref_des'][:]
-
-        if 'latitude' in obj:
-            latitude = obj['latitude']
-            if latitude is not None:
-                latitude = round(latitude, 4)
-        if 'longitude' in obj:
-            longitude = obj['longitude']
-            if longitude is not None:
-                longitude = round(longitude, 4)
-        if 'depth' in obj:
-            depth = obj['depth']
-        if 'uid' in obj:
-            uid = obj['uid']
-
-        work['uid'] = uid
-        work['reference_designator'] = reference_designator
-        work['latitude'] = latitude
-        work['longitude'] = longitude
-        work['depth'] = depth
-        if 'assetInfo' in obj:
-            mindepth = 0
-            if 'mindepth' in obj['assetInfo']:
-                mindepth = obj['assetInfo']['mindepth']
-            maxdepth = 0
-            if 'maxdepth' in obj['assetInfo']:
-                maxdepth = obj['assetInfo']['maxdepth']
-            if 'name' in obj['assetInfo']:
-                name = obj['assetInfo']['name']
-            else:
-                name = get_display_name_by_rd(reference_designator)
-        work['display_name'] = name
-        work['mindepth'] = mindepth
-        work['maxdepth'] = maxdepth
-        #================
-        if not work:
-            work = None
-        else:
-            if debug: print '\n Get status for %s...', reference_designator
-            work['status'] = get_status_data(reference_designator)
-            if debug: print '\n debug -- work[status]: ', work['status']
-        return work
-
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return None
-
-
-def format_rd_digest(obj):
-    """
-    Combine asset and digest information
-    #current_digest for asset uid:
-        # {u'node': u'WFP01', u'eventId': 32596, u'endTime': 1464566400000,
-        # u'orbitRadius': 0.0, u'subsite': u'CP02PMCI', u'node_uid': None,
-        # u'waterDepth': None, u'deploymentNumber': 5, u'longitude': -70.88897,
-        # u'editPhase': u'OPERATIONAL', u'depth': 0.0, u'recoverCruiseIdentifier': None,
-        # u'startTime': 1463789880000, u'latitude': 40.22655, u'mooring_uid': u'OL000237',
-        # u'versionNumber': 1, u'deployCruiseIdentifier': u'AR-04', u'sensor': u'00-WFPENG000',
-        # u'sensor_uid': u'A00286.1'}
-    """
-    debug = False
-    try:
-        if debug: print '\n debug -- Entered format_rd_digest...'
-        work = {}
-        latitude = None
-        longitude = None
-        depth = None
-        mindepth = None
-        maxdepth = None
-        name = None
-        uid = None
-
-        reference_designator = obj['ref_des'][:]
-
-        if 'latitude' in obj:
-            latitude = obj['latitude']
-            if latitude is not None:
-                latitude = round(latitude, 4)
-        if 'longitude' in obj:
-            longitude = obj['longitude']
-            if longitude is not None:
-                longitude = round(longitude, 4)
-        if 'depth' in obj:
-            depth = obj['depth']
-        if 'uid' in obj:
-            uid = obj['uid']
-
-        work['uid'] = uid
-        work['reference_designator'] = reference_designator
-        work['latitude'] = latitude
-        work['longitude'] = longitude
-        work['depth'] = depth
-        if 'assetInfo' in obj:
-            mindepth = 0
-            if 'mindepth' in obj['assetInfo']:
-                mindepth = obj['assetInfo']['mindepth']
-            maxdepth = 0
-            if 'maxdepth' in obj['assetInfo']:
-                maxdepth = obj['assetInfo']['maxdepth']
-            if 'name' in obj['assetInfo']:
-                name = obj['assetInfo']['name']
-            else:
-                name = get_display_name_by_rd(reference_designator)
-        work['display_name'] = name
-        work['mindepth'] = mindepth
-        work['maxdepth'] = maxdepth
-        #================
-        if not work:
-            work = None
-
-        return work
-
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return None
-
-
-def get_status_data(rd):
-    """ Get status for array, site, platform or instrument.
-    """
-    debug = False
-    try:
-        status = get_mock_status_for_rd(rd)
-        if debug: print '\n debug -- status for rd \'%s\': %s' % (rd, status)
-        return status
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return None
-
-
-def get_uframe_status_data(rd):
-    """ Get uframe status for array, site, platform or instrument. Process into dictionary.
-    """
-    debug = False
-    try:
-        status_data = uframe_get_status_by_rd(rd)
-        if debug:
-            print '\n debug -- uframe status data for rd \'%s\': ', rd
-            dump_dict(status_data, debug)
-
-        if not status_data or status_data is None:
-            status = None
-        else:
-            status = {}
-            for item in status_data:
-                if item:
-                    if 'referenceDesignator' in item:
-                        if item['referenceDesignator']:
-                            status[item['referenceDesignator']] = item
-            if not status:
-                status = None
-        if debug:
-            print '\n debug -- uframe status for rd \'%s\':' % rd
-            dump_dict(status)
-        return status
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return None
-
-
-def get_log_block():
-    """ Get event log for history, default count=100.
-    """
-    log = []
-    return log
-
-
-def get_last_deployment_digest(uid):
-    digest = None
-    try:
-        digests = get_deployments_digests(uid)
-        if digests and digests is not None:
-            #digests.reverse()
-            digest = digests[0]
-        return digest
-    except Exception as err:
-        message = 'get_last_deployment_digest: uid: %s: %s' % (uid, str(err))
-        current_app.logger.info(message)
-        return None
-
-# development work
-def get_deployments_digests(uid):
-    """ Get list of deployment digest items for a uid; sorted in reverse by deploymentNumber.
-
-    Sample response data:
-        [
-            {
-              "startTime" : 1437159840000,
-              "depth" : 0.0,
-              "subsite" : "CE01ISSP",
-              "node" : "SP001",
-              "sensor" : "00-SPPENG000",
-              "deploymentNumber" : 3,
-              "versionNumber" : 1,
-              "eventId" : 23362,
-              "editPhase" : "OPERATIONAL",
-              "longitude" : -124.09567,
-              "latitude" : 44.66415,
-              "orbitRadius" : 0.0,
-              "mooring_uid" : "N00262",
-              "node_uid" : "N00123",
-              "sensor_uid" : "R00102",
-              "deployCruiseIdentifier" : null,
-              "recoverCruiseIdentifier" : null,
-              "waterDepth" : null,
-              "endTime" : 1439424000000
-            },
-            . . .
-        ]
-    """
-    debug = False
-    try:
-        if debug: print '\n debug -- Entered get_deployments_digests for uid: %s' % uid
-        digests = get_deployments_digest_by_uid(uid)
-        if not digests or digests is None or len(digests) == 0:
-            return None
-        if debug: print '\n len(digests): ', len(digests)
-        # Sort (reverse) by value of 'deploymentNumber', 'versionNumber', 'startTime'
-        #result = None
-        try:
-            #result = sorted(digests, key=itemgetter('deploymentNumber'))
-            #digests.sort(key=lambda x: (-x['deploymentNumber'], -x['versionNumber'], -x['startTime']))
-            digests.sort(key=lambda x: (x['deploymentNumber'], x['versionNumber'], x['startTime']), reverse=True)
-        except Exception as err:
-            print '\n get_deployments_digests : errors: ', str(err)
-            pass
-        if not digests or digests is None:
-            return None
-        if debug: print '\n debug -- Exit get_deployments_digests for uid: %s' % uid
-        return digests
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return None
-
-
-def bridge_get_sites_for_array(rd):
-    from ooiservices.app.uframe.config import status_demo_data          # mock api
-    try:
-        # Real interface...
-        if not status_demo_data():
-            return_list = get_status_sites(rd)  # final_new_get_sites_for_array(rd)
-
-        # Mock data interface
-        else:
-            return_list = mock_get_sites_for_array(rd)
-
-        return return_list
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-
+# Worker get site(s) status for array.
 def get_status_sites(rd):
     """ Get all sites for an array; for each site provide status and some asset-based information.
     Sample request: http://localhost:4000/uframe/status/sites/CE
@@ -1010,8 +419,6 @@ def get_status_sites(rd):
             #===================================
             #break
 
-        # For each
-
         if debug: print '\n len(return_list): %d' % len(return_list)
         return return_list
     except Exception as err:
@@ -1020,12 +427,1444 @@ def get_status_sites(rd):
         return None
 
 
-# todo: Remove this mock interface when status/query endpoint available.
+def get_status_platforms(rd=None):
+    """ Get assets which contain rd.
+
+    http://localhost:4000/uframe/status/platforms/CE01ISSM (return instruments grouped by node.)
+        returns all platforms and associated instruments for CE01ISSM, where a platform
+        is an asset containing CE01ISSM and 14 in length. All platforms are grouped by node category.
+        (Node categories are available in the vocab_codes dictionary in attribute 'nodes'.)
+        By way of an example, for site CE01ISSM, get platforms grouped by node category:
+            CE01ISSM-SB[D17]  (Bucket 1)
+            CE01ISSM-MF[D35]  (Bucket 2)
+            CE01ISSM-MF[D37]
+            CE01ISSM-MF[C31]
+            CE01ISSM-RI[D16]  (Bucket 3)
+
+    http://localhost:4000/uframe/assets/nav/sites/CE01ISSM-SBD17  (just instrument(s) for this platform)
+    http://localhost:4000/uframe/status/platforms/GA01SUMO
+
+    http://uframe-3-test.ooi.rutgers.edu:12587/status/query/CE01ISSM
+    [
+        {
+          "reason" : "1554",
+          "status" : "degraded",
+          "referenceDesignator" : "CE01ISSM-RID16",
+          "deployment" : 43
+        },
+        {
+          "reason" : null,
+          "status" : "notTracked",
+          "referenceDesignator" : "CE01ISSM-SBC11",
+          "deployment" : 2
+        }]
+
+    http://uframe-3-test.ooi.rutgers.edu:12587/status/query/CE01ISSM/RID16
+    [
+        {
+          "reason" : "1554",
+          "status" : "degraded",
+          "referenceDesignator" : "CE01ISSM-RID16",
+          "deployment" : 43
+        },
+        {
+          "reason" : "1989",
+          "status" : "degraded",
+          "referenceDesignator" : "CE01ISSM-RID16-00-DCLENG000",
+          "deployment" : 4
+        },
+        . . .
+    ]
+    """
+    time = True
+    debug = True
+    return_list = []
+    try:
+        if rd is None or not rd:
+            message = 'Null or empty reference designator provided for site.'
+            raise Exception(message)
+        start = dt.datetime.now()
+        if time:
+            print '\n\t-- Processing for platforms...'
+            print '\t\t-- Start time: ', start
+        rds = uframe_get_platforms_for_site(rd)
+        if time:
+            print '\n\t-- Number of %s platforms: %d' % (rd, len(rds))
+            print '\n\t-- Platforms: ' % rds
+        if not rds:
+            message = 'No sites in the sensor inventory for array %s.' % rd
+            current_app.logger.info(message)
+            return []
+
+        # Get rd_digest dictionary.
+        rd_digests_dict = get_rd_digests_dict()
+
+        # Get status data dictionary.
+        status_data = get_uframe_status_data(rd)
+        if not status_data or status_data is None:
+            message = 'No platform status data returned from uframe for reference designator %s.' % rd
+            current_app.logger.info(message)
+            status_data = {}
+
+        if debug:
+            print '\n debug ------ status_data: '
+            dump_dict(status_data, debug)
+
+        end = dt.datetime.now()
+        if time:
+            print '\t-- End time:   ', end
+            print '\t-- Time to get %s site processing status: %s' % (rd, str(end - start))
+
+        if not rds:
+            return None
+
+        #count = 0
+        sections = []
+
+        # Process each reference designator and add to rd_digests.
+        for reference_designator in rds:
+            if debug: print '\n debug -- [Platforms] Processing reference designator: ', reference_designator
+
+            #===================================
+            start = dt.datetime.now()
+            if time:
+                print '\n\t-- Processing %s... ' % reference_designator
+                print '\t\t-- Start time: ', start
+            #===================================
+
+            if reference_designator not in rd_digests_dict:
+                if debug: print '\n debug -- %s not in rd_digests_dict.' % reference_designator
+                continue
+
+            # Add status for reference designator.
+            if status_data and (reference_designator in status_data):
+                #rd_digests[reference_designator]['status'] = get_status_data(reference_designator)
+                rd_digests_dict[reference_designator]['status'] = status_data[reference_designator]['status']
+                rd_digests_dict[reference_designator]['reason'] = status_data[reference_designator]['reason']
+            else:
+                if debug: print '\n debug -- %s status not supplied in status_data.' % reference_designator
+                rd_digests_dict[reference_designator]['status'] = None
+                rd_digests_dict[reference_designator]['reason'] = None
+            return_list.append(rd_digests_dict[reference_designator])
+
+            #=======================================
+            end = dt.datetime.now()
+            if time:
+                print '\t\t-- End time:   ', end
+                print '\t\t-- Time to process %s site: %s' % (rd, str(end - start))
+            #===================================
+            #break
+
+        # Get site sections for display.
+        if rds:
+            rds.sort()
+            sections = get_site_sections(rds, return_list)
+
+        return sections
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None
+
+
+# Create list of sections to display on Platforms page navigation.
+def get_site_sections(unique_list, return_list):
+    """ Using unique list of rds and list of assets generate site sections and return list.
+        List of sections where a section dictionary has two elements:
+            1. header - a dictionary for header row,
+            2. list of items in the section (instruments).
+        [
+         {
+            header: {},
+            items: [{}]
+         },
+        ]
+
+        A sample section:
+        {
+        "header": {
+                    "code": "MF",
+                    "status": "Degraded",
+                    "title": "Multi-Function Node"
+                  },
+        "items": [
+                {
+                  "depth": 0.0,
+                  "display_name": "Platform Controller",
+                  "end": "2015-10-08T00:42:54.333Z",
+                  "latitude": 44.6584,
+                  "log": [],
+                  "longitude": -124.09538,
+                  "maxdepth": 25.0,
+                  "mindepth": 25.0,
+                  "reference_designator": "CE01ISSM-MFC31-00-CPMENG000",
+                  "sensorInventory": true,
+                  "start": "2014-05-10T19:10:51.794Z",
+                  "status": "Degraded",
+                  "uid": "OL000193",
+                  "waterDepth": null
+                },
+                . . .
+            ]
+        }
+        """
+    #section_list = []
+    #sections = []
+    try:
+        # Verify there is something to process.
+        if not unique_list or unique_list is None:
+            message = 'Unable to process null or empty list to get site sections.'
+            raise Exceptions(message)
+
+        # Get vocabulary codes to use when processing sections.
+        vocab_codes = get_vocab_codes()
+        if vocab_codes is None:
+            message = 'Unable to process sites without vocabulary information (codes).'
+            raise Exception(message)
+
+        # Get rd_root.
+        rd_root = unique_list[0][:9]
+        # Get unique platforms (14).
+        unique_platforms = []
+        for rd in unique_list:
+            if rd[:14] not in unique_platforms:
+                unique_platforms.append(rd[:14])
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Get section codes.
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        section_codes = []
+        for item in unique_platforms:
+            item = item.replace(rd_root, '')
+            if item[:2] not in section_codes:
+                section_codes.append(item[:2])
+        if not section_codes:
+            message = 'No section codes found for %s.' % rd_root[:8]
+            current_app.logger.info(message)
+            return []
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Get lists of instruments and uids.
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        instruments = []
+        #uids = {}
+        uids = []
+        for item in return_list:
+            if len(item['reference_designator']) > 14:
+                if item['reference_designator'] and item['reference_designator'] is not None and \
+                   item['uid'] and item['uid'] is not None:
+                        rd = item['reference_designator'][:]
+                        uid = item['uid'][:]
+                        if rd not in instruments:
+                            instruments.append(rd)
+                        if uid not in uids:
+                            #uids[uid] = rd                 # Dynamic (slower) version, uses uid dict
+                            uids.append(uid)                # Added for cache, uses list not uid dict
+
+        if not instruments or not uids:
+            return None
+
+        # Get dict of start and end times
+        time_dict = get_stream_times(instruments)
+
+        # Get deployment digests for each reference designator.
+        digest_dict = get_digest_dict(uids)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Create section header(s)
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        sections = []
+        headers = []
+        for code in section_codes:
+            header = {}
+            header['code'] = code
+            if code in vocab_codes['nodes']:
+                header['title'] = vocab_codes['nodes'][code]
+            header['status'] = operational_status_values()[1]
+            headers.append(header)
+
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Populate each section 'items' with a list of instruments.
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        for header in headers:
+            section = {}
+            section['header'] = header
+            section_code = header['code']
+            prefix = rd_root + section_code
+            cart = []
+            for item in return_list:
+                if item['reference_designator'] not in instruments:
+                    continue
+                if prefix == item['reference_designator'][:11]:
+                    # Add start and end times for reference designator.
+                    if not time_dict or time_dict is None:
+                        item['start'] = None
+                        item['end'] = None
+                    elif item['reference_designator'] not in time_dict:
+                        item['start'] = None
+                        item['end'] = None
+                    else:
+                        item['start'] = time_dict[item['reference_designator']]['start']
+                        item['end'] = time_dict[item['reference_designator']]['end']
+
+                    # Add deployment information, if available, for reference designator.
+                    # No deployment digest information.
+                    if not digest_dict or digest_dict is None:
+                        item['latitude'] = None
+                        item['longitude'] = None
+                        item['waterDepth'] = None
+                        item['depth'] = None
+                        item['waterDepth'] = None
+                    # Get digest for reference designator from digest dictionary, process.
+                    elif item['reference_designator'] in digest_dict:
+                        digest = digest_dict[item['reference_designator']]
+                        item['latitude'] = digest['latitude']
+                        item['longitude'] = digest['longitude']
+                        item['waterDepth'] = digest['waterDepth']
+                        item['depth'] = digest['depth']
+                        item['waterDepth'] = None
+                    # The reference designator is not in the digest dictionary.
+                    else:
+                        item['waterDepth'] = None
+                    cart.append(item)
+            section['items'] = cart
+            sections.append(section)
+        return sections
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None
+
+
+# Worker get instrument status for instrument.
+def get_status_instrument(rd):
+    """ Get the status for a single instrument.
+    Sample requests:
+        http://localhost:4000/uframe/status/instrument/CE01ISSM-MFC31-00-CPMENG000
+        http://localhost:4000/uframe/status/instrument/GA01SUMO-RII11-02-CTDBPP031
+    """
+    return_list = []
+    try:
+        #============================================================
+        # Verify the rd provided is for an instrument.
+        if not rd or rd is None or len(rd) <= 14:
+            #if len(rd) <= 14 or not is_instrument(rd):
+            message = 'Provide a valid reference designator for an instrument.'
+            raise Exception(message)
+
+        # Get status data dictionary.
+        status_data = get_uframe_status_data(rd)       # uframe data
+        if not status_data or status_data is None:
+            message = 'No status data returned from uframe for reference designator %s.' % rd
+            current_app.logger.info(message)
+            status_data = {}
+
+        # Get rd_digest dictionary.
+        rd_digests_dict = get_rd_digests_dict()
+        if rd in rd_digests_dict:
+
+            # Stream times from time_dict
+            time_dict = get_stream_times([rd])
+            if not time_dict or time_dict is None:
+                rd_digests_dict[rd]['start'] = None
+                rd_digests_dict[rd]['end'] = None
+                #item['display_name'] = rd
+            elif rd not in time_dict:
+                rd_digests_dict[rd]['start'] = None
+                rd_digests_dict[rd]['end'] = None
+                #item['display_name'] = rd
+            else:
+                rd_digests_dict[rd]['start'] = time_dict[rd]['start']
+                rd_digests_dict[rd]['end'] = time_dict[rd]['end']
+                #item['display_name'] = time_dict[item['reference_designator']]['name']
+
+            if status_data and (rd in status_data):
+                rd_digests_dict[rd]['status'] = status_data[rd]['status']
+                rd_digests_dict[rd]['reason'] = status_data[rd]['reason']
+            else:
+                rd_digests_dict[rd]['status'] = None
+                rd_digests_dict[rd]['reason'] = None
+            return_list.append(rd_digests_dict[rd])
+
+        return return_list
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None
+
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# End Status worker functions for arrays, sites, platforms and instrument.
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+#===========================================
+# Helper functions
+#===========================================
+
+def get_stream_times(instruments):
+    """ For a list of instruments, create and return dict (rd is key) with name, start and end times for rd.
+    The name provided is name in the vocabulary for the sensor in the reference designator.
+    The stat, end and name are garnered from stream information (produced by stream list processing.
+    """
+    debug = False
+    stream_times = None
+    try:
+        if not instruments or instruments is None:
+            return stream_times
+        # Get stream list once and populate all startTIme and endTime values.
+        stream_list = get_stream_list()
+        if not stream_list or stream_list is None:
+            message = 'Problem: stream_list returned null or empty.'
+            raise Exception(message)
+
+        stream_times = {}
+        count = 0
+        len_instruments = len(instruments)
+        if debug: print '\n debug -- get_stream_times: len(instruments): ', len(instruments)
+        for stream in stream_list:
+            if stream['reference_designator'] in instruments:
+                if stream['reference_designator'] not in stream_times:
+                    count += 1
+                    stream_times[stream['reference_designator']] = {}
+                    stream_times[stream['reference_designator']]['start'] = stream['start']
+                    stream_times[stream['reference_designator']]['end'] = stream['end']
+                    stream_times[stream['reference_designator']]['name'] = stream['display_name']
+            if count >= len_instruments:
+                break
+        if not stream_times:
+            return None
+        if debug:
+            print '\n debug -- len(stream_times.keys(): ', len(stream_times.keys())
+            if len(stream_times.keys()) != len(instruments):
+                instruments_missing_times = []
+                for instrument in instruments:
+                    if instrument not in stream_times:
+                        instruments_missing_times.append(instrument)
+                if instruments_missing_times:
+                    print '\n The following instruments were not available in stream_list: ', instruments_missing_times
+
+        return stream_times
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None
+
+
+def get_digest_dict(uids):
+    """ Gets latest deployment digest for list of uids from cache. (fast)
+    """
+    debug = False
+    try:
+        if debug: print '\n debug -- Entered get_digest_dict...'
+        if not uids or uids is None:
+            return None
+        if debug: print '\n debug -- Number of uids: ', len(uids)
+        uid_digests = get_uid_digests()
+        if not uid_digests or uid_digests is None:
+            message = 'No uid_digests, unable to digests for uids.'
+            raise Exception(message)
+
+        digest_dict = {}
+        #for uid, item in uids.iteritems():
+        for uid in uids:
+            if debug:
+                print '\n debug -- uid: ', uid
+
+            #digest = get_last_deployment_digest(uid)
+            #rd = item['rd']
+            #asset_type = item['asset_type']
+            digest = None
+            digest_rd = None
+            if uid in uid_digests:
+                if debug: print '\n debug -- uid in uid_digests...'
+                digest = uid_digests[uid]
+                digest_rd = get_rd_from_uid_digest('Instrument', digest)
+            if digest and digest is not None and digest_rd and digest_rd is not None:
+                #digest_dict[rd] = digest
+                digest_dict[digest_rd] = digest
+        if not digest_dict:
+            digest_dict = None
+
+        if debug: print '\n debug -- len(digest_dict): ', len(digest_dict)
+        return digest_dict
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None
+
+
+def format_rd_digest(obj):
+    """ Format asset information for digest.
+    """
+    debug = False
+    try:
+        if debug: print '\n debug -- Entered format_rd_digest...'
+        work = {}
+        latitude = None
+        longitude = None
+        depth = None
+        mindepth = None
+        maxdepth = None
+        name = None
+        uid = None
+
+        reference_designator = None
+        if 'ref_des' in obj:
+            if obj['ref_des'] and obj['ref_des'] is not None:
+                reference_designator = obj['ref_des'][:]
+
+        if reference_designator is None:
+            return None
+
+        if 'latitude' in obj:
+            latitude = obj['latitude']
+            if latitude is not None:
+                latitude = round(latitude, 4)
+        if 'longitude' in obj:
+            longitude = obj['longitude']
+            if longitude is not None:
+                longitude = round(longitude, 4)
+        if 'depth' in obj:
+            depth = obj['depth']
+        if 'uid' in obj:
+            uid = obj['uid']
+
+        work['uid'] = uid
+        work['reference_designator'] = reference_designator
+        work['latitude'] = latitude
+        work['longitude'] = longitude
+        work['depth'] = depth
+        if 'assetInfo' in obj:
+            mindepth = 0
+            if 'mindepth' in obj['assetInfo']:
+                mindepth = obj['assetInfo']['mindepth']
+            maxdepth = 0
+            if 'maxdepth' in obj['assetInfo']:
+                maxdepth = obj['assetInfo']['maxdepth']
+            if 'name' in obj['assetInfo']:
+                name = obj['assetInfo']['name']
+            else:
+                name = get_display_name_by_rd(reference_designator)
+        work['display_name'] = name
+        work['mindepth'] = mindepth
+        work['maxdepth'] = maxdepth
+        #================
+        if not work:
+            work = None
+
+        return work
+
+    except Exception as err:
+        message = str(err)
+        if debug: print '\n debug format_rd_digest -- exception: ', message
+        current_app.logger.info(message)
+        return None
+
+
+# Get uframe status for a reference designator; flip into dict keyed by reference designator.
+def get_uframe_status_data(rd):
+    """ Get uframe status for site, platform or instrument. Process into dictionary, return.
+    """
+    debug = True
+    try:
+        status_data = uframe_get_status_by_rd(rd)
+        if debug:
+            print '\n debug -- uframe status data for rd \'%s\': ', rd
+            dump_dict(status_data, debug)
+
+        if not status_data or status_data is None:
+            status = None
+        else:
+            status = {}
+            for item in status_data:
+                if item:
+                    if 'referenceDesignator' in item:
+                        if item['referenceDesignator']:
+                            status[item['referenceDesignator']] = item
+            if not status:
+                status = None
+        if debug:
+            print '\n debug -- uframe status for rd \'%s\':' % rd
+            dump_dict(status)
+        return status
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None
+
+
+# Get uframe status for arrays; flip into dict keyed by reference designator.
+def get_uframe_status_data_arrays():
+    """ Get uframe status for array, site, platform or instrument. Process into dictionary, return.
+    [
+        {
+          "status" : {
+            "legend" : {
+              "notTracked" : 1,
+              "removedFromService" : 0,
+              "degraded" : 0,
+              "failed" : 0,
+              "operational" : 0
+            },
+            "count" : 1
+          },
+          "referenceDesignator" : "RS"
+        },
+
+    """
+    debug = True
+    from copy import deepcopy
+    try:
+        status_data = uframe_get_status_by_rd()
+        if debug:
+            print '\n debug -- uframe status data for arrays.'
+            dump_dict(status_data, debug)
+
+        if not status_data or status_data is None:
+            status = None
+        else:
+            status = {}
+            for item in status_data:
+                if item:
+                    if 'referenceDesignator' in item:
+
+                        if item['referenceDesignator']:
+                            rd = deepcopy(item['referenceDesignator'])
+                            del item['referenceDesignator']
+                            status[rd] = item
+
+            if not status:
+                status = None
+        if debug:
+            print '\n debug -- uframe status for arrays: '
+            dump_dict(status)
+        return status
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None
+
+
+
+def get_log_block():
+    """ Get event log for history, default count=100. To be defined.
+    """
+    log = []
+    return log
+
+
+# Get uframe deployment digests, reverse sorted by ('deploymentNumber', 'versionNumber', and 'startTime'.
+# Return current and operational current.
+def get_last_deployment_digest(uid):
+    digest = None
+    #digest_operational = None
+    try:
+        digests = get_deployments_digests(uid)
+        #digests, digests_operational = get_deployments_digests(uid)
+        if digests and digests is not None:
+            digest = digests[0]
+        """
+        if digests_operational and digests_operational is not None:
+            digest_operational = digests_operational[0]
+        """
+        return digest   #, digest_operational
+    except Exception as err:
+        message = 'Exception: get_last_deployment_digest: uid: %s: %s' % (uid, str(err))
+        current_app.logger.info(message)
+        return None, None
+
+
+def add_deployment_info(work):
+    """ Process work dictionary and add deployment items.
+    """
+    try:
+        if not work or work is None:
+            return None
+
+        # Get deployment digest using uid from work dictionary.
+        #digest, _ = get_last_deployment_digest(work['uid'])
+        digest = get_last_deployment_digest(work['uid'])
+        if digest is not None:
+            work['latitude'] = digest['latitude']
+            work['longitude'] = digest['longitude']
+            work['depth'] = digest['depth']
+            work['waterDepth'] = digest['waterDepth']
+        else:
+            work['latitude'] = None
+            work['longitude'] = None
+            work['depth'] = None
+            work['waterDepth'] = None
+        return work
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None
+
+
+# development work
+def get_deployments_digests(uid):
+    """ Get list of deployment digest items for a uid; sorted in reverse by deploymentNumber, versionNumber and startTime.
+
+    Sample request:
+        http://localhost:4000/uframe/dev/digest/OL000582
+        Queries uframe endpoint: http://host:12587/asset/deployments/OL000582?editphase=ALL
+    Sample response data:
+        {
+          "digest": {
+            "deployCruiseIdentifier": "RB-16-05",
+            "deploymentNumber": 4,
+            "depth": 0.0,
+            "editPhase": "OPERATIONAL",
+            "endTime": 1498867200000,
+            "eventId": 57433,
+            "latitude": 49.97434,
+            "longitude": -144.23972,
+            "mooring_uid": "OL000582",
+            "node": "RIM01",
+            "node_uid": null,
+            "orbitRadius": 0.0,
+            "recoverCruiseIdentifier": null,
+            "sensor": "00-SIOENG000",
+            "sensor_uid": "OL000583",
+            "startTime": 1467335220000,
+            "subsite": "GP03FLMA",
+            "versionNumber": 1,
+            "waterDepth": null
+          }
+        }
+    """
+    debug = False
+    try:
+        if debug:
+            print '\n debug ========================================================='
+            print '\n debug -- Entered get_deployments_digests for uid: %s' % uid
+        digests = get_deployments_digest_by_uid(uid)
+        if not digests or digests is None or len(digests) == 0:
+            return None, None
+        if debug: print '\n len(digests): ', len(digests)
+        # Sort (reverse) by value of 'deploymentNumber', 'versionNumber', 'startTime'
+        try:
+            #result = sorted(digests, key=itemgetter('deploymentNumber'))
+            #digests.sort(key=lambda x: (-x['deploymentNumber'], -x['versionNumber'], -x['startTime']))
+            digests.sort(key=lambda x: (x['deploymentNumber'], x['versionNumber'], x['startTime']), reverse=True)
+        except Exception as err:
+            print '\n get_deployments_digests : errors: ', str(err)
+            pass
+        if not digests or digests is None:
+            return None, None
+
+        """
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Get 'OPERATIONAL' digests.
+        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        digests_operational = []
+        for digest in digests:
+            if digest['editPhase'] == 'OPERATIONAL':
+                digests_operational.append(digest)
+        if digests_operational:
+            try:
+                digests_operational.sort(key=lambda x: (x['deploymentNumber'], x['versionNumber'], x['startTime']),
+                                         reverse=True)
+            except Exception as err:
+                print '\n digests_operational : errors: ', str(err)
+                pass
+        """
+
+        if debug:
+            print '\n debug -- Exit get_deployments_digests for uid: %s' % uid
+            print '\n debug ========================================================='
+        return digests #, digests_operational
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None, None
+
+#===========================================
+# Cache helper functions
+#===========================================
+def build_rds_cache(refresh=False):
+    """
+    Create a cache for reference designator to current asset uid deployment information.
+    The 'rd_digests' and 'rd_digests_dict' are used by status methods.
+    """
+    debug = True
+    time = True
+    rd_digests = None
+    rd_digests_dict = None
+    try:
+        if time: print '\n-- Building reference designator digests (refresh: %r)' % refresh
+        if not refresh:
+            rd_digests_cache = cache.get('rd_digests')
+            if rd_digests_cache and rd_digests_cache is not None:
+                rd_digests = rd_digests_cache
+            else:
+                rd_digests = None
+
+            rd_digests_dict_cache = cache.get('rd_digests_dict')
+            if rd_digests_dict_cache and rd_digests_dict_cache is not None:
+                rd_digests_dict = rd_digests_dict_cache
+            else:
+                rd_digests_dict = None
+
+        # If refresh (force build) or missing either rd_digest or rd_digest_dict, then rebuild both.
+        if refresh or rd_digests is None or rd_digests_dict is None:
+
+            #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            # Get reference designators from toc...
+            #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            if time: print '\n     -- Compiling reference designators from toc...'
+            start = dt.datetime.now()
+            if time: print '\t-- Start time: ', start
+            try:
+                rds, _, _ = get_toc_reference_designators()
+            except Exception as err:
+                message = str(err)
+                raise Exception(message)
+
+            if not rds or rds is None:
+                message = 'No reference designators returned from toc information.'
+                raise Exception(message)
+            rds_end = dt.datetime.now()
+            if time:
+                print '\t-- End time:   ', rds_end
+                print '\t-- Time to complete: %s' % (str(rds_end - start))
+                print '     -- Completed compiling rds from toc...'
+            if debug: print '\t-- Number of reference designators: ', len(rds)
+
+            #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            # Compile reference designator digests using rds.
+            #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            digests_start = dt.datetime.now()
+            if time:
+                print '\n     -- Compiling reference designator digests... '
+                print '\t-- Start time: ', digests_start
+            rd_digests, rd_digests_dict = build_rd_digest_cache(rds)
+            if rd_digests is not None:
+                cache.delete('rd_digests')
+                cache.set('rd_digests', rd_digests, timeout=CACHE_TIMEOUT)
+            else:
+                print 'Failed to construct rd_digests.'
+            if rd_digests_dict is not None:
+                cache.delete('rd_digests_dict')
+                cache.set('rd_digests_dict', rd_digests_dict, timeout=CACHE_TIMEOUT)
+            else:
+                print 'Failed to construct rd_digests_dict.'
+
+            if debug: print '\n\t-- Reference designators (%d) has (%d) rd_digests' % (len(rds), len(rd_digests))
+            end = dt.datetime.now()
+            if time:
+                print '\t-- End time:   ', end
+                print '\t-- Time to complete: %s' % (str(end - digests_start))
+                print '     -- Completed compiling reference designator digests... '
+
+            if time:
+                print '\n\t-- End time:   ', end
+                print '\t-- Time (total) to complete: %s' % (str(end - start))
+                print '-- Completed building reference designator digests...\n'
+        return rd_digests
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None
+
+
+def build_rd_digest_cache(rds):
+    """
+    Create a cache for reference designator to current [operational] asset uid deployment digest.
+    """
+    debug = False
+    time = True
+
+    return_list = []
+    return_dict = {}
+    try:
+        if debug: print '\n debug -- Number of rds: ', len(rds)
+        if not rds or rds is None:
+            message = 'No reference designator to process, unable to build rd_digest cache.'
+            raise Exception(message)
+        start = dt.datetime.now()
+        if time:
+            print '\n\t-- Preparing information before processing... '
+            print '\t-- Start time: ', start
+
+        #=======================================
+        # Get assets_dict
+        assets_dict = get_assets_dict()
+        if assets_dict is None:
+            message = 'Failed to retrieve assets_dict.'
+            raise Exception(message)
+
+        # Get uid_digests
+        uid_digests = get_uid_digests()
+        if uid_digests is None or not uid_digests:
+            message = 'Failed to retrieve uid_digests.'
+            raise Exception(message)
+
+        """
+        # Get uid_digests operational
+        uid_digests_operational = get_uid_digests_operational()
+        if uid_digests_operational is None or not uid_digests_operational:
+            message = 'Failed to retrieve uid_digests_operational.'
+            raise Exception(message)
+        """
+        #=======================================
+        end = dt.datetime.now()
+        if time:
+            print '\t-- End time:   ', end
+            print '\t-- Time to get information: %s' % (str(end - start))
+            print '\t-- Completed preparing information before processing... '
+
+        #count = 0
+        if debug:
+            print '\n debug -- len(assets_dict): ', len(assets_dict)
+            print '\n debug -- len(uid_digests): ', len(uid_digests)
+
+        # Get all asset reference designators and current digest information available.
+        for id, asset in assets_dict.iteritems():
+            asset_type = None
+            if 'assetType' in asset:
+                asset_type = asset['assetType']
+                if asset_type is None or not asset_type or len(asset_type) == 0:
+                    continue
+                if asset_type not in ['Platform', 'Mooring', 'Node', 'Instrument', 'Sensor']:
+                    continue
+            if asset_type is None:
+                continue
+
+            # Use uid_digests to process all assets of types which may have deployments.
+            asset_uid = None
+            if 'uid' in asset:
+                asset_uid = asset['uid']
+            if asset_uid is None or not asset_uid or len(asset_uid) == 0:
+                continue
+
+            current_digest = None
+            """
+            if asset_uid in uid_digests_operational:
+                current_digest = uid_digests_operational[asset_uid]
+            """
+            if asset_uid in uid_digests:
+                current_digest = uid_digests[asset_uid]
+            if current_digest is None or not current_digest or len(current_digest) == 0:
+                continue
+
+            asset_rd = get_rd_from_uid_digest(asset_type, current_digest)
+            if asset_rd is None or not asset_rd or len(asset_rd) == 0:
+                continue
+
+            # Build digest for reference designator.
+            work = format_rd_digest(asset)
+
+            # Add deployment data.
+            if work is not None:
+                work['latitude'] = current_digest['latitude']
+                work['longitude'] = current_digest['longitude']
+                work['depth'] = current_digest['depth']
+                work['waterDepth'] = current_digest['waterDepth']
+
+                return_list.append(work)
+                return_dict[work['reference_designator']] = work
+
+            #count += 1
+            #if count >= 10:
+            #    break
+
+        if debug:
+            print '\n debug -- return_list: ', len(return_list)
+            dump_dict(return_list[0], debug)
+            #print '\n debug -- return_dict: ', len(return_dict)
+            #dump_dict(return_dict[return_dict.keys()[0]], debug)
+
+        #if debug: print '\n len(return_list): %d' % len(return_list)
+        return return_list, return_dict
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None, None
+
+
+# Single uid, get fresh rd digest. (Uses uframe to get asset.)
+def get_fresh_rd_digest(uid):
+    from ooiservices.app.uframe.uframe_tools import uframe_get_asset_by_uid
+    from ooiservices.app.uframe.asset_tools import format_asset_for_ui
+
+    debug = False
+    try:
+        if uid is None or not uid or len(uid) == 0:
+            message = 'No asset uid provided, empty or null; unable to provide rd digest.'
+            raise Exception(message)
+
+        # Get uid_digests
+        uid_digests = get_uid_digests()
+        if uid_digests is None or not uid_digests:
+            message = 'Failed to retrieve uid_digests.'
+            raise Exception(message)
+
+        current_digest = None
+        if uid in uid_digests:
+            if debug: print '\n debug: uid %s in uid_digests...' % uid
+            current_digest = uid_digests[uid]
+            if debug:
+                print '\n debug -- current_digest: '
+                dump_dict(current_digest, debug)
+        if current_digest is None or not current_digest or len(current_digest) == 0:
+            message = 'Asset uid \'%s\' returned null or empty uid_digest.' % uid
+            raise Exception(message)
+
+        asset = uframe_get_asset_by_uid(uid)
+        #if debug:
+        #    print '\n debug -- asset: '
+        #    dump_dict(asset, debug)
+        if not asset or asset is None:
+            message = 'Failed to get asset with uid: %s' % uid
+            raise Exception(message)
+
+        asset_type = None
+        if 'assetType' in asset:
+            asset_type = asset['assetType']
+        if not asset_type or asset_type is None:
+            message = 'Failed to get asset_type for asset with uid: %s' % uid
+            raise Exception(message)
+
+        if debug: print '\n debug -- asset_type: ', asset_type
+        asset_rd = get_rd_from_uid_digest(asset_type, current_digest)
+        if asset_rd is None or not asset_rd or len(asset_rd) == 0:
+            message = 'Asset uid returned null or empty reference designator.'
+            raise Exception(message)
+
+        # Build digest for reference designator.
+        ui_asset = format_asset_for_ui(asset)
+        work = format_rd_digest(asset)
+
+        # Add deployment data.
+        if work is not None:
+            work['latitude'] = current_digest['latitude']
+            work['longitude'] = current_digest['longitude']
+            work['depth'] = current_digest['depth']
+            work['waterDepth'] = current_digest['waterDepth']
+
+        return asset_rd, work
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None, None
+
+
+def get_rd_from_uid_digest(asset_type, digest):
+    """
+    Get reference designator from a single uid digest of a specific asset type.
+    """
+    try:
+        if asset_type not in ['Platform', 'Mooring', 'Node', 'Instrument', 'Sensor']:
+            message = 'Invalid asset type (\'%s\') provided to get_rd_from_uid_digest.' % asset_type
+            current_app.logger.info(message)
+            return None
+
+        if not digest or digest is None or len(digest) == 0:
+            message = 'Empty or null digest provided to get_rd_from_uid_digest for %s.' % asset_type
+            current_app.logger.info(message)
+            return None
+
+        if 'subsite' not in digest or 'node' not in digest or 'sensor' not in digest:
+            message = 'Digest provided does not contain one or more required attribute(s) (subsite, node, sensor).'
+            current_app.logger.info(message)
+            return None
+
+        if digest['subsite'] is None or not digest['subsite']:
+            message = 'Digest contains null or empty value for \'subsite\'.'
+            current_app.logger.info(message)
+            return None
+        if digest['node'] is None or not digest['node']:
+            message = 'Digest contains null or empty value for \'node\'.'
+            current_app.logger.info(message)
+            return None
+        if digest['sensor'] is None or not digest['sensor']:
+            message = 'Digest contains null or empty value for \'sensor\'.'
+            current_app.logger.info(message)
+            return None
+
+        if asset_type in ['Platform', 'Mooring']:
+            rd = digest['subsite']
+        elif asset_type == 'Node':
+            rd = '-'.join([digest['subsite'], digest['node']])
+        elif asset_type in ['Instrument', 'Sensor']:
+            rd = '-'.join([digest['subsite'], digest['node'], digest['sensor']])
+        else:
+            rd = None
+        return rd
+    except Exception as err:
+        message = 'Error getting reference designator for %s: %s' % (asset_type, str(err))
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_rd_digests_dict():
+    debug = True
+    try:
+        rd_digests_dict_cached = cache.get('rd_digests_dict')
+        if rd_digests_dict_cached:
+            rd_digests_dict = rd_digests_dict_cached
+        else:
+            if debug: print '\n building rd_digest_cache...'
+            rd_digests, rd_digests_dict = build_rd_digest_cache()
+            if rd_digests and rd_digests is not None:
+                cache.set('rd_digests', rd_digests, timeout=CACHE_TIMEOUT)
+            else:
+                message = 'rd_digests failed to provide data on load.'
+                raise Exception(message)
+            if rd_digests_dict and rd_digests_dict is not None:
+                cache.set('rd_digests_dict', rd_digests_dict, timeout=CACHE_TIMEOUT)
+            else:
+                message = 'rd_digests_dict failed to provide data on load.'
+                raise Exception(message)
+        return rd_digests_dict
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None
+
+
+def get_rds_digests():
+    try:
+        rd_digests_cached = cache.get('rd_digests')
+        if rd_digests_cached:
+            rd_digests = rd_digests_cached
+        else:
+            rd_digests, rd_digests_dict = build_rd_digest_cache()
+            if not rd_digests or rd_digests is None:
+                message = 'rd_digests failed to provide data on load.'
+                raise Exception(message)
+            if not rd_digests_dict or rd_digests_dict is None:
+                message = 'rd_digests_dict failed to provide data on load.'
+                raise Exception(message)
+            cache.set('rd_digests', rd_digests, timeout=CACHE_TIMEOUT)
+            cache.set('rd_digests_dict', rd_digests_dict, timeout=CACHE_TIMEOUT)
+        return rd_digests
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None
+
+
+def get_uid_digests(refresh=False):
+    """ Get uid_digests, if cached then return 'uid_digests' cache, otherwise build cache.
+    """
+    time = True
+    uid_digests = None
+    try:
+
+        if not refresh:
+            uid_digests_cached = cache.get('uid_digests')
+            if uid_digests_cached:
+                uid_digests = uid_digests_cached
+
+        if refresh or not uid_digests or uid_digests is None:
+            start = dt.datetime.now()
+            if time:
+                print '\n-- Processing uid_digests... '
+                print '\t-- Start time: ', start
+            #uid_digests, uid_digests_operational = build_uid_digests_cache()
+            uid_digests = build_uid_digests_cache()
+            if not uid_digests or uid_digests is None:
+                message = 'Failed to compile uid_digests cache.'
+                raise Exception(message)
+            cache.delete('uid_digests')
+            cache.set('uid_digests', uid_digests, timeout=CACHE_TIMEOUT)
+
+            """
+            if not uid_digests_operational or uid_digests_operational is None:
+                message = 'Failed to compile uid_digests_operational cache.'
+                raise Exception(message)
+
+            cache.delete('uid_digests_operational')
+            cache.set('uid_digests_operational', uid_digests_operational, timeout=CACHE_TIMEOUT)
+            """
+            end = dt.datetime.now()
+            if time:
+                print '\t-- End time:   ', end
+                print '\t-- Time to complete: %s' % (str(end - start))
+
+        return uid_digests
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None
+
+
+def build_uid_digests_cache():
+    """ Full construction of 'uid_digest' cache.
+    """
+    debug = False
+    uid_digests = {}
+    #uid_digests_operational = {}
+    try:
+        if debug: print '\n debug -- Getting assets from uframe...'
+        # Get assets from uframe.
+        uframe_assets = get_assets_from_uframe()
+        if not uframe_assets:
+            message = 'No uframe asset content returned.'
+            raise Exception(message)
+
+        if debug: print '\n debug -- Completed getting assets from uframe...'
+
+        #count_items = 0
+        for asset in uframe_assets:
+
+            asset_type = None
+            if 'assetType' in asset:
+                if asset['assetType'] in ['Array', 'notClassified', 'Not Classified']:
+                    continue
+                if asset['assetType'] is None or not asset['assetType'] or len(asset['assetType']) == 0:
+                    continue
+                asset_type = asset['assetType']
+
+            asset_id = None
+            if 'assetId' in asset:
+                if asset['assetId'] is None:
+                    continue
+                asset_id = asset['assetId']
+
+            asset_uid = None
+            if 'uid' in asset:
+                if not asset['uid'] or asset['uid'] is None or len(asset['uid']) == 0:
+                    continue
+                asset_uid = asset['uid']
+
+            # ok to proceed?
+            if asset_id is None or asset_uid is None or asset_type is None:
+                continue
+
+            # Get current deployment digest for asset uid; if None, continue.
+            #digest, digest_operational = get_last_deployment_digest(asset_uid)      # Changed 11-29-2016 editPhase
+            digest = get_last_deployment_digest(asset_uid)
+            if digest is None or not digest or len(digest) == 0:
+                continue
+            digest['id'] = asset_id
+            digest['reference_designator'] = get_rd_from_uid_digest(asset_type, digest)
+            uid_digests[asset['uid']] = digest
+
+            """
+            # Check and add operational digest information.
+            if digest_operational is None or not digest_operational or len(digest_operational) == 0:
+                continue
+            digest_operational['id'] = asset_id
+            digest_operational['reference_designator'] = get_rd_from_uid_digest(asset_type, digest_operational)
+            uid_digests_operational[asset['uid']] = digest_operational
+            """
+            #count_items += 1
+            #print '\n count: ', count_items
+
+            #if len(uid_digests) > 10:
+            #    break
+        if debug:
+            print '\n debug -- len(uid_digests): ', len(uid_digests)
+
+        return uid_digests  #, uid_digests_operational
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None
+
+
+# Review with deployments.
+def uid_digests_cache_update(uid_digests):
+    """ Full update uid_digests cache.
+    """
+    debug = True
+    try:
+        if debug: print '\n debug -- Entered uid_digests...'
+        if not uid_digests or uid_digests is None or not isinstance(uid_digests, dict):
+            message = 'Failure to update uid_digests from digests provided.'
+            raise Exception(message)
+
+        if debug: print '\n Perform uid_digests update...'
+        cache.delete('uid_digests')
+        cache.set('uid_digests', uid_digests, timeout=CACHE_TIMEOUT)
+        if debug: print '\n Completed uid_digests update...'
+        return
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None
+
+
+def update_uid_digests_cache(uid, digest):
+    """
+    Updates uid_digest cache, also updates rd_digest and rd_digest_dict cache also.
+    """
+    debug = True
+    try:
+        if debug:
+            print '\n debug -- Entered update_uid_digests_cache...'
+            dump_dict(digest, debug)
+
+        # Get the cache; If cache exists, update the 'uid_digests' cache.
+        uid_digests = cache.get('uid_digests')
+        if uid_digests and uid_digests is not None:
+            if uid in uid_digests:
+                if debug: print '\n debug -- uid (%s) in uid_digests...' % uid
+            uid_digests[uid] = digest
+            uid_digests_cache_update(uid_digests)
+
+            # Update rd_digests and rd_digests dict cache.
+            if not update_rd_digests_cache(uid):
+                message = '********* Failed to update rd_digests cache **********'
+                current_app.logger.info(message)
+        return
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None
+
+def update_rd_digests_cache(uid):
+    debug = False
+    update = False
+    try:
+        if debug: print '\n Updating rd_digests caches.....\n'
+        rd, work = get_fresh_rd_digest(uid)
+        if debug:
+            print '\n\t debug -- rd: ', rd
+            print '\n\t debug -- work: '
+            dump_dict(work, debug)
+        if rd and work and rd is not None and work is not None:
+            rd_digests = cache.get('rd_digests')
+            rd_digests_dict = cache.get('rd_digests_dict')
+
+            # Add
+            if rd not in rd_digests_dict:
+                if debug: print '\n debug -- rd in rd_digests_dict'
+                rd_digests_dict[rd] = work
+                rd_digests.append(work)
+                update = True
+
+            # Update
+            else:
+                found_it = False
+                for digest in rd_digests:
+                    if digest['uid'] == uid:
+                        digest.update(work)
+                        found_it = True
+                        break
+                # If found it, update dictionary.
+                if found_it:
+                    rd_digests_dict[rd] = work
+                    update = True
+                if debug: print '\n debug -- found_it: ', found_it
+
+            if update:
+                if debug: print '\n Updating rd_digests...'
+                cache.delete('rd_digests')
+                cache.set('rd_digests', rd_digests, timeout=CACHE_TIMEOUT)
+                if debug: print '\n Updating rd_digests_dict...'
+                cache.delete('rd_digests_dict')
+                cache.set('rd_digests_dict', rd_digests_dict, timeout=CACHE_TIMEOUT)
+        return update
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return False
+
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Mock status functions.
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Mock api.
+def mock_get_status_arrays():
+    """ Get all arrays with status information.
+    Sample request: http://localhost:4000/uframe/status/arrays
+    Sample response:
+    {
+      "arrays": [
+        {
+          "display_name": "Global Southern Ocean",
+          "latitude": -54.0814,
+          "longitude": -89.6652,
+          "reference_designator": "GS",
+          "status": {
+            "legend": {
+              "degraded": 0,
+              "failed": 1,
+              "notTracked": 0,
+              "operational": 9,
+              "removedFromService": 0
+            },
+            "total": 10
+          }
+        },
+        {
+          "display_name": "Global Station Papa",
+          "latitude": 49.9795,
+          "longitude": -144.254,
+          "reference_designator": "GP",
+          "status": {
+            "legend": {
+              "degraded": 0,
+              "failed": 0,
+              "notTracked": 3,
+              "operational": 7,
+              "removedFromService": 0
+            },
+            "total": 10
+          }
+        },
+        . . .
+      ]
+    }
+
+    """
+    arrays_patch = get_array_locations()
+    try:
+        # Get COL approved array information from vocabulary.
+        arrays = {}
+        results = []
+        array_dict = get_vocabulary_arrays()
+        if not array_dict or array_dict is None:
+            message = 'Unable to obtain required information for processing.'
+            raise Exception(message)
+
+        # Get uframe status for arrays.
+        status_arrays = get_status_data(None)
+        if not status_arrays or status_arrays is None:
+            message = 'Unable to obtain uframe status for arrays.'
+            raise Exception(message)
+
+        # Process uframe status for response.
+        for k, v in array_dict.iteritems():
+            if k not in arrays:
+                if k in arrays_patch:
+                    arrays[k] = {}
+                    arrays[k]['reference_designator'] = k
+                    arrays[k]['latitude'] = arrays_patch[k]['latitude']
+                    arrays[k]['longitude'] = arrays_patch[k]['longitude']
+                    if k in status_arrays:
+                        arrays[k]['status'] = status_arrays[k]
+                    else:
+                        arrays[k]['status'] = None
+                    vocab_dict = get_vocab_dict_by_rd(k)
+                    if vocab_dict:
+                        arrays[k]['display_name'] = vocab_dict['name']
+                    else:
+                        arrays[k]['display_name'] = k
+
+        if not arrays or arrays is None:
+            message = 'Failed to process array information for response.'
+            raise Exception(message)
+
+        # Form list of dictionaries for response.
+        for k, v in arrays.iteritems():
+            if v and v is not None:
+                results.append(v)
+        return results
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None
+
+
 def mock_get_sites_for_array(rd):
     """ Get all sites for an array; for each site provide status and some asset-based information.
     Sample request: http://localhost:4000/uframe/status/sites/CE
     """
-
     debug = True
     time = False
     return_list = []
@@ -1038,12 +1877,10 @@ def mock_get_sites_for_array(rd):
         return None
 
     try:
-        #==================================
         start = dt.datetime.now()
         if time:
             print '\n\t-- Get information for %s site processing... ' % rd
             print '\t-- Start time: ', start
-        #==================================
 
         # Get sensor inventory of sites for array.
         rds = uframe_get_sites_for_array(rd)
@@ -1056,12 +1893,10 @@ def mock_get_sites_for_array(rd):
         # Get rd_digest dictionary.
         rd_digests_dict = get_rd_digests_dict()
 
-        #==================================
         end = dt.datetime.now()
         if time:
             print '\t-- End time:   ', end
             print '\t-- Time to get information for %s site processing: %s' % (rd, str(end - start))
-        #==================================
 
         if not rds:
             return None
@@ -1082,16 +1917,13 @@ def mock_get_sites_for_array(rd):
             rd_digests_dict[reference_designator]['reason'] = None
             return_list.append(rd_digests_dict[reference_designator])
 
-            #=======================================
+            #===================================
             end = dt.datetime.now()
             if time:
                 print '\t\t-- End time:   ', end
                 print '\t\t-- Time to process %s site: %s' % (rd, str(end - start))
             #===================================
 
-        # For each
-
-        if debug: print '\n len(return_list): %d' % len(return_list)
         return return_list
     except Exception as err:
         message = str(err)
@@ -1099,350 +1931,288 @@ def mock_get_sites_for_array(rd):
         return None
 
 
-#============================================== start development work
-def get_ids_for_rd(rd):
-    """ Get list of asset ids for reference designator.
+# Mock get platform status (was 'get_platforms_for_site')
+def mock_get_status_platforms(data, rd=None):
+    """ Get assets which contain rd.
+
+    http://localhost:4000/uframe/status/platforms/CE01ISSM (return instruments grouped by node.)
+        returns all platforms and associated instruments for CE01ISSM, where a platform
+        is an asset containing CE01ISSM and 14 in length. All platforms are grouped by node category.
+        (Node categories are available in the vocab_codes dictionary in attribute 'nodes'.)
+        By way of an example, for site CE01ISSM, get platforms grouped by node category:
+            CE01ISSM-SB[D17]  (Bucket 1)
+            CE01ISSM-MF[D35]  (Bucket 2)
+            CE01ISSM-MF[D37]
+            CE01ISSM-MF[C31]
+            CE01ISSM-RI[D16]  (Bucket 3)
     """
-    try:
-        # If rd is not subsite, platform or instrument, return empty list.
-        results = get_rd_deployments(rd)
-        if results is None:
-            return []
+    debug = False
+    if debug: print '\n debug -- Entered get_platforms_for_site: ', rd
+    if not rd or rd is None:
+        message = 'Please provide a site or platform reference designator for processing.'
+        raise Exception(message)
 
-        # Get asset ids broken out by type.
-        sensor_ids, mooring, mooring_ids, node_name, node_ids = get_asset_ids_for_deployments(rd, results)
-
-        # get the appropriate asset ids for reference designator.
-        len_rd = len(rd)
-        if len_rd == 8:
-            ids = mooring_ids
-        elif len_rd == 14:
-            ids = node_ids
-        elif len_rd > 14 and len_rd <= 27:
-            ids = sensor_ids
-        else:
-            ids = []
-        return ids
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return []
-
-def get_list_of_assets(ids):
-    from ooiservices.app.uframe.asset_tools import _get_asset
-    assets = []
-    try:
-        for id in ids:
-            # Get UI assets list.
-            try:
-                asset = _get_asset(id)
-            except:
-                continue
-            if asset and asset is not None:
-                assets.append(asset)
-        return assets
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return []
-
-
-def get_assets_for_rd(rd):
-    try:
-        ids = get_ids_for_rd(rd)
-        assets = get_list_of_assets(ids)
-        return assets
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return []
-#============================end development work
-
-
-def add_deployment_info(work):
-    """ Process work dictionary and add deployment items.
-    """
-    try:
-        if not work or work is None:
-            return None
-
-        # Get deployment digest using uid from work dictionary.
-        digest = get_last_deployment_digest(work['uid'])
-        if digest is not None:
-            work['latitude'] = digest['latitude']
-            work['longitude'] = digest['longitude']
-            work['depth'] = digest['depth']
-            work['waterDepth'] = digest['waterDepth']
-        else:
-            work['latitude'] = None
-            work['longitude'] = None
-            work['depth'] = None
-            work['waterDepth'] = None
-        return work
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return None
-
-
-#===========================================
-def build_rds_cache():
-    """
-    Create a cache for reference designator to current asset uid deployment information.
-    Used by status methods.
-    """
-    debug = True
-    time = True
-    from ooiservices.app.uframe.toc_tools import get_toc_reference_designators
-    try:
-        if debug: print '\n debug -- Compiling reference designator to asset uid cache.'
-        rds, _, _ = get_toc_reference_designators()
-        if not rds or rds is None:
-            message = 'No reference designators returned from toc information.'
-            raise Exception(message)
-
-        start = dt.datetime.now()
-        if time:
-            print '\n-- Compiling latest asset uid for reference designators... '
-            print '\t-- Start time: ', start
-        rd_digests, rd_digests_dict = build_rd_digest_cache(rds)
-        cache.set('rd_digests', rd_digests, timeout=CACHE_TIMEOUT)
-        cache.set('rd_digests_dict', rd_digests_dict, timeout=CACHE_TIMEOUT)
-
-        if debug: print '\n debug -- Reference designators (%d) has (%d) rd_digests' % (len(rds), len(rd_digests))
-        end = dt.datetime.now()
-        if time:
-            print '\t-- End time:   ', end
-            print '\t-- Time to complete: %s' % (str(end - start))
-        # Set cache.
-        return rd_digests
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return None
-
-
-def build_rd_digest_cache(rds):
-    """
-    Create a cache for reference designator to current asset uid deployment information.
-    """
-    debug = True
-    time = True
+    if not data or data is None:
+        message = 'No asset data provided for processing site %s platforms.' % rd
+        raise Exception(message)
 
     return_list = []
-    return_dict = {}
-    uid = None
-    digest = None
+    unique = set()
+    try:
+        # Require site reference designator.
+        if len(rd) != 8:
+            return []
+
+        # Filter asset data for processing platforms by site reference designator.
+        for obj in data:
+                if 'ref_des' not in obj or not obj['ref_des'] or obj['ref_des'] is None:
+                    continue
+                if rd not in obj['ref_des']:
+                    continue
+                if rd == obj['ref_des']:
+                    continue
+
+                # Process object for final collection
+                if obj['ref_des'] not in unique:
+                    unique.add(str(obj['ref_des']))
+                    work = format_site_data(obj)
+                    if work is not None:
+                        return_list.append(work)
+
+        if debug: print '\n debug -- Get sections...'
+        sections = []
+        if unique:
+            unique_list = list(unique)
+            unique_list.sort()
+            if debug: print '\n debug -- unique_list(%d): %s ' % (len(unique_list), unique_list)
+            if unique_list:
+                unique_list.sort()
+            sections = get_site_sections(unique_list, return_list)
+        return sections
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None
+
+
+def mock_get_status_instrument(rd):
+    """ Get the status for a single instrument.
+    Sample requests:
+        http://localhost:4000/uframe/status/instrument/CE01ISSM-MFC31-00-CPMENG000
+        http://localhost:4000/uframe/status/instrument/GA01SUMO-RII11-02-CTDBPP031
+    """
+    return_list = []
+    try:
+        #============================================================
+        # Verify the rd provided is for an instrument.
+        if not rd or rd is None or len(rd) <= 14:
+            #if len(rd) <= 14 or not is_instrument(rd):
+            message = 'Provide a valid reference designator for an instrument.'
+            raise Exception(message)
+
+        # Get rd_digest dictionary.
+        rd_digests_dict = get_rd_digests_dict()
+        if rd in rd_digests_dict:
+            rd_digests_dict[rd]['status'] = get_status_data(rd)
+            rd_digests_dict[rd]['reason'] = None
+
+            # Stream times from time_dict
+            time_dict = get_stream_times([rd])
+            if not time_dict or time_dict is None:
+                rd_digests_dict[rd]['start'] = None
+                rd_digests_dict[rd]['end'] = None
+            elif rd not in time_dict:
+                rd_digests_dict[rd]['start'] = None
+                rd_digests_dict[rd]['end'] = None
+            else:
+                rd_digests_dict[rd]['start'] = time_dict[rd]['start']
+                rd_digests_dict[rd]['end'] = time_dict[rd]['end']
+            return_list.append(rd_digests_dict[rd])
+
+        return return_list
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# End mock status functions.
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Mock status helper functions.
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+def get_status_data(rd):
+    """ Get mock status for array, site, platform or instrument.
+    """
+    debug = False
+    try:
+        status = get_mock_status_for_rd(rd)
+        if debug: print '\n debug -- status for rd \'%s\': %s' % (rd, status)
+        return status
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None
+
+# Mock api.
+def format_site_data(obj):
+    """
+    Format asset data for mock api, returns status and reason as part of return object.
+    """
+    debug = False
+    try:
+        if debug: print '\n debug -- format_site_data... '
+        work = {}
+        latitude = None
+        longitude = None
+        depth = None
+        mindepth = None
+        maxdepth = None
+        name = None
+        uid = None
+
+        reference_designator = obj['ref_des'][:]
+
+        if 'latitude' in obj:
+            latitude = obj['latitude']
+            if latitude is not None:
+                latitude = round(latitude, 4)
+        if 'longitude' in obj:
+            longitude = obj['longitude']
+            if longitude is not None:
+                longitude = round(longitude, 4)
+        if 'depth' in obj:
+            depth = obj['depth']
+        if 'uid' in obj:
+            uid = obj['uid']
+
+        work['uid'] = uid
+        work['reference_designator'] = reference_designator
+        work['latitude'] = latitude
+        work['longitude'] = longitude
+        work['depth'] = depth
+        if 'assetInfo' in obj:
+            mindepth = 0
+            if 'mindepth' in obj['assetInfo']:
+                mindepth = obj['assetInfo']['mindepth']
+            maxdepth = 0
+            if 'maxdepth' in obj['assetInfo']:
+                maxdepth = obj['assetInfo']['maxdepth']
+            if 'name' in obj['assetInfo']:
+                name = obj['assetInfo']['name']
+            else:
+                name = get_display_name_by_rd(reference_designator)
+        work['display_name'] = name
+        work['mindepth'] = mindepth
+        work['maxdepth'] = maxdepth
+        #================
+        if not work:
+            work = None
+        else:
+            if debug: print '\n Get status for %s...', reference_designator
+            work['status'] = get_status_data(reference_designator)
+            work['reason'] = None
+            if debug: print '\n debug -- work[status]: ', work['status']
+        return work
+
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# End mock status helper functions.
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+'''
+def update_uid_digests_operational_cache(uid, digest_operational):
+    debug = True
+    try:
+        if debug:
+            print '\n debug -- Entered update_uid_digests_operational_cache...'
+            dump_dict(digest_operational, debug)
+        # Get the cache
+        uid_digests_operational = cache.get('uid_digests_operational')
+        if debug: print '\n debug -- update_uid_digests_operational_cache -- (before) len(uid_digests_operational): ', \
+            len(uid_digests_operational)
+
+        # If cache exists, update the cache.
+        if uid_digests_operational and uid_digests_operational is not None:
+            if uid in uid_digests_operational:
+                if debug: print '\n debug -- uid (%s) in uid_digests_operational...' % uid
+            uid_digests_operational[uid] = digest_operational
+            uid_digests_operational_cache_update(uid_digests_operational)
+        if debug: print '\n debug -- update_uid_digests_operational_cache -- (after) len(uid_digests_operational): ', \
+            len(uid_digests_operational)
+        return
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None
+'''
+'''
+# Review with deployments.
+def uid_digests_operational_cache_update(uid_digests_operational):
+    """ Full update uid_digests_operational in cache.
+    """
+    debug = True
+    try:
+        if debug: print '\n debug -- Entered uid_digests_operational_cache_update...'
+        if not uid_digests_operational or uid_digests_operational is None or \
+                not isinstance(uid_digests_operational, dict):
+            message = 'Failure to update uid_digests_operational from digests provided.'
+            raise Exception(message)
+        if debug: print '\n Perform uid_digests_operational update...'
+        #cache.delete('uid_digests_operational')
+        cache.set('uid_digests_operational', uid_digests_operational, timeout=CACHE_TIMEOUT)
+        if debug: print '\n Completed uid_digests_operational update...'
+
+        return
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None
+'''
+# new
+'''
+def get_uid_digests_operational(refresh=False):
+    """ Get uid_digests, if cached then return 'uid_digests' cache, otherwise build cache.
+    """
+    time = True
+    uid_digests_operational = None
     try:
 
-        start = dt.datetime.now()
-        if time:
-            print '\n-- Preparing information before processing... '
-            print '\t-- Start time: ', start
+        if not refresh:
+            uid_digests_operational_cached = cache.get('uid_digests_operational')
+            if uid_digests_operational_cached:
+                uid_digests_operational = uid_digests_operational_cached
 
-        #=======================================
-        # Get asset_rds
-        asset_rds = get_asset_rds_cache()
-        if asset_rds is None:
-            message = 'Failed to retrieve asset_rds.'
-            raise Exception(message)
-
-        # Get assets_dict
-        assets_dict = get_assets_dict()
-        if assets_dict is None:
-            message = 'Failed to retrieve assets_dict.'
-            raise Exception(message)
-
-        #=======================================
-        end = dt.datetime.now()
-        if time:
-            print '\t-- End time:   ', end
-            print '\t-- Time started: %s' % (str(end - start))
-
-        if not rds:
-            message = 'No reference designator to process, unable to build rd_digest cache.'
-            raise Exception(message)
-
-        #count = 0
-        # Process each reference designator and add to rd_digests.
-        for reference_designator in rds:
-
-            #if debug: print '\n debug -- Entered get_last_deployment_for_rd: ', rd
-            if debug: print '\n debug -- Processing reference designator: ', reference_designator
+        if refresh or not uid_digests_operational or uid_digests_operational is None:
             start = dt.datetime.now()
             if time:
+                print '\n-- Processing uid_digests... '
                 print '\t-- Start time: ', start
+            uid_digests, uid_digests_operational = build_uid_digests_cache()
+            if not uid_digests or uid_digests is None:
+                message = 'Failed to compile uid_digests_operational cache.'
+                raise Exception(message)
+            cache.delete('uid_digests')
+            cache.set('uid_digests', uid_digests, timeout=CACHE_TIMEOUT)
 
-            ids = []
-            uids = []
-            uid_dict = {}
-            assets = []
-            len_rd = len(reference_designator)
+            if not uid_digests_operational or uid_digests_operational is None:
+                message = 'Failed to compile uid_digests_operational cache.'
+                raise Exception(message)
 
-            # For each reference designator, get list of asset ids.
-            for id in asset_rds:
-                #if asset_rds[id] == reference_designator:           # single reference designator (old style)
-                if reference_designator in asset_rds[id]:
-                    #if debug: print '\n asset id(%d): %s' % (id, asset_rds[id])
-                    if id not in ids:
-                        ids.append(id)
-                        if id in assets_dict:
-                            if not assets_dict[id] or assets_dict[id] is None:
-                                continue
-                            assets.append(assets_dict[id])
-                            if not assets_dict[id]['uid'] or assets_dict[id]['uid'] is None or \
-                                len(assets_dict[id]['uid']) == 0:
-                                continue
-                            uids.append(assets_dict[id]['uid'])
-                            uid_dict[assets_dict[id]['uid']] = assets_dict[id]
-            if not ids:
-                continue
-            if not uids:
-                continue
-            if not uid_dict:
-                continue
-
-            # Now have list of asset uids; determine current deployment.
-            digests = []
-            for uid in uids:
-
-                digest = get_last_deployment_digest(uid)
-                if digest is None or not digest:
-                    continue
-                digests.append(digest)
-
-            if not digests or digests is None or len(digests) == 0:
-                #if debug: print '\n note -- digests is none, continue...'
-                continue
-
-            # Have digests, sort. (work on failure during sort alternatives)
-            try:
-                digests.sort(key=lambda x: (x['deploymentNumber'], x['versionNumber'], x['startTime']), reverse=True)
-            except Exception as err:
-                print '\n build_rd_digest_cache: errors: ', str(err)
-                pass
-
-            # Get digest.
-            work = None
-            if digests and digests is not None and len(digests) > 0:
-                current_digest = digests[0]
-            else:
-                current_digest = None
-
-            if current_digest is not None:
-                len_rd = len(reference_designator)
-                work = None
-                if len_rd == 8:
-                    if current_digest['mooring_uid'] is not None:
-                        work = format_rd_digest(uid_dict[current_digest['mooring_uid']])
-                elif len_rd == 14:
-                    if current_digest['node_uid'] is not None:
-                        work = format_rd_digest(uid_dict[current_digest['node_uid']])
-                elif len_rd > 14 and len_rd <=27:
-                    if current_digest['sensor_uid'] is not None:
-                        work = format_rd_digest(uid_dict[current_digest['sensor_uid']])
-                else:
-                    message = 'Reference designator (\'%s\') is of unknown format.' % reference_designator
-                    current_app.logger.info(message)
-                    #raise Exception(message)
-                    continue
-
-            # Add deployment data.
-            if work is not None:
-                #item = add_deployment_info(work)
-                #if current_digest is not None:
-                work['latitude'] = current_digest['latitude']
-                work['longitude'] = current_digest['longitude']
-                work['depth'] = current_digest['depth']
-                work['waterDepth'] = current_digest['waterDepth']
-
-            if work is not None:
-                return_list.append(work)
-                return_dict[work['reference_designator']] = work
-            #=======================================
+            cache.delete('uid_digests_operational')
+            cache.set('uid_digests_operational', uid_digests_operational, timeout=CACHE_TIMEOUT)
             end = dt.datetime.now()
             if time:
                 print '\t-- End time:   ', end
                 print '\t-- Time to complete: %s' % (str(end - start))
 
-            #break
-            """
-            count += 1
-            if count >= 10:
-                break
-            """
-
-        if debug: print '\n len(return_list): %d' % len(return_list)
-        return return_list, return_dict
+        return uid_digests_operational
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
         return None
-
-
-def get_rd_digests_dict():  #get_rds_uid_dict():
-    try:
-        rd_digests_dict_cached = cache.get('rd_digests_dict')
-        if rd_digests_dict_cached:
-            rd_digests_dict = rd_digests_dict_cached
-        else:
-            print '\n building rd_digest_cache...'
-            rd_digests, rd_digests_dict = build_rd_digest_cache()
-            cache.set('rd_digests', rd_digests, timeout=CACHE_TIMEOUT)
-            cache.set('rd_digests_dict', rd_digests_dict, timeout=CACHE_TIMEOUT)
-        return rd_digests_dict
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return None
-
-
-def get_rds_digests():
-    try:
-        rd_digests_cached = cache.get('rd_digests')
-        if rd_digests_cached:
-            rd_digests = rd_digests_cached
-        else:
-            rd_digests, rd_digests_dict = build_rd_digest_cache()
-            cache.set('rd_digests', rd_digests, timeout=CACHE_TIMEOUT)
-            cache.set('rd_digests_dict', rd_digests_dict, timeout=CACHE_TIMEOUT)
-        return rd_digests
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return None
-
-
-def get_uid_digests():
-    uid_digests = {}
-
-    try:
-        assets = get_asset_list()
-        if not assets or assets is None:
-            message = 'No asset data.'
-            raise Exception(message)
-
-        count_items = 0
-        for asset in assets:
-            if 'assetType' in asset:
-                if asset['assetType'] in ['Array', 'notClassified', 'Not Classified']:
-                    continue
-                #else:
-                #    print '\n assetType: ', asset['assetType']
-            if 'uid' in asset:
-                #digest = get_last_deployment_digest(asset['uid'])
-                if not asset['uid'] or asset['uid'] is None or len(asset['uid']) == 0:
-                    continue
-                uid_digests[asset['uid']] = get_last_deployment_digest(asset['uid'])
-                count_items += 1
-                print '\n count: ', count_items
-
-            #if len(uid_digests) > 10:
-            #    break
-        print '\n debug -- len(uid_digests): ', len(uid_digests)
-        cache.set('uid_digests', uid_digests, timeout=CACHE_TIMEOUT)
-        return uid_digests
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return None
+'''

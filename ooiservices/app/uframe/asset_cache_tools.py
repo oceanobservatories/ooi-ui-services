@@ -5,16 +5,18 @@ Asset Management - Assets: Support functions for asset cache.
 """
 __author__ = 'Edna Donoughe'
 
-
+from flask import current_app
 from ooiservices.app import cache
-from ooiservices.app.uframe.toc_tools import _compile_asset_rds
 from copy import deepcopy
-import datetime as dt
 CACHE_TIMEOUT = 172800
 
+#import datetime as dt
+#from ooiservices.app.uframe.toc_tools import _compile_asset_rds
 
+'''
 # Get assets_rd cache for asset reference designators.
 def get_asset_rds_cache():
+    print '\n warning - Entered get_asset_rds_cache'
     asset_rds = None
     time = True
     try:
@@ -49,9 +51,10 @@ def get_asset_rds_cache():
 
 # Update asset reference designator cache.
 def asset_rds_cache_update(dict_asset_ids):
+    print '\n Warning: Entered asset_rds_cache_update....'
     if dict_asset_ids:
         cache.set('asset_rds', dict_asset_ids, timeout=CACHE_TIMEOUT)
-
+'''
 
 def refresh_asset_cache(id, asset, action, remote_id=None):
     """ Perform asset cache add or update depending on action provided.
@@ -107,7 +110,6 @@ def get_assets_dict():
         return None
 
 
-
 def asset_cache_add(id, asset):
     """ Add an asset to asset_list and assets_dict cache.
     """
@@ -161,7 +163,7 @@ def asset_cache_refresh(id, asset, rd):
                 # If in cache, update asset in 'asset_list' cache.
                 for item in asset_cache:
                     if item['id'] == id:
-                        #del item
+
                         #------------
                         # update asset in 'asset_list' cache.
                         item.update(asset)
@@ -193,14 +195,35 @@ def asset_cache_refresh(id, asset, rd):
                             assets_dict_cache[id] = asset
                             cache.set('assets_dict', assets_dict_cache, timeout=CACHE_TIMEOUT)
 
+                        """
                         # Update cache 'asset_rds'.
                         cached = cache.get('asset_rds')
                         if cached:
                             asset_rds = cached
                             asset_rds[id] = rd
                             cache.set('asset_rds', asset_rds, timeout=CACHE_TIMEOUT)
+                        """
 
         return
     except Exception as err:
         message = str(err)
         raise Exception(message)
+
+
+def get_asset_list_cache():
+    """ Get 'asset_list' cache.
+    """
+    try:
+        asset_list = cache.get('asset_list')
+        if not asset_list or asset_list is None:
+            message = 'Failed to get value for asset_list cache.'
+            raise Exception(message)
+
+        return asset_list
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None
+
+
+

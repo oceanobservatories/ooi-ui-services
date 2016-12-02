@@ -13,7 +13,7 @@ from ooiservices.app.uframe.config import (get_uframe_deployments_info, get_even
                                            get_url_info_deployments_inv, get_deployments_url_base,
                                            get_url_info_status_query, get_uframe_toc_url,
                                            get_url_info_stream_byname, get_uframe_info, get_url_info_stream_parameters)
-from ooiservices.app.uframe.common_tools import operational_status_values
+from ooiservices.app.uframe.common_tools import (operational_status_values, deployment_edit_phase_values)
 from ooiservices.app.uframe.config import status_demo_data
 from random import randint
 import requests
@@ -569,13 +569,17 @@ def uframe_get_asset_by_id(id):
 def uframe_get_asset_by_uid(uid):
     """ Get asset from uframe by asset uid.
     """
+    debug = False
+    check = True
     try:
         # Get uframe asset by uid.
         query = '?uid=' + uid
         uframe_url, timeout, timeout_read = get_uframe_assets_info()
         url = '/'.join([uframe_url, get_assets_url_base()])
         url += query
+        if check: print '\n check url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read), headers=headers())
+        if debug: print '\n response.status_code: ', response.status_code
         if response.status_code == 204:
             message = 'Failed to receive content from uframe for asset with uid \'%s\'.' % uid
             raise Exception(message)
@@ -583,6 +587,7 @@ def uframe_get_asset_by_uid(uid):
             message = 'Failed to get asset from uframe with uid: \'%s\'.' % uid
             raise Exception(message)
         asset = response.json()
+        if debug: print '\n uframe asset: ', asset
         return asset
     except ConnectionError:
         message = 'ConnectionError getting asset (uid %s) from uframe.' % uid
@@ -594,6 +599,7 @@ def uframe_get_asset_by_uid(uid):
         raise Exception(message)
     except Exception as err:
         message = str(err)
+        current_app.logger.info(message)
         raise Exception(message)
 
 
@@ -803,48 +809,6 @@ def uframe_postto_asset(uid, data):
         raise Exception(message)
 
 
-
-'''
-def uframe_update_remote_resource_by_asset_uid(uid, resource_id, data):
-    try:
-        # Update remote resource.
-        base_url, timeout, timeout_read = get_url_info_resources()
-        url = '/'.join([base_url, str(resource_id)])
-        response = requests.put(url, data=json.dumps(data), headers=headers())
-        if response.status_code != 200:
-            message = 'Failed to update remote resource in uframe using remoteResourceId: %d.' % resource_id
-            raise Exception(message)
-
-        if not response.content or response.content is None:
-            message = 'No value returned from uframe for remote resource id: %d' % resource_id
-            raise Exception(message)
-        # response.content on success:
-        # {u'message': u'Element updated successfully.', u'id': 5481, u'statusCode': u'OK'}
-
-        # Get remote resource.
-        base_url, timeout, timeout_read = get_url_info_resources()
-        url = '/'.join([base_url, str(resource_id)])
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        if response.status_code != 200:
-            message = 'Failed to get remote resource from uframe using remoteResourceId: %d.' % resource_id
-            raise Exception(message)
-
-        remote_resource = json.loads(response.content)
-        if not remote_resource or remote_resource is None:
-            message = 'No value returned from uframe for remote resource id: %d' % resource_id
-            raise Exception(message)
-
-        # Refresh asset cache with remote resource information.
-        asset = process_asset_update(uid)
-
-        # Return remote resource.
-        return remote_resource
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-'''
-
-
 def uframe_update_remote_resource_by_resource_id(resource_id, data):
     try:
         # Put remote resource.
@@ -952,10 +916,10 @@ def uframe_get_cruise_by_cruise_id(cruise_id):
         return result
 
     except ConnectionError:
-        message = 'ConnectionError getting uframe cruises.'
+        message = 'ConnectionError getting uframe cruises for cruise id: ', cruise_id
         raise Exception(message)
     except Timeout:
-        message = 'Timeout getting uframe cruises.'
+        message = 'Timeout getting uframe cruises for cruise id: ', cruise_id
         raise Exception(message)
     except Exception as err:
         message = str(err)
@@ -1285,15 +1249,22 @@ def compile_deployment_rds():
 
 
 # Get deployments digest for asset uid.
-def get_deployments_digest_by_uid(uid):
-    # http://host:port/asset/deployments/N00123
+def get_deployments_digest_by_uid(uid, editPhase='ALL'):
+    """
+    http://host:port/asset/deployments/N00123?editphase=ALL (default)
+    http://host:port/asset/deployments/N00123?editphase=OPERATIONAL
+    """
     debug = False
     check = False
     try:
-        if debug: print '\n debug -- Entered get_deployments_digest_by_uid: %s' % uid
+        if debug: print '\n debug -- Entered get_deployments_digest_by_uid: %s, editPhase: %s' % (uid, editPhase)
         # Get uframe deployments by uid.
         uframe_url, timeout, timeout_read = get_uframe_assets_info()
+        if not editPhase or editPhase is None or editPhase not in deployment_edit_phase_values():
+            editPhase = 'ALL'
+        suffix = '?editphase=' + editPhase
         url = '/'.join([uframe_url, get_assets_url_base(), 'deployments', uid])
+        url = url + suffix
         if check: print '\n check -- [get_deployments_digest_by_uid] url to get asset %s: %s' % (uid, url)
         response = requests.get(url, timeout=(timeout, timeout_read))
         if debug: print '\n debug -- response.status_code: ', response.status_code
@@ -1303,11 +1274,11 @@ def get_deployments_digest_by_uid(uid):
         digest = json.loads(response.content)
         return digest
     except ConnectionError:
-        message = 'Error: ConnectionError during get_deployments_digest_by_uid.'
+        message = 'Error: ConnectionError getting deployments for asset uid \'%s\'.' % uid
         current_app.logger.info(message)
         raise Exception(message)
     except Timeout:
-        message = 'Error: Timeout during during get_deployments_digest_by_uid.'
+        message = 'Error: Timeout getting deployments for asset uid \'%s\'.' % uid
         current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
@@ -1376,7 +1347,7 @@ def get_toc_information():
     try:
         url, timeout, timeout_read = get_uframe_toc_url()
         if extended_read:
-            timeout_read = timeout_read * 3
+            timeout_read = timeout_read * 5
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code == 200:
             toc = response.json()
@@ -1424,15 +1395,12 @@ def uframe_get_stream_byname(stream):
         return stream
     except ConnectionError:
         message = 'Error: ConnectionError getting uframe stream name %s.' % stream
-        current_app.logger.info(message)
         raise Exception(message)
     except Timeout:
         message = 'Error: Timeout getting uframe stream name %s.' % stream
-        current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
         message = str(err)
-        current_app.logger.info(message)
         raise Exception(message)
 
 
@@ -1494,6 +1462,51 @@ def uframe_get_sites_for_array(rd):
                     if site[:2] == rd:
                         result.append(site)
         if debug: print '\n debug -- Entered uframe_get_sites_for_array, sites(%d): %s' % (len(result), result)
+        return result
+    except ConnectionError:
+        message = 'Error: ConnectionError getting uframe sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
+    except Timeout:
+        message = 'Error: Timeout getting uframe sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
+    except:
+        message = 'Failed to get sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
+
+
+def uframe_get_platforms_for_site(rd):
+    """
+    Get /sensor/inv and process for platforms for site name provided. (Used by status)
+    """
+    debug = True
+    check = True
+    result = []
+    try:
+        if debug: print '\n debug -- Entered uframe_get_sites_for_array for reference designator: ', rd
+        if not rd or rd is None or len(rd) != 8:
+            message = 'Invalid site (\'%s\') provided for platforms from uframe sensor inventory.' % rd
+            current_app.logger.info(message)
+            return []
+        base_url, timeout, timeout_read = get_uframe_info()
+        url = '/'.join([base_url, rd])
+        if check: print '\n check -- %s' % url
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if check: print '\n check -- response.status_code: ', response.status_code
+        if response.status_code != 200:
+            message = 'Failed to get sensor inventory for \'%s\'. ' % rd
+            raise Exception(message)
+        if response.content:
+            nodes = json.loads(response.content)
+            if debug: print '\n debug -- nodes: ', nodes
+            if nodes:
+                for node in nodes:
+                    tmp = '-'.join([rd,node])
+                    if tmp not in result:
+                        result.append(tmp)
+        if debug: print '\n result(%d): %s' % (len(result), result)
         return result
     except ConnectionError:
         message = 'Error: ConnectionError getting uframe sensor inventory for \'%s\'. ' % rd
@@ -1574,14 +1587,13 @@ def uframe_get_instrument_metadata_times(rd):
 # Status
 #------------------------------------------------------------------------------------
 # Get uframe status for reference designator.
-def uframe_get_status_by_rd(rd):
+def uframe_get_status_by_rd(rd=None):
     """ Get uframe status for a reference designator.
     Sample requests:
-        http://host:12587/status/inv/CE
-        http://host:12587/status/inv/CE01ISSM
-        http://host:12587/status/inv/CE01ISSM-MFC31
-        http://host:12587/status/inv/CE01ISSM-MFC31-00-CPMENG000
-
+        http://host:12587/status/query/CE
+        http://host:12587/status/query/CE01ISSM
+        http://host:12587/status/query/CE01ISSM-MFC31
+        http://host:12587/status/query/CE01ISSM-MFC31-00-CPMENG000
 
     http://uframe-3-test.ooi.rutgers.edu:12587/status/inv/GA01SUMO/SBD12
     [
@@ -1616,11 +1628,9 @@ def uframe_get_status_by_rd(rd):
     ]
 
     """
-    check = True
-    debug = True
+    check = False
+    debug = False
     try:
-        #if debug: print '\n debug -- Entered uframe_get_status_by_rd: %s' % rd
-
         # Get uframe status by reference designator.
         url, timeout, timeout_read = get_url_info_status_query()
 
@@ -1646,9 +1656,9 @@ def uframe_get_status_by_rd(rd):
         if rd is not None:
             url = '/'.join([url, uframe_rd])
 
-        if check: print '-- Check -- [uframe_get_status_by_rd] reference designator  %s: %s' % (rd, url)
+        if check:
+            print '-- Check -- [uframe_get_status_by_rd] reference designator  %s: %s' % (rd, url)
         response = requests.get(url, timeout=(timeout, timeout_read))
-        #if debug: print '\n debug -- response.status_code: ', response.status_code
         if response.status_code != 200:
             return None
         results = json.loads(response.content)
@@ -1680,7 +1690,6 @@ def get_mock_status_for_rd(rd):
             message = 'Should never be here if using actual uframe interface! (Check configuration settings.)'
             #raise Exception(message)
             current_app.logger.info(message)
-
 
             results = uframe_get_status_by_rd(rd)
             if results is not None:
@@ -1823,7 +1832,7 @@ def get_mock_array_data():
                           "operational": 7,
                           "removedFromService": 0
                         },
-                        "total": 10
+                        "count": 10
                     }
             },
             {
@@ -1836,7 +1845,7 @@ def get_mock_array_data():
                       "operational": 7,
                       "removedFromService": 0
                     },
-                    "total": 10
+                    "count": 10
                 }
             },
             {
@@ -1849,7 +1858,7 @@ def get_mock_array_data():
                       "operational": 9,
                       "removedFromService": 0
                     },
-                    "total": 10
+                    "count": 10
                 }
            },
            {
@@ -1862,7 +1871,7 @@ def get_mock_array_data():
                   "operational": 4,
                   "removedFromService": 0
                 },
-                "total": 10
+                "count": 10
              }
            },
            {
@@ -1875,7 +1884,7 @@ def get_mock_array_data():
                   "operational": 0,
                   "removedFromService": 0
                 },
-                "total": 10
+                "count": 10
              }
            },
            {
@@ -1888,7 +1897,7 @@ def get_mock_array_data():
                   "operational": 9,
                   "removedFromService": 0
                 },
-                "total": 10
+                "count": 10
              }
            },
            {
@@ -1901,7 +1910,7 @@ def get_mock_array_data():
                   "operational": 10,
                   "removedFromService": 0
                 },
-                "total": 10
+                "count": 10
              }
            }
         ]
