@@ -35,6 +35,7 @@ COMMON: &common
 
     UFRAME_ALLOWED_M2M_PORTS:
       - 12576
+      - 12587
 
     UFRAME_MISSIONS_BASE:   '/missions'
     UFRAME_ANNOTATION_BASE: '/anno'
