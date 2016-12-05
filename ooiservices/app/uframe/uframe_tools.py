@@ -13,9 +13,8 @@ from ooiservices.app.uframe.config import (get_uframe_deployments_info, get_even
                                            get_url_info_deployments_inv, get_deployments_url_base,
                                            get_url_info_status_query, get_uframe_toc_url,
                                            get_url_info_stream_byname, get_uframe_info, get_url_info_stream_parameters)
-from ooiservices.app.uframe.common_tools import (operational_status_values, deployment_edit_phase_values)
-from ooiservices.app.uframe.config import status_demo_data
-from random import randint
+from ooiservices.app.uframe.common_tools import deployment_edit_phase_values
+
 import requests
 from requests.exceptions import (ConnectionError, Timeout)
 import datetime as dt
@@ -569,7 +568,6 @@ def uframe_get_asset_by_id(id):
 def uframe_get_asset_by_uid(uid):
     """ Get asset from uframe by asset uid.
     """
-    debug = False
     check = True
     try:
         # Get uframe asset by uid.
@@ -579,7 +577,6 @@ def uframe_get_asset_by_uid(uid):
         url += query
         if check: print '\n check url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read), headers=headers())
-        if debug: print '\n response.status_code: ', response.status_code
         if response.status_code == 204:
             message = 'Failed to receive content from uframe for asset with uid \'%s\'.' % uid
             raise Exception(message)
@@ -587,7 +584,6 @@ def uframe_get_asset_by_uid(uid):
             message = 'Failed to get asset from uframe with uid: \'%s\'.' % uid
             raise Exception(message)
         asset = response.json()
-        if debug: print '\n uframe asset: ', asset
         return asset
     except ConnectionError:
         message = 'ConnectionError getting asset (uid %s) from uframe.' % uid
@@ -1254,10 +1250,8 @@ def get_deployments_digest_by_uid(uid, editPhase='ALL'):
     http://host:port/asset/deployments/N00123?editphase=ALL (default)
     http://host:port/asset/deployments/N00123?editphase=OPERATIONAL
     """
-    debug = False
     check = False
     try:
-        if debug: print '\n debug -- Entered get_deployments_digest_by_uid: %s, editPhase: %s' % (uid, editPhase)
         # Get uframe deployments by uid.
         uframe_url, timeout, timeout_read = get_uframe_assets_info()
         if not editPhase or editPhase is None or editPhase not in deployment_edit_phase_values():
@@ -1267,7 +1261,6 @@ def get_deployments_digest_by_uid(uid, editPhase='ALL'):
         url = url + suffix
         if check: print '\n check -- [get_deployments_digest_by_uid] url to get asset %s: %s' % (uid, url)
         response = requests.get(url, timeout=(timeout, timeout_read))
-        if debug: print '\n debug -- response.status_code: ', response.status_code
         if response.status_code != 200:
             message = 'Unable to get deployments for asset uid \'%s\'.' % uid
             raise Exception(message)
@@ -1385,9 +1378,7 @@ def uframe_get_stream_byname(stream):
         base_url, timeout, timeout_read = get_url_info_stream_byname()
         url = '/'.join([base_url, stream])
         if check: print '\n check -- url: ', url
-        if debug: print '\n debug -- Entered uframe_get_stream_byname: %s' % stream
         response = requests.get(url, timeout=(timeout, timeout_read))
-        if debug: print '\n debug -- response.status_code: ', response.status_code
         if response.status_code != 200:
             message = 'Unable to get uframe stream \'%s\'.' % stream
             raise Exception(message)
@@ -1414,9 +1405,7 @@ def uframe_get_parameters():
         # Get uframe stream by stream name.
         url, timeout, timeout_read = get_url_info_stream_parameters()
         if check: print '\n check -- url: ', url
-        if debug: print '\n debug -- Entered uframe_get_parameters...'
         response = requests.get(url, timeout=(timeout, timeout_read))
-        if debug: print '\n debug -- response.status_code: ', response.status_code
         if response.status_code != 200:
             message = 'Unable to get uframe parameters.'
             raise Exception(message)
@@ -1435,165 +1424,13 @@ def uframe_get_parameters():
         raise Exception(message)
 
 
-def uframe_get_sites_for_array(rd):
-    """
-    Get /sensor/inv and process for sites matching array rd provided. (Used by status)
-    Returns a list of sites for an array code.
-    """
-    debug = False
-    check = False
-    result = []
-    try:
-        if debug: print '\n debug -- Entered uframe_get_sites_for_array for reference designator: ', rd
-        if not rd or rd is None:
-            message = 'Invalid reference designator (\'%s\') provided to get sites from uframe sensor inventory.' % rd
-            current_app.logger.info(message)
-            return []
-        url, timeout, timeout_read = get_uframe_info()
-        if check: print '\n check -- %s' % url
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        if check: print '\n check -- response.status_code: ', response.status_code
-        if response.status_code != 200:
-            message = 'Failed to get sensor inventory for \'%s\'. ' % rd
-            raise Exception(message)
-        if response.content:
-            sites = json.loads(response.content)
-            if sites:
-                for site in sites:
-                    if site[:2] == rd:
-                        result.append(site)
-        if debug: print '\n debug -- Entered uframe_get_sites_for_array, sites(%d): %s' % (len(result), result)
-        return result
-    except ConnectionError:
-        message = 'Error: ConnectionError getting uframe sensor inventory for \'%s\'. ' % rd
-        current_app.logger.info(message)
-        return []
-    except Timeout:
-        message = 'Error: Timeout getting uframe sensor inventory for \'%s\'. ' % rd
-        current_app.logger.info(message)
-        return []
-    except:
-        message = 'Failed to get sensor inventory for \'%s\'. ' % rd
-        current_app.logger.info(message)
-        return []
-
-
-def uframe_get_platforms_for_site(rd):
-    """
-    Get /sensor/inv and process for platforms for site name provided. (Used by status)
-    For a site reference designator (subsite), get list of platforms (subsite-node).
-    """
-    debug = True
-    check = False
-    result = []
-    try:
-        if debug: print '\n debug -- Entered uframe_get_platforms_for_site for reference designator: ', rd
-        if not rd or rd is None or len(rd) != 8:
-            message = 'Invalid site (\'%s\') provided for platforms from uframe sensor inventory.' % rd
-            current_app.logger.info(message)
-            return []
-        base_url, timeout, timeout_read = get_uframe_info()
-        url = '/'.join([base_url, rd])
-        if check: print '\n check -- %s' % url
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        if check: print '\n check -- response.status_code: ', response.status_code
-        if response.status_code != 200:
-            message = 'Failed to get sensor inventory for \'%s\'. ' % rd
-            raise Exception(message)
-        if response.content:
-            nodes = json.loads(response.content)
-            if debug: print '\n debug -- nodes: ', nodes
-            """
-            distinct_nodes = []
-            for node in nodes:
-                if node not in distinct_nodes:
-                    distinct_nodes.append(node)
-            if debug: print '\n debug -- distinct_nodes(%d): %s ' % (len(distinct_nodes), distinct_nodes)
-            """
-            if nodes:
-                for node in nodes:
-                    tmp = '-'.join([rd, node])
-                    if tmp not in result:
-                        result.append(tmp)
-        if debug: print '\n result(%d): %s' % (len(result), result)
-        return result
-    except ConnectionError:
-        message = 'Error: ConnectionError getting uframe sensor inventory for \'%s\'. ' % rd
-        current_app.logger.info(message)
-        return []
-    except Timeout:
-        message = 'Error: Timeout getting uframe sensor inventory for \'%s\'. ' % rd
-        current_app.logger.info(message)
-        return []
-    except:
-        message = 'Failed to get sensor inventory for \'%s\'. ' % rd
-        current_app.logger.info(message)
-        return []
-
-
-# Get nodes for a site reference designator
-def uframe_get_nodes_for_site(rd):
-    """
-    Get /sensor/inv and process for platforms for site name provided. (Used by status)
-    For a site reference designator (subsite), get list of platforms (subsite-node).
-    """
-    debug = False
-    check = False
-    result = []
-    try:
-        if debug: print '\n debug -- Entered uframe_get_nodes_for_site for reference designator: ', rd
-        if not rd or rd is None or len(rd) != 8:
-            message = 'Invalid site (\'%s\') provided for platforms from uframe sensor inventory.' % rd
-            current_app.logger.info(message)
-            return []
-        base_url, timeout, timeout_read = get_uframe_info()
-        url = '/'.join([base_url, rd])
-        if check: print '\n check -- %s' % url
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        if check: print '\n check -- response.status_code: ', response.status_code
-        if response.status_code != 200:
-            message = 'Failed to get sensor inventory for \'%s\'. ' % rd
-            raise Exception(message)
-        if response.content:
-            result = json.loads(response.content)
-            if debug: print '\n debug -- nodes: ', result
-            """
-            distinct_nodes = []
-            for node in nodes:
-                if node not in distinct_nodes:
-                    distinct_nodes.append(node)
-
-            if debug: print '\n debug -- distinct_nodes(%d): %s ' % (len(distinct_nodes), distinct_nodes)
-            if nodes:
-                for node in nodes:
-                    tmp = '-'.join([rd, node])
-                    if tmp not in result:
-                        result.append(tmp)
-            """
-        if debug: print '\n result(%d): %s' % (len(result), result)
-        return result
-    except ConnectionError:
-        message = 'Error: ConnectionError getting uframe sensor inventory for \'%s\'. ' % rd
-        current_app.logger.info(message)
-        return []
-    except Timeout:
-        message = 'Error: Timeout getting uframe sensor inventory for \'%s\'. ' % rd
-        current_app.logger.info(message)
-        return []
-    except:
-        message = 'Failed to get sensor inventory for \'%s\'. ' % rd
-        current_app.logger.info(message)
-        return []
-
 
 def uframe_get_instrument_metadata_parameters(rd):
     """ Returns the uFrame metadata parameters for a reference designator.
     """
-    debug = False
     check = False
     result = []
     try:
-        if debug: print '\n debug -- get metadata parameters for reference designator: ', rd
         mooring, platform, instrument = rd.split('-', 2)
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, mooring, platform, instrument, 'metadata', 'parameters'])
@@ -1692,9 +1529,7 @@ def uframe_get_status_by_rd(rd=None):
     ]
 
     """
-    check = False
-    debug = False
-    live_test = True
+    live_test = False   # development only flag, remove
     try:
         # Get uframe status by reference designator.
         url, timeout, timeout_read = get_url_info_status_query()
@@ -1714,14 +1549,10 @@ def uframe_get_status_by_rd(rd=None):
                 uframe_rd = rd
             else:
                 message = 'The reference designator provided is malformed (\'%s\').' % rd
-                if debug: print '\n debug -- exception: ', message
                 raise Exception(message)
 
         if rd is not None:
             url = '/'.join([url, uframe_rd])
-
-        if check:
-            print '-- Check -- [uframe_get_status_by_rd] reference designator  %s: %s' % (rd, url)
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
             return None
@@ -1740,352 +1571,162 @@ def uframe_get_status_by_rd(rd=None):
         current_app.logger.info(message)
         return None
 
-#===================================================================================== Start Mock
-#def get_uframe_status_for_rd(rd):
-def get_mock_status_for_rd(rd):
-    """ Get uframe status for reference designator, process result and return.
+
+def uframe_get_sites_for_array(rd):
     """
-    debug = False
-    demo_data = status_demo_data()
-    result = None
+    Get /sensor/inv and process for sites matching array rd provided. (Used by status)
+    Returns a list of sites for an array code.
+    """
+    check = False
+    result = []
     try:
-        # Get status data.
-        if not demo_data:
-            message = 'Should never be here if using actual uframe interface! (Check configuration settings.)'
-            #raise Exception(message)
+        if not rd or rd is None:
+            message = 'Invalid reference designator (\'%s\') provided to get sites from uframe sensor inventory.' % rd
             current_app.logger.info(message)
-
-            results = uframe_get_status_by_rd(rd)
-            if results is not None:
-                # Get array status
-                if rd is None:
-                    if debug: print '\n debug -- Process status arrays...', rd
-                    if results is not None:
-                        result = None
-                    else:
-                        result = process_status_arrays(results)
-                    if debug: print '\n debug -- result: ', result
-
-                # Get sites status for an array; includes all sites for an array.
-                elif len(rd) == 2:
-                    if debug: print '\n debug -- Process status sites...', rd
-                    if results is not None:
-                        result = None
-                    else:
-                        result = process_status_sites(results)
-                    if debug: print '\n debug -- result: ', result
-                # Get platform status for a site; includes instruments per platform.
-                elif len(rd) == 8:
-                    if debug: print '\n debug -- Process status platforms...' , rd
-                    if results is not None:
-                        result = None
-                    else:
-                        result = process_status_platforms(results)
-                    if debug: print '\n debug -- result: ', result
-
-                # Get instrument status.
-                elif len(rd) > 14:
-                    if debug:
-                        print '\n debug -- Process status instrument...' , rd
-                        print '\n debug -- results: ', results
-                    if results is not None:
-                        result = None
-                    else:
-                        result = process_status_instrument(results)
-                    if debug: print '\n debug -- result: ', result
-                else:
-                    message = 'Processing uframe status failed for reference designator \'%s\'.' % rd
-                    raise Exception(message)
-
-        else:
-            # Get array status
-            if rd is None:
-                result = get_mock_array_data()
-            # Get sites status for an array; includes all sites for an array.
-            elif len(rd) == 2:
-                result = get_mock_site_data(rd)
-            # Get platform status for a site; includes instruments per platform.
-            elif len(rd) == 8:
-                result = get_mock_platform_data(rd)
-            # Get instrument status.
-            elif len(rd) > 14:
-                result = get_mock_instrument_data(rd)
-            else:
-                # Malformed or unknown reference designator.
-                message = 'Unknown or malformed reference designator: %s' % rd
-                if debug: current_app.logger.info(message)
-                result = None
-
-        # No result returned from uframe.
-        if not result or result is None:
-            result = None
-
-        if debug: print '\n *** Return %s status result: %s' % (rd, result)
+            return []
+        url, timeout, timeout_read = get_uframe_info()
+        if check: print '\n check -- %s' % url
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Failed to get sensor inventory for \'%s\'. ' % rd
+            raise Exception(message)
+        if response.content:
+            sites = json.loads(response.content)
+            if sites:
+                for site in sites:
+                    if site[:2] == rd:
+                        result.append(site)
         return result
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-
-def process_status_arrays(results):
-    """
-    """
-    try:
-        # Build status response
-        status = build_status_response(results)
-        return status
-    except Exception as err:
-        message = str(err)
+    except ConnectionError:
+        message = 'Error: ConnectionError getting uframe sensor inventory for \'%s\'. ' % rd
         current_app.logger.info(message)
-        raise Exception
-
-
-def process_status_sites(results):
-    """ For an array, process return status for sites.
-    """
-    try:
-        # Build status response
-        status = get_status_response(results)
-        return status
-    except Exception as err:
-        message = str(err)
+        return []
+    except Timeout:
+        message = 'Error: Timeout getting uframe sensor inventory for \'%s\'. ' % rd
         current_app.logger.info(message)
-        raise Exception
-
-
-def process_status_platforms(results):
-    """ For a platform rd, process return status.
-    """
-    try:
-        # Build status response
-        status = get_status_response(results)
-        return status
-    except Exception as err:
-        message = str(err)
+        return []
+    except:
+        message = 'Failed to get sensor inventory for \'%s\'. ' % rd
         current_app.logger.info(message)
-        raise Exception
+        return []
 
-def process_status_instrument(results):
-    """ For an instrument, process return status.
+
+'''
+def uframe_get_platforms_for_site(rd):
     """
+    Get /sensor/inv and process for platforms for site name provided. (Used by status)
+    For a site reference designator (subsite), get list of platforms (subsite-node).
+    """
+    check = False
+    result = []
     try:
-        # Build status response
-        status = get_status_response(results)
-        return status
-    except Exception as err:
-        message = str(err)
+        if not rd or rd is None or len(rd) != 8:
+            message = 'Invalid site (\'%s\') provided for platforms from uframe sensor inventory.' % rd
+            current_app.logger.info(message)
+            return []
+        base_url, timeout, timeout_read = get_uframe_info()
+        url = '/'.join([base_url, rd])
+        if check: print '\n check -- %s' % url
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Failed to get sensor inventory for \'%s\'. ' % rd
+            raise Exception(message)
+        if response.content:
+            nodes = json.loads(response.content)
+            if nodes:
+                for node in nodes:
+                    tmp = '-'.join([rd, node])
+                    if tmp not in result:
+                        result.append(tmp)
+        return result
+    except ConnectionError:
+        message = 'Error: ConnectionError getting uframe sensor inventory for \'%s\'. ' % rd
         current_app.logger.info(message)
-        raise Exception
-
-
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-def get_mock_array_data():
-    debug = False
-    try:
-        if debug: print '\n debug -- Entered get_mock_array_data...'
-        # Mock data from uframe
-        result = \
-        [
-            {
-                "rd": "CE",
-                "status": {
-                    "legend": {
-                          "degraded": 3,
-                          "failed": 0,
-                          "notTracked": 0,
-                          "operational": 7,
-                          "removedFromService": 0
-                        },
-                        "count": 10
-                    }
-            },
-            {
-                "rd": "GP",
-                "status": {
-                    "legend": {
-                      "degraded": 0,
-                      "failed": 0,
-                      "notTracked": 3,
-                      "operational": 7,
-                      "removedFromService": 0
-                    },
-                    "count": 10
-                }
-            },
-            {
-                "rd": "CP",
-                "status": {
-                    "legend": {
-                      "degraded": 0,
-                      "failed": 0,
-                      "notTracked": 1,
-                      "operational": 9,
-                      "removedFromService": 0
-                    },
-                    "count": 10
-                }
-           },
-           {
-              "rd": "GA",
-              "status": {
-                "legend": {
-                  "degraded": 2,
-                  "failed": 2,
-                  "notTracked": 2,
-                  "operational": 4,
-                  "removedFromService": 0
-                },
-                "count": 10
-             }
-           },
-           {
-              "rd": "GI",
-              "status": {
-                "legend": {
-                  "degraded": 4,
-                  "failed": 4,
-                  "notTracked": 2,
-                  "operational": 0,
-                  "removedFromService": 0
-                },
-                "count": 10
-             }
-           },
-           {
-              "rd": "GS",
-              "status": {
-                "legend": {
-                  "degraded": 0,
-                  "failed": 1,
-                  "notTracked": 0,
-                  "operational": 9,
-                  "removedFromService": 0
-                },
-                "count": 10
-             }
-           },
-           {
-              "rd": "RS",
-              "status": {
-                "legend": {
-                  "degraded": 0,
-                  "failed": 0,
-                  "notTracked": 0,
-                  "operational": 10,
-                  "removedFromService": 0
-                },
-                "count": 10
-             }
-           }
-        ]
-        # Build status response
-        status = build_status_response(result)
-        return status
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-
-def build_status_response(uframe_status_data):
-    """ Using uframe list of dictionaries and create dictionary of status with rd as key.
-    """
-    try:
-        status = {}
-        for item in uframe_status_data:
-            if 'rd' in item and 'status' in item:
-                status[item['rd']] = item['status']
-        return status
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-# Deprecate - mock data.
-def get_status_response(uframe_status_data):
-    """ Using uframe list of dictionaries and create dictionary of status with rd as key.
-    """
-    try:
-        status = None
-        for item in uframe_status_data:
-            if 'rd' in item and 'status' in item:
-                status= item['status']
-        return status
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-# Deprecate - mock data.
-def get_mock_site_data(rd):
-    debug = False
-    try:
-        if debug: print '\n debug -- Entered get_mock_site_data: %s' % rd
-        # The rd is for a site.
-        status = get_status_value()
-        return status
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-# Deprecate - mock data.
-def get_mock_platform_data(rd):
-    debug = False
-    try:
-        if debug: print '\n debug -- Entered get_mock_platform_data: %s' % rd
-        status = get_status_value()
-        return status
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-# Deprecate - mock data.
-def get_mock_instrument_data(rd):
-    debug = False
-    try:
-        if debug: print '\n debug -- Entered get_mock_platform_data: %s' % rd
-        status = get_status_value()
-        return status
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-# Deprecate - mock data.
-def get_status_value():
-    values = None
-    default = None
-    try:
-        values = operational_status_values()
-        default = values[0]
-        maxint = len(values) - 1
-        index = randint(0,maxint)
-        value = values[index]
-        return value
-    except Exception as err:
-        message = str(err)
+        return []
+    except Timeout:
+        message = 'Error: Timeout getting uframe sensor inventory for \'%s\'. ' % rd
         current_app.logger.info(message)
-        return default
+        return []
+    except:
+        message = 'Failed to get sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
+'''
 
-# Deprecate - mock data.
-def get_status_block():
-    """ Generate some status counts for status block, to be used for pie chart.
-    Replace this with uframe status block information.
+
+# Get nodes for a site reference designator
+def uframe_get_nodes_for_site(rd):
     """
-    count_operational = randint(60,100)
-    max_degraded = 100 - count_operational
-    count_degraded = randint(0, max_degraded)
-    count_not_tracked = 100 - count_operational - count_degraded
-    count_removed = 0
-    status = {
-        'legend':
-        {
-         'operational': count_operational,
-         'degraded': count_degraded,
-         'failed': 0,
-         'notTracked': count_not_tracked,
-         'removedFromService': count_removed
-        }
-    }
-    return status
+    Get /sensor/inv and process for platforms for site name provided. (Used by status)
+    For a site reference designator (subsite), get list of platforms (subsite-node).
+    """
+    check = False
+    result = []
+    try:
+        if not rd or rd is None or len(rd) != 8:
+            message = 'Invalid site (\'%s\') provided for platforms from uframe sensor inventory.' % rd
+            current_app.logger.info(message)
+            return []
+        base_url, timeout, timeout_read = get_uframe_info()
+        url = '/'.join([base_url, rd])
+        if check: print '\n check -- %s' % url
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Failed to get sensor inventory for \'%s\'. ' % rd
+            raise Exception(message)
+        if response.content:
+            result = json.loads(response.content)
+        return result
+    except ConnectionError:
+        message = 'Error: ConnectionError getting uframe sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
+    except Timeout:
+        message = 'Error: Timeout getting uframe sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
+    except:
+        message = 'Failed to get sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
 
 
+# Get sensors for a platform reference designator
+def uframe_get_sensors_for_platform(rd):
+    """
+    Get /sensor/inv and process for platforms for site name provided. (Used by status)
+    For a site reference designator (subsite-node), get list of sensors (subsite-node).
+    """
+    check = False
+    result = []
+    try:
+        if not rd or rd is None or len(rd) != 14:
+            message = 'Invalid site (\'%s\') provided for platforms from uframe sensor inventory.' % rd
+            current_app.logger.info(message)
+            return []
+        rd = rd.replace('-', '/')
+        base_url, timeout, timeout_read = get_uframe_info()
+        url = '/'.join([base_url, rd])
+        if check: print '\n check -- %s' % url
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Failed to get sensor inventory for \'%s\'. ' % rd
+            raise Exception(message)
+        if response.content:
+            result = json.loads(response.content)
+        return result
+    except ConnectionError:
+        message = 'Error: ConnectionError getting uframe sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
+    except Timeout:
+        message = 'Error: Timeout getting uframe sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
+    except:
+        message = 'Failed to get sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
 
 
 

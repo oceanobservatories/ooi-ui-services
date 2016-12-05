@@ -7,23 +7,22 @@ __author__ = 'Edna Donoughe'
 
 from flask import current_app
 from ooiservices.app.uframe.stream_tools import get_stream_list
+from ooiservices.app.uframe.common_tools import (operational_status_values, get_array_locations)
+from ooiservices.app.uframe.asset_cache_tools import (get_assets_dict, get_asset_list_cache)
+from ooiservices.app.uframe.toc_tools import get_toc_reference_designators
 from ooiservices.app.uframe.vocab import (get_vocab_dict_by_rd, get_vocab_codes, get_vocabulary_arrays,
                                           get_display_name_by_rd)
-from ooiservices.app.uframe.common_tools import (operational_status_values)
+from ooiservices.app.uframe.uframe_tools import (get_assets_from_uframe, uframe_get_status_by_rd,
+                                                 uframe_get_nodes_for_site, uframe_get_sensors_for_platform,
+                                                 get_deployments_digest_by_uid, uframe_get_sites_for_array)
 
-from ooiservices.app.uframe.common_tools import get_array_locations
 from ooiservices.app.uframe.config import status_demo_data
-from ooiservices.app.uframe.asset_cache_tools import (get_assets_dict, get_asset_list_cache)
-from ooiservices.app.uframe.uframe_tools import uframe_get_status_by_rd
-from ooiservices.app.uframe.uframe_tools import (get_assets_from_uframe, uframe_get_platforms_for_site,
-                                                 uframe_get_nodes_for_site)
-from ooiservices.app.uframe.uframe_tools import (get_deployments_digest_by_uid, uframe_get_sites_for_array)
-from ooiservices.app.uframe.toc_tools import get_toc_reference_designators
 from ooiservices.app.uframe.status_tools_mock import (mock_get_status_arrays, mock_get_sites_for_array,
                                                       mock_get_status_platforms, mock_get_status_instrument)
 
 # development work - remove =============================
 from ooiservices.app.uframe.common_tools import dump_dict
+from copy import deepcopy
 # development work - remove =============================
 
 import datetime as dt
@@ -55,7 +54,7 @@ def _get_status_sites(rd):
     """ For a specific array, get all sites with status.
     Sample request: http://localhost:4000/uframe/status/sites/CE
     """
-    time = True
+    time = False
     try:
         # Verify rd is a valid reference designator for an array.
         if not rd or rd is None:
@@ -290,7 +289,38 @@ def get_status_arrays():
           }
         },
         . . .
+
+    When system first comes up, if no status for an array, the empty_status_template is used in response:
+    {
+      "arrays": [
+        {
+          "display_name": "Global Southern Ocean",
+          "latitude": -54.0814,
+          "longitude": -89.6652,
+          "reason": null,
+          "reference_designator": "GS",
+          "status": {
+            "count": 0,
+            "legend": {
+              "degraded": 0,
+              "failed": 0,
+              "notTracked": 0,
+              "operational": 0,
+              "removedFromService": 0
+            }
+          }
+        },
     """
+    empty_status_template = {
+        'count': 0,
+        'legend': {
+          'degraded': 0,
+          'failed': 0,
+          'notTracked': 0,
+          'operational': 0,
+          'removedFromService': 0
+        }
+      }
     arrays_patch = get_array_locations()
     try:
         # Get array information from vocabulary.
@@ -322,7 +352,7 @@ def get_status_arrays():
                         arrays[k]['status'] = status_arrays[k]['status']
                         arrays[k]['reason'] = None                          #status_arrays[k]['reason']
                     else:
-                        arrays[k]['status'] = 'notTracked'
+                        arrays[k]['status'] = empty_status_template         #'notTracked'
                         arrays[k]['reason'] = None
 
                     vocab_dict = get_vocab_dict_by_rd(k)
@@ -386,10 +416,6 @@ def get_status_sites(rd):
             current_app.logger.info(message)
             status_data = {}
 
-        if debug:
-            print '\n debug ------ status_data: '
-            dump_dict(status_data, debug)
-
         end = dt.datetime.now()
         if time:
             print '\t-- End time:   ', end
@@ -411,15 +437,18 @@ def get_status_sites(rd):
                 continue
 
             # Add status for reference designator.
+            _rd_digests_dict = deepcopy(rd_digests_dict[reference_designator])
+
+            # Add status for reference designator.
             if status_data and (reference_designator in status_data):
                 #rd_digests[reference_designator]['status'] = get_status_data(reference_designator)
-                rd_digests_dict[reference_designator]['status'] = status_data[reference_designator]['status']
-                rd_digests_dict[reference_designator]['reason'] = status_data[reference_designator]['reason']
+                _rd_digests_dict['status'] = status_data[reference_designator]['status']
+                _rd_digests_dict['reason'] = status_data[reference_designator]['reason']
             else:
                 if debug: print '\n debug -- %s status not supplied in status_data.' % reference_designator
-                rd_digests_dict[reference_designator]['status'] = 'notTracked'
-                rd_digests_dict[reference_designator]['reason'] = None
-            return_list.append(rd_digests_dict[reference_designator])
+                _rd_digests_dict['status'] = 'notTracked'
+                _rd_digests_dict['reason'] = None
+            return_list.append(_rd_digests_dict)
 
             #=======================================
             end = dt.datetime.now()
@@ -427,7 +456,6 @@ def get_status_sites(rd):
                 print '\t\t-- End time:   ', end
                 print '\t\t-- Time to process %s site: %s' % (rd, str(end - start))
             #===================================
-            #break
 
         if debug: print '\n len(return_list): %d' % len(return_list)
         return return_list
@@ -445,14 +473,13 @@ def get_status_platforms(rd=None):
         is an asset containing CE01ISSM and 14 in length. All platforms are grouped by node category.
         (Node categories are available in the vocab_codes dictionary in attribute 'nodes'.)
         By way of an example, for site CE01ISSM, get platforms grouped by node category:
-            CE01ISSM-SB[D17]  (Bucket 1)
-            CE01ISSM-MF[D35]  (Bucket 2)
+            CE01ISSM-SB[D17]  (Bucket 1 'SB')
+            CE01ISSM-MF[D35]  (Bucket 2 'MF')
             CE01ISSM-MF[D37]
             CE01ISSM-MF[C31]
-            CE01ISSM-RI[D16]  (Bucket 3)
+            CE01ISSM-RI[D16]  (Bucket 3 'RI')
 
-    http://localhost:4000/uframe/assets/nav/sites/CE01ISSM-SBD17  (just instrument(s) for this platform)
-    http://localhost:4000/uframe/status/platforms/GA01SUMO
+    Sample request: http://localhost:4000/uframe/status/platforms/CE01ISSM
 
     Note:
         - The deployment number provided in status.
@@ -532,26 +559,27 @@ def get_status_platforms(rd=None):
             },
             . . .
     """
-    time = True
-    debug = True
+    total_time = True
+    time = False
+    debug = False
     return_list = []
     try:
         if rd is None or not rd:
             message = 'Null or empty reference designator provided for site.'
             raise Exception(message)
         start = dt.datetime.now()
-        if time:
-            print '\n\t-- Processing for platforms...'
-            print '\t\t-- Start time: ', start
-        nodes = uframe_get_nodes_for_site(rd)           # Start here...
-        if debug: print '\n debug -- nodes(%d): %s' % (len(nodes), nodes)
+        if total_time:
+            print '\n-- Processing for platforms...'
+            print '-- Start time: ', start
+        nodes = uframe_get_nodes_for_site(rd)
+
+        # Get node 'codes' to identify sections in response.
         node_codes = []
         for node in nodes:
             if node and len(node) > 2:
                 tmp = node[:2]
                 if tmp not in node_codes:
                     node_codes.append(tmp)
-        if debug: print '\n debug -- node_codes(%d): %s' % (len(node_codes), node_codes)
 
         platforms = []
         for node in nodes:
@@ -560,82 +588,83 @@ def get_status_platforms(rd=None):
                 if tmp not in platforms:
                     platforms.append(tmp)
 
-        if debug: print '\n debug -- platforms(%d): %s' % (len(platforms), platforms)
-        rds = platforms[:]
-        if debug: print '\n debug -- rds(%d): %s' % (len(rds), rds)
-        """
-        rds = uframe_get_platforms_for_site(rd)
-        if time:
-            print '\n\t-- Number of %s platforms: %d' % (rd, len(rds))
-            print '\n\t-- Platforms: %s' % rds
-        if not rds:
-            message = 'No sites in the sensor inventory for array %s.' % rd
-            current_app.logger.info(message)
-            return []
-        """
+        sensors_by_platform = {}
+        instruments_by_platform = {}
+        working_rds = []
+        for platform in platforms:
+            # get sensor list
+            sensors = uframe_get_sensors_for_platform(platform)
+            if sensors:
+                sensors_by_platform[platform] = sensors
+                for sensor in sensors:
+                    if sensor:
+                        tmp = '-'.join([platform, sensor])[:]
+                        if tmp and tmp not in working_rds:
+                            working_rds.append(tmp)
+                        if debug: print tmp
+                        if platform not in instruments_by_platform:
+                            instruments_by_platform[platform] = []
+                        instruments_by_platform[platform].append(tmp[:])
+
+        if not working_rds:
+            return None
+
         # Get rd_digest dictionary.
         rd_digests_dict = get_rd_digests_dict()
 
-        # Get uframe status data.
-        status_data = get_uframe_status_data(rd)
-        # status_data = get_platform_status_data(rd)
-        if not status_data or status_data is None:
-            message = 'No platform status data returned from uframe for reference designator %s.' % rd
-            current_app.logger.info(message)
-            status_data = {}
-        if debug and status_data:
-            print '\n debug ------ status_data: '
-            dump_dict(status_data, debug)
-
-        end = dt.datetime.now()
-        if time:
-            print '\t-- End time:   ', end
-            print '\t-- Time to get %s site processing status: %s' % (rd, str(end - start))
-
-        if not rds:
-            return None
-
-        #count = 0
-        sections = []
-
-        # Process each reference designator and add to rd_digests.
-        for reference_designator in rds:
+        # Process each (instrument) reference designator and add status and reason to rd_digests.
+        final_rds = []
+        for reference_designator in working_rds:
             if debug: print '\n debug -- [Platforms] Processing reference designator: ', reference_designator
-
-            #===================================
-            start = dt.datetime.now()
-            if time:
-                print '\n\t-- Processing %s... ' % reference_designator
-                print '\t\t-- Start time: ', start
-            #===================================
-
             if reference_designator not in rd_digests_dict:
-                if debug: print '\n debug -- %s not in rd_digests_dict.' % reference_designator
+                if debug: print '\n debug -- %s not in rd_digests_dict (continue)' % reference_designator
                 continue
 
-            # Add status for reference designator.
-            if status_data and (reference_designator in status_data):
-                #rd_digests[reference_designator]['status'] = get_status_data(reference_designator)
-                rd_digests_dict[reference_designator]['status'] = status_data[reference_designator]['status']
-                rd_digests_dict[reference_designator]['reason'] = status_data[reference_designator]['reason']
-            else:
-                if debug: print '\n debug -- %s status not supplied in status_data.' % reference_designator
-                rd_digests_dict[reference_designator]['status'] = 'notTracked'
-                rd_digests_dict[reference_designator]['reason'] = None
-            return_list.append(rd_digests_dict[reference_designator])
-
-            #=======================================
-            end = dt.datetime.now()
-            if time:
-                print '\t\t-- End time:   ', end
-                print '\t\t-- Time to process %s site: %s' % (rd, str(end - start))
+            if reference_designator and reference_designator not in final_rds:
+                final_rds.append(reference_designator)
             #===================================
-            #break
+            rd_start = dt.datetime.now()
+            if time:
+                print '\n\t-- Processing %s... ' % reference_designator
+                print '\t\t-- Start time: ', rd_start
+            #===================================
+            status_data = get_uframe_status_data(reference_designator)
+            if not status_data or status_data is None:
+                #message = 'No status data returned from uframe for reference designator %s.' % reference_designator
+                #current_app.logger.info(message)
+                status_data = {}
+
+            # Add status for reference designator.
+            _rd_digests_dict = deepcopy(rd_digests_dict[reference_designator])
+            if status_data and (reference_designator in status_data):
+                _rd_digests_dict['status'] = status_data[reference_designator]['status']
+                _rd_digests_dict['reason'] = status_data[reference_designator]['reason']
+            else:
+                #if debug: print '\n debug -- %s status not supplied in status_data.' % reference_designator
+                _rd_digests_dict['status'] = 'notTracked'
+                _rd_digests_dict['reason'] = None
+            return_list.append(_rd_digests_dict)
+            #=======================================
+            rd_end = dt.datetime.now()
+            if time:
+                print '\t\t-- End time:   ', rd_end
+                print '\t\t-- Time to process %s: %s' % (reference_designator, str(rd_end - rd_start))
+            #===================================
 
         # Get site sections for display.
-        if rds:
-            rds.sort()
-            sections = get_site_sections(rds, return_list)
+        sections = []
+        if final_rds:
+            final_rds.sort()
+            sections = get_site_sections(final_rds, return_list)
+        #=======================================
+        end = dt.datetime.now()
+        if total_time:
+            if time:
+                print '\n-- End time:   ', end
+            else:
+                print '-- End time:   ', end
+            print '-- Time to process %s site: %s\n' % (rd, str(end - start))
+        #===================================
 
         return sections
     except Exception as err:
@@ -877,28 +906,30 @@ def get_status_instrument(rd):
         rd_digests_dict = get_rd_digests_dict()
         if rd in rd_digests_dict:
 
+            _rd_digests_dict = deepcopy(rd_digests_dict[rd])
+
             # Stream times from time_dict
             time_dict = get_stream_times([rd])
             if not time_dict or time_dict is None:
-                rd_digests_dict[rd]['start'] = None
-                rd_digests_dict[rd]['end'] = None
+                _rd_digests_dict['start'] = None
+                _rd_digests_dict['end'] = None
                 #item['display_name'] = rd
             elif rd not in time_dict:
-                rd_digests_dict[rd]['start'] = None
-                rd_digests_dict[rd]['end'] = None
+                _rd_digests_dict['start'] = None
+                _rd_digests_dict['end'] = None
                 #item['display_name'] = rd
             else:
-                rd_digests_dict[rd]['start'] = time_dict[rd]['start']
-                rd_digests_dict[rd]['end'] = time_dict[rd]['end']
+                _rd_digests_dict['start'] = time_dict[rd]['start']
+                _rd_digests_dict['end'] = time_dict[rd]['end']
                 #item['display_name'] = time_dict[item['reference_designator']]['name']
 
             if status_data and (rd in status_data):
-                rd_digests_dict[rd]['status'] = status_data[rd]['status']
-                rd_digests_dict[rd]['reason'] = status_data[rd]['reason']
+                _rd_digests_dict['status'] = status_data[rd]['status']
+                _rd_digests_dict['reason'] = status_data[rd]['reason']
             else:
-                rd_digests_dict[rd]['status'] = 'notTracked'
-                rd_digests_dict[rd]['reason'] = None
-            return_list.append(rd_digests_dict[rd])
+                _rd_digests_dict['status'] = 'notTracked'
+                _rd_digests_dict['reason'] = None
+            return_list.append(_rd_digests_dict)
 
         return return_list
     except Exception as err:
@@ -1158,7 +1189,7 @@ def get_uframe_status_data_arrays():
         current_app.logger.info(message)
         return None
 
-
+'''
 def get_platform_status_data(rd):
     """ Get status data for site reference designator, process uframe response to produce platform status data.
     Return status_data.
@@ -1246,7 +1277,7 @@ def process_uframe_platform_data(rd, data):
         message = str(err)
         current_app.logger.info(message)
         return None
-
+'''
 
 def get_log_block():
     """ Get event log for history, default count=100. To be defined.

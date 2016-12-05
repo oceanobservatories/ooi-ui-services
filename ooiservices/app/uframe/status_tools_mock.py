@@ -6,13 +6,13 @@ Asset Management - Status: Supporting functions.
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
-from ooiservices.app.uframe.vocab import (get_vocab_dict_by_rd, get_vocab_codes, get_vocabulary_arrays,
-                                          get_display_name_by_rd)
-from ooiservices.app.uframe.common_tools import get_array_locations
-from ooiservices.app.uframe.uframe_tools import uframe_get_sites_for_array
-from ooiservices.app.uframe.uframe_tools import get_mock_status_for_rd
-import datetime as dt
+from ooiservices.app.uframe.vocab import (get_vocab_dict_by_rd, get_vocabulary_arrays, get_display_name_by_rd)
+from ooiservices.app.uframe.common_tools import (get_array_locations, operational_status_values)
+from ooiservices.app.uframe.uframe_tools import (uframe_get_sites_for_array, uframe_get_status_by_rd)
+from ooiservices.app.uframe.config import status_demo_data
 
+import datetime as dt
+from random import randint
 
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -308,6 +308,7 @@ def get_status_data(rd):
         current_app.logger.info(message)
         return None
 
+
 # Mock api.
 def format_site_data(obj):
     """
@@ -377,4 +378,353 @@ def format_site_data(obj):
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # End mock status helper functions.
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+def get_mock_status_for_rd(rd):
+    """ Get uframe status for reference designator, process result and return.
+    """
+    debug = False
+    demo_data = status_demo_data()
+    result = None
+    try:
+        # Get status data.
+        if not demo_data:
+            message = 'Should never be here if using actual uframe interface! (Check configuration settings.)'
+            #raise Exception(message)
+            current_app.logger.info(message)
+
+            results = uframe_get_status_by_rd(rd)
+            if results is not None:
+                # Get array status
+                if rd is None:
+                    if debug: print '\n debug -- Process status arrays...', rd
+                    if results is not None:
+                        result = None
+                    else:
+                        result = process_status_arrays(results)
+                    if debug: print '\n debug -- result: ', result
+
+                # Get sites status for an array; includes all sites for an array.
+                elif len(rd) == 2:
+                    if debug: print '\n debug -- Process status sites...', rd
+                    if results is not None:
+                        result = None
+                    else:
+                        result = process_status_sites(results)
+                    if debug: print '\n debug -- result: ', result
+                # Get platform status for a site; includes instruments per platform.
+                elif len(rd) == 8:
+                    if debug: print '\n debug -- Process status platforms...' , rd
+                    if results is not None:
+                        result = None
+                    else:
+                        result = process_status_platforms(results)
+                    if debug: print '\n debug -- result: ', result
+
+                # Get instrument status.
+                elif len(rd) > 14:
+                    if debug:
+                        print '\n debug -- Process status instrument...' , rd
+                        print '\n debug -- results: ', results
+                    if results is not None:
+                        result = None
+                    else:
+                        result = process_status_instrument(results)
+                    if debug: print '\n debug -- result: ', result
+                else:
+                    message = 'Processing uframe status failed for reference designator \'%s\'.' % rd
+                    raise Exception(message)
+
+        else:
+            # Get array status
+            if rd is None:
+                result = get_mock_array_data()
+            # Get sites status for an array; includes all sites for an array.
+            elif len(rd) == 2:
+                result = get_mock_site_data(rd)
+            # Get platform status for a site; includes instruments per platform.
+            elif len(rd) == 8:
+                result = get_mock_platform_data(rd)
+            # Get instrument status.
+            elif len(rd) > 14:
+                result = get_mock_instrument_data(rd)
+            else:
+                # Malformed or unknown reference designator.
+                message = 'Unknown or malformed reference designator: %s' % rd
+                if debug: current_app.logger.info(message)
+                result = None
+
+        # No result returned from uframe.
+        if not result or result is None:
+            result = None
+
+        if debug: print '\n *** Return %s status result: %s' % (rd, result)
+        return result
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+def process_status_arrays(results):
+    """
+    """
+    try:
+        # Build status response
+        status = build_status_response(results)
+        return status
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        raise Exception
+
+
+def process_status_sites(results):
+    """ For an array, process return status for sites.
+    """
+    try:
+        # Build status response
+        status = get_status_response(results)
+        return status
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        raise Exception
+
+
+def process_status_platforms(results):
+    """ For a platform rd, process return status.
+    """
+    try:
+        # Build status response
+        status = get_status_response(results)
+        return status
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        raise Exception
+
+def process_status_instrument(results):
+    """ For an instrument, process return status.
+    """
+    try:
+        # Build status response
+        status = get_status_response(results)
+        return status
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        raise Exception
+
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+def get_mock_array_data():
+    debug = False
+    try:
+        if debug: print '\n debug -- Entered get_mock_array_data...'
+        # Mock data from uframe
+        result = \
+        [
+            {
+                "rd": "CE",
+                "status": {
+                    "legend": {
+                          "degraded": 3,
+                          "failed": 0,
+                          "notTracked": 0,
+                          "operational": 7,
+                          "removedFromService": 0
+                        },
+                        "count": 10
+                    }
+            },
+            {
+                "rd": "GP",
+                "status": {
+                    "legend": {
+                      "degraded": 0,
+                      "failed": 0,
+                      "notTracked": 3,
+                      "operational": 7,
+                      "removedFromService": 0
+                    },
+                    "count": 10
+                }
+            },
+            {
+                "rd": "CP",
+                "status": {
+                    "legend": {
+                      "degraded": 0,
+                      "failed": 0,
+                      "notTracked": 1,
+                      "operational": 9,
+                      "removedFromService": 0
+                    },
+                    "count": 10
+                }
+           },
+           {
+              "rd": "GA",
+              "status": {
+                "legend": {
+                  "degraded": 2,
+                  "failed": 2,
+                  "notTracked": 2,
+                  "operational": 4,
+                  "removedFromService": 0
+                },
+                "count": 10
+             }
+           },
+           {
+              "rd": "GI",
+              "status": {
+                "legend": {
+                  "degraded": 4,
+                  "failed": 4,
+                  "notTracked": 2,
+                  "operational": 0,
+                  "removedFromService": 0
+                },
+                "count": 10
+             }
+           },
+           {
+              "rd": "GS",
+              "status": {
+                "legend": {
+                  "degraded": 0,
+                  "failed": 1,
+                  "notTracked": 0,
+                  "operational": 9,
+                  "removedFromService": 0
+                },
+                "count": 10
+             }
+           },
+           {
+              "rd": "RS",
+              "status": {
+                "legend": {
+                  "degraded": 0,
+                  "failed": 0,
+                  "notTracked": 0,
+                  "operational": 10,
+                  "removedFromService": 0
+                },
+                "count": 10
+             }
+           }
+        ]
+        # Build status response
+        status = build_status_response(result)
+        return status
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+def build_status_response(uframe_status_data):
+    """ Using uframe list of dictionaries and create dictionary of status with rd as key.
+    """
+    try:
+        status = {}
+        for item in uframe_status_data:
+            if 'rd' in item and 'status' in item:
+                status[item['rd']] = item['status']
+        return status
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+# Deprecate - mock data.
+def get_status_response(uframe_status_data):
+    """ Using uframe list of dictionaries and create dictionary of status with rd as key.
+    """
+    try:
+        status = None
+        for item in uframe_status_data:
+            if 'rd' in item and 'status' in item:
+                status= item['status']
+        return status
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+# Deprecate - mock data.
+def get_mock_site_data(rd):
+    debug = False
+    try:
+        if debug: print '\n debug -- Entered get_mock_site_data: %s' % rd
+        # The rd is for a site.
+        status = get_status_value()
+        return status
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+# Deprecate - mock data.
+def get_mock_platform_data(rd):
+    debug = False
+    try:
+        if debug: print '\n debug -- Entered get_mock_platform_data: %s' % rd
+        status = get_status_value()
+        return status
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+# Deprecate - mock data.
+def get_mock_instrument_data(rd):
+    debug = False
+    try:
+        if debug: print '\n debug -- Entered get_mock_platform_data: %s' % rd
+        status = get_status_value()
+        return status
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+# Deprecate - mock data.
+def get_status_value():
+    values = None
+    default = None
+    try:
+        values = operational_status_values()
+        default = values[0]
+        maxint = len(values) - 1
+        index = randint(0,maxint)
+        value = values[index]
+        return value
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return default
+
+
+# Deprecate - mock data.
+def get_status_block():
+    """ Generate some status counts for status block, to be used for pie chart.
+    Replace this with uframe status block information.
+    """
+    count_operational = randint(60,100)
+    max_degraded = 100 - count_operational
+    count_degraded = randint(0, max_degraded)
+    count_not_tracked = 100 - count_operational - count_degraded
+    count_removed = 0
+    status = {
+        'legend':
+        {
+         'operational': count_operational,
+         'degraded': count_degraded,
+         'failed': 0,
+         'notTracked': count_not_tracked,
+         'removedFromService': count_removed
+        }
+    }
+    return status
 
