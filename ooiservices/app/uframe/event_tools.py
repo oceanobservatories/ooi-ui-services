@@ -9,6 +9,7 @@ from ooiservices.app.uframe.common_tools import (get_event_types, get_event_type
 from ooiservices.app.uframe.uframe_tools import (uframe_get_asset_by_id, get_uframe_events_by_uid, _get_id_by_uid,
                                                  get_uframe_calibration_events_by_uid)
 from ooiservices.app.uframe.uframe_tools import get_deployments_digest_by_uid
+from ooiservices.app.uframe.events_create_update import post_process_event
 # from ooiservices.app.uframe.events_validate_fields import get_rd_from_integrationInto
 
 # Get events by asset uid and type.
@@ -181,6 +182,9 @@ def get_and_process_events(id, uid, _type, asset_type):
                                         else:
                                             event['integrationInto'] = None
                             """
+                            if event_type == 'ASSET_STATUS':
+                                if debug: print '\n in event_tools.py: status event...'
+                                event = post_process_event(event)
                             events[event['eventType']].append(event)
                         else:
                             message = 'Unknown or invalid event type provided: %s' % event['eventType']

@@ -7,6 +7,7 @@ __author__ = 'Edna Donoughe'
 from ooiservices.app.uframe.uframe_tools import (uframe_get_asset_by_uid, get_uframe_event, uframe_put_event,
                                                  uframe_postto, uframe_create_cruise, uframe_create_calibration)
 from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types, get_event_class)
+from ooiservices.app.uframe.common_tools import convert_status_value_for_display
 from ooiservices.app.uframe.events_validate_fields import (events_validate_all_required_fields_are_provided,
                                                            events_validate_user_required_fields_are_provided)
 
@@ -94,6 +95,9 @@ def post_process_event(event):
             raise Exception(message)
         if '@class' in event:
             del event['@class']
+        if 'eventType' in event:
+            if event['eventType'] == 'ASSET_STATUS':
+                event['status'] = convert_status_value_for_display(event['status'])
         return event
 
     except Exception as err:
@@ -105,6 +109,7 @@ def post_process_event(event):
 def update_event_type(id, data):
     """ Update an existing event, no success return event, on error raise exception.
     """
+    debug = False
     action = 'update'
     try:
         # Verify minimum required fields to proceed with update (event_type and uid)
@@ -175,6 +180,10 @@ def update_event_type(id, data):
             message = 'The event id returned from event update (%d) is not equal to original id (%d).' % (updated_id, id)
         # Get updated event, return event
         event = get_uframe_event(id)
+        if debug: print '\n event: ', event
+        if event['eventType'] == 'ASSET_STATUS':
+            event['status'] = convert_status_value_for_display(event['status'])
+            if debug: print '\n event[status]: ', event['status']
         return event
 
     except Exception as err:

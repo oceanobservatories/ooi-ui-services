@@ -1438,6 +1438,7 @@ def uframe_get_parameters():
 def uframe_get_sites_for_array(rd):
     """
     Get /sensor/inv and process for sites matching array rd provided. (Used by status)
+    Returns a list of sites for an array code.
     """
     debug = False
     check = False
@@ -1480,12 +1481,13 @@ def uframe_get_sites_for_array(rd):
 def uframe_get_platforms_for_site(rd):
     """
     Get /sensor/inv and process for platforms for site name provided. (Used by status)
+    For a site reference designator (subsite), get list of platforms (subsite-node).
     """
     debug = True
-    check = True
+    check = False
     result = []
     try:
-        if debug: print '\n debug -- Entered uframe_get_sites_for_array for reference designator: ', rd
+        if debug: print '\n debug -- Entered uframe_get_platforms_for_site for reference designator: ', rd
         if not rd or rd is None or len(rd) != 8:
             message = 'Invalid site (\'%s\') provided for platforms from uframe sensor inventory.' % rd
             current_app.logger.info(message)
@@ -1501,11 +1503,73 @@ def uframe_get_platforms_for_site(rd):
         if response.content:
             nodes = json.loads(response.content)
             if debug: print '\n debug -- nodes: ', nodes
+            """
+            distinct_nodes = []
+            for node in nodes:
+                if node not in distinct_nodes:
+                    distinct_nodes.append(node)
+            if debug: print '\n debug -- distinct_nodes(%d): %s ' % (len(distinct_nodes), distinct_nodes)
+            """
             if nodes:
                 for node in nodes:
-                    tmp = '-'.join([rd,node])
+                    tmp = '-'.join([rd, node])
                     if tmp not in result:
                         result.append(tmp)
+        if debug: print '\n result(%d): %s' % (len(result), result)
+        return result
+    except ConnectionError:
+        message = 'Error: ConnectionError getting uframe sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
+    except Timeout:
+        message = 'Error: Timeout getting uframe sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
+    except:
+        message = 'Failed to get sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
+
+
+# Get nodes for a site reference designator
+def uframe_get_nodes_for_site(rd):
+    """
+    Get /sensor/inv and process for platforms for site name provided. (Used by status)
+    For a site reference designator (subsite), get list of platforms (subsite-node).
+    """
+    debug = False
+    check = False
+    result = []
+    try:
+        if debug: print '\n debug -- Entered uframe_get_nodes_for_site for reference designator: ', rd
+        if not rd or rd is None or len(rd) != 8:
+            message = 'Invalid site (\'%s\') provided for platforms from uframe sensor inventory.' % rd
+            current_app.logger.info(message)
+            return []
+        base_url, timeout, timeout_read = get_uframe_info()
+        url = '/'.join([base_url, rd])
+        if check: print '\n check -- %s' % url
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if check: print '\n check -- response.status_code: ', response.status_code
+        if response.status_code != 200:
+            message = 'Failed to get sensor inventory for \'%s\'. ' % rd
+            raise Exception(message)
+        if response.content:
+            result = json.loads(response.content)
+            if debug: print '\n debug -- nodes: ', result
+            """
+            distinct_nodes = []
+            for node in nodes:
+                if node not in distinct_nodes:
+                    distinct_nodes.append(node)
+
+            if debug: print '\n debug -- distinct_nodes(%d): %s ' % (len(distinct_nodes), distinct_nodes)
+            if nodes:
+                for node in nodes:
+                    tmp = '-'.join([rd, node])
+                    if tmp not in result:
+                        result.append(tmp)
+            """
         if debug: print '\n result(%d): %s' % (len(result), result)
         return result
     except ConnectionError:
@@ -1630,11 +1694,11 @@ def uframe_get_status_by_rd(rd=None):
     """
     check = False
     debug = False
+    live_test = True
     try:
         # Get uframe status by reference designator.
         url, timeout, timeout_read = get_url_info_status_query()
-
-        if debug:
+        if live_test:
             url = url.replace('uframe-test', 'uframe-3-test')
 
         # Format reference designator for uframe query.
@@ -1676,7 +1740,7 @@ def uframe_get_status_by_rd(rd=None):
         current_app.logger.info(message)
         return None
 
-
+#===================================================================================== Start Mock
 #def get_uframe_status_for_rd(rd):
 def get_mock_status_for_rd(rd):
     """ Get uframe status for reference designator, process result and return.
@@ -1749,7 +1813,7 @@ def get_mock_status_for_rd(rd):
             else:
                 # Malformed or unknown reference designator.
                 message = 'Unknown or malformed reference designator: %s' % rd
-                current_app.logger.info(message)
+                if debug: current_app.logger.info(message)
                 result = None
 
         # No result returned from uframe.

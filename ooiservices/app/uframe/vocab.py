@@ -476,7 +476,8 @@ def compile_vocab():
                     if platform not in results:
                         long_name = ' '.join([vocab['tocL1'], vocab['tocL2']])
                         long_name += ' - ' + vocab['tocL3']
-                        name = vocab['tocL2'] + ' - ' + vocab['tocL3']      # changed
+                        #name = vocab['tocL2'] + ' - ' + vocab['tocL3']      # changed
+                        name = vocab['tocL3']                                # changed 2016-12-03
                         if long_name is not None and name is not None:
                             results[platform] = {'long_name': long_name, 'name': name, 'id': 0}
 

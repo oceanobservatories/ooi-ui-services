@@ -462,7 +462,7 @@ def convert_status_display_value(status_value):
             raise Exception(message)
         if status_value in operational_status_values():
             value = status_value
-        elif status_value in operational_status_values():
+        elif status_value in operational_status_display_values():
             if status_value == 'Operational':
                 value = 'operational'
             elif status_value == 'Degraded':
@@ -478,6 +478,36 @@ def convert_status_display_value(status_value):
                 raise Exception(message)
         else:
             message = 'The status value provided (\'%s\') is invalid.' % status_value
+            raise Exception(message)
+        return value
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+def convert_status_value_for_display(status_value):
+    try:
+        if not status_value or status_value is None:
+            message = 'The status value provided is empty or null.'
+            raise Exception(message)
+        if status_value in operational_status_display_values():
+            value = status_value
+        elif status_value in operational_status_values():
+            if status_value == 'operational':
+                value = 'Operational'
+            elif status_value == 'degraded':
+                value =  'Degraded'
+            elif status_value == 'failed':
+                value = 'Failed'
+            elif status_value == 'notTracked':
+                value = 'Not Tracked'
+            elif status_value == 'removedFromService':
+                value = 'Removed From Service'
+            else:
+                message = 'The status display value provided (\'%s\') is unknown.' % status_value
+                raise Exception(message)
+        else:
+            message = 'The status display value provided (\'%s\') is invalid.' % status_value
             raise Exception(message)
         return value
     except Exception as err:
