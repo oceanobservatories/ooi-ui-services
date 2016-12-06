@@ -21,6 +21,7 @@ COMMON: &common
     HOST: localhost
     PORT: 4000
       # UFrame config - This section shold be pointed at the uFrame instance that is being used to populate the UI.
+    UFRAME_HOST:            'localhost'
     UFRAME_URL:             'http://localhost:12576'
     UFRAME_ASSETS_URL:      'http://localhost:12573'
     UFRAME_ANNOTATION_URL : 'http://localhost:12580'
@@ -31,6 +32,10 @@ COMMON: &common
     UFRAME_SUBSCRIBE_URL:   'http://localhost:12585'
     UFRAME_VOCAB_URL:        'http://localhost:12586'
     UFRAME_DEPLOYMENTS_URL:  'http://localhost:12587'
+
+    UFRAME_ALLOWED_M2M_PORTS:
+      - 12576
+      - 12587
 
     UFRAME_MISSIONS_BASE:   '/missions'
     UFRAME_ANNOTATION_BASE: '/anno'
