@@ -10,7 +10,7 @@ from base64 import b64encode
 from flask import url_for
 from ooiservices.app import create_app, db
 from ooiservices.app.models import User, UserScope, Organization
-from ooiservices.app.models import Array, PlatformDeployment, InstrumentDeployment
+from ooiservices.app.models import Array
 import datetime as dt
 from unittest import skipIf
 import os
