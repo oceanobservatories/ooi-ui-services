@@ -59,6 +59,7 @@ def m2m_handler(path):
     :param path:
     :return:
     """
+    transfer_header_fields = ['Date', 'Content-Type']
     try:
         current_app.logger.info(path)
         if User.api_verify_token(request.authorization['username'], request.authorization['password']):
@@ -66,7 +67,9 @@ def m2m_handler(path):
             timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
             timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
             response = requests.get(url, timeout=(timeout, timeout_read), params=request.args)
-            return response.text, response.status_code, dict(response.headers)
+            headers = dict(response.headers)
+            headers = {k: headers[k] for k in headers if k in transfer_header_fields}
+            return response.text, response.status_code, headers
         else:
             message = 'Authentication failed.'
             current_app.logger.info(message)
