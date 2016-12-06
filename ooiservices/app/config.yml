@@ -27,22 +27,21 @@ COMMON: &common
     UFRAME_DATA_REQUEST_LIMIT:  2880
     UFRAME_PLOT_TIMEOUT:      60
     DATA_POINTS:              1000
-    DEPLOYMENTS_INV_LOAD:     False
 
-    # uframe configuration (uframe-test)
-    UFRAME_URL:             'http://uframe-test.ooi.rutgers.edu:12576' # 'http://ooiufs01.ooi.rutgers.edu:12576' # 'http://uft21.ooi.rutgers.edu:12576' #
-    UFRAME_ANNOTATION_URL:  'http://uframe-test.ooi.rutgers.edu:12580'
-    UFRAME_ALERTS_URL:      'http://uframe-test.ooi.rutgers.edu:12577' # 'http://ooiufs1.ooi.rutgers.edu:12577'
-    UFRAME_ANTELOPE_URL:    'http://uframe-test.ooi.rutgers.edu:12582/data/list/antelope/'
-    UFRAME_SUBSCRIBE_URL:   'http://uframe-test.ooi.rutgers.edu:12585'
+    # UFrame config - This section shold be pointed at the uFrame instance that is being used to populate the UI.
+    UFRAME_URL:             'http://localhost:12576'
+    UFRAME_ANNOTATION_URL:  'http://localhost:12580'
+    UFRAME_ALERTS_URL:      'http://localhost:12577'
+    UFRAME_ANTELOPE_URL:    'http://localhost:12582/data/list/antelope/'
+    UFRAME_SUBSCRIBE_URL:   'http://localhost:12585'
     UFRAME_URL_BASE:        '/sensor/inv'
     UFRAME_TOC:             '/sensor/inv/toc'
     UFRAME_ANNOTATION_BASE: '/anno'
-    UFRAME_VOCAB_URL:        'http://uframe-test.ooi.rutgers.edu:12586'
+    UFRAME_VOCAB_URL:        'http://localhost:12586'
 
     # Asset Management: Assets, Events, Deployments, Cruises, Resources, Calibration and Status
-    UFRAME_ASSETS_URL:       'http://uframe-test.ooi.rutgers.edu:12587'
-    UFRAME_DEPLOYMENTS_URL:  'http://uframe-test.ooi.rutgers.edu:12587'
+    UFRAME_ASSETS_URL:       'http://localhost:12587'
+    UFRAME_DEPLOYMENTS_URL:  'http://localhost:12587'
     UFRAME_ASSETS:           'asset'
     UFRAME_EVENTS:           'events'
     UFRAME_DEPLOYMENTS:      'events/deployment'
@@ -57,65 +56,26 @@ COMMON: &common
     DEMO_STATUS_DATA:         True
 
     # Streams
-    UFRAME_STREAMS_URL:       'http://uframe-test.ooi.rutgers.edu:12575'
+    UFRAME_STREAMS_URL:       'http://localhost:12575'
     UFRAME_STREAM:            'stream'
     UFRAME_STREAM_PARAMETER:  'parameter'
     UFRAME_STREAM_BYNAME:     'byname'
 
     # Instruments
-    UFRAME_INST_URL:          'http://uft21.ooi.rutgers.edu:12572'
-    UFRAME_MISSIONS_URL:      'http://uft21.ooi.rutgers.edu:8000'
+    UFRAME_INST_URL:          'http://localhost:12572'
+    UFRAME_MISSIONS_URL:      'http://localhost:8000'
     UFRAME_MISSIONS_BASE:     '/missions'
     UFRAME_INST_BASE:         '/instrument/api'
     UFRAME_PLAT_BASE:         '/platform/api'
 
-
-      # UFrame config - This section shold be pointed at the uFrame instance that is being used to populate the UI.
+    # M2M
     UFRAME_HOST:            'localhost'
-    UFRAME_URL:             'http://localhost:12576'
-    UFRAME_ASSETS_URL:      'http://localhost:12573'
-    UFRAME_ANNOTATION_URL : 'http://localhost:12580'
-    UFRAME_ALERTS_URL:      'http://localhost:12577'
-    UFRAME_INST_URL:        'http://localhost:12572'
-    UFRAME_ANTELOPE_URL:    'http://localhost:12582/data/list/antelope/'
-    UFRAME_MISSIONS_URL:    'http://localhost:8000'
-    UFRAME_SUBSCRIBE_URL:   'http://localhost:12585'
-    UFRAME_VOCAB_URL:        'http://localhost:12586'
-    UFRAME_DEPLOYMENTS_URL:  'http://localhost:12587'
-
     UFRAME_ALLOWED_M2M_PORTS:
       - 12576
       - 12587
       - 12578
 
-    UFRAME_MISSIONS_BASE:   '/missions'
-    UFRAME_ANNOTATION_BASE: '/anno'
-    UFRAME_URL_BASE:        '/sensor/inv'
-    UFRAME_TOC:             '/sensor/inv/toc'
-    UFRAME_INST_BASE:       '/instrument/api'
-    UFRAME_PLAT_BASE:       '/platform/api'
-    UFRAME_ASSETS:           'asset'
-    UFRAME_EVENTS:           'events'
-    UFRAME_DEPLOYMENTS:      'events/deployment'
-    UFRAME_CRUISES:          'events/cruise'
-      #Values may be changed to work with uFrame performance. increase Data_Points for higher resolution plotting
-    UFRAME_TIMEOUT_CONNECT:   5
-    UFRAME_TIMEOUT_READ:      30
-    UFRAME_DATA_REQUEST_LIMIT:  2880
-    UFRAME_PLOT_TIMEOUT:      60
-    DATA_POINTS:              1000
-    DEPLOYMENTS_INV_LOAD:     False
-
-    # Status
-    UFRAME_STATUS:            'status'
-    UFRAME_STATUS_QUERY:      'query'
-    UFRAME_STATUS_INV:        'inv'
-    DEMO_STATUS_DATA:         True
-    UFRAME_STREAMS_URL:       'http://localhost:12575'
-    UFRAME_STREAM:            'stream'
-    UFRAME_STREAM_PARAMETER:  'parameter'
-    UFRAME_STREAM_BYNAME:     'byname'
-      #Red Mine values should be left alone on test servers and set to the production settings on the production server 
+    #Red Mine values should be left alone on test servers and set to the production settings on the production server
     REDMINE_KEY: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     REDMINE_URL: 'https://redmine-asa.ooi.rutgers.edu' #'https://uframe-cm.ooi.rutgers.edu'
     REDMINE_PROJECT_ID: 'ocean-observatory' #'ooi-ui-api-testing'
@@ -136,7 +96,7 @@ COMMON: &common
     CILOGON_ID: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     CILOGON_SECRECT:  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     CILOGON_BASE_URL: 'https://test.cilogon.org'
-      #Camera Store might change if OOI goes away from the Hyrax Server. If so the Camera Store must change accordingly
+    #Camera Store might change if OOI goes away from the Hyrax Server. If so the Camera Store must change accordingly
     IMAGE_STORE : 'ooiservices/cam_images'
     IMAGE_CAMERA_STORE : 'http://opendap-devel.ooi.rutgers.edu:8080/opendap/hyrax/large_format/'
     # flask security - email parameters.  make sure this is set for your email server.
