@@ -18,7 +18,6 @@ from ooiservices.app.models import DisabledStreams
 
 
 @api.route('/stream')
-@cache.memoize(timeout=1600)
 def get_streams_list():
     """ Get streams (list of dictionaries); used in the data catalog.
 
