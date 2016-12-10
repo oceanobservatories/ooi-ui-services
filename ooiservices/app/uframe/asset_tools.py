@@ -5,51 +5,37 @@ Asset Management - Assets: Supporting functions.
 """
 __author__ = 'Edna Donoughe'
 
-from flask import (current_app)
+from flask import current_app
 from ooiservices.app import cache
 from copy import deepcopy
-from ooiservices.app.uframe.stream_tools import get_stream_list
-from ooiservices.app.uframe.vocab import (get_vocab, get_vocab_dict_by_rd,
-                                          get_rs_array_name_by_rd, get_display_name_by_rd)
 from ooiservices.app.uframe.uframe_tools import (get_assets_from_uframe, uframe_get_asset_by_id, uframe_get_asset_by_uid)
-from ooiservices.app.uframe.common_tools import (get_asset_classes, get_supported_asset_types, get_location_fields,
-                                                 get_asset_type_display_name)
+from ooiservices.app.uframe.common_tools import (get_asset_classes, get_asset_type_display_name)
 from ooiservices.app.uframe.status_tools import build_rds_cache, get_uid_digests
+from ooiservices.app.uframe.vocab import (get_vocab, get_vocab_dict_by_rd, get_rs_array_name_by_rd,
+                                          get_display_name_by_rd)
 
+# Hold...
+#from ooiservices.app.uframe.common_tools get_supported_asset_types, get_location_fields
 
 import datetime as dt
 from operator import itemgetter
 CACHE_TIMEOUT = 172800
-STREAM_CACHE_TIMEOUT = 36000
-
-#import json
-#from ooiservices.app.uframe.common_tools import (get_asset_type_by_rd, get_uframe_asset_type)
-#from ooiservices.app.uframe.vocab import (get_rs_array_name_by_rd, get_display_name_by_rd)
-#from ooiservices.app.uframe.controller import dfs_streams
-#from ooiservices.app.uframe.deployment_tools import get_deployments_digest
-#from ooiservices.app.uframe.asset_cache_tools import (get_asset_rds_cache, asset_rds_cache_update)
-
 
 
 def verify_cache(refresh=False):
     """ Verify necessary cached objects are available; if not get and set. Return asset_list data.
     """
-    #from ooiservices.app.uframe.status_tools import build_rds_cache, get_uid_digests
     verify_cache_required = False
     try:
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Ensure cached: 'vocab_dict' and 'vocab_codes'; 'stream_list'
+        # Ensure cached: 'vocab_dict' and 'vocab_codes'; 'stream_list'; 'uid_digests'
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         vocab_dict = get_vocab()
-        stream_list = get_stream_list()
-
-        #asset_rds = get_asset_rds_cache()
-
-        # If full cache update being performed (refresh = True), include 'uid_digests'
-        uid_digests = get_uid_digests(refresh)
+        #stream_list = get_stream_list()
+        uid_digests = get_uid_digests()
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Check 'asset_list', 'assets_dict', 'asset_rds'
+        # Check 'asset_list', 'assets_dict'
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         if not cache.get('asset_list') or not cache.get('assets_dict'):
             verify_cache_required = True
@@ -66,6 +52,7 @@ def verify_cache(refresh=False):
                 message = 'No asset data returned from uframe.'
                 current_app.logger.info(message)
                 raise Exception(message)
+
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Populate assets.
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -88,7 +75,6 @@ def verify_cache(refresh=False):
                 message = 'Failed to compile reference designator digests.'
                 current_app.logger.info(message)
                 raise Exception(message)
-
         return data
 
     except Exception as err:
@@ -97,11 +83,9 @@ def verify_cache(refresh=False):
         raise Exception(message)
 
 
-'''
 # Get all assets from uframe.
 def get_assets_payload():
-    """ Get all assets from uframe, process and update caches for:
-            'asset_list', 'assets_dict', 'asset_rds'
+    """ Get all assets from uframe and process. Update caches for assets.: 'asset_list', 'assets_dict'
     """
     time = True
     try:
@@ -122,75 +106,12 @@ def get_assets_payload():
             message = 'No uframe asset content returned.'
             raise Exception(message)
 
-        # Get asset_list and asset_rds.
-        data, asset_rds = new_compile_assets(result, compile_all=True)
-        print '\n-- Completed loading assets....'
-        if not data:
-            message = 'Unable to process uframe assets; error creating assets_list.'
-            raise Exception(message)
-        if not asset_rds:
-            message = 'Unable to process uframe assets; error creating asset_rds.'
-            raise Exception(message)
-
-        # Cache 'asset_list'.
-        cache.set('asset_list', data, timeout=CACHE_TIMEOUT)
-        check = cache.get('asset_list')
-        if not check:
-            message = 'Unable to process uframe assets; asset_list data is empty.'
-            raise Exception(message)
-
-        # Cache 'assets_dict'.
-        assets_dict = populate_assets_dict(data)
-        if assets_dict is None:
-            message = 'Empty assets_dict returned from asset data.'
-            raise Exception(message)
-
-        print '\nCompleted compiling assets...\n'
-        return data
-
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        raise Exception(message)
-'''
-
-# Get all assets from uframe.
-def get_assets_payload():
-    """ Get all assets from uframe, process and update caches for:
-            'asset_list', 'assets_dict', 'asset_rds'
-    """
-    time = True
-    try:
-        print '\nCompiling assets...'
-        try:
-            # Clear all cache
-            if cache.get('asset_list'):
-                cache.delete('asset_list')
-            if cache.get('assets_dict'):
-                cache.delete('assets_dict')
-        except Exception as err:
-            message = str(err)
-            raise Exception(message)
-
-        # Get assets from uframe.
-        result = get_assets_from_uframe()
-        if not result:
-            message = 'No uframe asset content returned.'
-            raise Exception(message)
-
-        # Get asset_list and asset_rds.
-        #data, asset_rds = new_compile_assets(result, compile_all=True)
+        # Get asset_list
         data, _ = new_compile_assets(result, compile_all=True)
         print '\n-- Completed loading assets....'
         if not data:
             message = 'Unable to process uframe assets; error creating assets_list.'
             raise Exception(message)
-
-        """
-        if not asset_rds:
-            message = 'Unable to process uframe assets; error creating asset_rds.'
-            raise Exception(message)
-        """
 
         # Cache 'asset_list'.
         cache.set('asset_list', data, timeout=CACHE_TIMEOUT)
@@ -436,17 +357,15 @@ def new_compile_assets(data, compile_all=False):
     len_uframe_assets = len(data)
     try:
         #===================================================================================
-        # Get asset_rds to assist in process of asset compilation.
+        # Get uid_digests and vocab_dict to assist in process of asset compilation.
         try:
             if compile_all:
                 time = True
                 if time: print '\n-- Loading assets from uframe... '
                 start = dt.datetime.now()
                 if time: print '\t-- Start time: ', start
-            update_asset_rds_cache = False
-            #dict_asset_ids = get_asset_rds_cache()
         except Exception as err:
-            message = 'Error compiling asset_rds: %s' % err.message
+            message = 'Error loading assets from uframe: %s' % str(err)
             current_app.logger.info(message)
             raise Exception(message)
 
@@ -454,19 +373,23 @@ def new_compile_assets(data, compile_all=False):
         try:
             update_uid_digests = False
             uid_digests = get_uid_digests()
+            if not uid_digests or uid_digests is None:
+                message = 'Failed to obtain required uid_digests for processing assets.'
+                raise Exception(message)
         except Exception as err:
-            message = 'Error compiling uid_digests: %s' % err.message
+            message = 'Error compiling uid_digests: %s' % str(err)
             current_app.logger.info(message)
             raise Exception(message)
 
         if not uid_digests or uid_digests is None:
             message = 'Failed to get required uid_digests for processing assets.'
+            current_app.logger.info(message)
             raise Exception(message)
 
         try:
             _vocab_dict = get_vocab()
         except Exception as err:
-            message = 'Error compiling asset_rds: %s' % err.message
+            message = 'Failed to get vocabulary dictionary for processing assets: %s' % str(err)
             current_app.logger.info(message)
             raise Exception(message)
 
@@ -820,12 +743,9 @@ def new_compile_assets(data, compile_all=False):
             if test:
                 print '\n Number of assets from uframe: ', len_uframe_assets
                 print '\n Assets with deployment identified: ', found_count
-                print '\n Assets identified: ', actual_count
                 if found_count > 0:
                     print '\n Percentage of assets (platform, node, instrument) with deployment information: ', \
                         float(found_count)/float(actual_count)
-                    print '\n-- Percentage of all assets with deployment information: ', \
-                        float(actual_count)/float(len_uframe_assets)
                 else:
                     print '\n No platform, node, instrument assets found with deployment information.'
             print '\t-- Total number of assets compiled: ', len(new_data)
@@ -1340,3 +1260,59 @@ def get_asset_list():
     except Exception as err:
         message = str(err)
         raise Exception(message)
+
+# todo - remove after verify celery processing
+'''
+def full_cache_update():
+    """ Refreshes cache for vocab, stream, uid_digests, asset_list and asset_dict.
+    Used by tasks.py for redis cache update
+    """
+    from ooiservices.app.uframe.vocab import compile_vocab
+    debug = True
+    status = 'Unknown'
+    try:
+        if debug: print '\n-- Processing update...'
+
+        # Vocabulary cache
+        print '\n\t-- Update vocabulary cache...'
+        vocab_dict, vocab_codes = compile_vocab()
+        if vocab_dict and vocab_codes and vocab_dict is not None and vocab_codes is not None and \
+                "error" not in vocab_dict and "error" not in vocab_codes:
+            cache.delete('vocab_dict')
+            cache.set('vocab_dict', vocab_dict, timeout=CACHE_TIMEOUT)
+            cache.delete('vocab_codes')
+            cache.set('vocab_codes', vocab_codes, timeout=CACHE_TIMEOUT)
+            print '[+] Vocabulary cache reset.'
+        else:
+            message = '[-] Failed to update vocabulary cache.\n'
+            print message
+            raise Exception(message)
+
+        # Stream cache
+        print '\n\t-- Update stream cache...'
+        streams = get_stream_list(refresh=True)
+        if streams and streams is not None and 'error' not in streams:
+            stream_cache = cache.get('stream_list')
+            if stream_cache and stream_cache is not None and "error" not in stream_cache:
+                print '[-] Stream cache reset.'
+            else:
+                message = '[-] Failed to update stream cache.\n'
+                print message
+                raise Exception(message)
+
+        # Asset management cache
+        print '\n\t-- Update asset management cache...'
+        asset_list = verify_cache(refresh=True)
+        print '\nCompleted compiling asset information.'
+        print '\n(Number of assets: %d)\n' % len(asset_list)
+        if not asset_list:
+            message =  '[-] Failed to update asset management cache.\n'
+            print message
+            raise Exception(message)
+
+        return True
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return False
+'''

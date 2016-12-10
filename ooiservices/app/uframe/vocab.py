@@ -574,7 +574,7 @@ def compile_vocab():
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
-        raise
+        raise Exception(message)
 
 
 # Construct display name.

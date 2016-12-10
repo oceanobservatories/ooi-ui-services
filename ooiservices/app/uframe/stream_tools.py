@@ -71,16 +71,16 @@ def dfs_streams():
 
 
 # Get stream_list.
-def get_stream_list():
+def get_stream_list(refresh=False):
     """ [Used by verify_cache.] Get 'stream_list' from cache; if not cached, get and set cache.
     """
     debug = False
     time = True
     try:
-        if debug: print '\n Entered get_stream_list...'
+        if debug: print '\n debug -- Entered get_stream_list, refresh: ', refresh
         stream_list_cached = cache.get('stream_list')
-        if debug: print '\n after get stream_list cache...'
-        if not stream_list_cached or stream_list_cached is None:
+        if debug: print '\n debug -- after get stream_list cache...'
+        if refresh or not stream_list_cached or stream_list_cached is None:
             if time: print '\nCompiling stream list'
             try:
                 start = dt.datetime.now()
@@ -94,7 +94,10 @@ def get_stream_list():
                 message = str(err)
                 raise Exception(message)
 
-            if stream_list:
+            if stream_list and stream_list is not None:
+                if debug: print '\n debug -- Removing stream_list cache...'
+                cache.delete('stream_list')
+                if debug: print '\n debug -- Reset stream_list cache...'
                 cache.set('stream_list', stream_list, timeout=CACHE_TIMEOUT)
                 if time:
                     print 'Completed compiling stream list'
@@ -103,7 +106,7 @@ def get_stream_list():
                 current_app.logger.info(message)
         else:
             stream_list = stream_list_cached
-        if debug: print '\n Exit get_stream_list...', len(stream_list)
+        if debug: print '\n debug -- Exit get_stream_list...', len(stream_list)
         return stream_list
 
     except Exception as err:

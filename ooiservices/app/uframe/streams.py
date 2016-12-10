@@ -6,9 +6,10 @@ Support for uframe stream route(s), utilized for stream information.
 __author__ = 'Edna Donoughe'
 
 
-from flask import jsonify, request
+from flask import (jsonify, request, current_app)
+from ooiservices.app import cache
 from ooiservices.app.uframe import uframe as api
-from ooiservices.app.main.errors import internal_server_error
+from ooiservices.app.main.errors import (internal_server_error, bad_request)
 from ooiservices.app.uframe.stream_tools import get_stream_list
 from operator import itemgetter
 from copy import deepcopy
@@ -17,6 +18,7 @@ from ooiservices.app.models import DisabledStreams
 
 
 @api.route('/stream')
+@cache.memoize(timeout=1600)
 def get_streams_list():
     """ Get streams (list of dictionaries); used in the data catalog.
 
@@ -332,3 +334,31 @@ def get_streams_list():
         return jsonify(streams=result)
     else:
         return jsonify(streams=retval)
+
+
+@api.route('/build_stream_cache')
+def build_stream_cache():
+    """ Force stream cache build. (Streams currently (celery) set to build every hour on the hour.)
+    Responses:
+        Success:
+        {
+          "build_stream_cache": true
+        }
+
+        Failure:
+        {
+          "build_stream_cache": false
+        }
+    """
+    success = False
+    try:
+        streams = get_stream_list(refresh=True)
+        if streams and streams is not None and 'error' not in streams:
+            stream_cache = cache.get('stream_list')
+            if stream_cache and stream_cache is not None and "error" not in stream_cache:
+                success = True
+        return jsonify({'build_stream_cache': success}), 200
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)

@@ -213,7 +213,7 @@ def bridge_get_platforms_for_site(rd):
     try:
         # Real interface...
         if not status_demo_data():
-            return_list = get_status_platforms(rd)          # todo - to be completed
+            return_list = get_status_platforms(rd)
 
         # Mock data interface.
         else:
@@ -1189,6 +1189,7 @@ def get_uframe_status_data_arrays():
         current_app.logger.info(message)
         return None
 
+
 '''
 def get_platform_status_data(rd):
     """ Get status data for site reference designator, process uframe response to produce platform status data.
@@ -1304,7 +1305,7 @@ def get_last_deployment_digest(uid):
     except Exception as err:
         message = 'Exception: get_last_deployment_digest: uid: %s: %s' % (uid, str(err))
         current_app.logger.info(message)
-        return None, None
+        return None
 
 
 def add_deployment_info(work):
@@ -1334,7 +1335,6 @@ def add_deployment_info(work):
         return None
 
 
-# development work
 def get_deployments_digests(uid):
     """ Get list of deployment digest items for a uid; sorted in reverse by deploymentNumber, versionNumber and startTime.
 
@@ -1373,7 +1373,7 @@ def get_deployments_digests(uid):
             print '\n debug -- Entered get_deployments_digests for uid: %s' % uid
         digests = get_deployments_digest_by_uid(uid)
         if not digests or digests is None or len(digests) == 0:
-            return None, None
+            return None #, None
         if debug: print '\n len(digests): ', len(digests)
         # Sort (reverse) by value of 'deploymentNumber', 'versionNumber', 'startTime'
         try:
@@ -1384,7 +1384,7 @@ def get_deployments_digests(uid):
             print '\n get_deployments_digests : errors: ', str(err)
             pass
         if not digests or digests is None:
-            return None, None
+            return None #, None
 
         """
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1410,7 +1410,7 @@ def get_deployments_digests(uid):
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
-        return None, None
+        return None #, None
 
 #===========================================
 # Cache helper functions
@@ -1794,7 +1794,7 @@ def get_uid_digests(refresh=False):
         if refresh or not uid_digests or uid_digests is None:
             start = dt.datetime.now()
             if time:
-                print '\n-- Processing uid_digests... '
+                print '\n-- Processing uframe uid_digests for reference designators... '
                 print '\t-- Start time: ', start
             #uid_digests, uid_digests_operational = build_uid_digests_cache()
             uid_digests = build_uid_digests_cache()
@@ -1892,6 +1892,10 @@ def build_uid_digests_cache():
         if debug:
             print '\n debug -- len(uid_digests): ', len(uid_digests)
 
+        if uid_digests and uid_digests is not None:
+            print '\n -- Number of uid_digests: ', len(uid_digests)
+        else:
+            print '\n -- No uid_digests returned from processing.'
         return uid_digests  #, uid_digests_operational
     except Exception as err:
         message = str(err)
