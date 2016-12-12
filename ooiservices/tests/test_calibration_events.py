@@ -14,7 +14,6 @@ from unittest import skipIf
 import os
 
 from flask import (url_for)
-from ooiservices.app.uframe.event_tools import get_rd_by_asset_id
 from ooiservices.app.uframe.uframe_tools import get_uframe_event
 from ooiservices.app.uframe.common_tools import is_instrument
 from ooiservices.app.uframe.events_create_update import get_calibration_event_id
@@ -1336,8 +1335,8 @@ class CalibrationEventsTestCase(unittest.TestCase):
             if debug: print '\n Have asset_uid: %s ' % asset_uid
 
             # Get reference designator
-            rd = get_rd_by_asset_id(asset_id)
-            if debug: print '\n Have rd: %s ' % rd
+            self.assertTrue('ref_des' in asset)
+            rd = asset['ref_des']
             return asset_id, asset_uid, rd
 
         except Exception:

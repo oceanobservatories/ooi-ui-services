@@ -7,14 +7,12 @@ __author__ = 'M@Campbell'
 
 import unittest
 import json
-import re
 import os
 from unittest import skipIf
 from base64 import b64encode
-from flask import url_for, jsonify
+from flask import url_for
 from ooiservices.app import create_app, db
-from ooiservices.app.models import User, UserScope, UserScopeLink, Organization
-from collections import OrderedDict
+from ooiservices.app.models import User, UserScope, Organization
 
 '''
 These tests are additional to the normal testing performed by coverage; each of
@@ -49,7 +47,7 @@ class UserTestCaseRedmine(unittest.TestCase):
             'Content-Type': 'application/json'
         }
     #all user test cases
-    def test_create_user_route(self):
+    def _test_create_user_route(self):
         '''
         create user
         '''
@@ -87,7 +85,7 @@ class UserTestCaseRedmine(unittest.TestCase):
 
     #Test [PUT] /user/<int:id> - 'main.put_user'; admin priv required
     # this tests for the users in the db and requires redmine to insert into db
-    def test_put_user_changes(self):
+    def _test_put_user_changes(self):
         '''
         test ability to create new user and change scopes and/or active status of new user
         '''

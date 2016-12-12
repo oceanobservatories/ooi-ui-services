@@ -4,19 +4,19 @@ Asset Management - Assets: Create and update functions.
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
+from copy import deepcopy
+
+from ooiservices.app.uframe.asset_tools import format_asset_for_ui
+from ooiservices.app.uframe.asset_cache_tools import (refresh_asset_cache, asset_cache_refresh)
 from ooiservices.app.uframe.common_tools import (get_asset_types, get_asset_class_by_asset_type, verify_action,
                                                  get_class_remote_resource, asset_edit_phase_values, get_location_dict,
                                                  convert_float_field, get_uframe_asset_type)
-from ooiservices.app.uframe.asset_tools import (format_asset_for_ui)
-from ooiservices.app.uframe.asset_cache_tools import (refresh_asset_cache, asset_cache_refresh)
 from ooiservices.app.uframe.assets_validate_fields import (assets_validate_required_fields_are_provided,
-                                                           asset_get_required_fields_and_types_uframe,
                                                            validate_required_fields_remote_resource)
 from ooiservices.app.uframe.uframe_tools import (uframe_get_asset_by_id, uframe_get_asset_by_uid,
                                                  uframe_postto_asset, uframe_create_asset, uframe_update_asset,
                                                  uframe_get_remote_resource_by_id,
                                                  uframe_update_remote_resource_by_resource_id)
-from copy import deepcopy
 
 
 # Create asset.
@@ -89,11 +89,15 @@ def _create_asset(data):
 
 
 def refresh_asset_deployment(uid, rd):
-    """ When a deployment is created, each asset cache must be updated to reflect deployment map updates.
+    """ When a deployment is created, each asset cache must be updated to reflect deployment updates.
     """
+    from ooiservices.app.uframe.common_tools import dump_dict
+    debug = False
     try:
+        if debug: print '\n debug -- Entered refresh_asset_deployment...'
         if uid is None:
             return
+
         # Get asset from uframe by uid.
         asset = uframe_get_asset_by_uid(uid)
         if not asset:
@@ -109,7 +113,11 @@ def refresh_asset_deployment(uid, rd):
             raise Exception(message)
 
         # Format uframe asset data for UI.
+        if debug: print '\n debug -- Calling format_asset_for_ui: uid/id: %s/%d' % (uid, id)
         ui_asset = format_asset_for_ui(asset)
+        if debug:
+            print '\n debug -- After calling format_asset_for_ui: uid/id: %s/%d' % (uid, id)
+            dump_dict(ui_asset, debug)
         if not ui_asset or ui_asset is None:
             message = 'Failed to format uframe asset for UI; asset id/uid: %d/%s' % (id, uid)
             raise Exception(message)
@@ -122,7 +130,11 @@ def refresh_asset_deployment(uid, rd):
             del asset_store['calibration']
 
         # Refresh asset cache.
+        if debug:
+            print '\n debug -- Calling asset_cache_refresh for %s/%d/%s: ' % (uid, id, rd)
+            dump_dict(asset_store, debug)
         asset_cache_refresh(id, asset_store, rd)
+        if debug: print '\n debug -- Calling asset_cache_refresh...'
         return
 
     except Exception as err:
@@ -253,8 +265,6 @@ def transform_asset_for_uframe(id, asset, action=None):
         if 'assetType' not in asset:
             message = 'Malformed asset; missing required attribute \'assetType\'.'
             raise Exception(message)
-
-        #asset_type = asset['assetType']
 
         # Convert asset type display names to valid assetType value.
         asset_type = get_uframe_asset_type(asset['assetType'])
@@ -433,13 +443,6 @@ def transform_asset_for_uframe(id, asset, action=None):
                 uframe_asset['events'] = None
 
         uframe_asset['tense'] = 'UNKNOWN'
-
-        #- - - - - - - - - - - - - - - - - - - - - -
-        # Validate uframe_asset object - fields present
-        #- - - - - - - - - - - - - - - - - - - - - -
-        #required_fields, field_types = asset_get_required_fields_and_types_uframe(asset_type, action)
-        uframe_asset_keys = uframe_asset.keys()
-        uframe_asset_keys.sort()
         return uframe_asset
 
     except Exception as err:

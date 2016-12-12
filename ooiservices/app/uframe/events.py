@@ -26,12 +26,10 @@ from ooiservices.app.uframe.event_tools import (_get_events_by_uid, _get_all_eve
 from ooiservices.app.uframe.events_create_update import (create_event_type, update_event_type)
 from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types, get_supported_asset_types,
                                                  event_edit_phase_values, get_event_types_by_asset_type,
-                                                 operational_status_values, get_uframe_asset_type)
+                                                 operational_status_display_values, get_uframe_asset_type)
 import json
 
 
-@auth.login_required
-@scope_required(u'asset_manager')
 @api.route('/events/types', methods=['GET'])
 def get_event_type():
     """ Get all valid event types supported in uframe asset web services.
@@ -39,8 +37,6 @@ def get_event_type():
     return jsonify({'event_types': get_event_types()})
 
 
-@auth.login_required
-@scope_required(u'asset_manager')
 @api.route('/events/types/supported', methods=['GET'])
 def get_supported_event_type():
     """ Get all valid event types supported in uframe asset web services.
@@ -48,17 +44,13 @@ def get_supported_event_type():
     return jsonify({'event_types': get_supported_event_types()})
 
 
-@auth.login_required
-@scope_required(u'asset_manager')
 @api.route('/events/operational_status_values', methods=['GET'])
 def get_operational_status_values():
-    """ Get all valid event types supported in uframe asset web services.
+    """ Get all operational status values supported in uframe asset web services.
     """
-    return jsonify({'operational_status_values': operational_status_values()})
+    return jsonify({'operational_status_values': operational_status_display_values()})
 
 
-@auth.login_required
-@scope_required(u'asset_manager')
 @api.route('/events/tabs/<string:asset_type>', methods=['GET'])
 def get_event_tabs_by_asset_type(asset_type):
     """ Get event tab names for an asset type.
@@ -78,8 +70,6 @@ def get_event_tabs_by_asset_type(asset_type):
     return jsonify({'tabs': tabs})
 
 
-@auth.login_required
-@scope_required(u'asset_manager')
 @api.route('/events/edit_phase_values', methods=['GET'])
 def get_event_edit_phase_values():
     """ Get all event edit phase values supported in uframe asset web services.
@@ -87,8 +77,6 @@ def get_event_edit_phase_values():
     return jsonify({'values': event_edit_phase_values()})
 
 
-@auth.login_required
-@scope_required(u'asset_manager')
 @api.route('/events/uid/<string:uid>', methods=['GET'])
 def get_events_by_uid(uid):
     """ Get list of events for asset with uid, filtered by optional type value(s). If error, log and raise.
@@ -105,8 +93,6 @@ def get_events_by_uid(uid):
         return bad_request(message)
 
 
-@auth.login_required
-@scope_required(u'asset_manager')
 @api.route('/events/uid/<string:uid>/all', methods=['GET'])
 def get_all_events_by_uid(uid):
     """ Get list of all events for asset with uid.

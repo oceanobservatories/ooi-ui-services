@@ -4,17 +4,17 @@ Asset Management - Deployments: Create and update functions.
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
+from ooiservices.app import cache
 from copy import deepcopy
 from ooiservices.app.uframe.deployments_validate_fields import deployments_validate_required_fields_are_provided
 from ooiservices.app.uframe.uframe_tools import (get_uframe_event, uframe_create_deployment)
-from ooiservices.app.uframe.deployment_cache_tools import refresh_deployment_cache
 from ooiservices.app.uframe.deployment_tools import format_deployment_for_ui
 from ooiservices.app.uframe.events_create_update import update_event_type
 from ooiservices.app.uframe.assets_create_update import refresh_asset_deployment
 from ooiservices.app.uframe.common_tools import (get_class_deployment, get_asset_class_by_asset_type, get_event_class,
                                                  is_instrument, is_platform, is_mooring, get_location_dict)
 
-
+#from ooiservices.app.uframe.deployment_cache_tools import refresh_deployment_cache
 # Create deployment.
 def _create_deployment(data):
     """ Create a new deployment, return new deployment on success. On failure, log and raise exception.
@@ -71,7 +71,7 @@ def _create_deployment(data):
             raise Exception(message)
 
         # Get original ids from uframe deployment object.
-        mid, nid, sid = get_ids_from_deployment(new_uframe_deployment)
+        #mid, nid, sid = get_ids_from_deployment(new_uframe_deployment)
 
         # Get reference designator from request data.
         rd = None
@@ -107,7 +107,7 @@ def _create_deployment(data):
             del deployment_store['location']
 
         # Refresh deployment cache for newly created deployment.
-        refresh_deployment_cache(id, deployment_store, action, mid, nid, sid)
+        #refresh_deployment_cache(id, deployment_store, action, mid, nid, sid)
 
         # Get reference designator from request data.
         rd = None
@@ -132,16 +132,28 @@ def _create_deployment(data):
 def _update_deployment(id, data):
     """ Update deployment, deployment is returned on success. On failure, log and raise exception.
     """
+    from ooiservices.app.uframe.common_tools import dump_dict
+    debug = False
+
     action = 'update'
     try:
+        if debug:
+            print '\n debug ********************************'
+            print '\n debug -- Entered _update_deployment...'
         # Transform input data for uframe.
         xdeployment = transform_deployment_for_uframe(id, data, action=action)
         if not xdeployment or xdeployment is None:
             message = 'Failed to format information for uframe update, deployment event id: %d' % id
             raise Exception(message)
 
+        if debug: print '\n\t debug -- Step 1...'
         xdeployment_keys = xdeployment.keys()
         xdeployment_keys.sort()
+
+        if debug:
+            print '\n -------------------------------------------------------------------------'
+            print '\n Deployment object received for update: '
+            dump_dict(xdeployment, debug)
 
         # Verify deployment exists:
         # Get uframe deployment (for 'ingestInfo', 'lastModifiedTimestamp', 'eventId' and 'assetUID')
@@ -151,8 +163,9 @@ def _update_deployment(id, data):
             raise Exception(message)
 
         # Get original ids from uframe deployment object.
-        mid, nid, sid = get_ids_from_deployment(deployment)
+        #mid, nid, sid = get_ids_from_deployment(deployment)
 
+        if debug: print '\n\t debug -- Step 2...'
         keys = []
         if deployment:
             keys = deployment.keys()
@@ -166,6 +179,7 @@ def _update_deployment(id, data):
         # Determine any missing items are in valid items list, is not error.
         valid_missing_keys = ['ingestInfo']
 
+        if debug: print '\n\t debug -- Step 3...'
         # Deployments: Fields location and events are not provided by UI, get from deployment.
         missing_keys = []
         for key in keys:
@@ -176,6 +190,7 @@ def _update_deployment(id, data):
                 if key not in missing_keys:
                     missing_keys.append(key)
 
+        if debug: print '\n\t debug -- Step 4...'
         # Apply standard fields.
         for key in valid_missing_keys:
             xdeployment[key] = deployment[key]
@@ -192,11 +207,16 @@ def _update_deployment(id, data):
                 message = 'Missing required attribute \'%s\'.' % key
                 raise Exception(message)
 
+        if debug: print '\n\t debug -- Step 5...'
         # Update deployment in uframe.
         modified_deployment = update_event_type(id, xdeployment)
 
         # Format modified deployment from uframe for UI.
+        if debug: print '\n\t debug -- Step 6...'
         ui_deployment = format_deployment_for_ui(modified_deployment)
+        if debug:
+            print '\n debug -- ui_deployment: '
+            dump_dict(ui_deployment, debug)
 
         # Minimize data for cache.
         deployment_store = deepcopy(ui_deployment)
@@ -206,7 +226,7 @@ def _update_deployment(id, data):
             del deployment_store['location']
 
         # Do cache refresh for deployment
-        refresh_deployment_cache(id, deployment_store, action, mid, nid, sid)
+        #refresh_deployment_cache(id, deployment_store, action, mid, nid, sid)
 
         # Get reference designator from request data.
         rd = None
@@ -217,9 +237,13 @@ def _update_deployment(id, data):
             raise Exception(message)
 
         # update deployment assets. Any asset associated with this deployment will have cache updated here.
+        if debug: print '\n debug -- calling update_deployment_assets (%s)...' % rd
         update_deployment_assets(ui_deployment, rd)
 
         # return updated deployment
+        if debug:
+            print '\n debug -- Exit _update_deployment...'
+            print '\n ************************************'
         return ui_deployment
 
     except Exception as err:
@@ -255,35 +279,236 @@ def get_ids_from_deployment(uframe_deployment):
         current_app.logger.info(message)
         raise Exception(message)
 
-
+'''
+# original with debug
 def update_deployment_assets(ui_deployment, rd):
     """ Refresh deployment information for assets associated with deployment.
     """
+    debug = True
     try:
+        if debug: print '\n debug -- Entered update_deployment_assets...'
+        # Refresh deployment information in uid_digests and rd_digests and rd_digests_operational.
+
         # Refresh deployment information for assets associated with deployment.
         mooring_rd, node_rd, sensor_rd = rd.split('-', 2)
         if 'mooring_uid' in ui_deployment:
             mooring_uid = ui_deployment['mooring_uid']
+            """
+            if debug:
+                print '\n\t debug -- mooring_uid: ', mooring_uid
+                print '\n\t debug -- Before calling refresh_asset_deployment....'
+            """
             refresh_asset_deployment(mooring_uid, mooring_rd)
+            #if debug: print '\n\t debug -- After calling refresh_asset_deployment....'
 
         if 'node_uid' in ui_deployment:
             node_uid = ui_deployment['node_uid']
+            if debug: print '\n\t debug -- node_uid: ', node_uid
             target_rd = '-'.join([mooring_rd, node_rd])
             refresh_asset_deployment(node_uid, target_rd)
 
         if 'sensor_uid' in ui_deployment:
             sensor_uid = ui_deployment['sensor_uid']
+            if debug:
+                print '\n\t debug -- sensor_uid: ', sensor_uid
+                print '\n\t debug -- Before calling refresh_asset_deployment....'
             refresh_asset_deployment(sensor_uid, rd)
+            if debug: print '\n\t debug -- After calling refresh_asset_deployment....'
+
+        if debug: print '\n debug -- Exit update_deployment_assets...'
+        return
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        raise Exception(message)
+'''
+
+def update_deployment_assets(ui_deployment, rd):
+    """ Refresh deployment information for assets associated with deployment.
+    """
+    from ooiservices.app.uframe.common_tools import dump_dict
+    from ooiservices.app.uframe.status_tools import (get_last_deployment_digest,
+                                                    update_uid_digests_cache) #, update_uid_digests_operational_cache)
+
+    debug = True
+    try:
+        if debug:
+            print '\n-------------------------------------------------------------------------'
+            print '\n-------------------------------------------------------------------------'
+            print '\n debug -- Entered update_deployment_assets...'
+            if 'editPhase' in ui_deployment:
+                print '\n debug -- ui_deployment editPhase: ', ui_deployment['editPhase']
+
+        editPhase = None
+        if 'editPhase' in ui_deployment:
+            editPhase = ui_deployment['editPhase']
+
+        # Refresh deployment information for assets associated with deployment.
+        # Mooring
+        mooring_rd, node_rd, sensor_rd = rd.split('-', 2)
+        mooring_uid = None
+        if 'mooring_uid' in ui_deployment:
+            mooring_uid = ui_deployment['mooring_uid']
+            #refresh_asset_deployment(mooring_uid, mooring_rd)
+
+        # Node
+        node_uid = None
+        if 'node_uid' in ui_deployment:
+            node_uid = ui_deployment['node_uid']
+            #target_rd = '-'.join([mooring_rd, node_rd])
+            #refresh_asset_deployment(node_uid, target_rd)
+
+        # Sensor
+        sensor_uid = None
+        if 'sensor_uid' in ui_deployment:
+            sensor_uid = ui_deployment['sensor_uid']
+            #refresh_asset_deployment(sensor_uid, rd)
+
+        if debug:
+            print '\n\t debug -- mooring_uid: %s' % mooring_uid
+            print '\t debug -- node_uid: %s' % node_uid
+            print '\t debug -- sensor_uid: %s' % sensor_uid
+
+        #==============================================================================================
+        # Update asset and associated cache as required.
+        # (Refresh deployment information in uid_digests, rd_digests and rd_digests_operational.)
+        #==============================================================================================
+
+        # Mooring Asset
+        if mooring_uid and mooring_uid is not None:
+            if debug: print '\n (Mooring) Calling get_last_deployment_digest: ', mooring_uid
+
+            # Get latest deployment information and update digests cache.
+            #digest, digest_operational = get_last_deployment_digest(mooring_uid)
+            digest = get_last_deployment_digest(mooring_uid)
+            if digest and digest is not None:
+                if debug:
+                    print '\n (Mooring) digest: ', mooring_uid
+                    dump_dict(digest, debug)
+                update_uid_digests_cache(mooring_uid, digest)
+                """
+                cache_test = cache.get('uid_digests')
+                if cache_test is not None and cache_test and isinstance(cache_test, dict):
+                    if mooring_uid in cache_test:
+                        if debug:
+                            print '\n debug -- cache test data:'
+                            dump_dict(cache_test[mooring_uid], debug)
+                    else:
+                        if debug: print '\n debug -- Error: mooring_uid NOT in uid_digests cache.'
+                """
+            else:
+                if debug: print '\n debug -- digest is None for mooring_uid: ', mooring_uid
+            """
+            if digest_operational and digest_operational is not None:
+                if editPhase and editPhase is not None:
+                    if editPhase == 'OPERATIONAL':
+                        if debug:
+                            print '\n (Mooring) digest_operational: ', mooring_uid
+                            dump_dict(digest_operational, debug)
+                        update_uid_digests_operational_cache(mooring_uid, digest_operational)
+                        cache_test = cache.get('uid_digests_operational')
+                        if cache_test is not None and cache_test and isinstance(cache_test, dict):
+                            if mooring_uid in cache_test:
+                                if debug:
+                                    print '\n debug -- cache test data (operational):'
+                                    dump_dict(cache_test[mooring_uid], debug)
+                            else:
+                                if debug: print '\n debug -- Error: mooring_uid NOT in uid_digests_operational cache.'
+            else:
+                if debug: print '\n debug -- digest_operational is None for mooring_uid: ', mooring_uid
+            """
+            # Refresh mooring asset
+            refresh_asset_deployment(mooring_uid, mooring_rd)
+
+        # Node Asset
+        if node_uid and node_uid is not None:
+
+            if debug: print '\n (Node) Calling get_last_deployment_digest: ', node_uid
+
+            # Get latest deployment information and update uid_digests cache.
+            #digest, digest_operational = get_last_deployment_digest(node_uid)
+            digest = get_last_deployment_digest(node_uid)
+            if digest and digest is not None:
+                if debug:
+                    print '\n (Node) digest: ', node_uid
+                    dump_dict(digest, debug)
+                update_uid_digests_cache(node_uid, digest)
+
+            """
+            # Get latest deployment information and update uid_digests_operational cache.
+            if digest_operational and digest_operational is not None:
+                if editPhase and editPhase is not None:
+                    if editPhase == 'OPERATIONAL':
+                        if debug:
+                            print '\n (Node) digest_operational: ', node_uid
+                            dump_dict(digest_operational, debug)
+                        update_uid_digests_operational_cache(node_uid, digest_operational)
+            """
+            # Refresh node asset
+            target_rd = '-'.join([mooring_rd, node_rd])
+            refresh_asset_deployment(node_uid, target_rd)
+
+
+        # Sensor Asset
+        if sensor_uid and sensor_uid is not None:
+
+            if debug: print '\n (Sensor) Calling get_last_deployment_digest: ', sensor_uid
+
+            # Get latest deployment information and update uid_digests cache.
+            #digest, digest_operational = get_last_deployment_digest(sensor_uid)
+            digest = get_last_deployment_digest(sensor_uid)
+            if digest and digest is not None:
+                if debug:
+                    print '\n (Sensor) digest: ', sensor_uid
+                    dump_dict(digest, debug)
+                update_uid_digests_cache(sensor_uid, digest)
+                """
+                cache_test = cache.get('uid_digests')
+                if cache_test is not None and cache_test and isinstance(cache_test, dict):
+                    if sensor_uid in cache_test:
+                        if debug:
+                            print '\n debug -- cache test data:'
+                            dump_dict(cache_test[sensor_uid], debug)
+                    else:
+                        if debug: print '\n debug -- Error: sensor_uid NOT in uid_digests cache.'
+                """
+            else:
+                if debug: print '\n debug -- digest is None for sensor_uid: ', sensor_uid
+            """
+            # Get latest deployment information and update uid_digests_operational cache.
+            if digest_operational and digest_operational is not None:
+                if editPhase and editPhase is not None:
+                    if editPhase == 'OPERATIONAL':
+                        if debug:
+                            print '\n (Sensor) digest_operational: ', sensor_uid
+                            dump_dict(digest_operational, debug)
+                        update_uid_digests_operational_cache(sensor_uid, digest_operational)
+                        cache_test = cache.get('uid_digests_operational')
+                        if cache_test is not None and cache_test and isinstance(cache_test, dict):
+                            if sensor_uid in cache_test:
+                                if debug:
+                                    print '\n debug -- cache test data (operational):'
+                                    dump_dict(cache_test[sensor_uid], debug)
+                            else:
+                                if debug: print '\n debug -- Error: sensor_uid NOT in uid_digests_operational cache.'
+            else:
+                if debug: print '\n debug -- digest_operational is None for sensor_uid: ', sensor_uid
+            """
+            # Refresh sensor asset
+            refresh_asset_deployment(sensor_uid, rd)
+
+
+        if debug: print '\n debug -- Exit update_deployment_assets...'
         return
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
         raise Exception(message)
 
-
 def transform_deployment_for_uframe(id, deployment, action=None):
     """ Transform UI deployment data into uframe deployment structure.
     """
+    debug = False
     uframe_deployment = {}
     valid_actions = ['create', 'update']
     try:
@@ -307,7 +532,9 @@ def transform_deployment_for_uframe(id, deployment, action=None):
         #- - - - - - - - - - - - - - - - - - - - - -
         # Convert values for fields.
         #- - - - - - - - - - - - - - - - - - - - - -
+        if debug: print '\n debug -- before convert...'
         converted_deployment = deployments_validate_required_fields_are_provided(deployment, action)
+        if debug: print '\n debug -- after convert...'
 
         # Action 'update' specific check: verify event id in data is same as event id on PUT
         if action == 'update':

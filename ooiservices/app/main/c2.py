@@ -505,31 +505,6 @@ def c2_get_array_operational_status(reference_designator):
 #----------------------------------------------------
 #-- file based helpers for platform_display
 #----------------------------------------------------
-'''
-def c2_get_platform_operational_status(reference_designator):
-
-    #Get C2 platform status (string such as { "unknown" | "Online" | "Offline" }
-    #Errors:
-    #    bad_request('unknown platform_deployment (\'%s\')'
-    #    bad_request('Malformed streams data; not in valid json format. (\'%s\')'
-
-    status = 'Unknown'
-    platform_deployment = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first()
-    if not platform_deployment:
-        return bad_request('unknown platform_deployment (\'%s\')' % reference_designator)
-    response_text = json_get_uframe_platform_operational_status(reference_designator)
-    if response_text:
-        try:
-            result = json.loads(response_text)
-        except:
-            return bad_request('Malformed operational status; not in valid json format. (\'%s\')' % reference_designator)
-        if result:
-            if len(result) == 1:
-                if 'id' in result[0] and 'status' in result[0]:
-                    if result[0]['id'] == reference_designator:
-                        status = result[0]['status']
-    return status
-'''
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # TODO Read notes here on migration from file based interface to uframe supported interface
 # C2 helper for file data (./ooiuiservices/tests/c2data/*)
@@ -606,8 +581,8 @@ def c2_get_instruments_status():
 
 @api.route('/c2/instrument/<string:reference_designator>/commands', methods=['GET'])
 @api.route('/c2/instrument/<string:reference_designator>/status', methods=['GET'])
-@auth.login_required
-@scope_required(u'command_control')
+#@auth.login_required
+#@scope_required(u'command_control')
 def c2_get_instrument_driver_status(reference_designator):
     """ Get the current overall state of the specified instrument (id is the instrument reference designator).
     If the query option "blocking" is specified as true, then this call will block until a state change,

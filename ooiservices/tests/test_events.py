@@ -36,7 +36,7 @@ __author__ = 'Edna Donoughe'
 import unittest
 from ooiservices.app import (create_app, db)
 from ooiservices.tests.common_tools import (dump_dict, get_event_input_as_unicode, get_event_input_as_string)
-from ooiservices.app.uframe.common_tools import operational_status_values
+from ooiservices.app.uframe.common_tools import operational_status_values, operational_status_display_values
 from ooiservices.app.uframe.common_tools import (get_asset_types, get_asset_type_by_rd, get_uframe_asset_type)
 from base64 import b64encode
 from random import randint
@@ -50,7 +50,6 @@ import os
 
 from ooiservices.app.models import (User, UserScope, Organization)
 from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types)
-from ooiservices.app.uframe.event_tools import (get_rd_by_asset_id)
 from ooiservices.app.uframe.deployment_tools import (is_instrument, is_platform, is_mooring)
 from ooiservices.app.uframe.events_validate_fields import get_rd_from_integrationInto
 
@@ -1011,6 +1010,7 @@ class EventsTestCase(unittest.TestCase):
             # Add event(s) to asset.
             #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             # Note: To test single event type, set event_types list here: event_types = ['UNSPECIFIED']
+            #event_types = ['ASSET_STATUS']
             for event_type in event_types:
                 if verbose:
                     print '\n ----- %s event.' % event_type
@@ -1044,6 +1044,7 @@ class EventsTestCase(unittest.TestCase):
                 self.assertTrue('assetUid' in input)
                 self.assertEquals(input['assetUid'], uid)
                 self.assertEquals(input['assetUid'], asset_uid)
+                input['eventId'] = event_id
                 if not isinstance(input['eventId'], int):
                     if debug: print '\n debug -- test case -- event_id is not instance of int...'
                     input['eventId'] = int(str(input['eventId']))
@@ -1195,6 +1196,7 @@ class EventsTestCase(unittest.TestCase):
                     print '\n\tNow performing an UPDATE on event we just created...'
                 # Update the one we just created
                 uid, input = self.update_event_data(event_type, asset_uid, rd, event_id, last_modified)
+                input['eventId'] = event_id
                 if not isinstance(input['eventId'], int):
                     if debug: print '\n debug -- test case -- event_id is not instance of int...'
                     input['eventId'] = int(str(input['eventId']))
@@ -1289,10 +1291,9 @@ class EventsTestCase(unittest.TestCase):
             if debug: print '\n Have asset_uid: %s ' % asset_uid
 
             # Get reference designator
-            rd = get_rd_by_asset_id(asset_id)
+            self.assertTrue('ref_des' in asset)
+            rd = asset['ref_des']
             if debug: print '\n Have rd: %s ' % rd
-            # todo - check whether asset has deployment, if so assertTrue rd is not None
-            #self.assertTrue(rd is not None)
             return asset_id, asset_uid, rd
 
         except Exception:
@@ -1375,11 +1376,11 @@ class EventsTestCase(unittest.TestCase):
         data = json.dumps(input)
         response = self.client.post(url, headers=headers, data=data)
         if response.status_code != 200:
-            print '\n Creating an event of type ', _event_type
-            print '\n Create event -- response.status_code: ', response.status_code
+            #print '\n Creating an event of type ', _event_type
+            #print '\n Create event -- response.status_code: ', response.status_code
             if response.data and response.data is not None:
                 response_error = json.loads(response.data)
-                print '\n response_data: ', response_error
+                #print '\n response_data: ', response_error
 
         self.assertEquals(response.status_code, 200)
         self.assertTrue(response.data is not None)
@@ -1457,10 +1458,10 @@ class EventsTestCase(unittest.TestCase):
         data = json.dumps(input)
         response = self.client.post(url, headers=headers, data=data)
         if response.status_code != 400:
-            print '\n (Negative) Create duplicate event -- response.status_code: ', response.status_code
+            #print '\n (Negative) Create duplicate event -- response.status_code: ', response.status_code
             if response.data:
                 response_error = json.loads(response.data)
-                print '\n response_data: ', response_error
+                #print '\n response_data: ', response_error
 
         self.assertEquals(response.status_code, 400)
         self.assertTrue(response.data is not None)
@@ -1953,7 +1954,7 @@ class EventsTestCase(unittest.TestCase):
                     'severity': 4,
                     'reason': 'At operational capability; check battery power again in 5 days.',
                     'location': 'Onsite',
-                    'status': 'Operational',
+                    'status': 'operational',
                     'eventType': 'ASSET_STATUS',
                     'eventStartTime': 1398039160000,
                     'eventStopTime': 1405382410000,

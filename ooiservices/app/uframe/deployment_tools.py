@@ -6,36 +6,49 @@ Asset Management - Deployments: supporting functions.
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
-from ooiservices.app.uframe.config import (get_deployments_url_base, get_uframe_deployments_info, deployment_inv_load)
+from ooiservices.app.uframe.config import (get_deployments_url_base, get_uframe_deployments_info)
 from ooiservices.app.uframe.vocab import (get_vocab_dict_by_rd, get_rs_array_name_by_rd, get_display_name_by_rd)
 from ooiservices.app.uframe.toc_tools import (get_toc_reference_designators)
 from ooiservices.app.uframe.common_tools import (is_instrument, is_platform, is_mooring,get_location_fields, scrub_list)
 from ooiservices.app.uframe.uframe_tools import (uframe_get_deployment_inv, uframe_get_deployment_inv_nodes,
-                                                 uframe_get_deployment_inv_sensors, compile_deployment_rds)
+                                                 uframe_get_deployment_inv_sensors, compile_deployment_rds,
+                                                 get_deployments_digest_by_uid)
 import requests
 import requests.exceptions
 from requests.exceptions import (ConnectionError, Timeout)
 from copy import deepcopy
+from operator import itemgetter
 import datetime as dt
 
 
 def format_deployment_for_ui(modified_deployment):
     """ Format uframe deployment into ui deployment.
     """
+    debug = False
     updated_deployment = {}
     regular_fields = ['assetUid', 'dataSource', 'deployedBy', 'deploymentNumber',
                       'editPhase', 'eventId', 'eventName', 'eventStartTime', 'eventStopTime', 'eventType',
                       'inductiveId', 'lastModifiedTimestamp', 'notes', 'recoveredBy', 'versionNumber']
     try:
+        if debug: print '\n debug -- Entered format_deployment_for_ui...'
         # Process location information.
         latitude = None
         longitude = None
         depth = None
         orbitRadius = None
         if 'location' in modified_deployment:
+            if debug: print '\n debug -- Have location...'
             if modified_deployment['location'] is not None:
+                if debug: print '\n\t debug -- Location is not None...'
                 tmp = deepcopy(modified_deployment['location'])
+                if debug: print '\n\t debug -- Location: tmp: ', tmp
                 latitude, longitude, depth, orbitRadius, loc_list = get_location_fields(tmp)
+                if debug:
+                    print '\n\t debug -- latitude: ', latitude
+                    print '\n\t debug -- longitude: ', longitude
+                    print '\n\t debug -- depth: ', depth
+                    print '\n\t debug -- orbitRadius: ', orbitRadius
+
         updated_deployment['latitude'] = latitude
         updated_deployment['longitude'] = longitude
         updated_deployment['depth'] = depth
@@ -115,12 +128,20 @@ def format_deployment_for_ui(modified_deployment):
         # Get the rest of the fields and values.
         for key in regular_fields:
             if key in modified_deployment:
+                if debug:
+                    if key == 'editPhase':
+                        print '\n debug -- The modified deployment value for editPhase is: ', modified_deployment[key]
+
                 updated_deployment[key] = modified_deployment[key]
         if not updated_deployment or updated_deployment is None:
             raise Exception('Deployment compilation failed to return a result.')
 
         if 'location' in updated_deployment:
             del updated_deployment['location']
+
+        if debug: print '\n debug -- Final value for editPhase (to be returned is): ', updated_deployment['editPhase']
+
+        if debug: print '\n debug -- Exit format_deployment_for_ui...'
         return updated_deployment
 
     except Exception as err:
@@ -139,18 +160,9 @@ def _compile_rd_assets():
     try:
         start = dt.datetime.now()
         if time:
-            print '\n\t-- Compile  rd_assets '
+            print '\n\t-- Compile rd_assets '
             print '\t\t-- Start time: ', start
         reference_designators, toc_only, difference  = get_toc_reference_designators()
-        #-----------------------------------
-        if deployment_inv_load():
-            # Add deployment reference designators to total reference designators processed.
-            deployment_rds = compile_deployment_rds()
-            if deployment_rds and deployment_rds is not None:
-                for rd in deployment_rds:
-                    if rd not in reference_designators:
-                        reference_designators.append(rd)
-        #-----------------------------------
         if reference_designators and toc_only:
             result = get_rd_assets(reference_designators)
 
@@ -312,6 +324,54 @@ def get_rd_deployments(rd):
          http://host:12587/events/deployment/query?refdes=CE05MOAS-GL326
          http://host:12587/events/deployment/query?refdes=CE05MOAS
          http://host:12587/events/deployment/query?refdes=CP02PMUI
+    """
+    check = False
+    result = []
+    try:
+        # Verify rd is valid.
+        if not is_instrument(rd) and not is_mooring(rd) and not is_platform(rd):
+            message = 'The reference designator %s is not a mooring, platform or instrument.' % rd
+            current_app.logger.info(message)
+            return result
+
+        # Get uframe deployments request variables
+        uframe_url, timeout, timeout_read = get_uframe_deployments_info()
+
+        # Build uframe url: host:port/events/deployment/query?refdes=XXXXXXXX
+        url = '/'.join([uframe_url, get_deployments_url_base(), 'query'])
+        url += '?refdes=' + rd
+        #url += '?refdes=' + rd + '&notes=true'
+        if check: print '\n Check -- [get_rd_deployments] url: ', url
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Failed to get deployments from uframe for %r.' % rd
+            raise Exception(message)
+        result = response.json()
+        return result
+
+    except ConnectionError:
+        message = 'ConnectionError for uframe get_rd_deployments %s.' % rd
+        current_app.logger.info(message)
+        return []
+    except Timeout:
+        message = 'Timeout for for uframe get_rd_deployments %s.' % rd
+        current_app.logger.info(message)
+        return []
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return []
+
+
+def get_rd_deployments_with_notes(rd):
+    """ Get all deployments for reference designator, whether mooring, platform or instrument.
+
+    Use urls such as:
+        (http://host:12587/events/deployment/query?refdes=CE05MOAS-GL326-04-DOSTAM000)
+         http://host:12587/events/deployment/query?refdes=CE05MOAS-GL326&notes=true
+         http://host:12587/events/deployment/query?refdes=CE05MOAS
+         http://host:12587/events/deployment/query?refdes=CP02PMUI
+         http://host:12587/events/deployment/inv/GS01SUMO/SBD12/08-FDCHPA000/-1?note=true
     """
     check = False
     result = []
@@ -1236,7 +1296,7 @@ def _get_deployments_by_rd(rd):
             raise Exception(message)
 
         # Get deployment event from uframe.
-        uframe_deployments = get_rd_deployments(rd)
+        uframe_deployments = get_rd_deployments_with_notes(rd)
         if not uframe_deployments or uframe_deployments is None:
             message = 'Failed to get deployments using reference designator \'%s\' from uframe.' % rd
             raise Exception(message)
@@ -1252,3 +1312,55 @@ def _get_deployments_by_rd(rd):
     except Exception as err:
         message = str(err)
         raise Exception(message)
+
+'''
+def get_deployments_digest(uid):
+    """ Get list of deployment digest items for a uid; sorted in reverse by deploymentNumber.
+
+    Sample response data:
+        [
+            {
+              "startTime" : 1437159840000,
+              "depth" : 0.0,
+              "subsite" : "CE01ISSP",
+              "node" : "SP001",
+              "sensor" : "00-SPPENG000",
+              "deploymentNumber" : 3,
+              "versionNumber" : 1,
+              "eventId" : 23362,
+              "editPhase" : "OPERATIONAL",
+              "longitude" : -124.09567,
+              "latitude" : 44.66415,
+              "orbitRadius" : 0.0,
+              "mooring_uid" : "N00262",
+              "node_uid" : "N00123",
+              "sensor_uid" : "R00102",
+              "deployCruiseIdentifier" : null,
+              "recoverCruiseIdentifier" : null,
+              "waterDepth" : null,
+              "endTime" : 1439424000000
+            },
+            . . .
+        ]
+    """
+    debug = False
+    try:
+        if debug: print '\n debug -- get latest deployment information for uid: %s' % uid
+        digests = get_deployments_digest_by_uid(uid)
+        if digests and digests is not None:
+            if debug: print '\n len(deployments): ', len(digests)
+            # Sort (reverse) by value of 'deploymentNumber'.
+            result = None
+            try:
+                result = sorted(digests, key=itemgetter('deploymentNumber'))
+            except Exception as err:
+                print '\n errors: ', str(err)
+                pass
+            if not result or result is None:
+                return None
+        return digests
+    except Exception as err:
+        message = str(err)
+        #current_app.logger.info(message)
+        return None
+'''

@@ -10,7 +10,11 @@ from ooiservices.app.uframe.config import (get_uframe_deployments_info, get_even
                                            get_url_info_resources, get_uframe_info_calibration,
                                            get_url_info_cruises, get_url_info_cruises_inv,
                                            get_uframe_events_info, get_url_info_cruises_rec,
-                                           get_url_info_deployments_inv, get_deployments_url_base)
+                                           get_url_info_deployments_inv, get_deployments_url_base,
+                                           get_url_info_status_query, get_uframe_toc_url,
+                                           get_url_info_stream_byname, get_uframe_info, get_url_info_stream_parameters)
+from ooiservices.app.uframe.common_tools import deployment_edit_phase_values
+
 import requests
 from requests.exceptions import (ConnectionError, Timeout)
 import datetime as dt
@@ -154,9 +158,7 @@ def uframe_create_calibration(event_type, uid, data):
             if uframe_message is not None:
                 message += '%s' % uframe_message
             raise Exception(message)
-
         return response.status_code
-
     except ConnectionError as err:
         message = 'ConnectionError during create %s event, %s.' % (event_type, str(err))
         raise Exception(message)
@@ -265,7 +267,6 @@ def get_uframe_event(id):
         if not event_type:
             message = 'Failed to obtain valid eventType from uframe event, event id: %d' % id
             raise Exception(message)
-
         return event
 
     except ConnectionError:
@@ -417,7 +418,6 @@ def get_uframe_calibration_events_by_uid(id, uid):
                     # Remove '@class'
                     if '@class' in event:
                         del event['@class']
-
         return calibrations
 
     except ConnectionError as err:
@@ -568,12 +568,14 @@ def uframe_get_asset_by_id(id):
 def uframe_get_asset_by_uid(uid):
     """ Get asset from uframe by asset uid.
     """
+    check = True
     try:
         # Get uframe asset by uid.
         query = '?uid=' + uid
         uframe_url, timeout, timeout_read = get_uframe_assets_info()
         url = '/'.join([uframe_url, get_assets_url_base()])
         url += query
+        if check: print '\n check url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read), headers=headers())
         if response.status_code == 204:
             message = 'Failed to receive content from uframe for asset with uid \'%s\'.' % uid
@@ -593,6 +595,7 @@ def uframe_get_asset_by_uid(uid):
         raise Exception(message)
     except Exception as err:
         message = str(err)
+        current_app.logger.info(message)
         raise Exception(message)
 
 
@@ -625,38 +628,6 @@ def uframe_get_remote_resource_by_id(id):
         message = str(err)
         current_app.logger.info(message)
         raise Exception(message)
-
-'''
-def uframe_get_remote_resource(resource_id):
-    try:
-        # Get remote resource.
-        base_url, timeout, timeout_read = get_url_info_resources()
-        url = '/'.join([base_url, str(resource_id)])
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        if response.status_code != 200:
-            message = 'Failed to get remote resource from uframe using remoteResourceId: %d.' % resource_id
-            raise Exception(message)
-
-        if not response.content or response.content is None:
-            message = 'No value returned from uframe for remote resource id: %d' % resource_id
-            raise Exception(message)
-        remote_resource = json.loads(response.content)
-        if not remote_resource or remote_resource is None:
-            message = 'No value returned from uframe for remote resource id: %d' % resource_id
-            raise Exception(message)
-        return remote_resource
-    except ConnectionError:
-        message = 'ConnectionError getting remote resource (resource id %d) from uframe.' % resource_id
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout:
-        message = 'Timeout getting remote resource (resource id %d) from uframe.' % resource_id
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-'''
 
 
 # Update asset in uframe.
@@ -834,48 +805,6 @@ def uframe_postto_asset(uid, data):
         raise Exception(message)
 
 
-
-'''
-def uframe_update_remote_resource_by_asset_uid(uid, resource_id, data):
-    try:
-        # Update remote resource.
-        base_url, timeout, timeout_read = get_url_info_resources()
-        url = '/'.join([base_url, str(resource_id)])
-        response = requests.put(url, data=json.dumps(data), headers=headers())
-        if response.status_code != 200:
-            message = 'Failed to update remote resource in uframe using remoteResourceId: %d.' % resource_id
-            raise Exception(message)
-
-        if not response.content or response.content is None:
-            message = 'No value returned from uframe for remote resource id: %d' % resource_id
-            raise Exception(message)
-        # response.content on success:
-        # {u'message': u'Element updated successfully.', u'id': 5481, u'statusCode': u'OK'}
-
-        # Get remote resource.
-        base_url, timeout, timeout_read = get_url_info_resources()
-        url = '/'.join([base_url, str(resource_id)])
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        if response.status_code != 200:
-            message = 'Failed to get remote resource from uframe using remoteResourceId: %d.' % resource_id
-            raise Exception(message)
-
-        remote_resource = json.loads(response.content)
-        if not remote_resource or remote_resource is None:
-            message = 'No value returned from uframe for remote resource id: %d' % resource_id
-            raise Exception(message)
-
-        # Refresh asset cache with remote resource information.
-        asset = process_asset_update(uid)
-
-        # Return remote resource.
-        return remote_resource
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-'''
-
-
 def uframe_update_remote_resource_by_resource_id(resource_id, data):
     try:
         # Put remote resource.
@@ -908,7 +837,6 @@ def uframe_update_remote_resource_by_resource_id(resource_id, data):
     except Exception as err:
         message = str(err)
         raise Exception(message)
-
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -984,10 +912,10 @@ def uframe_get_cruise_by_cruise_id(cruise_id):
         return result
 
     except ConnectionError:
-        message = 'ConnectionError getting uframe cruises.'
+        message = 'ConnectionError getting uframe cruises for cruise id: ', cruise_id
         raise Exception(message)
     except Timeout:
-        message = 'Timeout getting uframe cruises.'
+        message = 'Timeout getting uframe cruises for cruise id: ', cruise_id
         raise Exception(message)
     except Exception as err:
         message = str(err)
@@ -1314,6 +1242,495 @@ def compile_deployment_rds():
     except Exception as err:
         message = str(err)
         raise Exception(message)
+
+
+# Get deployments digest for asset uid.
+def get_deployments_digest_by_uid(uid, editPhase='ALL'):
+    """
+    http://host:port/asset/deployments/N00123?editphase=ALL (default)
+    http://host:port/asset/deployments/N00123?editphase=OPERATIONAL
+    """
+    check = False
+    try:
+        # Get uframe deployments by uid.
+        uframe_url, timeout, timeout_read = get_uframe_assets_info()
+        if not editPhase or editPhase is None or editPhase not in deployment_edit_phase_values():
+            editPhase = 'ALL'
+        suffix = '?editphase=' + editPhase
+        url = '/'.join([uframe_url, get_assets_url_base(), 'deployments', uid])
+        url = url + suffix
+        if check: print '\n check -- [get_deployments_digest_by_uid] url to get asset %s: %s' % (uid, url)
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Unable to get deployments for asset uid \'%s\'.' % uid
+            raise Exception(message)
+        digest = json.loads(response.content)
+        return digest
+    except ConnectionError:
+        message = 'Error: ConnectionError getting deployments for asset uid \'%s\'.' % uid
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Error: Timeout getting deployments for asset uid \'%s\'.' % uid
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+def get_rd_deployments(rd):
+    """ Get all deployments for reference designator, whether mooring, platform or instrument.
+
+    Use urls such as:
+        (http://host:12587/events/deployment/query?refdes=CE05MOAS-GL326-04-DOSTAM000)
+         http://host:12587/events/deployment/query?refdes=CE05MOAS-GL326
+         http://host:12587/events/deployment/query?refdes=CE05MOAS
+         http://host:12587/events/deployment/query?refdes=CP02PMUI
+    """
+    check = False
+    result = []
+    try:
+        """
+        # Verify rd is valid.
+        if not is_instrument(rd) and not is_mooring(rd) and not is_platform(rd):
+            message = 'The reference designator %s is not a mooring, platform or instrument.' % rd
+            current_app.logger.info(message)
+            return result
+        """
+        if rd is None or not rd or len(rd) == 0:
+            return result
+
+        # Get uframe deployments request variables
+        uframe_url, timeout, timeout_read = get_uframe_deployments_info()
+
+        # Build uframe url: host:port/events/deployment/query?refdes=XXXXXXXX
+        url = '/'.join([uframe_url, get_deployments_url_base(), 'query'])
+        url += '?refdes=' + rd
+        #url += '?refdes=' + rd + '&notes=true'
+        if check: print '\n Check -- [get_rd_deployments] url: ', url
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Failed to get deployments from uframe for %r.' % rd
+            raise Exception(message)
+        result = response.json()
+        return result
+
+    except ConnectionError:
+        message = 'ConnectionError for uframe get_rd_deployments %s.' % rd
+        current_app.logger.info(message)
+        return []
+    except Timeout:
+        message = 'Timeout for for uframe get_rd_deployments %s.' % rd
+        current_app.logger.info(message)
+        return []
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return []
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - -
+# toc
+# - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Get toc information from uframe.
+def get_toc_information():
+    """ Get toc information from uframe. If exception, log error and return empty list.
+    """
+    extended_read = True
+    try:
+        url, timeout, timeout_read = get_uframe_toc_url()
+        if extended_read:
+            timeout_read = timeout_read * 5
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code == 200:
+            toc = response.json()
+        else:
+            message = 'Failure to retrieve toc using url: ', url
+            raise Exception(message)
+        if toc is not None:
+            result = toc
+        else:
+            message = 'toc returned as None: ', url
+            raise Exception(message)
+        return result
+    except ConnectionError:
+        message = 'ConnectionError for get_toc_information'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Timeout for get_toc_information'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Exception as err:
+        current_app.logger.info(str(err))
+        return []
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Streams
+# - - - - - - - - - - - - - - - - - - - - - - - - - -
+def uframe_get_stream_byname(stream):
+    # http://host:12575/stream/byname/cg_cpm_eng_cpm_recovered
+    debug = False
+    check = False
+    try:
+        # Get uframe stream by stream name.
+        base_url, timeout, timeout_read = get_url_info_stream_byname()
+        url = '/'.join([base_url, stream])
+        if check: print '\n check -- url: ', url
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Unable to get uframe stream \'%s\'.' % stream
+            raise Exception(message)
+        stream = json.loads(response.content)
+        return stream
+    except ConnectionError:
+        message = 'Error: ConnectionError getting uframe stream name %s.' % stream
+        raise Exception(message)
+    except Timeout:
+        message = 'Error: Timeout getting uframe stream name %s.' % stream
+        raise Exception(message)
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+def uframe_get_parameters():
+    """ Get all stream parameters.
+    # http://host:12575/parameter
+    """
+    debug = False
+    check = True
+    try:
+        # Get uframe stream by stream name.
+        url, timeout, timeout_read = get_url_info_stream_parameters()
+        if check: print '\n check -- url: ', url
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Unable to get uframe parameters.'
+            raise Exception(message)
+        parameters = json.loads(response.content)
+        return parameters
+    except ConnectionError:
+        message = 'Error: ConnectionError getting uframe parameters.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Error: Timeout getting uframe parameters.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+
+def uframe_get_instrument_metadata_parameters(rd):
+    """ Returns the uFrame metadata parameters for a reference designator.
+    """
+    check = False
+    result = []
+    try:
+        mooring, platform, instrument = rd.split('-', 2)
+        uframe_url, timeout, timeout_read = get_uframe_info()
+        url = "/".join([uframe_url, mooring, platform, instrument, 'metadata', 'parameters'])
+        if check: print '\n check -- %s' % url
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if check: print '\n check -- response.status_code: ', response.status_code
+        if response.status_code != 200:
+            message = 'Failed to get metadata parameters for \'%s\'. ' % rd
+            raise Exception(message)
+        if response.content:
+            result = json.loads(response.content)
+        return result
+    except ConnectionError:
+        message = 'Error: ConnectionError getting uframe metadata parameters for reference designator: %s' % rd
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Error: Timeout getting uframe metadata parameters for reference designator: %s' % rd
+        current_app.logger.info(message)
+        raise Exception(message)
+    except:
+        message = 'Failed to get metadata parameters for \'%s\'. ' % rd
+        raise Exception(message)
+
+
+def uframe_get_instrument_metadata_times(rd):
+    """ Returns the uFrame metadata times for a reference designator.
+    """
+    result = []
+    try:
+        mooring, platform, instrument = rd.split('-', 2)
+        uframe_url, timeout, timeout_read = get_uframe_info()
+        url = "/".join([uframe_url, mooring, platform, instrument, 'metadata', 'times'])
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Failed to get metadata times for \'%s\'. ' % rd
+            raise Exception(message)
+        if response.content:
+            result = json.loads(response.content)
+        return result
+    except ConnectionError:
+        message = 'Error: ConnectionError getting uframe metadata times for reference designator: %s' % rd
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Error: Timeout getting uframe metadata times for reference designator: %s' % rd
+        current_app.logger.info(message)
+        raise Exception(message)
+    except:
+        message = 'Failed to get metadata times for \'%s\'. ' % rd
+        raise Exception(message)
+
+
+#------------------------------------------------------------------------------------
+# Status
+#------------------------------------------------------------------------------------
+# Get uframe status for reference designator.
+def uframe_get_status_by_rd(rd=None):
+    """ Get uframe status for a reference designator.
+    Sample requests:
+        http://host:12587/status/query/CE
+        http://host:12587/status/query/CE01ISSM
+        http://host:12587/status/query/CE01ISSM-MFC31
+        http://host:12587/status/query/CE01ISSM-MFC31-00-CPMENG000
+
+    http://uframe-3-test.ooi.rutgers.edu:12587/status/inv/GA01SUMO/SBD12
+    [
+        {
+          "rd" : "GA01SUMO-SBD12",
+          "reason" : null,
+          "status" : "notTracked",
+          "deployment" : 1
+        },
+        {
+          "rd" : "GA01SUMO-SBD12-01-OPTAAD000",
+          "reason" : "Test 0.0.2-Eng",
+          "status" : "operational",
+          "deployment" : 1
+        },
+        {
+          "rd" : "GA01SUMO-SBD12-04-PCO2AA000",
+          "reason" : "Test 0.0.2",
+          "status" : "degraded",
+          "deployment" : 1
+        }
+    ]
+
+    http://uframe-3-test.ooi.rutgers.edu:12587/status/inv/GA01SUMO/SBD12/04-PCO2AA000
+    [
+        {
+          "rd" : "GA01SUMO-SBD12-04-PCO2AA000",
+          "reason" : "Test 0.0.2",
+          "status" : "operational",
+          "deployment" : 1
+        }
+    ]
+
+    """
+    live_test = False   # development only flag, remove
+    try:
+        # Get uframe status by reference designator.
+        url, timeout, timeout_read = get_url_info_status_query()
+        if live_test:
+            url = url.replace('uframe-test', 'uframe-3-test')
+
+        # Format reference designator for uframe query.
+        uframe_rd = None
+        if rd is not None:
+            if len(rd) > 14:
+                site, node, sensor = rd.split('-', 2)
+                uframe_rd = '/'.join([site, node, sensor])
+            elif len(rd) == 14:
+                site, node = rd.split('-')
+                uframe_rd = '/'.join([site, node])
+            elif len(rd) == 8 or len(rd) == 2:
+                uframe_rd = rd
+            else:
+                message = 'The reference designator provided is malformed (\'%s\').' % rd
+                raise Exception(message)
+
+        if rd is not None:
+            url = '/'.join([url, uframe_rd])
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            return None
+        results = json.loads(response.content)
+        return results
+    except ConnectionError:
+        message = 'Error: ConnectionError getting uframe status for reference designator: %s' % rd
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Error: Timeout getting uframe status for reference designator: %s' % rd
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return None
+
+
+def uframe_get_sites_for_array(rd):
+    """
+    Get /sensor/inv and process for sites matching array rd provided. (Used by status)
+    Returns a list of sites for an array code.
+    """
+    check = False
+    result = []
+    try:
+        if not rd or rd is None:
+            message = 'Invalid reference designator (\'%s\') provided to get sites from uframe sensor inventory.' % rd
+            current_app.logger.info(message)
+            return []
+        url, timeout, timeout_read = get_uframe_info()
+        if check: print '\n check -- %s' % url
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Failed to get sensor inventory for \'%s\'. ' % rd
+            raise Exception(message)
+        if response.content:
+            sites = json.loads(response.content)
+            if sites:
+                for site in sites:
+                    if site[:2] == rd:
+                        result.append(site)
+        return result
+    except ConnectionError:
+        message = 'Error: ConnectionError getting uframe sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
+    except Timeout:
+        message = 'Error: Timeout getting uframe sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
+    except:
+        message = 'Failed to get sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
+
+
+'''
+def uframe_get_platforms_for_site(rd):
+    """
+    Get /sensor/inv and process for platforms for site name provided. (Used by status)
+    For a site reference designator (subsite), get list of platforms (subsite-node).
+    """
+    check = False
+    result = []
+    try:
+        if not rd or rd is None or len(rd) != 8:
+            message = 'Invalid site (\'%s\') provided for platforms from uframe sensor inventory.' % rd
+            current_app.logger.info(message)
+            return []
+        base_url, timeout, timeout_read = get_uframe_info()
+        url = '/'.join([base_url, rd])
+        if check: print '\n check -- %s' % url
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Failed to get sensor inventory for \'%s\'. ' % rd
+            raise Exception(message)
+        if response.content:
+            nodes = json.loads(response.content)
+            if nodes:
+                for node in nodes:
+                    tmp = '-'.join([rd, node])
+                    if tmp not in result:
+                        result.append(tmp)
+        return result
+    except ConnectionError:
+        message = 'Error: ConnectionError getting uframe sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
+    except Timeout:
+        message = 'Error: Timeout getting uframe sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
+    except:
+        message = 'Failed to get sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
+'''
+
+
+# Get nodes for a site reference designator
+def uframe_get_nodes_for_site(rd):
+    """
+    Get /sensor/inv and process for platforms for site name provided. (Used by status)
+    For a site reference designator (subsite), get list of platforms (subsite-node).
+    """
+    check = False
+    result = []
+    try:
+        if not rd or rd is None or len(rd) != 8:
+            message = 'Invalid site (\'%s\') provided for platforms from uframe sensor inventory.' % rd
+            current_app.logger.info(message)
+            return []
+        base_url, timeout, timeout_read = get_uframe_info()
+        url = '/'.join([base_url, rd])
+        if check: print '\n check -- %s' % url
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Failed to get sensor inventory for \'%s\'. ' % rd
+            raise Exception(message)
+        if response.content:
+            result = json.loads(response.content)
+        return result
+    except ConnectionError:
+        message = 'Error: ConnectionError getting uframe sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
+    except Timeout:
+        message = 'Error: Timeout getting uframe sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
+    except:
+        message = 'Failed to get sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
+
+
+# Get sensors for a platform reference designator
+def uframe_get_sensors_for_platform(rd):
+    """
+    Get /sensor/inv and process for platforms for site name provided. (Used by status)
+    For a site reference designator (subsite-node), get list of sensors (subsite-node).
+    """
+    check = False
+    result = []
+    try:
+        if not rd or rd is None or len(rd) != 14:
+            message = 'Invalid site (\'%s\') provided for platforms from uframe sensor inventory.' % rd
+            current_app.logger.info(message)
+            return []
+        rd = rd.replace('-', '/')
+        base_url, timeout, timeout_read = get_uframe_info()
+        url = '/'.join([base_url, rd])
+        if check: print '\n check -- %s' % url
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Failed to get sensor inventory for \'%s\'. ' % rd
+            raise Exception(message)
+        if response.content:
+            result = json.loads(response.content)
+        return result
+    except ConnectionError:
+        message = 'Error: ConnectionError getting uframe sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
+    except Timeout:
+        message = 'Error: Timeout getting uframe sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
+    except:
+        message = 'Failed to get sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
+
+
+
+
 
 
 

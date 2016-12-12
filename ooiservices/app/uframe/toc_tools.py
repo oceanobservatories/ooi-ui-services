@@ -6,13 +6,165 @@ TOC: Supporting functions.
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
-from ooiservices.app.uframe.config import (get_uframe_toc_url, get_uframe_assets_info,
-                                           get_deployments_url_base, deployment_inv_load)
-from ooiservices.app.uframe.uframe_tools import compile_deployment_rds
-import json
-import requests
-import requests.exceptions
-from requests.exceptions import (ConnectionError, Timeout)
+from ooiservices.app import cache
+from ooiservices.app.uframe.uframe_tools import get_toc_information
+from ooiservices.app.uframe.vocab import (get_long_display_name_by_rd, get_display_name_by_rd)
+
+
+def process_uframe_toc():
+    """ Get toc content from uframe; if error raise. Continue processing based on toc content.
+    """
+    result = None
+    try:
+        d = get_toc_information()
+        if d is not None:
+            if isinstance(d, dict):
+                result = get_uframe_toc(d)
+            # Using deprecated toc structure; log message here and raise exception.
+            else:
+                message = 'Use proper toc dictionary format. Check configuration.'
+                current_app.logger.info(message)
+                raise Exception(message)
+        return result
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+#@cache.memoize(timeout=1600)
+def get_uframe_toc(data):
+    """ Process uframe response from /sensor/inv/toc into list of dictionaries for use in UI.
+
+    The toc response has three [required] dictionaries:
+        u'instruments', u'parameters_by_stream', u'parameter_definitions'.
+
+    Process toc response into a a list of dictionaries.
+    """
+    debug = True
+    error_debug = True  # This produces an informational message in ooiservice.log (default to True)
+    error_messages = []
+
+    results = []
+    try:
+        required_components = ['instruments']
+        """
+        if not stream_new_data():
+            required_components = ['instruments', 'parameters_by_stream', 'parameter_definitions']
+        else:
+            required_components = ['instruments']
+        """
+        if data:
+            # Validate required components are provided in uframe toc data and not empty.
+            for component in required_components:
+                if component not in data:
+                    message = 'The uframe toc data does not contain required component %s.' % component
+                    raise Exception(message)
+                if not data[component]:
+                    message = 'The uframe toc data contains required component %s, but it is empty.' % component
+                    raise Exception(message)
+
+            # Get working dictionary of parameter definitions keyed by pdId.
+            # Remove for data catalog.
+            #parameter_definitions_dict, all_pdids = get_toc_parameter_dict(data['parameter_definitions'])
+
+            # Process all instruments to compile result
+            instruments = data['instruments']
+            """
+            parameters_by_streams = {}
+            if not stream_new_data():
+                parameters_by_streams = data['parameters_by_stream']       # todo - Remove for data catalog
+                if debug: print '\n debug -- Number of elements in parameters_by_streams: ', len(parameters_by_streams.keys())
+            """
+            for instrument in instruments:
+
+                # Get reference designator and swap mooring and platform code
+                rd = instrument['reference_designator']
+                mooring = instrument['platform_code']
+                platform = instrument['mooring_code']
+                result = instrument
+                result['mooring_code'] = mooring
+                result['platform_code'] = platform
+
+                # Get instrument_display_name, mooring_display_name, platform_display_name; add to result
+                result['instrument_display_name'], \
+                result['platform_display_name'], \
+                result['mooring_display_name'] = get_names_for_toc(rd, mooring, platform)
+
+                result['instrument_parameters'] = []
+                """
+                #-------------------------------- Not required for data catalog todo
+                if not stream_new_data():
+                    # Get "instrument_parameters" for instrument; if error return empty list and log errors.
+                    param_results, error_messages = get_instrument_parameters(instrument,
+                                                                              parameters_by_streams,
+                                                                              parameter_definitions_dict,
+                                                                              error_messages)
+
+                    if param_results is None:
+                        result['instrument_parameters'] = []
+                        continue
+
+                    instrument_parameters = param_results
+                    #-------------------------------- End Not required for data catalog todo
+
+                    result['instrument_parameters'] = instrument_parameters # [] remove not needed for data catalog
+                else:
+                    result['instrument_parameters'] = []
+                """
+                results.append(result)
+
+            # Determine if error_messages received during processing; if so, write to log
+            if error_debug:
+                if error_messages:
+                    error_message = 'Error messages in uframe toc content:\n'
+                    for message in error_messages:
+                        error_message += message + '\n'
+                    current_app.logger.info(error_message)
+
+            return results
+        else:
+            return []
+    except Exception as err:
+        message = '[get_uframe_toc] exception: %s' % str(err.message)
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_names_for_toc(rd, mooring, platform):
+    """ Get display names for toc processing.
+    """
+    _instrument_display_name = ""
+    _mooring_display_name = ""
+    _platform_display_name = ""
+    try:
+        instrument_display_name = get_long_display_name_by_rd(rd)
+        if ' - ' in instrument_display_name:
+            split_name = instrument_display_name.split(' - ')
+            _instrument_display_name = split_name[-1]
+            _mooring_display_name = split_name[0]
+            _platform_display_name = split_name[1]
+        elif '-' in rd:
+            mooring, platform, instr = rd.split('-', 2)
+            _mooring_display_name = get_display_name_by_rd(mooring)
+            tmp_platform = '-'.join([mooring, platform])
+            _platform_display_name = get_display_name_by_rd(tmp_platform)
+            _instrument_display_name = get_display_name_by_rd(rd)
+
+        return _instrument_display_name, _mooring_display_name, _platform_display_name
+    except:
+        return "", "", ""
+
+
+def get_stream_names(streams):
+    """ For an instrument, process streams (list of dictionaries), create list of stream names.
+    """
+    stream_names = []
+    if streams:
+        for stream in streams:
+            if stream['stream'] not in stream_names:
+                stream_names.append(stream['stream'])
+    return stream_names
+
 
 def process_toc_reference_designators(toc):
     """
@@ -89,265 +241,7 @@ def process_toc_reference_designators(toc):
         return [], [], []
 
 
-# Get toc information from uframe.
-def get_toc_information():
-    """ Get toc information from uframe. If exception, log error and return empty list.
-    """
-    try:
-        url, timeout, timeout_read = get_uframe_toc_url()
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        if response.status_code == 200:
-            toc = response.json()
-        else:
-            message = 'Failure to retrieve toc using url: ', url
-            raise Exception(message)
-        if toc is not None:
-            result = toc
-        else:
-            message = 'toc returned as None: ', url
-            raise Exception(message)
-        return result
-
-    except ConnectionError:
-        message = 'ConnectionError for get_toc_information'
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout:
-        message = 'Timeout for get_toc_information'
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Exception as err:
-        current_app.logger.info(str(err))
-        return []
-
-
-def _compile_asset_rds():
-    """ Retrieve asset_ids from uframe for all reference designators referenced in /sensor/inv/toc structure;
-    return dictionary with key of asset_id. On error, log and raise exception.  Does NOT cache.
-    Note:
-        - All reference designators are determined from toc structure and not just what /sensor/inv/toc provides.
-        - The original toc response format was a list of dicts; the more recent (May 2016) toc format is a dict.
-        - This function has been updated to handle both the original toc list format and newer toc dict format.
-
-    Sample response:
-        {
-          "1006": "CE02SHSM-RID26-08-SPKIRB000",
-          "1022": "CE02SHSM-RID27-02-FLORTD000",
-          "1024": "CE01ISSM-RID16-03-DOSTAD000",
-          "1033": "CE02SHSM-SBD12-04-PCO2AA000",
-          "1112": "CE01ISSP-SP001-00-SPPENG000",
-          "1226": "CE04OSSM-RID26-01-ADCPTA000",
-          . . .
-        }
-    """
-    result = {}
-    rds_wo_assets = []
-    try:
-        # Get contents of /sensor/inv/toc
-        toc = get_toc_information()
-
-        # If toc is of type dict, then processing newer style toc format
-        if isinstance(toc, dict):
-            if 'instruments' not in toc:
-                message = 'TOC does not have attribute \'instruments\', unable to process for reference designators.'
-                raise Exception(message)
-
-            # Verify toc attribute 'instruments' is not None or empty, if so, raise Exception.
-            toc = toc['instruments']
-            if not toc or toc is None:
-                message = 'TOC attribute \'instruments\' is None or empty, unable to process for reference designators.'
-                raise Exception(message)
-
-        # Process toc to get lists of:
-        # (1) reference designators (generated by accumulation),
-        # (2) actual reference designators called out in each element of toc response,
-        # (3)list of differences
-        uframe_url, timeout, timeout_read = get_uframe_assets_info()
-        reference_designators, toc_only, difference = process_toc_reference_designators(toc)
-        if not reference_designators:
-            message = 'No reference_designators identified when processing toc information.'
-            raise Exception(message)
-
-        #-----------------------------------
-        if deployment_inv_load():
-            # Add deployment reference designators to total reference designators processed.
-            deployment_rds = compile_deployment_rds()
-            if deployment_rds and deployment_rds is not None:
-                for rd in deployment_rds:
-                    if rd not in reference_designators:
-                        reference_designators.append(rd)
-        #-----------------------------------
-
-        if reference_designators and toc_only:
-
-            for rd in reference_designators:
-                if rd and rd is not None:
-                    try:
-                        len_rd = len(rd)
-                        ids, mrd, mids, nrd, nids = get_asset_id_by_rd(rd, uframe_url, timeout, timeout_read)
-                    except Exception as err:
-                        message = 'Exception raised in get_asset_id_by_rd: %s' % err.message
-                        raise Exception(message)
-                    if not ids and not mids and not nids:
-                        if rd and rd is not None:
-                            if rd not in rds_wo_assets:
-                                rds_wo_assets.append(rd)
-                    if len_rd > 14 and len_rd <= 27:
-                        if ids:
-                            ids.sort()
-                            for id in ids:
-                                if id not in result:
-                                    result[id] = rd
-
-                    if len_rd == 8:
-                        if mids:
-                            for id in mids:
-                                if id not in result:
-                                    result[id] = rd
-
-                    if len_rd == 14:
-                        if nids:
-                            for id in nids:
-                                if id not in result:
-                                    result[id] = nrd
-
-        # Identify reference designators in /sensor/inv which do not have associated asset ids.
-        if rds_wo_assets:
-            message = 'The following reference designators do not have an associated asset(%d): %s ' % \
-                      (len(rds_wo_assets), rds_wo_assets)
-            current_app.logger.info(message)
-        return result, rds_wo_assets
-
-    except Exception as err:
-        message = err.message
-        current_app.logger.info(message)
-        return {}, []
-
-
-def get_asset_id_by_rd(rd, uframe_url=None, timeout=None, timeout_read=None):
-    """ Get asset_ids in uframe by reference designator; return list of asset ids; On error return [].
-    """
-    info = False
-    check = False
-    ids = []
-    mooring_ids = []
-    node_ids = []
-    try:
-        if not rd or rd is None:
-            return [], None, [], None, []
-
-        if uframe_url is None:
-            uframe_url, timeout, timeout_read = get_uframe_assets_info()
-
-        # Get reference designator components (mooring, platform, instrument) and form url
-        # Build uframe url: host:port/events/deployment/query?refdes=XXXXXXXX
-        url_root = '/'.join([uframe_url, get_deployments_url_base(), 'query'])
-        url_root += '?refdes='
-        len_rd = len(rd)
-
-        # Instrument
-        if len_rd == 27 and ('-' in rd):
-            mooring, platform, instrument = rd.split('-', 2)
-            name = "-".join([mooring, platform, instrument])
-            url = url_root + name
-
-        # Platform
-        elif len_rd == 14 and ('-' in rd):
-            mooring, platform = rd.split('-')
-            name = "-".join([mooring, platform])
-            url = url_root + name
-
-        # Mooring
-        elif len_rd == 8:   # and ('-' not in rd):
-            url = url_root + rd
-            mooring = rd
-
-        # Instruments with irregular reference designators (e.g. CE02SHBP-LJ01D-00-ENG)
-        elif len_rd > 14 and len_rd < 27:
-            mooring, platform, instrument = rd.split('-', 2)
-            url = "/".join([url_root, mooring, platform, instrument])
-        else:
-            message = 'Malformed reference designator: %s' % rd
-            current_app.logger.info(message)
-            return [], None, [], None, []
-
-        # Query uframe for reference designator asset ids.
-        if check: print '\n get_asset_id_by_rd -- url: ', url
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        if response.status_code != 200:
-            if info:
-                message = '(%d) Failed to get uframe asset id for reference designator: %s' % (response.status_code,rd)
-                current_app.logger.info(message)
-            return [], None, [], None, []
-        try:
-            result = json.loads(response.content)
-            if not result:
-                return [], None, [], None, []
-        except Exception as err:
-            message = 'Invalid json; failed to get_asset_id_by_rd: %s' % err.message
-            current_app.logger.info(message)
-            return [], None, [], None, []
-
-        # If result returned, process for ids
-        if result:
-            for item in result:
-                # This gets asset ids from deployment 'sensor', 'mooring' OR 'node' based on rd type.
-                # Reference Designator of Instrument (assetType sensor)
-                if len_rd > 14 and len_rd <= 27:
-                    if 'sensor' in item:
-                        if item['sensor']:
-                            if 'assetId' in item['sensor']:
-                                if item['sensor']['assetId']:
-                                    if item['sensor']['assetId'] not in ids:
-                                        ids.append(item['sensor']['assetId'])
-
-                # Reference Designator of Mooring (assetType mooring)
-                elif len_rd == 8:
-                    if 'mooring' in item:
-                        if item['mooring']:
-                            if 'assetId' in item['mooring']:
-                                if item['mooring']['assetId']:
-                                    if item['mooring']['assetId'] not in mooring_ids:
-                                        mooring_ids.append(item['mooring']['assetId'])
-
-                # Reference Designator of Platform (assetType node)
-                elif len_rd == 14:
-                    if 'node' in item:
-                        if item['node']:
-                            if 'assetId' in item['node']:
-                                if item['node']['assetId']:
-                                    if item['node']['assetId'] not in node_ids:
-                                        node_ids.append(item['node']['assetId'])
-                else:
-                    message = 'rd %s has a length of %d therefore not processed.' % (rd, len_rd)
-                    current_app.logger.info(message)
-
-        if ids:
-            ids.sort(reverse=True)
-        if mooring_ids:
-            mooring_ids.sort(reverse=True)
-        node_name = None
-        if node_ids:
-            if len(rd) >= 14 and len(rd) <= 27:
-                node_name = rd[:14]             # "-".join([mooring, platform])
-            node_ids.sort(reverse=True)
-
-        return ids, mooring, mooring_ids, node_name, node_ids
-
-    except ConnectionError:
-        message = 'ConnectionError for get_asset_id_by_rd, reference designator rd: ', rd
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout:
-        message = 'Timeout error for get_asset_id_by_rd, reference designator rd: ', rd
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return [], None, [], None, []
-
-
+@cache.memoize(timeout=1600)
 def get_toc_reference_designators():
     """ Get toc and process for reference designators.
     """
@@ -368,10 +262,6 @@ def get_toc_reference_designators():
                 raise Exception(message)
 
         # Process toc to get lists of:
-        # (1) reference designators (generated by accumulation),
-        # (2) actual reference designators called out in each element of toc response,
-        # (3)list of differences
-        uframe_url, timeout, timeout_read = get_uframe_assets_info()
         reference_designators, toc_only, difference = process_toc_reference_designators(toc)
         if not reference_designators:
             message = 'No reference_designators identified when processing toc information.'
@@ -381,4 +271,4 @@ def get_toc_reference_designators():
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
-        return [], None, [], None, []
+        return [], [], []

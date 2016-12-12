@@ -22,18 +22,22 @@ headers = {'Content-Type': 'application/json'}
 @auth.login_required
 @api.route('/subscription', methods=['GET'])
 def get_subscription():
-
+    """
+    """
+    debug = True
     try:
+        if debug: print '\n debug -- get_subscription...'
         # Get uframe connect and timeout information
         timeout, timeout_read = get_uframe_timeout_info()
         if request.args is not None:
+            if debug: print '\n debug -- request.args....'
             res = requests.get(
                 app.config['UFRAME_SUBSCRIBE_URL']+'/subscription',
                 params=request.args,
                 timeout=(timeout, timeout_read))
         else:
-            res = requests.get(
-                app.config['UFRAME_SUBSCRIBE_URL']+'/subscription')
+            if debug: print '\n debug -- No request.args....'
+            res = requests.get(app.config['UFRAME_SUBSCRIBE_URL']+'/subscription', timeout=(timeout, timeout_read))
         return res.text, res.status_code
 
     except ConnectionError:
@@ -54,10 +58,10 @@ def create_subscription():
         # Get uframe connect and timeout information
         timeout, timeout_read = get_uframe_timeout_info()
         res = requests.post(
-            app.config['UFRAME_SUBSCRIBE_URL']+'/subscription',
-            data=request.data,
-            headers=headers,
-            timeout=(timeout, timeout_read))
+                            app.config['UFRAME_SUBSCRIBE_URL']+'/subscription',
+                            data=request.data,
+                            headers=headers,
+                            timeout=(timeout, timeout_read))
         return res.text, res.status_code
 
     except ConnectionError:

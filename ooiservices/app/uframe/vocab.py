@@ -9,7 +9,6 @@ from flask import jsonify, current_app
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app import cache
 from requests.exceptions import (ConnectionError, Timeout)
-from ooiservices.app.models import (Stream, StreamParameter)
 from ooiservices.app.main.errors import bad_request
 from ooiservices.app.uframe.config import get_uframe_vocab_info
 import requests
@@ -73,7 +72,6 @@ def get_vocab():
 def get_long_display_name_by_rd(rd):
     """ Get long display name for reference designator.
     """
-    debug = False
     try:
         result = None
         vocab_dict = get_vocab()
@@ -81,13 +79,7 @@ def get_long_display_name_by_rd(rd):
             if rd in vocab_dict:
                 result = vocab_dict[rd]['long_name']
             else:
-                """
-                result = build_long_display_name(rd)
-                if result is None:
-                    if debug: print '\n rd: ', rd
-                """
                 result = rd
-
         return result
     except Exception:
         raise
@@ -104,12 +96,6 @@ def get_display_name_by_rd(rd):
             if rd in vocab_dict:
                 result = vocab_dict[rd]['name']
             else:
-                """
-                # Build display name
-                result = build_display_name(rd)
-                if result is None:
-                    result = rd
-                """
                 result = rd
 
         return result
@@ -140,6 +126,47 @@ def get_rs_array_name_by_rd(rd):
         raise Exception(message)
 
 
+def get_vocab_name_collection(rd):
+    processing_rs = False
+    try:
+        if not rd or rd is None:
+            message = 'The reference designator is empty or null.'
+            raise Exception(message)
+
+        len_rd = len(rd)
+        if len_rd > 14 and len_rd <= 27:
+            pass
+        else:
+            message = 'An instrument reference designator is required, \'%s\' provided.' % rd
+            raise Exception(message)
+
+        if rd[:2] == 'RS':
+            processing_rs = True
+
+        vocab_dict = get_vocab()
+        if not vocab_dict or vocab_dict is None:
+            array = rd[:2]
+            subsite = rd[:8]
+            platform = rd[:14]
+            sensor = rd
+            long_display_name = rd
+        else:
+            if not processing_rs:
+                array = get_display_name_by_rd(rd[:2])
+            else:
+                array = get_rs_array_name_by_rd(rd[:8])
+            subsite = get_display_name_by_rd(rd[:8])
+            platform = get_display_name_by_rd(rd[:14])
+            sensor = get_display_name_by_rd(rd)
+            long_display_name = get_long_display_name_by_rd(rd)
+
+        return array, subsite, platform, sensor, long_display_name
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+
 # Get vocabulary item for reference designator.
 def get_vocab_dict_by_rd(rd):
     """ Get vocabulary items for reference designator.
@@ -150,11 +177,61 @@ def get_vocab_dict_by_rd(rd):
         if vocab_dict:
             if rd in vocab_dict:
                 result = vocab_dict[rd]
-            else:
-                result = build_vocab_dict_item(rd)
+            #else:
+            #    result = build_vocab_dict_item(rd)
         return result
-    except Exception:
-        raise
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+# Get vocab dictionary.
+def get_vocab_codes():
+    """ Get 'vocab_dict' from cache or compiled, return vocab_dict.
+    """
+    debug = False
+    vocab_dict = {}
+    vocab_codes = {}
+    try:
+        # Get 'vocab_dict' if cached
+        dict_cached = cache.get('vocab_dict')
+        if dict_cached and dict_cached is not None:
+            vocab_dict = dict_cached
+
+        # Get 'vocab_codes' if cached
+        codes_cached = cache.get('vocab_codes')
+        if codes_cached and codes_cached is not None:
+            vocab_codes = codes_cached
+
+        # If either 'vocab_dict' or 'vocab_codes' is not cached, get and place in cache.
+        if not vocab_dict or not vocab_codes:
+            if debug: print '\n Cache vocabulary...'
+            vocab_dict, codes = compile_vocab()
+            cache.set('vocab_dict', vocab_dict, timeout=CACHE_TIMEOUT)
+            cache.set('vocab_codes', codes, timeout=CACHE_TIMEOUT)
+            if debug: print '\n Cached vocabulary...'
+
+        return vocab_codes
+
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_vocabulary_arrays():
+    """ Get arrays from vocabulary codes.
+    """
+    arrays = []
+    try:
+        codes = get_vocab_codes()
+        if codes and codes is not None:
+            if 'arrays' in codes:
+                arrays = codes['arrays']
+        return arrays
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        raise Exception(message)
 
 
 # Build vocabulary item for reference designator.
@@ -399,7 +476,8 @@ def compile_vocab():
                     if platform not in results:
                         long_name = ' '.join([vocab['tocL1'], vocab['tocL2']])
                         long_name += ' - ' + vocab['tocL3']
-                        name = vocab['tocL2'] + ' - ' + vocab['tocL3']      # changed
+                        #name = vocab['tocL2'] + ' - ' + vocab['tocL3']      # changed
+                        name = vocab['tocL3']                                # changed 2016-12-03
                         if long_name is not None and name is not None:
                             results[platform] = {'long_name': long_name, 'name': name, 'id': 0}
 
@@ -496,7 +574,7 @@ def compile_vocab():
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
-        raise
+        raise Exception(message)
 
 
 # Construct display name.
@@ -663,34 +741,6 @@ def create_vocabulary_codes(vocabs):
         message = 'Error processing vocabulary codes. %s' % str(err)
         current_app.logger.info(message)
         raise
-
-
-# ========================================================================
-# Vocabulary database queries for stream and stream parameters
-# ========================================================================
-def get_parameter_name_by_parameter(stream_parameter_name):
-    """ Get parameter name using database.
-    """
-    debug = False
-    streamParameter = StreamParameter.query.filter_by(stream_parameter_name = stream_parameter_name).first()
-    if streamParameter is None or streamParameter is []:
-        if debug: print '[param] ', stream_parameter_name
-        return None
-    stream_display_name = streamParameter.standard_name
-    return stream_display_name
-
-
-def get_stream_name_by_stream(stream):
-    """ Get stream name using database.
-    """
-    debug = False
-    _stream = Stream.query.filter_by(stream=stream).first()
-    if _stream is None or _stream is []:
-        if debug: print '[strem] ', stream
-        return None
-    stream_display_name = _stream.concatenated_name
-    return stream_display_name
-
 
 # ========================================================================
 # utility functions
