@@ -12,6 +12,7 @@ from matplotlib.ticker import FuncFormatter
 import seawater as sw
 from matplotlib.dates import datestr2num
 from matplotlib.image import NonUniformImage
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 axis_font_default = {'fontname': 'Calibri',
                      'size': '14',
@@ -40,7 +41,7 @@ class OOIPlots(object):
                 fmt = '%H:%M'
             label = x.strftime(fmt)
             return label
-        day_delta = (max(dates)-min(dates)).days
+        day_delta = (max(dates) - min(dates)).days
 
         if day_delta < 1:
             ax.xaxis.set_major_formatter(FuncFormatter(format_func))
@@ -53,6 +54,14 @@ class OOIPlots(object):
             # formt.scaled[1./(24.*60.)] = FuncFormatter(format_func)
             ax.xaxis.set_major_locator(major)
             ax.xaxis.set_major_formatter(formt)
+
+    def add_annotation(self, ax):
+        '''
+        This method adds annotation to the plot figure in the lower left corner next to the watermark
+        '''
+        annotation = 'Color bar is set to +/- 95th percentile value'
+        ax.annotate(annotation, xy=(40, 0), xycoords='figure pixels',
+                    horizontalalignment='left', verticalalignment='bottom', fontsize=8, style='italic')
 
     def plot_time_series(self, fig, is_timeseries, ax, x, y, fill=False, title='', xlabel='', ylabel='',
                          title_font={}, axis_font={}, tick_font={}, scatter=False, qaqc=[], events={}, **kwargs):
@@ -82,9 +91,9 @@ class OOIPlots(object):
         if fill:
             miny = min(ax.get_ylim())
             if not scatter:
-                ax.fill_between(x, y, miny+1e-7, facecolor = h[0].get_color(), alpha=0.15)
+                ax.fill_between(x, y, miny + 1e-7, facecolor = h[0].get_color(), alpha=0.15)
             else:
-                ax.fill_between(x, y, miny+1e-7, facecolor = axis_font_default['color'], alpha=0.15)
+                ax.fill_between(x, y, miny + 1e-7, facecolor = axis_font_default['color'], alpha=0.15)
 
         if events:
             ylim = ax.get_ylim()
@@ -122,7 +131,10 @@ class OOIPlots(object):
         if not axis_font:
             axis_font = axis_font_default
         z = np.ma.array(z, mask=np.isnan(z))
-        h = plt.pcolormesh(x, y, z, shading='gouraud', **kwargs)
+        # create a limit for the colorbar that disregards outliers
+        lim = float("%2.2f" % np.nanpercentile(abs(z), 95))
+
+        h = plt.pcolormesh(x, y, z, vmin=-lim, vmax=lim, shading='gouraud', **kwargs)
         # h = plt.pcolormesh(x, y, z, **kwargs)
         if ylabel:
             ax.set_ylabel(ylabel.replace("_", " "), **axis_font)
@@ -134,13 +146,16 @@ class OOIPlots(object):
         self.get_time_label(ax, date_list)
         fig.autofmt_xdate()
         ax.invert_yaxis()
-        cbar = plt.colorbar(h)
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes('right', size='3%', pad=0.05)
+        cbar = plt.colorbar(h, cax=cax)
         if cbar_title:
-            cbar.ax.set_ylabel(cbar_title, **axis_font)
+            cbar.ax.set_ylabel(cbar_title.replace("_", " "), **axis_font)
         ax.grid(True)
         if tick_font:
             ax.tick_params(**tick_font)
         plt.tight_layout()
+        self.add_annotation(ax)
 
     def plot_stacked_time_series_image(self, fig, ax, x, y, z, title='', ylabel='',
                                        cbar_title='', title_font={}, axis_font={}, tick_font = {},
@@ -474,7 +489,7 @@ class OOIPlots(object):
 
             if len(qaqc[key]) > 0:
                 bad_data = np.where(qaqc[key] > 0)
-                y_axis[ind].plot(xdata[key][bad_data], ydata[key][bad_data], 
+                y_axis[ind].plot(xdata[key][bad_data], ydata[key][bad_data],
                                  marker='o',
                                  mfc='none',
                                  linestyle='None',
@@ -685,16 +700,25 @@ class OOIPlots(object):
             axis_font = axis_font_default
 
         cmap = plt.cm.jet
-        h = plt.scatter(x, y, c=z, cmap=cmap)
-        ax.set_aspect(1./ax.get_data_ratio())  # make axes square
-        cbar = plt.colorbar(h, orientation='vertical', aspect=30, shrink=0.9)
+        h = ax.scatter(x, y, c=z, cmap=cmap)
+
+        if 'time' in xlabel.lower():
+            xlabel = None
+            ax.xaxis_date()
+            date_list = mdates.num2date(x)
+            self.get_time_label(ax, date_list)
+            fig.autofmt_xdate()
+
+        ax.set_aspect(1. / ax.get_data_ratio())  # make axes square
+
+        cbar = plt.colorbar(h, orientation='vertical', aspect=30, shrink=0.76)
 
         if xlabel:
             ax.set_xlabel(xlabel.replace("_", " "), labelpad=10, **axis_font)
         if ylabel:
             ax.set_ylabel(ylabel.replace("_", " "), labelpad=10, **axis_font)
         if zlabel:
-            cbar.ax.set_ylabel(zlabel.replace("_", " "), labelpad=10, **axis_font)
+            cbar.ax.set_ylabel(zlabel.replace("_", " "), **axis_font)
         if tick_font:
             ax.tick_params(**tick_font)
         if title:
