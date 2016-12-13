@@ -2,6 +2,7 @@
 
 import requests
 
+from flask import Response
 from flask import current_app
 from flask import request
 from requests.exceptions import ConnectionError, Timeout
@@ -66,10 +67,10 @@ def m2m_handler(path):
             url = build_url(path)
             timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
             timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
-            response = requests.get(url, timeout=(timeout, timeout_read), params=request.args)
+            response = requests.get(url, timeout=(timeout, timeout_read), params=request.args, stream=True)
             headers = dict(response.headers)
             headers = {k: headers[k] for k in headers if k in transfer_header_fields}
-            return response.text, response.status_code, headers
+            return Response(response.iter_content(1024), response.status_code, headers)
         else:
             message = 'Authentication failed.'
             current_app.logger.info(message)
