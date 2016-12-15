@@ -133,8 +133,7 @@ class OOIPlots(object):
         z = np.ma.array(z, mask=np.isnan(z))
         # create a limit for the colorbar that disregards outliers
         lim = float("%2.2f" % np.nanpercentile(abs(z), 95))
-
-        h = plt.pcolormesh(x, y, z, vmin=-lim, vmax=lim, shading='gouraud', **kwargs)
+        h = plt.pcolormesh(x, y, z, vmin=-lim, vmax=lim, cmap='RdBu', shading='gouraud', **kwargs)
         # h = plt.pcolormesh(x, y, z, **kwargs)
         if ylabel:
             ax.set_ylabel(ylabel.replace("_", " "), **axis_font)
@@ -699,7 +698,7 @@ class OOIPlots(object):
         if not axis_font:
             axis_font = axis_font_default
 
-        cmap = plt.cm.RdBu
+        cmap = plt.cm.jet
         h = ax.scatter(x, y, c=z, cmap=cmap)
 
         if 'time' in xlabel.lower():
