@@ -185,24 +185,8 @@ def process_deployment_row(data):
                 deployment[field] = data[field]
 
         # Get rd from referenceDesignator dictionary
-        subsite = None
-        node = None
-        sensor = None
-        rd = None
         if 'referenceDesignator' in data:
-            if 'subsite' in data['referenceDesignator']:
-                subsite = data['referenceDesignator']['subsite']
-            if 'node' in data['referenceDesignator']:
-                node = data['referenceDesignator']['node']
-            if 'sensor' in data['referenceDesignator']:
-                sensor = data['referenceDesignator']['sensor']
-            if subsite is not None:
-                rd = subsite
-                if node is not None:
-                    rd = '-'.join([subsite, node])
-                    if sensor is not None:
-                        rd = '-'.join([subsite, node, sensor])
-            deployment['rd'] = rd
+            deployment['rd'] = data['referenceDesignator']
 
         # Get location dictionary information:  latitude, longitude, depth and orbitRadius
         if 'location' in data:

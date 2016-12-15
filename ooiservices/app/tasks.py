@@ -27,12 +27,13 @@ from ooiservices.app.uframe.asset_tools import verify_cache
 """
 Define the list of processes to run on a scheduled basis.
 Caches created/utilized:
-    For data visualization: stream_list, cam_images*, large_format*
+    For data visualization: cam_images*, large_format*, stream_list
     For vocabulary: vocab_dict, vocab_codes
     For Command and Control (C2): c2_toc
     For asset information: asset_list, assets_dict.
+    For navigation by reference designator: uid_digests (also used by assets during processing)
 
-Not used:
+Currently Disabled:
 glider_tracks
 """
 
@@ -137,7 +138,7 @@ def compile_streams():
             if streams and streams is not None and 'error' not in streams:
                 stream_cache = cache.get('stream_list')
                 if stream_cache and stream_cache is not None and "error" not in stream_cache:
-                    print '[-] Stream cache reset.'
+                    print '[+] Stream cache reset.'
                 else:
                     message = '[-] Failed to reset stream cache.\n'
                     print message
@@ -152,16 +153,13 @@ def compile_streams():
 def compile_uid_digests():
     debug = False
     try:
-        if debug: print '\n debug - *** tasks - compile_uid_digests()'
         with current_app.test_request_context():
             cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
             cache.init_app(current_app)
             uid_digests = get_uid_digests(refresh=True)
-            if debug:
-                print '\n Completed compiling uframe deployments for reference designators.'
-                print '\n Number of digests: ', len(uid_digests)
+
     except Exception as err:
-        message = 'Exception compiling uframe deployment digests: %s' % err.message
+        message = 'Exception compiling uframe uid digests: %s' % err.message
         current_app.logger.warning(message)
         raise Exception(message)
 
@@ -169,16 +167,11 @@ def compile_uid_digests():
 # Get asset information. (asset_list, assets_dict)
 @celery.task(name='tasks.compile_asset_information')
 def compile_asset_information():
-    debug = False
     try:
-        if debug: print '\n debug - *** tasks - compile_asset_information()'
         with current_app.test_request_context():
             cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
             cache.init_app(current_app)
             asset_list = verify_cache(refresh=True)
-            if debug:
-                print '\n Completed compiling asset information.'
-                print '\n Number of assets: ', len(asset_list)
 
     except Exception as err:
         message = 'compile_assets exception: %s' % err.message

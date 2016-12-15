@@ -298,7 +298,7 @@ def get_required_field_types_uframe():
                             'orbitRadius': 'float',
                             'recoveredBy': 'string',
                             'recoverCruiseInfo': 'dict',
-                            'referenceDesignator': 'dict',
+                            'referenceDesignator': 'string',
                             'sensor': 'dict',
                             'versionNumber': 'int'
                             }

@@ -310,7 +310,7 @@ def get_required_fields_and_types(event_type, action):
                             'location': 'dict', 'sensor': 'dict', 'mooring': 'dict', 'node': 'dict',
                             'recoverCruiseInfo': 'dict', 'recoveredBy': 'string',
                             'deploymentNumber': 'int', 'ingestInfo': 'list',
-                            'referenceDesignator': 'dict', 'versionNumber': 'int', 'deployCruiseInfo': 'dict'
+                            'referenceDesignator': 'string', 'versionNumber': 'int', 'deployCruiseInfo': 'dict'
                            }
 
         #- - - - - - - - - - - - - - - - - - - - - - -

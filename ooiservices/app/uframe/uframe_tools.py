@@ -508,9 +508,9 @@ def get_assets_from_uframe():
         start = dt.datetime.now()
         if time: print '\t-- Start time: ', start
         uframe_url, timeout, timeout_read = get_uframe_assets_info()
-        timeout_extended = timeout_read * 3
+        #timeout_extended = timeout_read * 3
         url = '/'.join([uframe_url, get_assets_url_base()])
-        response = requests.get(url, timeout=(timeout, timeout_extended))
+        response = requests.get(url, timeout=(timeout, timeout_read))
         end = dt.datetime.now()
         if time: print '\t-- End time:   ', end
         if time: print '\t-- Time to get uframe assets: %s' % str(end - start)
@@ -568,7 +568,7 @@ def uframe_get_asset_by_id(id):
 def uframe_get_asset_by_uid(uid):
     """ Get asset from uframe by asset uid.
     """
-    check = True
+    check = False
     try:
         # Get uframe asset by uid.
         query = '?uid=' + uid
@@ -1400,7 +1400,7 @@ def uframe_get_parameters():
     # http://host:12575/parameter
     """
     debug = False
-    check = True
+    check = False
     try:
         # Get uframe stream by stream name.
         url, timeout, timeout_read = get_url_info_stream_parameters()
