@@ -699,7 +699,7 @@ class OOIPlots(object):
         if not axis_font:
             axis_font = axis_font_default
 
-        cmap = plt.cm.jet
+        cmap = plt.cm.RdBu
         h = ax.scatter(x, y, c=z, cmap=cmap)
 
         if 'time' in xlabel.lower():
