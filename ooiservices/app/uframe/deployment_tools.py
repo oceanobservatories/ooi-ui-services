@@ -28,7 +28,7 @@ def format_deployment_for_ui(modified_deployment):
     updated_deployment = {}
     regular_fields = ['assetUid', 'dataSource', 'deployedBy', 'deploymentNumber',
                       'editPhase', 'eventId', 'eventName', 'eventStartTime', 'eventStopTime', 'eventType',
-                      'inductiveId', 'lastModifiedTimestamp', 'notes', 'recoveredBy', 'versionNumber']
+                      'inductiveId', 'lastModifiedTimestamp', 'notes', 'recoveredBy', 'versionNumber', 'waterDepth']
     try:
         if debug: print '\n debug -- Entered format_deployment_for_ui...'
         # Process location information.
@@ -56,20 +56,8 @@ def format_deployment_for_ui(modified_deployment):
 
         # Get reference designator from attribute 'referenceDesignator'.
         rd = None
-        subsite = None
-        node = None
-        sensor = None
         if 'referenceDesignator' in modified_deployment:
-            if 'subsite' in modified_deployment['referenceDesignator']:
-                subsite = modified_deployment['referenceDesignator']['subsite']
-            if 'node' in modified_deployment['referenceDesignator']:
-                node = modified_deployment['referenceDesignator']['node']
-            if 'sensor' in modified_deployment['referenceDesignator']:
-                sensor = modified_deployment['referenceDesignator']['sensor']
-            if subsite is None or node is None or sensor is None:
-                message = 'The subsite, node or sensor provided for deployment is empty.'
-                raise Exception(message)
-            rd = '-'.join([subsite, node, sensor])
+            rd = modified_deployment['referenceDesignator']
         if not is_instrument(rd):
             message = 'The referenceDesignator provided cannot be formed into instrument reference designator.'
             raise Exception(message)
@@ -118,6 +106,7 @@ def format_deployment_for_ui(modified_deployment):
             if 'uniqueCruiseIdentifier' in modified_deployment['recoverCruiseInfo']:
                 updated_deployment['recoverCruiseInfo'] = modified_deployment['recoverCruiseInfo']['uniqueCruiseIdentifier']
 
+        # Deprecate
         # Hide ingestInfo until further notice; need api in uframe for ingestInfo (an api similar to remoteResources)
         updated_deployment['ingestInfo'] = None
         """
@@ -128,18 +117,20 @@ def format_deployment_for_ui(modified_deployment):
         # Get the rest of the fields and values.
         for key in regular_fields:
             if key in modified_deployment:
+                updated_deployment[key] = modified_deployment[key]
                 if debug:
                     if key == 'editPhase':
                         print '\n debug -- The modified deployment value for editPhase is: ', modified_deployment[key]
 
-                updated_deployment[key] = modified_deployment[key]
         if not updated_deployment or updated_deployment is None:
             raise Exception('Deployment compilation failed to return a result.')
 
+        # Note: This must remain until uframe editPhase changes are finalized.
+        updated_deployment['editPhase'] = 'OPERATIONAL'
+        if debug: print '\n debug -- Final value for editPhase (to be returned is): ', updated_deployment['editPhase']
+
         if 'location' in updated_deployment:
             del updated_deployment['location']
-
-        if debug: print '\n debug -- Final value for editPhase (to be returned is): ', updated_deployment['editPhase']
 
         if debug: print '\n debug -- Exit format_deployment_for_ui...'
         return updated_deployment
@@ -149,7 +140,7 @@ def format_deployment_for_ui(modified_deployment):
         raise Exception(message)
 
 
-# New: Deployments added to rd information inventory
+# Deprecate
 def _compile_rd_assets():
     """ Get dictionary, keyed by reference designator, holding reference maps for deployments and asset_ids.
     This supports all reference designators referenced in /sensor/inv/toc structure; On error, log and raise exception.
@@ -178,6 +169,7 @@ def _compile_rd_assets():
         return {}
 
 
+# Deprecate
 def get_rd_assets(reference_designators):
     """ Create rd_asset dictionary for reference designators provided.
     """
@@ -225,6 +217,7 @@ def get_rd_assets(reference_designators):
         return {}
 
 
+# Deprecate
 def get_instrument_deployments_list(rd):
     """ Get list of deployments for instrument rd.
     """
@@ -270,7 +263,7 @@ def get_instrument_deployments_list(rd):
         return None
 
 
-# todo - review to replace with get_rd_deployments(rd)
+# Deprecate
 def get_instrument_deployments(rd):
     """ Get all deployments for instrument rd.
 
@@ -471,6 +464,7 @@ def get_rd_deployment(rd, deployment_number):
         return []
 
 
+# Deprecate
 def get_mooring_deployments_list(rd):
     """ Get list of deployments for mooring reference designator.
     """
@@ -579,6 +573,7 @@ def get_mooring_deployments_list(rd):
         return None, None
 
 
+# Deprecate
 def get_platform_deployments_list(rd):
     """ Get list of deployments for mooring reference designator.
     """
@@ -684,6 +679,7 @@ def get_platform_deployments_list(rd):
         return None, None
 
 
+# Deprecate
 def get_deployment_asset_ids(deployment):
     """
     "referenceDesignator" :
@@ -937,6 +933,7 @@ def get_deployment_asset_ids(deployment):
         return result
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Deprecate
 def get_instrument_deployment_work(rd):
     """ Create instrument deployment information breakout. Return dict or empty dict. Log exceptions.
     """
@@ -1054,6 +1051,7 @@ def get_instrument_deployment_work(rd):
         return {}
 
 
+# Deprecate
 def get_mooring_deployment_work(rd):
     """ Create mooring deployment information breakout. Return dict or empty dict. Log exceptions.
     """
@@ -1092,6 +1090,7 @@ def get_mooring_deployment_work(rd):
         return {}
 
 
+# Deprecate
 def get_platform_deployment_work(rd):
     """ Create platform deployment information breakout. Return dict or empty dict. Log exceptions.
     """

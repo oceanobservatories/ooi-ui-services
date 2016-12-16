@@ -134,7 +134,6 @@ def _update_deployment(id, data):
     """
     from ooiservices.app.uframe.common_tools import dump_dict
     debug = False
-
     action = 'update'
     try:
         if debug:
@@ -330,7 +329,7 @@ def update_deployment_assets(ui_deployment, rd):
     from ooiservices.app.uframe.status_tools import (get_last_deployment_digest,
                                                     update_uid_digests_cache) #, update_uid_digests_operational_cache)
 
-    debug = True
+    debug = False
     try:
         if debug:
             print '\n-------------------------------------------------------------------------'
@@ -505,6 +504,7 @@ def update_deployment_assets(ui_deployment, rd):
         current_app.logger.info(message)
         raise Exception(message)
 
+
 def transform_deployment_for_uframe(id, deployment, action=None):
     """ Transform UI deployment data into uframe deployment structure.
     """
@@ -551,30 +551,14 @@ def transform_deployment_for_uframe(id, deployment, action=None):
             message = 'Unable to process deployment provided, empty reference designator.'
             raise Exception(message)
 
+        uframe_deployment['referenceDesignator'] = converted_deployment['rd']
 
-        # Build referenceDesignator dictionary.
-        rd = converted_deployment['rd']
-
-        # Get subsite, node and sensor (if available), otherwise raise exception.
-        node = None
-        sensor = None
-        if is_instrument(rd):
-            subsite, node, sensor = rd.split('-', 2)
-        elif is_platform(rd):
-            subsite, node = rd.split('-')
-        elif is_mooring(rd):
-            subsite = rd
-        else:
-            message = 'Invalid reference designator (not mooring, platform or instrument) (\'%s\').' % rd
-            raise Exception(message)
-
-        referenceDesignator = {'subsite': subsite, 'node': node, 'sensor': sensor}
-        uframe_deployment['referenceDesignator'] = referenceDesignator
+        # Add water depth information
+        uframe_deployment['waterDepth'] = None
 
         # Set location dictionary.
         location = get_location_dict(converted_deployment['latitude'], converted_deployment['longitude'],
                                      converted_deployment['depth'], converted_deployment['orbitRadius'])
-
         uframe_deployment['location'] = location
 
         # Get deploymentNumber in ui deployment
@@ -640,7 +624,6 @@ def transform_deployment_for_uframe(id, deployment, action=None):
             else:
                 uframe_deployment['recoverCruiseInfo'] = None
 
-        # todo - Sprint 2, not yet supported completely in uframe.
         uframe_deployment['ingestInfo'] = None
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -653,6 +636,9 @@ def transform_deployment_for_uframe(id, deployment, action=None):
         for key in regular_fields:
             if key in converted_deployment:
                 uframe_deployment[key] = converted_deployment[key]
+
+        # editPhase - use operational until editPhase work is completed. (2016-12-15)
+        uframe_deployment['editPhase'] = 'OPERATIONAL'
 
         # Fields: eventId, assetUid, lastModifiedTimestamp
         uframe_deployment['@class'] = get_class_deployment()

@@ -24,7 +24,7 @@ headers = {'Content-Type': 'application/json'}
 def get_subscription():
     """
     """
-    debug = True
+    debug = False
     try:
         if debug: print '\n debug -- get_subscription...'
         # Get uframe connect and timeout information

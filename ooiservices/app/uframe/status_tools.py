@@ -412,8 +412,8 @@ def get_status_sites(rd):
         # Get status data dictionary.
         status_data = get_uframe_status_data(rd)       # uframe data
         if not status_data or status_data is None:
-            message = 'No status data returned from uframe for reference designator %s.' % rd
-            current_app.logger.info(message)
+            #message = 'No status data returned from uframe for reference designator %s.' % rd
+            #current_app.logger.info(message)
             status_data = {}
 
         end = dt.datetime.now()
@@ -898,8 +898,8 @@ def get_status_instrument(rd):
         # Get uframe status data dictionary.
         status_data = get_uframe_status_data(rd)
         if not status_data or status_data is None:
-            message = 'No status data returned from uframe for reference designator %s.' % rd
-            current_app.logger.info(message)
+            #message = 'No status data returned from uframe for reference designator %s.' % rd
+            #current_app.logger.info(message)
             status_data = {}
 
         # Get rd_digest dictionary.
@@ -1420,7 +1420,7 @@ def build_rds_cache(refresh=False):
     Create a cache for reference designator to current asset uid deployment information.
     The 'rd_digests' and 'rd_digests_dict' are used by status methods.
     """
-    debug = True
+    debug = False
     time = True
     rd_digests = None
     rd_digests_dict = None
@@ -1483,7 +1483,7 @@ def build_rds_cache(refresh=False):
             else:
                 print 'Failed to construct rd_digests_dict.'
 
-            if debug: print '\n\t-- Reference designators (%d) has (%d) rd_digests' % (len(rds), len(rd_digests))
+            if debug: print '\n\t-- Reference designators (%d) have (%d) rd_digests' % (len(rds), len(rd_digests))
             end = dt.datetime.now()
             if time:
                 print '\t-- End time:   ', end
@@ -1739,7 +1739,7 @@ def get_rd_digests_dict():
             rd_digests_dict = rd_digests_dict_cached
         else:
             if debug: print '\n building rd_digest_cache...'
-            rd_digests, rd_digests_dict = build_rd_digest_cache()
+            rd_digests, rd_digests_dict = build_rds_cache(refresh=True)
             if rd_digests and rd_digests is not None:
                 cache.set('rd_digests', rd_digests, timeout=CACHE_TIMEOUT)
             else:
@@ -1763,7 +1763,7 @@ def get_rds_digests():
         if rd_digests_cached:
             rd_digests = rd_digests_cached
         else:
-            rd_digests, rd_digests_dict = build_rd_digest_cache()
+            rd_digests, rd_digests_dict = build_rds_cache(refresh=True)
             if not rd_digests or rd_digests is None:
                 message = 'rd_digests failed to provide data on load.'
                 raise Exception(message)

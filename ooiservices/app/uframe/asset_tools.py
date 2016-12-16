@@ -31,7 +31,6 @@ def verify_cache(refresh=False):
         # Ensure cached: 'vocab_dict' and 'vocab_codes'; 'stream_list'; 'uid_digests'
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         vocab_dict = get_vocab()
-        #stream_list = get_stream_list()
         uid_digests = get_uid_digests()
 
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -90,16 +89,6 @@ def get_assets_payload():
     time = True
     try:
         print '\nCompiling assets...'
-        try:
-            # Clear all cache
-            if cache.get('asset_list'):
-                cache.delete('asset_list')
-            if cache.get('assets_dict'):
-                cache.delete('assets_dict')
-        except Exception as err:
-            message = str(err)
-            raise Exception(message)
-
         # Get assets from uframe.
         result = get_assets_from_uframe()
         if not result:
@@ -109,11 +98,12 @@ def get_assets_payload():
         # Get asset_list
         data, _ = new_compile_assets(result, compile_all=True)
         print '\n-- Completed loading assets....'
-        if not data:
+        if not data or data is None:
             message = 'Unable to process uframe assets; error creating assets_list.'
             raise Exception(message)
 
         # Cache 'asset_list'.
+        cache.delete('asset_list')
         cache.set('asset_list', data, timeout=CACHE_TIMEOUT)
         check = cache.get('asset_list')
         if not check:
@@ -606,6 +596,7 @@ def new_compile_assets(data, compile_all=False):
                 latitude = None
                 longitude = None
                 depth = None
+                waterDepth = None
                 orbitRadius = None
                 deployment_number = ''  # The deploymentNumber is converted to string for UI client
                 """
@@ -621,6 +612,7 @@ def new_compile_assets(data, compile_all=False):
                     latitude = current_digest['latitude']
                     longitude = current_digest['longitude']
                     depth = current_digest['depth']
+                    waterDepth = current_digest['waterDepth']
                     orbitRadius = current_digest['orbitRadius']
                     deploymentNumber = current_digest['deploymentNumber']
                     if deploymentNumber is not None:
@@ -629,6 +621,7 @@ def new_compile_assets(data, compile_all=False):
                 row['latitude'] = latitude
                 row['longitude'] = longitude
                 row['depth'] = depth
+                row['waterDepth'] = waterDepth
                 row['orbitRadius'] = orbitRadius
                 row['deployment_number'] = deployment_number
                 if 'location' in row:
@@ -1260,6 +1253,7 @@ def get_asset_list():
     except Exception as err:
         message = str(err)
         raise Exception(message)
+
 
 # todo - remove after verify celery processing
 '''
