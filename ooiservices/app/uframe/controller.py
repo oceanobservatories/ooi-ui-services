@@ -1615,18 +1615,18 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
         rd = '-'.join([mooring, platform, instrument])
         if dpa_flag == '0' and len(parameter_ids) < 1:
             if debug: print '\n debug -- Branch A...'
-            query = '?beginDT=%s&endDT=%s&limit=%s&user=plotting' % (start_time, end_time, current_app.config['DATA_POINTS'])
+            query = '?beginDT=%s&endDT=%s&limit=%s&user=plotting&execDPA=false' % (start_time, end_time, current_app.config['DATA_POINTS'])
         elif dpa_flag == '1' and len(parameter_ids) < 1:
             if debug: print '\n debug -- Branch B...'
-            query = '?beginDT=%s&endDT=%s&limit=%s&user=plotting' % \
+            query = '?beginDT=%s&endDT=%s&limit=%s&user=plotting&execDPA=true' % \
                     (start_time, end_time, current_app.config['DATA_POINTS'])
         elif dpa_flag == '0' and len(parameter_ids) > 0:
-            if debug: print '\n debug -- Branch C...'
-            query = '?beginDT=%s&endDT=%s&limit=%s&parameters=%s&user=plotting' % \
+            if debug: print '\n debug -- Branch C...MODIFIED'
+            query = '?beginDT=%s&endDT=%s&limit=%s&parameters=%s&user=plotting&execDPA=false' % \
                     (start_time, end_time, current_app.config['DATA_POINTS'], ','.join(parameter_ids))
         elif dpa_flag == '1' and len(parameter_ids) > 0:
             if debug: print '\n debug -- Branch D...'
-            query = '?beginDT=%s&endDT=%s&limit=%s&parameters=%s&user=plotting' % \
+            query = '?beginDT=%s&endDT=%s&limit=%s&parameters=%s&user=plotting&execDPA=true' % \
               (start_time, end_time, current_app.config['DATA_POINTS'], ','.join(map(str, parameter_ids)))
             # (start_time, end_time, current_app.config['DATA_POINTS'], ','.join(parameter_ids))
         else:
