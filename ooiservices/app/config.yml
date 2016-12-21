@@ -71,7 +71,14 @@ COMMON: &common
     # M2M
     UFRAME_HOST:            'localhost'
     UFRAME_ALLOWED_M2M_PORTS:
+      - 12572
+      - 12575
       - 12576
+      - 12577
+      - 12580
+      - 12582
+      - 12585
+      - 12586
       - 12587
       - 12578
 
