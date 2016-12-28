@@ -74,6 +74,7 @@ def verify_cache(refresh=False):
                 message = 'Failed to compile reference designator digests.'
                 current_app.logger.info(message)
                 raise Exception(message)
+
         return data
 
     except Exception as err:

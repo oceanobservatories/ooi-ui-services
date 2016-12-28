@@ -508,9 +508,9 @@ def get_assets_from_uframe():
         start = dt.datetime.now()
         if time: print '\t-- Start time: ', start
         uframe_url, timeout, timeout_read = get_uframe_assets_info()
-        #timeout_extended = timeout_read * 3
+        timeout_extended = timeout_read * 3
         url = '/'.join([uframe_url, get_assets_url_base()])
-        response = requests.get(url, timeout=(timeout, timeout_read))
+        response = requests.get(url, timeout=(timeout, timeout_extended))
         end = dt.datetime.now()
         if time: print '\t-- End time:   ', end
         if time: print '\t-- Time to get uframe assets: %s' % str(end - start)
@@ -1033,16 +1033,16 @@ def uframe_get_deployment_inv():
         url, timeout, timeout_read = get_url_info_deployments_inv()
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
-            message = 'Unable to get uframe deployment inventory for subsite \'%s\'.' % subsite
+            message = 'Unable to get uframe deployment inventory.'
             raise Exception(message)
         result = response.json()
         return result
 
     except ConnectionError:
-        message = 'ConnectionError getting uframe deployment inventory for subsite \'%s\'.' % subsite
+        message = 'ConnectionError getting uframe deployment inventory.'
         raise Exception(message)
     except Timeout:
-        message = 'Timeout getting uframe deployment inventory for subsite \'%s\'.' % subsite
+        message = 'Timeout getting uframe deployment inventory.'
         raise Exception(message)
     except Exception as err:
         message = str(err)
@@ -1340,7 +1340,7 @@ def get_toc_information():
     try:
         url, timeout, timeout_read = get_uframe_toc_url()
         if extended_read:
-            timeout_read = timeout_read * 5
+            timeout_read = timeout_read * 3
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code == 200:
             toc = response.json()

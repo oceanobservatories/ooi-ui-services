@@ -80,7 +80,6 @@ def get_c2_uframe_info(type='instrument'):
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # C2 toc
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# todo - get ports dynamically and do replace.
 def get_uframe_data_info():
     """ Returns uframe data configuration information. (port 12576)
     """
@@ -124,7 +123,7 @@ def get_c2_missions_uframe_info():
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Alerts and Alarms
-# todo - review how exception handling alertalarms.py, then add try/except block here
+# todo - review exception handling alertalarms.py, then add try/except block here
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def get_uframe_alerts_info():
     """ Get uframe alertalarm configuration information.
@@ -160,6 +159,34 @@ def get_uframe_assets_info():
         message = 'Unable to locate UFRAME_ASSETS_URL, UFRAME_TIMEOUT_CONNECT or UFRAME_TIMEOUT_READ in config file.'
         current_app.logger.info(message)
         raise Exception(message)
+
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Camera
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+def get_image_store_url_base():
+    """ Returns configuration file value for IMAGE_STORE.  If error, raise exception.
+    ('ooiservices/cam_images')
+    """
+    try:
+        result = current_app.config['IMAGE_STORE']
+        return result
+    except:
+        message = 'Unable to locate IMAGE_STORE in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+def get_image_camera_store_url_base():
+    """ Returns configuration file value for IMAGE_CAMERA_STORE. (Generally a url to ooi store server for images.)
+    """
+    try:
+        result = current_app.config['IMAGE_CAMERA_STORE']
+        return result
+    except:
+        message = 'Unable to locate IMAGE_CAMERA_STORE in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Cruises
@@ -359,6 +386,19 @@ def get_url_info_resources():
 
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Annotations
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+def get_annotations_base_url():
+    try:
+        result = current_app.config['UFRAME_ANNOTATION_URL'] + current_app.config['UFRAME_ANNOTATION_BASE']
+        return result
+    except:
+        message = 'Unable to form uframe url for annotations using config file variables.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Status
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def get_status_url_base():
@@ -546,25 +586,9 @@ def get_url_info_stream_parameters():
         current_app.logger.info(message)
         raise Exception(message)
 
-"""
-# Used while testing new stream rest api information and /stream and plotting data.
-def stream_new_data():
-    demo = False
-    try:
-        result = current_app.config['NEW_STREAM_INFO']
-        if isinstance(result, bool):
-            if result:
-                demo = True
-        elif isinstance(result, str):
-            if result == 'True' or result == 'true':
-                demo = True
-        return demo
-    except:
-        return False
-"""
+
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Common utility functions
-# todo - note controller.py requires review, mods and test for try/except before using.
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # uframe timeout information
 def get_uframe_timeout_info():

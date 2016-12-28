@@ -13,8 +13,10 @@ Routes:
 __author__ = 'Edna Donoughe'
 
 from flask import jsonify, current_app
+from ooiservices.app import cache
 from ooiservices.app.main.errors import bad_request
 from ooiservices.app.uframe import uframe as api
+from ooiservices.app.uframe.status_tools import get_uid_digests
 from ooiservices.app.uframe.status_tools import (_get_status_arrays, _get_status_sites,
                                                  _get_status_platforms, _get_status_instrument)
 
@@ -91,6 +93,33 @@ def get_status_instrument(instrument_rd):
         current_app.logger.info(message)
         return bad_request(message)
 
+
+@api.route('/build_uid_digests')
+def build_uid_digests():
+    """ Force uid_digests build. (Generally build once overnight, this uses deployments and takes some time to complete.)
+    Responses:
+        Success:
+        {
+          "build_uid_digests": true
+        }
+
+        Failure:
+        {
+          "build_uid_digests": false
+        }
+    """
+    success = False
+    try:
+        uid_digests_cache = get_uid_digests(refresh=True)
+        if uid_digests_cache and uid_digests_cache is not None and 'error' not in uid_digests_cache:
+            uid_digests = cache.get('uid_digests')
+            if uid_digests and uid_digests is not None and 'error' not in uid_digests:
+                success = True
+        return jsonify({'build_uid_digests': success}), 200
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
 #======================================================
 '''
 # Get assets.

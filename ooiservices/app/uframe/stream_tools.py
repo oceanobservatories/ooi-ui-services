@@ -22,10 +22,13 @@ def dfs_streams():
     try:
         retval = []
         streams = []
+        if debug: print '\n debug -- Entered dfs_streams...process_uframe_toc'
         toc = process_uframe_toc()
         if toc is None:
             message = 'The uframe toc response is empty, unable to return stream information.'
+            if debug: print '\n debug -- no toc data returned...'
             raise Exception(message)
+        if debug: print '\n debug -- After process_uframe_toc...'
 
         if debug: print '\n debug -- new stream processing...'
         """
@@ -80,7 +83,7 @@ def get_stream_list(refresh=False):
         if debug: print '\n debug -- Entered get_stream_list, refresh: ', refresh
         stream_list_cached = cache.get('stream_list')
         if debug: print '\n debug -- after get stream_list cache...'
-        if refresh or not stream_list_cached or stream_list_cached is None:
+        if refresh or not stream_list_cached or stream_list_cached is None or 'error' in stream_list_cached:
             if time: print '\nCompiling stream list'
             try:
                 start = dt.datetime.now()
@@ -175,6 +178,7 @@ def new_dict_from_stream(mooring, platform, instrument, stream_type, stream, ref
     Get stream display name from stream engine rest api.
     Get parameter information from stream engine api (todo).
     """
+    from ooiservices.app.uframe.status_tools import get_rd_digests_dict
     warnings = False
     debug = False
     _stream = None
@@ -187,6 +191,38 @@ def new_dict_from_stream(mooring, platform, instrument, stream_type, stream, ref
         stream_name = '_'.join([stream_type, stream])
         ref = '-'.join([mooring, platform, instrument])
         data_dict = {}
+
+        #=====================================
+        latitude = None
+        longitude = None
+        depth = None
+        water_depth = None
+        try:
+            rd_digests_dict = get_rd_digests_dict()
+            if rd_digests_dict and rd_digests_dict is not None:
+                if ref in rd_digests_dict:
+                    digest = rd_digests_dict[ref]
+                    if digest and digest is not None:
+                        latitude = digest['latitude']
+                        longitude = digest['longitude']
+                        depth = digest['depth']
+                        water_depth = digest['waterDepth']
+
+        except Exception as err:
+            message = str(err)
+            if debug: print '\n debug -- (%s) error getting rd_digests_dict: %s' % (ref, message)
+            pass
+
+        if latitude is not None:
+            latitude = round(latitude, 4)
+        if longitude is not None:
+            longitude = round(longitude, 4)
+        data_dict['latitude'] = latitude
+        data_dict['longitude'] = longitude
+        data_dict['depth'] = depth
+        data_dict['water_depth'] = water_depth
+        #===============================
+
 
         #-------------------------------------
         # Added this attribute 2016-11-07, not required for data catalog view but should be considered.
@@ -581,7 +617,7 @@ def process_stream_parameters(_parameters):
 
     """
     debug_parameter_types = False           # List all parameter types identified during processing.
-    debug = True
+    debug = False
     parameters = []
     parameter_types = []
     try:

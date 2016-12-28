@@ -1735,7 +1735,7 @@ def get_rd_digests_dict():
     debug = False
     try:
         rd_digests_dict_cached = cache.get('rd_digests_dict')
-        if rd_digests_dict_cached:
+        if rd_digests_dict_cached and rd_digests_dict_cached is not None and 'error' not in rd_digests_dict_cached:
             rd_digests_dict = rd_digests_dict_cached
         else:
             if debug: print '\n building rd_digest_cache...'

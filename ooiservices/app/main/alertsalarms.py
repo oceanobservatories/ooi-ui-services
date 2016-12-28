@@ -99,7 +99,7 @@ def get_asset_list():
 def get_alert_alarm_status():
     """ Gets the alert alarm status for all available assets.
     """
-    debug = False
+    debug = True
     #the actual alert alarms
     data = get_alerts_alarms_object()
     status_info = []

@@ -16,8 +16,7 @@ celery = create_celery_app('PRODUCTION')
 celery.config_from_object('ooiservices.app.celeryconfig')
 
 
-from ooiservices.app.uframe.controller import _compile_cam_images
-from ooiservices.app.uframe.controller import _compile_large_format_files
+from ooiservices.app.uframe.image_tools import (_compile_cam_images, _compile_large_format_files)
 from ooiservices.app.main.c2 import _compile_c2_toc
 from ooiservices.app.uframe.vocab import compile_vocab
 from ooiservices.app.uframe.stream_tools import get_stream_list
@@ -27,7 +26,7 @@ from ooiservices.app.uframe.asset_tools import verify_cache
 """
 Define the list of processes to run on a scheduled basis.
 Caches created/utilized:
-    For data visualization: cam_images*, large_format*, stream_list
+    For data visualization: cam_images, large_format, stream_list
     For vocabulary: vocab_dict, vocab_codes
     For Command and Control (C2): c2_toc
     For asset information: asset_list, assets_dict.
@@ -37,22 +36,22 @@ Currently Disabled:
 glider_tracks
 """
 
-# cam_images
+# 'cam_images'
 @celery.task(name='tasks.compile_cam_images')
 def compile_cam_images():
     try:
         with current_app.test_request_context():
-            print "[+] Starting cam images cache reset..."
+            print '[+] Starting cam images cache reset...'
             cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
             cache.init_app(current_app)
 
             cam_images = _compile_cam_images()
 
-            if "error" not in cam_images:
+            if 'error' not in cam_images:
                 cache.set('cam_images', cam_images, timeout=CACHE_TIMEOUT)
-                print "[+] cam images cache reset."
+                print '[+] cam images cache reset.'
             else:
-                print "[-] Error in cache update"
+                print '[-] Error in cache update'
     except Exception as err:
         message = 'compile_cam_images exception: %s' % err.message
         current_app.logger.warning(message)
@@ -63,7 +62,7 @@ def compile_cam_images():
 def compile_large_format_files():
     try:
         with current_app.test_request_context():
-            print "[+] Starting large format file cache reset..."
+            print '[+] Starting large format file cache reset...'
             cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
             cache.init_app(current_app)
 
@@ -71,9 +70,9 @@ def compile_large_format_files():
 
             if "error" not in data:
                 cache.set('large_format', data, timeout=CACHE_TIMEOUT)
-                print "[+] large format files updated."
+                print '[+] large format files updated.'
             else:
-                print "[-] Error in large file format update"
+                print '[-] Error in large file format update'
     except Exception as err:
         message = 'compile_large_format_files exception: %s' % str(err)
         current_app.logger.warning(message)
