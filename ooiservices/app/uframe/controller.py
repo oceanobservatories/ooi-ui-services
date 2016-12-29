@@ -272,25 +272,26 @@ def get_uframe_instrument_metadata(ref):
 def get_uframe_instrument_metadata_parameters(ref):
     """ Returns the uFrame metadata parameters for a given stream.
     """
+    results = []
     try:
         mooring, platform, instrument = ref.split('-', 2)
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, mooring, platform, instrument, 'metadata', 'parameters'])
         response = requests.get(url, timeout=(timeout, timeout_read))
-        return response
+        if response.status_code == 200:
+            results = response.json()
+        return jsonify(parameters=results), 200
     except ConnectionError:
         message = 'ConnectionError getting uframe stream metadata parameters.'
         current_app.logger.info(message)
-        #raise Exception(message)
-        return _response_internal_server_error(message)
+        return bad_request(message)
     except Timeout:
         message = 'Timeout getting uframe stream metadata parameters.'
         current_app.logger.info(message)
-        #raise Exception(message)
-        return _response_internal_server_error(message)
+        return bad_request(message)
     except Exception as err:
         message = str(err)
-        return _response_internal_server_error(message)
+        return bad_request(message)
 
 
 @auth.login_required
@@ -299,29 +300,27 @@ def get_uframe_stream_metadata_times(ref):
     """ Returns the uFrame time bounds response for a given stream.
     """
     mooring, platform, instrument = ref.split('-', 2)
+    results = []
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, mooring, platform, instrument, 'metadata','times'])
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code == 200:
-            return response
-        return jsonify(times={}), 200
+            results = response.json()
+        return jsonify(times=results), 200
     except ConnectionError:
         message = 'ConnectionError getting uframe stream metadata times.'
         current_app.logger.info(message)
-        #raise Exception(message)
-        return _response_internal_server_error(message)
+        return bad_request(message)
     except Timeout:
         message = 'Timeout getting uframe stream metadata times.'
         current_app.logger.info(message)
-        #raise Exception(message)
-        return _response_internal_server_error(message)
+        return bad_request(message)
     except Exception as err:
         message = 'Error getting uframe stream metadata times, ' + str(err)
         current_app.logger.info(message)
-        #return internal_server_error(message)
         message = str(err)
-        return _response_internal_server_error(message)
+        return bad_request(message)
 
 
 #@auth.login_required

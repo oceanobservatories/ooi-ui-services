@@ -12,25 +12,22 @@ from ooiservices.app.main.authentication import auth
 from ooiservices.app.alfresco import alfresco as api
 # utilities from alfresco bp
 from ooiservices.app.alfresco.utils import AlfrescoCMIS as ACMIS
+from ooiservices.app.main.errors import internal_server_error
+
 
 @api.route('/', methods=['GET'])
 @auth.login_required
 def get_alfresco_connection():
-    '''
-    Inspect the current connection to the cmis client (alfresco)
-    '''
-    # make the alfresco connection and store the repo obj
-
+    """ Inspect the current connection to the cmis client (alfresco)
+    """
     try:
+        # Make the alfresco connection and store the repo obj
         alf = ACMIS()
         repo = alf.make_alfresco_conn()
     except Exception as e:
         current_app.logger.info(e)
-        error_response = \
-            {'error': 'Alfresco configuration not set or incorrect',
-            'status_code': 500}
-        response = make_response(jsonify(error_response), 500)
-        return response, response.status_code
+        message = 'Alfresco configuration not set or incorrect'
+        return internal_server_error(message)
 
     # return the information in the repo object
     info = repo.info
@@ -44,74 +41,87 @@ def get_alfresco_connection():
 @api.route('/', methods=['POST'])
 @auth.login_required
 def get_alfresco_ticket():
-    '''
-    POSTing to alfresco root will return the ticket generated from
-    the services.
-    '''
+    """ POSTing to alfresco root will return the ticket generated from the services.
+    """
     try:
-        alf = ACMIS()
-        ticket = alf.make_alfresco_ticket()
-    except Exception as e:
-        current_app.logger.info(e)
-        error_response = {'error': 'Alfresco configuration invalid,' +
-            ' cannot create ticket.', 'status_code': 500}
-        response = make_response(jsonify(error_response), 500)
-        return response, response.status_code
+        ticket = _get_alfresco_ticket()
+        return ticket
+    except Exception as err:
+        message = str(err)
+        return internal_server_error(message)
 
-    if not ticket:
-        error_response = {'error': 'Alfresco ticket invalid,' +
-            ' cannot create ticket.', 'status_code': 500}
-        response = make_response(jsonify(error_response), 500)
-        return response, response.status_code
 
-    # massage the response a little . . .
-    ticket_num = None
-    if ticket:
-        ticket_num = json.loads(ticket._content)
-    if ticket_num:
-        if 'data' not in ticket_num:
-            response = make_response(jsonify(ticket_num), 500)
-            return response, response.status_code
+def _get_alfresco_ticket():
+    """ Return the ticket generated from the alfresco services.
+    """
+    try:
+        try:
+            alf = ACMIS()
+            ticket = alf.make_alfresco_ticket()
+        except Exception as e:
+            current_app.logger.info(e)
+            message = 'Alfresco configuration invalid, cannot create ticket.'
+            raise Exception(message)
 
-        ticket = ticket_num['data']['ticket']
+        if not ticket:
+            message = 'Alfresco ticket invalid, cannot create ticket.'
+            raise Exception(message)
 
-    return ticket
+        # massage the response a little . . .
+        ticket_num = None
+        if ticket:
+            ticket_num = json.loads(ticket._content)
+        if ticket_num:
+            if 'data' not in ticket_num:
+                message = 'Data not provided in ticket: %s' % jsonify(ticket_num)
+                raise Exception(message)
+            ticket = ticket_num['data']['ticket']
+
+        return ticket
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
 
 
 @api.route('/documents', methods=['GET'])
-@auth.login_required
+#@auth.login_required
 def get_doc():
-    '''
-    This is a general search query for now, it may take a while to
-    get a response!
-    '''
-    query = request.args['search']
-    cruise = request.args['cruise']
-    array = request.args['array']
-    # since we'll need the ticket to access any of these
-    # documents, lets send it over with the payload . . .
-    ticket = get_alfresco_ticket()
+    """ Get cruise or asset document or general search. General search may take time to respond.
+    """
+    query = request.args.get('search', '')
+    cruise_name = request.args.get('cruise', '')
+    array = request.args.get('array', '')
+    # Get the ticket to access any of these documents, and return in payload. (Calling function, not route!)
+    ticket = _get_alfresco_ticket()
+    cruise = None
+    results = []
     try:
         alf = ACMIS()
+        # Process cruise_name (cruises display)
+        if cruise_name:
+            results, cruise = alf.get_cruise_documents(cruise_name)
 
-        results,cruise = alf.make_alfresco_cruise_query(array,cruise)
+        # Process array (assets page)
+        elif array:
+            results, cruise = alf.make_alfresco_cruise_query(array, cruise_name)
 
-        #results = alf.make_alfresco_query(query)
+        # Process search parameter for query. (Asset page? Reference designator?)
+        elif query:
+            results = alf.make_alfresco_query(query)
+
     except cmislib.exceptions.ObjectNotFoundException as e:
         current_app.logger.info(e)
-        error_response = {'error': 'Document not found,' +
-            ' cannot create download link.', 'status_code': 404}
+        error_response = {'error': 'Document not found, cannot create download link.', 'status_code': 404}
         response = make_response(jsonify(error_response), 404)
         return response, response.status_code
     except Exception as e:
         current_app.logger.info(e)
-        error_response = {'error': 'Alfresco configuration invalid,' +
-            ' cannot create download link.', 'status_code': 500}
+        error_response = {'error': 'Alfresco configuration invalid, cannot create download link.', 'status_code': 500}
         response = make_response(jsonify(error_response), 500)
         return response, response.status_code
 
     result_list = []
-    #add the cruise information
+    # Add the cruise information
     if cruise is not None:
         result_dict = {}
         result_dict['name'] = cruise.name
@@ -120,7 +130,7 @@ def get_doc():
         result_dict['url'] = alf.make_alfresco_page_link(cruise.id, ticket)
         result_list.append(result_dict)
 
-    #add the results
+    # Add the results
     for result in results:
         result_dict = {}
         result_dict['name'] = result.name

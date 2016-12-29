@@ -73,10 +73,46 @@ class AlfrescoCMIS(object):
 
         return results
 
-    def make_alfresco_cruise_query(self, array,cruise):
-        '''
-        query the alfresco server for all documents relating to a cruise
-        '''
+
+    def get_cruise_documents(self, cruise):
+        """
+         Get_cruise_documents for KN-222
+        =====Pioneer-3_Leg-1_KN-222_2014-10-03=====
+          -- 3204-00302_Quick_Look_Cruise_Report_Coastal_Pioneer_3_Leg_1_2015-01-29_Ver_1-00.pdf workspace://SpacesStore/5b22d992-7165-4e5b-80aa-5e6cca46fdd5
+          -- 3204-00301_Cruise_Plan_Coastal_Pioneer_3_Leg_1_2014-10-02_Ver_1-00.pdf workspace://SpacesStore/afac7be0-8b79-421e-86a9-70fd65f24270
+          -- 3204-00303_Cruise_Report_Coastal_Pioneer_3_Leg_1_2015-04-28_Ver_1-00.pdf workspace://SpacesStore/30d41068-2714-443a-bd92-660319cf9f68
+
+        document.name:  3204-00303_Cruise_Report_Coastal_Pioneer_3_Leg_1_2015-04-28_Ver_1-00.pdf
+        document.id:    workspace://SpacesStore/30d41068-2714-443a-bd92-660319cf9f68
+        """
+        # Create the cmis client
+        client = CmisClient(self.ALFRESCO_URL, self.ALFRESCO_UN, self.ALFRESCO_PW)
+
+        # Connect to the alfresco server and return the repo object
+        repo = client.getRepository(self.ALFRESCO_ID)
+
+        cruise_param = '%'+cruise+'%'
+        query_folder_id = "select cmis:objectId, cmis:name from cmis:folder where cmis:name like '" +cruise_param+ "'"
+        folders = repo.query(query_folder_id)
+        cruise_id = None
+        documents = []
+        # Get items in folder
+        for folder in folders:
+            cruise_id = folder
+            cruise_id.type = 'cruise'
+            query_get_files = "select cmis:objectId, cmis:name from cmis:document where in_folder('%s') order by cmis:lastModificationDate desc" % folder.id
+            documents = repo.query(query_get_files)
+            for document in documents:
+                #print "  --", document.name, document.id
+                document.type = 'cruise'
+            # UI can only process one set at a time with current response structure.
+            break
+
+        return documents, cruise_id
+
+    def make_alfresco_cruise_query(self, array, cruise):
+        """ Query the alfresco server for all documents relating to a cruise
+        """
         # create the cmis client
         client = CmisClient(self.ALFRESCO_URL, self.ALFRESCO_UN, self.ALFRESCO_PW)
 
@@ -105,7 +141,7 @@ class AlfrescoCMIS(object):
                     cruise_id = r
                     break
 
-            #only should the cruise information if its availablep
+            # Only if the cruise information if its available.
             if cruise_id is not None:
                 cruise_results = repo.query("select * FROM cmis:document where IN_FOLDER('"+cruise_id.id+"')")
                 for c in cruise_results:
@@ -115,7 +151,7 @@ class AlfrescoCMIS(object):
                 return cruise_results,cruise_id
 
         #return the defaults if not available
-        return results,cruise_id
+        return results, cruise_id
 
     def make_alfresco_page_link(self,id,ticket):
         '''
@@ -142,7 +178,6 @@ class AlfrescoCMIS(object):
         # and before we return, we just need to combine all three parts
         # to make a nice url for a authenticated user to download.
 
-        download_url = ''.join((self.ALFRESCO_DL_URL, '/',
-            hex_id, '?alf_ticket=', ticket))
+        download_url = ''.join((self.ALFRESCO_DL_URL, '/', hex_id, '?alf_ticket=', ticket))
 
         return download_url

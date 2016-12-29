@@ -38,12 +38,6 @@ def _compile_cam_images():
     Proposed modifications:
     - Add standard config retrieval of config file variables IMAGE_CAMERA_STORE and IMAGE_STORE
 
-    debug -- value of ss:  [<a href="javascript:help();">Documentation</a>, <a href="?C=N;O=D">Name</a>,
-    <a href="?C=M;O=A">Last modified</a>, <a href="?C=S;O=A">Size</a>, <a href="?C=D;O=A">Description</a>,
-    <a href="/">Parent Directory</a>, <a href="CE01ISSM/">CE01ISSM/</a>, <a href="CE01ISSP/">CE01ISSP/</a>,
-    <a href="CE02SHBP/">CE02SHBP/</a>, <a href="CE02SHSM/">CE02SHSM/</a>, <a href="CE02SHSP/">CE02SHSP/</a>,
-    <a href="CE04OSBP/">CE04OSBP/</a>,
-
     Example where png exists:
     https://rawdata.oceanobservatories.org/files/RS01SBPS/PC01A/07-CAMDSC102/2016/05/27/RS01SBPS-PC01A-07-CAMDSC102_20160527T215459,693.png
 
@@ -57,7 +51,9 @@ def _compile_cam_images():
         baseUrl:"/api/uframe/get_cam_image/"
       }
     """
-    debug = False
+    debug = True
+    max_count = 50
+    total_count = 0
     image_list = []
     try:
         # List of dictionaries from cache inventory associated with png files.
@@ -73,34 +69,39 @@ def _compile_cam_images():
 
             # Add the images to the to the folder cache.
             completed= []
-            count = 0
+            process_count = 0
             for image_item in data_image_list:
                 try:
+                    """
                     if debug:
                         print '\n Image item to be processed: '
                         dump_dict(image_item, debug)
+                    """
 
                     # Hack for filename (temporary while fixing large_format cache).
                     tmp = image_item['filename'].split('_')
                     tmp_rd = tmp[0]
-                    if debug: print '\n debug -- rd from filename: ', tmp_rd
+                    #if debug: print '\n debug -- rd from filename: ', tmp_rd
                     new_filename = image_item['filename'].split('.')[0] + '_thumbnail.png'
 
                     # Remove command and use underscore, see if this helps thumbnail display. (if not remove)
                     new_filename = new_filename.replace(',', '_')
 
-                    if debug: print '\n debug -- new_filename: ', new_filename
+                    #if debug: print '\n debug -- new_filename: ', new_filename
                     new_filepath = get_image_store_url_base() + '/' + new_filename
-                    if debug: print '\n debug -- new_filepath: ', new_filepath
+                    #if debug: print '\n debug -- new_filepath: ', new_filepath
 
-                    if debug: print '\n debug -- Processing image_item[datetime]: ', image_item['datetime']
+                    #if debug: print '\n debug -- Processing image_item[datetime]: ', image_item['datetime']
                     dt = urllib.unquote(image_item['datetime']).decode('utf8')
                     dt = dt.replace(',', '.')
-                    if debug: print '\n debug -- dt: ', dt
+                    #if debug: print '\n debug -- dt: ', dt
 
-                    # Check its not already added and doesnt already exist, if so download it.
+                    # Check its not already added and doesn't already exist, if so download it.
                     thumbnail = False
                     if image_item['url'] not in completed and not os.path.isfile(new_filepath):
+                        if debug:
+                            print '\n Image item to be processed: '
+                            dump_dict(image_item, debug)
                         response = requests.get(image_item['url'], timeout=(timeout, timeout_read))
                         if response.status_code != 200:
                             message = 'Failed to get image \'%s\' from server.' % image_item['url']
@@ -115,28 +116,31 @@ def _compile_cam_images():
                         thumb.save(new_filepath)
                         completed.append(image_item['url'])
                         thumbnail = True
+                        process_count += 1
 
                     # Using manufactured reference designator for workaround, should be image_item['rd'],
                     # Use modified filename also instead of image_item['filename']
-                    if thumbnail:
-                        item = {"url": image_item['url'],
-                                "filename": new_filename,
-                                "reference_designator": tmp_rd,
-                                "datetime": dt,
-                                "thumbnail": new_filepath,
-                                "baseUrl":"/api/uframe/get_cam_image/"}
-                        image_list.append(item)
+                    item = {"url": image_item['url'],
+                            "filename": new_filename,
+                            "reference_designator": tmp_rd,
+                            "datetime": dt,
+                            "thumbnail": new_filepath,
+                            "baseUrl":"/api/uframe/get_cam_image/"}
+                    image_list.append(item)
 
-                    if debug: print '\n Processed image item...'
-                    count += 1
-                    if count >= 10:
+                    if thumbnail and debug: print '\n Processed image item...'
+
+
+                    total_count += 1
+                    if debug:
+                        print '-- Process count: ', process_count
+                        print '-- Total Count: ', total_count
+
+                    if total_count >= max_count:
                         break
                 except Exception as err:
                     print 'Error: ', str(err)
-                    if debug:
-                        import sys
-                        sys.exit(1)
-                    #continue
+                    continue
 
         return image_list
 
@@ -228,6 +232,7 @@ def get_data_image_list():
                         image_list.extend(file_list)
 
         print '\n Number of entries in image_list: ', len(image_list)
+        image_list.sort(key=lambda x: (x['rd'], x['date']), reverse=True)
         return image_list
     except Exception as err:
         message = str(err)

@@ -122,14 +122,17 @@ def get_uframe_cam_images():
     """ Get cam images.
     """
     try:
-        cached = cache.get('cam_images')
+        """
         will_reset_cache = False
         if request.args.get('reset') == 'true':
             will_reset_cache = True
+        """
 
-        if cached and not(will_reset_cache):
+        cached = cache.get('cam_images')
+        if cached and cache is not None and 'error' not in cached: # and not(will_reset_cache):
             data = cached
         else:
+            print '\n-- Generating cam_images cache...'
             data = _compile_cam_images()
             if data and data is not None and 'error' not in data:
                 cache.set('cam_images', data, timeout=CACHE_TIMEOUT)

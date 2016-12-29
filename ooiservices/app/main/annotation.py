@@ -36,7 +36,6 @@ def get_refdes(anno_record):
 def get_refdes_parts(anno_record):
     """ Given an annotation record with a reference designator, return the corresponding subsite, node and sensor.
     """
-    #current_app.logger.debug('get_refdes_parts(%r)', anno_record)
     subsite = node = sensor = None
     refdes = anno_record.get('referenceDesignator')
     parts = refdes.split('-', 2)
@@ -67,7 +66,7 @@ def millis_to_timestamp(millis):
     """ Convert milliseconds since 1970-1-1 to a python datetime object.
     """
     try:
-        if isinstance(millis, int) and millis > 0:
+        if (isinstance(millis, int) or isinstance(millis, long)) and millis > 0:
             return datetime.utcfromtimestamp(millis / 1000.0)
         else:
             return None
@@ -75,6 +74,7 @@ def millis_to_timestamp(millis):
         message = 'Exception: millis_to_timestamp(%r), %s' % (millis, str(err))
         current_app.logger.debug(message)
         return None
+
 
 def remap_uframe_to_ui(anno_record):
     """ Remap the annotation record with a reference designator and human-readable timestamps.
