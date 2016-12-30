@@ -88,6 +88,7 @@ def get_uframe_large_format_files():
             data = _compile_large_format_files()
             if data and data is not None and 'error' not in data:
                 cache.set('large_format', data, timeout=CACHE_TIMEOUT)
+        print '\n Number of items in large_format cache(%d): %s' % (len(data), data.keys())
         return jsonify(data)
     except Exception as err:
         message = str(err)
@@ -95,7 +96,7 @@ def get_uframe_large_format_files():
         return bad_request(message)
 
 
-# Get camera image.
+# Get single camera thumbnail image.
 @api.route('/get_cam_image/<string:image_id>.png', methods=['GET'])
 def get_uframe_cam_image(image_id):
     """
@@ -138,6 +139,7 @@ def get_uframe_cam_images():
                 cache.set('cam_images', data, timeout=CACHE_TIMEOUT)
         if not data or data is None:
             data = []
+
         return jsonify({"cam_images": data})
 
     except Exception as err:

@@ -51,15 +51,21 @@ def _compile_cam_images():
         baseUrl:"/api/uframe/get_cam_image/"
       }
     """
-    debug = True
-    max_count = 50
+    debug = False
+    time = True
+    max_count = 10
     total_count = 0
     image_list = []
     try:
+        # Provide time to complete information
+        if time: print '\nCompiling camera images'
+        start = datetime.now()
+        if time: print '\t-- Start time: ', start
+
         # List of dictionaries from cache inventory associated with png files.
         data_image_list = get_data_image_list()
         if data_image_list:
-
+            if debug: print '\n Number of images available to process: ', len(data_image_list)
             timeout, timeout_read = get_uframe_timeout_info()
 
             # Create a dictionary of images for data items in image list.
@@ -98,25 +104,33 @@ def _compile_cam_images():
 
                     # Check its not already added and doesn't already exist, if so download it.
                     thumbnail = False
-                    if image_item['url'] not in completed and not os.path.isfile(new_filepath):
-                        if debug:
-                            print '\n Image item to be processed: '
-                            dump_dict(image_item, debug)
-                        response = requests.get(image_item['url'], timeout=(timeout, timeout_read))
-                        if response.status_code != 200:
-                            message = 'Failed to get image \'%s\' from server.' % image_item['url']
-                            if debug: print '\n error: ', message
-                            continue
+                    try:
+                        if image_item['url'] not in completed and not os.path.isfile(new_filepath):
+                            if debug:
+                                print '\n Image item to be processed: '
+                                dump_dict(image_item, debug)
+                            response = requests.get(image_item['url'], timeout=(timeout, timeout_read))
+                            if response.status_code != 200:
+                                message = 'Failed to get image \'%s\' from server.' % image_item['url']
+                                if debug: print '\n error: ', message
+                                continue
 
-                        if debug: print '\n debug -- Generate thumbnail...'
-                        img = Image.open(StringIO(response.content))
-                        thumb = img.copy()
-                        maxsize = (200, 200)
-                        thumb.thumbnail(maxsize, PIL.Image.ANTIALIAS)
-                        thumb.save(new_filepath)
-                        completed.append(image_item['url'])
-                        thumbnail = True
-                        process_count += 1
+                            if debug: print '\n debug -- Generate thumbnail...'
+                            img = Image.open(StringIO(response.content))
+                            thumb = img.copy()
+                            maxsize = (200, 200)
+                            thumb.thumbnail(maxsize, PIL.Image.ANTIALIAS)
+                            thumb.save(new_filepath)
+                            completed.append(image_item['url'])
+                            thumbnail = True
+                            process_count += 1
+                    except Exception as err:
+                        message = str(err)
+                        process_count -= 1
+                        current_app.logger.info(message)
+                        continue
+
+
 
                     # Using manufactured reference designator for workaround, should be image_item['rd'],
                     # Use modified filename also instead of image_item['filename']
@@ -130,11 +144,12 @@ def _compile_cam_images():
 
                     if thumbnail and debug: print '\n Processed image item...'
 
-
+                    # Counters
                     total_count += 1
                     if debug:
-                        print '-- Process count: ', process_count
-                        print '-- Total Count: ', total_count
+                        if process_count > 0:
+                            print '-- Process count: ', process_count
+                        print '-- Total Count: %d and current image_list: %d' % (total_count, len(image_list))
 
                     if total_count >= max_count:
                         break
@@ -142,6 +157,11 @@ def _compile_cam_images():
                     print 'Error: ', str(err)
                     continue
 
+        print '\t\n-- Number of images processed: ', len(image_list)
+        end = datetime.now()
+        if time:
+            print '\t-- End time:   ', end
+            print '\t-- Time to compile camera images: %s' % str(end - start)
         return image_list
 
     except ConnectionError:
@@ -162,7 +182,7 @@ def _compile_cam_images():
 def get_data_image_list():
     """ Get list of image items for thumbnail processing using 'large_format' cache.
 
-    Processing folloing content from 'large_format':
+    Processing following content from 'large_format':
     {
       "result": {
         "RS01SBPS-PC01A-07-CAMDSC": {
@@ -229,9 +249,11 @@ def get_data_image_list():
                         day = str(day)
                         file_list = large_format_cache[rd][year][month][day]
                         if debug: print '\n\t Year %s Month %s Day %s Files: %d' % (year, month, day, len(file_list))
-                        image_list.extend(file_list)
+                        for file in file_list:
+                            if file['ext'] == '.png':
+                                image_list.append(file)
 
-        print '\n Number of entries in image_list: ', len(image_list)
+        print '\n-- Number of images available: ', len(image_list)
         image_list.sort(key=lambda x: (x['rd'], x['date']), reverse=True)
         return image_list
     except Exception as err:
@@ -255,12 +277,18 @@ def _compile_large_format_files(test_ref_des=None, test_date_str=None):
 
     """
     debug = False
+    time = True
     #filetypes_to_check = ['-HYD', '-OBS', '-CAMDS', '-CAMHD', '-ZPL']
     #extensions_to_check = ['.mseed', '.png', '.mp4', '.mov', '.raw']
-    extensions_to_check = ['.png']
-    filetypes_to_check = ['-CAMDS']
+    filetypes_to_check = ['-CAMDS', '-CAMHD']
+    extensions_to_check = ['.png', '.mp4', '.mov']
     try:
         if debug: print '\n debug -- Entered _compile_large_format_files...'
+
+        if time: print '\nCompiling large format files'
+        start = datetime.now()
+        if time: print '\t-- Start time: ', start
+
         testing = False
         test_year = None
         test_month = None
@@ -277,7 +305,7 @@ def _compile_large_format_files(test_ref_des=None, test_date_str=None):
         base_url = get_image_camera_store_url_base()
         timeout, timeout_read = get_uframe_timeout_info()
         r = requests.get(base_url, timeout=(timeout, timeout_read))
-        if debug: print '\n debug -- r.status_code: ', r.status_code
+        #if debug: print '\n debug -- r.status_code: ', r.status_code
 
         # Process returned content for links.
         soup = BeautifulSoup(r.content, "html.parser")
@@ -308,28 +336,17 @@ def _compile_large_format_files(test_ref_des=None, test_date_str=None):
                 #if debug: print '\n debug -- s.attrs[href]: ', s.attrs['href']
                 len_href = len(s.attrs['href'])
                 if len_href == 9 or len_href == 15 or len_href == 28:
-                    if debug: print '\n debug -- ss_reduced: ', s.attrs['href']
+                    #if debug: print '\n debug -- ss_reduced: ', s.attrs['href']
                     ss_reduced.append(s)
 
-        if debug: print '\n debug -- The root folder items: ', ss_reduced
-
-        debug_ss_reduced = []
-        if debug:
-            for s in ss_reduced:
-                # Just work cabled array for testing.
-                rd = s.attrs['href']
-                process = False
-                if rd and len(rd) == 9 or len(rd) == 15:
-                    if rd[0:2] == 'RS':
-                        debug_ss_reduced.append(s.attrs['href'])
-
-            print '\n debug -- debug_ss_reduced(%d): %s: ' % (len(debug_ss_reduced), debug_ss_reduced)
+        if debug: print '\n debug -- The root folder items: ', len(ss_reduced)
 
         subfolder = []
         subsite = None
         platform = None
         sensor = None
         node = None
+        array_codes = ['CE', 'RS']
         for s in ss_reduced:
             #-----------------------------------------------
             # Just work cabled array for testing.
@@ -342,10 +359,12 @@ def _compile_large_format_files(test_ref_des=None, test_date_str=None):
                 else:
                     platform = rd[:-1]
                     if debug: print '\n debug -- Platform: ', platform
-                if rd[0:2] == 'RS':
+
+                if rd[0:2] in array_codes:
                     process = True
             if not process:
                 continue
+            #-----------------------------------------------
             print '\n ---- Processing root element %s...' % rd
             d_url = base_url+s.attrs['href']
             #if debug: print '\n debug -- d_url: ', d_url
@@ -356,18 +375,6 @@ def _compile_large_format_files(test_ref_des=None, test_date_str=None):
 
             if not subfolders:
                 continue
-
-            """
-            debug -- subfolders(1): [u'MJ03C/']
-            debug -- url_list(1): [u'https://rawdata.oceanobservatories.org/files/RS03INT1/MJ03C/']
-            debug -- Now walking subfolders...
-            debug -- Entered _get_subfolder_list... https://rawdata.oceanobservatories.org/files/RS03INT1/MJ03C/
-            debug -- (subfolder search) MJ03C/ subfolders(3): [u'05-CAMDSB303/', u'CAMDSB303/', u'MASSPA301/']
-            debug -- (subfolder search) MJ03C/ url_list(3):
-                [u'https://rawdata.oceanobservatories.org/files/RS03INT1/MJ03C/05-CAMDSB303/',
-                u'https://rawdata.oceanobservatories.org/files/RS03INT1/MJ03C/CAMDSB303/',
-                u'https://rawdata.oceanobservatories.org/files/RS03INT1/MJ03C/MASSPA301/']
-            """
 
             if debug: print '\n debug -- Now walking subfolders...'
             node_subfolders = []
@@ -519,8 +526,9 @@ def _compile_large_format_files(test_ref_des=None, test_date_str=None):
                                                                     tmp = tmp.replace(month, '')
                                                                     tmp = tmp.replace(year, '')
                                                                     tmp = tmp.replace(base_url, '')
+                                                                    tmp = tmp.rstrip('/')
                                                                     tmp = tmp.replace('/','-')
-                                                                    tmp = tmp[:-1]
+                                                                    #tmp = tmp[:-1]
                                                                     if debug: print '\n ====== tmp: ', tmp
                                                                     ref_des = tmp
                                                                     item['rd'] = tmp[:]
@@ -559,6 +567,10 @@ def _compile_large_format_files(test_ref_des=None, test_date_str=None):
                     if debug: print '\n debug -- item %s is not a folder.' % item
                     continue
 
+        end = datetime.now()
+        if time:
+            print '\t-- End time:   ', end
+            print '\t-- Time to compile large format files: %s' % str(end - start)
         if debug:
             #print '\n debug -- data_dict: ', len(data_dict)
             print '\n debug -- Exit _compile_large_format_files...'
@@ -579,8 +591,11 @@ def _get_subfolder_list(url, search_filter):
     debug = False
     #filetypes_to_check = ['-HYD', '-OBS', '-CAMDS', '-CAMHD', '-ZPL']
     #extensions_to_check = ['.mseed', '.png', '.mp4', '.mov', '.raw']
-    filetypes_to_check = ['-HYD', '-OBS', '-CAMDS', '-CAMHD', '-ZPL']
-    extensions_to_check = ['.png']
+    foldertypes_to_check = ['-CAMHD']
+    #filetypes_to_check = ['CAMHD']
+    #extensions_to_check = ['.mp4', '.mov']
+    filetypes_to_check = ['CAMDS', 'CAMHD']
+    extensions_to_check = ['.png', '.mp4', '.mov']
     try:
         if debug:
             print '\n debug -- Entered _get_subfolder_list...', url
@@ -595,7 +610,7 @@ def _get_subfolder_list(url, search_filter):
         file_list = []
         for s in ss:
             if 'href' in s.attrs:
-                if debug: print '\n (1) s.attrs[href]: ', s.attrs['href']
+                if debug: print ' (1) s.attrs[href]: ', s.attrs['href']
                 if ';' not in s.attrs['href'] and 'files' not in s.attrs['href'] and '=' not in s.attrs['href']:
 
                     if '/' in s.attrs['href'] and not './' in s.attrs['href']:
@@ -609,28 +624,32 @@ def _get_subfolder_list(url, search_filter):
 
 
                         # Filter by file type.
-                        if any(filetype in s.attrs['href'] for filetype in filetypes_to_check):
-                            if debug: print '\t debug -- ok filetype: ', s.attrs['href']
-                            #if s.attrs['href'] not in file_list:
-                            #    file_list.append(s.attrs['href'])
+                        #if any(filetype in s.attrs['href'] for filetype in filetypes_to_check):
+                        good_filetype = False
+                        for filetype in filetypes_to_check:
+                            if debug: print '\n debug -- ****** Checking filetype: ', filetype
+                            if filetype in working_attrs:
+                                if debug: print '\n debug -- Good filetype: %s in %s' % (filetype, working_attrs)
+                                good_filetype = True
+                                break
+                            else:
+                                if debug: print '\n Bad filetype %s in %s' % (filetype, working_attrs)
+                                continue
+                        if not good_filetype:
+                            continue
+                        if debug: print '\t debug -- Ok filetype: ', working_attrs
+                        #if s.attrs['href'] not in file_list:
+                        #    file_list.append(s.attrs['href'])
 
-                            # Filter by file extension.
-                            #if debug: print '\n\t debug -- check extensions...'
-                            for ext in extensions_to_check:
-                                #if debug: print '\t\t debug -- Check %s in %s...' % (ext, s.attrs['href'])
-                                if ext in s.attrs['href']:
-                                    #if debug: print '\n\t debug -- good extension...'
-                                    if working_attrs not in file_list:
-                                        file_list.append(working_attrs)
-                                        break
-                """
-                else:
-                    if debug: print '\n debug ***** Else branch for s.attrs[href]: ', s.attrs['href']
-                """
-                """
-                if search_filter in s.attrs['href']:
-                    url_list.append(url.split('contents.html')[0]+s.attrs['href'])
-                """
+                        # Filter by file extension.
+                        #if debug: print '\n\t debug -- check extensions...'
+                        for ext in extensions_to_check:
+                            #if debug: print '\t\t debug -- Check %s in %s...' % (ext, s.attrs['href'])
+                            if ext in s.attrs['href']:
+                                #if debug: print '\n\t debug -- good extension...'
+                                if working_attrs not in file_list:
+                                    file_list.append(working_attrs)
+                                    break
         if debug:
             if file_list:
                 print '\n Returning a file list: ', file_list
@@ -650,138 +669,3 @@ def _get_subfolder_list(url, search_filter):
         if debug: print '\n debug -- Exception _get_subfolder_list...', message
         current_app.logger.info(message)
         return [], []
-
-
-#=================================
-# Staged for removal
-#=================================
-# Deprecated
-'''
-def _create_image_entry(url):
-    """ Decode a url into its metadata.
-    """
-    debug = False
-    try:
-        # Get the filename and other metadata
-        filename = url.split('/')[-1]
-        ref_date = filename.split('.png')[0].split('_')
-        thumbnail = filename.replace('.png', '_thumbnail.png')
-        dt = urllib.unquote(ref_date[1]).decode('utf8')
-        dt = dt.replace(',', '.')
-        item = {"url": url,
-                "filename": filename,
-                "reference_designator": str(ref_date[0]),
-                "datetime": dt,
-                "thumbnail": thumbnail}
-        return item
-    except Exception as err:
-        message = str(err)
-        if debug: print '\n debug -- Exception _create_image_entry...', message
-        current_app.logger.info(message)
-        raise Exception(message)
-'''
-
-# Deprecated
-'''
-def _get_folder_list(url, search_filter):
-    """ Get url folder link list.
-    """
-    debug = False
-    try:
-        if debug:
-            print '\n debug -- Entered _get_folder_list...'
-            #print '\n debug -- search_filter: ', search_filter
-        timeout, timeout_read = get_uframe_timeout_info()
-        r = requests.get(url, timeout=(timeout, timeout_read))
-        soup = BeautifulSoup(r.content, "html.parser")
-        ss = soup.findAll('a')
-        url_list = []
-        subfolders = []
-        for s in ss:
-            if 'href' in s.attrs:
-                if ';' not in s.attrs['href'] and 'files' not in s.attrs['href'] and '=' not in s.attrs['href']:
-                    subfolders.append(s.attrs['href'])
-                    url_list.append(url + s.attrs['href'])
-                """
-                if search_filter in s.attrs['href']:
-                    url_list.append(url.split('contents.html')[0]+s.attrs['href'])
-                """
-
-        if debug:
-            print '\n debug -- subfolders(%d): %s' % (len(subfolders), subfolders)
-            print '\n debug -- url_list(%d): %s' % (len(url_list), url_list)
-        return url_list
-
-    except ConnectionError:
-        message = 'ConnectionError getting image files.'
-        current_app.logger.info(message)
-        #raise Exception(message)
-        return []
-    except Timeout:
-        message = 'Timeout getting image files.'
-        current_app.logger.info(message)
-        #raise Exception(message)
-        return []
-    except Exception as err:
-        message = str(err)
-        if debug: print '\n debug -- Exception _get_folder_list...', message
-        current_app.logger.info(message)
-        #raise Exception(message)
-        return []
-'''
-
-# Deprecated
-'''
-def _create_entry(url, ext):
-    """ Create the JSON object for this file.
-
-    Get the filename and other metadata
-       ZPL .raw = CE02SHBP-MJ01C-07-ZPLSCB101_OOI-D20150802-T230543.raw
-       HYD .mseed = OO-HYEA2--YDH.2015-09-03T23:55:06.365250.mseed
-       CAMDS .png = CE02SHBP-MJ01C-08-CAMDSB107_20150818T214937,543Z.png
-       OBS .mseed = OO-HYSB1--BHE.2015-09-03T23:54:37.100000.mseed
-       CAMHD .mov = CAMHDA301-20151119T210000Z.mov
-       CAMHS .mp4 = CAMHDA301-20151119T210000Z.mp4
-
-    """
-    debug = True
-    try:
-        filename = url.split('/')[-1]
-        if ext == '.png':
-            ref = filename.split(ext)[0].split('_')
-            dt = urllib.unquote(ref[1]).decode('utf8')
-            dt = dt.replace(',', '.')
-
-        elif ext == '.raw':
-            ref = filename.split(ext)[0].split('_OOI-D')
-            date = ref[1] + 'Z'
-            dt = urllib.unquote(date).decode('utf8')
-
-        elif ext == '.mseed':
-            ref = filename.split(ext)[0].split('.')
-            if len(ref) == 3:
-                date = ref[1] + 'Z'
-                dt = urllib.unquote(date).decode('utf8')
-            else:
-                split = ref[0].split('-')
-                date = '-'.join([split[-3], split[-2], split[-1]]) + 'Z'
-                dt = urllib.unquote(date).decode('utf8')
-        elif ext == '.mov' or ext == '.mp4':
-            ref = filename.split(ext)[0].split('-')
-            date = ref[1]
-            dt = urllib.unquote(date).decode('utf8')
-
-        item = {"url": url,
-                "filename": urllib.unquote(filename).decode('utf8'),
-                "datetime": dt.replace("-", "").replace(":", "")}
-
-        if debug:
-            print '\n debug -- _create_entry item: '
-            dump_dict(item, debug)
-        return item
-    except Exception as err:
-        message = str(err)
-        if debug: print '\n debug -- Exception _create_entry...', message
-        current_app.logger.info(message)
-        raise Exception(message)
-'''

@@ -253,7 +253,7 @@ def get_uframe_stream(mooring, platform, instrument, stream):
 
 @api.route('/get_instrument_metadata/<string:ref>', methods=['GET'])
 def get_uframe_instrument_metadata(ref):
-    """ Returns the uFrame metadata response for a given stream.
+    """ Returns the metadata response for a given instrument - all streams.
     """
     try:
         mooring, platform, instrument = ref.split('-', 2)
@@ -270,7 +270,7 @@ def get_uframe_instrument_metadata(ref):
 
 @api.route('/get_metadata_parameters/<string:ref>', methods=['GET'])
 def get_uframe_instrument_metadata_parameters(ref):
-    """ Returns the uFrame metadata parameters for a given stream.
+    """ Returns the metadata parameters for a given instrument - all streams.
     """
     results = []
     try:
@@ -282,11 +282,11 @@ def get_uframe_instrument_metadata_parameters(ref):
             results = response.json()
         return jsonify(parameters=results), 200
     except ConnectionError:
-        message = 'ConnectionError getting uframe stream metadata parameters.'
+        message = 'ConnectionError getting uframe instrument metadata parameters.'
         current_app.logger.info(message)
         return bad_request(message)
     except Timeout:
-        message = 'Timeout getting uframe stream metadata parameters.'
+        message = 'Timeout getting uframe instrument metadata parameters.'
         current_app.logger.info(message)
         return bad_request(message)
     except Exception as err:
@@ -294,10 +294,9 @@ def get_uframe_instrument_metadata_parameters(ref):
         return bad_request(message)
 
 
-@auth.login_required
 @api.route('/get_metadata_times/<string:ref>', methods=['GET'])
 def get_uframe_stream_metadata_times(ref):
-    """ Returns the uFrame time bounds response for a given stream.
+    """ Returns the time bounds response for a given instrument - all streams.
     """
     mooring, platform, instrument = ref.split('-', 2)
     results = []
@@ -307,6 +306,39 @@ def get_uframe_stream_metadata_times(ref):
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code == 200:
             results = response.json()
+        return jsonify(times=results), 200
+    except ConnectionError:
+        message = 'ConnectionError getting uframe instrument metadata times.'
+        current_app.logger.info(message)
+        return bad_request(message)
+    except Timeout:
+        message = 'Timeout getting uframe instrument metadata times.'
+        current_app.logger.info(message)
+        return bad_request(message)
+    except Exception as err:
+        message = 'Error getting uframe instrument metadata times, ' + str(err)
+        current_app.logger.info(message)
+        message = str(err)
+        return bad_request(message)
+
+
+@api.route('/get_metadata_stream_times/<string:ref>/<string:stream>/<string:method>', methods=['GET'])
+def get_uframe_stream_metadata_stream_by_method(ref, stream, method):
+    """ Returns the metadata time bounds response for a given stream and method.
+    """
+    mooring, platform, instrument = ref.split('-', 2)
+    results = []
+    try:
+        uframe_url, timeout, timeout_read = get_uframe_info()
+        url = "/".join([uframe_url, mooring, platform, instrument, 'metadata','times'])
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            return jsonify(times=results), response.status_code
+        data = response.json()
+        if data and data is not None:
+            for item in data:
+                if item['method'] == method and item['stream'] == stream:
+                    results.append(item)
         return jsonify(times=results), 200
     except ConnectionError:
         message = 'ConnectionError getting uframe stream metadata times.'
@@ -323,7 +355,6 @@ def get_uframe_stream_metadata_times(ref):
         return bad_request(message)
 
 
-#@auth.login_required
 @api.route('/get_multistream/<string:stream1>/<string:stream2>/<string:instrument1>/<string:instrument2>/<string:var1>/<string:var2>', methods=['GET'])
 def multistream_api(stream1, stream2, instrument1, instrument2, var1, var2):
     """

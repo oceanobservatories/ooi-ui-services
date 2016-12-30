@@ -579,9 +579,11 @@ def uframe_get_asset_by_uid(uid):
         response = requests.get(url, timeout=(timeout, timeout_read), headers=headers())
         if response.status_code == 204:
             message = 'Failed to receive content from uframe for asset with uid \'%s\'.' % uid
+            current_app.logger.info(message)
             raise Exception(message)
         elif response.status_code != 200:
             message = 'Failed to get asset from uframe with uid: \'%s\'.' % uid
+            current_app.logger.info(message)
             raise Exception(message)
         asset = response.json()
         return asset
@@ -1496,7 +1498,7 @@ def uframe_get_status_by_rd(rd=None):
         http://host:12587/status/query/CE01ISSM-MFC31
         http://host:12587/status/query/CE01ISSM-MFC31-00-CPMENG000
 
-    http://uframe-3-test.ooi.rutgers.edu:12587/status/inv/GA01SUMO/SBD12
+    http://host:12587/status/inv/GA01SUMO/SBD12
     [
         {
           "rd" : "GA01SUMO-SBD12",
@@ -1518,7 +1520,7 @@ def uframe_get_status_by_rd(rd=None):
         }
     ]
 
-    http://uframe-3-test.ooi.rutgers.edu:12587/status/inv/GA01SUMO/SBD12/04-PCO2AA000
+    http://host:12587/status/inv/GA01SUMO/SBD12/04-PCO2AA000
     [
         {
           "rd" : "GA01SUMO-SBD12-04-PCO2AA000",
@@ -1529,12 +1531,10 @@ def uframe_get_status_by_rd(rd=None):
     ]
 
     """
-    live_test = False   # development only flag, remove
+    check = False
     try:
         # Get uframe status by reference designator.
         url, timeout, timeout_read = get_url_info_status_query()
-        if live_test:
-            url = url.replace('uframe-test', 'uframe-3-test')
 
         # Format reference designator for uframe query.
         uframe_rd = None
@@ -1553,6 +1553,7 @@ def uframe_get_status_by_rd(rd=None):
 
         if rd is not None:
             url = '/'.join([url, uframe_rd])
+        if check: print '\n check -- url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
             return None

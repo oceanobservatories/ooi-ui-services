@@ -479,20 +479,6 @@ def get_url_info_status_inv():
         raise Exception(message)
 
 
-def status_demo_data():
-    demo = False
-    try:
-        result = current_app.config['DEMO_STATUS_DATA']
-        if isinstance(result, bool):
-            if result:
-                demo = True
-        elif isinstance(result, str):
-            if result == 'True' or result == 'true':
-                demo = True
-        return demo
-    except:
-        return False
-
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Streams
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

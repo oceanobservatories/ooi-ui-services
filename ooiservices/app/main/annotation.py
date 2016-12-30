@@ -156,6 +156,9 @@ def get_annotations():
         "refdes": "CE01ISSP-SP001-02-DOSTAJ000",
         "stream": "dosta_abcdjm_cspp_instrument"
     }
+    Sample uframe request:
+    http://uframe:12580/anno/find?beginDT=1417796700008
+    &endDT=1471258860094&method=telemetered&stream=fdchp_a_dcl_instrument&refdes=GS01SUMO-SBD12-08-FDCHPA000
     """
     try:
         method_stream = request.args.get('stream_name')
@@ -204,7 +207,12 @@ def create_annotation():
             data['source'] = None
         data = remap_ui_to_uframe(data)
         if validate_anno_record(data):
-            return process_annotation_response(requests.post(get_annotations_base_url(), json=data, timeout=10))
+            response = requests.post(get_annotations_base_url(), json=data, timeout=10)
+            if response.status_code != 201:
+                message = 'Failed to create new annotation.'
+                raise Exception(message)
+            return response.text, response.status_code, dict(response.headers)
+            #return process_annotation_response(requests.post(get_annotations_base_url(), json=data, timeout=10))
         else:
             current_app.logger.debug('create_annotation: %r', data)
             message = 'Required information not specified for create annotation.'
