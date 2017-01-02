@@ -53,7 +53,6 @@ COMMON: &common
     UFRAME_STATUS:            'status'
     UFRAME_STATUS_QUERY:      'query'
     UFRAME_STATUS_INV:        'inv'
-    DEMO_STATUS_DATA:         True
 
     # Streams
     UFRAME_STREAMS_URL:       'http://localhost:12575'
@@ -61,7 +60,7 @@ COMMON: &common
     UFRAME_STREAM_PARAMETER:  'parameter'
     UFRAME_STREAM_BYNAME:     'byname'
 
-    # Instruments
+    # Command and Control (C2)
     UFRAME_INST_URL:          'http://localhost:12572'
     UFRAME_MISSIONS_URL:      'http://localhost:8000'
     UFRAME_MISSIONS_BASE:     '/missions'
@@ -96,9 +95,11 @@ COMMON: &common
     CILOGON_ID: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     CILOGON_SECRECT:  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     CILOGON_BASE_URL: 'https://test.cilogon.org'
-    #Camera Store might change if OOI goes away from the Hyrax Server. If so the Camera Store must change accordingly
+
+    # Camera store
     IMAGE_STORE : 'ooiservices/cam_images'
-    IMAGE_CAMERA_STORE : 'http://opendap-devel.ooi.rutgers.edu:8080/opendap/hyrax/large_format/'
+    IMAGE_CAMERA_STORE : 'https://rawdata.oceanobservatories.org/files/'
+
     # flask security - email parameters.  make sure this is set for your email server.
     SECURITY_EMAIL_SENDER : 'no-reply@ooi.rutgers.edu'
     MAIL_SERVER : 'localhost'
