@@ -88,6 +88,7 @@ def _get_cam_images():
             print '\t-- End time:   ', end
             print '\t-- Time to compile camera images: %s' % str(end - start)
             print '\nCompleted getting camera images'
+        image_list.sort(key=lambda x: (x['date']), reverse=True)
         return image_list
 
     except ConnectionError:
@@ -224,7 +225,7 @@ def _compile_cam_images():
     """
     debug = False
     time = True
-    max_count = 2000
+    max_count = 1000
     total_count = 0
     image_list = []
     try:
@@ -315,6 +316,7 @@ def _compile_cam_images():
         if time:
             print '\t-- End time:   ', end
             print '\t-- Time to compile camera images: %s' % str(end - start)
+        image_list.sort(key=lambda x: (x['date']), reverse=True)
         return image_list
 
     except ConnectionError:

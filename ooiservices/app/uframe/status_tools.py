@@ -290,7 +290,7 @@ def get_status_sites(rd):
     """ Get all sites for an array; for each site provide status and some asset-based information.
     Sample request: http://localhost:4000/uframe/status/sites/CE
     """
-    debug = True
+    debug = False
     time = False
     return_list = []
 
@@ -354,7 +354,7 @@ def get_status_sites(rd):
                 _rd_digests_dict['status'] = status_data[reference_designator]['status']
                 _rd_digests_dict['reason'] = status_data[reference_designator]['reason']
             else:
-                if debug: print '\n debug -- %s status not supplied in status_data.' % reference_designator
+                #if debug: print '\n debug -- %s status not supplied in status_data.' % reference_designator
                 _rd_digests_dict['status'] = 'notTracked'
                 _rd_digests_dict['reason'] = None
             return_list.append(_rd_digests_dict)

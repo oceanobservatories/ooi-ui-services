@@ -82,19 +82,23 @@ def get_uframe_large_format_files_by_ref(ref_des, date_str):
 # Build 'large_format' cache.
 @api.route('/get_large_format_files')
 def get_uframe_large_format_files():
-    """ Index all available large format files from data server.
+    """ Index all available large format files from data server. Returns true for success.
     """
+    success = False
     try:
         cached = cache.get('large_format')
         if cached:
             data = cached
+            if data and data is not None and 'error' not in data:
+                success = True
         else:
             print '\n Compiling large format files...'
             data = _compile_large_format_files()
             if data and data is not None and 'error' not in data:
                 cache.set('large_format', data, timeout=CACHE_TIMEOUT)
+                success = True
         print '\n Number of items in large_format cache(%d): %s' % (len(data), data.keys())
-        return jsonify(data)
+        return jsonify({'build_large_format_cache': success}), 200
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
