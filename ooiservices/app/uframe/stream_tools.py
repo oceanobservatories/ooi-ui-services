@@ -165,9 +165,9 @@ def new_dict_from_stream(mooring, platform, instrument, stream_method, stream, r
             pass
 
         if latitude and latitude is not None:
-            latitude = round(latitude, 4)
+            latitude = round(latitude, 5)
         if longitude and longitude is not None:
-            longitude = round(longitude, 4)
+            longitude = round(longitude, 5)
         data_dict['latitude'] = latitude
         data_dict['longitude'] = longitude
         data_dict['depth'] = depth
@@ -192,6 +192,13 @@ def new_dict_from_stream(mooring, platform, instrument, stream_method, stream, r
 
         # Get stream type, stream display name and processed parameters.
         tmp, parameters, stream_dataset = get_stream_name_and_parameters(_stream)
+        if tmp is None or parameters is None: # or stream_dataset is None:
+            message = 'Failed to get stream name and parameters for %s' % _stream
+            if debug:
+                print '\t\n debug -- tmp: ', tmp
+                print '\t\n debug -- parameters: %d' % len(parameters)
+                print '\t\n debug -- stream_dataset: ', stream_dataset
+            raise Exception(message)
         data_dict['stream_dataset'] = stream_dataset
         data_dict['stream_display_name'] = tmp          # Deprecate, use next line 'stream_content'
         #data_dict['stream_content'] = tmp
@@ -409,11 +416,12 @@ def get_stream_name_and_parameters(stream):
     """
     stream_display_name = None
     parameters = None
+    stream_type = None
     try:
         # Get stream display name (byname)
         stream_contents = uframe_get_stream_byname(stream)
         if not stream_contents or stream_contents is None:
-            return None, None
+            return None, None, None
 
         stream_display_name = stream
         if 'stream_content' in stream_contents:
@@ -423,7 +431,7 @@ def get_stream_name_and_parameters(stream):
 
         # Get stream type, reflects which dataset stream is categorized with.
         #(Instrument, Metadata, Engineering, Status)
-        stream_type = None
+
         if 'stream_type' in stream_contents:
             if stream_contents['stream_type']:
                 if 'value' in stream_contents['stream_type']:
@@ -437,7 +445,7 @@ def get_stream_name_and_parameters(stream):
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
-        return stream_display_name, parameters
+        return stream_display_name, parameters, stream_type
 
 
 # Helper function (high overhead) to provide stream display name (see function get_data_api in controller.py)

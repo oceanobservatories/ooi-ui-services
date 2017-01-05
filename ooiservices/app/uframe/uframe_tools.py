@@ -1373,8 +1373,9 @@ def get_toc_information():
 # - - - - - - - - - - - - - - - - - - - - - - - - - -
 def uframe_get_stream_byname(stream):
     # http://host:12575/stream/byname/cg_cpm_eng_cpm_recovered
-    debug = False
     check = False
+    url = None
+    error = False
     try:
         # Get uframe stream by stream name.
         base_url, timeout, timeout_read = get_url_info_stream_byname()
@@ -1394,6 +1395,9 @@ def uframe_get_stream_byname(stream):
         raise Exception(message)
     except Exception as err:
         message = str(err)
+        if error:
+            print '\n Check -- url: ', url
+            print 'Check -- message: ', message
         raise Exception(message)
 
 

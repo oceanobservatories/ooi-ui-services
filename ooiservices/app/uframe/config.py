@@ -11,6 +11,11 @@ Asset Management - Configuration and connection support functions.
     Cruises
     Deployments
     Events
+    Calibrations
+    Resources
+    Annotations
+    Status
+    Streams
     common
 """
 __author__ = 'Edna Donoughe'
@@ -53,7 +58,6 @@ def get_uframe_vocab_info():
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # C2
-# todo - not yet incorporated into c2.py
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def get_c2_uframe_info(type='instrument'):
     """ Returns uframe instrument/api specific configuration information. (port 12572)
@@ -73,21 +77,35 @@ def get_c2_uframe_info(type='instrument'):
         message = 'Timeout for instrument/api configuration values.'
         current_app.logger.info(message)
         raise Exception(message)
-    except Exception:
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
         raise
 
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # C2 toc
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-def get_uframe_data_info():
-    """ Returns uframe data configuration information. (port 12576)
+def get_uframe_c2_toc_url():
+    """ Get uframe c2 url for toc from configuration file; raise exception if not found.
+    """
+    try:
+        base_url, timeout, timeout_read = get_c2_uframe_data_info()
+        uframe_url = '/'.join([base_url, current_app.config['UFRAME_TOC'] ])
+        return uframe_url, timeout, timeout_read
+    except:
+        message = 'Unable to locate C2_UFRAME_BASE_URL or UFRAME_TOC value in configuration file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_c2_uframe_data_info():
+    """ Returns uframe data configuration information. (port 12576, C2_UFRAME_BASE_URL)
     """
     try:
         # Use C2 server for toc info
         timeout, timeout_read = get_uframe_timeout_info()
-        tmp_uframe_base = current_app.config['UFRAME_INST_URL']
-        uframe_base = tmp_uframe_base.replace('12572', '12576')
+        uframe_base = current_app.config['C2_UFRAME_BASE_URL']
         uframe_url = uframe_base + current_app.config['UFRAME_URL_BASE']
         return uframe_url, timeout, timeout_read
     except ConnectionError:
@@ -99,6 +117,8 @@ def get_uframe_data_info():
         current_app.logger.info(message)
         raise Exception(message)
     except Exception:
+        message = 'Unable to locate C2_UFRAME_BASE_URL or UFRAME_URL_BASE value in configuration file.'
+        current_app.logger.info(message)
         raise
 
 

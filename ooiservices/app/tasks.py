@@ -39,15 +39,15 @@ glider_tracks
 # 'cam_images'
 @celery.task(name='tasks.compile_cam_images')
 def compile_cam_images():
+    """ Create thumbnail images for UI, update 'cam_images' cache.
+    """
     try:
         with current_app.test_request_context():
             print '[+] Starting cam images cache reset...'
             cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
             cache.init_app(current_app)
-
             cam_images = _compile_cam_images()
-
-            if 'error' not in cam_images:
+            if cam_images and cam_images is not None and 'error' not in cam_images:
                 cache.set('cam_images', cam_images, timeout=CACHE_TIMEOUT)
                 print '[+] cam images cache reset.'
             else:
@@ -60,15 +60,15 @@ def compile_cam_images():
 # large_format
 @celery.task(name='tasks.compile_large_format_files')
 def compile_large_format_files():
+    """ Create data server index for various file types, update 'large_format' cache.
+    """
     try:
         with current_app.test_request_context():
             print '[+] Starting large format file cache reset...'
             cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
             cache.init_app(current_app)
-
             data = _compile_large_format_files()
-
-            if "error" not in data:
+            if data and data is not None and 'error' not in data:
                 cache.set('large_format', data, timeout=CACHE_TIMEOUT)
                 print '[+] large format files updated.'
             else:
@@ -92,7 +92,6 @@ def compile_c2_toc():
             except Exception as err:
                 message = 'Error processing compile_c2_toc: ', err.message
                 current_app.logger.warning(message)
-
             if c2_toc and c2_toc is not None and 'error' not in c2_toc:
                 cache.set('c2_toc', c2_toc, timeout=CACHE_TIMEOUT)
                 print "[+] C2 toc cache reset..."
@@ -156,7 +155,6 @@ def compile_uid_digests():
             cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
             cache.init_app(current_app)
             uid_digests = get_uid_digests(refresh=True)
-
     except Exception as err:
         message = 'Exception compiling uframe uid digests: %s' % err.message
         current_app.logger.warning(message)
@@ -171,7 +169,6 @@ def compile_asset_information():
             cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
             cache.init_app(current_app)
             asset_list = verify_cache(refresh=True)
-
     except Exception as err:
         message = 'compile_assets exception: %s' % err.message
         current_app.logger.warning(message)

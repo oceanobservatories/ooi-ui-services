@@ -88,7 +88,6 @@ def _get_cam_images():
             print '\t-- End time:   ', end
             print '\t-- Time to compile camera images: %s' % str(end - start)
             print '\nCompleted getting camera images'
-        image_list.sort(key=lambda x: (x['date']), reverse=True)
         return image_list
 
     except ConnectionError:
@@ -223,9 +222,9 @@ def _compile_cam_images():
         baseUrl:"/api/uframe/get_cam_image/"
       }
     """
-    debug = False
+    debug = True
     time = True
-    max_count = 1000
+    max_count = 3000
     total_count = 0
     image_list = []
     try:
@@ -349,7 +348,7 @@ def _compile_large_format_files(test_ref_des=None, test_date_str=None):
     """
     debug = False
     time = True
-
+    verbose = True
     """
     #filetypes_to_check = ['-HYD', '-OBS', '-CAMDS', '-CAMHD', '-ZPL']
     #extensions_to_check = ['.mseed', '.png', '.mp4', '.mov', '.raw']
@@ -453,7 +452,7 @@ def _compile_large_format_files(test_ref_des=None, test_date_str=None):
             #-----------------------------------------------
 
             # Level 1 - subsite processing
-            print '\n ---- Processing root element %s...' % rd
+            if verbose: print '\n ---- Processing root element %s...' % rd
             d_url = base_url+s.attrs['href']
             #if debug: print '\n debug -- d_url: ', d_url
             subfolders, file_list = _get_subfolder_list(d_url, None)
@@ -470,7 +469,7 @@ def _compile_large_format_files(test_ref_des=None, test_date_str=None):
                 # Determine if item is a folder link or file
                 if debug: print '\n debug -- item: ', item
                 if '/' in item:
-                    print '\n\t ----------- %s Processing item: %s...' % (rd, item)
+                    if verbose: print '\n\t ----------- %s Processing item: %s...' % (rd, item)
                     subfolder_url = base_url + rd + item
                     node_subfolders, node_file_list = _get_subfolder_list(subfolder_url, None)
                     if node_file_list:
@@ -678,7 +677,7 @@ def _compile_large_format_files(test_ref_des=None, test_date_str=None):
 
 # Get subfolder contents and file_list for folder.
 def _get_subfolder_list(url, search_filter):
-    """ Get url folder link list.
+    """ Get url folder content and process the list of data links.
 
     OO-HYVM2--YDH.2015-09-05T00:00:00.000000.mseed
     """

@@ -738,6 +738,7 @@ def get_api_headers(username, password):
 def uframe_issue_get_request(method='get', suffix=None, data=None):
     """ Issue uframe get request; returns response.content as result, otherwise None or raise Exception.
     """
+    debug = False
     valid_methods = ['get', 'post', 'delete', 'put']
     headers = {"Content-Type": "application/json"}
     try:
@@ -748,6 +749,7 @@ def uframe_issue_get_request(method='get', suffix=None, data=None):
 
         # Setup basic request info
         url, timeout, timeout_read = get_c2_missions_uframe_info()
+        if debug: print '\n debug -- mission url: ', url
         if suffix is not None:
             url += suffix
 

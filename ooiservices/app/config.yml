@@ -66,6 +66,8 @@ COMMON: &common
     UFRAME_MISSIONS_BASE:     '/missions'
     UFRAME_INST_BASE:         '/instrument/api'
     UFRAME_PLAT_BASE:         '/platform/api'
+    C2_DIRECT_ACCESS_NAMESPACE: '/c2_direct_access'
+    C2_UFRAME_BASE_URL:     'http://uft20.ooi.rutgers.edu:12576'
 
     # M2M
     UFRAME_HOST:            'localhost'
@@ -114,7 +116,7 @@ COMMON: &common
     SECURITY_TRACKABLE : False
     SECURITY_PASSWORD_HASH : 'pbkdf2_sha512'
     SECURITY_PASSWORD_SALT : 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
-    C2_DIRECT_ACCESS_NAMESPACE: '/c2_direct_access'
+
 
 DEVELOPMENT: &development
     <<: *common

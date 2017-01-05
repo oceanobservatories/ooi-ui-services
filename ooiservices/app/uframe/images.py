@@ -27,7 +27,6 @@ from ooiservices.app import cache
 CACHE_TIMEOUT = 172800
 
 
-
 # Note: Route under review.
 @api.route('/get_large_format_files_by_ref/<string:ref_des>/<string:date_str>')
 def get_uframe_large_format_files_by_ref(ref_des, date_str):
@@ -82,7 +81,7 @@ def get_uframe_large_format_files_by_ref(ref_des, date_str):
 # Build 'large_format' cache.
 @api.route('/get_large_format_files')
 def get_uframe_large_format_files():
-    """ Index all available large format files from data server. Returns true for success.
+    """ Index all various types of large format files from data server. Returns true for success.
     """
     success = False
     try:
@@ -105,7 +104,7 @@ def get_uframe_large_format_files():
         return bad_request(message)
 
 
-# Get single camera thumbnail image.
+# Get single camera image.
 @api.route('/get_cam_image/<string:image_id>.png', methods=['GET'])
 def get_uframe_cam_image(image_id):
     """ Get camera image from ooiservices image store.
@@ -147,7 +146,7 @@ def get_uframe_cam_images():
 # Build out thumbnails for 'cam_images' and populate 'cam_images' cache.
 @api.route('/build_cam_images')
 def build_cam_images():
-    """ Get cam images.
+    """ Get thumbnail images and set 'cam_images' cache.
     """
     try:
         print '\n-- Generating thumbnails for cam_images cache...'
