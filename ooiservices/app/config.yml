@@ -67,7 +67,7 @@ COMMON: &common
     UFRAME_INST_BASE:         '/instrument/api'
     UFRAME_PLAT_BASE:         '/platform/api'
     C2_DIRECT_ACCESS_NAMESPACE: '/c2_direct_access'
-    C2_UFRAME_BASE_URL:     'http://uft20.ooi.rutgers.edu:12576'
+    C2_UFRAME_BASE_URL:     'http://localhost:12576'
 
     # M2M
     UFRAME_HOST:            'localhost'
