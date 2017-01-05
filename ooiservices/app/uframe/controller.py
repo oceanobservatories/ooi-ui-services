@@ -756,17 +756,6 @@ def get_data_api(stream, instrument, yvar, xvar):
         #title = get_display_name_by_rd(instrument[0])
         if instrument and instrument is not None and len(instrument) > 8:
             title = get_display_name_by_rd(instrument)
-            """
-            # Note: To present stream name instead of sensor name (again) you could do the following:
-            stream_value = stream[:]
-            stream_type, actual_stream = stream_value.split('_')
-            actual_stream = actual_stream.replace('-', '_')
-            if debug:
-                print '\n stream_value: ', stream_value
-                print '\n stream: ', actual_stream
-                print '\n stream display name: ', get_stream_name_byname(actual_stream)
-            title = get_stream_name_byname(actual_stream)
-            """
         else:
             title = instrument
         if debug:

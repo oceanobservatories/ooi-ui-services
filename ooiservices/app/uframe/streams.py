@@ -10,7 +10,7 @@ from flask import (jsonify, request, current_app)
 from ooiservices.app import cache
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.errors import (internal_server_error, bad_request)
-from ooiservices.app.uframe.stream_tools import get_stream_list
+from ooiservices.app.uframe.stream_tools import (get_stream_list, get_stream_for_stream_model)
 from operator import itemgetter
 from copy import deepcopy
 from ooiservices.app.uframe.common_tools import iso_to_timestamp
@@ -234,6 +234,19 @@ def get_streams_list():
         return jsonify(streams=result)
     else:
         return jsonify(streams=retval)
+
+
+@api.route('/get_stream_for_model/<string:reference_designator>/<string:stream_method>/<string:stream>', methods=['GET'])
+def get_stream_model_data(reference_designator, stream_method, stream):
+    """ Get complete stream dictionary with legacy content, including parameters, for UI stream model.
+    """
+    try:
+        stream_content = get_stream_for_stream_model(reference_designator, stream_method, stream)
+        return jsonify({'stream_content': stream_content}), 200
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
 
 
 # Support only route.

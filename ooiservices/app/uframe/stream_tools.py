@@ -131,10 +131,14 @@ def new_dict_from_stream(mooring, platform, instrument, stream_method, stream, r
     Get parameter information from stream engine api.
     """
     from ooiservices.app.uframe.status_tools import get_rd_digests_dict
+    from ooiservices.app.uframe.config import get_stream_parameters_switch
     warnings = False
     debug = False
     _stream = None
+
     try:
+        # Determine if parameters should be added to cache by configuration setting.
+        get_parameters_for_cache = get_stream_parameters_switch()
 
         # No checks, just create _stream.
         if '-' in stream:
@@ -144,7 +148,7 @@ def new_dict_from_stream(mooring, platform, instrument, stream_method, stream, r
         ref = '-'.join([mooring, platform, instrument])
         data_dict = {}
 
-        #== Use deployment information from asset management.
+        #--  Use deployment information from asset management.
         latitude = None
         longitude = None
         depth = None
@@ -191,14 +195,25 @@ def new_dict_from_stream(mooring, platform, instrument, stream_method, stream, r
         data_dict['long_display_name'] = long_display_name
 
         # Get stream type, stream display name and processed parameters.
-        tmp, parameters, stream_dataset = get_stream_name_and_parameters(_stream)
-        if tmp is None or parameters is None: # or stream_dataset is None:
-            message = 'Failed to get stream name and parameters for %s' % _stream
+        if get_parameters_for_cache:
+            tmp, parameters, stream_dataset = get_stream_name_and_parameters(_stream)
+        else:
+            parameters = {}
+            tmp, stream_dataset = get_stream_name_and_dataset(_stream)
+        if tmp is None: # or stream_dataset is None:
+            message = 'Failed to get stream name for %s' % _stream
             if debug:
                 print '\t\n debug -- tmp: ', tmp
                 print '\t\n debug -- parameters: %d' % len(parameters)
                 print '\t\n debug -- stream_dataset: ', stream_dataset
             raise Exception(message)
+        if get_parameters_for_cache:
+            if parameters is None: # or stream_dataset is None:
+                message = 'Failed to get parameters for %s' % _stream
+                if debug:
+                    print '\t\n debug -- tmp: ', tmp
+                    print '\t\n debug -- parameters: %d' % len(parameters)
+                raise Exception(message)
         data_dict['stream_dataset'] = stream_dataset
         data_dict['stream_display_name'] = tmp          # Deprecate, use next line 'stream_content'
         #data_dict['stream_content'] = tmp
@@ -213,37 +228,40 @@ def new_dict_from_stream(mooring, platform, instrument, stream_method, stream, r
                                  "netcdf" : "/".join(['api/uframe/get_netcdf', stream_name, ref]),
                                  "profile" : "/".join(['api/uframe/get_profiles', stream_name, ref])
                                 }
+        # The parameter information is provided empty for backward compatibility with stream model unless the
+        # get_parameters_for_cache switch is true. If true, then all parameter data for all stream is loaded also.(bad)
         variables = []
         variable_types = []
         units = []
         variables_shapes = []
         parameter_display_names = []
         parameter_ids = []
-        if parameters and parameters is not None:
-            for parameter in parameters:
-                variables.append(parameter['name'])
-                variable_types.append(parameter['type'])
-                units.append(parameter['unit'])
-                shape = parameter['shape']
-                if not shape or shape is None or len(shape) == 0:
-                    if debug: print '\n shape is null or empty for parameter %s ', parameter['name']
-                    shape = 'scalar'
-                variables_shapes.append(shape)
-                if not parameter['display_name'] or parameter['display_name'] is None:
-                    parameter['display_name'] = parameter['name']
-                    if warnings:
-                        message = 'Warning -- %s (stream: %s) display_name is null/empty, using: %s' % \
-                                  (ref, _stream, parameter['name'])
-                        current_app.logger.info(message)
-                if not parameter['unit'] or parameter['unit'] is None or len(parameter['unit']) == 0:
-                    if debug:
-                        print '\n debug -- %s (%s) parameter %s unit is null or empty.' % \
-                              (ref, _stream, parameter['display_name'])
-                    display_name = parameter['display_name']
-                else:
-                    display_name = parameter['display_name'] + '  (' + parameter['unit'] + ')'
-                parameter_display_names.append(display_name)
-                parameter_ids.append(parameter['id'])
+        if get_parameters_for_cache:
+            if parameters and parameters is not None:
+                for parameter in parameters:
+                    variables.append(parameter['name'])
+                    variable_types.append(parameter['type'])
+                    units.append(parameter['unit'])
+                    shape = parameter['shape']
+                    if not shape or shape is None or len(shape) == 0:
+                        if debug: print '\n shape is null or empty for parameter %s ', parameter['name']
+                        shape = 'scalar'
+                    variables_shapes.append(shape)
+                    if not parameter['display_name'] or parameter['display_name'] is None:
+                        parameter['display_name'] = parameter['name']
+                        if warnings:
+                            message = 'Warning -- %s (stream: %s) display_name is null/empty, using: %s' % \
+                                      (ref, _stream, parameter['name'])
+                            current_app.logger.info(message)
+                    if not parameter['unit'] or parameter['unit'] is None or len(parameter['unit']) == 0:
+                        if debug:
+                            print '\n debug -- %s (%s) parameter %s unit is null or empty.' % \
+                                  (ref, _stream, parameter['display_name'])
+                        display_name = parameter['display_name']
+                    else:
+                        display_name = parameter['display_name'] + '  (' + parameter['unit'] + ')'
+                    parameter_display_names.append(display_name)
+                    parameter_ids.append(parameter['id'])
 
         data_dict['variables'] = variables
         data_dict['variable_type'] = variable_types
@@ -418,20 +436,18 @@ def get_stream_name_and_parameters(stream):
     parameters = None
     stream_type = None
     try:
-        # Get stream display name (byname)
+        # Get stream byname.
         stream_contents = uframe_get_stream_byname(stream)
         if not stream_contents or stream_contents is None:
             return None, None, None
-
+        # Get stream display name ('stream_content')
         stream_display_name = stream
         if 'stream_content' in stream_contents:
             if stream_contents['stream_content']:
                 if 'value' in stream_contents['stream_content']:
                     stream_display_name = stream_contents['stream_content']['value']
-
-        # Get stream type, reflects which dataset stream is categorized with.
+        # Get stream type. It reflects which dataset stream is categorized with.
         #(Instrument, Metadata, Engineering, Status)
-
         if 'stream_type' in stream_contents:
             if stream_contents['stream_type']:
                 if 'value' in stream_contents['stream_type']:
@@ -448,6 +464,330 @@ def get_stream_name_and_parameters(stream):
         return stream_display_name, parameters, stream_type
 
 
+def get_stream_name_and_dataset(stream):
+    """
+    For a stream, return stream display name and all processed parameters.
+    Get stream contents byname, get stream display name and process stream parameters.
+    Added stream_type (for searches filtered by Dataset Type).
+    """
+    stream_display_name = None
+    parameters = None
+    stream_type = None
+    try:
+        # Get stream byname.
+        stream_contents = uframe_get_stream_byname(stream)
+        if not stream_contents or stream_contents is None:
+            return None, None, None
+        # Get stream display name ('stream_content')
+        stream_display_name = stream
+        if 'stream_content' in stream_contents:
+            if stream_contents['stream_content']:
+                if 'value' in stream_contents['stream_content']:
+                    stream_display_name = stream_contents['stream_content']['value']
+        # Get stream type. It reflects which dataset stream is categorized with.
+        #(Instrument, Metadata, Engineering, Status)
+        if 'stream_type' in stream_contents:
+            if stream_contents['stream_type']:
+                if 'value' in stream_contents['stream_type']:
+                    stream_type = stream_contents['stream_type']['value']
+
+        return stream_display_name, stream_type
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return stream_display_name, stream_type
+
+
+def get_stream_for_stream_model(reference_designator, stream_method, stream):
+    """ Get complete stream dictionary with legacy content, including parameters, for UI stream model.
+    Sample request:
+    http://localhost:4000/uframe/get_stream_for_stream_model/GI01SUMO-RII11-02-CTDMOQ015/bad-telemetered/ctdmo_ghqr_imodem_instrument
+
+    Stream dictionary (from cache):
+    {
+      "array_name": "Global Irminger Sea",
+      "assembly_name": "Mooring Riser",
+      "depth": 250.0,
+      "display_name": "CTD (250 meters)",
+      "download": {
+        "csv": "api/uframe/get_csv/bad-telemetered_ctdmo-ghqr-imodem-instrument/GI01SUMO-RII11-02-CTDMOQ015",
+        "json": "api/uframe/get_json/bad-telemetered_ctdmo-ghqr-imodem-instrument/GI01SUMO-RII11-02-CTDMOQ015",
+        "netcdf": "api/uframe/get_netcdf/bad-telemetered_ctdmo-ghqr-imodem-instrument/GI01SUMO-RII11-02-CTDMOQ015",
+        "profile": "api/uframe/get_profiles/bad-telemetered_ctdmo-ghqr-imodem-instrument/GI01SUMO-RII11-02-CTDMOQ015"
+      },
+      "end": "2135-11-04T12:09:45.000Z",
+      "latitude": 59.94358,
+      "long_display_name": "Global Irminger Sea Apex Surface Mooring - Mooring Riser - CTD (250 meters)",
+      "longitude": -39.57372,
+      "parameter_display_name": [],
+      "parameter_id": [],
+      "platform_name": "Apex Surface Mooring",
+      "reference_designator": "GI01SUMO-RII11-02-CTDMOQ015",
+      "site_name": "Apex Surface Mooring",
+      "start": "2135-11-04T12:09:45.000Z",
+      "stream": "ctdmo_ghqr_imodem_instrument",
+      "stream_dataset": "Science",
+      "stream_display_name": "Data Products (Inductive Modem)",
+      "stream_method": "bad-telemetered",
+      "stream_name": "bad-telemetered_ctdmo-ghqr-imodem-instrument",
+      "stream_type": "bad-telemetered",
+      "units": [],
+      "variable_type": [],
+      "variables": [],
+      "variables_shape": [],
+      "water_depth": null
+    },
+    Note: the following empty list items are provided for backward compatibility with UI stream model.
+    These empty parameter items are populated by this function.
+
+    Complete stream dictionary with parameters (response):
+    {
+      "stream_content": {
+        "array_name": "Global Irminger Sea",
+        "assembly_name": "Mooring Riser",
+        "depth": 250.0,
+        "display_name": "CTD (250 meters)",
+        "download": {
+          "csv": "api/uframe/get_csv/bad-telemetered_ctdmo-ghqr-imodem-instrument/GI01SUMO-RII11-02-CTDMOQ015",
+          "json": "api/uframe/get_json/bad-telemetered_ctdmo-ghqr-imodem-instrument/GI01SUMO-RII11-02-CTDMOQ015",
+          "netcdf": "api/uframe/get_netcdf/bad-telemetered_ctdmo-ghqr-imodem-instrument/GI01SUMO-RII11-02-CTDMOQ015",
+          "profile": "api/uframe/get_profiles/bad-telemetered_ctdmo-ghqr-imodem-instrument/GI01SUMO-RII11-02-CTDMOQ015"
+        },
+        "end": "2135-11-04T12:09:45.000Z",
+        "latitude": 59.94358,
+        "long_display_name": "Global Irminger Sea Apex Surface Mooring - Mooring Riser - CTD (250 meters)",
+        "longitude": -39.57372,
+        "parameter_display_name": [
+          "Time, UTC  (seconds since 1900-01-01)",
+          "Port Timestamp, UTC  (seconds since 1900-01-01)",
+          "Driver Timestamp, UTC  (seconds since 1900-01-01)",
+          "Internal Timestamp, UTC  (seconds since 1900-01-01)",
+          "Preferred Timestamp  (1)",
+          "Seawater Temperature Measurement  (counts)",
+          "Seawater Conductivity Measurement  (counts)",
+          "Seawater Pressure Measurement  (counts)",
+          "Time, UTC  (seconds since 2000-01-01)",
+          "Ingestion Timestamp, UTC  (seconds since 1900-01-01)",
+          "Seawater Pressure  (dbar)",
+          "Seawater Temperature  (deg_C)",
+          "Seawater Conductivity  (S m-1)",
+          "Practical Salinity  (1)",
+          "Seawater Density  (kg m-3)"
+        ],
+        "parameter_id": [
+          "pd7",
+          "pd10",
+          "pd11",
+          "pd12",
+          "pd16",
+          "pd193",
+          "pd194",
+          "pd195",
+          "pd198",
+          "pd863",
+          "pd2926",
+          "pd2927",
+          "pd2928",
+          "pd2929",
+          "pd2930"
+        ],
+        "platform_name": "Apex Surface Mooring",
+        "reference_designator": "GI01SUMO-RII11-02-CTDMOQ015",
+        "site_name": "Apex Surface Mooring",
+        "start": "2135-11-04T12:09:45.000Z",
+        "stream": "ctdmo_ghqr_imodem_instrument",
+        "stream_dataset": "Science",
+        "stream_display_name": "Data Products (Inductive Modem)",
+        "stream_method": "bad-telemetered",
+        "stream_name": "bad-telemetered_ctdmo-ghqr-imodem-instrument",
+        "stream_type": "bad-telemetered",
+        "units": [
+          "seconds since 1900-01-01",
+          "seconds since 1900-01-01",
+          "seconds since 1900-01-01",
+          "seconds since 1900-01-01",
+          "1",
+          "counts",
+          "counts",
+          "counts",
+          "seconds since 2000-01-01",
+          "seconds since 1900-01-01",
+          "dbar",
+          "deg_C",
+          "S m-1",
+          "1",
+          "kg m-3"
+        ],
+        "variable_type": [
+          "float",
+          "float",
+          "float",
+          "float",
+          "string",
+          "int",
+          "int",
+          "int",
+          "int",
+          "float",
+          "float",
+          "float",
+          "float",
+          "float",
+          "float"
+        ],
+        "variables": [
+          "time",
+          "port_timestamp",
+          "driver_timestamp",
+          "internal_timestamp",
+          "preferred_timestamp",
+          "temperature",
+          "conductivity",
+          "pressure",
+          "ctd_time",
+          "ingestion_timestamp",
+          "ctdmo_seawater_pressure",
+          "ctdmo_seawater_temperature",
+          "ctdmo_seawater_conductivity",
+          "ctdmo_practical_salinity",
+          "ctdmo_seawater_density"
+        ],
+        "variables_shape": [
+          "scalar",
+          "scalar",
+          "scalar",
+          "scalar",
+          "scalar",
+          "scalar",
+          "scalar",
+          "scalar",
+          "scalar",
+          "scalar",
+          "function",
+          "function",
+          "function",
+          "function",
+          "function"
+        ],
+        "water_depth": null
+      }
+    }
+    """
+    from ooiservices.app.uframe.common_tools import dump_dict
+    debug = False
+    warnings = False
+    try:
+        if debug:
+            print '\n debug -- reference_designator: ', reference_designator
+            print '\n debug -- method: ', stream_method
+            print '\n debug -- stream: ', stream
+        # Get stream information from cache.
+        _stream = None
+        stream_list_cached = cache.get('stream_list')
+        if stream_list_cached and stream_list_cached is not None and 'error' not in stream_list_cached:
+            if debug: print '\n Checking stream_list cache...'
+            for item in stream_list_cached:
+                if 'reference_designator' in item and 'stream' in item:
+                    if item['reference_designator'] == reference_designator:
+                        if debug:
+                            print '\n\t debug *** Found reference designator: ', item['reference_designator']
+
+                        if item['stream_method'] == stream_method:
+                            if debug:
+                                print '\n debug *** Found stream_method: ', item['stream_method']
+                                print '\n debug --- Check item[stream]: %r' % item['stream']
+                            if item['stream'] == stream:
+                                _stream = item
+                                if debug: print '\n debug -- Have a match!!!'
+                                break
+
+        if _stream is None:
+            message = 'Failed to retrieve \'%s\' from \'stream_list\' cache.' % stream
+            raise Exception(message)
+
+        if debug:
+            print '\n debug -- _stream: '
+            dump_dict(_stream, debug)
+
+        # Get [processed] parameters for stream
+        parameters = get_stream_parameters(stream)
+        if parameters is None:
+            message = 'Failed to retrieve parameters for stream \'%s\'.' % stream
+            raise Exception(message)
+
+        # Add parameter information to stream dictionary.
+        variables = []
+        variable_types = []
+        units = []
+        variables_shapes = []
+        parameter_display_names = []
+        parameter_ids = []
+        if parameters and parameters is not None:
+            for parameter in parameters:
+                variables.append(parameter['name'])
+                variable_types.append(parameter['type'])
+                units.append(parameter['unit'])
+                shape = parameter['shape']
+                if not shape or shape is None or len(shape) == 0:
+                    if debug: print '\n shape is null or empty for parameter %s ', parameter['name']
+                    shape = 'scalar'
+                variables_shapes.append(shape)
+                if not parameter['display_name'] or parameter['display_name'] is None:
+                    parameter['display_name'] = parameter['name']
+                    if warnings:
+                        message = 'Warning -- %s (stream: %s) display_name is null/empty, using: %s' % \
+                                  (reference_designator, _stream, parameter['name'])
+                        current_app.logger.info(message)
+                if not parameter['unit'] or parameter['unit'] is None or len(parameter['unit']) == 0:
+                    if debug:
+                        print '\n debug -- %s (%s) parameter %s unit is null or empty.' % \
+                              (reference_designator, _stream, parameter['display_name'])
+                    display_name = parameter['display_name']
+                else:
+                    display_name = parameter['display_name'] + '  (' + parameter['unit'] + ')'
+                parameter_display_names.append(display_name)
+                parameter_ids.append(parameter['id'])
+
+        _stream['variables'] = variables
+        _stream['variable_type'] = variable_types
+        _stream['units'] = units
+        _stream['variables_shape'] = variables_shapes
+        _stream['parameter_display_name'] = parameter_display_names
+        _stream['parameter_id'] = parameter_ids
+
+        # Check
+        if _stream is None:
+            _stream = {}
+        return _stream
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return {}
+
+
+def get_stream_parameters(stream):
+    """
+    For a stream, return stream display name and all processed parameters.
+    Get stream contents byname, get stream display name and process stream parameters.
+    Added stream_type (for searches filtered by Dataset Type).
+    """
+    parameters = None
+    try:
+        # Get stream byname.
+        stream_contents = uframe_get_stream_byname(stream)
+        if not stream_contents or stream_contents is None:
+            return None
+        if 'parameters' in stream_contents:
+            _parameters = stream_contents['parameters']
+            parameters = process_stream_parameters(_parameters)
+        return parameters
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return parameters
+
+
+'''
 # Helper function (high overhead) to provide stream display name (see function get_data_api in controller.py)
 def get_stream_name_byname(stream):
     """
@@ -470,3 +810,4 @@ def get_stream_name_byname(stream):
         message = str(err)
         current_app.logger.info(message)
         return stream
+'''
