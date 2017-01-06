@@ -9,7 +9,7 @@ from ooiservices.app.uframe import uframe as api
 from ooiservices.app.models import DisabledStreams
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.main.errors import (internal_server_error, bad_request)
-from ooiservices.app.uframe.vocab import get_display_name_by_rd
+from ooiservices.app.uframe.vocab import (get_display_name_by_rd, get_long_display_name_by_rd)
 from ooiservices.app.uframe.config import get_uframe_info
 from ooiservices.app.uframe.common_tools import to_bool
 from ooiservices.app.uframe.data import (get_data, get_simple_data, find_parameter_ids, get_multistream_data)
@@ -785,7 +785,7 @@ def get_data_api(stream, instrument, yvar, xvar):
 def get_svg_plot(instrument, stream):
     # from ooiservices.app.uframe.controller import split_stream_name
     # Ok first make a list out of stream and instrument
-    debug = False
+    debug = True
     if debug:
         print '\n debug -- =============================================='
         print '\n debug -- =============================================='
@@ -796,8 +796,14 @@ def get_svg_plot(instrument, stream):
     instrument = instrument.split(',')
     #instrument.append(instrument[0])
 
+    tmp = stream.split('_')
+    tmp_stream_name = str(tmp[1])
+    tmp_stream_name = tmp_stream_name.replace('-', '_')
+    if debug: print '\n debug -- tmp_stream_name: ', tmp_stream_name
+
     stream = stream.split(',')
     #stream.append(stream[0])
+
 
     plot_format = request.args.get('format', 'svg')
     # time series vs profile
@@ -894,20 +900,27 @@ def get_svg_plot(instrument, stream):
         return jsonify(error='tuple data returned for %s' % plot_layout), 400
     if isinstance(data, dict):
         # get title
-        if debug: print '\n debug -- (dict) using rd %r to get title or long display name...' % instrument[0]
+        if debug: print '\n debug --1-- (dict) using rd %r to get title or long display name...' % instrument[0]
         # Note: If instrument reference designator is not found in the vocabulary, the reference designator is returned.
         # (This provides a clear indication the instrument has NOT been added to the vocabulary and the COL folks
         # and data team will want to address why it is missing from the vocabulary.)
-        title = get_display_name_by_rd(instrument[0])
+        #title = get_display_name_by_rd(instrument[0])
+        title = get_long_display_name_by_rd(instrument[0])
+        # Global Irminger Sea Apex Surface Mooring - Mooring Riser - Velocity Profiler (75 kHz)
+
+        if debug: print '\n debug -- Length of title(%d): %s' % (len(title), title)
         if len(title) > 50:
-            title = ''.join(title.split('-')[0:-1]) + '\n' + title.split('-')[-1]
+            tmp = title.split('-', 2)
+            title = ' - '.join([tmp[0], tmp[1]]) + '\n' + tmp[2]
+            #title = ''.join(title.split('-')[0:-1]) + '\n' + title.split('-')[-1]
 
         data['title'] = title
         data['height'] = height_in
         data['width'] = width_in
+        data['stream_name'] = tmp_stream_name
     else:
         for idx, streamx in enumerate(stream):
-            if debug: print '\n debug -- (idx loop) using rd %s to get title or long display name...', instrument[0]
+            if debug: print '\n debug --2-- (idx loop) using rd %s to get title or long display name...', instrument[0]
             title = get_display_name_by_rd(instrument[idx])
             if len(title) > 50:
                 title = ''.join(title.split('-')[0:-1]) + '\n' + title.split('-')[-1]
@@ -1035,7 +1048,7 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
             query = '?beginDT=%s&endDT=%s&limit=%s&user=plotting&execDPA=true' % \
                     (start_time, end_time, current_app.config['DATA_POINTS'])
         elif dpa_flag == '0' and len(parameter_ids) > 0:
-            if debug: print '\n debug -- Branch C...MODIFIED'
+            if debug: print '\n debug -- Branch C...MODIFIED..'
             query = '?beginDT=%s&endDT=%s&limit=%s&parameters=%s&user=plotting' % \
                     (start_time, end_time, current_app.config['DATA_POINTS'], ','.join(parameter_ids))
         elif dpa_flag == '1' and len(parameter_ids) > 0:

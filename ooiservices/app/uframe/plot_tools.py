@@ -271,10 +271,23 @@ class OOIPlots(object):
         ax.bar(direction, magnitude, bins=bins, normed=normed, cmap=cmap,
                opening=opening, edgecolor=edgecolor, nsector=nsector)
 
-        self.set_legend(ax, legend_title, fontsize)
-        ax.set_title(title.replace("_", " "), **title_font)
+        #self.set_legend(ax, legend_title, fontsize)
+        self.rose_set_legend(ax, legend_title, fontsize)
+        #ax.set_title(title.replace("_", " "), **title_font)
+        ax.set_title(title, **title_font)
 
         return fig
+
+    def rose_set_legend(self, ax, label='', fontsize=8):
+        """Adjust the legend box."""
+         # Shrink current axis by 20%
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width * 0.7, box.height])
+
+        # Put a legend to the right of the current axis
+        l = ax.legend(title=label, loc='lower left', bbox_to_anchor=(1.1, 0), fontsize=title_font_default)
+        #plt.setp(l.get_texts(), fontsize=fontsize)
+        plt.setp(l.get_texts(), fontsize=fontsize)
 
     def plot_1d_quiver(self, fig, ax, time, u, v, title='', ylabel='',
                        title_font={}, axis_font={}, tick_font={}, key_units='m/s',

@@ -22,6 +22,7 @@ from ooiservices.app.uframe.vocab import compile_vocab
 from ooiservices.app.uframe.stream_tools import get_stream_list
 from ooiservices.app.uframe.status_tools import get_uid_digests
 from ooiservices.app.uframe.asset_tools import verify_cache
+from ooiservices.app.uframe.toc_tools import compile_toc_reference_designators
 
 """
 Define the list of processes to run on a scheduled basis.
@@ -171,6 +172,26 @@ def compile_asset_information():
             asset_list = verify_cache(refresh=True)
     except Exception as err:
         message = 'compile_assets exception: %s' % err.message
+        current_app.logger.warning(message)
+        raise Exception(message)
+
+
+# Get toc reference designators
+@celery.task(name='tasks.compile_toc_rds')
+def compile_toc_rds():
+    try:
+        with current_app.test_request_context():
+            cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
+            cache.init_app(current_app)
+            rds = compile_toc_reference_designators()
+            if rds and rds is not None and 'error' not in rds:
+                print '[+] TOC reference designators cache reset.'
+            else:
+                message = '[-] Failed to reset TOC reference designators cache.\n'
+                print message
+                raise Exception(message)
+    except Exception as err:
+        message = 'compile_toc_rds exception: %s' % err.message
         current_app.logger.warning(message)
         raise Exception(message)
 

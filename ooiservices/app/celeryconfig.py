@@ -17,6 +17,11 @@ CELERYBEAT_SCHEDULE = {
         'schedule': crontab(minute=0, hour='*/1'),
         'args': (),
         },
+    'get-toc-rds': {
+        'task': 'tasks.compile_toc_rds',
+        'schedule': crontab(minute=0, hour='*/1'),
+        'args': (),
+        },
     'get-streams': {
         'task': 'tasks.compile_streams',
         'schedule': crontab(minute=0, hour='*/1'),

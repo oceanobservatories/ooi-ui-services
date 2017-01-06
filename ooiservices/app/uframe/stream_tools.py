@@ -7,9 +7,9 @@ __author__ = 'Edna Donoughe'
 
 from flask import current_app, request
 from ooiservices.app import cache
-from ooiservices.app.uframe.uframe_tools import (uframe_get_stream_byname, uframe_get_instrument_metadata_parameters)
+from ooiservices.app.uframe.uframe_tools import uframe_get_stream_byname
 from ooiservices.app.uframe.toc_tools import process_uframe_toc
-from ooiservices.app.uframe.vocab import (get_vocab_name_collection)
+from ooiservices.app.uframe.vocab import get_vocab_name_collection
 
 import datetime as dt
 CACHE_TIMEOUT = 172800
@@ -53,12 +53,9 @@ def dfs_streams():
 def get_stream_list(refresh=False):
     """ [Used by verify_cache.] Get 'stream_list' from cache; if not cached, get and set cache.
     """
-    debug = False
     time = True
     try:
-        if debug: print '\n debug -- Entered get_stream_list, refresh: ', refresh
         stream_list_cached = cache.get('stream_list')
-        if debug: print '\n debug -- after get stream_list cache...'
         if refresh or not stream_list_cached or stream_list_cached is None or 'error' in stream_list_cached:
             if time: print '\nCompiling stream list'
             try:
@@ -74,9 +71,7 @@ def get_stream_list(refresh=False):
                 raise Exception(message)
 
             if stream_list and stream_list is not None:
-                if debug: print '\n debug -- Removing stream_list cache...'
                 cache.delete('stream_list')
-                if debug: print '\n debug -- Reset stream_list cache...'
                 cache.set('stream_list', stream_list, timeout=CACHE_TIMEOUT)
                 if time:
                     print 'Completed compiling stream list'
@@ -85,7 +80,6 @@ def get_stream_list(refresh=False):
                 current_app.logger.info(message)
         else:
             stream_list = stream_list_cached
-        if debug: print '\n debug -- Exit get_stream_list...', len(stream_list)
         return stream_list
 
     except Exception as err:
@@ -135,7 +129,6 @@ def new_dict_from_stream(mooring, platform, instrument, stream_method, stream, r
     warnings = False
     debug = False
     _stream = None
-
     try:
         # Determine if parameters should be added to cache by configuration setting.
         get_parameters_for_cache = get_stream_parameters_switch()
@@ -207,6 +200,7 @@ def new_dict_from_stream(mooring, platform, instrument, stream_method, stream, r
                 print '\t\n debug -- parameters: %d' % len(parameters)
                 print '\t\n debug -- stream_dataset: ', stream_dataset
             raise Exception(message)
+
         if get_parameters_for_cache:
             if parameters is None: # or stream_dataset is None:
                 message = 'Failed to get parameters for %s' % _stream
@@ -214,6 +208,7 @@ def new_dict_from_stream(mooring, platform, instrument, stream_method, stream, r
                     print '\t\n debug -- tmp: ', tmp
                     print '\t\n debug -- parameters: %d' % len(parameters)
                 raise Exception(message)
+
         data_dict['stream_dataset'] = stream_dataset
         data_dict['stream_display_name'] = tmp          # Deprecate, use next line 'stream_content'
         #data_dict['stream_content'] = tmp
@@ -228,14 +223,16 @@ def new_dict_from_stream(mooring, platform, instrument, stream_method, stream, r
                                  "netcdf" : "/".join(['api/uframe/get_netcdf', stream_name, ref]),
                                  "profile" : "/".join(['api/uframe/get_profiles', stream_name, ref])
                                 }
+
         # The parameter information is provided empty for backward compatibility with stream model unless the
-        # get_parameters_for_cache switch is true. If true, then all parameter data for all stream is loaded also.(bad)
+        # get_parameters_for_cache switch is true. If true, then all parameter data for all stream is loaded also.
         variables = []
         variable_types = []
         units = []
         variables_shapes = []
         parameter_display_names = []
         parameter_ids = []
+
         if get_parameters_for_cache:
             if parameters and parameters is not None:
                 for parameter in parameters:
@@ -321,7 +318,8 @@ def process_stream_parameters(_parameters):
               "parameter_type": "quantity",
               "particleKey": "conductivity",
               "type": "float",
-              "unit": "S m-1"
+              "unit": "S m-1",
+              "shape": "scalar"
             },
 
     Note Values of parameter types:  (currently using 'quantity' and calling it 'scalar' to fit with client code now.)
@@ -371,14 +369,18 @@ def process_stream_parameters(_parameters):
             parameter['id'] = None
             if 'id' in item:
                 parameter['id'] = 'pd' + str(item['id'])
-
             else:
                 parameter['id'] = -1
             parameter['unit'] = None
             if 'unit' in item:
-                if item['unit']:
+                if item['unit'] and item['unit'] is not None:
                     if 'value' in item['unit']:
-                        parameter['unit'] = item['unit']['value']
+                        if item['unit']['value'] is None:
+                            parameter['unit'] = ''
+                        else:
+                            parameter['unit'] = item['unit']['value']
+                else:
+                    parameter['unit'] = ''
 
             # Type processing
             type = None
@@ -715,6 +717,8 @@ def get_stream_for_stream_model(reference_designator, stream_method, stream):
             message = 'Failed to retrieve parameters for stream \'%s\'.' % stream
             raise Exception(message)
 
+
+
         # Add parameter information to stream dictionary.
         variables = []
         variable_types = []
@@ -767,10 +771,11 @@ def get_stream_for_stream_model(reference_designator, stream_method, stream):
 
 def get_stream_parameters(stream):
     """
-    For a stream, return stream display name and all processed parameters.
-    Get stream contents byname, get stream display name and process stream parameters.
-    Added stream_type (for searches filtered by Dataset Type).
+    For a stream, return all processed parameters.
+    Get stream contents byname, get and process all stream parameters.
+    Return processed stream parameters.
     """
+    debug = False
     parameters = None
     try:
         # Get stream byname.
@@ -780,34 +785,62 @@ def get_stream_parameters(stream):
         if 'parameters' in stream_contents:
             _parameters = stream_contents['parameters']
             parameters = process_stream_parameters(_parameters)
+        if debug: print '\n debug -- get_stream_parameters, returning parameters...'
         return parameters
     except Exception as err:
         message = str(err)
+        if debug: print '\n debug -- get_stream_parameters exception: ', message
         current_app.logger.info(message)
+        if debug:
+            print '\n debug -- get_stream_parameters exception: ', message
+            if parameters is None:
+                print '\n debug -- parameters is None in except block'
+            else:
+                print '\n debug -- parameters is NOT None in except block!!!!!! ', len(parameters)
         return parameters
 
 
-'''
-# Helper function (high overhead) to provide stream display name (see function get_data_api in controller.py)
-def get_stream_name_byname(stream):
+# Used by binned pseudo and rose plotting functions.
+def get_parameter_name_by_parameter_stream(stream_parameter_name, stream):
+    """ Get parameter display name using stream rest api to get english name and units.
+    (Used in plotting.py where plot_layout == 'stacked')
     """
-    For a stream, return stream display name. (This is overkill, refactor plotting requests.)
-    """
+    debug = True
+    display_name = None
     try:
-        # Get stream display name (byname)
-        stream_display_name = None
+        # Check input parameters.
+        if not stream or stream is None:
+            return None
+        if not stream_parameter_name or stream_parameter_name is None:
+            return None
+
+        # Get the stream by name.
         stream_contents = uframe_get_stream_byname(stream)
         if not stream_contents or stream_contents is None:
-            return None, None
-        if 'stream_content' in stream_contents:
-            if stream_contents['stream_content']:
-                if 'value' in stream_contents['stream_content']:
-                    stream_display_name = stream_contents['stream_content']['value']
-        if stream_display_name is None:
-            stream_display_name = stream
-        return stream_display_name
+            if debug: print '\n stream_contents is None for %s' % stream
+            return None
+        # Get the parameters for the stream.
+        parameters = None
+        if 'parameters' in stream_contents:
+            _parameters = stream_contents['parameters']
+            parameters = process_stream_parameters(_parameters)
+        if not parameters or parameters is None:
+            if debug: print '\n stream parameters is None for stream %s' % stream
+            return None
+
+        # Get parameter display name using parameter name and units.
+        for parameter in parameters:
+            if parameter['name'] == stream_parameter_name:
+                if not parameter['unit'] or parameter['unit'] is None or len(parameter['unit']) == 0:
+                    print '\n Note: Parameter %s unit is null or empty.' % (str(parameter['display_name']))
+                    display_name = str(parameter['display_name'])
+                    break
+                else:
+                    display_name = str(parameter['display_name']) + '  (' + str(parameter['unit']) + ')'
+                break
+
+        return display_name
     except Exception as err:
         message = str(err)
-        current_app.logger.info(message)
-        return stream
-'''
+        if debug: print '\n debug -- exception: ', message
+        return None
