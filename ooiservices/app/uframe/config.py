@@ -592,18 +592,6 @@ def get_url_info_stream_parameters():
         current_app.logger.info(message)
         raise Exception(message)
 
-def get_stream_parameters_switch():
-    """ Boolean switch for enabling/disabling parameter content in stream_list cache. """
-    add_parameters = False
-    try:
-        result = current_app.config['UFRAME_STREAM_PARAMETERS']
-        if result == 'true' or result == True:
-            add_parameters = True
-        return add_parameters
-    except:
-        message = 'Unable to locate UFRAME_STREAM_PARAMETERS in config file.'
-        current_app.logger.info(message)
-        raise Exception(message)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Common utility functions

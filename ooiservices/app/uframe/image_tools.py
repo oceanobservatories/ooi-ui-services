@@ -188,8 +188,9 @@ def get_data_image_list():
                         count = 0
                         for file in file_list:
                             if file['ext'] == '.png':
-                                image_list.append(file)
-                                count += 1
+                                if file not in image_list:
+                                    image_list.append(file)
+                                    count += 1
                         if debug: print '\t -- Year %s Month %s Day %s png/Total Files: %d/%d' % \
                                         (year, month, day, count, len(file_list))
 
@@ -214,6 +215,7 @@ def _compile_cam_images():
 
     Generate list of dictionaries for images where dictionary contains:
     defaults: {
+        date: "",
         datetime:"",
         filename: "",
         reference_designator: "",
@@ -222,29 +224,38 @@ def _compile_cam_images():
         baseUrl:"/api/uframe/get_cam_image/"
       }
     """
-    debug = True
+    debug = False
+    verbose = False
     time = True
     max_count = 3000
     total_count = 0
+    process_count = 0
+    already_processed_count = 0
+    failed_count = 0
     image_list = []
+    error_messages = []
     try:
         # Provide time to complete information
-        if time: print '\nCompiling thumbnail images'
+        if time: print '\n\tCompiling thumbnail images'
         start = datetime.now()
         if time: print '\t-- Start time: ', start
 
         # List of dictionaries from cache inventory associated with png files.
         data_image_list = get_data_image_list()
+        available_count = len(data_image_list)
         if data_image_list:
 
-            if debug: print '\n Number of images available to process: ', len(data_image_list)
+            # Add the images to the to the folder cache.
+            #completed= []
             timeout, timeout_read = get_uframe_timeout_info()
 
-            # Add the images to the to the folder cache.
-            completed= []
-            process_count = 0
             for image_item in data_image_list:
                 try:
+                    # Counters
+                    #if verbose:
+                    print '-- Counts Total/Ready/Processed/Failed: %d/%d/%d/%d  (Avail/Max: %d/%d)' % \
+                        (total_count, already_processed_count, process_count, failed_count, available_count, max_count)
+                    total_count += 1
                     # Get thumbnail file path target.
                     new_filename = image_item['filename'].split('.')[0] + '_thumbnail.png'
 
@@ -257,33 +268,42 @@ def _compile_cam_images():
                     # Check its not already added and doesn't already exist, if so download it.
                     thumbnail = False
                     try:
-                        if image_item['url'] not in completed and not os.path.isfile(new_filepath):
-                            if debug:
+                        if os.path.isfile(new_filepath):
+                            already_processed_count += 1
+                        else:
+                            #if image_item['url'] not in completed and not os.path.isfile(new_filepath):
+                            if verbose:
                                 print '\n Image item to be processed: '
-                                dump_dict(image_item, debug)
+                                #dump_dict(image_item, debug)
                             response = requests.get(image_item['url'], timeout=(timeout, timeout_read))
                             if response.status_code != 200:
                                 message = 'Failed to get image \'%s\' from server.' % image_item['url']
-                                if debug: print '\n error: ', message
+                                error_messages.append(message)
+                                #current_app.logger.info(message)
+                                failed_count += 1
                                 continue
 
-                            if debug: print '\n debug -- Generate thumbnail...'
+                            if verbose: print '\n debug -- Generate thumbnail...'
                             if response.content is None or not response.content:
                                 message = 'Response content is null or empty for %s' % image_item['url']
-                                current_app.logger.info(message)
+                                error_messages.append(message)
+                                #current_app.logger.info(message)
+                                failed_count += 1
                                 continue
                             img = Image.open(StringIO(response.content))
                             thumb = img.copy()
                             maxsize = (200, 200)
                             thumb.thumbnail(maxsize, PIL.Image.ANTIALIAS)
                             thumb.save(new_filepath)
-                            completed.append(image_item['url'])
+                            #completed.append(image_item['url'])
                             thumbnail = True
                             process_count += 1
                     except Exception as err:
-                        message = str(err)
-                        process_count -= 1
-                        current_app.logger.info(message)
+                        failed_count += 1
+                        message = 'Failed to get image \'%s\' from server; exception: %s' % (image_item['url'], str(err))
+                        error_messages.append(message)
+                        failed_count += 1
+                        #current_app.logger.info(message)
                         continue
 
                     # Add information for image thumbnail.
@@ -295,27 +315,41 @@ def _compile_cam_images():
                             "thumbnail": new_filepath,
                             "baseUrl":"/api/uframe/get_cam_image/"}
                     image_list.append(item)
-                    if thumbnail and debug: print '\n Processed image item...'
+                    if thumbnail and verbose: print '\n Processed image item...'
 
-                    # Counters
-                    total_count += 1
-                    if debug:
-                        if process_count > 0:
-                            print '-- Process count: ', process_count
-                        print '-- Total Count: %d and current image_list: %d' % (total_count, len(image_list))
-
-                    if total_count >= max_count:
+                    if total_count >= max_count or total_count >= available_count:
                         break
                 except Exception as err:
-                    print 'Error: ', str(err)
+                    message = 'Unknown error occurred during processing: %s' % str(err)
+                    error_messages.append(message)
+                    #current_app.logger.info(message)
+                    failed_count += 1
                     continue
 
-        print '\t\n-- Number of images processed: ', len(image_list)
         end = datetime.now()
+        if error_messages:
+            print '\t-- Error messages(%d) ' % len(error_messages)
+            error_count = 0
+            for message in error_messages:
+                error_count += 1
+                error_message = '%s.  %s' % (str(error_count), message)
+                #current_app.logger.info(error_message)
+                print '\t\t %s' % error_message
+
+        print '\n\t-- Total Count: ', total_count
+        print '\t-- Number of thumbnail images processed: ', process_count
+        print '\t-- Number of thumbnails already available: ', already_processed_count
+        print '\t-- Number of thumbnails images available (total): ', already_processed_count + process_count
+        print '\t-- Number of thumbnail images failed: ', failed_count
+        print '\t-- Number of images available: ', available_count
+        print '\t-- Setting maximum Count: ', max_count
+
         if time:
             print '\t-- End time:   ', end
             print '\t-- Time to compile camera images: %s' % str(end - start)
-        image_list.sort(key=lambda x: (x['date']), reverse=True)
+        image_list.sort(key=lambda x: ( x['date'], x['reference_designator']), reverse=True)
+        #image_list.sort(key=lambda x: (x['date']), reverse=True)
+
         return image_list
 
     except ConnectionError:
@@ -431,6 +465,7 @@ def _compile_large_format_files(test_ref_des=None, test_date_str=None):
         # Filters to limit processing for initial release.
         array_codes = ['CE', 'RS']
         years_processed = ['2016', '2017']
+        print '\t-- Years processed: ', years_processed
 
         for s in ss_reduced:
             #-----------------------------------------------
@@ -452,7 +487,7 @@ def _compile_large_format_files(test_ref_des=None, test_date_str=None):
             #-----------------------------------------------
 
             # Level 1 - subsite processing
-            if verbose: print '\n ---- Processing root element %s...' % rd
+            if verbose: print '\n\t---- Processing root element %s...' % rd
             d_url = base_url+s.attrs['href']
             #if debug: print '\n debug -- d_url: ', d_url
             subfolders, file_list = _get_subfolder_list(d_url, None)
@@ -469,7 +504,7 @@ def _compile_large_format_files(test_ref_des=None, test_date_str=None):
                 # Determine if item is a folder link or file
                 if debug: print '\n debug -- item: ', item
                 if '/' in item:
-                    if verbose: print '\n\t ----------- %s Processing item: %s...' % (rd, item)
+                    if verbose: print '\n\t\t---- %s Processing item: %s...' % (rd, item)
                     subfolder_url = base_url + rd + item
                     node_subfolders, node_file_list = _get_subfolder_list(subfolder_url, None)
                     if node_file_list:

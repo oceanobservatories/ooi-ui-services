@@ -4,12 +4,12 @@ CELERY_TIMEZONE = 'US/Eastern'
 CELERYBEAT_SCHEDULE = {
     'get-large-format-files-every': {
         'task': 'tasks.compile_large_format_files',
-        'schedule': crontab(minute=0, hour=22),
+        'schedule': crontab(minute=0, hour=23),
         'args': (),
         },
     'get-cam-images-every': {
         'task': 'tasks.compile_cam_images',
-        'schedule': crontab(minute=30, hour=5),
+        'schedule': crontab(minute=15, hour=2),
         'args': (),
         },
     'get-c2-toc': {

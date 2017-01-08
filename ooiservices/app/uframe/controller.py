@@ -783,9 +783,8 @@ def get_data_api(stream, instrument, yvar, xvar):
 #@auth.login_required
 @api.route('/plot/<string:instrument>/<string:stream>', methods=['GET'])
 def get_svg_plot(instrument, stream):
-    # from ooiservices.app.uframe.controller import split_stream_name
     # Ok first make a list out of stream and instrument
-    debug = True
+    debug = False
     if debug:
         print '\n debug -- =============================================='
         print '\n debug -- =============================================='
@@ -796,6 +795,7 @@ def get_svg_plot(instrument, stream):
     instrument = instrument.split(',')
     #instrument.append(instrument[0])
 
+    # Get stream name to forward off for plotting image, used for parameter name (english)
     tmp = stream.split('_')
     tmp_stream_name = str(tmp[1])
     tmp_stream_name = tmp_stream_name.replace('-', '_')
@@ -803,7 +803,6 @@ def get_svg_plot(instrument, stream):
 
     stream = stream.split(',')
     #stream.append(stream[0])
-
 
     plot_format = request.args.get('format', 'svg')
     # time series vs profile
@@ -888,7 +887,6 @@ def get_svg_plot(instrument, stream):
     if not data:
         return jsonify(error='No data returned for %s' % plot_layout), 400
 
-
     # return if error
     if 'error' in data or 'Error' in data:
         return jsonify(error=data['error']), 400
@@ -900,15 +898,11 @@ def get_svg_plot(instrument, stream):
         return jsonify(error='tuple data returned for %s' % plot_layout), 400
     if isinstance(data, dict):
         # get title
-        if debug: print '\n debug --1-- (dict) using rd %r to get title or long display name...' % instrument[0]
         # Note: If instrument reference designator is not found in the vocabulary, the reference designator is returned.
         # (This provides a clear indication the instrument has NOT been added to the vocabulary and the COL folks
         # and data team will want to address why it is missing from the vocabulary.)
         #title = get_display_name_by_rd(instrument[0])
         title = get_long_display_name_by_rd(instrument[0])
-        # Global Irminger Sea Apex Surface Mooring - Mooring Riser - Velocity Profiler (75 kHz)
-
-        if debug: print '\n debug -- Length of title(%d): %s' % (len(title), title)
         if len(title) > 50:
             tmp = title.split('-', 2)
             title = ' - '.join([tmp[0], tmp[1]]) + '\n' + tmp[2]
@@ -920,7 +914,6 @@ def get_svg_plot(instrument, stream):
         data['stream_name'] = tmp_stream_name
     else:
         for idx, streamx in enumerate(stream):
-            if debug: print '\n debug --2-- (idx loop) using rd %s to get title or long display name...', instrument[0]
             title = get_display_name_by_rd(instrument[idx])
             if len(title) > 50:
                 title = ''.join(title.split('-')[0:-1]) + '\n' + title.split('-')[-1]
@@ -1130,10 +1123,10 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
                 if debug:
                     print '\n debug Step E...'
                     print '\n debug Step E dataBlock: ', str(type(dataBlock))
-                    #print '\n debug Step E dataBlock: ', dataBlock
                 result = json.loads(dataBlock)
                 if debug: print '\n debug Step F...'
-                return json.loads(dataBlock), 200
+                #return json.loads(dataBlock), 200
+                return result, 200
 
             if debug: print '\n debug -***** Step 1 -- get_uframe_plot_contents_chunked returning...'
             #raise Exception('No data returned...')
@@ -1153,7 +1146,5 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
         message = 'Error: Timeout getting uframe plot contents chunked for reference designator: %s' % rd
         current_app.logger.info(message)
         raise Exception(message)
-    except Exception as e:
-        #msg = map_common_error_message(dataBlock, str(e))
-        #return msg, 500
-        raise Exception(str(e))
+    except Exception as err:
+        raise Exception(str(err))

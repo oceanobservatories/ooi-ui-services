@@ -78,32 +78,6 @@ def get_uframe_large_format_files_by_ref(ref_des, date_str):
     return jsonify(response)
 
 
-# Build 'large_format' cache.
-@api.route('/get_large_format_files')
-def get_uframe_large_format_files():
-    """ Index all various types of large format files from data server. Returns true for success.
-    """
-    success = False
-    try:
-        cached = cache.get('large_format')
-        if cached:
-            data = cached
-            if data and data is not None and 'error' not in data:
-                success = True
-        else:
-            print '\n Compiling large format files...'
-            data = _compile_large_format_files()
-            if data and data is not None and 'error' not in data:
-                cache.set('large_format', data, timeout=CACHE_TIMEOUT)
-                success = True
-        print '\n Number of items in large_format cache(%d): %s' % (len(data), data.keys())
-        return jsonify({'build_large_format_cache': success}), 200
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return bad_request(message)
-
-
 # Get single camera image.
 @api.route('/get_cam_image/<string:image_id>.png', methods=['GET'])
 def get_uframe_cam_image(image_id):
@@ -156,6 +130,53 @@ def build_cam_images():
         if not data or data is None:
             data = []
         return jsonify({"build_cam_images": data})
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
+
+# Support.
+# Build 'large_format' cache.
+@api.route('/get_large_format_files')
+def get_uframe_large_format_files():
+    """ Index all various types of large format files from data server. Returns true for success.
+    """
+    success = False
+    try:
+        cached = cache.get('large_format')
+        if cached:
+            data = cached
+            if data and data is not None and 'error' not in data:
+                success = True
+        else:
+            print '\n Compiling large format files...'
+            data = _compile_large_format_files()
+            if data and data is not None and 'error' not in data:
+                cache.set('large_format', data, timeout=CACHE_TIMEOUT)
+                success = True
+        print '\n Number of items in large_format cache(%d): %s' % (len(data), data.keys())
+        return jsonify({'build_large_format_cache': success}), 200
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
+
+
+# Support.
+# Build 'large_format' cache.
+@api.route('/build_large_format_files')
+def build_uframe_large_format_files():
+    """ Index all various types of large format files from data server. Returns true for success.
+    """
+    success = False
+    try:
+        print '\n Compiling large format files...'
+        data = _compile_large_format_files()
+        if data and data is not None and 'error' not in data:
+            cache.set('large_format', data, timeout=CACHE_TIMEOUT)
+            success = True
+        print '\n Number of items in large_format cache(%d): %s' % (len(data), data.keys())
+        return jsonify({'build_large_format_cache': success}), 200
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)

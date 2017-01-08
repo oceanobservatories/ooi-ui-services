@@ -410,6 +410,9 @@ def generate_plot(data, plot_options):
         # if len(magnitude) <= 0:
         #     raise(Exception('No good data avaliable!'))
 
+        # Add carriage return after plot title.
+        title = data['title'] + '\n'
+
         # Get legend title.
         #legend_title = xlabel + " (" + data['y_units'][0] + ")"
         # See stream_tools.py get_parameter_name_by_parameter_stream(data['y_field'][0], stream_name)
@@ -425,34 +428,25 @@ def generate_plot(data, plot_options):
             # If no stream_name, default to system parameter name and units
             legend_title = data['y_field'][0] + " (" + data['y_units'][0] + ")"
 
-        print '\n debug -- before plot_rose...'
         size = height if height <= width else width
         size = 6 if size < 6 else size
         hypot = np.sqrt(size**2 + size**2) + 1
         fig = ooi_plots.plot_rose(magnitude, direction,
                                   figsize=size,
                                   bins=5,
-                                  title=data['title'],
+                                  title=title,
                                   title_font=title_font,
                                   legend_title=legend_title,
                                   fontsize=int(hypot) + 2)
-        print '\n debug -- after plot_rose...'
 
     buf = io.BytesIO()
 
     # plt.tick_params(axis='both', which='major', labelsize=10)
-    print '\n debug -- before save plot to buf...'
     if plot_format not in ['svg', 'png']:
         plot_format = 'svg'
-    print '\n debug -- before savefig...'
-    try:
-        plt.savefig(buf, format=plot_format)
-    except:
-        pass
-    print '\n debug -- after savefig...'
-    buf.seek(0)
-    print '\n debug -- after save plot to buf...'
 
+    plt.savefig(buf, format=plot_format)
+    buf.seek(0)
     plt.close(fig)
 
     return buf
