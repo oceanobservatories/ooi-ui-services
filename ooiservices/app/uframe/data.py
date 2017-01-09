@@ -180,7 +180,7 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
     """
     #mooring, platform, instrument, stream_type, stream = split_stream_name('_'.join([instrument, stream]))
     #parameter_ids, y_units, x_units,units_mapping = find_parameter_ids(mooring, platform, instrument, yfields, xfields)
-    debug = True
+    debug = False
     data = []
     try:
         if debug: print '\n debug -- Entered get_data...'
