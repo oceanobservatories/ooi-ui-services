@@ -72,9 +72,13 @@ COMMON: &common
     # M2M
     UFRAME_HOST:            'localhost'
     UFRAME_ALLOWED_M2M_PORTS:
+      - 12575
       - 12576
-      - 12587
+      - 12577
       - 12578
+      - 12580
+      - 12586
+      - 12587
 
     #Red Mine values should be left alone on test servers and set to the production settings on the production server
     REDMINE_KEY: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
