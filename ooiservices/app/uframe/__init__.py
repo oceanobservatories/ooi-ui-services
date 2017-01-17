@@ -10,9 +10,9 @@ from flask import Blueprint
 
 uframe = Blueprint('uframe', __name__)
 
-#Change Sprint2 - added development_tools; remove before placing in git
-from ooiservices.app.uframe import controller, data, assets, events, subscribe, \
-    vocab, config, asset_tools,  event_tools, events_validate_fields, events_create_update, \
-    deployment_tools, assets_validate_fields, common_tools, assets_create_update, common_convert, \
-    cruise_tools, toc, toc_tools, cruises, assets_remote_resources, asset_cache_tools, uframe_tools, deployments, \
-    status, status_tools, status_tools_mock, gliders, streams, stream_tools
+from ooiservices.app.uframe import controller, data, subscribe, vocab, config, common_tools, \
+    uframe_tools, gliders, toc, toc_tools, streams, stream_tools, common_convert,\
+    assets, asset_tools, assets_remote_resources, asset_cache_tools, assets_validate_fields, assets_create_update,\
+    events, event_tools, events_validate_fields, events_create_update, \
+    deployments, deployment_tools, cruises, cruise_tools, \
+    status, status_tools, images, image_tools

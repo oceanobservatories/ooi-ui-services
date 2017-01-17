@@ -6,7 +6,7 @@
 from flask import request
 from netCDF4 import num2date
 from ooiservices.app.uframe.plot_tools import OOIPlots
-#from ooiservices.app.uframe.vocab import get_parameter_name_by_parameter
+from ooiservices.app.uframe.stream_tools import get_parameter_name_by_parameter_stream
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import io
@@ -318,12 +318,20 @@ def generate_plot(data, plot_options):
         '''
 
         current_app.logger.debug('Plotting Stacked')
-
         time = mdates.date2num(data['x']['time'])
         z = np.array(data['y'][data['y_field'][0]])
         # See stream_tools.py get_parameter_name_by_parameter_stream(data['y_field'][0], stream_name)
-        # label = get_parameter_name_by_parameter(data['y_field'][0])
-        label = data['y_field'][0] + " (" + data['y_units'][0] + ")"
+        # If stream_name provided and good, use to create label; any issues then fallback to system parameter.
+        if 'stream_name' in data:
+            if data['stream_name'] is None or not data['stream_name']:
+                label = data['y_field'][0] + " (" + data['y_units'][0] + ")"
+            else:
+                label = get_parameter_name_by_parameter_stream(data['y_field'][0], data['stream_name'])
+            if label is None:
+                label = data['y_field'][0] + " (" + data['y_units'][0] + ")"
+        else:
+            # If no stream_name, default to system parameter name and units
+            label = data['y_field'][0] + " (" + data['y_units'][0] + ")"
         ooi_plots.plot_stacked_time_series(fig, ax, time, np.arange(len(z[0]))[::-1], z.transpose(),
                                            title=data['title'],
                                            ylabel='Bin #',
@@ -382,6 +390,7 @@ def generate_plot(data, plot_options):
         '''
         Plot rose
         '''
+
         plt.close(fig)  # Need to create new fig and axes here
         current_app.logger.debug('Plotting Rose')
 
@@ -401,14 +410,31 @@ def generate_plot(data, plot_options):
         # if len(magnitude) <= 0:
         #     raise(Exception('No good data avaliable!'))
 
-        legend_title = xlabel + " (" + data['y_units'][0] + ")"
+        # Add carriage return after plot title.
+        title = data['title'] + '\n'
+
+        # Get legend title.
+        #legend_title = xlabel + " (" + data['y_units'][0] + ")"
+        # See stream_tools.py get_parameter_name_by_parameter_stream(data['y_field'][0], stream_name)
+        # If stream_name provided and good, use to create legend_title; any issues then fallback to system parameter.
+        if 'stream_name' in data:
+            if data['stream_name'] is None or not data['stream_name']:
+                legend_title = data['y_field'][0] + " (" + data['y_units'][0] + ")"
+            else:
+                legend_title = get_parameter_name_by_parameter_stream(data['y_field'][0], data['stream_name'])
+            if legend_title is None:
+                legend_title = data['y_field'][0] + " (" + data['y_units'][0] + ")"
+        else:
+            # If no stream_name, default to system parameter name and units
+            legend_title = data['y_field'][0] + " (" + data['y_units'][0] + ")"
+
         size = height if height <= width else width
         size = 6 if size < 6 else size
         hypot = np.sqrt(size**2 + size**2) + 1
         fig = ooi_plots.plot_rose(magnitude, direction,
                                   figsize=size,
                                   bins=5,
-                                  title=data['title'],
+                                  title=title,
                                   title_font=title_font,
                                   legend_title=legend_title,
                                   fontsize=int(hypot) + 2)
@@ -416,12 +442,11 @@ def generate_plot(data, plot_options):
     buf = io.BytesIO()
 
     # plt.tick_params(axis='both', which='major', labelsize=10)
-
     if plot_format not in ['svg', 'png']:
         plot_format = 'svg'
+
     plt.savefig(buf, format=plot_format)
     buf.seek(0)
-
     plt.close(fig)
 
     return buf

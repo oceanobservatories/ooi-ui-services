@@ -11,7 +11,7 @@ from ooiservices.app.main import api
 from ooiservices.app.main.errors import bad_request
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.uframe.vocab import get_display_name_by_rd
-from ooiservices.app.uframe.config import get_c2_uframe_info, get_uframe_data_info
+from ooiservices.app.uframe.config import get_c2_uframe_info, get_c2_uframe_data_info # get_uframe_data_info,
 from ooiservices.app.models import Array
 
 import json
@@ -76,7 +76,6 @@ def get_array_abstract(array_code):
     return response_dict
 
 
-#TODO get operational status from uframe
 @api.route('/c2/array/<string:array_code>/current_status_display', methods=['GET'])
 @auth.login_required
 @scope_required(u'command_control')
@@ -91,7 +90,7 @@ def c2_get_array_current_status_display(array_code):
 
     # Gets new content for toc (from instrument/api) each time array is selected in Command and Control display
     toc = _compile_c2_toc()
-    if toc is not None:
+    if toc and toc is not None:
         cache.set('c2_toc', toc, timeout=CACHE_TIMEOUT)
 
     # Get data, add to output
@@ -2087,7 +2086,8 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
         # Always add a limit to query...
         query += '&limit=10'
 
-        uframe_url, timeout, timeout_read = get_uframe_data_info()
+        #uframe_url, timeout, timeout_read = get_uframe_data_info()
+        uframe_url, timeout, timeout_read = get_c2_uframe_data_info()
         rd = '-'.join([mooring, platform, instrument])
         url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
         response = requests.get(url, timeout=(timeout, timeout_read))
@@ -2150,7 +2150,8 @@ def _c2_get_instrument_metadata(reference_designator):
     }
     """
     try:
-        uframe_url, timeout, timeout_read = get_uframe_data_info()
+        #uframe_url, timeout, timeout_read = get_uframe_data_info()
+        uframe_url, timeout, timeout_read = get_c2_uframe_data_info()
         mooring, platform, instrument = reference_designator.split('-', 2)
         url = '/'.join([uframe_url, mooring, platform, instrument, 'metadata'])
         response = requests.get(url, timeout=(timeout, timeout_read))
@@ -2876,29 +2877,6 @@ def uframe_post_instrument_driver_command(reference_designator, command, suffix)
     except Exception:
         raise
 
-'''
-def get_uframe_data_info():
-    """ Returns uframe data configuration information. (port 12576)
-    """
-    try:
-        # Use C2 server for toc info
-        tmp_uframe_base = current_app.config['UFRAME_INST_URL']
-        uframe_base = tmp_uframe_base.replace('12572', '12576')
-        uframe_url = uframe_base + current_app.config['UFRAME_URL_BASE']
-        timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
-        timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
-        return uframe_url, timeout, timeout_read
-    except ConnectionError:
-        message = 'ConnectionError for command and control sensor/inv.'
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout:
-        message = 'Timeout for command and control sensor/inv.'
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Exception:
-        raise
-'''
 
 def _post_headers():
     """ urlencoded values for uframe POST.
@@ -2994,83 +2972,6 @@ def _get_toc():
         message = str(err.message)
         current_app.logger.info(message)
         return None
-
-'''
-# Retain: deprecated, now using instruments (instrument/api) as toc data source rather than /sensor/inv port 12576.
-def _compile_c2_toc_standard():
-    """ Returns a toc dictionary of arrays, moorings, platforms and instruments from uframe data (port 12576).
-    Augmented by the UI database for vocabulary and arrays, returns json.
-
-    Note: was named _compile_c2_toc, but changed when we went with C2 toc
-    from instruments (instrument/api) and not data on 12576.
-    To retrieve C2 toc from data port (12576) use this function.
-    """
-    # Use instrument/api server for toc info
-    tmp_uframe_base = current_app.config['UFRAME_INST_URL']
-    uframe_base = tmp_uframe_base.replace('12572', '12576')
-    UFRAME_DATA = uframe_base + current_app.config['UFRAME_URL_BASE']
-    timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
-    timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
-    try:
-        toc = {}
-        mooring_list = []
-        platform_list = []
-        instrument_list = []
-        url = "/".join([UFRAME_DATA])
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        if response.status_code != 200:
-            raise Exception('uframe connection cannot be made.')
-        moorings = response.json()
-        for mooring in moorings:
-            mooring_list.append({'reference_designator': mooring,
-                                 'array_code': mooring[:2],
-                                 'display_name': get_display_name_by_rd(mooring)
-                                 })
-            url = "/".join([UFRAME_DATA, mooring])
-            response = requests.get(url, timeout=(timeout, timeout_read))
-            if response.status_code == 200:
-                platforms = response.json()
-                for platform in platforms:
-                    platform_list.append({'reference_designator': "-".join([mooring, platform]),
-                                          'mooring_code': mooring,
-                                          'platform_code': platform,
-                                          'display_name': get_long_display_name_by_rd("-".join([mooring, platform]))
-                                          })
-                    url = "/".join([UFRAME_DATA, mooring, platform])
-                    response = requests.get(url, timeout=(timeout, timeout_read))
-                    if response.status_code == 200:
-                        instruments = response.json()
-                        for instrument in instruments:
-                            # Verify valid reference designator, if not skip
-                            reference_designator = _get_validate_instrument_rd(mooring, platform, instrument)
-                            if reference_designator is not None:
-                                instrument_list.append({'mooring_code': mooring,
-                                                        'platform_code': platform,
-                                                        'instrument_code': instrument,
-                                                        'reference_designator': reference_designator,
-                                                        'display_name': get_display_name_by_rd(reference_designator)
-                                                        })
-                arrays = Array.query.all()
-                toc['arrays'] = [array.to_json() for array in arrays]
-                toc['moorings'] = mooring_list
-                toc['platforms'] = platform_list
-                toc['instruments'] = instrument_list
-
-        return toc
-
-    except ConnectionError:
-        message = 'ConnectionError for _compile_c2_toc_standard.'
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout:
-        message = 'Timeout for _compile_c2_toc_standard.'
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Exception as err:
-        message = str(err.message)
-        current_app.logger.info(message)
-        return None
-'''
 
 
 def _get_validate_instrument_rd(mooring, platform, instrument):
@@ -3411,7 +3312,6 @@ def _c2_get_instrument_driver_metadata(reference_designator):
         raise
 
 
-# todo development only (exercise _get_toc)
 @api.route('/c2/toc', methods=['GET'])
 @auth.login_required
 @scope_required(u'command_control')

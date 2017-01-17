@@ -508,9 +508,9 @@ def get_assets_from_uframe():
         start = dt.datetime.now()
         if time: print '\t-- Start time: ', start
         uframe_url, timeout, timeout_read = get_uframe_assets_info()
-        #timeout_extended = timeout_read * 3
+        timeout_extended = timeout_read * 3
         url = '/'.join([uframe_url, get_assets_url_base()])
-        response = requests.get(url, timeout=(timeout, timeout_read))
+        response = requests.get(url, timeout=(timeout, timeout_extended))
         end = dt.datetime.now()
         if time: print '\t-- End time:   ', end
         if time: print '\t-- Time to get uframe assets: %s' % str(end - start)
@@ -579,9 +579,11 @@ def uframe_get_asset_by_uid(uid):
         response = requests.get(url, timeout=(timeout, timeout_read), headers=headers())
         if response.status_code == 204:
             message = 'Failed to receive content from uframe for asset with uid \'%s\'.' % uid
+            current_app.logger.info(message)
             raise Exception(message)
         elif response.status_code != 200:
             message = 'Failed to get asset from uframe with uid: \'%s\'.' % uid
+            current_app.logger.info(message)
             raise Exception(message)
         asset = response.json()
         return asset
@@ -1033,16 +1035,16 @@ def uframe_get_deployment_inv():
         url, timeout, timeout_read = get_url_info_deployments_inv()
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
-            message = 'Unable to get uframe deployment inventory for subsite \'%s\'.' % subsite
+            message = 'Unable to get uframe deployment inventory.'
             raise Exception(message)
         result = response.json()
         return result
 
     except ConnectionError:
-        message = 'ConnectionError getting uframe deployment inventory for subsite \'%s\'.' % subsite
+        message = 'ConnectionError getting uframe deployment inventory.'
         raise Exception(message)
     except Timeout:
-        message = 'Timeout getting uframe deployment inventory for subsite \'%s\'.' % subsite
+        message = 'Timeout getting uframe deployment inventory.'
         raise Exception(message)
     except Exception as err:
         message = str(err)
@@ -1340,7 +1342,7 @@ def get_toc_information():
     try:
         url, timeout, timeout_read = get_uframe_toc_url()
         if extended_read:
-            timeout_read = timeout_read * 5
+            timeout_read = timeout_read * 3
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code == 200:
             toc = response.json()
@@ -1371,8 +1373,9 @@ def get_toc_information():
 # - - - - - - - - - - - - - - - - - - - - - - - - - -
 def uframe_get_stream_byname(stream):
     # http://host:12575/stream/byname/cg_cpm_eng_cpm_recovered
-    debug = False
     check = False
+    url = None
+    error = False
     try:
         # Get uframe stream by stream name.
         base_url, timeout, timeout_read = get_url_info_stream_byname()
@@ -1392,6 +1395,9 @@ def uframe_get_stream_byname(stream):
         raise Exception(message)
     except Exception as err:
         message = str(err)
+        if error:
+            print '\n Check -- url: ', url
+            print 'Check -- message: ', message
         raise Exception(message)
 
 
@@ -1496,7 +1502,7 @@ def uframe_get_status_by_rd(rd=None):
         http://host:12587/status/query/CE01ISSM-MFC31
         http://host:12587/status/query/CE01ISSM-MFC31-00-CPMENG000
 
-    http://uframe-3-test.ooi.rutgers.edu:12587/status/inv/GA01SUMO/SBD12
+    http://host:12587/status/inv/GA01SUMO/SBD12
     [
         {
           "rd" : "GA01SUMO-SBD12",
@@ -1518,7 +1524,7 @@ def uframe_get_status_by_rd(rd=None):
         }
     ]
 
-    http://uframe-3-test.ooi.rutgers.edu:12587/status/inv/GA01SUMO/SBD12/04-PCO2AA000
+    http://host:12587/status/inv/GA01SUMO/SBD12/04-PCO2AA000
     [
         {
           "rd" : "GA01SUMO-SBD12-04-PCO2AA000",
@@ -1529,12 +1535,10 @@ def uframe_get_status_by_rd(rd=None):
     ]
 
     """
-    live_test = False   # development only flag, remove
+    check = False
     try:
         # Get uframe status by reference designator.
         url, timeout, timeout_read = get_url_info_status_query()
-        if live_test:
-            url = url.replace('uframe-test', 'uframe-3-test')
 
         # Format reference designator for uframe query.
         uframe_rd = None
@@ -1553,6 +1557,7 @@ def uframe_get_status_by_rd(rd=None):
 
         if rd is not None:
             url = '/'.join([url, uframe_rd])
+        if check: print '\n check -- url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
             return None

@@ -14,16 +14,12 @@ from ooiservices.app.uframe.vocab import (get_vocab_dict_by_rd, get_vocab_codes,
                                           get_display_name_by_rd)
 from ooiservices.app.uframe.uframe_tools import (get_assets_from_uframe, uframe_get_status_by_rd,
                                                  uframe_get_nodes_for_site, uframe_get_sensors_for_platform,
-                                                 get_deployments_digest_by_uid, uframe_get_sites_for_array)
+                                                 get_deployments_digest_by_uid, uframe_get_sites_for_array,
+                                                 uframe_get_asset_by_uid)
 
-from ooiservices.app.uframe.config import status_demo_data
-from ooiservices.app.uframe.status_tools_mock import (mock_get_status_arrays, mock_get_sites_for_array,
-                                                      mock_get_status_platforms, mock_get_status_instrument)
-
-# development work - remove =============================
+# development work
 from ooiservices.app.uframe.common_tools import dump_dict
 from copy import deepcopy
-# development work - remove =============================
 
 import datetime as dt
 from ooiservices.app import cache
@@ -36,10 +32,8 @@ def _get_status_arrays():
     """
     results = []
     try:
-        # Get array(s) status for a site. (use bridge for now.)
-        #result = get_status_arrays()
-        # Call function to bridge mock interface and real interface (for now).
-        result = bridge_get_status_arrays()
+        # Get array(s) status for a site.
+        result = get_status_arrays()
         if result is not None:
             results = result
         return results
@@ -78,12 +72,8 @@ def _get_status_sites(rd):
             print '\n-- Process %s site(s) status. ' % rd
             print '-- Start time: ', start
 
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Get platform(s) status for a site. (use bridge for now.)
-        #results = get_status_sites(rd)
-        # Call function to bridge mock interface and real interface (for now).
-        results = bridge_get_sites_for_array(rd)
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Get platform(s) status for a site.
+        results = get_status_sites(rd)
         end = dt.datetime.now()
         if time:
             print '-- End time:   ', end
@@ -120,13 +110,8 @@ def _get_status_platforms(rd):
             message = 'Unknown array code (\'%s\') provided, unable to process request.' % rd
             raise Exception(message)
 
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Get platform status for site provided.
-        #result = get_status_platforms(rd)
-
-        # Toggle bridge between mock data and actual (configuration switch). To be removed.
-        result = bridge_get_platforms_for_site(rd)
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        result = get_status_platforms(rd)
         if result is not None:
             results = result
         return results
@@ -156,13 +141,8 @@ def _get_status_instrument(rd):
             message = 'Unknown array code (\'%s\') provided.' % rd
             raise Exception(message)
 
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # Get instrument status for instrument provided. (Use bridge for now).
-        # result = get_status_instrument(rd)
-
-        # Toggle bridge between mock data and actual (configuration switch). To be removed.
-        result = bridge_get_status_instrument(rd)
-        #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        # Get instrument status for instrument provided.
+        result = get_status_instrument(rd)
 
         if result is not None:
             results = result
@@ -171,77 +151,6 @@ def _get_status_instrument(rd):
         message = str(err)
         current_app.logger.info(message)
         raise Exception(message)
-
-
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Bridges to toggle between mock and uframe status.
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Get site(s) status for an array.
-def bridge_get_status_arrays():
-    try:
-        # Real interface...
-        if not status_demo_data():
-            return_list = get_status_arrays()
-        # Mock data interface
-        else:
-            return_list = mock_get_status_arrays()
-        return return_list
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-
-# Get site(s) status for an array.
-def bridge_get_sites_for_array(rd):
-    try:
-        # Real interface...
-        if not status_demo_data():
-            return_list = get_status_sites(rd)
-
-        # Mock data interface
-        else:
-            return_list = mock_get_sites_for_array(rd)
-
-        return return_list
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-
-# Get platform(s) status for site.
-def bridge_get_platforms_for_site(rd):
-    try:
-        # Real interface...
-        if not status_demo_data():
-            return_list = get_status_platforms(rd)
-
-        # Mock data interface.
-        else:
-            data = get_asset_list_cache()
-            return_list = mock_get_status_platforms(data, rd)
-        return return_list
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-
-# Get instrument status for an instrument.
-def bridge_get_status_instrument(rd):
-    try:
-        # Real interface...
-        if not status_demo_data():
-            return_list = get_status_instrument(rd)
-
-        # Mock data interface.
-        else:
-            return_list = mock_get_status_instrument(rd)
-        return return_list
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# End bridges to toggle between mock and uframe status.
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -445,7 +354,7 @@ def get_status_sites(rd):
                 _rd_digests_dict['status'] = status_data[reference_designator]['status']
                 _rd_digests_dict['reason'] = status_data[reference_designator]['reason']
             else:
-                if debug: print '\n debug -- %s status not supplied in status_data.' % reference_designator
+                #if debug: print '\n debug -- %s status not supplied in status_data.' % reference_designator
                 _rd_digests_dict['status'] = 'notTracked'
                 _rd_digests_dict['reason'] = None
             return_list.append(_rd_digests_dict)
@@ -1190,96 +1099,6 @@ def get_uframe_status_data_arrays():
         return None
 
 
-'''
-def get_platform_status_data(rd):
-    """ Get status data for site reference designator, process uframe response to produce platform status data.
-    Return status_data.
-
-    Get node list for a site, for each node, get uframe status.
-    """
-    default = []
-    try:
-        data = get_uframe_status_data(rd)
-        status_data = process_uframe_platform_data(rd, data)
-        if status_data is None:
-            status_data = default
-        return status_data
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return None
-
-
-def process_uframe_platform_data(rd, data):
-    """ Get status data for site reference designator, process uframe response to produce platform status data.
-    Return status_data.
-
-    uframe status request for site nodes:
-    [
-        {
-          "reason" : null,
-          "status" : "notTracked",
-          "referenceDesignator" : "CP03ISSM-MFC31",
-          "deployment" : 3
-        },
-        {
-          "reason" : null,
-          "status" : "notTracked",
-          "referenceDesignator" : "CP03ISSM-MFD35",
-          "deployment" : 3
-        },
-        {
-          "reason" : null,
-          "status" : "notTracked",
-          "referenceDesignator" : "CP03ISSM-MFD37",
-          "deployment" : 3
-        },
-
-    For each node, eliminate everything but most recent deployment (ignore node status for now because of roll up in UI).
-    uframe status request for status specific to a node:
-    http://uframe-3-test.ooi.rutgers.edu:12587/status/query/CP03ISSM/SBD11
-    [
-        {
-          "reason" : null,
-          "status" : "notTracked",
-          "referenceDesignator" : "CP03ISSM-SBD11",
-          "deployment" : 3
-        },
-        {
-          "reason" : null,
-          "status" : "notTracked",
-          "referenceDesignator" : "CP03ISSM-SBD11-00-DCLENG000",
-          "deployment" : 3
-        },
-        {
-          "reason" : null,
-          "status" : "notTracked",
-          "referenceDesignator" : "CP03ISSM-SBD11-00-DCLENG000",
-          "deployment" : 2
-        },
-        {
-          "reason" : "1336",
-          "status" : "removedFromService",
-          "referenceDesignator" : "CP03ISSM-SBD11-01-MOPAK0000",
-          "deployment" : 3
-        },
-    """
-    default = []
-    try:
-        if not data or data is None:
-            return default
-        # Eliminate everything but most current deployment.
-
-        # get header status, determine 'general node' buckets (like 'MF'), populate node buckets.
-        if status_data is None:
-            status_data = default
-        return status_data
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return None
-'''
-
 def get_log_block():
     """ Get event log for history, default count=100. To be defined.
     """
@@ -1618,7 +1437,6 @@ def build_rd_digest_cache(rds):
 
 # Single uid, get fresh rd digest. (Uses uframe to get asset.)
 def get_fresh_rd_digest(uid):
-    from ooiservices.app.uframe.uframe_tools import uframe_get_asset_by_uid
     from ooiservices.app.uframe.asset_tools import format_asset_for_ui
 
     debug = False
@@ -1645,11 +1463,12 @@ def get_fresh_rd_digest(uid):
             raise Exception(message)
 
         asset = uframe_get_asset_by_uid(uid)
-        #if debug:
-        #    print '\n debug -- asset: '
-        #    dump_dict(asset, debug)
+        if debug:
+            print '\n debug -- asset: '
+            dump_dict(asset, debug)
         if not asset or asset is None:
             message = 'Failed to get asset with uid: %s' % uid
+            current_app.logger.info(message)
             raise Exception(message)
 
         asset_type = None
@@ -1735,7 +1554,7 @@ def get_rd_digests_dict():
     debug = False
     try:
         rd_digests_dict_cached = cache.get('rd_digests_dict')
-        if rd_digests_dict_cached:
+        if rd_digests_dict_cached and rd_digests_dict_cached is not None and 'error' not in rd_digests_dict_cached:
             rd_digests_dict = rd_digests_dict_cached
         else:
             if debug: print '\n building rd_digest_cache...'

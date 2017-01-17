@@ -139,7 +139,7 @@ def format_deployment_for_ui(modified_deployment):
         message = str(err)
         raise Exception(message)
 
-
+'''
 # Deprecate
 def _compile_rd_assets():
     """ Get dictionary, keyed by reference designator, holding reference maps for deployments and asset_ids.
@@ -307,7 +307,7 @@ def get_instrument_deployments(rd):
         message = str(err)
         current_app.logger.info(message)
         raise Exception(message)
-
+'''
 
 def get_rd_deployments(rd):
     """ Get all deployments for reference designator, whether mooring, platform or instrument.
@@ -463,7 +463,7 @@ def get_rd_deployment(rd, deployment_number):
         current_app.logger.info(message)
         return []
 
-
+'''
 # Deprecate
 def get_mooring_deployments_list(rd):
     """ Get list of deployments for mooring reference designator.
@@ -933,6 +933,7 @@ def get_deployment_asset_ids(deployment):
         return result
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 # Deprecate
 def get_instrument_deployment_work(rd):
     """ Create instrument deployment information breakout. Return dict or empty dict. Log exceptions.
@@ -1127,7 +1128,7 @@ def get_platform_deployment_work(rd):
         message = err.message
         current_app.logger.info(message)
         return {}
-
+'''
 
 def _get_deployment_subsites():
     """ Get deployment inventory for subsites.

@@ -1,27 +1,21 @@
 #!/usr/bin/env python
 """
-uframe endpoints
+Mixture of route endpoints and supporting functions.
 """
-# base
-from flask import jsonify, request, current_app, make_response, send_file
-from ooiservices.app import cache, db
+
+from flask import (jsonify, request, current_app, make_response)
+from ooiservices.app import db
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.models import DisabledStreams
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.main.errors import (internal_server_error, bad_request)
-from ooiservices.app.uframe.vocab import get_display_name_by_rd
+from ooiservices.app.uframe.vocab import (get_display_name_by_rd, get_long_display_name_by_rd)
 from ooiservices.app.uframe.config import get_uframe_info
 from ooiservices.app.uframe.common_tools import to_bool
-
-# data imports
 from ooiservices.app.uframe.data import (get_data, get_simple_data, find_parameter_ids, get_multistream_data)
 from ooiservices.app.uframe.plotting import generate_plot
 
-# See note in function get_data_api.
-#from ooiservices.app.uframe.stream_tools import get_stream_name_byname
-
 from urllib import urlencode
-from datetime import datetime
 import json
 import numpy as np
 
@@ -29,27 +23,18 @@ from contextlib import closing
 import time
 import urllib2
 from operator import itemgetter
-from bs4 import BeautifulSoup
-import urllib
-import os.path
 import requests
 import requests.adapters
 import requests.exceptions
 from requests.exceptions import (ConnectionError, Timeout)
 
-#for image processing
-import PIL
-from PIL import Image
-from StringIO import StringIO
-
 __author__ = 'Andy Bird'
 
-CACHE_TIMEOUT = 172800
 COSMO_CONSTANT = 2208988800
 
 
 def split_stream_name(ui_stream_name):
-    """ Splits the hypenated reference designator and stream type into a tuple of
+    """ Splits the hyphenated reference designator and stream type into a tuple of
     (mooring, platform, instrument, stream_type, stream)
     """
     mooring, platform, instrument = ui_stream_name.split('-', 2)
@@ -65,348 +50,7 @@ def combine_stream_name(mooring, platform, instrument, stream_type, stream):
     return all_of_it
 
 
-def _create_image_entry(url):
-    """ Decode a url into its metadata.
-    """
-    # Get the filename and other metadata
-    filename = url.split('/')[-1]
-    ref_date = filename.split('.png')[0].split('_')
-
-    dt = urllib.unquote(ref_date[1]).decode('utf8')
-    dt = dt.replace(',', '.')
-
-    thumbnail = filename.replace('.png', '_thumbnail.png')
-
-    item = {"url": url,
-            "filename": filename,
-            "reference_designator": str(ref_date[0]),
-            "datetime": dt,
-            "thumbnail": thumbnail}
-    return item
-
-
-def _get_folder_list(url,search_filter):
-    """ Get url folder link list.
-    """
-    r = requests.get(url)
-    soup = BeautifulSoup(r.content, "html.parser")
-    ss = soup.findAll('a')
-    url_list = []
-    for s in ss:
-        if 'href' in s.attrs:
-            if search_filter in s.attrs['href']:
-                url_list.append(url.split('contents.html')[0]+s.attrs['href'])
-    return url_list
-
-
-def _compile_cam_images():
-    """ Loop over a directory list to get the images available (url>ref>year>month>day>image).
-    """
-    url = current_app.config['IMAGE_CAMERA_STORE']
-    r = requests.get(url)
-
-    soup = BeautifulSoup(r.content, "html.parser")
-    ss = soup.findAll('a')
-    data_image_list = []
-
-    for s in ss:
-        if 'href' in s.attrs:
-            if '-CAMDS' in s.attrs['href']:
-                #print s.attrs['href']
-                d_url = url+s.attrs['href']
-                url_list = _get_folder_list(d_url,'contents.html')
-                #year
-                for d_url in url_list:
-                    url_list1 = _get_folder_list(d_url,'contents.html')
-                    #month
-                    for d_url1 in url_list1:
-                        #day
-                        url_list2 = _get_folder_list(d_url1,'contents.html')
-                        for d_url2 in url_list2:
-                            #image
-                            url_list3 = _get_folder_list(d_url2,'.png')
-                            #print "\t",len(url_list3)," images..."
-                            for im_url in url_list3:
-                                data_image_list.append(im_url)
-
-    current_app.logger.debug("Found" + str(len(data_image_list)) + " images")
-
-    image_dict = []
-    for data_image_url in data_image_list:
-        image_dict.append(_create_image_entry(data_image_url))
-
-    completed= []
-    #ADD THE IMAGES to the folder CACHE
-    for image_item in image_dict:
-        try:
-            new_filename = image_item['filename'].split('.')[0]+"_thumbnail.png"
-            new_filepath = current_app.config['IMAGE_STORE']+"/"+new_filename
-
-            # Check its not already added and doesnt already exist, if so download it.
-            if image_item['url'] not in completed and not os.path.isfile(new_filepath) :
-                response = requests.get(image_item['url'])
-                img = Image.open(StringIO(response.content))
-                thumb = img.copy()
-                maxsize = (200, 200)
-                thumb.thumbnail(maxsize, PIL.Image.ANTIALIAS)
-                thumb.save(new_filepath)
-                completed.append(image_item['url'])
-        except Exception,e:
-            print "Error:",str(e)
-            continue
-
-    #return dict
-    return image_dict
-
-
-# @auth.login_required
-@api.route('/get_cam_image/<string:image_id>.png', methods=['GET'])
-def get_uframe_cam_image(image_id):
-    try:
-        filename = os.getcwd()+"/"+current_app.config['IMAGE_STORE']+"/"+image_id+'_thumbnail.png'
-        filename = filename.replace(',','%2C')
-        print filename
-        if not os.path.isfile(filename):
-            filename = current_app.config['IMAGE_STORE']+'/imageNotFound404.png'
-        return send_file(filename,
-                         attachment_filename='cam_image.png',
-                         mimetype='image/png')
-    except Exception, e:
-        return jsonify(error="image not found"), 404
-
-
-# @auth.login_required
-@api.route('/get_cam_images')
-def get_uframe_cam_images():
-    """ Get cam images
-    """
-    try:
-        cached = cache.get('cam_images')
-        will_reset_cache = False
-        if request.args.get('reset') == 'true':
-            will_reset_cache = True
-
-        will_reset = request.args.get('reset')
-        if cached and not(will_reset_cache):
-            data = cached
-        else:
-            data = _compile_cam_images()
-
-            if "error" not in data:
-                cache.set('cam_images', data, timeout=CACHE_TIMEOUT)
-
-        return jsonify({"cam_images":data})
-    except requests.exceptions.ConnectionError as e:
-        error = "Error: Cannot connect to uframe.  %s" % str(e)
-        print error
-        return make_response(error, 500)
-
-
-def _create_entry(url, ext):
-    """ Create the JSON object for this file.
-
-    Get the filename and other metadata
-       ZPL .raw = CE02SHBP-MJ01C-07-ZPLSCB101_OOI-D20150802-T230543.raw
-       HYD .mseed = OO-HYEA2--YDH.2015-09-03T23:55:06.365250.mseed
-       CAMDS .png = CE02SHBP-MJ01C-08-CAMDSB107_20150818T214937,543Z.png
-       OBS .mseed = OO-HYSB1--BHE.2015-09-03T23:54:37.100000.mseed
-       CAMHD .mov = CAMHDA301-20151119T210000Z.mov
-       CAMHS .mp4 = CAMHDA301-20151119T210000Z.mp4
-
-    """
-    filename = url.split('/')[-1]
-    if ext == '.png':
-        ref = filename.split(ext)[0].split('_')
-        dt = urllib.unquote(ref[1]).decode('utf8')
-        dt = dt.replace(',', '.')
-
-    elif ext == '.raw':
-        ref = filename.split(ext)[0].split('_OOI-D')
-        date = ref[1] + 'Z'
-        dt = urllib.unquote(date).decode('utf8')
-
-    elif ext == '.mseed':
-        ref = filename.split(ext)[0].split('.')
-        if len(ref) == 3:
-            date = ref[1] + 'Z'
-            dt = urllib.unquote(date).decode('utf8')
-        else:
-            split = ref[0].split('-')
-            date = '-'.join([split[-3], split[-2], split[-1]]) + 'Z'
-            dt = urllib.unquote(date).decode('utf8')
-    elif ext == '.mov' or ext == '.mp4':
-        ref = filename.split(ext)[0].split('-')
-        date = ref[1]
-        dt = urllib.unquote(date).decode('utf8')
-
-    item = {"url": url,
-            "filename": urllib.unquote(filename).decode('utf8'),
-            "datetime": dt.replace("-", "").replace(":", "")}
-
-    return item
-
-
-def _compile_large_format_files(test_ref_des=None, test_date_str=None):
-    """ Loop over a directory list to get the files available (url>ref>year>month>day>image)
-
-    Optional arguments are for testing ONLY:
-        ref_des: Pass in a reference designator to only retrieve those results
-        date_str: Pass in a date string (yyyy-mm-dd) to only get data from a specific day
-    """
-    testing = False
-    if test_ref_des is not None and test_date_str is not None:
-        testing = True
-        # Get the date we're looking for
-        date = test_date_str.split('-')
-        test_year = date[0]
-        test_month = date[1]
-        test_day = date[2]
-
-    url = current_app.config['IMAGE_CAMERA_STORE']
-    r = requests.get(url)
-
-    soup = BeautifulSoup(r.content, "html.parser")
-    ss = soup.findAll('a')
-
-    filetypes_to_check = ['-HYD', '-OBS', '-CAMDS', '-CAMHD', '-ZPL']
-    extensions_to_check = ['.mseed', '.png', '.mp4', '.mov', '.raw']
-
-    # Go fetch whatever data has already been cached
-    data_dict = {}
-    if cache.get('large_format') is not None:
-        data_dict = cache.get('large_format')
-
-    # Get the current date to use to check against the data on HYRAX server
-    current_year = datetime.utcnow().strftime('%Y')
-    current_month = datetime.utcnow().strftime('%m')
-    current_day = datetime.utcnow().strftime('%d')
-
-    # Ok let's walk the HYRAX server directory structure {ref-des > year > month > day}
-    for s in ss:
-        if 'href' in s.attrs:
-            # REF DES
-            if any(filetype in s.attrs['href'] for filetype in filetypes_to_check):
-                ref_des = s.attrs['href'].split('/')[0]
-                if (testing and test_ref_des != ref_des):
-                    continue
-                current_app.logger.debug(ref_des)
-                if ref_des not in data_dict:
-                    data_dict[ref_des] = {}
-                ref_url = url+s.attrs['href']
-                url_list = _get_folder_list(ref_url, 'contents.html')
-
-                # YEAR
-                for year_url in url_list:
-                    year = year_url.split('/contents.html')[0].split('/')[-1]
-                    if (testing and test_year != year):
-                        continue
-                    if year not in data_dict[ref_des]:
-                        data_dict[ref_des][year] = {}
-                    elif year != current_year:  # Move onto next year, this one's old!
-                        continue
-                    url_list1 = _get_folder_list(year_url, 'contents.html')
-
-                    # MONTH
-                    for month_url in url_list1:
-                        month = month_url.split('/contents.html')[0].split('/')[-1]
-                        if (testing and test_month != month):
-                            continue
-                        if month not in data_dict[ref_des][year]:
-                            data_dict[ref_des][year][month] = {}
-                        elif month != current_month:  # Move onto next month, this one's old!
-                            continue
-                        url_list2 = _get_folder_list(month_url, 'contents.html')
-
-                        # DAY
-                        for day_url in url_list2:
-                            day = day_url.split('/contents.html')[0].split('/')[-1]
-                            if (testing and test_day != day):
-                                continue
-                            if day not in data_dict[ref_des][year][month]:
-                                data_dict[ref_des][year][month][day] = []
-                            elif day != current_day:  # Move onto next day, this one's old!
-                                continue
-
-                            for ext in extensions_to_check:
-                                # file
-                                url_list3 = _get_folder_list(day_url, ext)
-                                for im_url in url_list3:
-                                    entry = _create_entry(im_url, ext)
-                                    data_dict[ref_des][year][month][day].append(entry)
-
-                # Update the cache in case the connection gets reset you don't want to lose anything
-                cache.set('large_format', data_dict, timeout=CACHE_TIMEOUT)
-
-    return data_dict
-
-
-@api.route('/get_large_format_files_by_ref/<string:ref_des>/<string:date_str>')
-def get_uframe_large_format_files_by_ref(ref_des, date_str):
-    """ Walk the Hyrax server and parse out all available large format files
-    """
-
-    filetypes_to_check = ['-HYD', '-OBS', '-CAMDS', '-CAMHD', '-ZPL']
-    extensions_to_check = ['mseed', 'png', 'mp4', 'mov', 'raw']
-
-    site = ref_des[0:8]
-    assembly = ref_des[9:14]
-    instrument = ref_des[15:]
-
-    date = date_str.split('-')
-    if len(date) < 3:
-        error = 'Date format not compliant, expecting ISO8601 (yyyy-mm-dd)'
-        return make_response(error, 500)
-    year = date[0]
-    month = date[1]
-    day = date[2]
-
-    data_payload = site + '/' + assembly + '/' + instrument + '/'
-    date_payload = str(year) + '/' + str(month) + '/' + str(day)
-
-    url = current_app.config['IMAGE_CAMERA_STORE'] + data_payload + date_payload
-    r = requests.get(url, verify=False)
-
-    soup = BeautifulSoup(r.content, "html.parser")
-    ss = soup.findAll('a')
-
-    entry = {}
-    entry_list = []
-    for s in ss:
-        entry_url = url+s.attrs['href'][1:]
-        if entry_url.split('.')[-1] in extensions_to_check:
-            entry['url'] = entry_url
-            entry['datetime'] = date_str
-            entry['filename'] = entry_url.split('/')[-1]
-            entry_list.append(entry)
-
-    response = {'data': entry_list}
-
-    if len(entry_list) < 1:
-        error = "Error: %s data not available for this date." % (ref_des)
-        return make_response(error, 500)
-
-    return jsonify(response)
-
-
-@api.route('/get_large_format_files')
-def get_uframe_large_format_files():
-    """ Get all available large format files.
-    """
-    try:
-        cached = cache.get('large_format')
-        if cached:
-            data = cached
-        else:
-            data = _compile_large_format_files()
-            if "error" not in data:
-                cache.set('large_format', data, timeout=CACHE_TIMEOUT)
-
-        return jsonify(data)
-    except requests.exceptions.ConnectionError as e:
-        error = "Error: Cannot connect to uframe.  %s" % e
-        return make_response(error, 500)
-
-
+# todo: Move to streams.py
 @api.route('/disabled_streams', methods=['GET', 'POST'])
 @api.route('/disabled_streams/<int:id>', methods=['DELETE'])
 def disabled_streams(id=None):
@@ -507,7 +151,7 @@ def get_acoustic_datalist():
         return jsonify(results=data)
 
 
-
+# Returns response object for error.
 def _response_internal_server_error(msg=None):
     message = json.dumps('"error" : "uframe connection cannot be made."')
     if msg:
@@ -517,7 +161,6 @@ def _response_internal_server_error(msg=None):
     response.status_code = 500
     response.headers["Content-Type"] = "application/json"
     return response
-
 
 
 def map_common_error_message(response, default):
@@ -532,7 +175,7 @@ def map_common_error_message(response, default):
     return message
 
 
-
+# Deprecate this function - it only returns end_time.
 def validate_date_time(start_time, end_time):
     """
     uframe_data_request_limit = int(current_app.config['UFRAME_DATA_REQUEST_LIMIT'])/1440
@@ -550,6 +193,7 @@ def make_cache_key():
     return urlencode(request.args)
 
 
+# Restore event processing as needed.
 def get_events_by_ref_des(data, ref_des):
     """
     """
@@ -557,6 +201,9 @@ def get_events_by_ref_des(data, ref_des):
     return result
 
 
+'''
+# Deprecate or move to uframe_tools.py
+# todo: Return exception in consistent manner.
 def get_uframe_streams(mooring, platform, instrument, stream_type):
     """ Get a list of all the streams.
     """
@@ -566,10 +213,21 @@ def get_uframe_streams(mooring, platform, instrument, stream_type):
         current_app.logger.info("GET %s", url)
         response = requests.get(url, timeout=(timeout, timeout_read))
         return response
-    except Exception as e:
-        return internal_server_error('uframe connection cannot be made.' + str(e.message))
+    except ConnectionError:
+        message = 'ConnectionError getting uframe streams.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Timeout getting uframe streams.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Exception as err:
+        message = str(err)
+        #return internal_server_error('uframe connection cannot be made.' + str(e.message))
+        return internal_server_error(message)
 
 
+# todo: Return exception in consistent manner.
 def get_uframe_stream(mooring, platform, instrument, stream):
     """ Get a list the reference designators for the streams.
     """
@@ -579,14 +237,23 @@ def get_uframe_stream(mooring, platform, instrument, stream):
         current_app.logger.info("GET %s", url)
         response = requests.get(url, timeout=(timeout, timeout_read))
         return response
+    except ConnectionError:
+        message = 'ConnectionError getting uframe stream.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Timeout getting uframe stream.'
+        current_app.logger.info(message)
+        raise Exception(message)
     except Exception as e:
         #return internal_server_error('uframe connection cannot be made.' + str(e.message))
         return _response_internal_server_error(str(e))
+'''
 
 
 @api.route('/get_instrument_metadata/<string:ref>', methods=['GET'])
 def get_uframe_instrument_metadata(ref):
-    """ Returns the uFrame metadata response for a given stream.
+    """ Returns the metadata response for a given instrument - all streams.
     """
     try:
         mooring, platform, instrument = ref.split('-', 2)
@@ -603,47 +270,91 @@ def get_uframe_instrument_metadata(ref):
 
 @api.route('/get_metadata_parameters/<string:ref>', methods=['GET'])
 def get_uframe_instrument_metadata_parameters(ref):
-    """ Returns the uFrame metadata parameters for a given stream.
+    """ Returns the metadata parameters for a given instrument - all streams.
     """
+    results = []
     try:
         mooring, platform, instrument = ref.split('-', 2)
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, mooring, platform, instrument, 'metadata', 'parameters'])
         response = requests.get(url, timeout=(timeout, timeout_read))
-        return response
-    except:
-        return _response_internal_server_error()
+        if response.status_code == 200:
+            results = response.json()
+        return jsonify(parameters=results), 200
+    except ConnectionError:
+        message = 'ConnectionError getting uframe instrument metadata parameters.'
+        current_app.logger.info(message)
+        return bad_request(message)
+    except Timeout:
+        message = 'Timeout getting uframe instrument metadata parameters.'
+        current_app.logger.info(message)
+        return bad_request(message)
+    except Exception as err:
+        message = str(err)
+        return bad_request(message)
 
 
-
-@auth.login_required
 @api.route('/get_metadata_times/<string:ref>', methods=['GET'])
 def get_uframe_stream_metadata_times(ref):
-    """ Returns the uFrame time bounds response for a given stream.
+    """ Returns the time bounds response for a given instrument - all streams.
     """
     mooring, platform, instrument = ref.split('-', 2)
+    results = []
     try:
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, mooring, platform, instrument, 'metadata','times'])
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code == 200:
-            return response
-        return jsonify(times={}), 200
+            results = response.json()
+        return jsonify(times=results), 200
     except ConnectionError:
-        message = 'ConnectionError for get uframe stream metadata times.'
+        message = 'ConnectionError getting uframe instrument metadata times.'
         current_app.logger.info(message)
-        raise Exception(message)
+        return bad_request(message)
     except Timeout:
-        message = 'Timeout for get uframe stream metadata times.'
+        message = 'Timeout getting uframe instrument metadata times.'
         current_app.logger.info(message)
-        raise Exception(message)
-    except Exception as e:
-        message = 'Error getting uframe stream metadata times, ' + str(e.message)
+        return bad_request(message)
+    except Exception as err:
+        message = 'Error getting uframe instrument metadata times, ' + str(err)
         current_app.logger.info(message)
-        return internal_server_error(message)
+        message = str(err)
+        return bad_request(message)
 
 
-#@auth.login_required
+@api.route('/get_metadata_stream_times/<string:ref>/<string:stream>/<string:method>', methods=['GET'])
+def get_uframe_stream_metadata_stream_by_method(ref, stream, method):
+    """ Returns the metadata time bounds response for a given stream and method.
+    """
+    mooring, platform, instrument = ref.split('-', 2)
+    results = []
+    try:
+        uframe_url, timeout, timeout_read = get_uframe_info()
+        url = "/".join([uframe_url, mooring, platform, instrument, 'metadata','times'])
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            return jsonify(times=results), response.status_code
+        data = response.json()
+        if data and data is not None:
+            for item in data:
+                if item['method'] == method and item['stream'] == stream:
+                    results.append(item)
+        return jsonify(times=results), 200
+    except ConnectionError:
+        message = 'ConnectionError getting uframe stream metadata times.'
+        current_app.logger.info(message)
+        return bad_request(message)
+    except Timeout:
+        message = 'Timeout getting uframe stream metadata times.'
+        current_app.logger.info(message)
+        return bad_request(message)
+    except Exception as err:
+        message = 'Error getting uframe stream metadata times, ' + str(err)
+        current_app.logger.info(message)
+        message = str(err)
+        return bad_request(message)
+
+
 @api.route('/get_multistream/<string:stream1>/<string:stream2>/<string:instrument1>/<string:instrument2>/<string:var1>/<string:var2>', methods=['GET'])
 def multistream_api(stream1, stream2, instrument1, instrument2, var1, var2):
     """
@@ -676,9 +387,6 @@ def multistream_api(stream1, stream2, instrument1, instrument2, var1, var2):
 
 def get_uframe_multi_stream_contents(stream1_dict, stream2_dict, start_time, end_time):
     """ Gets the data from an interpolated multi stream request.
-
-    For details on the UFrame API:
-        https://uframe-cm.ooi.rutgers.edu/projects/ooi/wiki/Web_Interface
 
     Example request:
         http://uframe-test.ooi.rutgers.edu:12576/sensor?r=r1&r=r2&r1.refdes=CP05MOAS-GL340-03-CTDGVM000&
@@ -836,8 +544,8 @@ def get_process_profile_data(stream, instrument, xvar, yvar):
         parameter_ids, y_units, x_units = find_parameter_ids(mooring, platform, instrument, [yvar], [xvar])
 
         data = get_profile_data(mooring, platform, instrument, stream_type, stream, parameter_ids)
-        if not data or data == None:
-            raise Exception('profiles not present in data')
+        if not data or data is None:
+            raise Exception('Profiles not present in data.')
     except Exception as e:
         raise Exception('%s' % str(e.message))
 
@@ -1028,291 +736,8 @@ def get_profiles(stream, instrument):
     return jsonify(profiles=profiles), 200, content_headers
 
 
-#====================================================================================
-#======================= Restored from copy Jim gave me =============================
-#====================================================================================
-'''
-# @auth.login_required
-@api.route('/get_data/<string:instrument>/<string:stream>/<string:yvar>/<string:xvar>', methods=['GET'])
-def get_data_api(stream, instrument, yvar, xvar):
-    # return if error
-    try:
-        xvar = xvar.split(',')
-        yvar = yvar.split(',')
-        resp_data, units = get_simple_data(stream, instrument, yvar, xvar)
-        instrument = instrument.split(',')
-        title = get_display_name_by_rd(instrument[0])
-    except Exception as err:
-        return jsonify(error='%s' % str(err.message)), 500
-    return jsonify(data=resp_data, units=units, title=title)
-
-
-#@auth.login_required
-@api.route('/plot/<string:instrument>/<string:stream>', methods=['GET'])
-def get_svg_plot(instrument, stream):
-    # from ooiservices.app.uframe.controller import split_stream_name
-    # Ok first make a list out of stream and instrument
-    instrument = instrument.split(',')
-    #instrument.append(instrument[0])
-
-    stream = stream.split(',')
-    #stream.append(stream[0])
-
-    plot_format = request.args.get('format', 'svg')
-    # time series vs profile
-    plot_layout = request.args.get('plotLayout', 'timeseries')
-    xvar = request.args.get('xvar', 'time')
-    yvar = request.args.get('yvar', None)
-
-    # There can be multiple variables so get into a list
-    xvar = xvar.split(',')
-    yvar = yvar.split(',')
-
-    if len(instrument) == len(stream):
-        pass # everything the same
-    else:
-        instrument = [instrument[0]]
-        stream = [stream[0]]
-        yvar = [yvar[0]]
-        xvar = [xvar[0]]
-
-    # create bool from request
-    # use_line = to_bool(request.args.get('line', True))
-    use_scatter = to_bool(request.args.get('scatter', True))
-    use_event = to_bool(request.args.get('event', True))
-    qaqc = int(request.args.get('qaqc', 0))
-
-    # Get Events!
-    events = {}
-    if use_event:
-        try:
-            response = get_events_by_ref_des(instrument[0])
-            events = json.loads(response.data)
-        except Exception as err:
-            current_app.logger.exception(str(err.message))
-            return jsonify(error=str(err.message)), 400
-
-    profileid = request.args.get('profileId', None)
-
-    # need a yvar for sure
-    if yvar is None:
-        return jsonify(error='Error: yvar is required'), 400
-
-    height = float(request.args.get('height', 100))  # px
-    width = float(request.args.get('width', 100))  # px
-
-    # do conversion of the data from pixels to inches for plot
-    height_in = height / 96.
-    width_in = width / 96.
-
-    # get the data from uFrame
-    try:
-        if plot_layout == "depthprofile":
-            data = get_process_profile_data(stream[0], instrument[0], yvar[0], xvar[0])
-        else:
-            if len(instrument) == 1:
-                data = get_data(stream[0], instrument[0], yvar, xvar)
-            elif len(instrument) > 1:  # Multiple datasets
-                data = []
-                for idx, instr in enumerate(instrument):
-                    stream_data = get_data(stream[idx], instr, [yvar[idx]], [xvar[idx]])
-                    data.append(stream_data)
-
-    except Exception as err:
-        current_app.logger.exception(str(err.message))
-        return jsonify(error=str(err.message)), 400
-
-    if not data:
-        return jsonify(error='No data returned for %s' % plot_layout), 400
-
-    # return if error
-    if 'error' in data or 'Error' in data:
-        return jsonify(error=data['error']), 400
-
-    # generate plot
-    some_tuple = ('a', 'b')
-    if str(type(data)) == str(type(some_tuple)) and plot_layout == "depthprofile":
-        return jsonify(error='tuple data returned for %s' % plot_layout), 400
-    if isinstance(data, dict):
-        # get title
-        title = get_display_name_by_rd(instrument[0])
-        if len(title) > 50:
-            title = ''.join(title.split('-')[0:-1]) + '\n' + title.split('-')[-1]
-
-        data['title'] = title
-        data['height'] = height_in
-        data['width'] = width_in
-    else:
-        for idx, streamx in enumerate(stream):
-            title = get_display_name_by_rd(instrument[idx])
-            if len(title) > 50:
-                title = ''.join(title.split('-')[0:-1]) + '\n' + title.split('-')[-1]
-            data[idx]['title'] = title
-            data[idx]['height'] = height_in
-            data[idx]['width'] = width_in
-
-    plot_options = {'plot_format': plot_format,
-                    'plot_layout': plot_layout,
-                    'use_scatter': use_scatter,
-                    'events': events,
-                    'profileid': profileid,
-                    'width_in': width_in,
-                    'use_qaqc': qaqc,
-                    'st_date': request.args['startdate'],
-                    'ed_date': request.args['enddate']}
-
-    try:
-        buf = generate_plot(data, plot_options)
-
-        content_header_map = {
-            'svg' : 'image/svg+xml',
-            'png' : 'image/png'
-        }
-
-        return buf.read(), 200, {'Content-Type': content_header_map[plot_format]}
-    except Exception as err:
-        message = 'Error generating {0} plot: {1}'.format(plot_options['plot_layout'], str(err.message))
-        current_app.logger.exception(str(err.message))
-        return jsonify(error=message), 400
-
-
-def get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_type, stream,
-                                       start_time, end_time, dpa_flag):
-    """ Gets the bounded stream contents, start_time and end_time need to be datetime objects.
-    """
-    try:
-        query = '?beginDT=%s&endDT=%s&user=download' % (start_time, end_time)
-        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-
-        url = "/".join([UFRAME_DATA, mooring, platform, instrument, stream_type, stream + query])
-        current_app.logger.debug("***:%s" % url)
-
-        TOO_BIG = 1024 * 1024 * 15 # 15MB
-        CHUNK_SIZE = 1024 * 32   #...KB
-        TOTAL_SECONDS = 20
-        dataBlock = ""
-        idx = 0
-
-        #counter
-        t0 = time.time()
-
-        with closing(requests.get(url,stream=True)) as response:
-            content_length = 0
-            for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
-                content_length = content_length + CHUNK_SIZE
-                t1 = time.time()
-                total = t1-t0
-                idx+=1
-                if content_length > TOO_BIG or total > TOTAL_SECONDS:
-                    #('uframe response to large.')
-                    # break it down to the last know good spot
-                    t00 = time.time()
-                    idx_c = dataBlock.rfind('}, {')
-                    dataBlock = dataBlock[:idx_c]
-                    dataBlock+="} ]"
-                    t11 = time.time()
-                    totaln = t11-t00
-
-                    print "size_limit or time reached",content_length/(1024 * 1024),total,totaln,idx
-                    return json.loads(dataBlock),200
-                # all the data is in the resonse return it as normal
-                #previousBlock = dataBlock
-                dataBlock+=chunk
-            #print "transfer complete",content_length/(1024 * 1024),total
-
-            #if str(dataBlock[-3:-1]) != '} ]':
-            #    idx_c = dataBlock.rfind('}')
-            #    dataBlock = dataBlock[:idx_c]
-            #    dataBlock+="} ]"
-            #    print 'uFrame appended Error Message to Stream',"\n",dataBlock[-3:-1]
-            idx_c = dataBlock.rfind('} ]')
-            if idx_c == -1:
-                dataBlock+="]"
-
-            return json.loads(dataBlock),200
-
-    except Exception,e:
-        #return json.loads(dataBlock), 200
-        return internal_server_error('uframe connection unstable.'),500
-
-
-
-def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type, stream,
-                                     start_time, end_time, dpa_flag, parameter_ids):
-    """ Gets the bounded stream contents, start_time and end_time need to be datetime objects
-    """
-    query = ''
-    dataBlock = ''
-    try:
-        if dpa_flag == '0' and len(parameter_ids) < 1:
-            query = '?beginDT=%s&endDT=%s&limit=%s&user=plotting' % (start_time, end_time, current_app.config['DATA_POINTS'])
-        elif dpa_flag == '1' and len(parameter_ids) < 1:
-            query = '?beginDT=%s&endDT=%s&limit=%s&user=plotting' % \
-                    (start_time, end_time, current_app.config['DATA_POINTS'])
-        elif dpa_flag == '0' and len(parameter_ids) > 0:
-            query = '?beginDT=%s&endDT=%s&limit=%s&parameters=%s&user=plotting' % \
-                    (start_time, end_time, current_app.config['DATA_POINTS'], ','.join(parameter_ids))
-        elif dpa_flag == '1' and len(parameter_ids) > 0:
-            query = '?beginDT=%s&endDT=%s&limit=%s&parameters=%s&user=plotting' % \
-                    (start_time, end_time, current_app.config['DATA_POINTS'], ','.join(map(str, parameter_ids)))
-
-        GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=plot&ea=%s&el=%s' % \
-                 ('-'.join([mooring, platform, instrument, stream_type, stream]), '-'.join([start_time, end_time]))
-
-        UFRAME_DATA = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-        url = "/".join([UFRAME_DATA, mooring, platform, instrument, stream_type, stream + query])
-
-        current_app.logger.debug("***:" + url)
-
-        TOO_BIG = 1024 * 1024 * 15 # 15MB
-        CHUNK_SIZE = 1024 * 32   #...KB
-        TOTAL_SECONDS = current_app.config['UFRAME_PLOT_TIMEOUT']
-        dataBlock = ""
-        response = ""
-        idx = 0
-
-        # counter
-        t0 = time.time()
-
-        with closing(requests.get(url, stream=True)) as response:
-            content_length = 0
-            for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
-                content_length = content_length + CHUNK_SIZE
-                t1 = time.time()
-                total = t1-t0
-                idx += 1
-
-                if content_length > TOO_BIG:
-                    return 'Data request too large, greater than 15MB', 500
-
-                if total > TOTAL_SECONDS:
-                    return 'Data request time out', 500
-
-                dataBlock += chunk
-
-            idx_c = dataBlock.rfind('}\n]')
-
-            if idx_c == -1:
-                dataBlock += "]"
-            urllib2.urlopen(GA_URL)
-            return json.loads(dataBlock), 200
-
-    except Exception as e:
-        msg = map_common_error_message(dataBlock, str(e))
-        return msg, 500
-
-'''
 #==============================================================================================
 #==============================================================================================
-#==============================================================================================
-#==============================================================================================
-# edna debug and/or changes, removed and replaced with content from Case dated 11-10-2016:
-#  get_data_api
-#  get_svg_plot
-#  get_uframe_stream_contents_chunked
-#  get_uframe_plot_contents_chunked
-#
-
 # @auth.login_required
 @api.route('/get_data/<string:instrument>/<string:stream>/<string:yvar>/<string:xvar>', methods=['GET'])
 def get_data_api(stream, instrument, yvar, xvar):
@@ -1331,17 +756,6 @@ def get_data_api(stream, instrument, yvar, xvar):
         #title = get_display_name_by_rd(instrument[0])
         if instrument and instrument is not None and len(instrument) > 8:
             title = get_display_name_by_rd(instrument)
-            """
-            # Note: To present stream name instead of sensor name (again) you could do the following:
-            stream_value = stream[:]
-            stream_type, actual_stream = stream_value.split('_')
-            actual_stream = actual_stream.replace('-', '_')
-            if debug:
-                print '\n stream_value: ', stream_value
-                print '\n stream: ', actual_stream
-                print '\n stream display name: ', get_stream_name_byname(actual_stream)
-            title = get_stream_name_byname(actual_stream)
-            """
         else:
             title = instrument
         if debug:
@@ -1369,7 +783,6 @@ def get_data_api(stream, instrument, yvar, xvar):
 #@auth.login_required
 @api.route('/plot/<string:instrument>/<string:stream>', methods=['GET'])
 def get_svg_plot(instrument, stream):
-    # from ooiservices.app.uframe.controller import split_stream_name
     # Ok first make a list out of stream and instrument
     debug = False
     if debug:
@@ -1381,6 +794,12 @@ def get_svg_plot(instrument, stream):
 
     instrument = instrument.split(',')
     #instrument.append(instrument[0])
+
+    # Get stream name to forward off for plotting image, used for parameter name (english)
+    tmp = stream.split('_')
+    tmp_stream_name = str(tmp[1])
+    tmp_stream_name = tmp_stream_name.replace('-', '_')
+    if debug: print '\n debug -- tmp_stream_name: ', tmp_stream_name
 
     stream = stream.split(',')
     #stream.append(stream[0])
@@ -1468,7 +887,6 @@ def get_svg_plot(instrument, stream):
     if not data:
         return jsonify(error='No data returned for %s' % plot_layout), 400
 
-
     # return if error
     if 'error' in data or 'Error' in data:
         return jsonify(error=data['error']), 400
@@ -1480,20 +898,22 @@ def get_svg_plot(instrument, stream):
         return jsonify(error='tuple data returned for %s' % plot_layout), 400
     if isinstance(data, dict):
         # get title
-        if debug: print '\n debug -- (dict) using rd %r to get title or long display name...' % instrument[0]
         # Note: If instrument reference designator is not found in the vocabulary, the reference designator is returned.
         # (This provides a clear indication the instrument has NOT been added to the vocabulary and the COL folks
         # and data team will want to address why it is missing from the vocabulary.)
-        title = get_display_name_by_rd(instrument[0])
+        #title = get_display_name_by_rd(instrument[0])
+        title = get_long_display_name_by_rd(instrument[0])
         if len(title) > 50:
-            title = ''.join(title.split('-')[0:-1]) + '\n' + title.split('-')[-1]
+            tmp = title.split('-', 2)
+            title = ' - '.join([tmp[0], tmp[1]]) + '\n' + tmp[2]
+            #title = ''.join(title.split('-')[0:-1]) + '\n' + title.split('-')[-1]
 
         data['title'] = title
         data['height'] = height_in
         data['width'] = width_in
+        data['stream_name'] = tmp_stream_name
     else:
         for idx, streamx in enumerate(stream):
-            if debug: print '\n debug -- (idx loop) using rd %s to get title or long display name...', instrument[0]
             title = get_display_name_by_rd(instrument[idx])
             if len(title) > 50:
                 title = ''.join(title.split('-')[0:-1]) + '\n' + title.split('-')[-1]
@@ -1560,7 +980,7 @@ def get_uframe_stream_contents_chunked(mooring, platform, instrument, stream_typ
         #counter
         t0 = time.time()
 
-        with closing(requests.get(url,stream=True)) as response:
+        with closing(requests.get(url, stream=True)) as response:
             content_length = 0
             for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
                 content_length = content_length + CHUNK_SIZE
@@ -1615,14 +1035,14 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
         rd = '-'.join([mooring, platform, instrument])
         if dpa_flag == '0' and len(parameter_ids) < 1:
             if debug: print '\n debug -- Branch A...'
-            query = '?beginDT=%s&endDT=%s&limit=%s&user=plotting&execDPA=false' % (start_time, end_time, current_app.config['DATA_POINTS'])
+            query = '?beginDT=%s&endDT=%s&limit=%s&user=plotting' % (start_time, end_time, current_app.config['DATA_POINTS'])
         elif dpa_flag == '1' and len(parameter_ids) < 1:
             if debug: print '\n debug -- Branch B...'
             query = '?beginDT=%s&endDT=%s&limit=%s&user=plotting&execDPA=true' % \
                     (start_time, end_time, current_app.config['DATA_POINTS'])
         elif dpa_flag == '0' and len(parameter_ids) > 0:
-            if debug: print '\n debug -- Branch C...MODIFIED'
-            query = '?beginDT=%s&endDT=%s&limit=%s&parameters=%s&user=plotting&execDPA=false' % \
+            if debug: print '\n debug -- Branch C...MODIFIED..'
+            query = '?beginDT=%s&endDT=%s&limit=%s&parameters=%s&user=plotting' % \
                     (start_time, end_time, current_app.config['DATA_POINTS'], ','.join(parameter_ids))
         elif dpa_flag == '1' and len(parameter_ids) > 0:
             if debug: print '\n debug -- Branch D...'
@@ -1698,14 +1118,15 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
                     if debug:
                         print '\n debug Step D...'
                         print '\n debug -- idx_c != -1: ', idx_c
+                # What does this provide regarding google analytics?
                 #urllib2.urlopen(GA_URL)
                 if debug:
                     print '\n debug Step E...'
                     print '\n debug Step E dataBlock: ', str(type(dataBlock))
-                    #print '\n debug Step E dataBlock: ', dataBlock
                 result = json.loads(dataBlock)
                 if debug: print '\n debug Step F...'
-                return json.loads(dataBlock), 200
+                #return json.loads(dataBlock), 200
+                return result, 200
 
             if debug: print '\n debug -***** Step 1 -- get_uframe_plot_contents_chunked returning...'
             #raise Exception('No data returned...')
@@ -1725,7 +1146,5 @@ def get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type,
         message = 'Error: Timeout getting uframe plot contents chunked for reference designator: %s' % rd
         current_app.logger.info(message)
         raise Exception(message)
-    except Exception as e:
-        #msg = map_common_error_message(dataBlock, str(e))
-        #return msg, 500
-        raise Exception(str(e))
+    except Exception as err:
+        raise Exception(str(err))

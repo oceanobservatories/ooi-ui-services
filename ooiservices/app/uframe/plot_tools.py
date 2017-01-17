@@ -261,8 +261,15 @@ class OOIPlots(object):
                   title='', title_font={}, legend_title='', normed=True,
                   opening=0.8, edgecolor='white', fontsize=8):
 
+        # Note:
+        # title_font_default:  {'color': 'black', 'fontname': 'Arial', 'verticalalignment': 'bottom',
+        # 'weight': 'bold', 'size': '18'}
         if not title_font:
             title_font = title_font_default
+
+        #print '\n debug -- rose: title_font: ', title_font
+        if title_font['size'] > 12:
+            title_font['size'] = 12
 
         fig, ax = self.new_axes(figsize)
         magnitude = magnitude[~np.isnan(magnitude)]
@@ -271,10 +278,24 @@ class OOIPlots(object):
         ax.bar(direction, magnitude, bins=bins, normed=normed, cmap=cmap,
                opening=opening, edgecolor=edgecolor, nsector=nsector)
 
-        self.set_legend(ax, legend_title, fontsize)
-        ax.set_title(title.replace("_", " "), **title_font)
+        #self.set_legend(ax, legend_title, fontsize)
+        self.rose_set_legend(ax, legend_title, fontsize)
+        ax.set_title(title, **title_font)
 
         return fig
+
+    def rose_set_legend(self, ax, label='', fontsize=8):
+        """Adjust the legend box."""
+         # Shrink current axis by 20%
+
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width * 0.7, box.height])
+
+        # Put a legend to the right of the current axis
+        l = ax.legend(title=label, loc='lower left', bbox_to_anchor=(1.05, 0), fontsize=12, fancybox=True)
+        plt.setp(l.get_title(), fontsize='x-small')
+        #plt.setp(l.get_texts(), fontsize=fontsize)
+        plt.setp(l.get_texts(), fontsize=10)
 
     def plot_1d_quiver(self, fig, ax, time, u, v, title='', ylabel='',
                        title_font={}, axis_font={}, tick_font={}, key_units='m/s',

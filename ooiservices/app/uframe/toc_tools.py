@@ -9,12 +9,14 @@ from flask import current_app
 from ooiservices.app import cache
 from ooiservices.app.uframe.uframe_tools import get_toc_information
 from ooiservices.app.uframe.vocab import (get_long_display_name_by_rd, get_display_name_by_rd)
+CACHE_TIMEOUT = 172800
 
 
 def process_uframe_toc():
     """ Get toc content from uframe; if error raise. Continue processing based on toc content.
     """
     result = None
+    debug = False
     try:
         d = get_toc_information()
         if d is not None:
@@ -25,9 +27,11 @@ def process_uframe_toc():
                 message = 'Use proper toc dictionary format. Check configuration.'
                 current_app.logger.info(message)
                 raise Exception(message)
+        if debug: print '\n debug -- get_uframe_toc result: ', result
         return result
     except Exception as err:
         message = str(err)
+        if debug: print '\n debug -- exception process_uframe_toc...'
         raise Exception(message)
 
 
@@ -40,19 +44,14 @@ def get_uframe_toc(data):
 
     Process toc response into a a list of dictionaries.
     """
-    debug = True
-    error_debug = True  # This produces an informational message in ooiservice.log (default to True)
+    debug = False
+    error_debug = True  # (default to True) This produces an informational message in ooiservice.log
     error_messages = []
 
     results = []
     try:
+        if debug: print '\n Entered get_uframe_toc...'
         required_components = ['instruments']
-        """
-        if not stream_new_data():
-            required_components = ['instruments', 'parameters_by_stream', 'parameter_definitions']
-        else:
-            required_components = ['instruments']
-        """
         if data:
             # Validate required components are provided in uframe toc data and not empty.
             for component in required_components:
@@ -123,6 +122,7 @@ def get_uframe_toc(data):
 
             return results
         else:
+            if debug: print '\n debug -- No data to be returned....'
             return []
     except Exception as err:
         message = '[get_uframe_toc] exception: %s' % str(err.message)
@@ -241,8 +241,49 @@ def process_toc_reference_designators(toc):
         return [], [], []
 
 
-@cache.memoize(timeout=1600)
+#@cache.memoize(timeout=1600)
 def get_toc_reference_designators():
+    """ Get toc and process for reference designators.
+    """
+    try:
+        toc_rds = cache.get('toc_rds')
+        if toc_rds and toc_rds is not None and 'error' not in toc_rds:
+            reference_designators = toc_rds
+            toc_only = []
+            difference = None
+        else:
+            reference_designators, toc_only, difference = compile_toc_reference_designators()
+
+        """
+        # Get contents of /sensor/inv/toc
+        toc = get_toc_information()
+
+        # If toc is of type dict, then processing newer style toc format
+        if isinstance(toc, dict):
+            if 'instruments' not in toc:
+                message = 'TOC does not have attribute \'instruments\', unable to process for reference designators.'
+                raise Exception(message)
+
+            # Verify toc attribute 'instruments' is not None or empty, if so, raise Exception.
+            toc = toc['instruments']
+            if not toc or toc is None:
+                message = 'TOC attribute \'instruments\' is None or empty, unable to process for reference designators.'
+                raise Exception(message)
+
+        # Process toc to get lists of:
+        reference_designators, toc_only, difference = process_toc_reference_designators(toc)
+        if not reference_designators:
+            message = 'No reference_designators identified when processing toc information.'
+            raise Exception(message)
+        """
+        return reference_designators, toc_only, difference
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return [], [], []
+
+
+def compile_toc_reference_designators():
     """ Get toc and process for reference designators.
     """
     try:
@@ -266,6 +307,8 @@ def get_toc_reference_designators():
         if not reference_designators:
             message = 'No reference_designators identified when processing toc information.'
             raise Exception(message)
+
+        cache.set('toc_rds', reference_designators, timeout=CACHE_TIMEOUT)
 
         return reference_designators, toc_only, difference
     except Exception as err:

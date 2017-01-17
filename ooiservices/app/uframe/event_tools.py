@@ -73,7 +73,7 @@ def _get_all_events_by_uid(uid, _type):
                 if calib_results:
                     results = results + calib_results
 
-        # todo - Sprint 3. Add deployment events here; get rd and then deployment events.
+        # todo - Add deployment events here; get rd and then deployment events.
         # Deployment events.
         #digests = get_deployments_digest(uid)
         #[u'node', u'eventId', u'endTime', u'orbitRadius', u'subsite', u'node_uid', u'waterDepth',
@@ -173,6 +173,8 @@ def get_and_process_events(id, uid, _type, asset_type):
                     if not types_list or event_type in types_list:
                         if event_type in event_types:
                             """
+                            # Integration events are available and tested but further evaluation of
+                            # integration event workflow to be done by team, therefore 'hidden' for now.
                             if event_type == 'INTEGRATION':
                                 if 'integrationInto' in event:
                                     if event['integrationInto'] is not None:
@@ -310,6 +312,31 @@ def get_deployment_events(uid):
     try:
         results = get_deployments_digest_by_uid(uid)
         return results
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        raise Exception(message)
+
+#todo - development in progress.
+def get_events_by_rd(rd):
+    """ Get deployment events by reference designator.
+    """
+    from ooiservices.app.uframe.status_tools import get_rd_digests_dict
+    try:
+        # Get rd_digest dictionary and digest for reference designator..
+        rd_digests_dict = get_rd_digests_dict()
+        uid = None
+        _type = None
+        if rd in rd_digests_dict:
+            digest = rd_digests_dict(rd)
+            if digest and digest is not None:
+                if 'uid' in digest:
+                    uid = digest['uid']
+        if uid is None:
+            events = []
+        else:
+            events = _get_events_by_uid(uid, _type)
+        return events
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)

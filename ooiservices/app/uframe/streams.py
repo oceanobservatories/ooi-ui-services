@@ -10,7 +10,7 @@ from flask import (jsonify, request, current_app)
 from ooiservices.app import cache
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.errors import (internal_server_error, bad_request)
-from ooiservices.app.uframe.stream_tools import get_stream_list
+from ooiservices.app.uframe.stream_tools import (get_stream_list, get_stream_for_stream_model)
 from operator import itemgetter
 from copy import deepcopy
 from ooiservices.app.uframe.common_tools import iso_to_timestamp
@@ -23,89 +23,6 @@ def get_streams_list():
 
     List of request.args used in this function:
         'sort', 'order', 'min', 'concepts', 'search', 'startDate', 'endDate' and 'startAt'
-
-    Sample response data (abbreviated):
-    {
-      "streams": [
-        {
-          "array_name": "Station Papa",
-          "assembly_name": "Mooring Riser",
-          "cruise_number": null,
-          "deployment_number": 3,
-          "depth": "NaN",
-          "display_name": "Seawater pH",
-          "download": {
-            "csv": "api/uframe/get_csv/recovered-inst_phsen-abcdef-metadata/GP03FLMA-RIS01-04-PHSENF000",
-            "json": "api/uframe/get_json/recovered-inst_phsen-abcdef-metadata/GP03FLMA-RIS01-04-PHSENF000",
-            "netcdf": "api/uframe/get_netcdf/recovered-inst_phsen-abcdef-metadata/GP03FLMA-RIS01-04-PHSENF000",
-            "profile": "api/uframe/get_profiles/recovered-inst_phsen-abcdef-metadata/GP03FLMA-RIS01-04-PHSENF000"
-          },
-          "end": "2040-02-05T12:25:32.000Z",
-          "lat_lon": null,
-          "long_display_name": "Station Papa Flanking Subsurface Mooring A - Mooring Riser - Seawater pH",
-          "parameter_display_name": [
-            "Time, UTC",
-            "Port Timestamp, UTC",
-            "Driver Timestamp, UTC",
-            "Internal Timestamp, UTC",
-            "Preferred Timestamp",
-            "Record Type",
-            . . .
-          ],
-          "parameter_id": [
-            "pd7",
-            "pd10",
-            "pd11",
-            "pd12",
-            "pd16",
-            "pd355",
-            . . .
-          ],
-          "platform_name": "Flanking Subsurface Mooring A",
-          "reference_designator": "GP03FLMA-RIS01-04-PHSENF000",
-          "site_name": "Flanking Subsurface Mooring A",
-          "start": "1904-01-01T18:50:57.000Z",
-          "stream_display_name": null,
-          "stream_name": "recovered-inst_phsen-abcdef-metadata",
-          "stream_type": "recovered-inst",
-          "units": [
-            "seconds since 1900-01-01",
-            "seconds since 1900-01-01",
-            "seconds since 1900-01-01",
-            "seconds since 1900-01-01",
-            "1",
-            "1",
-            . . .
-          ],
-          "variable_type": [
-            "double",
-            "double",
-            "double",
-            "double",
-            "string",
-            "ubyte",
-            . . .
-          ],
-          "variable_types": {},
-          "variables": [
-            "time",
-            "port_timestamp",
-            "driver_timestamp",
-            "internal_timestamp",
-            "preferred_timestamp",
-            "record_type",
-            . . .
-          ],
-          "variables_shape": [
-            "scalar",
-            "scalar",
-            "scalar",
-            "scalar",
-            "scalar",
-            "scalar",
-            . . .
-          ]
-        },
     """
     retval = get_stream_list()
     if not retval or retval is None:
@@ -259,14 +176,6 @@ def get_streams_list():
                     elif 'long_display_name' in item:
                         if subset.lower() in str(item['long_display_name']).lower():
                             ven_subset.append(item)
-                    """
-                    elif subset.lower() in str(item['platform_name']).lower():
-                                ven_subset.append(item)
-                    elif subset.lower() in str(item['parameter_display_name']).lower():
-                        ven_subset.append(item)
-                    elif subset.lower() in str(item['long_display_name']).lower():
-                        ven_subset.append(item)
-                    """
                 retval = ven_subset
             else:
                 for item in retval:
@@ -289,14 +198,6 @@ def get_streams_list():
                     elif 'long_display_name' in item:
                         if subset.lower() in str(item['long_display_name']).lower():
                                 return_list.append(item)
-                    """
-                    elif subset.lower() in str(item['platform_name']).lower():
-                        return_list.append(item)
-                    elif subset.lower() in str(item['parameter_display_name']).lower():
-                        return_list.append(item)
-                    elif subset.lower() in str(item['long_display_name']).lower():
-                        return_list.append(item)
-                    """
                 retval = return_list
 
     # If 'startDate' and 'endDate' provided, then use to filter the data.
@@ -335,6 +236,20 @@ def get_streams_list():
         return jsonify(streams=retval)
 
 
+@api.route('/get_stream_for_model/<string:reference_designator>/<string:stream_method>/<string:stream>', methods=['GET'])
+def get_stream_model_data(reference_designator, stream_method, stream):
+    """ Get complete stream dictionary with legacy content, including parameters, for UI stream model.
+    """
+    try:
+        stream_content = get_stream_for_stream_model(reference_designator, stream_method, stream)
+        return jsonify({'stream_content': stream_content}), 200
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
+
+
+# Support only route.
 @api.route('/build_stream_cache')
 def build_stream_cache():
     """ Force stream cache build. (Streams currently (celery) set to build every hour on the hour.)

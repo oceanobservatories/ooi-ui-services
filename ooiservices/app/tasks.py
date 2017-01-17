@@ -16,18 +16,18 @@ celery = create_celery_app('PRODUCTION')
 celery.config_from_object('ooiservices.app.celeryconfig')
 
 
-from ooiservices.app.uframe.controller import _compile_cam_images
-from ooiservices.app.uframe.controller import _compile_large_format_files
+from ooiservices.app.uframe.image_tools import (_compile_cam_images, _compile_large_format_files)
 from ooiservices.app.main.c2 import _compile_c2_toc
 from ooiservices.app.uframe.vocab import compile_vocab
 from ooiservices.app.uframe.stream_tools import get_stream_list
 from ooiservices.app.uframe.status_tools import get_uid_digests
 from ooiservices.app.uframe.asset_tools import verify_cache
+from ooiservices.app.uframe.toc_tools import compile_toc_reference_designators
 
 """
 Define the list of processes to run on a scheduled basis.
 Caches created/utilized:
-    For data visualization: cam_images*, large_format*, stream_list
+    For data visualization: cam_images, large_format, stream_list
     For vocabulary: vocab_dict, vocab_codes
     For Command and Control (C2): c2_toc
     For asset information: asset_list, assets_dict.
@@ -37,22 +37,22 @@ Currently Disabled:
 glider_tracks
 """
 
-# cam_images
+# 'cam_images'
 @celery.task(name='tasks.compile_cam_images')
 def compile_cam_images():
+    """ Create thumbnail images for UI, update 'cam_images' cache.
+    """
     try:
         with current_app.test_request_context():
-            print "[+] Starting cam images cache reset..."
+            print '[+] Starting cam images cache reset...'
             cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
             cache.init_app(current_app)
-
             cam_images = _compile_cam_images()
-
-            if "error" not in cam_images:
+            if cam_images and cam_images is not None and 'error' not in cam_images:
                 cache.set('cam_images', cam_images, timeout=CACHE_TIMEOUT)
-                print "[+] cam images cache reset."
+                print '[+] cam images cache reset.'
             else:
-                print "[-] Error in cache update"
+                print '[-] Error in cache update'
     except Exception as err:
         message = 'compile_cam_images exception: %s' % err.message
         current_app.logger.warning(message)
@@ -61,19 +61,19 @@ def compile_cam_images():
 # large_format
 @celery.task(name='tasks.compile_large_format_files')
 def compile_large_format_files():
+    """ Create data server index for various file types, update 'large_format' cache.
+    """
     try:
         with current_app.test_request_context():
-            print "[+] Starting large format file cache reset..."
+            print '[+] Starting large format file cache reset...'
             cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
             cache.init_app(current_app)
-
             data = _compile_large_format_files()
-
-            if "error" not in data:
+            if data and data is not None and 'error' not in data:
                 cache.set('large_format', data, timeout=CACHE_TIMEOUT)
-                print "[+] large format files updated."
+                print '[+] large format files updated.'
             else:
-                print "[-] Error in large file format update"
+                print '[-] Error in large file format update'
     except Exception as err:
         message = 'compile_large_format_files exception: %s' % str(err)
         current_app.logger.warning(message)
@@ -93,7 +93,6 @@ def compile_c2_toc():
             except Exception as err:
                 message = 'Error processing compile_c2_toc: ', err.message
                 current_app.logger.warning(message)
-
             if c2_toc and c2_toc is not None and 'error' not in c2_toc:
                 cache.set('c2_toc', c2_toc, timeout=CACHE_TIMEOUT)
                 print "[+] C2 toc cache reset..."
@@ -157,7 +156,6 @@ def compile_uid_digests():
             cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
             cache.init_app(current_app)
             uid_digests = get_uid_digests(refresh=True)
-
     except Exception as err:
         message = 'Exception compiling uframe uid digests: %s' % err.message
         current_app.logger.warning(message)
@@ -172,9 +170,28 @@ def compile_asset_information():
             cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
             cache.init_app(current_app)
             asset_list = verify_cache(refresh=True)
-
     except Exception as err:
         message = 'compile_assets exception: %s' % err.message
+        current_app.logger.warning(message)
+        raise Exception(message)
+
+
+# Get toc reference designators
+@celery.task(name='tasks.compile_toc_rds')
+def compile_toc_rds():
+    try:
+        with current_app.test_request_context():
+            cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
+            cache.init_app(current_app)
+            rds = compile_toc_reference_designators()
+            if rds and rds is not None and 'error' not in rds:
+                print '[+] TOC reference designators cache reset.'
+            else:
+                message = '[-] Failed to reset TOC reference designators cache.\n'
+                print message
+                raise Exception(message)
+    except Exception as err:
+        message = 'compile_toc_rds exception: %s' % err.message
         current_app.logger.warning(message)
         raise Exception(message)
 
