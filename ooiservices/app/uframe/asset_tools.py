@@ -6,8 +6,9 @@ Asset Management - Assets: Supporting functions.
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
-from ooiservices.app import cache
 from copy import deepcopy
+from ooiservices.app import cache
+from ooiservices.app.uframe.config import get_cache_timeout
 from ooiservices.app.uframe.uframe_tools import (get_assets_from_uframe, uframe_get_asset_by_id, uframe_get_asset_by_uid)
 from ooiservices.app.uframe.common_tools import (get_asset_classes, get_asset_type_display_name)
 from ooiservices.app.uframe.status_tools import build_rds_cache, get_uid_digests
@@ -19,7 +20,6 @@ from ooiservices.app.uframe.vocab import (get_vocab, get_vocab_dict_by_rd, get_r
 
 import datetime as dt
 from operator import itemgetter
-CACHE_TIMEOUT = 172800
 
 
 def verify_cache(refresh=False):
@@ -105,7 +105,7 @@ def get_assets_payload():
 
         # Cache 'asset_list'.
         cache.delete('asset_list')
-        cache.set('asset_list', data, timeout=CACHE_TIMEOUT)
+        cache.set('asset_list', data, timeout=get_cache_timeout())
         check = cache.get('asset_list')
         if not check:
             message = 'Unable to process uframe assets; asset_list data is empty.'
@@ -141,7 +141,7 @@ def populate_assets_dict(data):
 
         # Verify assets_dict is type dict
         elif isinstance(assets_dict, dict):
-            cache.set('assets_dict', assets_dict, timeout=CACHE_TIMEOUT)
+            cache.set('assets_dict', assets_dict, timeout=get_cache_timeout())
         return assets_dict
     except Exception as err:
         message = 'Error populating \'assets_dict\'; %s' % str(err)

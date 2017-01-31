@@ -23,6 +23,8 @@ from copy import deepcopy
 
 import datetime as dt
 from ooiservices.app import cache
+from ooiservices.app.uframe.config import get_cache_timeout
+
 CACHE_TIMEOUT = 172800
 
 
@@ -1293,12 +1295,12 @@ def build_rds_cache(refresh=False):
             rd_digests, rd_digests_dict = build_rd_digest_cache(rds)
             if rd_digests is not None:
                 cache.delete('rd_digests')
-                cache.set('rd_digests', rd_digests, timeout=CACHE_TIMEOUT)
+                cache.set('rd_digests', rd_digests, timeout=get_cache_timeout())
             else:
                 print 'Failed to construct rd_digests.'
             if rd_digests_dict is not None:
                 cache.delete('rd_digests_dict')
-                cache.set('rd_digests_dict', rd_digests_dict, timeout=CACHE_TIMEOUT)
+                cache.set('rd_digests_dict', rd_digests_dict, timeout=get_cache_timeout())
             else:
                 print 'Failed to construct rd_digests_dict.'
 
@@ -1560,12 +1562,12 @@ def get_rd_digests_dict():
             if debug: print '\n building rd_digest_cache...'
             rd_digests, rd_digests_dict = build_rds_cache(refresh=True)
             if rd_digests and rd_digests is not None:
-                cache.set('rd_digests', rd_digests, timeout=CACHE_TIMEOUT)
+                cache.set('rd_digests', rd_digests, timeout=get_cache_timeout())
             else:
                 message = 'rd_digests failed to provide data on load.'
                 raise Exception(message)
             if rd_digests_dict and rd_digests_dict is not None:
-                cache.set('rd_digests_dict', rd_digests_dict, timeout=CACHE_TIMEOUT)
+                cache.set('rd_digests_dict', rd_digests_dict, timeout=get_cache_timeout())
             else:
                 message = 'rd_digests_dict failed to provide data on load.'
                 raise Exception(message)
@@ -1589,8 +1591,8 @@ def get_rds_digests():
             if not rd_digests_dict or rd_digests_dict is None:
                 message = 'rd_digests_dict failed to provide data on load.'
                 raise Exception(message)
-            cache.set('rd_digests', rd_digests, timeout=CACHE_TIMEOUT)
-            cache.set('rd_digests_dict', rd_digests_dict, timeout=CACHE_TIMEOUT)
+            cache.set('rd_digests', rd_digests, timeout=get_cache_timeout())
+            cache.set('rd_digests_dict', rd_digests_dict, timeout=get_cache_timeout())
         return rd_digests
     except Exception as err:
         message = str(err)
@@ -1621,7 +1623,7 @@ def get_uid_digests(refresh=False):
                 message = 'Failed to compile uid_digests cache.'
                 raise Exception(message)
             cache.delete('uid_digests')
-            cache.set('uid_digests', uid_digests, timeout=CACHE_TIMEOUT)
+            cache.set('uid_digests', uid_digests, timeout=get_cache_timeout())
 
             """
             if not uid_digests_operational or uid_digests_operational is None:
@@ -1629,7 +1631,7 @@ def get_uid_digests(refresh=False):
                 raise Exception(message)
 
             cache.delete('uid_digests_operational')
-            cache.set('uid_digests_operational', uid_digests_operational, timeout=CACHE_TIMEOUT)
+            cache.set('uid_digests_operational', uid_digests_operational, timeout=get_cache_timeout())
             """
             end = dt.datetime.now()
             if time:
@@ -1735,7 +1737,7 @@ def uid_digests_cache_update(uid_digests):
 
         if debug: print '\n Perform uid_digests update...'
         cache.delete('uid_digests')
-        cache.set('uid_digests', uid_digests, timeout=CACHE_TIMEOUT)
+        cache.set('uid_digests', uid_digests, timeout=get_cache_timeout())
         if debug: print '\n Completed uid_digests update...'
         return
     except Exception as err:
@@ -1771,6 +1773,7 @@ def update_uid_digests_cache(uid, digest):
         message = str(err)
         current_app.logger.info(message)
         return None
+
 
 def update_rd_digests_cache(uid):
     debug = False
@@ -1810,10 +1813,10 @@ def update_rd_digests_cache(uid):
             if update:
                 if debug: print '\n Updating rd_digests...'
                 cache.delete('rd_digests')
-                cache.set('rd_digests', rd_digests, timeout=CACHE_TIMEOUT)
+                cache.set('rd_digests', rd_digests, timeout=get_cache_timeout())
                 if debug: print '\n Updating rd_digests_dict...'
                 cache.delete('rd_digests_dict')
-                cache.set('rd_digests_dict', rd_digests_dict, timeout=CACHE_TIMEOUT)
+                cache.set('rd_digests_dict', rd_digests_dict, timeout=get_cache_timeout())
         return update
     except Exception as err:
         message = str(err)

@@ -27,9 +27,7 @@ from dateutil.parser import parse as parse_date
 import calendar
 import json
 import pytz
-
-
-
+from ooiservices.app.uframe.config import get_iris_base_url
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Common functions
@@ -237,6 +235,65 @@ def get_asset_type_by_rd(rd):
         current_app.logger.info(message)
         return None
 
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Raw data server support.
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Get route for getting image thumbnail.
+def get_image_thumbnail_route():
+    # Used by UI when processing thumbnail images.
+    # Original '/api/uframe/get_cam_image/', new '/api/uframe/get_image_thumbnail/'
+    return '/api/uframe/get_cam_image/'
+
+
+# Get years where data is provided on the raw data server.
+def get_supported_years():
+    # The years where data is provided on the raw data server.
+    return ['2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017']
+
+
+# Get valid months to be used when searching the raw data server.
+def get_valid_months():
+    # The valid months to be used when searching the raw data server.
+    return ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']
+
+
+# Get valid extensions.
+def get_valid_extensions():
+    # The valid file extensions to be used when searching/working with the raw data server.
+    return ['.png', '.mseed', '.raw', '.mov', '.mp4']
+
+
+# Get valid extensions.
+def get_supported_sensor_types():
+    # The valid file extensions to be used when searching/working with the raw data server.
+    return ['-HYD', '-CAMDS', '-CAMHD', '-ZPL']
+
+
+def get_supported_folder_types():
+    # The valid file extensions to be used when searching/working with the raw data server.
+    return ['HY', 'CAMDS', 'CAMHD', 'ZPL']
+
+
+# Get extensions for a sensor type.
+def get_extensions_by_sensor_type(sensor_type):
+    # The valid file extensions to be used when searching/working with the raw data server for a specific sensor_type.
+    # Check if a known sensor type has been provided.
+    extensions = []
+
+    # If unknown sensor_type, return None.
+    if sensor_type not in get_supported_sensor_types():
+        return None
+
+    # Get list of extensions for each sensor_type.
+    if sensor_type == '-HYD':
+        extensions = ['.mseed', '.png']
+    elif sensor_type == '-CAMDS':
+        extensions = ['.png']
+    elif sensor_type == '-CAMHD':
+        extensions = ['.mov', '.mp4']
+    elif sensor_type == '-ZPL':
+        extensions = ['.raw', '.png']
+    return extensions
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Common definitions - assets
@@ -525,6 +582,7 @@ def get_array_locations():
                     'RS': {'latitude': 44.554, 'longitude': -125.352},
                    }
     return arrays_patch
+
 
 def boolean_values():
     values = ['True', 'False']

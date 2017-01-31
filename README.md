@@ -37,15 +37,15 @@ POST routes:
     /annotation
         'comment':
         'field_x':
-        'field_y': 
+        'field_y':
         'y-files':
         'instrument_name':
         'pos_x':
         'pos_y':
-        'stream_name': 
+        'stream_name':
         'title': 'test'
-        'user_name': 
-    
+        'user_name':
+
 uFrame normalized routes:
 
     /get_data/<instrument>/<sensor>
@@ -145,4 +145,4 @@ Verify you are getting data by using a web browser and navigating to:
 
 ----
 
-This is the backend for the OOI UI
+This is the collection of services for the OOI UI.

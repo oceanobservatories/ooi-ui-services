@@ -26,6 +26,7 @@ ooi_plots = OOIPlots()
 
 
 def generate_plot(data, plot_options):
+    debug = False
     # Define some fonts
     title_font = {
         'fontname': 'Calibri',
@@ -55,6 +56,9 @@ def generate_plot(data, plot_options):
     width_in = plot_options['width_in']
     use_scatter = plot_options['use_scatter']
     plot_qaqc = plot_options['use_qaqc']
+    if debug:
+        print '\n debug -- use_scatter: ', use_scatter
+        print '\n debug -- plot_qaqc: ', plot_qaqc
 
     # Generate the plot figure and axes
     if isinstance(data, dict):
@@ -74,6 +78,7 @@ def generate_plot(data, plot_options):
 
     fig, ax = ppl.subplots(1, 1, figsize=(width, height))
 
+    if debug: print '\n debug -- is_timeseries: ', is_timeseries
     # Calculate the hypotenuse to determine appropriate font sizes
     hypot = np.sqrt(width**2 + height**2) - 4
     tick_font['labelsize'] = int(hypot)
@@ -109,12 +114,15 @@ def generate_plot(data, plot_options):
 
         # Check for a single time series plot
         elif len(data['x_field']) == 1 and len(data['y_field']) == 1:
+            if debug: print '\n debug -- Check for a single time series plot...'
             xlabel = data['x_field'][0]
             ylabel = data['y_field'][0]
             x = data['x'][xlabel]
             y = data['y'][ylabel]
 
             # QAQC logic
+            if debug:
+                if plot_qaqc > 0: print '\n debug -- Processing qaqc...', plot_qaqc
             if plot_qaqc >= 10:
                 # Plot all of the qaqc flags results
                 qaqc_data = data['qaqc'][ylabel]
@@ -332,6 +340,7 @@ def generate_plot(data, plot_options):
         else:
             # If no stream_name, default to system parameter name and units
             label = data['y_field'][0] + " (" + data['y_units'][0] + ")"
+        if debug: print '\n debug -- Plotting Stacked Title: ', data['title']
         ooi_plots.plot_stacked_time_series(fig, ax, time, np.arange(len(z[0]))[::-1], z.transpose(),
                                            title=data['title'],
                                            ylabel='Bin #',
@@ -344,23 +353,58 @@ def generate_plot(data, plot_options):
         '''
         Plot 3d scatter plot
         '''
-
         current_app.logger.debug('Plotting 3D Scatter')
+        number_of_data_points_requested = 1000
+        stream_name = None
+        if 'stream_name' in data:
+            stream_name = data['stream_name']
+            if debug: print '\n debug -- 3d_scatter stream_name: ', stream_name
+        if 'number_of_data_points' in data:
+            number_of_data_points_requested = data['number_of_data_points']
+            if debug: print '\n debug -- 3d_scatter number_of_data_points_requested: ', data['number_of_data_points']
 
         time = data['x']['time']
         xlabel = data['y_field'][0]
         ylabel = data['y_field'][1]
         zlabel = data['y_field'][2]
 
+        # Get labels for system parameter names; use system parameter names if error.
+        x_display_label = get_parameter_label(stream_name, xlabel)
+        y_display_label = get_parameter_label(stream_name, ylabel)
+        z_display_label = get_parameter_label(stream_name, zlabel)
+        if x_display_label is None:
+            x_display_label = xlabel + " (" + data['y_units'][0] + ")"
+        if y_display_label is None:
+            y_display_label = ylabel + " (" + data['y_units'][1] + ")"
+        if z_display_label is None:
+            z_display_label = zlabel + " (" + data['y_units'][2] + ")"
+
+        if debug:
+            print '\n debug -- 3d scatter - x_display_label: ', x_display_label
+            print '\n debug -- 3d scatter - y_display_label: ', y_display_label
+            print '\n debug -- 3d scatter - z_display_label: ', z_display_label
+            print '\n debug -- 3d scatter - y array type: ', type(data['y'][ylabel])
         x = np.array(data['y'][xlabel])
         y = np.array(data['y'][ylabel])
         z = np.array(data['y'][zlabel])
+
+        if debug:
+            print '\n debug -- 3d scatter - x values (%s)' % x_display_label
+            #print '\n debug -- 3d scatter - x: ', data['y'][xlabel]
+
+            print '\n debug -- 3d scatter - len(x): ', len(x)
+            print '\n debug -- 3d scatter - len(y): ', len(y)
+            print '\n debug -- 3d scatter - len(z): ', len(z)
+
+        decimated = False
+        number_points = len(x)
+        if number_of_data_points_requested > number_points:
+            decimated = True
 
         # Check for time units
         if 'time' in xlabel.lower():
             x = num2date(data['y'][xlabel], units='seconds since 1900-01-01 00:00:00', calendar='gregorian')
             x = mdates.date2num(x)
-
 
         # # Mask the bad data
         # qaqc_x = data['qaqc'][xlabel] < 1
@@ -377,14 +421,26 @@ def generate_plot(data, plot_options):
         ylabel += " (" + data['y_units'][1] + ")"
         zlabel += " (" + data['y_units'][2] + ")"
 
+        if debug:
+            print '\n calling plot_3d_scatter...'
+            print '\n debug -- 3d scatter - x_display_label: ', x_display_label
+            print '\n debug -- 3d scatter - y_display_label: ', y_display_label
+            print '\n debug -- 3d scatter - z_display_label: ', z_display_label
+            print '\n debug -- 3d scatter - title_font: ', title_font
+            print '\n debug -- 3d scatter - axis_font: ', axis_font
+            print '\n debug -- 3d scatter - tick_font: ', tick_font
+
         ooi_plots.plot_3d_scatter(fig, ax, x, y, z,
                                   title=data['title'],
-                                  xlabel=xlabel,
-                                  ylabel=ylabel,
-                                  zlabel=zlabel,
+                                  xlabel=x_display_label,
+                                  ylabel=y_display_label,
+                                  zlabel=z_display_label,
                                   title_font=title_font,
                                   tick_font=tick_font,
-                                  axis_font=axis_font)
+                                  axis_font=axis_font,
+                                  number_data_points_requested=number_of_data_points_requested,
+                                  number_points=number_points,
+                                  decimated=decimated)
 
     elif plot_layout == 'rose':
         '''
@@ -414,19 +470,14 @@ def generate_plot(data, plot_options):
         title = data['title'] + '\n'
 
         # Get legend title.
-        #legend_title = xlabel + " (" + data['y_units'][0] + ")"
-        # See stream_tools.py get_parameter_name_by_parameter_stream(data['y_field'][0], stream_name)
-        # If stream_name provided and good, use to create legend_title; any issues then fallback to system parameter.
+        default_legend_title = data['y_field'][0] + ' (' + data['y_units'][0] + ')'
         if 'stream_name' in data:
-            if data['stream_name'] is None or not data['stream_name']:
-                legend_title = data['y_field'][0] + " (" + data['y_units'][0] + ")"
-            else:
-                legend_title = get_parameter_name_by_parameter_stream(data['y_field'][0], data['stream_name'])
+            legend_title = get_parameter_label(data['stream_name'], data['y_field'][0])
             if legend_title is None:
-                legend_title = data['y_field'][0] + " (" + data['y_units'][0] + ")"
+                legend_title = default_legend_title
         else:
             # If no stream_name, default to system parameter name and units
-            legend_title = data['y_field'][0] + " (" + data['y_units'][0] + ")"
+            legend_title = default_legend_title
 
         size = height if height <= width else width
         size = 6 if size < 6 else size
@@ -439,6 +490,9 @@ def generate_plot(data, plot_options):
                                   legend_title=legend_title,
                                   fontsize=int(hypot) + 2)
 
+    #=============================================================
+    # Wrap up and return buf from fig created.
+
     buf = io.BytesIO()
 
     # plt.tick_params(axis='both', which='major', labelsize=10)
@@ -448,5 +502,16 @@ def generate_plot(data, plot_options):
     plt.savefig(buf, format=plot_format)
     buf.seek(0)
     plt.close(fig)
-
     return buf
+
+
+# For a stream and system parameter, get the uframe stream engine values (english)
+def get_parameter_label(stream_name, parameter):
+    label = None
+    try:
+        if stream_name and stream_name is not None and parameter and parameter is not None:
+            label = get_parameter_name_by_parameter_stream(parameter, stream_name)
+        return label
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
