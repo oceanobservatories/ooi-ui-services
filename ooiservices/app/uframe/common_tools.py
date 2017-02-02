@@ -501,75 +501,28 @@ def deployment_edit_phase_values():
     return values
 
 
+uframe_status_enum_values = ['operational', 'degraded', 'failed', 'notTracked', 'removedFromService', None]
+ui_status_display_values = ['Operational', 'Degraded', 'Failed', 'Not Tracked', 'Removed From Service', '']
+uframe_status_level_to_display_values_map = dict(zip(uframe_status_enum_values, ui_status_display_values))
+display_status_value_to_uframe_level_map = dict(zip(ui_status_display_values, uframe_status_enum_values))
+
+
+def convert_status_display_value(status_value):
+    return display_status_value_to_uframe_level_map.get(status_value)
+
+
+def convert_status_value_for_display(status_value):
+    return uframe_status_level_to_display_values_map.get(status_value, status_value)
+
+
 def operational_status_values():
-    #values = ['Operational', 'Degraded', 'Failed', 'notTracked']
-    values = ['operational', 'degraded', 'failed', 'notTracked', 'removedFromService']
+    values = uframe_status_enum_values
     return values
 
 
 def operational_status_display_values():
-    values = ['Operational', 'Degraded', 'Failed', 'Not Tracked', 'Removed From Service']
+    values = ui_status_display_values
     return values
-
-
-def convert_status_display_value(status_value):
-    try:
-        if not status_value or status_value is None:
-            message = 'The status value provided is empty or null.'
-            raise Exception(message)
-        if status_value in operational_status_values():
-            value = status_value
-        elif status_value in operational_status_display_values():
-            if status_value == 'Operational':
-                value = 'operational'
-            elif status_value == 'Degraded':
-                value = 'degraded'
-            elif status_value == 'Failed':
-                value = 'failed'
-            elif status_value == 'Not Tracked':
-                value = 'notTracked'
-            elif status_value == 'Removed From Service':
-                value = 'removedFromService'
-            else:
-                message = 'The status value provided (\'%s\') is invalid.' % status_value
-                raise Exception(message)
-        else:
-            message = 'The status value provided (\'%s\') is invalid.' % status_value
-            raise Exception(message)
-        return value
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-
-def convert_status_value_for_display(status_value):
-    try:
-        if not status_value or status_value is None:
-            message = 'The status value provided is empty or null.'
-            raise Exception(message)
-        if status_value in operational_status_display_values():
-            value = status_value
-        elif status_value in operational_status_values():
-            if status_value == 'operational':
-                value = 'Operational'
-            elif status_value == 'degraded':
-                value =  'Degraded'
-            elif status_value == 'failed':
-                value = 'Failed'
-            elif status_value == 'notTracked':
-                value = 'Not Tracked'
-            elif status_value == 'removedFromService':
-                value = 'Removed From Service'
-            else:
-                message = 'The status display value provided (\'%s\') is unknown.' % status_value
-                raise Exception(message)
-        else:
-            message = 'The status display value provided (\'%s\') is invalid.' % status_value
-            raise Exception(message)
-        return value
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
 
 
 def get_array_locations():

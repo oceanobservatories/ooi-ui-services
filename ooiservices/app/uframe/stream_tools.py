@@ -22,7 +22,7 @@ def dfs_streams():
     """ Compile a list of streams from uframe data.
     """
     from ooiservices.app.uframe.status_tools import get_rd_digests_dict
-    debug = True
+    debug = False
     try:
         retval = []
         streams = []
@@ -468,7 +468,7 @@ def get_stream_parameters(stream, reference_designator):
     For a stream, return all processed parameters.
     Get stream contents byname, get, process and return all stream parameters.
     """
-    debug = True
+    debug = False
     parameters = None
     try:
         if debug:
@@ -603,7 +603,7 @@ def process_stream_parameters(_parameters, stream, metadata_parameters):
               "shape": "scalar"
             },
     """
-    debug = True
+    debug = False
     parameters = []
     try:
         if not _parameters or _parameters is None:

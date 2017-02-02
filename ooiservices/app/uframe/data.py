@@ -22,7 +22,7 @@ def find_parameter_ids(mooring, platform, instrument, y_parameters, x_parameters
     Using uframe instrument metadata, prepare list of x and y parameters by reference designator.
     Deprecate: This should be using the stream parameters functions and not instrument metadata.
     """
-    debug = True
+    debug = False
     try:
         rd = '-'.join([mooring, platform, instrument])
         parameter_list = uframe_get_instrument_metadata_parameters(rd)
@@ -71,7 +71,7 @@ def new_find_parameter_ids(reference_designator, stream, y_parameters, x_paramet
       "shape": "scalar"
     },
     """
-    debug = True
+    debug = False
     try:
         parameters = get_stream_parameters(stream, reference_designator)
         parameter_dict = {}
@@ -120,7 +120,7 @@ def new_find_parameter_ids(reference_designator, stream, y_parameters, x_paramet
 #def get_multistream_data(stream1, stream2, instrument1, instrument2, var1, var2):
 def get_multistream_data(instrument1, instrument2, stream1, stream2, var1, var2):
     from ooiservices.app.uframe.controller import get_uframe_multi_stream_contents
-    debug = True
+    debug = False
     from ooiservices.app.uframe.common_tools import dump_dict
     try:
         rd_instrument1 = instrument1[:]
@@ -218,7 +218,7 @@ def get_multistream_data(instrument1, instrument2, stream1, stream2, var1, var2)
 def get_simple_data(stream, instrument, yfields, xfields, include_time=True):
     """ Get 'simple' data from uframe (using get_uframe_plot_contents_chunked).
     """
-    debug = True
+    debug = False
     from ooiservices.app.uframe.controller import get_uframe_plot_contents_chunked
     try:
         if debug:
@@ -275,7 +275,7 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
     """ Get data from uframe using get_uframe_plot_contents_chunked.
     """
     from ooiservices.app.uframe.controller import get_uframe_plot_contents_chunked
-    debug = True
+    debug = False
     data = []
     try:
         if debug: print '\n debug -- Entered get_data...'

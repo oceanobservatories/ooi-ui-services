@@ -135,6 +135,7 @@ def get_and_process_events(id, uid, _type, asset_type):
     types = ''
     types_list = []
     try:
+
         if debug: print '\n debug -- get_event_types_by_asset_type: ', asset_type
         event_types = get_event_types_by_asset_type(asset_type)
 

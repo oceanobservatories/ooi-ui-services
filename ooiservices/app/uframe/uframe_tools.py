@@ -1535,6 +1535,7 @@ def uframe_get_status_by_rd(rd=None):
     ]
 
     """
+    debug = False
     check = False
     try:
         # Get uframe status by reference designator.
@@ -1555,6 +1556,7 @@ def uframe_get_status_by_rd(rd=None):
                 message = 'The reference designator provided is malformed (\'%s\').' % rd
                 raise Exception(message)
 
+        if debug: print '\n debug -- uframe_get_status_by_rd: ', rd
         if rd is not None:
             url = '/'.join([url, uframe_rd])
         if check: print '\n check -- url: ', url
@@ -1737,7 +1739,7 @@ def uframe_get_sensors_for_platform(rd):
 # Development. Dump stream and list of parameter names for each stream.
 def get_uframe_streams():
     from ooiservices.app.uframe.config import (get_uframe_stream_info, get_stream_url_base)
-    check = True
+    check = False
     result = []
     try:
         #timeout, timeout_read = get_uframe_timeout_info()

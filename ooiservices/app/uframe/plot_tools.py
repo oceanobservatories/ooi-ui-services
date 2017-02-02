@@ -721,8 +721,9 @@ class OOIPlots(object):
 
     def plot_3d_scatter(self, fig, ax, x, y, z, title='', xlabel='', ylabel='', zlabel='',
                         title_font={}, axis_font={}, tick_font={},
-                        number_data_points_requested=1000, number_points=0, decimated=False):
+                        number_data_points_requested=1000, number_points=0):
 
+        # The use of decimated is disabled for now.
         # {'color': 'black', 'fontname': 'Calibri', 'weight': 'bold', 'size': 12}
         if not title_font:
             print '\n debug -- Using default title font...'
@@ -749,7 +750,10 @@ class OOIPlots(object):
         cmap = plt.cm.jet
         h = plt.scatter(x, y, c=z, cmap=cmap)
         ax = plt.gca()
+        print '\n ax.get_ylim(): ', ax.get_ylim()
+        print '\n ax.get_ylim()[::-1]: ', ax.get_ylim()[::-1]
         ax.set_ylim(ax.get_ylim()[::-1])
+        # testing -- h = plt.scatter(x, y, c=z, cmap=cmap)
 
         """
         # original two lines
@@ -766,7 +770,8 @@ class OOIPlots(object):
 
         ax.set_aspect(1. / ax.get_data_ratio())  # make axes square
 
-        cbar = plt.colorbar(h, orientation='vertical', aspect=30, shrink=0.76)
+        #cbar = plt.colorbar(h, orientation='vertical', aspect=30, shrink=0.76)
+        cbar = plt.colorbar(h, orientation='vertical', aspect=30, shrink=0.78)
 
         print '\n debug -- plot_tools.py: 3d_scatter: x_display_label: ', x_display_label
         print '\n debug -- plot_tools.py: 3d_scatter: ylabel: ', ylabel
@@ -788,11 +793,10 @@ class OOIPlots(object):
             ax.set_title(title.replace("_", " "), **title_font)
         ax.grid(True)
         plt.tight_layout()
+        #nice_number_requested = "{:,}".format(number_data_points_requested)
         if number_points:
             nice_number = "{:,}".format(number_points)
-            message = 'Number of data points: %s ' % nice_number
-            if decimated:
-                message += ' (Decimated)'   # could add number_of_points_requested
+            message = 'Number of data points: %s' % nice_number
             self.add_annotation_message(ax, message)
 
 

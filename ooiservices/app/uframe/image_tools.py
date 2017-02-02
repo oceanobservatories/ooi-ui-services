@@ -18,8 +18,8 @@ from StringIO import StringIO
 
 from ooiservices.app import cache
 from ooiservices.app.uframe.config import get_cache_timeout
-from ooiservices.app.uframe.common_tools import (get_image_thumbnail_route, get_supported_years, get_valid_months,
-                                                 get_supported_sensor_types)
+from ooiservices.app.uframe.common_tools import get_image_thumbnail_route
+from ooiservices.app.uframe.common_tools import (get_supported_years, get_valid_months, get_supported_sensor_types)
 from ooiservices.app.uframe.config import (get_uframe_timeout_info, get_image_camera_store_url_base,
                                            get_image_store_url_base)
 import requests
@@ -512,34 +512,21 @@ def get_index_rds():
     (15 reference designators)
     [
     "CE02SHBP-LJ01D-11-HYDBBA106",          ['2015', '2016', 2017]
-    "CE02SHBP-MJ01C-07-ZPLSCB101",         *['2014', '2015', '2016', '2017']
-    "CE02SHBP-MJ01C-08-CAMDSB107",         *['2009', '2010', '2015', '2016']
+    "CE02SHBP-MJ01C-07-ZPLSCB101",          ['2014', '2015', '2016', '2017']
+    "CE02SHBP-MJ01C-08-CAMDSB107",          ['2009', '2010', '2015', '2016']
     "CE04OSBP-LJ01C-11-HYDBBA105",          ['2015', '2016', 2017]
-    "CE04OSBP-LV01C-06-CAMDSB106",         *['2014', '2015', '2016', '2017']
-    "CE04OSPS-PC01B-05-ZPLSCB102",         *['2015', '2016', '2017']
-    "RS01SBPS-PC01A-07-CAMDSC102",         *['2009', '2010', '2016', '2017']
-    "RS01SBPS-PC01A-08-HYDBBA103",         *['2015', '2016', '2017']
-    "RS01SLBS-LJ01A-09-HYDBBA102",         *['2015', '2016', '2017']
-    "RS01SUM2-MJ01B-05-CAMDSB103",         *['2015', '2016', '2017']
+    "CE04OSBP-LV01C-06-CAMDSB106",          ['2014', '2015', '2016', '2017']
+    "CE04OSPS-PC01B-05-ZPLSCB102",          ['2015', '2016', '2017']
+    "RS01SBPS-PC01A-07-CAMDSC102",          ['2009', '2010', '2016', '2017']
+    "RS01SBPS-PC01A-08-HYDBBA103",          ['2015', '2016', '2017']
+    "RS01SLBS-LJ01A-09-HYDBBA102",          ['2015', '2016', '2017']
+    "RS01SUM2-MJ01B-05-CAMDSB103",          ['2015', '2016', '2017']
     "RS03ASHS-PN03B-06-CAMHDA301",          ['2015', '2016', '2017']
     "RS03AXBS-LJ03A-09-HYDBBA302",          ['2015', '2016', '2017']
     "RS03AXPS-PC03A-07-CAMDSC302",          ['2009', '2010', '2015', '2016']
     "RS03AXPS-PC03A-08-HYDBBA303",          ['2015', '2016', '2017']
-    "RS03INT1-MJ03C-05-CAMDSB303"          *['2009', '2010', '2015', '2016']
+    "RS03INT1-MJ03C-05-CAMDSB303"           ['2009', '2010', '2015', '2016']
     ]
-
-    * Indicates common/intersect with output from large_format_rds:
-    [
-      "CE02SHBP-MJ01C-07-ZPLSCB101",
-      "CE02SHBP-MJ01C-08-CAMDSB107",
-      "CE04OSBP-LV01C-06-CAMDSB106",
-      "CE04OSPS-PC01B-05-ZPLSCB102",
-      "RS01SBPS-PC01A-07-CAMDSC102",
-      "RS01SBPS-PC01A-08-HYDBBA103",
-      "RS01SLBS-LJ01A-09-HYDBBA102",
-      "RS01SUM2-MJ01B-05-CAMDSB103",
-      "RS03INT1-MJ03C-05-CAMDSB303"
-  ]
 
     """
     debug = False
@@ -622,7 +609,7 @@ def _compile_large_format_index():
     filetypes_to_check = ['-HYD','-ZPL', '-OBS', '-CAMDS', '-CAMHD' ]
     extensions_to_check = ['.mseed', '.png', '.raw', '.mp4', '.mov']
 
-    # Processing subfolders. filetypes=subfolder_filestypes, extensions=subfolder_extensions)
+    # Processing subfolders.
     subfolder_filestypes = ['HYD', 'ZPL', 'OBS', 'CAMDS', 'CAMHD']
     subfolder_extensions = ['.mseed', '.png', '.raw', '.mp4', '.mov']
     try:
@@ -815,9 +802,7 @@ def _compile_large_format_index():
             print '\t-- End time:   ', end
             print '\t-- Time to compile large format index: %s' % str(end - start)
         if data_dict and data_dict is not None:
-            #print '\n delete large_format_inx cache...'
             cache.delete('large_format_inx')
-            #print '\n set large_format_inx cache...'
             cache.set('large_format_inx', data_dict, timeout=get_cache_timeout())
         print '\n Number of items in large_format_inx cache(%d): %s' % (len(data_dict), data_dict.keys())
         if debug: print '\n debug -- Exit _compile_large_format_index...'
@@ -897,7 +882,6 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
         ss = soup.findAll('a')
 
         """
-        # Consider re-enabling this approach for performance.
         # Get any data previously cached.
         data_dict = {}
         large_format_cache = cache.get('large_format')
@@ -926,14 +910,6 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
                     ss_reduced.append(s)
 
         if debug: print '\n debug -- The root folder items: ', len(ss_reduced)
-
-        """
-        subfolder = []
-        subsite = None
-        platform = None
-        sensor = None
-        node = None
-        """
         for s in ss_reduced:
             #-----------------------------------------------
             # Limit to those arrays identified in array_codes.
@@ -941,10 +917,10 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
             process = False
             if rd and len(rd) == 9 or len(rd) == 15:
                 if len(rd) == 9:
-                    subsite = rd.rstrip('/') #rd[:-1]
+                    subsite = rd.rstrip('/')
                     if debug: print '\n debug -- Subsite: ', subsite
                 else:
-                    platform = rd.rstrip('/') #rd[:-1]
+                    platform = rd.rstrip('/')
                     if debug: print '\n debug -- Platform: ', platform
                 if rd[0:2] in array_codes:
                     process = True
@@ -1002,8 +978,8 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
                             if detail_subfolders:
                                 if debug: print '\n\tdebug -- (node detail_subfolders search) %s subfolders(%d): %s' % \
                                       (item, len(detail_subfolders), detail_subfolders)
-
                                 if debug: print '\ndebug -- detail_subfolders (years): ', detail_subfolders
+
                                 # Process years (detail_subfolders is years)
                                 for year in detail_subfolders:
                                     #=======================================
@@ -1204,37 +1180,29 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
 
                                                                 # Add date to item
                                                                 if debug: print '\n debug: year: ', year
-                                                                _year = year[:-1]
+                                                                _year = year.rstrip('/') #[:-1]
                                                                 if debug: print '\n debug: month: ', month
-                                                                _month = month[:-1]
+                                                                _month = month.rstrip('/') #[:-1]
                                                                 if debug: print '\n debug: day: ', day
-                                                                _day = day[:-1]
+                                                                _day = day.rstrip('/') #[:-1]
                                                                 item['date'] = '-'.join([_year, _month, _day])
-                                                                if debug:
-                                                                    print '\n debug -- _create item: '
-                                                                    dump_dict(item, debug)
                                                                 if debug:
                                                                     print '\n debug -- _year: ', _year
                                                                     print '\n debug -- _month: ', _month
                                                                     print '\n debug -- _day: ', _day
                                                                     print '\n debug -- ref_des: ', ref_des
 
-                                                                #if debug: print '\n debug -- Step 1...'
                                                                 ref_des = str(ref_des)
                                                                 if len(ref_des) > 27:
                                                                     ref_des = ref_des[0:27]
                                                                 if ref_des not in data_dict:
                                                                     data_dict[str(ref_des)] = {}
-                                                                #if debug: print '\n debug -- Step 2...'
                                                                 if _year not in data_dict[ref_des]:
                                                                     data_dict[ref_des][_year] = {}
-                                                                #if debug: print '\n debug -- Step 3...'
                                                                 if _month not in data_dict[ref_des][_year]:
                                                                     data_dict[ref_des][_year][_month] = {}
-                                                                #if debug: print '\n debug -- Step 4...'
                                                                 if _day not in data_dict[ref_des][_year][_month]:
                                                                     data_dict[ref_des][_year][_month][_day] = []
-                                                                #if debug: print '\n debug -- Step 5...'
 
                                                                 # If build on previous cache, then not a duplicate item.
                                                                 data_dict[ref_des][_year][_month][_day].append(item)
@@ -1328,11 +1296,8 @@ def _get_subfolder_list(url, filetypes=None, extensions=None):
                         if debug: print '\t debug -- Ok filetype: ', working_attrs
 
                         # Filter by file extension.
-                        #if debug: print '\n\t debug -- check extensions...'
                         for ext in extensions_to_check:
-                            #if debug: print '\t\t debug -- Check %s in %s...' % (ext, s.attrs['href'])
                             if ext in s.attrs['href']:
-                                #if debug: print '\n\t debug -- good extension...'
                                 if working_attrs not in file_list and working_attrs and working_attrs is not None:
                                     file_list.append(working_attrs)
                                     break
@@ -1389,5 +1354,4 @@ def _get_server_cam_images():
         return data
     except Exception as err:
         message = str(err)
-        current_app.logger.info(message)
         raise Exception(message)

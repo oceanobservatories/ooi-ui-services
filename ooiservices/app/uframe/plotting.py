@@ -358,10 +358,8 @@ def generate_plot(data, plot_options):
         stream_name = None
         if 'stream_name' in data:
             stream_name = data['stream_name']
-            if debug: print '\n debug -- 3d_scatter stream_name: ', stream_name
         if 'number_of_data_points' in data:
             number_of_data_points_requested = data['number_of_data_points']
-            if debug: print '\n debug -- 3d_scatter number_of_data_points_requested: ', data['number_of_data_points']
 
         time = data['x']['time']
         xlabel = data['y_field'][0]
@@ -379,56 +377,30 @@ def generate_plot(data, plot_options):
         if z_display_label is None:
             z_display_label = zlabel + " (" + data['y_units'][2] + ")"
 
-        if debug:
-            print '\n debug -- 3d scatter - x_display_label: ', x_display_label
-            print '\n debug -- 3d scatter - y_display_label: ', y_display_label
-            print '\n debug -- 3d scatter - z_display_label: ', z_display_label
-            print '\n debug -- 3d scatter - y array type: ', type(data['y'][ylabel])
         x = np.array(data['y'][xlabel])
         y = np.array(data['y'][ylabel])
         z = np.array(data['y'][zlabel])
-
-        if debug:
-            print '\n debug -- 3d scatter - x values (%s)' % x_display_label
-            #print '\n debug -- 3d scatter - x: ', data['y'][xlabel]
-
-            print '\n debug -- 3d scatter - len(x): ', len(x)
-            print '\n debug -- 3d scatter - len(y): ', len(y)
-            print '\n debug -- 3d scatter - len(z): ', len(z)
-
-        decimated = False
         number_points = len(x)
-        if number_of_data_points_requested > number_points:
-            decimated = True
 
         # Check for time units
         if 'time' in xlabel.lower():
             x = num2date(data['y'][xlabel], units='seconds since 1900-01-01 00:00:00', calendar='gregorian')
             x = mdates.date2num(x)
 
+        """
         # # Mask the bad data
-        # qaqc_x = data['qaqc'][xlabel] < 1
-        # qaqc_y = data['qaqc'][ylabel] < 1
-        # qaqc_z = data['qaqc'][zlabel] < 1
-        # mask = qaqc_x & qaqc_y & qaqc_z
-
-        # x = x[mask]
-        # y = x[mask]
+        if debug: print '\n debug -- 3d scatter: turned on qa mask...'
+        qaqc_x = data['qaqc'][xlabel] < 1
+        qaqc_y = data['qaqc'][ylabel] < 1
+        qaqc_z = data['qaqc'][zlabel] < 1
+        mask = qaqc_x & qaqc_y & qaqc_z
+        x = x[mask]
+        y = x[mask]
+        if debug: print '\n debug -- 3d scatter: after turned on qa mask...'
+        """
 
         # if len(x) <= 0:
-        #     raise(Exception('No good data avaliable!'))
-        xlabel += " (" + data['y_units'][0] + ")"
-        ylabel += " (" + data['y_units'][1] + ")"
-        zlabel += " (" + data['y_units'][2] + ")"
-
-        if debug:
-            print '\n calling plot_3d_scatter...'
-            print '\n debug -- 3d scatter - x_display_label: ', x_display_label
-            print '\n debug -- 3d scatter - y_display_label: ', y_display_label
-            print '\n debug -- 3d scatter - z_display_label: ', z_display_label
-            print '\n debug -- 3d scatter - title_font: ', title_font
-            print '\n debug -- 3d scatter - axis_font: ', axis_font
-            print '\n debug -- 3d scatter - tick_font: ', tick_font
+        #     raise(Exception('No good data available!'))
 
         ooi_plots.plot_3d_scatter(fig, ax, x, y, z,
                                   title=data['title'],
@@ -439,8 +411,7 @@ def generate_plot(data, plot_options):
                                   tick_font=tick_font,
                                   axis_font=axis_font,
                                   number_data_points_requested=number_of_data_points_requested,
-                                  number_points=number_points,
-                                  decimated=decimated)
+                                  number_points=number_points)
 
     elif plot_layout == 'rose':
         '''

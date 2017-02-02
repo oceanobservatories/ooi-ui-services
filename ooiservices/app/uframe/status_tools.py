@@ -321,10 +321,12 @@ def get_status_sites(rd):
         rd_digests_dict = get_rd_digests_dict()
 
         # Get status data dictionary.
+        if debug: print '\n debug -- before get_uframe_status_data %s' % rd
         status_data = get_uframe_status_data(rd)       # uframe data
         if not status_data or status_data is None:
-            #message = 'No status data returned from uframe for reference designator %s.' % rd
-            #current_app.logger.info(message)
+            if debug:
+                message = 'No status data returned from uframe for reference designator %s.' % rd
+                current_app.logger.info(message)
             status_data = {}
 
         end = dt.datetime.now()
@@ -1039,7 +1041,7 @@ def get_uframe_status_data(rd):
                             status[item['referenceDesignator']] = item
             if not status:
                 status = None
-        if debug and status:
+        if debug and status and status is not None:
             print '\n debug -- uframe status for rd \'%s\':' % rd
             dump_dict(status)
         return status
@@ -1315,11 +1317,11 @@ def build_rds_cache(refresh=False):
                 print '\n\t-- End time:   ', end
                 print '\t-- Time (total) to complete: %s' % (str(end - start))
                 print '-- Completed building reference designator digests...\n'
-        return rd_digests
+        return rd_digests, rd_digests_dict  # 2017-02-01
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
-        return None
+        return None, None                   # 2017-02-01
 
 
 def build_rd_digest_cache(rds):
