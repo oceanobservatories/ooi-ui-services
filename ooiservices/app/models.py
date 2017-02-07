@@ -1305,9 +1305,8 @@ class User(UserMixin, db.Model):
             return fs_verify_password(password, self._password)
 
     @staticmethod
-    def api_verify_token(api_user_name, api_user_token):
-        if User.query.filter_by(api_user_name=api_user_name, api_user_token=api_user_token).first():
-            return True
+    def get_user_from_token(api_user_name, api_user_token):
+        return User.query.filter_by(api_user_name=api_user_name, api_user_token=api_user_token).first()
 
     def validate_email(self, field):
         if User.query.filter_by(email=field).first():

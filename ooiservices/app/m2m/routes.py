@@ -6,6 +6,7 @@ from flask import Response
 from flask import current_app
 from flask import request
 from requests.exceptions import ConnectionError, Timeout
+from werkzeug.datastructures import MultiDict
 
 from ooiservices.app.m2m import m2m as api
 from ooiservices.app.models import User
@@ -63,11 +64,15 @@ def m2m_handler(path):
     transfer_header_fields = ['Date', 'Content-Type']
     try:
         current_app.logger.info(path)
-        if User.api_verify_token(request.authorization['username'], request.authorization['password']):
+        user = User.get_user_from_token(request.authorization['username'], request.authorization['password'])
+        if user:
+            params = MultiDict(request.args)
+            params['user'] = user.user_name
+            params['email'] = user.email
             url = build_url(path)
             timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
             timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
-            response = requests.get(url, timeout=(timeout, timeout_read), params=request.args, stream=True)
+            response = requests.get(url, timeout=(timeout, timeout_read), params=params, stream=True)
             headers = dict(response.headers)
             headers = {k: headers[k] for k in headers if k in transfer_header_fields}
             return Response(response.iter_content(1024), response.status_code, headers)
