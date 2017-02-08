@@ -81,7 +81,7 @@ def dfs_streams():
                     # Get stream type, stream display name dynamically.
                     tmp, stream_dataset = get_stream_name_and_dataset(_stream)
                     if tmp is None:
-                        message = 'Failed to get stream name for %s' % _stream
+                        message = 'Failed to get the stream name for %s' % _stream
                         raise Exception(message)
                     data_dict['stream_dataset'] = stream_dataset
                     data_dict['stream_display_name'] = tmp          # stream engine: 'stream_content'

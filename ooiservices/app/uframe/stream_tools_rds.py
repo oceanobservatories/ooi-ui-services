@@ -54,7 +54,6 @@ def get_rds_suffix(rd):
 def get_rds_data(rd):
     """ Get available Raw Data Server specific data.
     """
-    result = None
     try:
         if rd not in get_rds_rds():
             return None
@@ -63,7 +62,6 @@ def get_rds_data(rd):
         link = base_url
         suffix = get_rds_suffix(rd)
         link = '/'.join([link, suffix])
-        print '\n -- debug -- complete link: ', link
         result = {'dc': False,
                 'iris': False,
                 'end': '2599-12-31T00:00:00.000Z',
@@ -196,7 +194,7 @@ def build_rds_streams():
             # General items.
             stream['reference_designator'] = rd
             stream['stream'] = None
-            stream['stream_dataset'] = 'Science'
+            stream['stream_dataset'] = ''
             stream['stream_display_name'] = None
             stream['stream_method'] = None
             stream['stream_name'] = None

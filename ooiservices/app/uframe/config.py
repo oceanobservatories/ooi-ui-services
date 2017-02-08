@@ -696,6 +696,17 @@ def get_uframe_url_info():
     return uframe_url, timeout, timeout_read
 
 
+# Plotting timeout variable.
+def get_uframe_plot_timeout():
+    try:
+        result = current_app.config['UFRAME_PLOT_TIMEOUT']
+        return result
+    except:
+        message = 'The configuration variable UFRAME_PLOT_TIMEOUT was not found in the configuration file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
 # Get uframe headers.
 def _uframe_headers():
     return {

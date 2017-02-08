@@ -383,9 +383,9 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
                         x[xfield].append(row[xfield])
                         key = xfield + '_qc_results'
                         if key in row:
-                            qaqc[yfield].append(int(row[key]))
-                        else:
-                            current_app.logger.exception('QAQC not found for {0}'.format(xfield))
+                            qaqc[xfield].append(int(row[key]))
+                        #else:
+                        #    current_app.logger.exception('QAQC not found for {0}'.format(xfield))
                 # y
                 for yfield in yfields:
                     if yfield == 'time':
@@ -395,8 +395,8 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
                         key = yfield + '_qc_results'
                         if key in row:
                             qaqc[yfield].append(int(row[key]))
-                        else:
-                            current_app.logger.exception('QAQC not found for {0}'.format(yfield))
+                        #else:
+                        #    current_app.logger.exception('QAQC not found for {0}'.format(yfield))
 
         if debug: print '\n debug -- Step 3 -- have data, prepare resp_data......'
         # Generate response data dictionary.

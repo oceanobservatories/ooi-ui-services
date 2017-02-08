@@ -19,13 +19,13 @@ from StringIO import StringIO
 from ooiservices.app import cache
 from ooiservices.app.uframe.config import get_cache_timeout
 from ooiservices.app.uframe.common_tools import get_image_thumbnail_route
-from ooiservices.app.uframe.common_tools import (get_supported_years, get_valid_months, get_supported_sensor_types)
 from ooiservices.app.uframe.config import (get_uframe_timeout_info, get_image_camera_store_url_base,
                                            get_image_store_url_base)
 import requests
 import requests.adapters
 import requests.exceptions
 from requests.exceptions import (ConnectionError, Timeout)
+#from ooiservices.app.uframe.common_tools import (get_supported_years, get_valid_months, get_supported_sensor_types)
 
 
 # Get existing thumbnails and return dictionary to populate cam_images cache. (This does not build thumbnails).

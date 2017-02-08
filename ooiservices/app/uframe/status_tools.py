@@ -392,7 +392,9 @@ def get_status_platforms(rd=None):
             CE01ISSM-MF[C31]
             CE01ISSM-RI[D16]  (Bucket 3 'RI')
 
-    Sample request: http://localhost:4000/uframe/status/platforms/CE01ISSM
+    Sample request:
+        http://localhost:4000/uframe/status/platforms/CE01ISSM
+        http://localhost:4000/uframe/status/platforms/GP02HYPM
 
     Note:
         - The deployment number provided in status.
@@ -497,7 +499,7 @@ def get_status_platforms(rd=None):
         platforms = []
         for node in nodes:
             if node:
-                tmp = '-'.join([rd,node])
+                tmp = '-'.join([rd, node])
                 if tmp not in platforms:
                     platforms.append(tmp)
 
@@ -1085,7 +1087,6 @@ def get_uframe_status_data_arrays():
             for item in status_data:
                 if item:
                     if 'referenceDesignator' in item:
-
                         if item['referenceDesignator']:
                             rd = deepcopy(item['referenceDesignator'])
                             del item['referenceDesignator']

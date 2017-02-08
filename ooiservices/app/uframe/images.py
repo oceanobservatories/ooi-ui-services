@@ -50,4 +50,3 @@ def get_uframe_cam_image(image_id):
         message = 'Image not found; image id: %s' % image_id
         current_app.logger.info(message + '; error: ' + str(err))
         return bad_request(message)
-

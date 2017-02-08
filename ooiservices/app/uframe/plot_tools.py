@@ -67,16 +67,12 @@ class OOIPlots(object):
                          title_font={}, axis_font={}, tick_font={}, scatter=False, qaqc=[], events={}, **kwargs):
 
         debug = False
-        if debug:
-            print '\n debug -- plot_tools::plot_time_series...len(qaqc): ', len(qaqc)
-            print '\n debug -- plot_tools::plot_time_series...scatter: ', scatter
         if not title_font:
             title_font = title_font_default
         if not axis_font:
             axis_font = axis_font_default
 
         if scatter:
-            if debug: print '\n debug -- changed here - scatter points selected'
             ppl.scatter(ax, x, y, **kwargs)
             ppl.scatter(ax, x, y, **kwargs)
         else:
@@ -99,7 +95,6 @@ class OOIPlots(object):
             if not scatter:
                 ax.fill_between(x, y, miny + 1e-7, facecolor = h[0].get_color(), alpha=0.15)
             else:
-                if debug: print '\n debug -- else branch...'
                 #ax.fill_between(x, y, miny + 1e-7, facecolor = axis_font_default['color'], alpha=0.15)
                 ax.fill_between(x, y, miny + 1e-5, facecolor = axis_font_default['color'], alpha=0.15)
 
@@ -275,7 +270,6 @@ class OOIPlots(object):
         if not title_font:
             title_font = title_font_default
 
-        #print '\n debug -- rose: title_font: ', title_font
         if title_font['size'] > 12:
             title_font['size'] = 12
 
@@ -644,7 +638,6 @@ class OOIPlots(object):
                                  mec='r')
 
             # Label the y-axis and set text color:
-
             # Been experimenting with other ways to handle tick labels with spines
             y_axis[ind].yaxis.get_major_formatter().set_useOffset(False)
 
@@ -678,7 +671,7 @@ class OOIPlots(object):
         sal = np.ma.array(sal, mask=np.isnan(sal))
         temp = np.ma.array(temp, mask=np.isnan(temp))
         if len(sal) != len(temp):
-            raise Exception('Sal and Temp arrays are not the same size!')
+            raise Exception('Sal and Temp arrays are not the same size.')
 
         # Figure out boudaries (mins and maxs)
         smin = sal.min() - (0.01 * sal.min())
@@ -693,7 +686,7 @@ class OOIPlots(object):
         # Create empty grid of zeros
         dens = np.zeros((ydim, xdim))
 
-        # Create temp and sal vectors of appropiate dimensions
+        # Create temp and sal vectors of appropriate dimensions.
         ti = np.linspace(1, ydim-1, ydim)+tmin
         si = np.linspace(1, xdim-1, xdim)*0.1+smin
 
@@ -726,32 +719,34 @@ class OOIPlots(object):
         # The use of decimated is disabled for now.
         # {'color': 'black', 'fontname': 'Calibri', 'weight': 'bold', 'size': 12}
         if not title_font:
-            print '\n debug -- Using default title font...'
             title_font = title_font_default
         if title_font['size'] < 14:
             title_font['size'] = 14
 
         # {'fontname': 'Calibri', 'weight': 'bold', 'size': 10}
         if not axis_font:
-            print '\n debug -- Using default axis font....'
             axis_font = axis_font_default
         if axis_font['size'] < 12:
             axis_font['size'] = 12
         # tick font: {'color': 'k', 'width': 1, 'labelsize': 7, 'axis': 'both'}
-
+        """
         print '\n debug -- plot_tools.py: 3d_scatter: xlabel: ', xlabel
         print '\n debug -- plot_tools.py: 3d_scatter: ylabel: ', ylabel
         print '\n debug -- plot_tools.py: 3d_scatter: zlabel: ', zlabel
+
         x_display_label = None
         if xlabel is not None:
             x_display_label = xlabel[:]
+        """
 
         # http://stackoverflow.com/questions/2051744/reverse-y-axis-in-pyplot
         cmap = plt.cm.jet
         h = plt.scatter(x, y, c=z, cmap=cmap)
         ax = plt.gca()
+        """
         print '\n ax.get_ylim(): ', ax.get_ylim()
         print '\n ax.get_ylim()[::-1]: ', ax.get_ylim()[::-1]
+        """
         ax.set_ylim(ax.get_ylim()[::-1])
         # testing -- h = plt.scatter(x, y, c=z, cmap=cmap)
 
@@ -773,9 +768,6 @@ class OOIPlots(object):
         #cbar = plt.colorbar(h, orientation='vertical', aspect=30, shrink=0.76)
         cbar = plt.colorbar(h, orientation='vertical', aspect=30, shrink=0.78)
 
-        print '\n debug -- plot_tools.py: 3d_scatter: x_display_label: ', x_display_label
-        print '\n debug -- plot_tools.py: 3d_scatter: ylabel: ', ylabel
-        print '\n debug -- plot_tools.py: 3d_scatter: zlabel: ', zlabel
         """
         if x_display_label:
             ax.set_xlabel(x_display_label, labelpad=10, **axis_font)
@@ -801,13 +793,9 @@ class OOIPlots(object):
 
 
     def add_annotation_message(self, ax, message):
-        '''
-        This method adds annotation to the plot figure in the lower left corner next to the watermark
-        '''
+        """
+        This method adds annotation to the plot figure in the lower left corner.
+        """
         annotation = message
-        """
-        ax.annotate(annotation, xy=(40, 10), xycoords='figure pixels',
-                    horizontalalignment='right', verticalalignment='bottom', fontsize=8, style='italic')
-        """
         ax.annotate(annotation, xy=(40, 10), xycoords='figure pixels',
                     horizontalalignment='left', verticalalignment='bottom', fontsize=8, style='italic')

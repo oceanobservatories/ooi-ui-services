@@ -89,7 +89,7 @@ def get_iris_station(rd):
         elif rd == 'RS01SLBS-MJ01A-05-OBSBBA102':
             result = 'HYSB1'
         else:
-            message = 'Refernece designator (\'%s\') in IRIS list but station not defined.'
+            message = 'Reference designator (\'%s\') in IRIS list but station not defined.'
             raise Exception(message)
         return result
     except Exception as err:
@@ -281,7 +281,7 @@ def get_iris_data(rd):
                     'start': '2014-08-01T00:00:00.000Z'
                      }
         else:
-            print '\n-- The reference designator ()\'%s\') does not have IRIS characteristics defined.'
+            print '\n-- The reference designator (\'%s\') does not have IRIS characteristics defined.'
 
         if result:
             if result['depth'] is not None:
@@ -380,7 +380,7 @@ def build_iris_streams():
             if debug: print '\n Get general stream items for IRIS rd: ', rd
             iris_stream['reference_designator'] = rd
             iris_stream['stream'] = None
-            iris_stream['stream_dataset'] = 'Science'
+            iris_stream['stream_dataset'] = ''
             iris_stream['stream_display_name'] = None
             iris_stream['stream_method'] = None
             iris_stream['stream_name'] = None
