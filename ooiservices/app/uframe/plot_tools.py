@@ -713,27 +713,24 @@ class OOIPlots(object):
         plt.tight_layout()
 
     def plot_3d_scatter(self, fig, ax, x, y, z, title='', xlabel='', ylabel='', zlabel='',
-                        title_font={}, axis_font={}, tick_font={},
-                        number_data_points_requested=1000, number_points=0):
+                        title_font={}, axis_font={}, tick_font={}, number_points=0):
 
-        # The use of decimated is disabled for now.
         # {'color': 'black', 'fontname': 'Calibri', 'weight': 'bold', 'size': 12}
         if not title_font:
             title_font = title_font_default
         if title_font['size'] < 14:
             title_font['size'] = 14
 
-        # {'fontname': 'Calibri', 'weight': 'bold', 'size': 10}
+        # Format {'fontname': 'Calibri', 'weight': 'bold', 'size': 10}
         if not axis_font:
             axis_font = axis_font_default
         if axis_font['size'] < 12:
             axis_font['size'] = 12
-        # tick font: {'color': 'k', 'width': 1, 'labelsize': 7, 'axis': 'both'}
+        # Format tick font: {'color': 'k', 'width': 1, 'labelsize': 7, 'axis': 'both'}
         """
         print '\n debug -- plot_tools.py: 3d_scatter: xlabel: ', xlabel
         print '\n debug -- plot_tools.py: 3d_scatter: ylabel: ', ylabel
         print '\n debug -- plot_tools.py: 3d_scatter: zlabel: ', zlabel
-
         x_display_label = None
         if xlabel is not None:
             x_display_label = xlabel[:]
@@ -785,7 +782,6 @@ class OOIPlots(object):
             ax.set_title(title.replace("_", " "), **title_font)
         ax.grid(True)
         plt.tight_layout()
-        #nice_number_requested = "{:,}".format(number_data_points_requested)
         if number_points:
             nice_number = "{:,}".format(number_points)
             message = 'Number of data points: %s' % nice_number

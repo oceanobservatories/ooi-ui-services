@@ -359,12 +359,12 @@ def generate_plot(data, plot_options):
         """
         print '\n-- Plotting 3D Scatter'
 
-        number_of_data_points_requested = 1000
         stream_name = None
         if 'stream_name' in data:
             stream_name = data['stream_name']
-        if 'number_of_data_points' in data:
-            number_of_data_points_requested = data['number_of_data_points']
+        #number_of_data_points_requested = 1000
+        #if 'number_of_data_points' in data:
+        #    number_of_data_points_requested = data['number_of_data_points']
 
         time = data['x']['time']
         xlabel = data['y_field'][0]
@@ -415,7 +415,6 @@ def generate_plot(data, plot_options):
                                   title_font=title_font,
                                   tick_font=tick_font,
                                   axis_font=axis_font,
-                                  number_data_points_requested=number_of_data_points_requested,
                                   number_points=number_points)
 
     elif plot_layout == 'rose':
