@@ -474,6 +474,8 @@ def get_status_platforms(rd=None):
             },
             . . .
     """
+    from ooiservices.app.uframe.stream_tools_iris import get_iris_rds
+    from ooiservices.app.uframe.stream_tools_rds import get_rds_rds
     total_time = True
     time = False
     debug = False
@@ -507,8 +509,30 @@ def get_status_platforms(rd=None):
         instruments_by_platform = {}
         working_rds = []
         for platform in platforms:
-            # get sensor list
+            if debug: print '\n platform: ', platform
             sensors = uframe_get_sensors_for_platform(platform)
+            if debug: print '\n uframe sensors(%d): %s' % (len(sensors), sensors)
+            sensors_iris = get_iris_rds()
+            if debug: print '\n iris sensors: ', sensors_iris
+            platform_replace = platform + '-'
+            for iris_sensor in sensors_iris:
+                if platform in iris_sensor:
+                    tmp_sensor = iris_sensor[:].replace(platform_replace, '')
+                    if debug: print '\n debug -- tmp_sensor: ', tmp_sensor
+                    if tmp_sensor not in sensors:
+                        if debug: print '\n debug -- Adding tmp_sensor: ', tmp_sensor
+                        sensors.append(tmp_sensor)
+            if debug: print '\n uframe + iris sensors(%d): %s' % (len(sensors), sensors)
+            sensors_rds = get_rds_rds()
+            if debug: print '\n rds sensors: ', sensors_rds
+            for rds_sensor in sensors_rds:
+                if platform in rds_sensor:
+                    tmp_sensor = rds_sensor[:].replace(platform_replace, '')
+                    if debug: print '\n debug -- tmp_sensor: ', tmp_sensor
+                    if tmp_sensor not in sensors:
+                        if debug: print '\n debug -- Adding tmp_sensor: ', tmp_sensor
+                        sensors.append(tmp_sensor)
+            if debug: print '\n uframe + iris + rds sensors(%d): %s' % (len(sensors), sensors)
             if sensors:
                 sensors_by_platform[platform] = sensors
                 for sensor in sensors:
