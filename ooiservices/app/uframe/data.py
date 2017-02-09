@@ -34,6 +34,7 @@ def new_find_parameter_ids(reference_designator, stream, y_parameters, x_paramet
     """
     debug = False
     try:
+        if debug: print '\n debug -- (new_find_parameter_ids) reference_designator: ', reference_designator
         parameters = get_stream_parameters(stream, reference_designator)
         parameter_dict = {}
         parameter_ids = []
@@ -81,7 +82,6 @@ def new_find_parameter_ids(reference_designator, stream, y_parameters, x_paramet
 def get_multistream_data(instrument1, instrument2, stream1, stream2, var1, var2):
     from ooiservices.app.uframe.controller import get_uframe_multi_stream_contents
     debug = False
-    from ooiservices.app.uframe.common_tools import dump_dict
     try:
         rd_instrument1 = instrument1[:]
         rd_instrument2 = instrument2[:]
@@ -141,7 +141,7 @@ def get_multistream_data(instrument1, instrument2, stream1, stream2, var1, var2)
 def get_simple_data(stream, instrument, yfields, xfields, include_time=True):
     """ Get plotting data from uframe.
     """
-    debug = True
+    debug = False
     from ooiservices.app.uframe.controller import get_uframe_plot_contents_chunked_max_data
     try:
         if debug:
@@ -196,10 +196,10 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
     """ Get plotting data from uframe.
     """
     from ooiservices.app.uframe.controller import get_uframe_plot_contents_chunked_max_data
-    debug = True
+    debug = False
     data = []
     try:
-        if debug: print '\n debug -- Entered get_data...'
+        if debug: print '\n debug -- Entered get_data........................................'
         if debug: print '\n debug -- Step 1 -- have data, review data......'
         mooring, platform, sensor = instrument.split('-', 2)
         stream_value = stream[:]
@@ -334,5 +334,6 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
         return resp_data
     except Exception as err:
         message = str(err.message)
+        print '\n (data.py::get_data) exception: message: ', message
         raise Exception(message)
 

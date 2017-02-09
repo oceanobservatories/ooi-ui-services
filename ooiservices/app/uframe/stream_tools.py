@@ -404,7 +404,7 @@ def get_stream_for_stream_model(reference_designator, stream_method, stream):
         stream_list_cached = cache.get('stream_list')
         if stream_list_cached and stream_list_cached is not None and 'error' not in stream_list_cached:
             for item in stream_list_cached:
-                if 'reference_designator' in item and 'stream' in item:
+                if 'reference_designator' in item and 'stream_method' in item and 'stream' in item:
                     if item['reference_designator'] == reference_designator:
                         if item['stream_method'] == stream_method:
                             if item['stream'] == stream:
@@ -412,7 +412,8 @@ def get_stream_for_stream_model(reference_designator, stream_method, stream):
                                 break
 
         if _stream is None:
-            message = 'Failed to retrieve \'%s\' from \'stream_list\' cache.' % stream
+            message = 'Failed to retrieve \'%s\' from \'stream_list\' cache for \'%s\'.' % \
+                      (stream, reference_designator)
             raise Exception(message)
 
         # Get [processed] parameters for stream
@@ -482,7 +483,12 @@ def get_stream_parameters(stream, reference_designator):
         if 'parameters' in stream_contents:
             _parameters = stream_contents['parameters']
             metadata_parameters = uframe_get_instrument_metadata_parameters(reference_designator)
+            if not metadata_parameters or metadata_parameters is None:
+                message = 'No metadata parameters returned for %s, stream %s' % (reference_designator, stream)
+                raise Exception(message)
+            if debug: print '\n debug -- Calling process_stream_parameters...'
             parameters = process_stream_parameters(_parameters, stream, metadata_parameters)
+            if debug: print '\n debug -- After calling process_stream_parameters...'
         return parameters
     except Exception as err:
         message = str(err)
@@ -607,6 +613,13 @@ def process_stream_parameters(_parameters, stream, metadata_parameters):
     parameters = []
     try:
         if not _parameters or _parameters is None:
+            if debug: print '\n debug -- (process_stream_parameters) No _parameters.'
+            return None
+        if not stream or stream is None:
+            if debug: print '\n debug -- (process_stream_parameters) No stream.'
+            return None
+        if not metadata_parameters or metadata_parameters is None:
+            if debug: print '\n debug -- (process_stream_parameters) No metadata_parameters.'
             return None
 
         # Process parameters.

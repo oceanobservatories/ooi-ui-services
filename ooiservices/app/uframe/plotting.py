@@ -121,7 +121,7 @@ def generate_plot(data, plot_options):
             # QAQC logic
             if debug:
                 if plot_qaqc > 0:
-                    print '\n debug -- Processing qaqc...', plot_qaqc
+                    if debug: print '\n debug -- Processing qaqc...', plot_qaqc
             if plot_qaqc >= 10:
                 # Plot all of the qaqc flags results
                 qaqc_data = data['qaqc'][ylabel]
@@ -320,18 +320,16 @@ def generate_plot(data, plot_options):
         """
         Plot colored stacked time series
 
-        data.keys():
-                    ['x_field', 'height', 'qaqc', 'y_units', 'y_field', 'dt_units', 'stream_name',
-                     'title', 'data_length', 'width', 'x_units', 'y', 'x']
+        data.keys(): ['x_field', 'height', 'qaqc', 'y_units', 'y_field', 'dt_units', 'stream_name',
+                      'title', 'data_length', 'width', 'x_units', 'y', 'x']
 
         sample: http://localhost:5000/data_access/#GI01SUMO-RII11-02-ADCPSN010/telemetered_adcps-jln-stc-instrument
         """
         print '\n-- Plotting  Stacked'
 
-        time = mdates.date2num(data['x']['time'])
-        z = np.array(data['y'][data['y_field'][0]])
-        # See stream_tools.py get_parameter_name_by_parameter_stream(data['y_field'][0], stream_name)
-        # If stream_name provided and good, use to create label; any issues then fallback to system parameter.
+        #- - - - - - - - - - - - - - - - - - -
+        # Get labels using preload information (default to system parameter name and units)
+        #- - - - - - - - - - - - - - - - - - -
         if 'stream_name' in data:
             if data['stream_name'] is None or not data['stream_name']:
                 label = data['y_field'][0] + " (" + data['y_units'][0] + ")"
@@ -342,14 +340,40 @@ def generate_plot(data, plot_options):
         else:
             # If no stream_name, default to system parameter name and units
             label = data['y_field'][0] + " (" + data['y_units'][0] + ")"
-        if debug: print '\n debug -- Plotting Stacked Title: ', data['title']
-        ooi_plots.plot_stacked_time_series(fig, ax, time, np.arange(len(z[0]))[::-1], z.transpose(),
+        if debug:
+            print '\n debug -- Plotting Stacked Title: ', data['title']
+            print '\n debug -- Plotting Stacked (Label) data[y_field][0]: ', data['y_field'][0]
+            print '\n debug -- Plotting Stacked data[stream_name]: ', data['stream_name']
+
+        #- - - - - - - - - - - - - - - - - - -
+        # Get time component
+        #- - - - - - - - - - - - - - - - - - -
+        if debug: print '\n debug -- Plotting  Stacked: Get time...'
+        time = mdates.date2num(data['x']['time'])
+        plot_parameter = data['y_field'][0]
+        if isinstance(data['y'][plot_parameter], list):
+            if debug:
+                print '\n debug -- Plotting  Stacked: Get z...'
+                print '\n debug -- Plotting Stacked: Parameter \'%s\' available in data[y].' % plot_parameter
+                print '\n debug -- Plotting Stacked: Parameter type \'%s\': %s ' % \
+                                        (plot_parameter, str(type(data['y'][plot_parameter])))
+                print '\n debug -- Plotting Stacked: Number of data items: %d' % len(data['y'][plot_parameter])
+
+            # Original
+            z = np.array(data['y'][data['y_field'][0]])
+            ooi_plots.plot_stacked_time_series(fig, ax, time, np.arange(len(z[0]))[::-1], z.transpose(),
                                            title=data['title'],
                                            ylabel='Bin #',
                                            cbar_title=label,
                                            title_font=title_font,
                                            axis_font=axis_font,
                                            tick_font=tick_font)
+        else:
+            if debug:
+                print '\n debug -- Plotting  Stacked: str(type(data[y][plot_parameter])): ', \
+                                                                      str(type(data['y'][plot_parameter]))
+                message = 'Fix this...'
+                raise Exception(message)
 
     elif plot_layout == '3d_scatter':
         """

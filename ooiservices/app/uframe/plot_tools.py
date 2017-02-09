@@ -67,6 +67,7 @@ class OOIPlots(object):
                          title_font={}, axis_font={}, tick_font={}, scatter=False, qaqc=[], events={}, **kwargs):
 
         debug = False
+        if debug: print '\n debug -- Entered plot_time_series...'
         if not title_font:
             title_font = title_font_default
         if not axis_font:
@@ -129,35 +130,50 @@ class OOIPlots(object):
                                  cbar_title='', title_font={}, axis_font={}, tick_font = {},
                                  **kwargs):
 
+        #print '\n debug -- plot_stacked_time_series entered...'
         if not title_font:
             title_font = title_font_default
         if not axis_font:
             axis_font = axis_font_default
+
+        # Mask NaN items in z
+        #print '\n debug -- plot_stacked_time_series - Mask NaN items in z'
         z = np.ma.array(z, mask=np.isnan(z))
+
         # create a limit for the colorbar that disregards outliers
+        #print '\n debug -- plot_stacked_time_series - create a limit for the colorbar that disregards outliers...'
         lim = float("%2.2f" % np.nanpercentile(abs(z), 95))
         h = plt.pcolormesh(x, y, z, vmin=-lim, vmax=lim, cmap='RdBu', shading='gouraud', **kwargs)
         # h = plt.pcolormesh(x, y, z, **kwargs)
+
+        #print '\n debug -- plot_stacked_time_series - Step 1'
         if ylabel:
             ax.set_ylabel(ylabel.replace("_", " "), **axis_font)
         if title:
             ax.set_title(title.replace("_", " "), **title_font)
+
+        #print '\n debug -- plot_stacked_time_series - Step 2'
         plt.axis([x.min(), x.max(), y.min(), y.max()])
         ax.xaxis_date()
         date_list = mdates.num2date(x)
+        #print '\n debug -- plot_stacked_time_series - Step 3'
         self.get_time_label(ax, date_list)
         fig.autofmt_xdate()
         ax.invert_yaxis()
+        #print '\n debug -- plot_stacked_time_series - Step 4'
         divider = make_axes_locatable(ax)
         cax = divider.append_axes('right', size='3%', pad=0.05)
         cbar = plt.colorbar(h, cax=cax)
+        #print '\n debug -- plot_stacked_time_series - Step 5'
         if cbar_title:
             cbar.ax.set_ylabel(cbar_title.replace("_", " "), **axis_font)
         ax.grid(True)
         if tick_font:
             ax.tick_params(**tick_font)
         plt.tight_layout()
+        #print '\n debug -- plot_stacked_time_series - Step 6'
         self.add_annotation(ax)
+        #print '\n debug -- plot_stacked_time_series - Step 7...Exit'
 
     def plot_stacked_time_series_image(self, fig, ax, x, y, z, title='', ylabel='',
                                        cbar_title='', title_font={}, axis_font={}, tick_font = {},
@@ -166,7 +182,7 @@ class OOIPlots(object):
         This plot is a stacked time series that uses NonUniformImage with regualrly spaced ydata from
         a linear interpolation. Designed to support FRF ADCP data.
         '''
-
+        #print '\n debug -- plot_stacked_time_series_image entered...'
         if not title_font:
             title_font = title_font_default
         if not axis_font:

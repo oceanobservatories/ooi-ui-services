@@ -3,10 +3,8 @@
 Mixture of route endpoints and supporting functions.
 """
 
-from flask import (jsonify, request, current_app, make_response)
-from ooiservices.app import db
+from flask import (jsonify, request, current_app)
 from ooiservices.app.uframe import uframe as api
-from ooiservices.app.models import DisabledStreams
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.main.errors import bad_request
 from ooiservices.app.uframe.common_tools import to_bool
@@ -19,6 +17,9 @@ from ooiservices.app.uframe.stream_tools import get_stream_name_byname
 from urllib import urlencode
 import json
 import numpy as np
+from copy import deepcopy
+import math
+import datetime as dt
 
 from contextlib import closing
 import time
@@ -29,14 +30,13 @@ import requests.adapters
 import requests.exceptions
 from requests.exceptions import (ConnectionError, Timeout)
 
-from copy import deepcopy
-import math
-import datetime as dt
 
 __author__ = 'Andy Bird'
 
 COSMO_CONSTANT = 2208988800
 
+
+#--------
 
 def split_stream_name(ui_stream_name):
     """ Splits the hyphenated reference designator and stream type into a tuple of
@@ -44,76 +44,18 @@ def split_stream_name(ui_stream_name):
     """
     mooring, platform, instrument = ui_stream_name.split('-', 2)
     instrument, stream_type, stream = instrument.split('_', 2)
-    stream_type = stream_type.replace("-","_")
-    stream = stream.replace("-","_")
+    stream_type = stream_type.replace("-", "_")
+    stream = stream.replace("-", "_")
     return (mooring, platform, instrument, stream_type, stream)
 
-
+'''
 def combine_stream_name(mooring, platform, instrument, stream_type, stream):
     first_part = '-'.join([mooring, platform, instrument])
     all_of_it = '_'.join([first_part, stream_type, stream])
     return all_of_it
+'''
 
-
-# Move to streams.py
-@api.route('/disabled_streams', methods=['GET', 'POST'])
-@api.route('/disabled_streams/<int:id>', methods=['DELETE'])
-def disabled_streams(id=None):
-    """ Process GET, POST and DELETE for disabled streams.
-
-    @method GET:
-        Returns the list of all the disabled streams from our database.
-
-    @method POST:
-        @params: ID
-        Create a new 'disabled streams' in our local database.
-
-    @method DELETE:
-        @params: ID
-        Delete a disabled streams identifier from our local database.
-    """
-
-    if request.method == 'GET':
-        disabled_streams = DisabledStreams.query.all()
-        return jsonify({'disabled_streams':
-                        [disabled_stream.to_json() \
-                         for disabled_stream in disabled_streams]})
-
-    elif request.method == 'POST':
-        try:
-            # grab the json payload
-            payload = json.loads(request.data)
-
-            # create a new instance of the disabled streams with the data
-            disabled_stream = DisabledStreams.from_json(payload)
-
-            # add to the databse
-            db.session.add(disabled_stream)
-            db.session.commit()
-            return jsonify({ 'disabled_streams': 'Stream Disabled!'}), 200
-        except Exception as e:
-            print type(e)
-            # roll it back if there is a problem.
-            db.session.rollback()
-            db.session.commit()
-            return make_response(e.message), 409
-
-    elif request.method == 'DELETE':
-        try:
-            # get the item to delete
-            disabled_stream = DisabledStreams.query.get_or_404(id)
-
-            # obliterate it form the db
-            db.session.delete(disabled_stream)
-            db.session.commit()
-            return jsonify({'message': 'Stream Enabled!'}), 200
-        except Exception as e:
-            # roll it back if there is a problem.
-            db.session.rollback()
-            db.session.commit()
-            return jsonify({'message': 'Problem activating stream: %s'%e}), 409
-
-
+'''
 # Deprecate.
 @api.route('/antelope_acoustic/list', methods=['GET'])
 def get_acoustic_datalist():
@@ -154,39 +96,12 @@ def get_acoustic_datalist():
         return result
     else:
         return jsonify(results=data)
-
-'''
-Deprecate this function.
-def map_common_error_message(response, default):
-    """ This function parses the error response from uFrame into a meaningful message for the UI.
-    """
-    message = default
-    if 'requestUUID' in response:
-        UUID = response.split('requestUUID":')[1].split('"')[1]
-        message = 'Error Occurred During Product Creation<br>UUID for reference: ' + UUID
-    elif 'Failed to respond' in response:
-        message = 'Internal System Error in Data Repository'
-    return message
 '''
 
 '''
-# Deprecate this function - it only returns end_time.
-def validate_date_time(start_time, end_time):
-    """
-    uframe_data_request_limit = int(current_app.config['UFRAME_DATA_REQUEST_LIMIT'])/1440
-    new_end_time_strp = datetime.datetime.strptime(start_time, "
-                                                   ") + datetime.timedelta(days=uframe_data_request_limit)
-    old_end_time_strp = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S.%fZ")
-    new_end_time = datetime.datetime.strftime(new_end_time_strp, "%Y-%m-%dT%H:%M:%S.%fZ")
-    if old_end_time_strp > new_end_time_strp:
-        end_time = new_end_time
-    """
-    return end_time
-'''
-
 def make_cache_key():
     return urlencode(request.args)
-
+'''
 
 # Restore event processing as needed.
 def get_events_by_ref_des(data, ref_des):
@@ -250,7 +165,12 @@ def get_uframe_stream(mooring, platform, instrument, stream):
 def get_uframe_instrument_metadata(ref):
     """ Returns the metadata response for a given instrument - all streams.
     """
+    debug = False
     try:
+        if debug:
+            print '\n debug -- =============================================='
+            print '\n debug -- =============================================='
+            print '\n debug -- Entered /get_instrument_metadata - get_uframe_instrument_metadata...'
         mooring, platform, instrument = ref.split('-', 2)
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, mooring, platform, instrument, 'metadata'])
@@ -268,8 +188,13 @@ def get_uframe_instrument_metadata(ref):
 def get_uframe_instrument_metadata_parameters(ref):
     """ Returns the metadata parameters for a given instrument - all streams.
     """
+    debug = False
     results = []
     try:
+        if debug:
+            print '\n debug -- =============================================='
+            print '\n debug -- =============================================='
+            print '\n debug -- Entered /get_metadata_parameters - get_uframe_instrument_metadata_parameters...'
         mooring, platform, instrument = ref.split('-', 2)
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = '/'.join([uframe_url, mooring, platform, instrument, 'metadata', 'parameters'])
@@ -294,9 +219,14 @@ def get_uframe_instrument_metadata_parameters(ref):
 def get_uframe_stream_metadata_times(ref):
     """ Returns the time bounds response for a given instrument - all streams.
     """
+    debug = False
     mooring, platform, instrument = ref.split('-', 2)
     results = []
     try:
+        if debug:
+            print '\n debug -- =============================================='
+            print '\n debug -- =============================================='
+            print '\n debug -- Entered /get_metadata_times - get_uframe_stream_metadata_times...'
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, mooring, platform, instrument, 'metadata','times'])
         response = requests.get(url, timeout=(timeout, timeout_read))
@@ -322,9 +252,14 @@ def get_uframe_stream_metadata_times(ref):
 def get_uframe_stream_metadata_stream_by_method(ref, stream, method):
     """ Returns the metadata time bounds response for a given stream and method.
     """
+    debug = False
     mooring, platform, instrument = ref.split('-', 2)
     results = []
     try:
+        if debug:
+            print '\n debug -- =============================================='
+            print '\n debug -- =============================================='
+            print '\n debug -- Entered /get_metadata_stream_times - get_uframe_stream_metadata_stream_by_method...'
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, mooring, platform, instrument, 'metadata','times'])
         response = requests.get(url, timeout=(timeout, timeout_read))
@@ -345,7 +280,7 @@ def get_uframe_stream_metadata_stream_by_method(ref, stream, method):
         current_app.logger.info(message)
         return bad_request(message)
     except Exception as err:
-        message = 'Error getting uframe stream metadata times, ' + str(err)
+        message = 'Error getting uframe stream metadata times, %s' % str(err)
         current_app.logger.info(message)
         message = str(err)
         return bad_request(message)
@@ -361,7 +296,13 @@ def multistream_api(instrument1, instrument2, stream1, stream2, var1, var2):
     ?startdate=2015-05-07T02:49:22.745Z&enddate=2015-06-28T04:00:41.282Z
 
     """
+    debug = False
     try:
+        if debug:
+            print '\n debug -- =============================================='
+            print '\n debug -- =============================================='
+            print '\n debug -- Entered /get_multistream - multistream_api...'
+
         # Format of streams:
         #   stream1 = 'telemetered_ctdgv-m-glider-instrument'
         #   stream2 = 'telemetered_flort-m-glider-instrument'
@@ -420,7 +361,13 @@ def get_uframe_multi_stream_contents(stream1_dict, stream2_dict, start_time, end
         r2.refdes=CP05MOAS-GL340-02-FLORTM000&r1.method=telemetered&r2.method=telemetered&r1.stream=ctdgv_m_glider_instrument&
         r2.stream=flort_m_glider_instrument&r1.params=PD1527&r2.params=PD1485&limit=1000&beginDT=2015-05-07T02:49:22.745Z&endDT=2015-06-28T04:00:41.282Z
     """
+    debug = False
     try:
+        if debug:
+            print '\n debug -- ------------------------------------------------------'
+            print '\n debug -- ------------------------------------------------------'
+            print '\n debug -- Entered  get_uframe_multi_stream_contents...'
+
         # Get the parts of the request from the input stream dicts
         refdes1 = stream1_dict['refdes']
         refdes2 = stream2_dict['refdes']
@@ -462,11 +409,16 @@ def get_uframe_multi_stream_contents(stream1_dict, stream2_dict, start_time, end
 @auth.login_required
 @api.route('/get_csv/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>', methods=['GET'])
 def get_csv(stream, ref, start_time, end_time, dpa_flag):
+    debug = False
     mooring = None
     platform = None
     instrument = None
     stream_type = None
     try:
+        if debug:
+            print '\n debug -- =============================================='
+            print '\n debug -- =============================================='
+            print '\n debug -- Entered /get_csv - get_csv...'
         mooring, platform, instrument = ref.split('-', 2)
         stream_type, stream = stream.split('_', 1)
         stream_type = stream_type.replace('-','_')
@@ -494,11 +446,16 @@ def get_csv(stream, ref, start_time, end_time, dpa_flag):
 @auth.login_required
 @api.route('/get_json/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>/<string:provenance>/<string:annotations>', methods=['GET'])
 def get_json(stream, ref, start_time, end_time, dpa_flag, provenance, annotations):
+    debug = False
     mooring = None
     platform = None
     instrument = None
     stream_type = None
     try:
+        if debug:
+            print '\n debug -- =============================================='
+            print '\n debug -- =============================================='
+            print '\n debug -- Entered /get_json - get_json...'
         mooring, platform, instrument = ref.split('-', 2)
         stream_type, stream = stream.split('_', 1)
         stream_type = stream_type.replace('-', '_')
@@ -528,11 +485,16 @@ def get_json(stream, ref, start_time, end_time, dpa_flag, provenance, annotation
 @auth.login_required
 @api.route('/get_netcdf/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>/<string:provenance>/<string:annotations>', methods=['GET'])
 def get_netcdf(stream, ref, start_time, end_time, dpa_flag, provenance, annotations):
+    debug = False
     mooring = None
     platform = None
     instrument = None
     stream_type = None
     try:
+        if debug:
+            print '\n debug -- =============================================='
+            print '\n debug -- =============================================='
+            print '\n debug -- Entered /get_netcdf - get_netcdf...'
         mooring, platform, instrument = ref.split('-', 2)
         stream_type, stream = stream.split('_', 1)
         stream_type = stream_type.replace('-', '_')
@@ -559,18 +521,23 @@ def get_netcdf(stream, ref, start_time, end_time, dpa_flag, provenance, annotati
 
 
 def get_process_profile_data(stream, instrument, xvar, yvar):
-    """ NOTE: i have to swap the inputs (xvar, yvar) around at this point to get the plot to work....
+    """ Note: Swap the inputs (xvar, yvar) around at this point to get the plot to work. (Review old note.)
     """
     from ooiservices.app.uframe.data import new_find_parameter_ids
+    debug = False
     try:
+        if debug:
+            print '\n debug -- ------------------------------------------------------'
+            print '\n debug -- ------------------------------------------------------'
+            print '\n debug -- Entered  get_process_profile_data...'
         join_name = '_'.join([str(instrument), str(stream)])
         mooring, platform, instrument, stream_type, stream = split_stream_name(join_name)
         parameter_ids, y_units, x_units, _ = new_find_parameter_ids(instrument, stream, [yvar], [xvar])
         data = get_profile_data(mooring, platform, instrument, stream_type, stream, parameter_ids)
         if not data or data is None:
             raise Exception('Profiles not present in data.')
-    except Exception as e:
-        raise Exception('%s' % str(e.message))
+    except Exception as err:
+        raise Exception('%s' % str(err))
 
     '''
     # check the data is in the first row
@@ -608,7 +575,12 @@ def get_process_profile_data(stream, instrument, xvar, yvar):
 def get_profile_data(mooring, platform, instrument, stream_type, stream, parameter_ids):
     """ Process uframe data into profiles.
     """
+    debug = False
     try:
+        if debug:
+            print '\n debug -- ------------------------------------------------------'
+            print '\n debug -- ------------------------------------------------------'
+            print '\n debug -- Entered  get_profile_data...'
         data = []
         if 'startdate' in request.args and 'enddate' in request.args:
             st_date = request.args['startdate']
@@ -618,18 +590,19 @@ def get_profile_data(mooring, platform, instrument, stream_type, stream, paramet
             else:
                 dpa_flag = '0'
             #ed_date = validate_date_time(st_date, ed_date)
-            data, status_code = get_uframe_plot_contents_chunked(mooring, platform, instrument, stream_type, stream, st_date, ed_date, dpa_flag, parameter_ids)
+            data, status_code = get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument,
+                                                                          stream_type, stream, st_date, ed_date,
+                                                                          dpa_flag, parameter_ids)
         else:
             message = 'Failed to make plot - start end dates not applied'
             current_app.logger.info(message)
             raise Exception(message)
 
         if status_code != 200:
-            #raise IOError("uFrame unable to get data for this request.")
             message = 'Unable to get uframe profile data for this request.'
             raise Exception(message)
 
-        current_app.logger.debug('\n --- retrieved data from uframe for profile processing...')
+        current_app.logger.debug('\n --- Retrieved data from uframe for profile processing...')
 
         # Note: assumes data has depth and time is ordinal
         # Need to add assertions and try and exceptions to check data
@@ -745,10 +718,15 @@ def get_profile_data(mooring, platform, instrument, stream_type, stream, paramet
 
 @api.route('/get_profiles/<string:stream>/<string:instrument>', methods=['GET'])
 def get_profiles(stream, instrument):
-    filename = '-'.join([stream, instrument, 'profiles'])
-    content_headers = {'Content-Type': 'application/json',
-                       'Content-Disposition': "attachment; filename=%s.json" % filename}
+    debug = False
     try:
+        if debug:
+            print '\n debug -- =============================================='
+            print '\n debug -- =============================================='
+            print '\n debug -- Entered /get_profiles - get_profiles...'
+        filename = '-'.join([stream, instrument, 'profiles'])
+        content_headers = {'Content-Type': 'application/json',
+                           'Content-Disposition': "attachment; filename=%s.json" % filename}
         profiles = get_profile_data(instrument, stream)
     except Exception as e:
         return jsonify(error=e.message), 400, content_headers
@@ -766,16 +744,19 @@ def get_data_api(stream, instrument, yvar, xvar):
     debug = False
     try:
         if debug:
+            print '\n debug -- =============================================='
+            print '\n debug -- =============================================='
+            print '\n debug -- Entered /get_data - get_data_api...'
             print '\n debug -- yvar: ', yvar
             print '\n debug -- xvar: ', xvar
         xvar = xvar.split(',')
         yvar = yvar.split(',')
-        title = instrument
         if debug:
             print '\n debug -- instrument: ', instrument
             print '\n debug -- stream: ', stream
             print '\n debug -- yvar: ', yvar
             print '\n debug -- xvar: ', xvar
+        title = instrument
         if instrument and instrument is not None and len(instrument) > 8:
             title = get_display_name_by_rd(instrument)
         resp_data, units = get_simple_data(stream, instrument, yvar, xvar)
@@ -880,6 +861,11 @@ def get_svg_plot(instrument, stream):
                 if plot_layout == '3d_scatter' or plot_layout == 'stacked':
                     # 3D Scatter plot should use a larger number of data points than stacked.
                     number_of_data_points = 2000
+
+                    # Remove this before committing - testing binned psuedo
+                    #number_of_data_points = 100
+
+
                     if plot_layout == '3d_scatter':
                         number_of_data_points = 8000 #number_of_data_points * 4
 
@@ -893,14 +879,14 @@ def get_svg_plot(instrument, stream):
 
             # Multiple instruments.
             elif len(instrument) > 1:
-                if debug: print '\n debug -- Branch 2...'
+                if debug: print '\n debug -- Branch 2...*************************'
                 data = []
                 for idx, instr in enumerate(instrument):
                     stream_data = get_data(stream[idx], instr, [yvar[idx]], [xvar[idx]])
                     data.append(stream_data)
             # Added
             else:
-                if debug: print '\n debug -- Branch 3...'
+                if debug: print '\n debug -- Branch 3...************************'
                 data = []
     except Exception as err:
         message = str(err)
@@ -993,14 +979,29 @@ def get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, str
     rd = None
     number_of_data_points = request_data_points
     try:
+        if request_data_points is None or request_data_points <= 0:
+            number_of_data_points = 1000
+        multiplier = int(number_of_data_points/1000)
         start = dt.datetime.now()
         if timing: print '\t-- Start time: ', start
 
+        # Prepare for stream data request; get data in chunk of 32k.
+        TOO_BIG = 1024 * 1024 * 15  # 15MB
+        CHUNK_SIZE = 1024 * 32      #...KB
+        TOTAL_SECONDS = get_uframe_plot_timeout() * multiplier # 20
+        if debug: print '\n Total seconds: ', TOTAL_SECONDS
+        dataBlock = ''
+        idx = 0
+        t0 = time.time()
+
         # Build query for data request.
         if debug:
+            print '\n debug -- ------------------------------------------------------'
+            print '\n debug -- ------------------------------------------------------'
+            print '\n debug -- Entered  get_uframe_plot_contents_chunked_max_data...'
             print '\n debug -- mooring: ', mooring
             print '\n debug -- platform: ', platform
-            print '\n debug -- instrument: ', instrument
+            print '\n debug -- sensor: ', instrument
         rd = '-'.join([mooring, platform, instrument])
         if dpa_flag == '0' and len(parameter_ids) < 1:
             query = '?beginDT=%s&endDT=%s&limit=%s&user=plotting' % (start_time, end_time, number_of_data_points)
@@ -1024,14 +1025,6 @@ def get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, str
             print '\t***: ' + url
         else:
             print '\n***: ' + url
-
-        # Prepare for stream data request; get data in chunk of 32k.
-        TOO_BIG = 1024 * 1024 * 15  # 15MB
-        CHUNK_SIZE = 1024 * 32      #...KB
-        TOTAL_SECONDS = get_uframe_plot_timeout() # 20
-        dataBlock = ''
-        idx = 0
-        t0 = time.time()
 
         # Request and process streaming data.
         try:
@@ -1063,11 +1056,17 @@ def get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, str
                         message = '[max] Data request timeout.'
                         print message
                         if dataBlock:
+                            if debug: print '\n debug -- have dataBlock...'
                             idx_c = dataBlock.rfind('}, \n  {')
                             if idx_c != -1:
+                                if debug: print '\n debug -- step 1...', idx_c
                                 dataBlock = dataBlock[:idx_c]
+                                if debug: print '\n debug -- step 2...', idx_c
                                 dataBlock += '} ]'
-                                return json.loads(dataBlock), 200
+                                if debug: print '\n debug -- step 3...', dataBlock[-100:]
+                                result = json.loads(dataBlock)
+                                if debug: print '\n debug -- step 4...', idx_c
+                                return result, 200
                             else:
                                 if debug: print '\n debug -- idx_c == -1...'
                                 if debug: print '\n debug -- error message: ', message
@@ -1124,7 +1123,6 @@ def get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, str
                 if debug: print '\n debug Step F...'
                 if debug:
                     print '\n debug -- len(result): ', len(result)
-                    print '\n debug -- result: '
                     #print '\n debug -- result(%d): %s' % (len(result), json.dumps(result, indent=4, sort_keys=True))
 
                 # Timing
@@ -1166,9 +1164,12 @@ def get_max_data(stream, instrument, yfields, xfields, number_of_data_points=100
     data = []
     try:
         if debug:
-            print '\n debug ------------------------------------------------------------'
+            print '\n debug -- ------------------------------------------------------'
+            print '\n debug -- ------------------------------------------------------'
             print '\n debug -- Step 1 -- (get_max_data) have data, review data......'
-        mooring, platform, instrument = instrument.split('-', 2)
+            print '\n debug -- instrument: ', instrument
+            print '\n debug -- stream: ', stream
+        mooring, platform, sensor = instrument.split('-', 2)
         #stream_value = stream[:]
         stream_type, stream = stream.split('_')
         stream = stream.replace('-', '_')
@@ -1196,7 +1197,7 @@ def get_max_data(stream, instrument, yfields, xfields, number_of_data_points=100
             dpa_flag = '0'
 
         # Get data from uframe.
-        data, status_code = get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, stream_type,
+        data, status_code = get_uframe_plot_contents_chunked_max_data(mooring, platform, sensor, stream_type,
                                                              stream, st_date, ed_date, dpa_flag, parameter_ids,
                                                              number_of_data_points)
         if status_code != 200:
@@ -1303,5 +1304,5 @@ def get_max_data(stream, instrument, yfields, xfields, number_of_data_points=100
         return resp_data
     except Exception as err:
         message = str(err)
-        if debug: print '\n (controller.py - get_max_data) Exception: %s' % message
+        print '\n (controller.py - get_max_data) Exception: %s' % message
         raise Exception(message)
