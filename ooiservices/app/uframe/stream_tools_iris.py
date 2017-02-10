@@ -7,7 +7,8 @@ __author__ = 'Edna Donoughe'
 
 from flask import current_app
 from ooiservices.app.uframe.vocab import get_vocab_name_collection
-from ooiservices.app.uframe.config import (get_iris_base_url)
+from ooiservices.app.uframe.config import get_iris_base_url
+import datetime as dt
 
 
 def get_iris_rds():
@@ -309,6 +310,9 @@ def build_iris_streams():
     debug = False
     iris_streams = []
     try:
+        # Calculate approximate end date (current date at 00:00:00)
+        end_time = dt.datetime.strftime(dt.datetime.now(), '%Y-%m-%dT00:00:00.000Z')
+
         # Get iris reference designators.
         iris_rds = get_iris_rds()
         for rd in iris_rds:
@@ -316,6 +320,9 @@ def build_iris_streams():
             # Get iris_data
             if debug: print '\n Get data for IRIS rd: ', rd
             iris_data = get_iris_data(rd)
+
+            # Update the static IRIS end time.
+            iris_data['end'] = end_time
             if iris_data is None:
                 continue
             # If an entry exists in data catalog for reference designator, it is processed elsewhere.
