@@ -8,9 +8,11 @@ __author__ = 'Edna Donoughe'
 from flask import current_app
 from ooiservices.app.uframe.stream_tools import get_stream_list
 from ooiservices.app.uframe.common_tools import (operational_status_values, get_array_locations)
-from ooiservices.app.uframe.asset_cache_tools import (get_assets_dict, get_asset_list_cache)
+from ooiservices.app.uframe.asset_cache_tools import get_assets_dict
 from ooiservices.app.uframe.toc_tools import get_toc_reference_designators
-from ooiservices.app.uframe.vocab import (get_vocab_dict_by_rd, get_vocab_codes, get_vocabulary_arrays,
+from ooiservices.app.uframe.stream_tools_iris import get_iris_rds
+from ooiservices.app.uframe.stream_tools_rds import get_rds_rds
+from ooiservices.app.uframe.vocab import (get_vocab_dict_by_rd, get_vocab_codes, get_vocab, get_vocabulary_arrays,
                                           get_display_name_by_rd)
 from ooiservices.app.uframe.uframe_tools import (get_assets_from_uframe, uframe_get_status_by_rd,
                                                  uframe_get_nodes_for_site, uframe_get_sensors_for_platform,
@@ -474,8 +476,6 @@ def get_status_platforms(rd=None):
             },
             . . .
     """
-    from ooiservices.app.uframe.stream_tools_iris import get_iris_rds
-    from ooiservices.app.uframe.stream_tools_rds import get_rds_rds
     total_time = True
     time = False
     debug = False
@@ -508,31 +508,21 @@ def get_status_platforms(rd=None):
         sensors_by_platform = {}
         instruments_by_platform = {}
         working_rds = []
+        sensors_iris = get_iris_rds()
+        sensors_rds = get_rds_rds()
         for platform in platforms:
-            if debug: print '\n platform: ', platform
             sensors = uframe_get_sensors_for_platform(platform)
-            if debug: print '\n uframe sensors(%d): %s' % (len(sensors), sensors)
-            sensors_iris = get_iris_rds()
-            if debug: print '\n iris sensors: ', sensors_iris
             platform_replace = platform + '-'
             for iris_sensor in sensors_iris:
                 if platform in iris_sensor:
                     tmp_sensor = iris_sensor[:].replace(platform_replace, '')
-                    if debug: print '\n debug -- tmp_sensor: ', tmp_sensor
                     if tmp_sensor not in sensors:
-                        if debug: print '\n debug -- Adding tmp_sensor: ', tmp_sensor
                         sensors.append(tmp_sensor)
-            if debug: print '\n uframe + iris sensors(%d): %s' % (len(sensors), sensors)
-            sensors_rds = get_rds_rds()
-            if debug: print '\n rds sensors: ', sensors_rds
             for rds_sensor in sensors_rds:
                 if platform in rds_sensor:
                     tmp_sensor = rds_sensor[:].replace(platform_replace, '')
-                    if debug: print '\n debug -- tmp_sensor: ', tmp_sensor
                     if tmp_sensor not in sensors:
-                        if debug: print '\n debug -- Adding tmp_sensor: ', tmp_sensor
                         sensors.append(tmp_sensor)
-            if debug: print '\n uframe + iris + rds sensors(%d): %s' % (len(sensors), sensors)
             if sensors:
                 sensors_by_platform[platform] = sensors
                 for sensor in sensors:
@@ -690,6 +680,19 @@ def get_site_sections(unique_list, return_list):
             message = 'Unable to process sites without vocabulary information (codes).'
             raise Exception(message)
 
+        # Get vocabulary dict to use when processing special sections.
+        vocab_dict = get_vocab()
+        if vocab_dict is None:
+            message = 'Unable to process special site nodes without vocabulary information (dict).'
+            raise Exception(message)
+
+        # Get rd_array to determine if business rule apply).
+        rd_array = unique_list[0][:2]
+        apply_multi_node_rule = False
+        special_node_codes = 'WF'
+        if rd_array == 'GP':
+            apply_multi_node_rule = True
+
         # Get rd_root.
         rd_root = unique_list[0][:9]
         # Get unique platforms (14).
@@ -704,17 +707,18 @@ def get_site_sections(unique_list, return_list):
         section_codes = []
         for item in unique_platforms:
             item = item.replace(rd_root, '')
-            if item[:2] not in section_codes:
+            if item[:2] not in section_codes and item[:2] != special_node_codes and not apply_multi_node_rule:
                 section_codes.append(item[:2])
+            elif apply_multi_node_rule and item[:2] == special_node_codes:
+                section_codes.append(item[:5])
+            elif item[:2] not in section_codes:
+                section_codes.append(item[:2])
+
         if not section_codes:
             message = 'No section codes found for %s.' % rd_root[:8]
             current_app.logger.info(message)
             return []
 
-        if debug:
-            print '\n debug -- unique_list: ', unique_list
-            print '\n debug -- Section codes: ', section_codes
-            print '\n debug -- unique_platforms: ', unique_platforms
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Get lists of instruments and uids.
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -750,8 +754,17 @@ def get_site_sections(unique_list, return_list):
         for code in section_codes:
             header = {}
             header['code'] = code
-            if code in vocab_codes['nodes']:
-                header['title'] = vocab_codes['nodes'][code]
+
+            # Set the header title.
+            if len(code) == 2:
+                if code in vocab_codes['nodes']:
+                    header['title'] = vocab_codes['nodes'][code]
+            else:
+                # look up node code value for instrument from vocab_dict.
+                code_value = rd_root + code
+                if code_value in vocab_dict:
+                    header['title'] = vocab_dict[code_value]['name']
+
             header['status'] = operational_status_values()[1]       # Update for live status
             headers.append(header)
 
@@ -770,8 +783,8 @@ def get_site_sections(unique_list, return_list):
                         print '-- Warning: reference designator %s not in instrument list.' % \
                               item['reference_designator']
                     continue
-                # For a site and first two charcaters of node (XXXXXXXX-XX), if match node bucket, process.
-                if prefix == item['reference_designator'][:11]:
+                # For a site and first two characters of node (XXXXXXXX-XX), if match node bucket, process.
+                if prefix == item['reference_designator'][:len(prefix)]:
                     # Add start and end times for reference designator.
                     if not time_dict or time_dict is None:
                         if warning:
