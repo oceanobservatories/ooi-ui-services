@@ -110,7 +110,7 @@ COMMON: &common
     # Raw Data Server
     RDS_ENABLED: True
     RDS_BASE_URL: 'https://rawdata.oceanobservatories.org/files'
-    IMAGE_STORE: '/Users/ednadonoughe/Documents/services/redesign2016_cos/images'
+    IMAGE_STORE: 'ooiservices/cam_images'
     IMAGE_CAMERA_STORE: 'https://rawdata.oceanobservatories.org/files/'
 
     # IRIS

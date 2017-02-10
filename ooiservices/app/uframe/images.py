@@ -39,12 +39,12 @@ def get_uframe_cam_image(image_id):
     """ Get image thumbnail image from image store.
     """
     try:
-        #filename = os.getcwd() + "/" + get_image_store_url_base() + "/"+image_id + '.png'
-        filename = get_image_store_url_base() + "/"+image_id + '.png'
+        filename = os.getcwd() + "/" + get_image_store_url_base() + "/"+image_id + '.png'
+        #filename = get_image_store_url_base() + "/"+image_id + '.png'
         filename = filename.replace(',','%2C')
         if not os.path.isfile(filename):
-            #filename = os.getcwd() + "/" + get_image_store_url_base() + '/imageNotFound404.png'
-            filename = get_image_store_url_base() + '/imageNotFound404.png'
+            filename = os.getcwd() + "/" + get_image_store_url_base() + '/imageNotFound404.png'
+            #filename = get_image_store_url_base() + '/imageNotFound404.png'
         return send_file(filename, attachment_filename='cam_image.png', mimetype='image/png')
     except Exception as err:
         message = 'Image not found; image id: %s' % image_id
