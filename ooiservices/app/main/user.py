@@ -258,3 +258,19 @@ def put_password():
     except Exception as ex:
         current_app.logger.exception("Error setting password." + ex.message)
         return
+
+
+@api.route('/user/check_valid_email', methods=['GET'])
+def check_valid_email():
+    try:
+        # print request.args.get('email')
+        user_account = User.query.filter_by(user_name=request.args.get('email')).first_or_404()
+        # print user_account
+        user_id = user_account.user_id
+        # print user_id
+        if user_id is not None:
+            return json.dumps({'email': user_id})
+
+    except Exception as ex:
+        current_app.logger.exception("Error checking valid email." + ex.message)
+        return json.dumps({'email': ''})
