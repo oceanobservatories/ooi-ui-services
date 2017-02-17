@@ -127,8 +127,8 @@ def _get_cam_images():
 
                     # Check if thumbnail is available, if so added to cam_images response dict.
                     try:
-                        if not os.path.isfile(new_filepath):
-                            print '\n debug -- NOT found in file system: %s ' % new_filepath
+                        #if not os.path.isfile(new_filepath):
+                        #    print '\n debug -- NOT found in file system: %s ' % new_filepath
                         if image_item['url'] not in completed and os.path.isfile(new_filepath):
                             item = {'url': url,
                                     'filename': new_filename,
@@ -601,7 +601,7 @@ def _compile_large_format_index():
     verbose = False
     time = True
     url_root = get_image_camera_store_url_base().rstrip('/')
-    print '\n TESTING --  url_root: ', url_root
+    if debug: print '\n Raw Data Server --  url_root: ', url_root
 
     # Processing filters.
     array_codes = ['RS', 'CE', 'CP']

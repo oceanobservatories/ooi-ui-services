@@ -529,8 +529,7 @@ def get_stream_byname_url_base():
 
 # Get base url for streams processing (stream, parameter and byname)
 def get_uframe_stream_info():
-    """ Get uframe stream base url configuration information.
-    """
+    """ Get uframe stream base url configuration information. """
     try:
         timeout, timeout_read = get_uframe_timeout_info()
         uframe_url = current_app.config['UFRAME_STREAMS_URL']
@@ -545,7 +544,7 @@ def get_url_info_streams():
     """ Get complete url to query uframe stream ('uframe-host:12575/stream')
     Used to form urls:
         host:12575/stream/byname/{name} where {name} is the stream name
-        host:12575/stream/{id} where {id} is the stream id number from preload.
+        host:12575/stream/{id} where {id} is the stream id number from uframe.
     """
     try:
         url, timeout, timeout_read = get_uframe_stream_info()
@@ -611,7 +610,7 @@ def get_iris_base_url():
 
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Raw Data Server integration.
+# Raw Data Server (RDS) integration.
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def rds_enabled():
     try:
@@ -660,6 +659,152 @@ def get_image_camera_store_url_base():
         raise Exception(message)
 
 
+'''
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Data Availability /available, /instrument, /expected, /deployed, /stream
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+def get_da_availability_base_url():
+    """ Returns configuration file value for . """
+    try:
+        timeout, timeout_read = get_uframe_timeout_info()
+        url = current_app.config['UFRAME_AVAILIBILITY_URL']
+        return url, timeout, timeout_read
+    except:
+        message = 'Unable to locate UFRAME_AVAILIBILITY_URL in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_da_available_base():
+    """ Returns configuration file value for UFRAME_AVAILABLE. """
+    try:
+        result = current_app.config['UFRAME_AVAILABLE']
+        return result
+    except:
+        message = 'Unable to locate UFRAME_AVAILABLE in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_da_status_instrument_base():
+    """ Returns configuration file value for STATUS_INSTRUMENT. """
+    try:
+        result = current_app.config['STATUS_INSTRUMENT']
+        return result
+    except:
+        message = 'Unable to locate STATUS_INSTRUMENT in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_da_status_expected_base():
+    """ Returns configuration file value for STATUS_EXPECTED. """
+    try:
+        result = current_app.config['STATUS_EXPECTED']
+        return result
+    except:
+        message = 'Unable to locate STATUS_EXPECTED in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_da_status_deployed_base():
+    """ Returns configuration file value for STATUS_DEPLOYED. """
+    try:
+        result = current_app.config['STATUS_DEPLOYED']
+        return result
+    except:
+        message = 'Unable to locate STATUS_DEPLOYED in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_da_status_stream_base():
+    """ Returns configuration file value for STATUS_STREAM. """
+    try:
+        result = current_app.config['STATUS_STREAM']
+        return result
+    except:
+        message = 'Unable to locate STATUS_STREAM in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_da_url_available():
+    """ Get complete url to query uframe /available. """
+    try:
+        url, timeout, timeout_read = get_da_availability_base_url()
+        uframe_url = '/'.join([url, get_da_available_base()])
+        return uframe_url, timeout, timeout_read
+    except:
+        message = 'Unable to form uframe url for data availability \'available\' using config file variables.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_da_url_instrument():
+    """ Get complete url to query uframe data availability endpoint: /instrument """
+    try:
+        url, timeout, timeout_read = get_da_availability_base_url()
+        uframe_url = '/'.join([url, get_da_status_instrument_base()])
+        return uframe_url, timeout, timeout_read
+    except:
+        message = 'Unable to form uframe url for data availability \'instrument\' using config file variables.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_da_url_expected():
+    """ Get complete url to query uframe data availability endpoint: /expected """
+    try:
+        url, timeout, timeout_read = get_da_availability_base_url()
+        uframe_url = '/'.join([url, get_da_status_expected_base()])
+        return uframe_url, timeout, timeout_read
+    except:
+        message = 'Unable to form uframe url for data availability \'expected\' using config file variables.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_da_url_deployed():
+    """ Get complete url to query uframe data availability endpoint: /deployed """
+    try:
+        url, timeout, timeout_read = get_da_availability_base_url()
+        uframe_url = '/'.join([url, get_da_status_deployed_base()])
+        return uframe_url, timeout, timeout_read
+    except:
+        message = 'Unable to form uframe url for data availability \'deployed\' using config file variables.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_da_url_stream():
+    """ Get complete url to query uframe data availability endpoint: /stream """
+    try:
+        url, timeout, timeout_read = get_da_availability_base_url()
+        uframe_url = '/'.join([url, get_da_status_stream_base()])
+        return uframe_url, timeout, timeout_read
+    except:
+        message = 'Unable to form uframe url for data availability \'stream\' using config file variables.'
+        current_app.logger.info(message)
+        raise Exception(message)
+'''
+
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Plotting
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Plotting timeout variable.
+def get_uframe_plot_timeout():
+    try:
+        result = current_app.config['UFRAME_PLOT_TIMEOUT']
+        return result
+    except:
+        message = 'The configuration variable UFRAME_PLOT_TIMEOUT was not found in the configuration file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Common utility functions
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -685,7 +830,7 @@ def get_uframe_info():
     return uframe_url, timeout, timeout_read
 
 
-# [For interplolated plots only) Get uframe timeout, timeout_read and [base url + /sensor] (used for multi-plot).
+# [For interpolated plots only] Get uframe timeout, timeout_read and [base url + /sensor] (used for multi-plot).
 def get_uframe_url_info():
     """ Get uframe configuration information for case of interpolated plots.
      (uframe_url + /sensor, uframe timeout_connect and timeout_read.)
@@ -694,17 +839,6 @@ def get_uframe_url_info():
     timeout, timeout_read = get_uframe_timeout_info()
     uframe_url = current_app.config['UFRAME_URL']
     return uframe_url, timeout, timeout_read
-
-
-# Plotting timeout variable.
-def get_uframe_plot_timeout():
-    try:
-        result = current_app.config['UFRAME_PLOT_TIMEOUT']
-        return result
-    except:
-        message = 'The configuration variable UFRAME_PLOT_TIMEOUT was not found in the configuration file.'
-        current_app.logger.info(message)
-        raise Exception(message)
 
 
 # Get uframe headers.

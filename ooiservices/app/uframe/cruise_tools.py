@@ -5,6 +5,7 @@ Asset Management - Cruise supporting functions.
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
+from ooiservices.app.uframe.vocab import get_vocab
 from ooiservices.app.uframe.uframe_tools import (uframe_get_cruise_inv, uframe_get_cruise_by_event_id,
                                                  uframe_get_deployments_by_cruise_id, uframe_get_event,
                                                  uframe_get_cruise_by_cruise_id)
@@ -55,6 +56,7 @@ def _get_cruise(event_id):
 def _get_cruise_deployments(event_id, type):
     """ Get deployments for a cruise using the event id. Apply phase type selection.
     """
+    from ooiservices.app.uframe.deployment_tools import _get_deployments_by_rd
     abridged_deployments = []
     try:
         cruise = _get_cruise(event_id)
@@ -69,6 +71,9 @@ def _get_cruise_deployments(event_id, type):
             message = 'The cruise returned for event id %d does not contain a  unique cruise id.' % event_id
             raise Exception(message)
 
+        # Get vocabulary dictionary once.
+        vocab_dict = get_vocab()
+
         # Get deployments
         deployments = uframe_get_deployments_by_cruise_id(cruise_id, type=type)
         if not deployments or deployments is None:
@@ -79,7 +84,17 @@ def _get_cruise_deployments(event_id, type):
             result = process_deployment_row(deploy)
             if result is not None:
                 abridged_deployments.append(result)
-        return abridged_deployments
+
+        # (10506) Mobile assets should return maxdepth for depth.
+        results = []
+        for deploy in abridged_deployments:
+            if 'rd' in deploy:
+                if deploy['rd']:
+                    if 'MOAS' in deploy['rd']:
+                        if deploy['rd'] in vocab_dict:
+                            deploy['depth'] = vocab_dict[deploy['rd']]['maxdepth']
+            results.append(deploy)
+        return results
 
     except Exception as err:
         message = str(err)
@@ -93,7 +108,7 @@ def _get_cruise_deployment(event_id):
         if not deployment or deployment is None:
             message = 'No deployment for cruise with event id \'%d\'.' % event_id
             raise Exception(message)
-        deployment = process_deployment_view(deployment)
+        #deployment = process_deployment_view(deployment)
         return deployment
 
     except Exception as err:
@@ -141,7 +156,7 @@ def uniqueCruiseIdentifier_exists(cruise_id):
         message = str(err)
         raise Exception(message)
 
-
+'''
 # todo --Consider process deployment data as required for UI Deployment display. Future Sprint.
 # (internal)
 def process_deployment_view(data):
@@ -155,7 +170,7 @@ def process_deployment_view(data):
     except Exception as err:
         message = str(err)
         raise Exception(message)
-
+'''
 
 
 # (internal)

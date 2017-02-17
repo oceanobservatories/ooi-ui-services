@@ -419,7 +419,7 @@ def get_stream_for_stream_model(reference_designator, stream_method, stream):
         # Get [processed] parameters for stream
         parameters = get_stream_parameters(stream, reference_designator)    # changed
         if parameters is None:
-            message = 'Failed to retrieve parameters for stream \'%s\'.' % stream
+            message = 'Failed to get uframe parameters for %s, stream \'%s\'.' % (reference_designator, stream)
             raise Exception(message)
 
         # Add parameter information to stream dictionary.
@@ -469,7 +469,7 @@ def get_stream_parameters(stream, reference_designator):
     For a stream, return all processed parameters.
     Get stream contents byname, get, process and return all stream parameters.
     """
-    debug = False
+    debug = True
     parameters = None
     try:
         if debug:
@@ -485,14 +485,15 @@ def get_stream_parameters(stream, reference_designator):
             metadata_parameters = uframe_get_instrument_metadata_parameters(reference_designator)
             if not metadata_parameters or metadata_parameters is None:
                 message = 'No metadata parameters returned for %s, stream %s' % (reference_designator, stream)
+                if debug: print '\n debug -- exception: message: ', message
                 raise Exception(message)
-            if debug: print '\n debug -- Calling process_stream_parameters...'
+            if debug: print '\ndebug -- Calling process_stream_parameters...'
             parameters = process_stream_parameters(_parameters, stream, metadata_parameters)
-            if debug: print '\n debug -- After calling process_stream_parameters...'
+            if debug: print 'debug -- After calling process_stream_parameters...'
         return parameters
     except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
+        #message = str(err)
+        #current_app.logger.info(message)
         return parameters
 
 
@@ -608,6 +609,16 @@ def process_stream_parameters(_parameters, stream, metadata_parameters):
               "unit": "S m-1",
               "shape": "scalar"
             },
+
+            quantity                SCALAR
+            boolean                 SCALAR
+            constant<str>           SCALAR
+            external                SCALAR
+            function                FUNCTION
+            array<quantity>         ARRAY1D
+            category<int8:str>      ENUM
+            category<uint8:str>     ENUM
+
     """
     debug = False
     parameters = []
@@ -658,17 +669,52 @@ def process_stream_parameters(_parameters, stream, metadata_parameters):
 
             # Getting parameter['type'] and parameter['shape'] from metadata.
             parameter['shape'] = None
+            if debug: print '\n debug -- stream: %r' % stream
+            """
+            # Use metadata parameters for shape value.
             for mitem in metadata_parameters:
+                if debug:
+                    print '\n debug -- mitem: ', mitem
+                    print '\n debug -- mitem[stream]: %r' % mitem[stream]
                 if mitem['stream'] == stream:
+                    if debug: print '\n found match'
                     if mitem['particleKey'] == name:
                         if (mitem['pdId']).replace('PD', '') == str(item['id']):
                             parameter['shape'] = (mitem['shape']).lower()
                             break
+            """
+            # Get 'parameter_type' attribute for 'shape' value. (previously known as 'shape' in the metadata.)
+            parameter['parameter_type'] = item['parameter_type']['value']
+            if parameter['parameter_type'] and parameter['parameter_type'] is not None:
+                # Scalar.
+                if parameter['parameter_type'] == 'quantity':
+                    parameter['shape'] = 'scalar'
+                elif 'constant' in parameter['parameter_type']:
+                    parameter['shape'] = 'scalar'
+                elif 'external' in parameter['parameter_type']:
+                    parameter['shape'] = 'scalar'
+                # Enumeration.
+                elif 'category' in parameter['parameter_type']:
+                    parameter['shape'] = 'enum'
+                # Array. (CP02PMCO-WFP01-01-VEL3DK000)
+                elif 'array' in parameter['parameter_type']:
+                    parameter['shape'] = 'array1d'
+                # Function. (CP02PMCO-WFP01-01-VEL3DK000)
+                elif 'function' in parameter['parameter_type']:
+                    parameter['shape'] = 'function'
+                # Other.
+                else:
+                    print 'debug -- stream_tools -- Other branch...'
+                    parameter['shape'] = parameter['parameter_type']
+            print 'debug -- stream_tools -- parameter[type]: %r, parameter[shape]: %r \t-- %r ' % \
+                  (parameter['parameter_type'], parameter['shape'], parameter['display_name'])
             if parameter['shape'] is None:
                 message = 'Failed to identify parameter (\'%s\') shape in metadata for stream \'%s\'.' % (name, stream)
                 current_app.logger.info(message)
 
+            #- - - - - - - - - - - - - - - - - - - - - - - -
             # Type processing
+            #- - - - - - - - - - - - - - - - - - - - - - - -
             type = None
             if 'value_encoding' in item:
                 if 'value' in item['value_encoding']:
@@ -719,6 +765,7 @@ def process_stream_parameters(_parameters, stream, metadata_parameters):
                 parameters.append(parameter)
         if not parameters:
             parameters = None
+
         return parameters
     except Exception as err:
         message = str(err)

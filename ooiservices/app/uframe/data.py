@@ -36,6 +36,10 @@ def new_find_parameter_ids(reference_designator, stream, y_parameters, x_paramet
     try:
         if debug: print '\n debug -- (new_find_parameter_ids) reference_designator: ', reference_designator
         parameters = get_stream_parameters(stream, reference_designator)
+        if parameters is None:
+            message = 'Failed to get uframe parameters for reference designator %s, stream \'%s\'.' % \
+                      (reference_designator, stream)
+            raise Exception(message)
         parameter_dict = {}
         parameter_ids = []
         all_units = {}
@@ -75,7 +79,6 @@ def new_find_parameter_ids(reference_designator, stream, y_parameters, x_paramet
         raise Exception(message)
     except Exception as err:
         message = str(err)
-        if debug: print '\n debug -- (data.py:new_find_parameter_ids) Exception: %s' % message
         raise Exception(message)
 
 

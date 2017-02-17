@@ -36,15 +36,20 @@ def get_refdes(anno_record):
 def get_refdes_parts(anno_record):
     """ Given an annotation record with a reference designator, return the corresponding subsite, node and sensor.
     """
-    subsite = node = sensor = None
+    subsite = None
+    node = None
+    sensor = None
     refdes = anno_record.get('referenceDesignator')
-    parts = refdes.split('-', 2)
-    if len(parts) > 0:
-        subsite = parts[0]
-    if len(parts) > 1:
-        node = parts[1]
-    if len(parts) > 2:
-        sensor = parts[2]
+    if '-' not in refdes:
+        subsite = refdes
+    else:
+        parts = refdes.split('-', 2)
+        if len(parts) > 0:
+            subsite = parts[0]
+        if len(parts) > 1:
+            node = parts[1]
+        if len(parts) > 2:
+            sensor = parts[2]
     return subsite, node, sensor
 
 
@@ -137,7 +142,7 @@ def get_annotations():
           "annotation" : "This is a test",
           "method" : "telemetered",
           "id" : 1,
-          "source" : "user=jkorman",
+          "source" : "user=aTestuser",
           "node" : "SP001",
           "stream" : "dosta_abcdjm_cspp_instrument",
           "sensor" : "02-DOSTAJ000",
@@ -214,11 +219,10 @@ def create_annotation():
             return response.text, response.status_code, dict(response.headers)
             #return process_annotation_response(requests.post(get_annotations_base_url(), json=data, timeout=10))
         else:
-            current_app.logger.debug('create_annotation: %r', data)
             message = 'Required information not specified for create annotation.'
             return bad_request(message)
     except Exception as err:
-        message = 'Could not create annotation: ' + str(err)
+        message = str(err)
         return bad_request(message)
 
 
@@ -237,7 +241,7 @@ def edit_annotation(annotation_id):
             url = '/'.join((get_annotations_base_url(), annotation_id))
             response = requests.put(url, json=data, timeout=10)
             if response.status_code != 201:
-                message = 'Failed to create new annotation.'
+                message = 'Failed to update annotation.'
                 raise Exception(message)
             return response.text, response.status_code, dict(response.headers)
             #return process_annotation_response(requests.put(url, json=data, timeout=10))

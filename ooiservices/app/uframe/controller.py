@@ -877,7 +877,7 @@ def get_svg_plot(instrument, stream):
                 data = []
     except Exception as err:
         message = str(err)
-        current_app.logger.info(message)
+        #current_app.logger.info(message)
         return bad_request(message)
 
     if not data:
@@ -1121,6 +1121,7 @@ def get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, str
 
         except Exception as err:
             message = str(err)
+            if debug: print '\n debug -- (get_uframe_plot_contents_chunked_max_data) exception: ', message
             raise Exception(message)
 
         if debug: print '\n debug -***** Step 2 -- get_uframe_plot_contents_chunked_max_data returning...'
@@ -1197,7 +1198,6 @@ def get_max_data(stream, instrument, yfields, xfields, number_of_data_points=100
 
     except Exception as err:
         message = str(err)
-        current_app.logger.info(message)
         raise Exception(message)
 
     if debug: print '\n debug -- Step 2 -- have data?, review data......len(data): ', len(data)

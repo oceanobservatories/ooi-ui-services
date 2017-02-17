@@ -1052,7 +1052,7 @@ def uframe_get_deployment_inv():
 
 
 def uframe_get_deployment_inv_nodes(subsite):
-    """
+    """ Get uframe deployment inventory nodes given a subsite.
     """
     try:
         base_url, timeout, timeout_read = get_url_info_deployments_inv()
