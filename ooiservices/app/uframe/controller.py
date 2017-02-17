@@ -285,7 +285,7 @@ def get_uframe_stream_metadata_stream_by_method(ref, stream, method):
         message = str(err)
         return bad_request(message)
 
-
+'''
 @api.route('/get_multistream/<string:instrument1>/<string:instrument2>/<string:stream1>/<string:stream2>/<string:var1>/<string:var2>', methods=['GET'])
 def multistream_api(instrument1, instrument2, stream1, stream2, var1, var2):
     """
@@ -344,6 +344,84 @@ def multistream_api(instrument1, instrument2, stream1, stream2, var1, var2):
             message = str(err)
             raise Exception(message)
         return jsonify(data=new_resp_data, units=units, title=title, subtitle=subtitle)
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+'''
+
+@api.route('/get_multistream/<string:instrument1>/<string:instrument2>/<string:stream1>/<string:stream2>/<string:var1>/<string:var2>', methods=['GET'])
+def multistream_api(instrument1, instrument2, stream1, stream2, var1, var2):
+    """
+    Service endpoint to get multistream interpolated data.
+    Example request:
+    http://localhost:4000/uframe/get_multistream/CP05MOAS-GL340-03-CTDGVM000/CP05MOAS-GL340-02-FLORTM000/
+    telemetered_ctdgv-m-glider-instrument/telemetered_flort-m-glider-instrument/sci_water_pressure/sci_flbbcd_chlor_units
+    ?startdate=2015-05-07T02:49:22.745Z&enddate=2015-06-28T04:00:41.282Z
+
+    Second example:
+    Service endpoint:
+    /uframe/get_multistream/RS03CCAL-MJ03F-05-BOTPTA301/RS03ECAL-MJ03E-06-BOTPTA302/streamed_botpt-nano-sample/
+    streamed_botpt-nano-sample/press_trans_temp/press_trans_temp?startdate=2017-02-06T19:07:00.000Z
+    &enddate=2017-02-13T19:07:00.000Z&startdate=2017-02-06T19%3A07%3A00.000Z
+    &var1=press_trans_temp&var2=press_trans_temp
+    &instr1=streamed_botpt-nano-sample&instr2=streamed_botpt-nano-sample
+    &ref_des2=RS03ECAL-MJ03E-06-BOTPTA302&ref_des1=RS03CCAL-MJ03F-05-BOTPTA301
+    &enddate=2017-02-13T19%3A07%3A00.000Z
+
+    Associated uframe request:
+    http://uframe-test.intra.oceanobservatories.org:12576/sensor
+    ?r=r1&r=r2&r1.refdes=RS03CCAL-MJ03F-05-BOTPTA301&r2.refdes=RS03ECAL-MJ03E-06-BOTPTA302&r1.method=streamed
+    &r2.method=streamed&r1.stream=botpt_nano_sample&r2.stream=botpt_nano_sample&r1.params=PD843
+    &r2.params=PD843&limit=1000&beginDT=2017-02-06T19:07:00.000Z&endDT=2017-02-13T19:07:00.000Z&user=plotting
+
+
+    """
+    from ooiservices.app.uframe.common_tools import dump_dict
+    debug = False
+    try:
+        if debug:
+            print '\n debug -- =============================================='
+            print '\n debug -- =============================================='
+            print '\n debug -- Entered /get_multistream - multistream_api...'
+
+        # Format of streams:
+        #   stream1 = 'telemetered_ctdgv-m-glider-instrument'
+        #   stream2 = 'telemetered_flort-m-glider-instrument'
+        try:
+            resp_data, units = get_multistream_data(instrument1, instrument2, stream1, stream2, var1, var2)
+        except Exception as err:
+            message = str(err)
+            return bad_request(message)
+
+        #method1, stream_name1 = stream1.split('_')
+        #method2, stream_name2 = stream2.split('_')
+
+        # Get response title and subtitle (review title and subtitle length may cause display issues in plot)
+        title = get_long_display_name_by_rd(instrument1)
+        subtitle = get_long_display_name_by_rd(instrument2)
+
+        # Prepare response data.
+        new_resp_data = []
+        try:
+            #actual_stream2_name = str(stream_name2).replace('-','_')
+            #key_to_find = '-'.join([actual_stream2_name, str(var2)])
+            for data in resp_data:
+                # Returns time, var1 and var2 (will fail if var1 and var2 are the same)
+                #tmp = {'time': deepcopy(data['pk']['time']), str(var1): data[var1], str(var2): data[key_to_find]}
+                #new_resp_data.append(tmp)
+
+                # Returns time, and var1 and stream-var2 [use this]
+                data['time'] = deepcopy(data['pk']['time'])
+                del data['pk']
+
+        except Exception as err:
+            message = 'Error processing uframe data, %s' % str(err)
+            raise Exception(message)
+
+        # When UI client is using strea-var2, replace new_resp_data with data.
+        return jsonify(data=resp_data, units=units, title=title, subtitle=subtitle)
+        #return jsonify(data=new_resp_data, units=units, title=title, subtitle=subtitle)
+
     except Exception as err:
         message = str(err)
         raise Exception(message)
