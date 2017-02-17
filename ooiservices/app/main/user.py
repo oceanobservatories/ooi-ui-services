@@ -9,7 +9,7 @@ from flask import jsonify, request, current_app, url_for, g
 from ooiservices.app.main import api
 from ooiservices.app import db, security
 from ooiservices.app.main.authentication import auth, verify_auth
-from ooiservices.app.models import User, UserScope, UserScopeLink
+from ooiservices.app.models import User, UserScope, UserScopeLink, AuditTable
 from ooiservices.app.decorators import scope_required
 from ooiservices.app.redmine.routes import redmine_login
 import json, smtplib, string
@@ -82,6 +82,8 @@ def put_user(id):
         valid_scopes = UserScope.query.filter(UserScope.scope_name.in_(scopes)).all()
         user_account.scopes = valid_scopes
         changed = True
+        scope_change_info = 'User %s scope(s) changed to %s by %s'%(user_name, user_account.scopes, g.current_user)
+        AuditTable.insert_audit_entry(audit_type=1, audit_user=g.current_user.id, audit_description=scope_change_info)
         current_app.logger.info('User %s scope(s) changed to %s by %s'%(user_name, user_account.scopes, g.current_user))
 
     if active is not None:

@@ -1078,6 +1078,35 @@ class UserScopeLink(db.Model):
         return '<User %r, Scope %r>' % (self.user_id, self.scope_id)
 
 
+class AuditTable(db.Model, DictSerializableMixin):
+    __tablename__ = 'audit_table'
+    __table_args__ = {u'schema': __schema__}
+
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime(True))
+    audit_type = db.Column(db.Integer)
+    audit_user = db.Column(db.Text, nullable=False)
+    audit_description = db.Column(db.Text, nullable=False)
+
+    @staticmethod
+    def insert_audit_entry(
+            audit_type=1,
+            audit_user="admin@ooi.rutgers.edu",
+            audit_description="No description."):
+        try:
+            audit_entry = AuditTable()
+            audit_entry.audit_type = audit_type
+            audit_entry.audit_user = audit_user
+            audit_entry.audit_description = audit_description
+            db.session.add(audit_entry)
+            db.session.commit()
+            current_app.logger.info('[+] New audit entry added: type=%s, user=%s, description=%s' % (audit_entry.audit_type, audit_entry.audit_user, audit_entry.audit_description))
+            return audit_entry
+        except Exception as e:
+            current_app.logger.info('[!] Error adding audit entry!')
+            current_app.logger.info('[!] %s' % e)
+            db.session.rollback()
+            raise
 
 class UserScope(db.Model, DictSerializableMixin):
     __tablename__ = 'user_scopes'

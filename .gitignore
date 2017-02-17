@@ -79,3 +79,4 @@ celerybeat-schedule
 
 #images
 ooiservices/cam_images/*.png
+Thumbs.db
