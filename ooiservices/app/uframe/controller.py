@@ -285,80 +285,13 @@ def get_uframe_stream_metadata_stream_by_method(ref, stream, method):
         message = str(err)
         return bad_request(message)
 
-'''
-@api.route('/get_multistream/<string:instrument1>/<string:instrument2>/<string:stream1>/<string:stream2>/<string:var1>/<string:var2>', methods=['GET'])
-def multistream_api(instrument1, instrument2, stream1, stream2, var1, var2):
-    """
-    Service endpoint to get multistream interpolated data.
-    Example request:
-    http://localhost:4000/uframe/get_multistream/CP05MOAS-GL340-03-CTDGVM000/CP05MOAS-GL340-02-FLORTM000/
-    telemetered_ctdgv-m-glider-instrument/telemetered_flort-m-glider-instrument/sci_water_pressure/sci_flbbcd_chlor_units
-    ?startdate=2015-05-07T02:49:22.745Z&enddate=2015-06-28T04:00:41.282Z
-
-    """
-    debug = False
-    try:
-        if debug:
-            print '\n debug -- =============================================='
-            print '\n debug -- =============================================='
-            print '\n debug -- Entered /get_multistream - multistream_api...'
-
-        # Format of streams:
-        #   stream1 = 'telemetered_ctdgv-m-glider-instrument'
-        #   stream2 = 'telemetered_flort-m-glider-instrument'
-        try:
-            resp_data, units = get_multistream_data(instrument1, instrument2, stream1, stream2, var1, var2)
-        except Exception as err:
-            message = str(err)
-            return bad_request(message)
-
-        #method1, stream_name1 = stream1.split('_')
-        method2, stream_name2 = stream2.split('_')
-
-        # Get title and subtitle (review title and subtitle length may cause display issues in plot)
-        title = get_long_display_name_by_rd(instrument1)
-        subtitle = get_long_display_name_by_rd(instrument2)
-
-        # Prepare response data.
-        new_resp_data = []
-        try:
-            actual_stream2_name = str(stream_name2).replace('-','_')
-            key_to_find = '-'.join([actual_stream2_name, str(var2)])
-            for data in resp_data:
-                keys = data.keys()
-                new_data = deepcopy(data)
-                for key in keys:
-                    if key_to_find in str(key) or key_to_find == str(key):
-                        new_data[str(var2)] = data[key]
-                        new_data['time'] = data['pk']['time']
-                        del new_data[key]
-                        new_resp_data.append(new_data)
-                        break
-        except IndexError:
-            message = 'Data array length error (IndexError).'
-            raise Exception(message)
-        except KeyError:
-            message = 'Missing data in data repository. (KeyError)'
-            raise Exception(message)
-        except Exception as err:
-            message = str(err)
-            raise Exception(message)
-        return jsonify(data=new_resp_data, units=units, title=title, subtitle=subtitle)
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-'''
 
 @api.route('/get_multistream/<string:instrument1>/<string:instrument2>/<string:stream1>/<string:stream2>/<string:var1>/<string:var2>', methods=['GET'])
 def multistream_api(instrument1, instrument2, stream1, stream2, var1, var2):
     """
-    Service endpoint to get multistream interpolated data.
-    Example request:
-    http://localhost:4000/uframe/get_multistream/CP05MOAS-GL340-03-CTDGVM000/CP05MOAS-GL340-02-FLORTM000/
-    telemetered_ctdgv-m-glider-instrument/telemetered_flort-m-glider-instrument/sci_water_pressure/sci_flbbcd_chlor_units
-    ?startdate=2015-05-07T02:49:22.745Z&enddate=2015-06-28T04:00:41.282Z
+    Route for multistream interpolated data.
 
-    Second example:
+    Example:
     Service endpoint:
     /uframe/get_multistream/RS03CCAL-MJ03F-05-BOTPTA301/RS03ECAL-MJ03E-06-BOTPTA302/streamed_botpt-nano-sample/
     streamed_botpt-nano-sample/press_trans_temp/press_trans_temp?startdate=2017-02-06T19:07:00.000Z
@@ -374,16 +307,8 @@ def multistream_api(instrument1, instrument2, stream1, stream2, var1, var2):
     &r2.method=streamed&r1.stream=botpt_nano_sample&r2.stream=botpt_nano_sample&r1.params=PD843
     &r2.params=PD843&limit=1000&beginDT=2017-02-06T19:07:00.000Z&endDT=2017-02-13T19:07:00.000Z&user=plotting
 
-
     """
-    from ooiservices.app.uframe.common_tools import dump_dict
-    debug = False
     try:
-        if debug:
-            print '\n debug -- =============================================='
-            print '\n debug -- =============================================='
-            print '\n debug -- Entered /get_multistream - multistream_api...'
-
         # Format of streams:
         #   stream1 = 'telemetered_ctdgv-m-glider-instrument'
         #   stream2 = 'telemetered_flort-m-glider-instrument'
@@ -391,40 +316,23 @@ def multistream_api(instrument1, instrument2, stream1, stream2, var1, var2):
             resp_data, units = get_multistream_data(instrument1, instrument2, stream1, stream2, var1, var2)
         except Exception as err:
             message = str(err)
-            return bad_request(message)
+            raise Exception(message)
 
-        #method1, stream_name1 = stream1.split('_')
-        #method2, stream_name2 = stream2.split('_')
-
-        # Get response title and subtitle (review title and subtitle length may cause display issues in plot)
+        # Get response title and subtitle; set data for response (time, and var1 and stream-var2)
         title = get_long_display_name_by_rd(instrument1)
         subtitle = get_long_display_name_by_rd(instrument2)
-
-        # Prepare response data.
-        new_resp_data = []
         try:
-            #actual_stream2_name = str(stream_name2).replace('-','_')
-            #key_to_find = '-'.join([actual_stream2_name, str(var2)])
             for data in resp_data:
-                # Returns time, var1 and var2 (will fail if var1 and var2 are the same)
-                #tmp = {'time': deepcopy(data['pk']['time']), str(var1): data[var1], str(var2): data[key_to_find]}
-                #new_resp_data.append(tmp)
-
-                # Returns time, and var1 and stream-var2 [use this]
                 data['time'] = deepcopy(data['pk']['time'])
                 del data['pk']
-
         except Exception as err:
             message = 'Error processing uframe data, %s' % str(err)
             raise Exception(message)
-
-        # When UI client is using strea-var2, replace new_resp_data with data.
         return jsonify(data=resp_data, units=units, title=title, subtitle=subtitle)
-        #return jsonify(data=new_resp_data, units=units, title=title, subtitle=subtitle)
 
     except Exception as err:
         message = str(err)
-        raise Exception(message)
+        return bad_request(message)
 
 
 def is_nan(x):
@@ -435,9 +343,10 @@ def get_uframe_multi_stream_contents(stream1_dict, stream2_dict, start_time, end
     """ Gets the data from an interpolated multi stream request.
 
     Example request:
-        http://server:12576/sensor?r=r1&r=r2&r1.refdes=CP05MOAS-GL340-03-CTDGVM000&
-        r2.refdes=CP05MOAS-GL340-02-FLORTM000&r1.method=telemetered&r2.method=telemetered&r1.stream=ctdgv_m_glider_instrument&
-        r2.stream=flort_m_glider_instrument&r1.params=PD1527&r2.params=PD1485&limit=1000&beginDT=2015-05-07T02:49:22.745Z&endDT=2015-06-28T04:00:41.282Z
+    http://server:12576/sensor?r=r1&r=r2&r1.refdes=CP05MOAS-GL340-03-CTDGVM000&r2.refdes=CP05MOAS-GL340-02-FLORTM000
+    &r1.method=telemetered&r2.method=telemetered&r1.stream=ctdgv_m_glider_instrument&
+    r2.stream=flort_m_glider_instrument&r1.params=PD1527&r2.params=PD1485&limit=1000
+    &beginDT=2015-05-07T02:49:22.745Z&endDT=2015-06-28T04:00:41.282Z
     """
     debug = False
     try:
