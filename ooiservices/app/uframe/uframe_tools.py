@@ -1389,15 +1389,18 @@ def uframe_get_stream_byname(stream):
         return stream
     except ConnectionError:
         message = 'Error: ConnectionError getting uframe stream name %s.' % stream
+        current_app.logger.info(message)
         raise Exception(message)
     except Timeout:
         message = 'Error: Timeout getting uframe stream name %s.' % stream
+        current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
         message = str(err)
         if error:
             print '\n Check -- url: ', url
             print 'Check -- message: ', message
+            current_app.logger.info(message)
         raise Exception(message)
 
 

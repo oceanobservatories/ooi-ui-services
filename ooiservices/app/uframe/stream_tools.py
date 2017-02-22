@@ -469,7 +469,7 @@ def get_stream_parameters(stream, reference_designator):
     For a stream, return all processed parameters.
     Get stream contents byname, get, process and return all stream parameters.
     """
-    debug = True
+    debug = False
     parameters = None
     try:
         if debug:
@@ -704,9 +704,8 @@ def process_stream_parameters(_parameters, stream, metadata_parameters):
                     parameter['shape'] = 'function'
                 # Other.
                 else:
-                    print 'debug -- stream_tools -- Other branch...'
                     parameter['shape'] = parameter['parameter_type']
-            print 'debug -- stream_tools -- parameter[type]: %r, parameter[shape]: %r \t-- %r ' % \
+            if debug: print 'debug -- stream_tools -- parameter[type]: %r, parameter[shape]: %r \t-- %r ' % \
                   (parameter['parameter_type'], parameter['shape'], parameter['display_name'])
             if parameter['shape'] is None:
                 message = 'Failed to identify parameter (\'%s\') shape in metadata for stream \'%s\'.' % (name, stream)

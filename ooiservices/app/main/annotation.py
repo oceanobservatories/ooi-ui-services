@@ -7,12 +7,13 @@ __author__ = 'M@Campbell'
 
 from datetime import datetime
 import requests
+from requests.exceptions import (ConnectionError, Timeout)
 from flask import (jsonify, request, current_app)
 from dateutil.parser import parse as parse_date
 from authentication import auth
 from ooiservices.app.decorators import scope_required
 from ooiservices.app.main import api
-from ooiservices.app.uframe.config import (get_uframe_timeout_info, get_annotations_base_url)
+from ooiservices.app.uframe.config import (get_uframe_timeout_info, get_annotations_base_url, _uframe_headers)
 from ooiservices.app.main.errors import bad_request
 
 
@@ -253,4 +254,30 @@ def edit_annotation(annotation_id):
         return bad_request(message)
     except Exception as err:
         message = 'Failed to update annotation: ' + str(err)
+        return bad_request(message)
+
+
+@api.route('/annotation/delete/<int:id>', methods=['GET'])
+@auth.login_required
+@scope_required('annotate')
+def delete_annotation(id):
+    try:
+        timeout, timeout_read = get_uframe_timeout_info()
+        url = '/'.join((get_annotations_base_url(), str(id)))
+        response = requests.delete(url, headers=_uframe_headers(), timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Failed to delete annotation id %d: %d ' % (id, response.status_code)
+            raise Exception(message)
+        return response.text, response.status_code, dict(response.headers)
+    except ValueError as err:
+        message = 'Could not delete annotation id %d: %s ' % (id, str(err))
+        return bad_request(message)
+    except ConnectionError:
+        message = 'ConnectionError deleting annotation id %d.' % id
+        return bad_request(message)
+    except Timeout:
+        message = 'Timeout deleting annotation id %d.' % id
+        return bad_request(message)
+    except Exception as err:
+        message = str(err.message)
         return bad_request(message)

@@ -689,7 +689,7 @@ class OOIPlots(object):
         if len(sal) != len(temp):
             raise Exception('Sal and Temp arrays are not the same size.')
 
-        # Figure out boudaries (mins and maxs)
+        # Figure out boundaries (mins and maxs)
         smin = sal.min() - (0.01 * sal.min())
         smax = sal.max() + (0.01 * sal.max())
         tmin = temp.min() - (0.1 * temp.max())
@@ -743,6 +743,7 @@ class OOIPlots(object):
         if axis_font['size'] < 12:
             axis_font['size'] = 12
         # Format tick font: {'color': 'k', 'width': 1, 'labelsize': 7, 'axis': 'both'}
+
         """
         print '\n debug -- plot_tools.py: 3d_scatter: xlabel: ', xlabel
         print '\n debug -- plot_tools.py: 3d_scatter: ylabel: ', ylabel
@@ -777,9 +778,8 @@ class OOIPlots(object):
             fig.autofmt_xdate()
 
         ax.set_aspect(1. / ax.get_data_ratio())  # make axes square
-
         #cbar = plt.colorbar(h, orientation='vertical', aspect=30, shrink=0.76)
-        cbar = plt.colorbar(h, orientation='vertical', aspect=30, shrink=0.78)
+        cbar = plt.colorbar(h, orientation='vertical', aspect=30, shrink=0.76)
 
         """
         if x_display_label:
@@ -796,12 +796,12 @@ class OOIPlots(object):
             ax.tick_params(**tick_font)
         if title:
             ax.set_title(title.replace("_", " "), **title_font)
-        ax.grid(True)
-        plt.tight_layout()
         if number_points:
             nice_number = "{:,}".format(number_points)
             message = 'Number of data points: %s' % nice_number
             self.add_annotation_message(ax, message)
+        ax.grid(True)
+        plt.tight_layout()
 
 
     def add_annotation_message(self, ax, message):
