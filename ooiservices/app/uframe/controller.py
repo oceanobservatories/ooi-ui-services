@@ -954,13 +954,14 @@ def get_svg_plot(instrument, stream):
 
 
 #=====================================================================================
-# Get streamed data from uframe (used for 3D Scatter and Binned pseudo color plots.)
+# Get streamed data from uframe.
 #=====================================================================================
 def get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, stream_type, stream,
                                      start_time, end_time, dpa_flag, parameter_ids, request_data_points=1000):
     """ Gets the uframe stream contents (streamed).
     The start_time and end_time need to be datetime objects
     """
+    from ooiservices.app.uframe.common_tools import dump_dict
     debug = False
     timing = False
     rd = None
@@ -981,7 +982,9 @@ def get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, str
         idx = 0
         t0 = time.time()
 
+        #- - - - - - - - - - - - - - - - - - -
         # Build query for data request.
+        #- - - - - - - - - - - - - - - - - - -
         if debug:
             print '\n debug -- ------------------------------------------------------'
             print '\n debug -- ------------------------------------------------------'
@@ -989,6 +992,14 @@ def get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, str
             print '\n debug -- mooring: ', mooring
             print '\n debug -- platform: ', platform
             print '\n debug -- sensor: ', instrument
+            print '\n debug -- parameter_ids: ', parameter_ids
+
+        if not parameter_ids:
+            message = 'Unable to plot without parameter ids.'
+            raise Exception(message)
+        str_parameter_ids = ','.join(parameter_ids)
+        if 'pd' in str_parameter_ids:
+            str_parameter_ids = str_parameter_ids.replace('pd', '')
         rd = '-'.join([mooring, platform, instrument])
         if dpa_flag == '0' and len(parameter_ids) < 1:
             query = '?beginDT=%s&endDT=%s&limit=%s&user=plotting' % (start_time, end_time, number_of_data_points)
@@ -997,21 +1008,24 @@ def get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, str
                     (start_time, end_time, number_of_data_points)
         elif dpa_flag == '0' and len(parameter_ids) > 0:
             query = '?beginDT=%s&endDT=%s&limit=%s&parameters=%s&user=plotting' % \
-                    (start_time, end_time, number_of_data_points, ','.join(parameter_ids))
+                    (start_time, end_time, number_of_data_points, str_parameter_ids)
         elif dpa_flag == '1' and len(parameter_ids) > 0:
             query = '?beginDT=%s&endDT=%s&limit=%s&parameters=%s&user=plotting&execDPA=true' % \
-              (start_time, end_time, number_of_data_points, ','.join(map(str, parameter_ids)))
+              (start_time, end_time, number_of_data_points, str_parameter_ids)
+              #(start_time, end_time, number_of_data_points, ','.join(map(str, parameter_ids)))
         else:
             message = 'Unable to determine criteria for query, query undefined.'
-            return bad_request(message)
+            raise Exception(message)
 
+        #- - - - - - - - - - - - - - - - - - -
         # Build url for data request.
-        base_url, timeout, timeout_read = get_uframe_info()
+        #- - - - - - - - - - - - - - - - - - -
+        base_url, _, _ = get_uframe_info()
         url = "/".join([base_url, mooring, platform, instrument, stream_type, stream + query])
         if timing:
-            print '\t***: ' + url
+            print '\t***---: ' + url
         else:
-            print '\n***: ' + url
+            print '\n***---: ' + url
 
         # Request and process streaming data.
         try:
@@ -1079,14 +1093,42 @@ def get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, str
                 if debug: print '\n debug -- Step B...'
                 if idx_c == -1:
                     # This is a possible failure, check for dataBlock and error message content.
-                    result = json.loads(dataBlock)
-                    # Look for error message in dataBlock.
-                    # {u'requestUUID': u'49b32b32-cd04-4a32-8929-0b3e676c4dfe',
-                    # u'message': u'Unexpected internal error during request'}
-                    if 'message' in result and 'requestUUID' in result:
-                        #message = 'uframe error message: ' + result['message'] + ', requestUUID: ' + result['requestUUID']
-                        message = 'uframe error message: ' + str(result)
+                    try:
+                        result = json.loads(dataBlock)
+                        if debug:
+                            print '\n debug -- dump_dict result...'
+                            dump_dict(result, debug)
+                    except:
+                        result = dataBlock
+
+                    # Process result as dictionary
+                    if not isinstance(result, dict):
+                        message = dataBlock
                         raise Exception(message)
+
+                    # Process result as string
+                    else:
+                        # Look for error message indicators in dataBlock string.
+                        # {u'requestUUID': u'49b32b32-cd04-4a32-8929-0b3e676c4dfe',
+                        # u'message': u'Unexpected internal error during request'}
+                        if 'message' in result and 'requestUUID' in result:
+                            if debug: print '\n debug -- Step B1...'
+                            #message = 'uframe error message: ' + result['message'] + ', requestUUID: ' + result['requestUUID']
+                            message = 'uframe error message: ' + str(result)
+                            raise Exception(message)
+                        # Check for status/code formatted uframe messages (possible error).
+                        if 'status' in result:  # and 'code' in result:
+                            if debug: print '\n debug -- Step B2...'
+                            try:
+                                status_value = json.loads(result['status'])
+                                if 'message' in status_value and 'requestUUID' in status_value:
+                                    message = 'uframe error message: ' + status_value['message'] + \
+                                          ', requestUUID: ' + status_value['requestUUID']
+                                else:
+                                    message = 'uframe error message: ' + str(result)
+                            except:
+                                message = 'uframe error message: ' + str(result)
+                            raise Exception(message)
 
                     if debug:
                         print '\n debug -- Step C...'
@@ -1121,14 +1163,12 @@ def get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, str
 
         except Exception as err:
             message = str(err)
+            if debug: print '\n debug -- (get_uframe_plot_contents_chunked_max_data) exception: ', message
             raise Exception(message)
 
         if debug: print '\n debug -***** Step 2 -- get_uframe_plot_contents_chunked_max_data returning...'
-        #return None, 400
         message = 'No data identified after stream processing.'
-        print '\n*** ', message
         raise Exception(message)
-
 
     except ConnectionError:
         message = 'ConnectionError getting uframe plot contents chunked for reference designator: %s' % rd
@@ -1138,8 +1178,8 @@ def get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, str
         message = 'Timeout getting uframe plot contents chunked for reference designator: %s' % rd
         current_app.logger.info(message)
         raise Exception(message)
-    except Exception as err:
-        raise Exception(str(err))
+    except:
+        raise
 
 
 # 3D Scatter and binned data.
