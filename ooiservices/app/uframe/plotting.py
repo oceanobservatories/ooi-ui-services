@@ -26,6 +26,7 @@ ooi_plots = OOIPlots()
 
 
 def generate_plot(data, plot_options):
+    debug = False
     # Define some fonts
     title_font = {
         'fontname': 'Calibri',
@@ -55,13 +56,16 @@ def generate_plot(data, plot_options):
     width_in = plot_options['width_in']
     use_scatter = plot_options['use_scatter']
     plot_qaqc = plot_options['use_qaqc']
+    if debug:
+        print '\n debug -- use_scatter: ', use_scatter
+        print '\n debug -- plot_qaqc: ', plot_qaqc
 
     # Generate the plot figure and axes
+    is_timeseries = False
     if isinstance(data, dict):
         width = data['width']
         height = data['height']
 
-        is_timeseries = False
         if "time" == data['x_field'][0]:
             data['x']['time'] = num2date(data['x']['time'], units='seconds since 1900-01-01 00:00:00', calendar='gregorian')
             is_timeseries = True
@@ -82,11 +86,10 @@ def generate_plot(data, plot_options):
 
     # Check the plot type and generate the plot!
     if plot_layout == "timeseries":
-        '''
+        """
         Plot time series data
-        '''
-
-        current_app.logger.debug('Plotting Time Series')
+        """
+        print '\n-- Plotting Time Series'
 
         # Define some plot parameters
         kwargs = dict(linewidth=1.5,
@@ -98,7 +101,7 @@ def generate_plot(data, plot_options):
 
         # First check if we have a multiple stream data
         if isinstance(data, list):
-            current_app.logger.debug('Plotting Multiple Streams')
+            print '\n-- Plotting Multiple Streams'
             ooi_plots.plot_multiple_streams(fig, ax, data, colors,
                                             title_font=title_font,
                                             axis_font=axis_font,
@@ -109,12 +112,16 @@ def generate_plot(data, plot_options):
 
         # Check for a single time series plot
         elif len(data['x_field']) == 1 and len(data['y_field']) == 1:
+            if debug: print '\n debug -- Check for a single time series plot...'
             xlabel = data['x_field'][0]
             ylabel = data['y_field'][0]
             x = data['x'][xlabel]
             y = data['y'][ylabel]
 
             # QAQC logic
+            if debug:
+                if plot_qaqc > 0:
+                    if debug: print '\n debug -- Processing qaqc...', plot_qaqc
             if plot_qaqc >= 10:
                 # Plot all of the qaqc flags results
                 qaqc_data = data['qaqc'][ylabel]
@@ -139,7 +146,7 @@ def generate_plot(data, plot_options):
                                        qaqc=qaqc_data,
                                        **kwargs)
 
-        # Must be a multiple yaxes plot, single stream
+        # Must be a multiple y axes plot, single stream
         else:
             xdata = {}
             xdata['time'] = data['x']['time']
@@ -173,11 +180,11 @@ def generate_plot(data, plot_options):
                                           **kwargs)
 
     elif plot_layout == "depthprofile":
-        '''
+        """
         Plot depth profiles (overlay)
-        '''
+        """
+        print '\n-- Plotting Depth Profile'
 
-        current_app.logger.debug('Plotting Depth Profile')
         # Define some plot parameters
         kwargs = dict(linewidth=1.5, alpha=0.7)
         xlabel = data['x_field'] + " (" + request.args.get('x_units') + ")"
@@ -227,11 +234,10 @@ def generate_plot(data, plot_options):
         plt.gca().invert_yaxis()
 
     elif plot_layout == 'ts_diagram':
-        '''
+        """
         Plot a Temperature-Salinity diagram
-        '''
-
-        current_app.logger.debug('Plotting T-S Diagram')
+        """
+        print '\n-- Plotting T-S Diagram'
 
         # Define some plot parameters
         kwargs = dict(color='r', marker='o')
@@ -263,11 +269,11 @@ def generate_plot(data, plot_options):
                                   **kwargs)
 
     elif plot_layout == 'quiver':
-        '''
+        """
         Plot magnitude and direction as a time series on a quiver plot
-        '''
+        """
+        print '\n-- Plotting Quiver'
 
-        current_app.logger.debug('Plotting Quiver')
         # color='#0000FF',
         # edgecolors='#000000',
         kwargs = dict(units='y',
@@ -293,13 +299,11 @@ def generate_plot(data, plot_options):
         # qaqc_u = data['qaqc'][data['y_field'][0]] < 1
         # qaqc_v = data['qaqc'][data['y_field'][1]] < 1
         # mask = qaqc_u & qaqc_v
-
         # u = u[mask]
         # v = v[mask]
         # time = time[mask]
-
         # if len(u) <= 0:
-        #     raise(Exception('No good data avaliable!'))
+        #     raise(Exception('No good data available.'))
 
         ooi_plots.plot_1d_quiver(fig, ax, time, u, v,
                                  title=data['title'],
@@ -309,19 +313,23 @@ def generate_plot(data, plot_options):
                                  axis_font=axis_font,
                                  start=start_dt,
                                  end=end_dt,
-                                 key_units = data['y_units'][0],
+                                 key_units=data['y_units'][0],
                                  **kwargs)
 
     elif plot_layout == 'stacked':
-        '''
+        """
         Plot colored stacked time series
-        '''
 
-        current_app.logger.debug('Plotting Stacked')
-        time = mdates.date2num(data['x']['time'])
-        z = np.array(data['y'][data['y_field'][0]])
-        # See stream_tools.py get_parameter_name_by_parameter_stream(data['y_field'][0], stream_name)
-        # If stream_name provided and good, use to create label; any issues then fallback to system parameter.
+        data.keys(): ['x_field', 'height', 'qaqc', 'y_units', 'y_field', 'dt_units', 'stream_name',
+                      'title', 'data_length', 'width', 'x_units', 'y', 'x']
+
+        sample: http://localhost:5000/data_access/#GI01SUMO-RII11-02-ADCPSN010/telemetered_adcps-jln-stc-instrument
+        """
+        print '\n-- Plotting  Stacked'
+
+        #- - - - - - - - - - - - - - - - - - -
+        # Get labels using preload information (default to system parameter name and units)
+        #- - - - - - - - - - - - - - - - - - -
         if 'stream_name' in data:
             if data['stream_name'] is None or not data['stream_name']:
                 label = data['y_field'][0] + " (" + data['y_units'][0] + ")"
@@ -332,81 +340,127 @@ def generate_plot(data, plot_options):
         else:
             # If no stream_name, default to system parameter name and units
             label = data['y_field'][0] + " (" + data['y_units'][0] + ")"
-        ooi_plots.plot_stacked_time_series(fig, ax, time, np.arange(len(z[0]))[::-1], z.transpose(),
+        if debug:
+            print '\n debug -- Plotting Stacked Title: ', data['title']
+            print '\n debug -- Plotting Stacked (Label) data[y_field][0]: ', data['y_field'][0]
+            print '\n debug -- Plotting Stacked data[stream_name]: ', data['stream_name']
+
+        #- - - - - - - - - - - - - - - - - - -
+        # Get time component
+        #- - - - - - - - - - - - - - - - - - -
+        if debug: print '\n debug -- Plotting  Stacked: Get time...'
+        time = mdates.date2num(data['x']['time'])
+        plot_parameter = data['y_field'][0]
+        if isinstance(data['y'][plot_parameter], list):
+            if debug:
+                print '\n debug -- Plotting  Stacked: Get z...'
+                print '\n debug -- Plotting Stacked: Parameter \'%s\' available in data[y].' % plot_parameter
+                print '\n debug -- Plotting Stacked: Parameter type \'%s\': %s ' % \
+                                        (plot_parameter, str(type(data['y'][plot_parameter])))
+                print '\n debug -- Plotting Stacked: Number of data items: %d' % len(data['y'][plot_parameter])
+
+            # Original
+            z = np.array(data['y'][data['y_field'][0]])
+            ooi_plots.plot_stacked_time_series(fig, ax, time, np.arange(len(z[0]))[::-1], z.transpose(),
                                            title=data['title'],
                                            ylabel='Bin #',
                                            cbar_title=label,
                                            title_font=title_font,
                                            axis_font=axis_font,
                                            tick_font=tick_font)
+        else:
+            if debug:
+                print '\n debug -- Plotting  Stacked: str(type(data[y][plot_parameter])): ', \
+                                                                      str(type(data['y'][plot_parameter]))
+                message = 'Fix this...'
+                raise Exception(message)
 
     elif plot_layout == '3d_scatter':
-        '''
+        """
         Plot 3d scatter plot
-        '''
 
-        current_app.logger.debug('Plotting 3D Scatter')
+        note: review the use of following: ax.xaxis.get_major_locator()._nbins = 5
+        """
+        print '\n-- Plotting 3D Scatter'
+
+        stream_name = None
+        if 'stream_name' in data:
+            stream_name = data['stream_name']
+        #number_of_data_points_requested = 1000
+        #if 'number_of_data_points' in data:
+        #    number_of_data_points_requested = data['number_of_data_points']
 
         time = data['x']['time']
         xlabel = data['y_field'][0]
         ylabel = data['y_field'][1]
         zlabel = data['y_field'][2]
 
+        # Get labels for system parameter names; use system parameter names if error.
+        x_display_label = get_parameter_label(stream_name, xlabel)
+        y_display_label = get_parameter_label(stream_name, ylabel)
+        z_display_label = get_parameter_label(stream_name, zlabel)
+        if x_display_label is None:
+            x_display_label = xlabel + " (" + data['y_units'][0] + ")"
+        if y_display_label is None:
+            y_display_label = ylabel + " (" + data['y_units'][1] + ")"
+        if z_display_label is None:
+            z_display_label = zlabel + " (" + data['y_units'][2] + ")"
+
         x = np.array(data['y'][xlabel])
         y = np.array(data['y'][ylabel])
         z = np.array(data['y'][zlabel])
+        number_points = len(x)
 
         # Check for time units
         if 'time' in xlabel.lower():
             x = num2date(data['y'][xlabel], units='seconds since 1900-01-01 00:00:00', calendar='gregorian')
             x = mdates.date2num(x)
 
-
-        # # Mask the bad data
-        # qaqc_x = data['qaqc'][xlabel] < 1
-        # qaqc_y = data['qaqc'][ylabel] < 1
-        # qaqc_z = data['qaqc'][zlabel] < 1
-        # mask = qaqc_x & qaqc_y & qaqc_z
-
-        # x = x[mask]
-        # y = x[mask]
+        """
+        # Mask the bad data
+        if debug: print '\n debug -- 3d scatter: turned on qa mask...'
+        qaqc_x = data['qaqc'][xlabel] < 1
+        qaqc_y = data['qaqc'][ylabel] < 1
+        qaqc_z = data['qaqc'][zlabel] < 1
+        mask = qaqc_x & qaqc_y & qaqc_z
+        x = x[mask]
+        y = x[mask]
+        if debug: print '\n debug -- 3d scatter: after turned on qa mask...'
+        """
 
         # if len(x) <= 0:
-        #     raise(Exception('No good data avaliable!'))
-        xlabel += " (" + data['y_units'][0] + ")"
-        ylabel += " (" + data['y_units'][1] + ")"
-        zlabel += " (" + data['y_units'][2] + ")"
+        #     raise(Exception('No good data available!'))
 
         ooi_plots.plot_3d_scatter(fig, ax, x, y, z,
                                   title=data['title'],
-                                  xlabel=xlabel,
-                                  ylabel=ylabel,
-                                  zlabel=zlabel,
+                                  xlabel=x_display_label,
+                                  ylabel=y_display_label,
+                                  zlabel=z_display_label,
                                   title_font=title_font,
                                   tick_font=tick_font,
-                                  axis_font=axis_font)
+                                  axis_font=axis_font,
+                                  number_points=number_points)
 
     elif plot_layout == 'rose':
-        '''
+        """
         Plot rose
-        '''
+        """
+        print '\n-- Plotting Rose'
 
-        plt.close(fig)  # Need to create new fig and axes here
-        current_app.logger.debug('Plotting Rose')
+        # Need to create new fig and axes here
+        plt.close(fig)
 
         xlabel = data['y_field'][0]
         ylabel = data['y_field'][1]
         magnitude = np.array(data['y'][xlabel])
         direction = np.array(data['y'][ylabel])
 
-        # # Mask the bad data
+        # Mask the bad data
         # qaqc_mag = data['qaqc'][xlabel] < 1
         # qaqc_dir = data['qaqc'][ylabel] < 1
         # mask = qaqc_mag & qaqc_dir
-
         # magnitude = magnitude[mask]
         # direction = direction[mask]
-
         # if len(magnitude) <= 0:
         #     raise(Exception('No good data avaliable!'))
 
@@ -414,19 +468,14 @@ def generate_plot(data, plot_options):
         title = data['title'] + '\n'
 
         # Get legend title.
-        #legend_title = xlabel + " (" + data['y_units'][0] + ")"
-        # See stream_tools.py get_parameter_name_by_parameter_stream(data['y_field'][0], stream_name)
-        # If stream_name provided and good, use to create legend_title; any issues then fallback to system parameter.
+        default_legend_title = data['y_field'][0] + ' (' + data['y_units'][0] + ')'
         if 'stream_name' in data:
-            if data['stream_name'] is None or not data['stream_name']:
-                legend_title = data['y_field'][0] + " (" + data['y_units'][0] + ")"
-            else:
-                legend_title = get_parameter_name_by_parameter_stream(data['y_field'][0], data['stream_name'])
+            legend_title = get_parameter_label(data['stream_name'], data['y_field'][0])
             if legend_title is None:
-                legend_title = data['y_field'][0] + " (" + data['y_units'][0] + ")"
+                legend_title = default_legend_title
         else:
             # If no stream_name, default to system parameter name and units
-            legend_title = data['y_field'][0] + " (" + data['y_units'][0] + ")"
+            legend_title = default_legend_title
 
         size = height if height <= width else width
         size = 6 if size < 6 else size
@@ -439,6 +488,8 @@ def generate_plot(data, plot_options):
                                   legend_title=legend_title,
                                   fontsize=int(hypot) + 2)
 
+    #=============================================================
+    # Wrap up and return buf from fig created.
     buf = io.BytesIO()
 
     # plt.tick_params(axis='both', which='major', labelsize=10)
@@ -448,5 +499,16 @@ def generate_plot(data, plot_options):
     plt.savefig(buf, format=plot_format)
     buf.seek(0)
     plt.close(fig)
-
     return buf
+
+
+# For a stream and system parameter, get the uframe stream engine values (english)
+def get_parameter_label(stream_name, parameter):
+    label = None
+    try:
+        if stream_name and stream_name is not None and parameter and parameter is not None:
+            label = get_parameter_name_by_parameter_stream(parameter, stream_name)
+        return label
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)

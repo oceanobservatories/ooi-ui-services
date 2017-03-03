@@ -5,12 +5,14 @@ Asset Management - Deployments: Support for cache related functions.
 """
 __author__ = 'Edna Donoughe'
 
-from ooiservices.app import cache
+
 from copy import deepcopy
+from ooiservices.app import cache
+from ooiservices.app.uframe.config import get_cache_timeout
 from ooiservices.app.uframe.uframe_tools import _get_id_by_uid
 from ooiservices.app.uframe.common_tools import is_instrument
 
-CACHE_TIMEOUT = 172800
+#CACHE_TIMEOUT = 172800
 
 
 def refresh_deployment_cache(id, deployment, action, mid, nid, sid):
@@ -291,7 +293,7 @@ def deployment_cache_refresh(id, deployment, action, mid, nid, sid):
 
                         deployments_dict[rd] = work
 
-                    cache.set('rd_assets', deployments_dict, timeout=CACHE_TIMEOUT)
+                    cache.set('rd_assets', deployments_dict, timeout=get_cache_timeout())
 
         return
     except Exception as err:

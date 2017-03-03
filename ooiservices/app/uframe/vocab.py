@@ -8,6 +8,7 @@ __author__ = 'Edna Donoughe'
 from flask import jsonify, current_app
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app import cache
+from ooiservices.app.uframe.config import get_cache_timeout
 from requests.exceptions import (ConnectionError, Timeout)
 from ooiservices.app.main.errors import bad_request
 from ooiservices.app.uframe.config import get_uframe_vocab_info
@@ -15,8 +16,6 @@ import requests
 import requests.exceptions
 import requests.adapters
 import json
-
-CACHE_TIMEOUT = 172800
 
 
 # Get vocabulary
@@ -56,8 +55,8 @@ def get_vocab():
         if not vocab_dict or not vocab_codes:
             if debug: print '\n Cache vocabulary...'
             vocab_dict, codes = compile_vocab()
-            cache.set('vocab_dict', vocab_dict, timeout=CACHE_TIMEOUT)
-            cache.set('vocab_codes', codes, timeout=CACHE_TIMEOUT)
+            cache.set('vocab_dict', vocab_dict, timeout=get_cache_timeout())
+            cache.set('vocab_codes', codes, timeout=get_cache_timeout())
             if debug: print '\n Cached vocabulary...'
 
         return vocab_dict
@@ -142,7 +141,6 @@ def get_vocab_name_collection(rd):
 
         if rd[:2] == 'RS':
             processing_rs = True
-
         vocab_dict = get_vocab()
         if not vocab_dict or vocab_dict is None:
             array = rd[:2]
@@ -206,8 +204,8 @@ def get_vocab_codes():
         if not vocab_dict or not vocab_codes:
             if debug: print '\n Cache vocabulary...'
             vocab_dict, codes = compile_vocab()
-            cache.set('vocab_dict', vocab_dict, timeout=CACHE_TIMEOUT)
-            cache.set('vocab_codes', codes, timeout=CACHE_TIMEOUT)
+            cache.set('vocab_dict', vocab_dict, timeout=get_cache_timeout())
+            cache.set('vocab_codes', codes, timeout=get_cache_timeout())
             if debug: print '\n Cached vocabulary...'
 
         return vocab_codes
@@ -827,8 +825,8 @@ def build_long_display_name(rd):
             vocab_codes = dict_cached
         else:
             vocab_dict, vocab_codes = compile_vocab()
-            cache.set('vocab_dict', vocab_dict, timeout=CACHE_TIMEOUT)
-            cache.set('vocab_codes', vocab_codes, timeout=CACHE_TIMEOUT)
+            cache.set('vocab_dict', vocab_dict, timeout=get_cache_timeout())
+            cache.set('vocab_codes', vocab_codes, timeout=get_cache_timeout())
 
         # Verify 'vocab_codes' has content, otherwise error
         if not vocab_codes:
@@ -1008,8 +1006,8 @@ def build_display_name(rd):
             vocab_codes = dict_cached
         else:
             vocab_dict, vocab_codes = compile_vocab()
-            cache.set('vocab_dict', vocab_dict, timeout=CACHE_TIMEOUT)
-            cache.set('vocab_codes', vocab_codes, timeout=CACHE_TIMEOUT)
+            cache.set('vocab_dict', vocab_dict, timeout=get_cache_timeout())
+            cache.set('vocab_codes', vocab_codes, timeout=get_cache_timeout())
 
         # Verify 'vocab_codes' has content, otherwise error
         if not vocab_codes:

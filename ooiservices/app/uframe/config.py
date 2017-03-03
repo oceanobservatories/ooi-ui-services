@@ -181,32 +181,24 @@ def get_uframe_assets_info():
         raise Exception(message)
 
 
+
+
+
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Camera
+# Redis cache timeout value.
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-def get_image_store_url_base():
-    """ Returns configuration file value for IMAGE_STORE.  If error, raise exception.
-    ('ooiservices/cam_images')
+def get_cache_timeout():
+    """ Returns configuration file value for REDIS_CACHE_TIMEOUT. (Minimum is 172800 or 48 hours.)
     """
     try:
-        result = current_app.config['IMAGE_STORE']
+        result = current_app.config['REDIS_CACHE_TIMEOUT']
+        if result < 172800:
+            result = 172800
         return result
     except:
-        message = 'Unable to locate IMAGE_STORE in config file.'
+        message = 'Unable to locate REDIS_CACHE_TIMEOUT in config file.'
         current_app.logger.info(message)
         raise Exception(message)
-
-def get_image_camera_store_url_base():
-    """ Returns configuration file value for IMAGE_CAMERA_STORE. (Generally a url to ooi store server for images.)
-    """
-    try:
-        result = current_app.config['IMAGE_CAMERA_STORE']
-        return result
-    except:
-        message = 'Unable to locate IMAGE_CAMERA_STORE in config file.'
-        current_app.logger.info(message)
-        raise Exception(message)
-
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Cruises
@@ -594,6 +586,81 @@ def get_url_info_stream_parameters():
 
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# IRIS integration.
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+def iris_enabled():
+    try:
+        result = current_app.config['IRIS_ENABLED']
+        if not isinstance(result, bool):
+            return False
+        return result
+    except:
+        message = 'The configuration variable IRIS_ENABLED was not found in the configuration file.'
+        current_app.logger.info(message)
+        return False
+
+
+def get_iris_base_url():
+    try:
+        result = current_app.config['IRIS_BASE_URL']
+        return result
+    except:
+        message = 'The configuration variable IRIS_BASE_URL was not found in the configuration file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Raw Data Server integration.
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+def rds_enabled():
+    try:
+        result = current_app.config['RDS_ENABLED']
+        if not isinstance(result, bool):
+            return False
+        return result
+    except:
+        message = 'The configuration variable IRIS_ENABLED was not found in the configuration file.'
+        current_app.logger.info(message)
+        return False
+
+
+def get_rds_base_url():
+    try:
+        result = current_app.config['RDS_BASE_URL']
+        return result
+    except:
+        message = 'The configuration variable RDS_BASE_URL was not found in the configuration file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_image_store_url_base():
+    """ Returns configuration file value for IMAGE_STORE.  If error, raise exception.
+    (Example: 'ooiservices/cam_images', recommend server folder outside of UI ooiservices.)
+    """
+    try:
+        result = current_app.config['IMAGE_STORE']
+        return result
+    except:
+        message = 'Unable to locate IMAGE_STORE in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_image_camera_store_url_base():
+    """ Returns configuration file value for IMAGE_CAMERA_STORE. (Generally a url to ooi store server for images.)
+    """
+    try:
+        result = current_app.config['IMAGE_CAMERA_STORE']
+        return result
+    except:
+        message = 'Unable to locate IMAGE_CAMERA_STORE in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Common utility functions
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # uframe timeout information
@@ -616,6 +683,28 @@ def get_uframe_info():
     timeout, timeout_read = get_uframe_timeout_info()
     uframe_url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
     return uframe_url, timeout, timeout_read
+
+
+# [For interplolated plots only) Get uframe timeout, timeout_read and [base url + /sensor] (used for multi-plot).
+def get_uframe_url_info():
+    """ Get uframe configuration information for case of interpolated plots.
+     (uframe_url + /sensor, uframe timeout_connect and timeout_read.)
+     Does not utilize /sensor/inv but just base http://server:12576/ + query
+    """
+    timeout, timeout_read = get_uframe_timeout_info()
+    uframe_url = current_app.config['UFRAME_URL']
+    return uframe_url, timeout, timeout_read
+
+
+# Plotting timeout variable.
+def get_uframe_plot_timeout():
+    try:
+        result = current_app.config['UFRAME_PLOT_TIMEOUT']
+        return result
+    except:
+        message = 'The configuration variable UFRAME_PLOT_TIMEOUT was not found in the configuration file.'
+        current_app.logger.info(message)
+        raise Exception(message)
 
 
 # Get uframe headers.

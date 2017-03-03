@@ -1535,6 +1535,7 @@ def uframe_get_status_by_rd(rd=None):
     ]
 
     """
+    debug = False
     check = False
     try:
         # Get uframe status by reference designator.
@@ -1555,6 +1556,7 @@ def uframe_get_status_by_rd(rd=None):
                 message = 'The reference designator provided is malformed (\'%s\').' % rd
                 raise Exception(message)
 
+        if debug: print '\n debug -- uframe_get_status_by_rd: ', rd
         if rd is not None:
             url = '/'.join([url, uframe_rd])
         if check: print '\n check -- url: ', url
@@ -1730,6 +1732,37 @@ def uframe_get_sensors_for_platform(rd):
         return []
     except:
         message = 'Failed to get sensor inventory for \'%s\'. ' % rd
+        current_app.logger.info(message)
+        return []
+
+
+# Development. Dump stream and list of parameter names for each stream.
+def get_uframe_streams():
+    from ooiservices.app.uframe.config import (get_uframe_stream_info, get_stream_url_base)
+    check = False
+    result = []
+    try:
+        #timeout, timeout_read = get_uframe_timeout_info()
+        url, timeout, timeout_read = get_uframe_stream_info()
+        uframe_url = '/'.join([url, get_stream_url_base() ])
+        if check: print '\n Check: ', uframe_url
+        response = requests.get(uframe_url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Failed to get streams.'
+            raise Exception(message)
+        if response.content:
+            result = json.loads(response.content)
+        return result
+    except ConnectionError:
+        message = 'Error: ConnectionError getting stream information.'
+        current_app.logger.info(message)
+        return []
+    except Timeout:
+        message = 'Error: Timeout getting getting stream information.'
+        current_app.logger.info(message)
+        return []
+    except:
+        message = 'Failed to get stream information.'
         current_app.logger.info(message)
         return []
 

@@ -4,6 +4,7 @@ uframe endpoints for gliders.
 """
 from flask import jsonify, request, current_app, make_response
 from ooiservices.app import cache
+from ooiservices.app.uframe.config import get_cache_timeout
 from ooiservices.app.uframe import uframe as api
 
 from datetime import datetime
@@ -15,7 +16,7 @@ import requests.exceptions
 from requests.exceptions import (ConnectionError, Timeout)
 from ooiservices.app.uframe.config import get_uframe_info
 
-CACHE_TIMEOUT = 172800
+#CACHE_TIMEOUT = 172800
 COSMO_CONSTANT = 2208988800
 
 
@@ -42,7 +43,7 @@ def get_uframe_glider_track():
             data = _compile_glider_tracks(will_update_using_cache)
 
             if "error" not in data:
-                cache.set('glider_tracks', data, timeout=CACHE_TIMEOUT)
+                cache.set('glider_tracks', data, timeout=get_cache_timeout())
 
         return jsonify({"gliders":data})
     except requests.exceptions.ConnectionError as e:

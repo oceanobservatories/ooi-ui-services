@@ -27,9 +27,7 @@ from dateutil.parser import parse as parse_date
 import calendar
 import json
 import pytz
-
-
-
+from ooiservices.app.uframe.config import get_iris_base_url
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Common functions
@@ -237,6 +235,65 @@ def get_asset_type_by_rd(rd):
         current_app.logger.info(message)
         return None
 
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Raw data server support.
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Get route for getting image thumbnail.
+def get_image_thumbnail_route():
+    # Used by UI when processing thumbnail images.
+    # Original '/api/uframe/get_cam_image/', new '/api/uframe/get_image_thumbnail/'
+    return '/api/uframe/get_cam_image/'
+
+
+# Get years where data is provided on the raw data server.
+def get_supported_years():
+    # The years where data is provided on the raw data server.
+    return ['2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017']
+
+
+# Get valid months to be used when searching the raw data server.
+def get_valid_months():
+    # The valid months to be used when searching the raw data server.
+    return ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']
+
+
+# Get valid extensions.
+def get_valid_extensions():
+    # The valid file extensions to be used when searching/working with the raw data server.
+    return ['.png', '.mseed', '.raw', '.mov', '.mp4']
+
+
+# Get valid extensions.
+def get_supported_sensor_types():
+    # The valid file extensions to be used when searching/working with the raw data server.
+    return ['-HYD', '-CAMDS', '-CAMHD', '-ZPL']
+
+
+def get_supported_folder_types():
+    # The valid file extensions to be used when searching/working with the raw data server.
+    return ['HY', 'CAMDS', 'CAMHD', 'ZPL']
+
+
+# Get extensions for a sensor type.
+def get_extensions_by_sensor_type(sensor_type):
+    # The valid file extensions to be used when searching/working with the raw data server for a specific sensor_type.
+    # Check if a known sensor type has been provided.
+    extensions = []
+
+    # If unknown sensor_type, return None.
+    if sensor_type not in get_supported_sensor_types():
+        return None
+
+    # Get list of extensions for each sensor_type.
+    if sensor_type == '-HYD':
+        extensions = ['.mseed', '.png']
+    elif sensor_type == '-CAMDS':
+        extensions = ['.png']
+    elif sensor_type == '-CAMHD':
+        extensions = ['.mov', '.mp4']
+    elif sensor_type == '-ZPL':
+        extensions = ['.raw', '.png']
+    return extensions
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Common definitions - assets
@@ -444,75 +501,28 @@ def deployment_edit_phase_values():
     return values
 
 
+uframe_status_enum_values = ['operational', 'degraded', 'failed', 'notTracked', 'removedFromService', None]
+ui_status_display_values = ['Operational', 'Degraded', 'Failed', 'Not Tracked', 'Removed From Service', '']
+uframe_status_level_to_display_values_map = dict(zip(uframe_status_enum_values, ui_status_display_values))
+display_status_value_to_uframe_level_map = dict(zip(ui_status_display_values, uframe_status_enum_values))
+
+
+def convert_status_display_value(status_value):
+    return display_status_value_to_uframe_level_map.get(status_value)
+
+
+def convert_status_value_for_display(status_value):
+    return uframe_status_level_to_display_values_map.get(status_value, status_value)
+
+
 def operational_status_values():
-    #values = ['Operational', 'Degraded', 'Failed', 'notTracked']
-    values = ['operational', 'degraded', 'failed', 'notTracked', 'removedFromService']
+    values = uframe_status_enum_values
     return values
 
 
 def operational_status_display_values():
-    values = ['Operational', 'Degraded', 'Failed', 'Not Tracked', 'Removed From Service']
+    values = ui_status_display_values
     return values
-
-
-def convert_status_display_value(status_value):
-    try:
-        if not status_value or status_value is None:
-            message = 'The status value provided is empty or null.'
-            raise Exception(message)
-        if status_value in operational_status_values():
-            value = status_value
-        elif status_value in operational_status_display_values():
-            if status_value == 'Operational':
-                value = 'operational'
-            elif status_value == 'Degraded':
-                value = 'degraded'
-            elif status_value == 'Failed':
-                value = 'failed'
-            elif status_value == 'Not Tracked':
-                value = 'notTracked'
-            elif status_value == 'Removed From Service':
-                value = 'removedFromService'
-            else:
-                message = 'The status value provided (\'%s\') is invalid.' % status_value
-                raise Exception(message)
-        else:
-            message = 'The status value provided (\'%s\') is invalid.' % status_value
-            raise Exception(message)
-        return value
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-
-def convert_status_value_for_display(status_value):
-    try:
-        if not status_value or status_value is None:
-            message = 'The status value provided is empty or null.'
-            raise Exception(message)
-        if status_value in operational_status_display_values():
-            value = status_value
-        elif status_value in operational_status_values():
-            if status_value == 'operational':
-                value = 'Operational'
-            elif status_value == 'degraded':
-                value =  'Degraded'
-            elif status_value == 'failed':
-                value = 'Failed'
-            elif status_value == 'notTracked':
-                value = 'Not Tracked'
-            elif status_value == 'removedFromService':
-                value = 'Removed From Service'
-            else:
-                message = 'The status display value provided (\'%s\') is unknown.' % status_value
-                raise Exception(message)
-        else:
-            message = 'The status display value provided (\'%s\') is invalid.' % status_value
-            raise Exception(message)
-        return value
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
 
 
 def get_array_locations():
@@ -525,6 +535,7 @@ def get_array_locations():
                     'RS': {'latitude': 44.554, 'longitude': -125.352},
                    }
     return arrays_patch
+
 
 def boolean_values():
     values = ['True', 'False']

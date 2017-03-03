@@ -7,7 +7,7 @@ __author__ = 'Edna Donoughe'
 
 
 from flask import (jsonify, request, current_app)
-from ooiservices.app import cache
+from ooiservices.app import db
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.errors import (internal_server_error, bad_request)
 from ooiservices.app.uframe.stream_tools import (get_stream_list, get_stream_for_stream_model)
@@ -240,7 +240,12 @@ def get_streams_list():
 def get_stream_model_data(reference_designator, stream_method, stream):
     """ Get complete stream dictionary with legacy content, including parameters, for UI stream model.
     """
+    debug = False
     try:
+        if debug:
+            print '\n debug -- reference_designator: ', reference_designator
+            print '\n debug -- stream_method: ', stream_method
+            print '\n debug -- stream: ', stream
         stream_content = get_stream_for_stream_model(reference_designator, stream_method, stream)
         return jsonify({'stream_content': stream_content}), 200
     except Exception as err:
@@ -249,30 +254,57 @@ def get_stream_model_data(reference_designator, stream_method, stream):
         return bad_request(message)
 
 
-# Support only route.
-@api.route('/build_stream_cache')
-def build_stream_cache():
-    """ Force stream cache build. (Streams currently (celery) set to build every hour on the hour.)
-    Responses:
-        Success:
-        {
-          "build_stream_cache": true
-        }
+@api.route('/disabled_streams', methods=['GET', 'POST'])
+@api.route('/disabled_streams/<int:id>', methods=['DELETE'])
+def disabled_streams(id=None):
+    """ Process GET, POST and DELETE for disabled streams.
 
-        Failure:
-        {
-          "build_stream_cache": false
-        }
+    @method GET:
+        Returns the list of all the disabled streams from our database.
+
+    @method POST:
+        @params: ID
+        Create a new 'disabled streams' in our local database.
+
+    @method DELETE:
+        @params: ID
+        Delete a disabled streams identifier from our local database.
     """
-    success = False
-    try:
-        streams = get_stream_list(refresh=True)
-        if streams and streams is not None and 'error' not in streams:
-            stream_cache = cache.get('stream_list')
-            if stream_cache and stream_cache is not None and "error" not in stream_cache:
-                success = True
-        return jsonify({'build_stream_cache': success}), 200
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return bad_request(message)
+    if request.method == 'GET':
+        disabled_streams = DisabledStreams.query.all()
+        return jsonify({'disabled_streams': [disabled_stream.to_json() for disabled_stream in disabled_streams]})
+
+    elif request.method == 'POST':
+        try:
+            # Get the json payload
+            payload = json.loads(request.data)
+
+            # Create a new instance of the disabled streams with the data
+            disabled_stream = DisabledStreams.from_json(payload)
+
+            # Add to the database
+            db.session.add(disabled_stream)
+            db.session.commit()
+            return jsonify({ 'disabled_streams': 'Stream Disabled!'}), 200
+        except Exception as err:
+            message = str(err)
+            # roll it back if there is a problem.
+            db.session.rollback()
+            db.session.commit()
+            return bad_request(message)
+
+    elif request.method == 'DELETE':
+        try:
+            # get the item to delete
+            disabled_stream = DisabledStreams.query.get_or_404(id)
+
+            # obliterate it form the db
+            db.session.delete(disabled_stream)
+            db.session.commit()
+            return jsonify({'message': 'Stream Enabled!'}), 200
+        except Exception as err:
+            message = str(err)
+            # roll it back if there is a problem.
+            db.session.rollback()
+            db.session.commit()
+            return bad_request('Problem activating stream: %s' % message)

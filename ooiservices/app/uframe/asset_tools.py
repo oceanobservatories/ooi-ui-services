@@ -6,11 +6,12 @@ Asset Management - Assets: Supporting functions.
 __author__ = 'Edna Donoughe'
 
 from flask import current_app
-from ooiservices.app import cache
 from copy import deepcopy
+from ooiservices.app import cache
+from ooiservices.app.uframe.config import get_cache_timeout
 from ooiservices.app.uframe.uframe_tools import (get_assets_from_uframe, uframe_get_asset_by_id, uframe_get_asset_by_uid)
 from ooiservices.app.uframe.common_tools import (get_asset_classes, get_asset_type_display_name)
-from ooiservices.app.uframe.status_tools import build_rds_cache, get_uid_digests
+from ooiservices.app.uframe.status_tools import (build_rds_cache, get_uid_digests)
 from ooiservices.app.uframe.vocab import (get_vocab, get_vocab_dict_by_rd, get_rs_array_name_by_rd,
                                           get_display_name_by_rd)
 
@@ -19,7 +20,6 @@ from ooiservices.app.uframe.vocab import (get_vocab, get_vocab_dict_by_rd, get_r
 
 import datetime as dt
 from operator import itemgetter
-CACHE_TIMEOUT = 172800
 
 
 def verify_cache(refresh=False):
@@ -105,7 +105,7 @@ def get_assets_payload():
 
         # Cache 'asset_list'.
         cache.delete('asset_list')
-        cache.set('asset_list', data, timeout=CACHE_TIMEOUT)
+        cache.set('asset_list', data, timeout=get_cache_timeout())
         check = cache.get('asset_list')
         if not check:
             message = 'Unable to process uframe assets; asset_list data is empty.'
@@ -141,7 +141,7 @@ def populate_assets_dict(data):
 
         # Verify assets_dict is type dict
         elif isinstance(assets_dict, dict):
-            cache.set('assets_dict', assets_dict, timeout=CACHE_TIMEOUT)
+            cache.set('assets_dict', assets_dict, timeout=get_cache_timeout())
         return assets_dict
     except Exception as err:
         message = 'Error populating \'assets_dict\'; %s' % str(err)
@@ -1070,176 +1070,6 @@ def arrays_geojson():
         message = str(err)
         current_app.logger.info(message)
         return None
-
-
-#=============================================
-'''
-def process_deployment_digests(uid, assetType):
-    """
-    For a list of deployment digests, get list of unique deployment numbers and rds.
-
-    Sample digest:
-        {
-          "startTime" : 1437159840000,
-          "depth" : 0.0,
-          "subsite" : "CE01ISSP",
-          "node" : "SP001",
-          "sensor" : "00-SPPENG000",
-          "deploymentNumber" : 3,
-          "versionNumber" : 1,
-          "eventId" : 23362,
-          "editPhase" : "OPERATIONAL",
-          "longitude" : -124.09567,
-          "latitude" : 44.66415,
-          "orbitRadius" : 0.0,
-          "mooring_uid" : "N00262",
-          "node_uid" : "N00123",
-          "sensor_uid" : "R00102",
-          "deployCruiseIdentifier" : null,
-          "recoverCruiseIdentifier" : null,
-          "waterDepth" : null,
-          "endTime" : 1439424000000
-        },
-    """
-    debug = False
-    deployments = []
-    rds = []
-    reference_designator = None
-    try:
-        if not uid or uid is None or len(uid) == 0:
-            message = 'Asset uid provided is null or empty; unable to process deployment digests for asset.'
-            current_app.logger.info(message)
-            return rds, deployments, reference_designator
-
-        # Get deployments digests.
-        results = get_deployments_digest(uid)
-        if not results or results is None or len(results) <= 0:
-            return [], [], None
-
-        # Sort deployment digests.
-        try:
-            digests = sorted(results, key=itemgetter('deploymentNumber'), reverse=True)
-        except:
-            digests = results
-
-        if digests:
-            # Get reference designator for asset and deployment number it was associated with.
-            reference_designator, deployment_number = get_digest_reference_designator(digests[0], assetType)
-
-        # Sort digests in reverse order by deployment number.
-        for digest in digests:
-            if debug: print '\n debug -- digest[deploymentNumber]: ', digest['deploymentNumber']
-            #print '\n debug -- digest: ', json.dumps(digest, indent=4, sort_keys=True)
-            if 'deploymentNumber' in digest:
-                if digest['deploymentNumber'] and digest['deploymentNumber'] is not None:
-                    if digest['deploymentNumber'] not in deployments:
-                        deployments.append(digest['deploymentNumber'])
-
-            # Get reference designator (rd)
-            rd = None
-            subsite = None
-            if 'subsite' in digest:
-                subsite = digest['subsite']
-            node = None
-            if 'node' in digest:
-                node = digest['node']
-            sensor = None
-            if 'sensor' in digest:
-                sensor = digest['sensor']
-
-            if assetType == 'Platform':
-                if subsite and subsite is not None and len(subsite) > 0:
-                    rd = subsite
-            elif assetType == 'Node':
-                if subsite and subsite is not None and len(subsite) > 0:
-                    rd = subsite
-                if node and node is not None and len(node) > 0:
-                    rd = '-'.join([rd, node])
-            elif assetType == 'Instrument':
-                if subsite and subsite is not None and len(subsite) > 0:
-                    rd = subsite
-                    if node and node is not None and len(node) > 0:
-                        rd = '-'.join([rd, node])
-                        if sensor and sensor is not None and len(sensor) > 0:
-                            rd = '-'.join([rd, sensor])
-                        else:
-                            rd = None
-                    else:
-                        rd = None
-                else:
-                    rd = None
-
-            if debug: print '\n debug -- rd: ', rd
-            if rd is not None:
-                if rd not in rds:
-                    rds.append(rd)
-
-        return rds, deployments, reference_designator
-
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-
-
-def get_digest_reference_designator(digest, assetType):
-    """
-
-    """
-    debug = True
-    rd = None
-    deployment_number = None
-    try:
-        if debug:
-            print '\n debug -- Entered get_digest_reference_designator...'
-            print '\n debug -- assetType: ', assetType
-        if not digest or digest is None:
-            return rd, deployment_number
-
-        if 'deploymentNumber' in digest:
-            deployment_number = digest['deploymentNumber']
-
-        # Get reference designator (rd)
-        rd = None
-        subsite = None
-        if 'subsite' in digest:
-            subsite = digest['subsite']
-        node = None
-        if 'node' in digest:
-            node = digest['node']
-        sensor = None
-        if 'sensor' in digest:
-            sensor = digest['sensor']
-
-        if assetType == 'Platform':
-            if subsite and subsite is not None and len(subsite) > 0:
-                rd = subsite
-        elif assetType == 'Node':
-            if subsite and subsite is not None and len(subsite) > 0:
-                rd = subsite
-            if node and node is not None and len(node) > 0:
-                rd = '-'.join([rd, node])
-        elif assetType == 'Instrument':
-            if subsite and subsite is not None and len(subsite) > 0:
-                rd = subsite
-                if node and node is not None and len(node) > 0:
-                    rd = '-'.join([rd, node])
-                    if sensor and sensor is not None and len(sensor) > 0:
-                        rd = '-'.join([rd, sensor])
-                    else:
-                        rd = None
-                else:
-                    rd = None
-            else:
-                rd = None
-        if debug:
-            print '\n debug -- deployment_number: ', deployment_number
-            print '\n debug -- rd: ', rd
-            print '\n debug -- Exit get_digest_reference_designator...'
-        return rd, deployment_number
-    except Exception as err:
-        message = str(err)
-        raise Exception(message)
-'''
 
 
 def get_asset_list():

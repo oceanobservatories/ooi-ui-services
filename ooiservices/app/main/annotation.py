@@ -235,7 +235,12 @@ def edit_annotation(annotation_id):
             data['source'] = None
         if validate_anno_record(data):
             url = '/'.join((get_annotations_base_url(), annotation_id))
-            return process_annotation_response(requests.put(url, json=data, timeout=10))
+            response = requests.put(url, json=data, timeout=10)
+            if response.status_code != 201:
+                message = 'Failed to create new annotation.'
+                raise Exception(message)
+            return response.text, response.status_code, dict(response.headers)
+            #return process_annotation_response(requests.put(url, json=data, timeout=10))
         else:
             message = 'Required information not specified to update annotation.'
             return bad_request(message)

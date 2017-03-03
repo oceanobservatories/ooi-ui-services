@@ -8,9 +8,11 @@ __author__ = 'Edna Donoughe'
 from flask import current_app
 from ooiservices.app.uframe.stream_tools import get_stream_list
 from ooiservices.app.uframe.common_tools import (operational_status_values, get_array_locations)
-from ooiservices.app.uframe.asset_cache_tools import (get_assets_dict, get_asset_list_cache)
+from ooiservices.app.uframe.asset_cache_tools import get_assets_dict
 from ooiservices.app.uframe.toc_tools import get_toc_reference_designators
-from ooiservices.app.uframe.vocab import (get_vocab_dict_by_rd, get_vocab_codes, get_vocabulary_arrays,
+from ooiservices.app.uframe.stream_tools_iris import get_iris_rds
+from ooiservices.app.uframe.stream_tools_rds import get_rds_rds
+from ooiservices.app.uframe.vocab import (get_vocab_dict_by_rd, get_vocab_codes, get_vocab, get_vocabulary_arrays,
                                           get_display_name_by_rd)
 from ooiservices.app.uframe.uframe_tools import (get_assets_from_uframe, uframe_get_status_by_rd,
                                                  uframe_get_nodes_for_site, uframe_get_sensors_for_platform,
@@ -23,6 +25,8 @@ from copy import deepcopy
 
 import datetime as dt
 from ooiservices.app import cache
+from ooiservices.app.uframe.config import get_cache_timeout
+
 CACHE_TIMEOUT = 172800
 
 
@@ -319,10 +323,12 @@ def get_status_sites(rd):
         rd_digests_dict = get_rd_digests_dict()
 
         # Get status data dictionary.
+        if debug: print '\n debug -- before get_uframe_status_data %s' % rd
         status_data = get_uframe_status_data(rd)       # uframe data
         if not status_data or status_data is None:
-            #message = 'No status data returned from uframe for reference designator %s.' % rd
-            #current_app.logger.info(message)
+            if debug:
+                message = 'No status data returned from uframe for reference designator %s.' % rd
+                current_app.logger.info(message)
             status_data = {}
 
         end = dt.datetime.now()
@@ -388,7 +394,9 @@ def get_status_platforms(rd=None):
             CE01ISSM-MF[C31]
             CE01ISSM-RI[D16]  (Bucket 3 'RI')
 
-    Sample request: http://localhost:4000/uframe/status/platforms/CE01ISSM
+    Sample request:
+        http://localhost:4000/uframe/status/platforms/CE01ISSM
+        http://localhost:4000/uframe/status/platforms/GP02HYPM
 
     Note:
         - The deployment number provided in status.
@@ -493,16 +501,28 @@ def get_status_platforms(rd=None):
         platforms = []
         for node in nodes:
             if node:
-                tmp = '-'.join([rd,node])
+                tmp = '-'.join([rd, node])
                 if tmp not in platforms:
                     platforms.append(tmp)
 
         sensors_by_platform = {}
         instruments_by_platform = {}
         working_rds = []
+        sensors_iris = get_iris_rds()
+        sensors_rds = get_rds_rds()
         for platform in platforms:
-            # get sensor list
             sensors = uframe_get_sensors_for_platform(platform)
+            platform_replace = platform + '-'
+            for iris_sensor in sensors_iris:
+                if platform in iris_sensor:
+                    tmp_sensor = iris_sensor[:].replace(platform_replace, '')
+                    if tmp_sensor not in sensors:
+                        sensors.append(tmp_sensor)
+            for rds_sensor in sensors_rds:
+                if platform in rds_sensor:
+                    tmp_sensor = rds_sensor[:].replace(platform_replace, '')
+                    if tmp_sensor not in sensors:
+                        sensors.append(tmp_sensor)
             if sensors:
                 sensors_by_platform[platform] = sensors
                 for sensor in sensors:
@@ -660,6 +680,19 @@ def get_site_sections(unique_list, return_list):
             message = 'Unable to process sites without vocabulary information (codes).'
             raise Exception(message)
 
+        # Get vocabulary dict to use when processing special sections.
+        vocab_dict = get_vocab()
+        if vocab_dict is None:
+            message = 'Unable to process special site nodes without vocabulary information (dict).'
+            raise Exception(message)
+
+        # Get rd_array to determine if business rule apply).
+        rd_array = unique_list[0][:2]
+        apply_multi_node_rule = False
+        special_node_codes = 'WF'
+        if rd_array == 'GP':
+            apply_multi_node_rule = True
+
         # Get rd_root.
         rd_root = unique_list[0][:9]
         # Get unique platforms (14).
@@ -674,17 +707,18 @@ def get_site_sections(unique_list, return_list):
         section_codes = []
         for item in unique_platforms:
             item = item.replace(rd_root, '')
-            if item[:2] not in section_codes:
+            if item[:2] not in section_codes and item[:2] != special_node_codes and not apply_multi_node_rule:
                 section_codes.append(item[:2])
+            elif apply_multi_node_rule and item[:2] == special_node_codes:
+                section_codes.append(item[:5])
+            elif item[:2] not in section_codes:
+                section_codes.append(item[:2])
+
         if not section_codes:
             message = 'No section codes found for %s.' % rd_root[:8]
             current_app.logger.info(message)
             return []
 
-        if debug:
-            print '\n debug -- unique_list: ', unique_list
-            print '\n debug -- Section codes: ', section_codes
-            print '\n debug -- unique_platforms: ', unique_platforms
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Get lists of instruments and uids.
         #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -720,8 +754,17 @@ def get_site_sections(unique_list, return_list):
         for code in section_codes:
             header = {}
             header['code'] = code
-            if code in vocab_codes['nodes']:
-                header['title'] = vocab_codes['nodes'][code]
+
+            # Set the header title.
+            if len(code) == 2:
+                if code in vocab_codes['nodes']:
+                    header['title'] = vocab_codes['nodes'][code]
+            else:
+                # look up node code value for instrument from vocab_dict.
+                code_value = rd_root + code
+                if code_value in vocab_dict:
+                    header['title'] = vocab_dict[code_value]['name']
+
             header['status'] = operational_status_values()[1]       # Update for live status
             headers.append(header)
 
@@ -740,8 +783,8 @@ def get_site_sections(unique_list, return_list):
                         print '-- Warning: reference designator %s not in instrument list.' % \
                               item['reference_designator']
                     continue
-                # For a site and first two charcaters of node (XXXXXXXX-XX), if match node bucket, process.
-                if prefix == item['reference_designator'][:11]:
+                # For a site and first two characters of node (XXXXXXXX-XX), if match node bucket, process.
+                if prefix == item['reference_designator'][:len(prefix)]:
                     # Add start and end times for reference designator.
                     if not time_dict or time_dict is None:
                         if warning:
@@ -1037,7 +1080,7 @@ def get_uframe_status_data(rd):
                             status[item['referenceDesignator']] = item
             if not status:
                 status = None
-        if debug and status:
+        if debug and status and status is not None:
             print '\n debug -- uframe status for rd \'%s\':' % rd
             dump_dict(status)
         return status
@@ -1081,7 +1124,6 @@ def get_uframe_status_data_arrays():
             for item in status_data:
                 if item:
                     if 'referenceDesignator' in item:
-
                         if item['referenceDesignator']:
                             rd = deepcopy(item['referenceDesignator'])
                             del item['referenceDesignator']
@@ -1293,12 +1335,12 @@ def build_rds_cache(refresh=False):
             rd_digests, rd_digests_dict = build_rd_digest_cache(rds)
             if rd_digests is not None:
                 cache.delete('rd_digests')
-                cache.set('rd_digests', rd_digests, timeout=CACHE_TIMEOUT)
+                cache.set('rd_digests', rd_digests, timeout=get_cache_timeout())
             else:
                 print 'Failed to construct rd_digests.'
             if rd_digests_dict is not None:
                 cache.delete('rd_digests_dict')
-                cache.set('rd_digests_dict', rd_digests_dict, timeout=CACHE_TIMEOUT)
+                cache.set('rd_digests_dict', rd_digests_dict, timeout=get_cache_timeout())
             else:
                 print 'Failed to construct rd_digests_dict.'
 
@@ -1313,11 +1355,11 @@ def build_rds_cache(refresh=False):
                 print '\n\t-- End time:   ', end
                 print '\t-- Time (total) to complete: %s' % (str(end - start))
                 print '-- Completed building reference designator digests...\n'
-        return rd_digests
+        return rd_digests, rd_digests_dict  # 2017-02-01
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
-        return None
+        return None, None                   # 2017-02-01
 
 
 def build_rd_digest_cache(rds):
@@ -1560,12 +1602,12 @@ def get_rd_digests_dict():
             if debug: print '\n building rd_digest_cache...'
             rd_digests, rd_digests_dict = build_rds_cache(refresh=True)
             if rd_digests and rd_digests is not None:
-                cache.set('rd_digests', rd_digests, timeout=CACHE_TIMEOUT)
+                cache.set('rd_digests', rd_digests, timeout=get_cache_timeout())
             else:
                 message = 'rd_digests failed to provide data on load.'
                 raise Exception(message)
             if rd_digests_dict and rd_digests_dict is not None:
-                cache.set('rd_digests_dict', rd_digests_dict, timeout=CACHE_TIMEOUT)
+                cache.set('rd_digests_dict', rd_digests_dict, timeout=get_cache_timeout())
             else:
                 message = 'rd_digests_dict failed to provide data on load.'
                 raise Exception(message)
@@ -1589,8 +1631,8 @@ def get_rds_digests():
             if not rd_digests_dict or rd_digests_dict is None:
                 message = 'rd_digests_dict failed to provide data on load.'
                 raise Exception(message)
-            cache.set('rd_digests', rd_digests, timeout=CACHE_TIMEOUT)
-            cache.set('rd_digests_dict', rd_digests_dict, timeout=CACHE_TIMEOUT)
+            cache.set('rd_digests', rd_digests, timeout=get_cache_timeout())
+            cache.set('rd_digests_dict', rd_digests_dict, timeout=get_cache_timeout())
         return rd_digests
     except Exception as err:
         message = str(err)
@@ -1621,7 +1663,7 @@ def get_uid_digests(refresh=False):
                 message = 'Failed to compile uid_digests cache.'
                 raise Exception(message)
             cache.delete('uid_digests')
-            cache.set('uid_digests', uid_digests, timeout=CACHE_TIMEOUT)
+            cache.set('uid_digests', uid_digests, timeout=get_cache_timeout())
 
             """
             if not uid_digests_operational or uid_digests_operational is None:
@@ -1629,7 +1671,7 @@ def get_uid_digests(refresh=False):
                 raise Exception(message)
 
             cache.delete('uid_digests_operational')
-            cache.set('uid_digests_operational', uid_digests_operational, timeout=CACHE_TIMEOUT)
+            cache.set('uid_digests_operational', uid_digests_operational, timeout=get_cache_timeout())
             """
             end = dt.datetime.now()
             if time:
@@ -1735,7 +1777,7 @@ def uid_digests_cache_update(uid_digests):
 
         if debug: print '\n Perform uid_digests update...'
         cache.delete('uid_digests')
-        cache.set('uid_digests', uid_digests, timeout=CACHE_TIMEOUT)
+        cache.set('uid_digests', uid_digests, timeout=get_cache_timeout())
         if debug: print '\n Completed uid_digests update...'
         return
     except Exception as err:
@@ -1771,6 +1813,7 @@ def update_uid_digests_cache(uid, digest):
         message = str(err)
         current_app.logger.info(message)
         return None
+
 
 def update_rd_digests_cache(uid):
     debug = False
@@ -1810,10 +1853,10 @@ def update_rd_digests_cache(uid):
             if update:
                 if debug: print '\n Updating rd_digests...'
                 cache.delete('rd_digests')
-                cache.set('rd_digests', rd_digests, timeout=CACHE_TIMEOUT)
+                cache.set('rd_digests', rd_digests, timeout=get_cache_timeout())
                 if debug: print '\n Updating rd_digests_dict...'
                 cache.delete('rd_digests_dict')
-                cache.set('rd_digests_dict', rd_digests_dict, timeout=CACHE_TIMEOUT)
+                cache.set('rd_digests_dict', rd_digests_dict, timeout=get_cache_timeout())
         return update
     except Exception as err:
         message = str(err)

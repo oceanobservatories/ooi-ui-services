@@ -8,8 +8,8 @@ __author__ = 'Edna Donoughe'
 
 from flask import jsonify, current_app
 from ooiservices.app.uframe import uframe as api
-from ooiservices.app.main.errors import (internal_server_error)
-from ooiservices.app.uframe.toc_tools import (process_uframe_toc, compile_toc_reference_designators)
+from ooiservices.app.main.errors import internal_server_error
+from ooiservices.app.uframe.toc_tools import process_uframe_toc
 
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -21,22 +21,6 @@ def get_toc():
     """
     try:
         data = process_uframe_toc()
-        if data is None:
-            data = []
-        return jsonify(toc=data)
-    except Exception as err:
-        message = str(err.message)
-        current_app.logger.info(message)
-        return internal_server_error(message)
-
-
-# Support route.
-@api.route('/build_toc_rds')
-def build_toc_reference_designators():
-    """ Build 'toc_reference_designators' cache.
-    """
-    try:
-        data = compile_toc_reference_designators()
         if data is None:
             data = []
         return jsonify(toc=data)

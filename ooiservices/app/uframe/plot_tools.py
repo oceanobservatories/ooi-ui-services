@@ -66,12 +66,15 @@ class OOIPlots(object):
     def plot_time_series(self, fig, is_timeseries, ax, x, y, fill=False, title='', xlabel='', ylabel='',
                          title_font={}, axis_font={}, tick_font={}, scatter=False, qaqc=[], events={}, **kwargs):
 
+        debug = False
+        if debug: print '\n debug -- Entered plot_time_series...'
         if not title_font:
             title_font = title_font_default
         if not axis_font:
             axis_font = axis_font_default
 
         if scatter:
+            ppl.scatter(ax, x, y, **kwargs)
             ppl.scatter(ax, x, y, **kwargs)
         else:
             h = ppl.plot(ax, x, y, **kwargs)
@@ -93,7 +96,8 @@ class OOIPlots(object):
             if not scatter:
                 ax.fill_between(x, y, miny + 1e-7, facecolor = h[0].get_color(), alpha=0.15)
             else:
-                ax.fill_between(x, y, miny + 1e-7, facecolor = axis_font_default['color'], alpha=0.15)
+                #ax.fill_between(x, y, miny + 1e-7, facecolor = axis_font_default['color'], alpha=0.15)
+                ax.fill_between(x, y, miny + 1e-5, facecolor = axis_font_default['color'], alpha=0.15)
 
         if events:
             ylim = ax.get_ylim()
@@ -126,35 +130,50 @@ class OOIPlots(object):
                                  cbar_title='', title_font={}, axis_font={}, tick_font = {},
                                  **kwargs):
 
+        #print '\n debug -- plot_stacked_time_series entered...'
         if not title_font:
             title_font = title_font_default
         if not axis_font:
             axis_font = axis_font_default
+
+        # Mask NaN items in z
+        #print '\n debug -- plot_stacked_time_series - Mask NaN items in z'
         z = np.ma.array(z, mask=np.isnan(z))
+
         # create a limit for the colorbar that disregards outliers
+        #print '\n debug -- plot_stacked_time_series - create a limit for the colorbar that disregards outliers...'
         lim = float("%2.2f" % np.nanpercentile(abs(z), 95))
         h = plt.pcolormesh(x, y, z, vmin=-lim, vmax=lim, cmap='RdBu', shading='gouraud', **kwargs)
         # h = plt.pcolormesh(x, y, z, **kwargs)
+
+        #print '\n debug -- plot_stacked_time_series - Step 1'
         if ylabel:
             ax.set_ylabel(ylabel.replace("_", " "), **axis_font)
         if title:
             ax.set_title(title.replace("_", " "), **title_font)
+
+        #print '\n debug -- plot_stacked_time_series - Step 2'
         plt.axis([x.min(), x.max(), y.min(), y.max()])
         ax.xaxis_date()
         date_list = mdates.num2date(x)
+        #print '\n debug -- plot_stacked_time_series - Step 3'
         self.get_time_label(ax, date_list)
         fig.autofmt_xdate()
         ax.invert_yaxis()
+        #print '\n debug -- plot_stacked_time_series - Step 4'
         divider = make_axes_locatable(ax)
         cax = divider.append_axes('right', size='3%', pad=0.05)
         cbar = plt.colorbar(h, cax=cax)
+        #print '\n debug -- plot_stacked_time_series - Step 5'
         if cbar_title:
             cbar.ax.set_ylabel(cbar_title.replace("_", " "), **axis_font)
         ax.grid(True)
         if tick_font:
             ax.tick_params(**tick_font)
         plt.tight_layout()
+        #print '\n debug -- plot_stacked_time_series - Step 6'
         self.add_annotation(ax)
+        #print '\n debug -- plot_stacked_time_series - Step 7...Exit'
 
     def plot_stacked_time_series_image(self, fig, ax, x, y, z, title='', ylabel='',
                                        cbar_title='', title_font={}, axis_font={}, tick_font = {},
@@ -163,7 +182,7 @@ class OOIPlots(object):
         This plot is a stacked time series that uses NonUniformImage with regualrly spaced ydata from
         a linear interpolation. Designed to support FRF ADCP data.
         '''
-
+        #print '\n debug -- plot_stacked_time_series_image entered...'
         if not title_font:
             title_font = title_font_default
         if not axis_font:
@@ -267,7 +286,6 @@ class OOIPlots(object):
         if not title_font:
             title_font = title_font_default
 
-        #print '\n debug -- rose: title_font: ', title_font
         if title_font['size'] > 12:
             title_font['size'] = 12
 
@@ -636,7 +654,6 @@ class OOIPlots(object):
                                  mec='r')
 
             # Label the y-axis and set text color:
-
             # Been experimenting with other ways to handle tick labels with spines
             y_axis[ind].yaxis.get_major_formatter().set_useOffset(False)
 
@@ -670,7 +687,7 @@ class OOIPlots(object):
         sal = np.ma.array(sal, mask=np.isnan(sal))
         temp = np.ma.array(temp, mask=np.isnan(temp))
         if len(sal) != len(temp):
-            raise Exception('Sal and Temp arrays are not the same size!')
+            raise Exception('Sal and Temp arrays are not the same size.')
 
         # Figure out boudaries (mins and maxs)
         smin = sal.min() - (0.01 * sal.min())
@@ -685,7 +702,7 @@ class OOIPlots(object):
         # Create empty grid of zeros
         dens = np.zeros((ydim, xdim))
 
-        # Create temp and sal vectors of appropiate dimensions
+        # Create temp and sal vectors of appropriate dimensions.
         ti = np.linspace(1, ydim-1, ydim)+tmin
         si = np.linspace(1, xdim-1, xdim)*0.1+smin
 
@@ -712,15 +729,45 @@ class OOIPlots(object):
         plt.tight_layout()
 
     def plot_3d_scatter(self, fig, ax, x, y, z, title='', xlabel='', ylabel='', zlabel='',
-                        title_font={}, axis_font={}, tick_font={}):
+                        title_font={}, axis_font={}, tick_font={}, number_points=0):
 
+        # {'color': 'black', 'fontname': 'Calibri', 'weight': 'bold', 'size': 12}
         if not title_font:
             title_font = title_font_default
+        if title_font['size'] < 14:
+            title_font['size'] = 14
+
+        # Format {'fontname': 'Calibri', 'weight': 'bold', 'size': 10}
         if not axis_font:
             axis_font = axis_font_default
+        if axis_font['size'] < 12:
+            axis_font['size'] = 12
+        # Format tick font: {'color': 'k', 'width': 1, 'labelsize': 7, 'axis': 'both'}
+        """
+        print '\n debug -- plot_tools.py: 3d_scatter: xlabel: ', xlabel
+        print '\n debug -- plot_tools.py: 3d_scatter: ylabel: ', ylabel
+        print '\n debug -- plot_tools.py: 3d_scatter: zlabel: ', zlabel
+        x_display_label = None
+        if xlabel is not None:
+            x_display_label = xlabel[:]
+        """
 
+        # http://stackoverflow.com/questions/2051744/reverse-y-axis-in-pyplot
+        cmap = plt.cm.jet
+        h = plt.scatter(x, y, c=z, cmap=cmap)
+        ax = plt.gca()
+        """
+        print '\n ax.get_ylim(): ', ax.get_ylim()
+        print '\n ax.get_ylim()[::-1]: ', ax.get_ylim()[::-1]
+        """
+        ax.set_ylim(ax.get_ylim()[::-1])
+        # testing -- h = plt.scatter(x, y, c=z, cmap=cmap)
+
+        """
+        # original two lines
         cmap = plt.cm.jet
         h = ax.scatter(x, y, c=z, cmap=cmap)
+        """
 
         if 'time' in xlabel.lower():
             xlabel = None
@@ -731,10 +778,16 @@ class OOIPlots(object):
 
         ax.set_aspect(1. / ax.get_data_ratio())  # make axes square
 
-        cbar = plt.colorbar(h, orientation='vertical', aspect=30, shrink=0.76)
+        #cbar = plt.colorbar(h, orientation='vertical', aspect=30, shrink=0.76)
+        cbar = plt.colorbar(h, orientation='vertical', aspect=30, shrink=0.78)
+
+        """
+        if x_display_label:
+            ax.set_xlabel(x_display_label, labelpad=10, **axis_font)
 
         if xlabel:
             ax.set_xlabel(xlabel.replace("_", " "), labelpad=10, **axis_font)
+        """
         if ylabel:
             ax.set_ylabel(ylabel.replace("_", " "), labelpad=10, **axis_font)
         if zlabel:
@@ -745,3 +798,16 @@ class OOIPlots(object):
             ax.set_title(title.replace("_", " "), **title_font)
         ax.grid(True)
         plt.tight_layout()
+        if number_points:
+            nice_number = "{:,}".format(number_points)
+            message = 'Number of data points: %s' % nice_number
+            self.add_annotation_message(ax, message)
+
+
+    def add_annotation_message(self, ax, message):
+        """
+        This method adds annotation to the plot figure in the lower left corner.
+        """
+        annotation = message
+        ax.annotate(annotation, xy=(40, 10), xycoords='figure pixels',
+                    horizontalalignment='left', verticalalignment='bottom', fontsize=8, style='italic')

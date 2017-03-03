@@ -85,10 +85,14 @@ COMMON: &common
     REDMINE_URL: 'https://redmine-asa.ooi.rutgers.edu' #'https://uframe-cm.ooi.rutgers.edu'
     REDMINE_PROJECT_ID: 'ocean-observatory' #'ooi-ui-api-testing'
     REDMINE_TRACKER: 'Support'
+
     #Only change this if you change the Redis Port
     REDIS_URL: 'redis://localhost:6379'
+    REDIS_CACHE_TIMEOUT: 172800
+
     #This is a default value.   The tid value must be set to the production value on the production system
     GOOGLE_ANALYTICS_URL: 'https://www.google-analytics.com/collect?v=1&tid=UA-50606390-3&cid=1&t=event'
+
     #The Alfresco Username and Password must be set to the production values for this to work
     ALFRESCO_CMIS_URL:  'https://alfresco.oceanobservatories.org/alfresco/s/api/cmis'
     ALFRESCO_DL_URL:    'https://alfresco.oceanobservatories.org/alfresco/s/api/node/content/workspace/SpacesStore'
@@ -97,14 +101,21 @@ COMMON: &common
     ALFRESCO_REPO_ID:   'c161bc66-4f7e-4a4f-b5f2-aac9fbf1d3cd'
     ALFRESCO_USERNAME:  'admin'
     ALFRESCO_PASSWORD:  'admin'
+
     #The CILogon ID and Secret Key msut be set to the proper values for this to work
     CILOGON_ID: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     CILOGON_SECRECT:  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     CILOGON_BASE_URL: 'https://test.cilogon.org'
 
-    # Camera store
-    IMAGE_STORE : 'ooiservices/cam_images'
-    IMAGE_CAMERA_STORE : 'https://rawdata.oceanobservatories.org/files/'
+    # Raw Data Server
+    RDS_ENABLED: True
+    RDS_BASE_URL: 'https://rawdata.oceanobservatories.org/files'
+    IMAGE_STORE: 'ooiservices/cam_images'
+    IMAGE_CAMERA_STORE: 'https://rawdata.oceanobservatories.org/files/'
+
+    # IRIS
+    IRIS_ENABLED: True
+    IRIS_BASE_URL: 'http://ds.iris.edu/mda/OO'
 
     # flask security - email parameters.  make sure this is set for your email server.
     SECURITY_EMAIL_SENDER : 'no-reply@ooi.rutgers.edu'

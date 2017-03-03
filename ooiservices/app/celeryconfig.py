@@ -4,12 +4,17 @@ CELERY_TIMEZONE = 'US/Eastern'
 CELERYBEAT_SCHEDULE = {
     'get-large-format-files-every': {
         'task': 'tasks.compile_large_format_files',
-        'schedule': crontab(minute=0, hour=23),
+        'schedule': crontab(minute=15, hour=23),
+        'args': (),
+        },
+    'get-large-format-index-every': {
+        'task': 'tasks.compile_large_format_index',
+        'schedule': crontab(minute=15, hour=2),
         'args': (),
         },
     'get-cam-images-every': {
         'task': 'tasks.compile_cam_images',
-        'schedule': crontab(minute=15, hour=2),
+        'schedule': crontab(minute=15, hour=3),
         'args': (),
         },
     'get-c2-toc': {
@@ -19,7 +24,7 @@ CELERYBEAT_SCHEDULE = {
         },
     'get-toc-rds': {
         'task': 'tasks.compile_toc_rds',
-        'schedule': crontab(minute=0, hour='*/1'),
+        'schedule': crontab(minute=45, hour='*/1'),
         'args': (),
         },
     'get-streams': {
