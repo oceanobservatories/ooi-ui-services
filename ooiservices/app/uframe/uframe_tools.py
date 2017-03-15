@@ -552,15 +552,15 @@ def uframe_get_asset_by_id(id):
         return asset
     except ConnectionError:
         message = 'ConnectionError getting asset (id: %d) from uframe.' % id
-        current_app.logger.info(message)
+        #current_app.logger.info(message)
         raise Exception(message)
     except Timeout:
         message = 'Timeout getting asset (id: %d) from uframe.' % id
-        current_app.logger.info(message)
+        #current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
         message = str(err)
-        current_app.logger.info(message)
+        #current_app.logger.info(message)
         raise Exception(message)
 
 

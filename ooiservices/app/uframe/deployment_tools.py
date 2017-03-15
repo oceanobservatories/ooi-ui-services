@@ -498,7 +498,6 @@ def _get_deployments_digest_by_uid(uid):
 
         # Get deployment event from uframe.
         uframe_deployments = get_deployments_digest_by_uid(uid)
-        print '\n uframe_deployment[0]: ', uframe_deployments[0]
         if not uframe_deployments or uframe_deployments is None:
             message = 'Failed to get deployments from uframe for uid \'%s\' .' % uid
             raise Exception(message)

@@ -1237,7 +1237,8 @@ def get_deployments_digests(uid):
         try:
             #result = sorted(digests, key=itemgetter('deploymentNumber'))
             #digests.sort(key=lambda x: (-x['deploymentNumber'], -x['versionNumber'], -x['startTime']))
-            digests.sort(key=lambda x: (x['deploymentNumber'], x['versionNumber'], x['startTime']), reverse=True)
+            #digests.sort(key=lambda x: (x['deploymentNumber'], x['versionNumber'], x['startTime']), reverse=True)
+            digests.sort(key=lambda x: (x['startTime'], x['deploymentNumber'], x['versionNumber'], x['startTime']), reverse=True)
         except Exception as err:
             print '\n get_deployments_digests : errors: ', str(err)
             pass
