@@ -36,8 +36,6 @@ __author__ = 'Andy Bird'
 COSMO_CONSTANT = 2208988800
 
 
-#--------
-
 def split_stream_name(ui_stream_name):
     """ Splits the hyphenated reference designator and stream type into a tuple of
     (mooring, platform, instrument, stream_type, stream)
@@ -48,60 +46,6 @@ def split_stream_name(ui_stream_name):
     stream = stream.replace("-", "_")
     return (mooring, platform, instrument, stream_type, stream)
 
-'''
-def combine_stream_name(mooring, platform, instrument, stream_type, stream):
-    first_part = '-'.join([mooring, platform, instrument])
-    all_of_it = '_'.join([first_part, stream_type, stream])
-    return all_of_it
-'''
-
-'''
-# Deprecate.
-@api.route('/antelope_acoustic/list', methods=['GET'])
-def get_acoustic_datalist():
-    """ Get all available acoustic data sets.
-    """
-    antelope_url = current_app.config['UFRAME_ANTELOPE_URL']
-    r = requests.get(antelope_url)
-    data = r.json()
-
-    for ind, record in enumerate(data):
-        data[ind]['filename'] = record['downloadUrl'].split("/")[-1]
-        data[ind]['startTime'] = data[ind]['startTime'] - COSMO_CONSTANT
-        data[ind]['endTime'] = data[ind]['endTime'] - COSMO_CONSTANT
-
-    try:
-        is_reverse = False
-        if request.args.get('sort') and request.args.get('sort') != "":
-            sort_by = request.args.get('sort')
-            if request.args.get('order') and request.args.get('order') != "":
-                order = request.args.get('order')
-                if order == 'reverse':
-                    is_reverse = True
-        else:
-            sort_by = 'endTime'
-        data = sorted(data, key=itemgetter(sort_by), reverse=is_reverse)
-    except (TypeError, KeyError):
-        raise
-
-    if request.args.get('startAt'):
-        start_at = int(request.args.get('startAt'))
-        count = int(request.args.get('count'))
-        total = int(len(data))
-        retval_slice = data[start_at:(start_at + count)]
-        result = jsonify({"count": count,
-                          "total": total,
-                          "startAt": start_at,
-                          "results": retval_slice})
-        return result
-    else:
-        return jsonify(results=data)
-'''
-
-'''
-def make_cache_key():
-    return urlencode(request.args)
-'''
 
 # Restore event processing as needed.
 def get_events_by_ref_des(data, ref_des):
@@ -109,56 +53,6 @@ def get_events_by_ref_des(data, ref_des):
     """
     result = []
     return result
-
-
-'''
-# Deprecate or move to uframe_tools.py
-# todo: Return exception in consistent manner.
-def get_uframe_streams(mooring, platform, instrument, stream_type):
-    """ Get a list of all the streams.
-    """
-    try:
-        uframe_url, timeout, timeout_read = get_uframe_info()
-        url = '/'.join([uframe_url, mooring, platform, instrument, stream_type])
-        current_app.logger.info("GET %s", url)
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        return response
-    except ConnectionError:
-        message = 'ConnectionError getting uframe streams.'
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout:
-        message = 'Timeout getting uframe streams.'
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Exception as err:
-        message = str(err)
-        #return internal_server_error('uframe connection cannot be made.' + str(e.message))
-        return internal_server_error(message)
-
-
-# todo: Return exception in consistent manner.
-def get_uframe_stream(mooring, platform, instrument, stream):
-    """ Get a list the reference designators for the streams.
-    """
-    try:
-        uframe_url, timeout, timeout_read = get_uframe_info()
-        url = "/".join([uframe_url, mooring, platform, instrument, stream])
-        current_app.logger.info("GET %s", url)
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        return response
-    except ConnectionError:
-        message = 'ConnectionError getting uframe stream.'
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout:
-        message = 'Timeout getting uframe stream.'
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Exception as e:
-        #return internal_server_error('uframe connection cannot be made.' + str(e.message))
-        return _response_internal_server_error(str(e))
-'''
 
 
 @api.route('/get_instrument_metadata/<string:ref>', methods=['GET'])
@@ -341,12 +235,6 @@ def is_nan(x):
 
 def get_uframe_multi_stream_contents(stream1_dict, stream2_dict, start_time, end_time):
     """ Gets the data from an interpolated multi stream request.
-
-    Example request:
-    http://server:12576/sensor?r=r1&r=r2&r1.refdes=CP05MOAS-GL340-03-CTDGVM000&r2.refdes=CP05MOAS-GL340-02-FLORTM000
-    &r1.method=telemetered&r2.method=telemetered&r1.stream=ctdgv_m_glider_instrument&
-    r2.stream=flort_m_glider_instrument&r1.params=PD1527&r2.params=PD1485&limit=1000
-    &beginDT=2015-05-07T02:49:22.745Z&endDT=2015-06-28T04:00:41.282Z
     """
     debug = False
     try:
@@ -372,10 +260,9 @@ def get_uframe_multi_stream_contents(stream1_dict, stream2_dict, start_time, end
                  '&r1.stream=%s&r2.stream=%s&r1.params=%s&r2.params=%s&limit=%s&beginDT=%s&endDT=%s&user=plotting'
                  % (refdes1, refdes2, method1, method2, stream1, stream2,
                     params1, params2, limit, start_time, end_time))
-
         base_url, timeout, timeout_read = get_uframe_url_info()
         url = "/".join([base_url, query])
-        current_app.logger.debug("***:" + url)
+        current_app.logger.info("*** :" + url)
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
             message = '(%d) Failed to get multistream contents. %s' % (response.status_code,  response.text)
@@ -425,7 +312,7 @@ def get_csv(stream, ref, start_time, end_time, dpa_flag):
         query = '?beginDT=%s&endDT=%s&execDPA=true&user=%s&email=%s' % (start_time, end_time, user, email)
     query += '&format=application/csv'
     url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
-    current_app.logger.debug('***** url: ' + url)
+    current_app.logger.info('***** url: ' + url)
     response = requests.get(url, timeout=(timeout, timeout_read))
     return response.text, response.status_code
 
@@ -464,7 +351,7 @@ def get_json(stream, ref, start_time, end_time, dpa_flag, provenance, annotation
                 (start_time, end_time, provenance, annotations, user, email)
     query += '&format=application/json'
     url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
-    current_app.logger.debug('***** url: ' + url)
+    current_app.logger.info('***** url: ' + url)
     response = requests.get(url, timeout=(timeout, timeout_read))
     return response.text, response.status_code
 
@@ -576,7 +463,6 @@ def get_profile_data(mooring, platform, instrument, stream_type, stream, paramet
                 dpa_flag = request.args['dpa_flag']
             else:
                 dpa_flag = '0'
-            #ed_date = validate_date_time(st_date, ed_date)
             data, status_code = get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument,
                                                                           stream_type, stream, st_date, ed_date,
                                                                           dpa_flag, parameter_ids)
@@ -668,7 +554,6 @@ def get_profile_data(mooring, platform, instrument, stream_type, stream, paramet
         stop_times = stop_times + INT*2
 
         depth_profiles = []
-
         for i in range(len(start_times)):
             profile_id = i
             proInds = origTz[(origTz[:, 0] >= start_times[i]) & (origTz[:, 0] <= stop_times[i])]
@@ -788,9 +673,24 @@ def get_svg_plot(instrument, stream):
     xvar = request.args.get('xvar', 'time')
     yvar = request.args.get('yvar', None)
 
+    # Prevent processing if yvar is None due to poorly formed request.
+    if yvar is None:
+        message = 'Invalid client request, the yvar is empty or null.'
+        if debug: print '\n debug -- error: ', message
+        return bad_request(message)
+
     # There can be multiple variables so get into a list
     xvar = xvar.split(',')
     yvar = yvar.split(',')
+
+    # Prevent sending same variable more than once
+    var_list = []
+    for var in yvar:
+        if var in var_list:
+            message = 'Duplicate y variable (\'%s\') provided, all three variables must be unique.' % var
+            if debug: print '\n debug -- error: ', message
+            return bad_request(message)
+        var_list.append(var)
 
     if len(instrument) == len(stream):
         pass
@@ -820,14 +720,12 @@ def get_svg_plot(instrument, stream):
 
     profileid = request.args.get('profileId', None)
 
-    # A yvar is required.
-    if yvar is None:
-        message = 'A y variable is required.'
-        return bad_request(message)
-
     # For conversion of the data from pixels to inches for plot
     height = float(request.args.get('height', 100))  # px
-    width = float(request.args.get('width', 100))  # px
+    width = float(request.args.get('width', 100))    # px
+    if debug:
+        print '\n debug -- height: ', height
+        print '\n debug -- width: ', width
     height_in = height / 96.
     width_in = width / 96.
 
@@ -845,17 +743,10 @@ def get_svg_plot(instrument, stream):
             if len(instrument) == 1:
                 if debug: print '\n debug -- Branch 1...'
                 # Plot types 'stacked' or '3d_scatter' add more data. (Review sparse data presentation.)
-                if plot_layout == '3d_scatter' or plot_layout == 'stacked':
-                    # 3D Scatter plot should use a larger number of data points than stacked.
+                if plot_layout == 'stacked':
                     number_of_data_points = 2000
-
-                    # Remove this before committing - testing binned psuedo
-                    #number_of_data_points = 100
-
-
-                    if plot_layout == '3d_scatter':
-                        number_of_data_points = 8000 #number_of_data_points * 4
-
+                elif plot_layout == '3d_scatter':
+                    number_of_data_points = 8000
                 # Get data from uframe.
                 data = get_max_data(stream[0], instrument[0], yvar, xvar, number_of_data_points)
                 #data['number_of_data_points'] = number_of_data_points
@@ -877,7 +768,7 @@ def get_svg_plot(instrument, stream):
                 data = []
     except Exception as err:
         message = str(err)
-        current_app.logger.info(message)
+        #current_app.logger.info(message)
         return bad_request(message)
 
     if not data:
@@ -1182,7 +1073,7 @@ def get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, str
         raise
 
 
-# 3D Scatter and binned data.
+# Get uframe data.
 def get_max_data(stream, instrument, yfields, xfields, number_of_data_points=1000, include_time=True):
     from collections import OrderedDict
     from ooiservices.app.uframe.common_tools import to_bool_str
@@ -1237,7 +1128,6 @@ def get_max_data(stream, instrument, yfields, xfields, number_of_data_points=100
 
     except Exception as err:
         message = str(err)
-        current_app.logger.info(message)
         raise Exception(message)
 
     if debug: print '\n debug -- Step 2 -- have data?, review data......len(data): ', len(data)
@@ -1333,3 +1223,108 @@ def get_max_data(stream, instrument, yfields, xfields, number_of_data_points=100
         message = str(err)
         print '\n (controller.py - get_max_data) Exception: %s' % message
         raise Exception(message)
+
+
+'''
+# Deprecate or move to uframe_tools.py
+# todo: Return exception in consistent manner.
+def get_uframe_streams(mooring, platform, instrument, stream_type):
+    """ Get a list of all the streams.
+    """
+    try:
+        uframe_url, timeout, timeout_read = get_uframe_info()
+        url = '/'.join([uframe_url, mooring, platform, instrument, stream_type])
+        current_app.logger.info("GET %s", url)
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        return response
+    except ConnectionError:
+        message = 'ConnectionError getting uframe streams.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Timeout getting uframe streams.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Exception as err:
+        message = str(err)
+        #return internal_server_error('uframe connection cannot be made.' + str(e.message))
+        return internal_server_error(message)
+
+
+# todo: Return exception in consistent manner.
+def get_uframe_stream(mooring, platform, instrument, stream):
+    """ Get a list the reference designators for the streams.
+    """
+    try:
+        uframe_url, timeout, timeout_read = get_uframe_info()
+        url = "/".join([uframe_url, mooring, platform, instrument, stream])
+        current_app.logger.info("GET %s", url)
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        return response
+    except ConnectionError:
+        message = 'ConnectionError getting uframe stream.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Timeout getting uframe stream.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Exception as e:
+        #return internal_server_error('uframe connection cannot be made.' + str(e.message))
+        return _response_internal_server_error(str(e))
+'''
+
+'''
+def combine_stream_name(mooring, platform, instrument, stream_type, stream):
+    first_part = '-'.join([mooring, platform, instrument])
+    all_of_it = '_'.join([first_part, stream_type, stream])
+    return all_of_it
+'''
+
+'''
+# Deprecate.
+@api.route('/antelope_acoustic/list', methods=['GET'])
+def get_acoustic_datalist():
+    """ Get all available acoustic data sets.
+    """
+    antelope_url = current_app.config['UFRAME_ANTELOPE_URL']
+    r = requests.get(antelope_url)
+    data = r.json()
+
+    for ind, record in enumerate(data):
+        data[ind]['filename'] = record['downloadUrl'].split("/")[-1]
+        data[ind]['startTime'] = data[ind]['startTime'] - COSMO_CONSTANT
+        data[ind]['endTime'] = data[ind]['endTime'] - COSMO_CONSTANT
+
+    try:
+        is_reverse = False
+        if request.args.get('sort') and request.args.get('sort') != "":
+            sort_by = request.args.get('sort')
+            if request.args.get('order') and request.args.get('order') != "":
+                order = request.args.get('order')
+                if order == 'reverse':
+                    is_reverse = True
+        else:
+            sort_by = 'endTime'
+        data = sorted(data, key=itemgetter(sort_by), reverse=is_reverse)
+    except (TypeError, KeyError):
+        raise
+
+    if request.args.get('startAt'):
+        start_at = int(request.args.get('startAt'))
+        count = int(request.args.get('count'))
+        total = int(len(data))
+        retval_slice = data[start_at:(start_at + count)]
+        result = jsonify({"count": count,
+                          "total": total,
+                          "startAt": start_at,
+                          "results": retval_slice})
+        return result
+    else:
+        return jsonify(results=data)
+'''
+
+'''
+def make_cache_key():
+    return urlencode(request.args)
+'''

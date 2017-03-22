@@ -8,13 +8,14 @@ __author__ = 'Edna Donoughe'
 import unittest
 import json
 from base64 import b64encode
-from flask import url_for
 from ooiservices.app import create_app, db
 from ooiservices.app.models import Organization, User, UserScope
-import flask.ext.whooshalchemy as whooshalchemy
-import datetime as dt
+
 
 app = create_app('TESTING_CONFIG')
+#from flask import url_for
+#import flask.ext.whooshalchemy as whooshalchemy
+#import datetime as dt
 #app.config['WHOOSH_BASE'] = 'ooiservices/whoosh_index'
 #whooshalchemy.whoosh_index(app, PlatformDeployment)
 '''
