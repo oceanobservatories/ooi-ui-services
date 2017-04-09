@@ -670,7 +670,7 @@ def get_site_sections(unique_list, return_list):
         # Verify there is something to process.
         if not unique_list or unique_list is None:
             message = 'Unable to process null or empty list to get site sections.'
-            raise Exceptions(message)
+            raise Exception(message)
 
         # Get vocabulary codes to use when processing sections.
         vocab_codes = get_vocab_codes()
@@ -678,16 +678,17 @@ def get_site_sections(unique_list, return_list):
             message = 'Unable to process sites without vocabulary information (codes).'
             raise Exception(message)
 
-        # Get vocabulary dict to use when processing special sections (upper/lower for profiler).
+        # Get vocabulary dict to use when processing special sections (GP upper/lower for profiler).
         vocab_dict = get_vocab()
         if vocab_dict is None:
             message = 'Unable to process special site nodes without vocabulary information (dict).'
             raise Exception(message)
 
-        # Get rd_array to determine if business rule apply).
+        # Get rd_array to determine if business rule apply.
         rd_array = unique_list[0][:2]
         apply_multi_node_rule = False
-        special_node_codes = 'WF'
+        #special_node_codes = 'WF'
+        special_node_codes = ['WF', 'GL']
         if rd_array == 'GP':
             apply_multi_node_rule = True
 
@@ -705,10 +706,15 @@ def get_site_sections(unique_list, return_list):
         section_codes = []
         for item in unique_platforms:
             item = item.replace(rd_root, '')
-            if item[:2] not in section_codes and item[:2] != special_node_codes and not apply_multi_node_rule:
+            #if item[:2] not in section_codes and item[:2] != special_node_codes and not apply_multi_node_rule:
+            if item[:2] not in section_codes and item[:2] not in special_node_codes and not apply_multi_node_rule:
                 section_codes.append(item[:2])
-            elif apply_multi_node_rule and item[:2] == special_node_codes:
+            #elif apply_multi_node_rule and item[:2] == special_node_codes:
+            elif apply_multi_node_rule and item[:2] in special_node_codes:
                 section_codes.append(item[:5])
+            elif item[:2] in special_node_codes:
+                section_codes.append(item[:5])
+                if debug: print '\n debug -- section code (add): ', item[:5]
             elif item[:2] not in section_codes:
                 section_codes.append(item[:2])
 
@@ -760,6 +766,7 @@ def get_site_sections(unique_list, return_list):
             else:
                 # look up node code value for instrument from vocab_dict.
                 code_value = rd_root + code
+                if debug: print '\n debug -- code value: ', code_value
                 if code_value in vocab_dict:
                     header['title'] = vocab_dict[code_value]['name']
 
@@ -774,6 +781,7 @@ def get_site_sections(unique_list, return_list):
             section['header'] = header
             section_code = header['code']
             prefix = rd_root + section_code
+            if debug: print '\n debug -- processing prefix: ', prefix
             cart = []
             for item in return_list:
                 if item['reference_designator'] not in instruments:

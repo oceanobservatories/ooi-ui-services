@@ -211,6 +211,8 @@ def create_annotation():
         data = request.get_json()
         if 'source' not in data:
             data['source'] = None
+        if 'parameters' in data and not data['parameters']:
+            data['parameters'] = None
         data = remap_ui_to_uframe(data)
         if validate_anno_record(data):
             response = requests.post(get_annotations_base_url(), json=data, timeout=10)
@@ -235,13 +237,15 @@ def edit_annotation(annotation_id):
     """
     try:
         data = request.get_json()
+        if 'parameters' in data and not data['parameters']:
+            data['parameters'] = None
         data = remap_ui_to_uframe(data)
         if 'source' not in data:
             data['source'] = None
         if validate_anno_record(data):
             url = '/'.join((get_annotations_base_url(), annotation_id))
             response = requests.put(url, json=data, timeout=10)
-            if response.status_code != 201:
+            if response.status_code != 200:
                 message = 'Failed to update annotation.'
                 raise Exception(message)
             return response.text, response.status_code, dict(response.headers)
