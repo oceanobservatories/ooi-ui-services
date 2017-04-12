@@ -818,7 +818,8 @@ def get_svg_plot(instrument, stream):
                     'width_in': width_in,
                     'use_qaqc': qaqc,
                     'st_date': request.args['startdate'],
-                    'ed_date': request.args['enddate']}
+                    'ed_date': request.args['enddate'],
+                    'rd': instrument[0]}
 
     try:
         # Check data before requesting plot

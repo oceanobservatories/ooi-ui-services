@@ -56,9 +56,11 @@ def generate_plot(data, plot_options):
     width_in = plot_options['width_in']
     use_scatter = plot_options['use_scatter']
     plot_qaqc = plot_options['use_qaqc']
+    reference_designator = plot_options['rd']
     if debug:
         print '\n debug -- use_scatter: ', use_scatter
         print '\n debug -- plot_qaqc: ', plot_qaqc
+        print '\n debug -- rd: ', reference_designator
 
     # Generate the plot figure and axes
     is_timeseries = False
@@ -325,8 +327,9 @@ def generate_plot(data, plot_options):
 
         sample: http://localhost:5000/data_access/#GI01SUMO-RII11-02-ADCPSN010/telemetered_adcps-jln-stc-instrument
         """
-        print '\n-- Plotting  Stacked'
-
+        if debug:
+            print '\n-- Plotting  Stacked'
+            print '\n-- Plotting  Stacked - reference designator: ', reference_designator
         #- - - - - - - - - - - - - - - - - - -
         # Get labels using preload information (default to system parameter name and units)
         #- - - - - - - - - - - - - - - - - - -
@@ -351,29 +354,48 @@ def generate_plot(data, plot_options):
         if debug: print '\n debug -- Plotting  Stacked: Get time...'
         time = mdates.date2num(data['x']['time'])
         plot_parameter = data['y_field'][0]
-        if isinstance(data['y'][plot_parameter], list):
+        if isinstance(data['y'][plot_parameter][0], list):
             if debug:
                 print '\n debug -- Plotting  Stacked: Get z...'
                 print '\n debug -- Plotting Stacked: Parameter \'%s\' available in data[y].' % plot_parameter
                 print '\n debug -- Plotting Stacked: Parameter type \'%s\': %s ' % \
                                         (plot_parameter, str(type(data['y'][plot_parameter])))
                 print '\n debug -- Plotting Stacked: Number of data items: %d' % len(data['y'][plot_parameter])
+                print '\n debug -- Plotting Stacked: [0]: ', data['y'][plot_parameter][0]
+                print '\n debug -- Plotting Stacked: [1]: ', data['y'][plot_parameter][1]
+                print '\n debug -- Plotting Stacked: len(data[y][plot_parameter]): ', len(data['y'][plot_parameter])
 
             # Original
             z = np.array(data['y'][data['y_field'][0]])
-            ooi_plots.plot_stacked_time_series(fig, ax, time, np.arange(len(z[0]))[::-1], z.transpose(),
+            if '-SPKIR' in reference_designator:
+                if debug:
+                    print '\n debug -- Dealing with SPKIR.....'
+                    print '\n debug -- SPIKR - type(z): ', str(type(z))
+                    print '\n debug -- SPKIR - np.arange(len(z[0]))[::-1]: ', np.arange(len(z[0]))[::-1]
+                ooi_plots.plot_stacked_time_series_spkir(fig, ax, time, np.arange(len(z[0]))[::-1], z.transpose(),
                                            title=data['title'],
                                            ylabel='Bin #',
                                            cbar_title=label,
                                            title_font=title_font,
                                            axis_font=axis_font,
                                            tick_font=tick_font)
+
+            else:
+                #print '\n debug -- NOT dealing with SPKIR......(ADCP)...'
+                ooi_plots.plot_stacked_time_series(fig, ax, time, np.arange(len(z[0]))[::-1], z.transpose(),
+                                           title=data['title'],
+                                           ylabel='Bin #',
+                                           cbar_title=label,
+                                           title_font=title_font,
+                                           axis_font=axis_font,
+                                           tick_font=tick_font)
+
         else:
             if debug:
                 print '\n debug -- Plotting  Stacked: str(type(data[y][plot_parameter])): ', \
                                                                       str(type(data['y'][plot_parameter]))
-                message = 'Fix this...'
-                raise Exception(message)
+            message = 'Unable to provide binned pseudo color plot for %s at this time.' % reference_designator
+            raise Exception(message)
 
     elif plot_layout == '3d_scatter':
         """
