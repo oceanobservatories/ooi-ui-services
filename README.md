@@ -1,3 +1,4 @@
+[![Stories in Ready](https://badge.waffle.io/asascience-open/ooi-ui-services.png?label=ready&title=Ready)](https://waffle.io/asascience-open/ooi-ui-services)
 [![Build Status](https://travis-ci.org/asascience-open/ooi-ui-services.svg?branch=master)](https://travis-ci.org/asascience-open/ooi-ui-services)
 
 ooi-ui-services
