@@ -1263,6 +1263,8 @@ def streams_list():
                         ven_subset.append(item)
                     elif subset.lower() in str(item['parameter_display_name']).lower():
                         ven_subset.append(item)
+                    elif subset.lower() in str(item['parameter_id']).lower():
+                        ven_subset.append(item)
                     elif subset.lower() in str(item['long_display_name']).lower():
                         ven_subset.append(item)
                 retval = ven_subset
@@ -1279,6 +1281,8 @@ def streams_list():
                     elif subset.lower() in str(item['reference_designator']).lower():
                         return_list.append(item)
                     elif subset.lower() in str(item['parameter_display_name']).lower():
+                        return_list.append(item)
+                    elif subset.lower() in str(item['parameter_id']).lower():
                         return_list.append(item)
                     elif subset.lower() in str(item['stream_name']).lower():
                         return_list.append(item)
