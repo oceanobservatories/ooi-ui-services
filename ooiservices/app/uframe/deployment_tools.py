@@ -7,18 +7,16 @@ __author__ = 'Edna Donoughe'
 
 from flask import current_app
 from ooiservices.app.uframe.config import (get_deployments_url_base, get_uframe_deployments_info)
-from ooiservices.app.uframe.vocab import (get_vocab_dict_by_rd, get_rs_array_name_by_rd, get_display_name_by_rd)
-from ooiservices.app.uframe.toc_tools import (get_toc_reference_designators)
-from ooiservices.app.uframe.common_tools import (is_instrument, is_platform, is_mooring,get_location_fields, scrub_list)
+from ooiservices.app.uframe.common_tools import (is_instrument, is_platform, is_mooring,get_location_fields)
+from ooiservices.app.uframe.vocab import (get_vocab_dict_by_rd, get_rs_array_name_by_rd,
+                                          get_display_name_by_rd, get_vocab)
 from ooiservices.app.uframe.uframe_tools import (uframe_get_deployment_inv, uframe_get_deployment_inv_nodes,
-                                                 uframe_get_deployment_inv_sensors, compile_deployment_rds,
-                                                 get_deployments_digest_by_uid)
+                                                 uframe_get_deployment_inv_sensors, get_deployments_digest_by_uid)
+
 import requests
 import requests.exceptions
 from requests.exceptions import (ConnectionError, Timeout)
 from copy import deepcopy
-from operator import itemgetter
-import datetime as dt
 
 
 def format_deployment_for_ui(modified_deployment):
@@ -139,175 +137,6 @@ def format_deployment_for_ui(modified_deployment):
         message = str(err)
         raise Exception(message)
 
-'''
-# Deprecate
-def _compile_rd_assets():
-    """ Get dictionary, keyed by reference designator, holding reference maps for deployments and asset_ids.
-    This supports all reference designators referenced in /sensor/inv/toc structure; On error, log and raise exception.
-    Note: All reference designators are determined from toc structure and not just what /sensor/inv/toc provides.
-    """
-    time = True
-    result = {}
-    try:
-        start = dt.datetime.now()
-        if time:
-            print '\n\t-- Compile rd_assets '
-            print '\t\t-- Start time: ', start
-        reference_designators, toc_only, difference  = get_toc_reference_designators()
-        if reference_designators and toc_only:
-            result = get_rd_assets(reference_designators)
-
-        if time:
-            end = dt.datetime.now()
-            print '\t\t-- End time:   ', end
-            print '\t\t-- Time to compile rd_assets: %s' % str(end - start)
-        return result
-
-    except Exception as err:
-        message = err.message
-        current_app.logger.info(message)
-        return {}
-
-
-# Deprecate
-def get_rd_assets(reference_designators):
-    """ Create rd_asset dictionary for reference designators provided.
-    """
-    debug = False
-    result = {}
-    try:
-        for rd in reference_designators:
-            try:
-                # If reference designator for instrument, get dictionary map to add to result
-                if (is_instrument(rd)):
-                    if rd not in result:
-                        work = get_instrument_deployment_work(rd)
-                        if work:
-                            if work['asset_ids']:       # work['asset_ids_by_type']
-                                result[rd] = work
-                    else:
-                        if debug: print '\n debug -- instrument rd %s is a duplicate in reference_designators!' % rd
-
-                elif(is_mooring(rd)):
-                    if rd not in result:
-                        work = get_mooring_deployment_work(rd)
-                        if work:
-                            result[rd] = work
-                    else:
-                        if debug: print '\n debug -- mooring rd %s is a duplicate in reference_designators!' % rd
-
-                elif (is_platform(rd)):
-                    if rd not in result:
-                        work = get_platform_deployment_work(rd)
-                        if work:
-                            result[rd] = work
-                    else:
-                        if debug: print '\n debug -- platform rd %s is a duplicate in reference_designators!' % rd
-                else:
-                    if debug: print '\n debug -- %s not instrument, platform or mooring...' % rd
-
-            except Exception as err:
-                message = 'Exception raised in get_rd_assets: %s' % str(err)
-                raise Exception(message)
-        return result
-
-    except Exception as err:
-        message = err.message
-        current_app.logger.info(message)
-        return {}
-
-
-# Deprecate
-def get_instrument_deployments_list(rd):
-    """ Get list of deployments for instrument rd.
-    """
-    check = False
-    result = []
-    try:
-        # Verify rd is valid format
-        if not(is_instrument(rd)):
-            return result
-
-        # Process rd into query_rd for deployments request
-        subsite, node, sensor = rd.split('-', 2)
-        query_rd = '/'.join([subsite, node, sensor])
-
-        # Get uframe deployments request variables
-        uframe_url, timeout, timeout_read = get_uframe_deployments_info()
-
-        # Build uframe url: host:port/events/deployment/inv/mooring/node/sensor
-        url = '/'.join([uframe_url, get_deployments_url_base(), 'inv', query_rd])
-        if check: print '\n check -- [get_instrument_deployments_list] url: ', url
-
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        if response.status_code != 200:
-            message = '(%d) Failed to get deployments list from uframe for %r.' % (response.status_code, rd)
-            current_app.logger.info(message)
-            raise Exception(message)
-
-        result = response.json()
-        return result
-
-    except ConnectionError:
-        message = 'ConnectionError uframe getting instrument %s deployments.' % rd
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout:
-        message = 'Timeout uframe getting instrument %s deployments.' % rd
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Exception as err:
-        message = str(err)
-        print '\n-- [get_instrument_deployments_list]: ', message
-        current_app.logger.info(message)
-        return None
-
-
-# Deprecate
-def get_instrument_deployments(rd):
-    """ Get all deployments for instrument rd.
-
-    Use: http://host:12587/deployments/inv/CE05MOAS/GL326/04-DOSTAM000/-1
-    """
-    check = False
-    result = []
-    try:
-        # Verify rd is valid format
-        if not(is_instrument(rd)):
-            return result
-
-        # Process rd into query_rd for deployments request
-        subsite, node, sensor = rd.split('-', 2)
-        query_rd = '/'.join([subsite, node, sensor])
-
-        # Get uframe deployments request variables
-        uframe_url, timeout, timeout_read = get_uframe_deployments_info()
-        #url = '/'.join([uframe_url, 'deployments', 'inv', query_rd, '-1'])
-        url = '/'.join([uframe_url, get_deployments_url_base(), 'inv', query_rd, '-1'])
-        if check: print '\n check -- [get_instrument_deployments] url: ', url
-
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        if response.status_code != 200:
-            message = '(%d) Failed to get all deployments from uframe for  %r.' % (response.status_code, rd)
-            current_app.logger.info(message)
-            raise Exception(message)
-
-        result = response.json()
-        return result
-
-    except ConnectionError:
-        message = 'ConnectionError uframe get_instrument_deployments for %s.' % rd
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout:
-        message = 'Timeout uframe get_instrument_deployments for %s.' % rd
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        raise Exception(message)
-'''
 
 def get_rd_deployments(rd):
     """ Get all deployments for reference designator, whether mooring, platform or instrument.
@@ -463,672 +292,6 @@ def get_rd_deployment(rd, deployment_number):
         current_app.logger.info(message)
         return []
 
-'''
-# Deprecate
-def get_mooring_deployments_list(rd):
-    """ Get list of deployments for mooring reference designator.
-    """
-    result = []
-    results = {}
-    try:
-        # Verify rd is valid format
-        if not(is_mooring(rd)):
-            return result, results
-
-        # Get all deployments associated with this mooring rd
-        mooring_deployments = get_rd_deployments(rd)
-        if not mooring_deployments or mooring_deployments is None:
-            # If no deployments, return empty result and results ([], {})
-            return result, results
-
-        deployments_list = []
-        all_asset_ids = []
-        results = {}
-        results['asset_ids'] = []
-        results['asset_ids_by_type'] = {'sensor': [], 'mooring': [], 'node': []}
-        for item in mooring_deployments:
-            info = {}
-            info['asset_ids'] = []
-            info['asset_ids_by_type'] = {'sensor': [], 'mooring': [], 'node': []}
-            deployment_asset_ids = []
-            deployment_number = None
-            if 'deploymentNumber' in item:
-                deployment_number = item['deploymentNumber']
-
-            location = None
-            if 'location' in item:
-                location = item['location']
-
-            # Get deployment beginDT and endDT
-            beginDT = None
-            if 'eventStartTime' in item:
-                beginDT = item['eventStartTime']
-
-            endDT = None
-            if 'eventStopTime' in item:
-                endDT = item['eventStopTime']
-
-            eventId = None
-            if 'eventId' in item:
-                eventId = item['eventId']
-
-            # Added 2016-10-18
-            versionNumber = None
-            if 'versionNumber' in item:
-                versionNumber = item['versionNumber']
-
-            asset_id = None
-            if 'mooring' in item:
-                # Get 'mooring' component from item, check it empty or None.
-                _item = item['mooring']
-                if not _item or _item is None:
-                    #return [], {}
-                    continue
-
-                # Process 'node' attribute in this deployment item.
-                if 'assetId' in _item:
-                    if _item['assetId']:
-                        asset_id = _item['assetId']
-                        if asset_id not in all_asset_ids:
-                            all_asset_ids.append(asset_id)
-                if deployment_number:
-                    if asset_id:
-                        if asset_id not in deployment_asset_ids:
-                            deployment_asset_ids.append(asset_id)
-
-                    info[deployment_number] = {}
-                    info[deployment_number]['asset_ids_by_type'] = {'sensor': [], 'mooring': deployment_asset_ids, 'node': []}
-                    if deployment_number not in deployments_list:
-                        deployments_list.append(deployment_number)
-
-                    # Processing deployment location and times...
-                    # Valuable luggage
-                    info[deployment_number]['location'] = location
-                    info[deployment_number]['beginDT'] = beginDT
-                    info[deployment_number]['endDT'] = endDT
-                    info[deployment_number]['eventId'] = eventId
-                    info[deployment_number]['versionNumber'] = versionNumber        # Added 2016-10-18
-
-                    if deployment_asset_ids:
-                        deployment_asset_ids.sort()
-                    info[deployment_number]['asset_ids'] = deployment_asset_ids
-
-            if info:
-                results.update(info)
-
-        if all_asset_ids:
-            all_asset_ids.sort()
-        result = deployments_list
-        results['deployments'] = deployments_list
-        results['asset_ids'] = all_asset_ids
-        results['asset_ids_by_type'] = {'sensor': [], 'mooring': all_asset_ids, 'node': []}
-        if deployments_list:
-            deployments_list.sort(reverse=True)
-
-        return result, results
-
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return None, None
-
-
-# Deprecate
-def get_platform_deployments_list(rd):
-    """ Get list of deployments for mooring reference designator.
-    """
-    result = []
-    results = {}
-    try:
-        # Verify rd is valid format
-        if not(is_platform(rd)):
-            return result, results
-
-        # Get all deployments associated with this platform rd
-        platform_deployments = get_rd_deployments(rd)
-        if not platform_deployments or platform_deployments is None:
-            # If no deployments, return empty result and results ([], {})
-            return result, results
-        deployments_list = []
-        all_asset_ids = []
-        results = {}
-        results['asset_ids'] = []
-        results['asset_ids_by_type'] = {'sensor': [], 'mooring': [], 'node': []}
-
-        for item in platform_deployments:
-            info = {}
-            info['asset_ids'] = []
-            info['asset_ids_by_type'] = {'sensor': [], 'mooring': [], 'node': []}
-            deployment_asset_ids = []
-            deployment_number = None
-            if 'deploymentNumber' in item:
-                deployment_number = item['deploymentNumber']
-
-            location = None
-            if 'location' in item:
-                location = item['location']
-
-            # Get deployment beginDT and endDT
-            beginDT = None
-            if 'eventStartTime' in item:
-                beginDT = item['eventStartTime']
-
-            endDT = None
-            if 'eventStopTime' in item:
-                endDT = item['eventStopTime']
-
-            eventId = None
-            if 'eventId' in item:
-                eventId = item['eventId']
-
-            # Added 2016-10-18
-            versionNumber = None
-            if 'versionNumber' in item:
-                versionNumber = item['versionNumber']
-
-            asset_id = None
-            if 'node' in item:
-
-                # Get 'node' component from item, check it empty or None.
-                _item = item['node']
-                if not _item or _item is None:
-                    #return [], {}
-                    continue
-
-                # Process 'node' attribute in this deployment item.
-                if 'assetId' in _item:
-                    if _item['assetId']:
-                        asset_id = _item['assetId']
-                        if asset_id not in all_asset_ids:
-                            all_asset_ids.append(asset_id)
-
-                if deployment_number:
-                    if asset_id:
-                        if asset_id not in deployment_asset_ids:
-                            deployment_asset_ids.append(asset_id)
-
-                    info[deployment_number] = {}
-                    info[deployment_number]['asset_ids_by_type'] = {'sensor': [], 'mooring': [], 'node': deployment_asset_ids}
-                    if deployment_number not in deployments_list:
-                        deployments_list.append(deployment_number)
-
-                    # Valuable luggage
-                    info[deployment_number]['location'] = location
-                    info[deployment_number]['beginDT'] = beginDT
-                    info[deployment_number]['endDT'] = endDT
-                    info[deployment_number]['eventId'] = eventId
-                    info[deployment_number]['versionNumber'] = versionNumber    # Added 2016-10-18
-                    if deployment_asset_ids:
-                        deployment_asset_ids.sort()
-                    info[deployment_number]['asset_ids'] = deployment_asset_ids
-
-            if info:
-                results.update(info)
-
-        if all_asset_ids:
-            all_asset_ids.sort()
-        result = deployments_list
-        results['deployments'] = deployments_list
-        results['asset_ids'] = all_asset_ids
-        results['asset_ids_by_type'] = {'sensor': [], 'mooring': [], 'node': all_asset_ids}
-        return result, results
-
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return None, None
-
-
-# Deprecate
-def get_deployment_asset_ids(deployment):
-    """
-    "referenceDesignator" :
-        {
-            "node" : "SP001",
-            "full" : true,
-            "subsite" : "CE01ISSP",
-            "sensor" : "10-PARADJ000"
-        },
-
-    Sample deployment for reference designator CE01ISSP-SP001-10-PARADJ000:
-    request:
-        http://host:12587/deployments/inv/CE01ISSP/SP001/10-PARADJ000/1
-
-    response:
-        [{
-          "@class" : ".XDeployment",
-          "location" : {
-            "depth" : 0.0,
-            "location" : [ -124.09817, 44.6584 ],
-            "longitude" : -124.09817,
-            "latitude" : 44.6584,
-            "orbitRadius" : 0.0
-          },
-          "node" : {
-            "@class" : ".XNode",
-            "events" : [ ],
-            "assetId" : 3626,
-            "serialNumber" : "WLP-001",
-            "name" : "WLP-001",
-            "location" : null,
-            "description" : "Profiler, Coastal Surface Piercing",
-            "physicalInfo" : {
-              "height" : -1.0,
-              "width" : -1.0,
-              "length" : -1.0,
-              "weight" : -1.0
-            },
-            "uid" : "N00121",
-            "assetType" : "Node",
-            "mobile" : false,
-            "manufacturer" : "Wet Labs",
-            "modelNumber" : "FAS-540601",
-            "purchasePrice" : 29334.99,
-            "purchaseDate" : 0,
-            "deliveryDate" : null,
-            "depthRating" : null,
-            "dataSource" : "/home/asadev/uframes/uframe_ooi_20160616_ba553c7c2ce211a96098ac6db8d9b21688da8a7b/uframe-1.0/edex/data/ooi/xasset_spreadsheet/bulk_load-AssetRecord.csv",
-            "lastModifiedTimestamp" : 1467039100489
-          },
-          "sensor" : {
-            "@class" : ".XInstrument",
-            "calibration" : [ {
-              "@class" : ".XCalibration",
-              "name" : "CC_a0",
-              "calData" : [ {
-                "@class" : ".XCalibrationData",
-                "values" : [ 4381.0 ],
-                "dimensions" : [ 1 ],
-                "cardinality" : 0,
-                "comments" : null,
-                "eventId" : 9951,
-                "eventType" : "CALIBRATION_DATA",
-                "eventName" : "CC_a0",
-                "eventStartTime" : 1388534400000,
-                "eventStopTime" : 1433077199000,
-                "tense" : null,
-                "dataSource" : null,
-                "lastModifiedTimestamp" : 1467039232517
-              } ]
-            }, {
-              "@class" : ".XCalibration",
-              "name" : "CC_Im",
-              "calData" : [ {
-                "@class" : ".XCalibrationData",
-                "values" : [ 1.3589 ],
-                "dimensions" : [ 1 ],
-                "cardinality" : 0,
-                "comments" : null,
-                "eventId" : 9952,
-                "eventType" : "CALIBRATION_DATA",
-                "eventName" : "CC_Im",
-                "eventStartTime" : 1388534400000,
-                "eventStopTime" : 1433077199000,
-                "tense" : null,
-                "dataSource" : null,
-                "lastModifiedTimestamp" : 1467039232517
-              } ]
-            }, {
-              "@class" : ".XCalibration",
-              "name" : "CC_a1",
-              "calData" : [ {
-                "@class" : ".XCalibrationData",
-                "values" : [ 2904.0 ],
-                "dimensions" : [ 1 ],
-                "cardinality" : 0,
-                "comments" : null,
-                "eventId" : 9953,
-                "eventType" : "CALIBRATION_DATA",
-                "eventName" : "CC_a1",
-                "eventStartTime" : 1388534400000,
-                "eventStopTime" : 1433077199000,
-                "tense" : null,
-                "dataSource" : null,
-                "lastModifiedTimestamp" : 1467039232517
-              } ]
-            } ],
-            "events" : [ ],
-            "assetId" : 1850,
-            "serialNumber" : "365",
-            "name" : "365",
-            "location" : null,
-            "description" : "PARAD for WLP-001",
-            "physicalInfo" : {
-              "height" : -1.0,
-              "width" : -1.0,
-              "length" : -1.0,
-              "weight" : -1.0
-            },
-            "uid" : "N00595",
-            "assetType" : "Sensor",
-            "mobile" : false,
-            "manufacturer" : null,
-            "modelNumber" : null,
-            "purchasePrice" : 6775.0,
-            "purchaseDate" : 0,
-            "deliveryDate" : null,
-            "depthRating" : null,
-            "dataSource" : "/home/asadev/uframes/uframe_ooi_20160616_ba553c7c2ce211a96098ac6db8d9b21688da8a7b/uframe-1.0/edex/data/ooi/xasset_spreadsheet/bulk_load-AssetRecord.csv",
-            "lastModifiedTimestamp" : 1467039089905
-          },
-          "referenceDesignator" : {
-            "node" : "SP001",
-            "full" : true,
-            "subsite" : "CE01ISSP",
-            "sensor" : "10-PARADJ000"
-          },
-          "mooring" : {
-            "@class" : ".XMooring",
-            "events" : [ ],
-            "assetId" : 3082,
-            "serialNumber" : "CE01ISSP-00001",
-            "name" : "CE01ISSP-00001",
-            "location" : null,
-            "description" : "MOORING ENDURANCE IS PROFILER",
-            "physicalInfo" : {
-              "height" : -1.0,
-              "width" : -1.0,
-              "length" : -1.0,
-              "weight" : -1.0
-            },
-            "uid" : "N00262",
-            "assetType" : "Mooring",
-            "mobile" : false,
-            "manufacturer" : "WHOI",
-            "modelNumber" : "CE01ISSP",
-            "purchasePrice" : 19920.0,
-            "purchaseDate" : 0,
-            "deliveryDate" : null,
-            "depthRating" : null,
-            "dataSource" : "/home/asadev/uframes/uframe_ooi_20160616_ba553c7c2ce211a96098ac6db8d9b21688da8a7b/uframe-1.0/edex/data/ooi/xasset_spreadsheet/bulk_load-AssetRecord.csv",
-            "lastModifiedTimestamp" : 1467039096977
-          },
-          "deploymentNumber" : 1,
-          "versionNumber" : 1,
-          "ingestInfo" : [ {
-            "@class" : ".IngestInfo",
-            "id" : 10719,
-            "ingestMethod" : "telemetered",
-            "ingestQueue" : "Ingest.parad-j-cspp_telemetered",
-            "ingestPath" : "/omc_data/whoi/OMC/CE01ISSP/D00001/extract/",
-            "ingestMask" : "ucspp_*_PPD_PARS.txt"
-          }, {
-            "@class" : ".IngestInfo",
-            "id" : 10720,
-            "ingestMethod" : "recovered_cspp",
-            "ingestQueue" : "Ingest.parad-j-cspp_recovered",
-            "ingestPath" : "/omc_data/whoi/OMC/CE01ISSP/R00001/extract/",
-            "ingestMask" : "ucspp_*_PPB_PARS.txt"
-          } ],
-          "eventId" : 10718,
-          "eventType" : "DEPLOYMENT",
-          "eventName" : "CE01ISSP-SP001-10-PARADJ000",
-          "eventStartTime" : 1397773200000,
-          "eventStopTime" : 1429228800000,
-          "tense" : null,
-          "dataSource" : null,
-          "lastModifiedTimestamp" : 1467039270676
-        }]
-    """
-    required_deployment_attributes = ['mooring', 'node', 'sensor',
-                                      'deploymentNumber', 'versionNumber', 'ingestInfo',
-                                      'eventId', 'eventType', 'eventName',
-                                      'eventStartTime', 'eventStopTime', 'dataSource',
-                                      'lastModifiedTimestamp']
-    required_referenceDesignator_attributes = ['subsite', 'node', 'sensor']
-    asset_ids_by_type = {'sensor': [], 'mooring': [], 'node': []}
-    result = {}
-    try:
-        # Check parameter
-        if not deployment or deployment is None:
-            return result
-
-        # Check deployment content for 'referenceDesignator'
-        if 'referenceDesignator' not in deployment:
-            return result
-
-        # Build rd from 'referenceDesignator' values (use this to check integrity of deployment data
-        ref_des = deployment['referenceDesignator']
-        if not ref_des:
-            return result
-
-        # Check format/structure of deployment['referenceDesignator'] for required attributes
-        for item in required_referenceDesignator_attributes:
-            if item not in ref_des:
-                return result
-
-        # Get asset ids for mooring, node and sensor; for each mooring, node or sensor there shall be one assetId.
-        ids = []
-        if 'sensor' in deployment:
-            if deployment['sensor']:
-                sensor_id = deployment['sensor']['assetId']
-                if sensor_id is not None:
-                    if sensor_id not in ids:
-                        ids.append(sensor_id)
-                    asset_ids_by_type['sensor'] = [sensor_id]           # ******
-        if 'mooring' in deployment:
-            if deployment['mooring']:
-                mooring_id = deployment['mooring']['assetId']
-                if mooring_id is not None:
-                    if mooring_id not in ids:
-                        ids.append(mooring_id)
-                    asset_ids_by_type['mooring'] = [mooring_id]         # ******
-        if 'node' in deployment:
-            if deployment['node']:
-                node_id = deployment['node']['assetId']
-                if node_id is not None:
-                    if node_id not in ids:
-                        ids.append(node_id)
-                    asset_ids_by_type['node'] = [node_id]               # ******
-
-        if ids:
-            ids.sort()
-        result['asset_ids'] = ids
-        result['asset_ids_by_type'] = asset_ids_by_type
-        return result
-
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return result
-
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-# Deprecate
-def get_instrument_deployment_work(rd):
-    """ Create instrument deployment information breakout. Return dict or empty dict. Log exceptions.
-    """
-    test = False
-    work = {}
-    try:
-        # Create dictionary container for unique asset_ids (key) where value is deployment number
-        work['asset_ids'] = {}
-        work['current_deployment'] = None
-        work['deployments'] = []
-
-        # Get deployments list for reference designator
-        _deployments_list = get_instrument_deployments_list(rd)
-        _deployments_list.sort(reverse=True)
-        deployments_list = []
-        for d in _deployments_list:
-            deployments_list.append(int(str(d)))
-        work['deployments'] = deployments_list
-
-        # Determine current deployment number, if no deployments then None
-        current_deployment_number = None
-        if deployments_list:
-            current_deployment_number = deployments_list[0]
-        work['current_deployment'] = current_deployment_number
-
-        # If deployments, process all deployments for: location info, asset ids.
-        if deployments_list:
-
-            # Get all deployments for reference designator
-            deployments = get_instrument_deployments(rd)
-            if deployments is None:
-                #continue
-                message = 'Failed to get deployments for %s from uframe.' % rd
-                current_app.logger.info(message)
-                return work
-
-            # For each deployment number, create dictionary map of deployment data
-            for deployment in deployments:
-
-                # Get deployment number, create container for deployment number
-                deployment_number = deployment['deploymentNumber']
-                if test:
-                    if deployment_number in work:
-                        versionNumber = deployment['versionNumber']
-                        print '\n test/debug -- (current) rd %s deployment number %d' % (rd, deployment_number)
-                        print '\n test/debug -- (current) version %d' % versionNumber
-                        print '\n test/debug -- (previous) version %d' % work[deployment_number]['versionNumber']
-                        if versionNumber < work[deployment_number]['versionNumber']:
-                            print '\n debug -- Skip version number %d, use previous version number %d' % \
-                                  (versionNumber, work[deployment_number]['versionNumber'])
-                        else:
-                            print '\n Use CURRENT version number %d instead of previous version %d' % \
-                                    (versionNumber, work[deployment_number]['versionNumber'])
-                work[deployment_number] = {}
-
-                # Get deployment beginDT, endDT and eventId
-                work[deployment_number]['beginDT'] = deployment['eventStartTime']
-                work[deployment_number]['endDT'] = deployment['eventStopTime']
-                work[deployment_number]['eventId'] = deployment['eventId']
-                work[deployment_number]['versionNumber'] = deployment['versionNumber'] # Added 2016-10-18
-                work[deployment_number]['asset_ids'] = []
-
-                # Get location for this deployment
-                work[deployment_number]['location'] = deployment['location']
-
-                # Get asset ids for this deployment - all and by type dict
-                work[deployment_number]['asset_ids'] = []
-                work[deployment_number]['asset_ids_by_type'] = {'sensor': [], 'mooring': [], 'node': []}
-                info = get_deployment_asset_ids(deployment)
-                if info:
-                    work[deployment_number]['asset_ids'] = info['asset_ids']
-                    work[deployment_number]['asset_ids_by_type'] = info['asset_ids_by_type']
-
-            # Process work dictionary for all asset_ids and all asset_ids_by_type
-            all_asset_ids = []
-            all_asset_ids_by_type = {'sensor': [], 'mooring': [], 'node': []}
-            all_sensor_ids = []
-            all_mooring_ids = []
-            all_node_ids = []
-
-            for index in deployments_list:
-
-                # Process the deployment work info
-                if work[index]:
-                    # Process all asset_ids
-                    #all_asset_ids = all_asset_ids + work[index]['asset_ids']   # leaves dups
-                    for id in work[index]['asset_ids']:
-                        if id not in all_asset_ids:
-                            all_asset_ids.append(id)
-                    all_asset_ids.sort()
-
-                    # Process asset_ids_by_type, accumulate for summary dict all_asset_ids_by_type
-                    if work[index]['asset_ids_by_type']['sensor'] not in all_sensor_ids:
-                        all_sensor_ids = all_sensor_ids + work[index]['asset_ids_by_type']['sensor']
-                    if work[index]['asset_ids_by_type']['mooring'] not in all_mooring_ids:
-                        all_mooring_ids = all_mooring_ids + work[index]['asset_ids_by_type']['mooring']
-                    if work[index]['asset_ids_by_type']['node'] not in all_node_ids:
-                        all_node_ids = all_node_ids + work[index]['asset_ids_by_type']['node']
-
-            # ensure no duplicates.
-            all_asset_ids_by_type['sensor'] = scrub_list(all_sensor_ids)
-            all_asset_ids_by_type['mooring'] = scrub_list(all_mooring_ids)
-            all_asset_ids_by_type['node'] = scrub_list(all_node_ids)
-
-            if all_asset_ids:
-                all_asset_ids.sort()
-            work['asset_ids'] = all_asset_ids
-            work['asset_ids_by_type'] = all_asset_ids_by_type
-
-        return work
-
-    except Exception as err:
-        message = err.message
-        current_app.logger.info(message)
-        return {}
-
-
-# Deprecate
-def get_mooring_deployment_work(rd):
-    """ Create mooring deployment information breakout. Return dict or empty dict. Log exceptions.
-    """
-    try:
-        # Get deployments list for mooring and process deployment information
-        _deployments_list, work = get_mooring_deployments_list(rd)
-
-        #If no deployment information, return empty dict {}
-        if not _deployments_list or _deployments_list is None:
-            return {}
-
-        _deployments_list.sort(reverse=True)
-        deployments_list = []
-        for d in _deployments_list:
-            deployments_list.append(int(str(d)))
-        work['deployments'] = deployments_list
-
-        # Determine current deployment number, if no deployments then None
-        current_deployment_number = None
-        if deployments_list:
-            current_deployment_number = deployments_list[0]
-        work['current_deployment'] = current_deployment_number
-        return work
-
-    except ConnectionError:
-        message = 'ConnectionError in get_mooring_deployment_work.'
-        current_app.logger.info(message)
-        return {}
-    except Timeout:
-        message = 'Timeout in get_mooring_deployment_work.'
-        current_app.logger.info(message)
-        return {}
-    except Exception as err:
-        message = err.message
-        current_app.logger.info(message)
-        return {}
-
-
-# Deprecate
-def get_platform_deployment_work(rd):
-    """ Create platform deployment information breakout. Return dict or empty dict. Log exceptions.
-    """
-    try:
-        # Get deployments list for mooring and process deployment information
-        _deployments_list, work = get_platform_deployments_list(rd)
-
-        #If no deployment information, return empty dict {}
-        if not _deployments_list or _deployments_list is None:
-            return {}
-
-        _deployments_list.sort(reverse=True)
-        deployments_list = []
-        for d in _deployments_list:
-            deployments_list.append(int(str(d)))
-        work['deployments'] = deployments_list
-
-        # Determine current deployment number, if no deployments then None
-        current_deployment_number = None
-        if deployments_list:
-            current_deployment_number = deployments_list[0]
-        work['current_deployment'] = current_deployment_number
-        return work
-
-    except ConnectionError:
-        message = 'ConnectionError in get_platform_deployment_work.'
-        current_app.logger.info(message)
-        return {}
-    except Timeout:
-        message = 'Timeout in get_platform_deployment_work.'
-        current_app.logger.info(message)
-        return {}
-    except Exception as err:
-        message = err.message
-        current_app.logger.info(message)
-        return {}
-'''
 
 def _get_deployment_subsites():
     """ Get deployment inventory for subsites.
@@ -1285,7 +448,7 @@ def get_vocab_info(rd):
         return results
 
 
-# Get list of deployments, return formatted for ui.
+# Get list of deployments for reference designator, return formatted for ui.
 def _get_deployments_by_rd(rd):
     """ Get list of deployments for a reference designator; return formatted for UI.
     """
@@ -1294,6 +457,9 @@ def _get_deployments_by_rd(rd):
         if not is_instrument(rd) and not is_mooring(rd) and not is_platform(rd):
             message = 'The reference designator provided (\'%s\') is not a mooring, platform or instrument.' % rd
             raise Exception(message)
+
+        # Get vocabulary dictionary once.
+        vocab_dict = get_vocab()
 
         # Get deployment event from uframe.
         uframe_deployments = get_rd_deployments_with_notes(rd)
@@ -1306,6 +472,12 @@ def _get_deployments_by_rd(rd):
             ui_deployment = format_deployment_for_ui(uframe_deployment)
             if not ui_deployment or ui_deployment is None:
                 continue
+
+            # (10506) Add maxdepth as depth for mobile assets (MOAS)
+            if 'MOAS' in ui_deployment['rd']:
+                if ui_deployment['rd'] in vocab_dict:
+                    ui_deployment['depth'] = vocab_dict[ui_deployment['rd']]['maxdepth']
+
             ui_deployments.append(ui_deployment)
         return ui_deployments
 
@@ -1313,54 +485,66 @@ def _get_deployments_by_rd(rd):
         message = str(err)
         raise Exception(message)
 
-'''
-def get_deployments_digest(uid):
-    """ Get list of deployment digest items for a uid; sorted in reverse by deploymentNumber.
 
-    Sample response data:
-        [
-            {
-              "startTime" : 1437159840000,
-              "depth" : 0.0,
-              "subsite" : "CE01ISSP",
-              "node" : "SP001",
-              "sensor" : "00-SPPENG000",
-              "deploymentNumber" : 3,
-              "versionNumber" : 1,
-              "eventId" : 23362,
-              "editPhase" : "OPERATIONAL",
-              "longitude" : -124.09567,
-              "latitude" : 44.66415,
-              "orbitRadius" : 0.0,
-              "mooring_uid" : "N00262",
-              "node_uid" : "N00123",
-              "sensor_uid" : "R00102",
-              "deployCruiseIdentifier" : null,
-              "recoverCruiseIdentifier" : null,
-              "waterDepth" : null,
-              "endTime" : 1439424000000
-            },
-            . . .
-        ]
+# Get list of deployments for uid, return formatted for ui.
+def _get_deployments_digest_by_uid(uid):
+    """ Get list of deployments for a reference designator; return digests.
+    (See also event_tools.py, get_deployment_events. Supports asset management Deployment tab.)
     """
-    debug = False
+    results = []
     try:
-        if debug: print '\n debug -- get latest deployment information for uid: %s' % uid
-        digests = get_deployments_digest_by_uid(uid)
-        if digests and digests is not None:
-            if debug: print '\n len(deployments): ', len(digests)
-            # Sort (reverse) by value of 'deploymentNumber'.
-            result = None
-            try:
-                result = sorted(digests, key=itemgetter('deploymentNumber'))
-            except Exception as err:
-                print '\n errors: ', str(err)
-                pass
-            if not result or result is None:
-                return None
-        return digests
+        # Get vocabulary dictionary once.
+        vocab_dict = get_vocab()
+
+        # Get deployment event from uframe.
+        uframe_deployments = get_deployments_digest_by_uid(uid)
+        if not uframe_deployments or uframe_deployments is None:
+            message = 'Failed to get deployments from uframe for uid \'%s\' .' % uid
+            raise Exception(message)
+
+        # (10506) Check for mobile assets and use maxdepth as depth for mobile assets (MOAS).
+        # Note: the maxdepth value used across current and past deployments will be the current
+        # maxdepth setting from vocabulary for the reference designator.
+        for uframe_deployment in uframe_deployments:
+            if 'MOAS' in uframe_deployment['subsite']:
+                rd = get_rd_from_deployment_digest(uframe_deployment)
+                if rd and rd is not None:
+                    if rd in vocab_dict:
+                        uframe_deployment['depth'] = vocab_dict[rd]['maxdepth']
+            results.append(uframe_deployment)
+        return results
     except Exception as err:
         message = str(err)
-        #current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_rd_from_deployment_digest(uframe_deployment):
+    """ Get reference designator from
+    """
+    result = None
+    try:
+        if not uframe_deployment:
+            return result
+        if 'subsite' not in uframe_deployment:
+            return result
+        if 'subsite' in uframe_deployment:
+            if not uframe_deployment['subsite']:
+                return result
+            if 'node' in uframe_deployment:
+                if not uframe_deployment['node']:
+                    return str(uframe_deployment['subsite'])
+                if 'sensor' in uframe_deployment:
+                    if not uframe_deployment['sensor']:
+                        result = '-'.join([str(uframe_deployment['subsite']), str(uframe_deployment['node'])])
+                    else:
+
+                        result = '-'.join([str(uframe_deployment['subsite']), str(uframe_deployment['node']),
+                                       str(uframe_deployment['sensor'])])
+
+        return result
+    except Exception as err:
+        message = str(err)
+        print '\n debug -- message: ', message
+        #raise Exception(message)
         return None
-'''
+

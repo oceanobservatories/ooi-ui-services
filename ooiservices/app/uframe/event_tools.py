@@ -309,14 +309,22 @@ def get_event_query_types(_type):
 #def get_deployment_events(rd, id, uid):
 def get_deployment_events(uid):
     """ Get deployment maps for and asset/reference designator.
+    (See deployment_tools.py
     """
+    from ooiservices.app.uframe.deployment_tools import _get_deployments_digest_by_uid
     try:
-        results = get_deployments_digest_by_uid(uid)
+        #=========
+        # Original
+        # results = get_deployments_digest_by_uid(uid)
+        # return results
+        #===========
+        results = _get_deployments_digest_by_uid(uid)
         return results
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
         raise Exception(message)
+
 
 #todo - development in progress.
 def get_events_by_rd(rd):

@@ -27,8 +27,6 @@ import datetime as dt
 from ooiservices.app import cache
 from ooiservices.app.uframe.config import get_cache_timeout
 
-CACHE_TIMEOUT = 172800
-
 
 # Get status arrays.
 def _get_status_arrays():
@@ -476,7 +474,7 @@ def get_status_platforms(rd=None):
             },
             . . .
     """
-    total_time = True
+    total_time = False
     time = False
     debug = False
     return_list = []
@@ -672,7 +670,7 @@ def get_site_sections(unique_list, return_list):
         # Verify there is something to process.
         if not unique_list or unique_list is None:
             message = 'Unable to process null or empty list to get site sections.'
-            raise Exceptions(message)
+            raise Exception(message)
 
         # Get vocabulary codes to use when processing sections.
         vocab_codes = get_vocab_codes()
@@ -680,16 +678,17 @@ def get_site_sections(unique_list, return_list):
             message = 'Unable to process sites without vocabulary information (codes).'
             raise Exception(message)
 
-        # Get vocabulary dict to use when processing special sections.
+        # Get vocabulary dict to use when processing special sections (GP upper/lower for profiler).
         vocab_dict = get_vocab()
         if vocab_dict is None:
             message = 'Unable to process special site nodes without vocabulary information (dict).'
             raise Exception(message)
 
-        # Get rd_array to determine if business rule apply).
+        # Get rd_array to determine if business rule apply.
         rd_array = unique_list[0][:2]
         apply_multi_node_rule = False
-        special_node_codes = 'WF'
+        #special_node_codes = 'WF'
+        special_node_codes = ['WF', 'GL']
         if rd_array == 'GP':
             apply_multi_node_rule = True
 
@@ -707,10 +706,15 @@ def get_site_sections(unique_list, return_list):
         section_codes = []
         for item in unique_platforms:
             item = item.replace(rd_root, '')
-            if item[:2] not in section_codes and item[:2] != special_node_codes and not apply_multi_node_rule:
+            #if item[:2] not in section_codes and item[:2] != special_node_codes and not apply_multi_node_rule:
+            if item[:2] not in section_codes and item[:2] not in special_node_codes and not apply_multi_node_rule:
                 section_codes.append(item[:2])
-            elif apply_multi_node_rule and item[:2] == special_node_codes:
+            #elif apply_multi_node_rule and item[:2] == special_node_codes:
+            elif apply_multi_node_rule and item[:2] in special_node_codes:
                 section_codes.append(item[:5])
+            elif item[:2] in special_node_codes:
+                section_codes.append(item[:5])
+                if debug: print '\n debug -- section code (add): ', item[:5]
             elif item[:2] not in section_codes:
                 section_codes.append(item[:2])
 
@@ -762,6 +766,7 @@ def get_site_sections(unique_list, return_list):
             else:
                 # look up node code value for instrument from vocab_dict.
                 code_value = rd_root + code
+                if debug: print '\n debug -- code value: ', code_value
                 if code_value in vocab_dict:
                     header['title'] = vocab_dict[code_value]['name']
 
@@ -776,6 +781,7 @@ def get_site_sections(unique_list, return_list):
             section['header'] = header
             section_code = header['code']
             prefix = rd_root + section_code
+            if debug: print '\n debug -- processing prefix: ', prefix
             cart = []
             for item in return_list:
                 if item['reference_designator'] not in instruments:
@@ -785,6 +791,7 @@ def get_site_sections(unique_list, return_list):
                     continue
                 # For a site and first two characters of node (XXXXXXXX-XX), if match node bucket, process.
                 if prefix == item['reference_designator'][:len(prefix)]:
+
                     # Add start and end times for reference designator.
                     if not time_dict or time_dict is None:
                         if warning:
@@ -809,7 +816,6 @@ def get_site_sections(unique_list, return_list):
                         item['longitude'] = None
                         item['waterDepth'] = None
                         item['depth'] = None
-                        item['waterDepth'] = None
                     # Get digest for reference designator from digest dictionary, process.
                     elif item['reference_designator'] in digest_dict:
                         digest = digest_dict[item['reference_designator']]
@@ -817,7 +823,6 @@ def get_site_sections(unique_list, return_list):
                         item['longitude'] = digest['longitude']
                         item['waterDepth'] = digest['waterDepth']
                         item['depth'] = digest['depth']
-                        item['waterDepth'] = None
                     # The reference designator is not in the digest dictionary.
                     else:
                         item['waterDepth'] = None
@@ -1240,7 +1245,8 @@ def get_deployments_digests(uid):
         try:
             #result = sorted(digests, key=itemgetter('deploymentNumber'))
             #digests.sort(key=lambda x: (-x['deploymentNumber'], -x['versionNumber'], -x['startTime']))
-            digests.sort(key=lambda x: (x['deploymentNumber'], x['versionNumber'], x['startTime']), reverse=True)
+            #digests.sort(key=lambda x: (x['deploymentNumber'], x['versionNumber'], x['startTime']), reverse=True)
+            digests.sort(key=lambda x: (x['startTime'], x['deploymentNumber'], x['versionNumber'], x['startTime']), reverse=True)
         except Exception as err:
             print '\n get_deployments_digests : errors: ', str(err)
             pass
@@ -1272,6 +1278,7 @@ def get_deployments_digests(uid):
         message = str(err)
         current_app.logger.info(message)
         return None #, None
+
 
 #===========================================
 # Cache helper functions
@@ -1449,7 +1456,7 @@ def build_rd_digest_cache(rds):
             # Build digest for reference designator.
             work = format_rd_digest(asset)
 
-            # Add deployment data.
+            # Add deployment data from uid_digest.
             if work is not None:
                 work['latitude'] = current_digest['latitude']
                 work['longitude'] = current_digest['longitude']
@@ -1459,17 +1466,10 @@ def build_rd_digest_cache(rds):
                 return_list.append(work)
                 return_dict[work['reference_designator']] = work
 
-            #count += 1
-            #if count >= 10:
-            #    break
-
         if debug:
             print '\n debug -- return_list: ', len(return_list)
             dump_dict(return_list[0], debug)
-            #print '\n debug -- return_dict: ', len(return_dict)
-            #dump_dict(return_dict[return_dict.keys()[0]], debug)
 
-        #if debug: print '\n len(return_list): %d' % len(return_list)
         return return_list, return_dict
     except Exception as err:
         message = str(err)
@@ -1701,6 +1701,9 @@ def build_uid_digests_cache():
 
         if debug: print '\n debug -- Completed getting assets from uframe...'
 
+        # Get vocabulary dictionary once.
+        vocab_dict = get_vocab()
+
         #count_items = 0
         for asset in uframe_assets:
 
@@ -1735,6 +1738,14 @@ def build_uid_digests_cache():
                 continue
             digest['id'] = asset_id
             digest['reference_designator'] = get_rd_from_uid_digest(asset_type, digest)
+
+            # (10506) For mobile assets report depth as maximum depth value provided in vocabulary.
+            if 'MOAS' in digest['reference_designator']:
+                if digest['reference_designator'] in vocab_dict:
+                    tmp = vocab_dict[digest['reference_designator']]
+                    if 'maxdepth' in tmp:
+                        digest['depth'] = tmp['maxdepth']
+
             uid_digests[asset['uid']] = digest
 
             """

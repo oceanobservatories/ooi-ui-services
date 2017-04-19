@@ -1,21 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 '''
-unit testing for the annotations feature
+unit testing for the annotations feature. (Legacy, update required.)
 
 '''
 __author__ = 'AndyBird'
 
 import unittest
-import json
 from base64 import b64encode
-from flask import url_for, jsonify, g
 from ooiservices.app import create_app, db
-from ooiservices.app.models import Annotation, User, UserScope, UserScopeLink, Organization
-from datetime import datetime
-from dateutil.parser import parse as dateparse
 from unittest import skipIf
 import os
+
 '''
 These tests verify the functioning of the api list.
 Sample data is inserted, checked, and then removed.
@@ -50,6 +46,7 @@ class AnnotationsTestCase(unittest.TestCase):
             'Content-Type': 'application/json'
         }
 
+    """
     @skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
     def test_create_annotation_for_ref_des(self):
         pass              
@@ -58,16 +55,12 @@ class AnnotationsTestCase(unittest.TestCase):
     def test_get_annotation_list_for_ref_des(self):   
         ref_des = "CE01ISSM-SBD17-04-VELPTA000"
         stream = "telemetered_velpt_ab_dcl_instrument"
-
         url = "/annotation/"+ref_des+"/"+stream
-        
         print url
-
         response = self.client.get(url, content_type=self.content_type, headers=self.headers)
-
         print response
-
-        self.assertTrue(response.status_code == 200)        
+        self.assertTrue(response.status_code == 200)
+    """
         
     @skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
     def test_searching(self):

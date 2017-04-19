@@ -529,8 +529,7 @@ def get_stream_byname_url_base():
 
 # Get base url for streams processing (stream, parameter and byname)
 def get_uframe_stream_info():
-    """ Get uframe stream base url configuration information.
-    """
+    """ Get uframe stream base url configuration information. """
     try:
         timeout, timeout_read = get_uframe_timeout_info()
         uframe_url = current_app.config['UFRAME_STREAMS_URL']
@@ -545,7 +544,7 @@ def get_url_info_streams():
     """ Get complete url to query uframe stream ('uframe-host:12575/stream')
     Used to form urls:
         host:12575/stream/byname/{name} where {name} is the stream name
-        host:12575/stream/{id} where {id} is the stream id number from preload.
+        host:12575/stream/{id} where {id} is the stream id number from uframe.
     """
     try:
         url, timeout, timeout_read = get_uframe_stream_info()
@@ -611,7 +610,7 @@ def get_iris_base_url():
 
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Raw Data Server integration.
+# Raw Data Server (RDS) integration.
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def rds_enabled():
     try:
@@ -661,6 +660,20 @@ def get_image_camera_store_url_base():
 
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Plotting
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Plotting timeout variable.
+def get_uframe_plot_timeout():
+    try:
+        result = current_app.config['UFRAME_PLOT_TIMEOUT']
+        return result
+    except:
+        message = 'The configuration variable UFRAME_PLOT_TIMEOUT was not found in the configuration file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Common utility functions
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # uframe timeout information
@@ -685,7 +698,7 @@ def get_uframe_info():
     return uframe_url, timeout, timeout_read
 
 
-# [For interplolated plots only) Get uframe timeout, timeout_read and [base url + /sensor] (used for multi-plot).
+# [For interpolated plots only] Get uframe timeout, timeout_read and [base url + /sensor] (used for multi-plot).
 def get_uframe_url_info():
     """ Get uframe configuration information for case of interpolated plots.
      (uframe_url + /sensor, uframe timeout_connect and timeout_read.)
@@ -694,17 +707,6 @@ def get_uframe_url_info():
     timeout, timeout_read = get_uframe_timeout_info()
     uframe_url = current_app.config['UFRAME_URL']
     return uframe_url, timeout, timeout_read
-
-
-# Plotting timeout variable.
-def get_uframe_plot_timeout():
-    try:
-        result = current_app.config['UFRAME_PLOT_TIMEOUT']
-        return result
-    except:
-        message = 'The configuration variable UFRAME_PLOT_TIMEOUT was not found in the configuration file.'
-        current_app.logger.info(message)
-        raise Exception(message)
 
 
 # Get uframe headers.

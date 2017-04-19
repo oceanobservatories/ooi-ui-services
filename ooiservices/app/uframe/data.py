@@ -36,6 +36,10 @@ def new_find_parameter_ids(reference_designator, stream, y_parameters, x_paramet
     try:
         if debug: print '\n debug -- (new_find_parameter_ids) reference_designator: ', reference_designator
         parameters = get_stream_parameters(stream, reference_designator)
+        if parameters is None:
+            message = 'Failed to get uframe parameters for reference designator %s, stream \'%s\'.' % \
+                      (reference_designator, stream)
+            raise Exception(message)
         parameter_dict = {}
         parameter_ids = []
         all_units = {}
@@ -75,7 +79,6 @@ def new_find_parameter_ids(reference_designator, stream, y_parameters, x_paramet
         raise Exception(message)
     except Exception as err:
         message = str(err)
-        if debug: print '\n debug -- (data.py:new_find_parameter_ids) Exception: %s' % message
         raise Exception(message)
 
 
@@ -134,7 +137,7 @@ def get_multistream_data(instrument1, instrument2, stream1, stream2, var1, var2)
     except Exception as err:
         message = str(err)
         if debug: print '\n (data.py:get_multistream_data) Exception: %s' % message
-        current_app.logger.exception(message)
+        #current_app.logger.exception(message)
         raise Exception(message)
 
 
@@ -188,7 +191,7 @@ def get_simple_data(stream, instrument, yfields, xfields, include_time=True):
     except Exception as err:
         message = str(err)
         if debug: print '\n (data.py:get_simple_data) Exception: %s' % message
-        current_app.logger.exception(message)
+        #current_app.logger.exception(message)
         raise Exception(message)
 
 
@@ -227,15 +230,15 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
                 message = 'Failed to get data from uframe, status code: %d' % status_code
                 if data is not None:
                     if debug: print '\n debug -- get_data: data: ', data
-                current_app.logger.exception(message)
+                #current_app.logger.exception(message)
                 raise Exception(message)
             if not data or data is None:
                 message = 'No data returned for stream %s and instrument %s.' % (stream[0], instrument[0])
-                current_app.logger.exception(message)
+                #current_app.logger.exception(message)
                 raise Exception(message)
         else:
             message = 'Please define start and end dates.'
-            current_app.logger.exception(message)
+            #current_app.logger.exception(message)
             raise Exception(message)
 
     except Exception as err:
@@ -249,31 +252,31 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
 
         if "pk" not in data[0]:
             message = 'Primary information (pk) not available.'
-            current_app.logger.exception(message)
+            #current_app.logger.exception(message)
             raise Exception(message)
 
         for xfield in xfields:
             if xfield == 'time':
                 if "time" not in data[0]:
                     message = 'Time variable not available for x field.'
-                    current_app.logger.exception(message)
+                    #current_app.logger.exception(message)
                     raise Exception(message)
             else:
                 if xfield not in data[0]:
                     message = 'Requested data (%s) not available' % xfield
-                    current_app.logger.exception(message)
+                    #current_app.logger.exception(message)
                     raise Exception(message)
 
         for yfield in yfields:
             if yfield == 'time':
                 if "time" not in data[0]:
                     message = 'Time variable not available for y field.'
-                    current_app.logger.exception(message)
+                    #current_app.logger.exception(message)
                     raise Exception(message)
             else:
                 if yfield not in data[0]:
                     message = 'Requested data (%s) not available' % yfield
-                    current_app.logger.exception(message)
+                    #current_app.logger.exception(message)
                     raise Exception(message)
 
         # Initialize the data dicts
@@ -334,6 +337,6 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
         return resp_data
     except Exception as err:
         message = str(err.message)
-        print '\n (data.py::get_data) exception: message: ', message
+        #print '\n (data.py::get_data) exception: message: ', message
         raise Exception(message)
 

@@ -7,12 +7,13 @@ __author__ = 'M@Campbell'
 
 from datetime import datetime
 import requests
+from requests.exceptions import (ConnectionError, Timeout)
 from flask import (jsonify, request, current_app)
 from dateutil.parser import parse as parse_date
 from authentication import auth
 from ooiservices.app.decorators import scope_required
 from ooiservices.app.main import api
-from ooiservices.app.uframe.config import (get_uframe_timeout_info, get_annotations_base_url)
+from ooiservices.app.uframe.config import (get_uframe_timeout_info, get_annotations_base_url, _uframe_headers)
 from ooiservices.app.main.errors import bad_request
 
 
@@ -36,15 +37,20 @@ def get_refdes(anno_record):
 def get_refdes_parts(anno_record):
     """ Given an annotation record with a reference designator, return the corresponding subsite, node and sensor.
     """
-    subsite = node = sensor = None
+    subsite = None
+    node = None
+    sensor = None
     refdes = anno_record.get('referenceDesignator')
-    parts = refdes.split('-', 2)
-    if len(parts) > 0:
-        subsite = parts[0]
-    if len(parts) > 1:
-        node = parts[1]
-    if len(parts) > 2:
-        sensor = parts[2]
+    if '-' not in refdes:
+        subsite = refdes
+    else:
+        parts = refdes.split('-', 2)
+        if len(parts) > 0:
+            subsite = parts[0]
+        if len(parts) > 1:
+            node = parts[1]
+        if len(parts) > 2:
+            sensor = parts[2]
     return subsite, node, sensor
 
 
@@ -137,7 +143,7 @@ def get_annotations():
           "annotation" : "This is a test",
           "method" : "telemetered",
           "id" : 1,
-          "source" : "user=jkorman",
+          "source" : "user=aTestuser",
           "node" : "SP001",
           "stream" : "dosta_abcdjm_cspp_instrument",
           "sensor" : "02-DOSTAJ000",
@@ -205,6 +211,8 @@ def create_annotation():
         data = request.get_json()
         if 'source' not in data:
             data['source'] = None
+        if 'parameters' in data and not data['parameters']:
+            data['parameters'] = None
         data = remap_ui_to_uframe(data)
         if validate_anno_record(data):
             response = requests.post(get_annotations_base_url(), json=data, timeout=10)
@@ -214,11 +222,10 @@ def create_annotation():
             return response.text, response.status_code, dict(response.headers)
             #return process_annotation_response(requests.post(get_annotations_base_url(), json=data, timeout=10))
         else:
-            current_app.logger.debug('create_annotation: %r', data)
             message = 'Required information not specified for create annotation.'
             return bad_request(message)
     except Exception as err:
-        message = 'Could not create annotation: ' + str(err)
+        message = str(err)
         return bad_request(message)
 
 
@@ -230,14 +237,16 @@ def edit_annotation(annotation_id):
     """
     try:
         data = request.get_json()
+        if 'parameters' in data and not data['parameters']:
+            data['parameters'] = None
         data = remap_ui_to_uframe(data)
         if 'source' not in data:
             data['source'] = None
         if validate_anno_record(data):
             url = '/'.join((get_annotations_base_url(), annotation_id))
             response = requests.put(url, json=data, timeout=10)
-            if response.status_code != 201:
-                message = 'Failed to create new annotation.'
+            if response.status_code != 200:
+                message = 'Failed to update annotation.'
                 raise Exception(message)
             return response.text, response.status_code, dict(response.headers)
             #return process_annotation_response(requests.put(url, json=data, timeout=10))
@@ -249,4 +258,30 @@ def edit_annotation(annotation_id):
         return bad_request(message)
     except Exception as err:
         message = 'Failed to update annotation: ' + str(err)
+        return bad_request(message)
+
+
+@api.route('/annotation/delete/<int:id>', methods=['GET'])
+@auth.login_required
+@scope_required('annotate')
+def delete_annotation(id):
+    try:
+        timeout, timeout_read = get_uframe_timeout_info()
+        url = '/'.join((get_annotations_base_url(), str(id)))
+        response = requests.delete(url, headers=_uframe_headers(), timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Failed to delete annotation id %d: %d ' % (id, response.status_code)
+            raise Exception(message)
+        return response.text, response.status_code, dict(response.headers)
+    except ValueError as err:
+        message = 'Could not delete annotation id %d: %s ' % (id, str(err))
+        return bad_request(message)
+    except ConnectionError:
+        message = 'ConnectionError deleting annotation id %d.' % id
+        return bad_request(message)
+    except Timeout:
+        message = 'Timeout deleting annotation id %d.' % id
+        return bad_request(message)
+    except Exception as err:
+        message = str(err.message)
         return bad_request(message)

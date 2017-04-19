@@ -552,15 +552,15 @@ def uframe_get_asset_by_id(id):
         return asset
     except ConnectionError:
         message = 'ConnectionError getting asset (id: %d) from uframe.' % id
-        current_app.logger.info(message)
+        #current_app.logger.info(message)
         raise Exception(message)
     except Timeout:
         message = 'Timeout getting asset (id: %d) from uframe.' % id
-        current_app.logger.info(message)
+        #current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
         message = str(err)
-        current_app.logger.info(message)
+        #current_app.logger.info(message)
         raise Exception(message)
 
 
@@ -1052,7 +1052,7 @@ def uframe_get_deployment_inv():
 
 
 def uframe_get_deployment_inv_nodes(subsite):
-    """
+    """ Get uframe deployment inventory nodes given a subsite.
     """
     try:
         base_url, timeout, timeout_read = get_url_info_deployments_inv()
@@ -1389,15 +1389,18 @@ def uframe_get_stream_byname(stream):
         return stream
     except ConnectionError:
         message = 'Error: ConnectionError getting uframe stream name %s.' % stream
+        current_app.logger.info(message)
         raise Exception(message)
     except Timeout:
         message = 'Error: Timeout getting uframe stream name %s.' % stream
+        current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
         message = str(err)
         if error:
             print '\n Check -- url: ', url
             print 'Check -- message: ', message
+            current_app.logger.info(message)
         raise Exception(message)
 
 
