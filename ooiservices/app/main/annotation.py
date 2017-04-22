@@ -215,7 +215,8 @@ def create_annotation():
             data['parameters'] = None
         data = remap_ui_to_uframe(data)
         if validate_anno_record(data):
-            response = requests.post(get_annotations_base_url(), json=data, timeout=10)
+            timeout, timeout_read = get_uframe_timeout_info()
+            response = requests.post(get_annotations_base_url(), json=data, timeout=(timeout, timeout_read))
             if response.status_code != 201:
                 message = 'Failed to create new annotation.'
                 raise Exception(message)
@@ -244,7 +245,8 @@ def edit_annotation(annotation_id):
             data['source'] = None
         if validate_anno_record(data):
             url = '/'.join((get_annotations_base_url(), annotation_id))
-            response = requests.put(url, json=data, timeout=10)
+            timeout, timeout_read = get_uframe_timeout_info()
+            response = requests.put(url, json=data, timeout=(timeout, timeout_read))
             if response.status_code != 200:
                 message = 'Failed to update annotation.'
                 raise Exception(message)
@@ -261,6 +263,7 @@ def edit_annotation(annotation_id):
         return bad_request(message)
 
 
+# The request method should be changed to be 'DELETE' rather than 'GET'.
 @api.route('/annotation/delete/<int:id>', methods=['GET'])
 @auth.login_required
 @scope_required('annotate')
