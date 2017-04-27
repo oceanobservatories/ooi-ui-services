@@ -36,8 +36,14 @@ class InvalidMethodException(BadM2MException):
                        'for request method \'%s\'. ' \
                        'Please contact the system admin for more information.' % (port, request_method)
 
+class InvalidScopeException(BadM2MException):
+    def __init__(self, port, request_method):
+        super(InvalidScopeException, self).__init__()
+        self.message = 'Requested end point (%s) for request method \'%s\' not permitted without proper permissions. ' \
+                       'Please contact the system admin for more information.' % (port, request_method)
 
-def build_url(path, request_method='GET'):
+
+def build_url(path, request_method='GET', scope_names=None):
     """
     Given an M2M request path, build the corresponding UFrame URL
     Paths must conform to the following specification:
@@ -61,9 +67,15 @@ def build_url(path, request_method='GET'):
     elif request_method == 'POST':
         if port not in post_allowed_ports:
             raise InvalidMethodException(port, request_method)
+        if port == 12580:
+            if 'annotate' not in scope_names:
+                raise InvalidScopeException(port, request_method)
     elif request_method == 'PUT':
         if port not in put_allowed_ports:
             raise InvalidMethodException(port, request_method)
+        if port == 12580:
+            if 'annotate' not in scope_names:
+                raise InvalidScopeException(port, request_method)
     else:
         raise InvalidMethodException(port, request_method)
 
@@ -103,20 +115,20 @@ def m2m_handler(path):
         else:
             message = 'Authentication failed.'
             current_app.logger.info(message)
-            return jsonify({'message': message, 'status_code': 401})
+            return jsonify({'message': message, 'status_code': 401}), 401
     except BadM2MException as e:
         current_app.logger.info(e.message)
-        return jsonify({'message': e.message, 'status_code': 403})
+        return jsonify({'message': e.message, 'status_code': 403}), 403
     except ConnectionError:
         message = 'ConnectionError for get uframe contents.'
         current_app.logger.info(message)
-        return jsonify({'message': message, 'status_code': 500})
+        return jsonify({'message': message, 'status_code': 500}), 500
     except Timeout:
         message = 'Timeout for get uframe contents.'
         current_app.logger.info(message)
-        return jsonify({'message': message, 'status_code': 500})
+        return jsonify({'message': message, 'status_code': 500}), 500
     except Exception as err:
-        return jsonify({'message': err.message, 'status_code': 500})
+        return jsonify({'message': err.message, 'status_code': 500}), 500
 
 
 @api.route('/', methods=['POST'], defaults={'path': ''})
@@ -130,13 +142,17 @@ def m2m_handler_post(path):
         if not request.data:
             message = 'No request data provided for POST.'
             current_app.logger.info(message)
-            return jsonify({'message': message, 'status_code': 401})
+            return jsonify({'message': message, 'status_code': 401}), 401
         user = User.get_user_from_token(request.authorization['username'], request.authorization['password'])
         if user:
+            scopes = user.scopes
+            scope_names = []
+            for s in scopes:
+                scope_names.append(s.scope_name)
             params = MultiDict(request.args)
             params['user'] = user.user_name
             params['email'] = user.email
-            url = build_url(path, request_method='POST')
+            url = build_url(path, request_method='POST', scope_names=scope_names)
             timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
             timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
             response = requests.post(url, timeout=(timeout, timeout_read), params=params, stream=True,
@@ -148,20 +164,20 @@ def m2m_handler_post(path):
         else:
             message = 'Authentication failed.'
             current_app.logger.info(message)
-            return jsonify({'message': message, 'status_code': 401})
+            return jsonify({'message': message, 'status_code': 401}), 401
     except BadM2MException as e:
         current_app.logger.info(e.message)
-        return jsonify({'message': e.message, 'status_code': 403})
+        return jsonify({'message': e.message, 'status_code': 403}), 403
     except ConnectionError:
         message = 'ConnectionError for get uframe contents.'
         current_app.logger.info(message)
-        return jsonify({'message': message, 'status_code': 500})
+        return jsonify({'message': message, 'status_code': 500}), 500
     except Timeout:
         message = 'Timeout for get uframe contents.'
         current_app.logger.info(message)
-        return jsonify({'message': message, 'status_code': 500})
+        return jsonify({'message': message, 'status_code': 500}), 500
     except Exception as e:
-        return jsonify({'message': e.message, 'status_code': 500})
+        return jsonify({'message': e.message, 'status_code': 500}), 500
 
 
 @api.route('/', methods=['PUT'], defaults={'path': ''})
@@ -175,13 +191,17 @@ def m2m_handler_put(path):
         if not request.data:
             message = 'No request data provided on PUT.'
             current_app.logger.info(message)
-            return jsonify({'message': message, 'status_code': 401})
+            return jsonify({'message': message, 'status_code': 401}), 401
         user = User.get_user_from_token(request.authorization['username'], request.authorization['password'])
         if user:
+            scopes = user.scopes
+            scope_names = []
+            for s in scopes:
+                scope_names.append(s.scope_name)
             params = MultiDict(request.args)
             params['user'] = user.user_name
             params['email'] = user.email
-            url = build_url(path, request_method='PUT')
+            url = build_url(path, request_method='PUT', scope_names=scope_names)
             timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
             timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
             response = requests.put(url, timeout=(timeout, timeout_read), params=params, stream=True,
@@ -193,17 +213,17 @@ def m2m_handler_put(path):
         else:
             message = 'Authentication failed.'
             current_app.logger.info(message)
-            return jsonify({'message': message, 'status_code': 401})
+            return jsonify({'message': message, 'status_code': 401}), 401
     except BadM2MException as e:
         current_app.logger.info(e.message)
-        return jsonify({'message': e.message, 'status_code': 403})
+        return jsonify({'message': e.message, 'status_code': 403}), 403
     except ConnectionError:
         message = 'ConnectionError for get uframe contents.'
         current_app.logger.info(message)
-        return jsonify({'message': message, 'status_code': 500})
+        return jsonify({'message': message, 'status_code': 500}), 500
     except Timeout:
         message = 'Timeout for get uframe contents.'
         current_app.logger.info(message)
-        return jsonify({'message': message, 'status_code': 500})
+        return jsonify({'message': message, 'status_code': 500}), 500
     except Exception as e:
-        return jsonify({'message': e.message, 'status_code': 500})
+        return jsonify({'message': e.message, 'status_code': 500}), 500
