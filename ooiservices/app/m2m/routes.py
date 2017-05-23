@@ -10,77 +10,8 @@ from werkzeug.datastructures import MultiDict
 from ooiservices.app.m2m import m2m as api
 from ooiservices.app.models import User
 
-
-class BadM2MException(Exception):
-    pass
-
-
-class InvalidPortException(BadM2MException):
-    def __init__(self, port):
-        super(InvalidPortException, self).__init__()
-        self.message = 'Requested end point (%s) is not exposed through the machine to machine interface. ' \
-                       'Please contact the system admin for more information.' % port
-
-
-class InvalidPathException(BadM2MException):
-    def __init__(self, path):
-        super(InvalidPathException, self).__init__()
-        self.message = 'Requested URL (%s) is not properly formatted for the machine to machine interface. ' \
-                       'Please contact the system admin for more information.' % path
-
-
-class InvalidMethodException(BadM2MException):
-    def __init__(self, port, request_method):
-        super(InvalidMethodException, self).__init__()
-        self.message = 'Requested end point (%s) is not exposed through the machine to machine interface ' \
-                       'for request method \'%s\'. ' \
-                       'Please contact the system admin for more information.' % (port, request_method)
-
-class InvalidScopeException(BadM2MException):
-    def __init__(self, port, request_method):
-        super(InvalidScopeException, self).__init__()
-        self.message = 'Requested end point (%s) for request method \'%s\' not permitted without proper permissions. ' \
-                       'Please contact the system admin for more information.' % (port, request_method)
-
-
-def build_url(path, request_method='GET', scope_names=None):
-    """
-    Given an M2M request path, build the corresponding UFrame URL
-    Paths must conform to the following specification:
-    <UFRAME PORT>/<UFRAME URL>
-    :param path: input path
-    :return: URL
-    """
-    try:
-        port, path = path.split('/', 1)
-        port = int(port)
-    except ValueError:
-        raise InvalidPathException(path)
-
-    uframe_host = current_app.config['UFRAME_HOST']
-    allowed_ports = current_app.config['UFRAME_ALLOWED_M2M_PORTS']
-    post_allowed_ports = current_app.config['UFRAME_ALLOWED_M2M_PORTS_POST']
-    put_allowed_ports = current_app.config['UFRAME_ALLOWED_M2M_PORTS_PUT']
-    if request_method == 'GET':
-        if port not in allowed_ports:
-            raise InvalidPortException(port)
-    elif request_method == 'POST':
-        if port not in post_allowed_ports:
-            raise InvalidMethodException(port, request_method)
-        if port == 12580:
-            if 'annotate' not in scope_names:
-                raise InvalidScopeException(port, request_method)
-    elif request_method == 'PUT':
-        if port not in put_allowed_ports:
-            raise InvalidMethodException(port, request_method)
-        if port == 12580:
-            if 'annotate' not in scope_names:
-                raise InvalidScopeException(port, request_method)
-    else:
-        raise InvalidMethodException(port, request_method)
-
-    base_url = 'http://%s:%d' % (uframe_host, port)
-    return '/'.join((base_url, path))
+from ooiservices.app.m2m.help_tools import build_url, get_port_path_help, get_help
+from ooiservices.app.m2m.exceptions import BadM2MException
 
 
 @api.route('/', methods=['GET'], defaults={'path': ''})
@@ -90,15 +21,30 @@ def m2m_handler(path):
     :param path:
     :return:
     """
+    debug = True
     transfer_header_fields = ['Date', 'Content-Type']
+    request_method = 'GET'
     try:
+        if debug: print '\n debug -- m2m GET entered...'
+        # Determine if help request, if so return help information.
+        port, updated_path, help_request = get_port_path_help(path)
+        if help_request:
+            if debug: print '\n debug -- Help was requested for (%s) %s...' % (request_method, path)
+            help_response_data = get_help(port, updated_path, request_method)
+            if debug: print '\n debug -- help_response_data: ', help_response_data
+            if not help_response_data:
+                help_response_data = 'No help information available at this time.'
+            return jsonify({'message': help_response_data, 'status_code': 200}), 200
+
         if request.data:
             data = request.data
+            if debug: print '\n debug -- m2m GET data provided...'
         else:
             data = None
         #current_app.logger.info(path)
         user = User.get_user_from_token(request.authorization['username'], request.authorization['password'])
         if user:
+            if debug: print '\n debug -- m2m GET - have user...'
             params = MultiDict(request.args)
             params['user'] = user.user_name
             params['email'] = user.email
@@ -109,6 +55,7 @@ def m2m_handler(path):
                 response = requests.get(url, timeout=(timeout, timeout_read), params=params, stream=True)
             else:
                 response = requests.get(url, timeout=(timeout, timeout_read), params=params, stream=True, data=data)
+            if debug: print '\n debug -- m2m GET - After request has been made...status_code: ', response.status_code
             headers = dict(response.headers)
             headers = {k: headers[k] for k in headers if k in transfer_header_fields}
             return Response(response.iter_content(1024), response.status_code, headers)
@@ -136,8 +83,19 @@ def m2m_handler(path):
 def m2m_handler_post(path):
     """
     """
+    debug = True
     transfer_header_fields = ['Date', 'Content-Type']
+    request_method = 'POST'
     try:
+        # Determine if help request, if so return help information.
+        port, updated_path, help_request = get_port_path_help(path)
+        if help_request:
+            if debug: print '\n debug -- Help was requested for (%s) %s...' % (request_method, path)
+            help_response_data = get_help(port, updated_path, request_method)
+            if debug: print '\n debug -- help_response_data: ', help_response_data
+            if not help_response_data:
+                help_response_data = 'No help information available at this time.'
+            return jsonify({'message': help_response_data, 'status_code': 200}), 200
         #current_app.logger.info(path)
         if not request.data:
             message = 'No request data provided for POST.'
@@ -186,7 +144,19 @@ def m2m_handler_put(path):
     """
     """
     transfer_header_fields = ['Date', 'Content-Type']
+    request_method = 'PUT'
+    debug = True
     try:
+        # Determine if help request, if so return help information.
+        port, updated_path, help_request = get_port_path_help(path)
+        if help_request:
+            if debug: print '\n debug -- Help was requested for (%s) %s...' % (request_method, path)
+            help_response_data = get_help(port, updated_path, request_method)
+            if debug: print '\n debug -- help_response_data: ', help_response_data
+            if not help_response_data:
+                help_response_data = 'No help information available at this time.'
+            return jsonify({'message': help_response_data, 'status_code': 200}), 200
+
         #current_app.logger.info(path)
         if not request.data:
             message = 'No request data provided on PUT.'
