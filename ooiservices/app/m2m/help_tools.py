@@ -102,10 +102,10 @@ def get_port_path_help(path):
         raise InvalidPathException(path)
 
 
-def get_help(port, path, request_method, json_result=False):
+def get_help(port, path, request_method, json_result=False, keyword=None):
     """ Get specific help information for a port, path and request type.
     """
-    debug = False
+    debug = True
     result = []
     separator = '\n==========\n'
     try:
@@ -113,9 +113,10 @@ def get_help(port, path, request_method, json_result=False):
             print '\n debug -- Help request...'
             print '\n debug -- port: ', port
             print '\n debug -- path: ', path
+            print '\n debug -- keyword: ', keyword
             print '\n debug -- request_method: ', request_method
 
-        port_data = get_help_data(port)
+        port_data = get_help_data(port, keyword)
         if json_result:
             return port_data
 
@@ -219,6 +220,7 @@ def get_formatted_template(port, path, request_method, data):
                     formatted__parameters = format_parameters(item['data_format'])
                     result += formatted__parameters
 
+                '''
                 # Sample Request (optional)
                 if 'sample_request' in item:
                     if item['sample_request']:
@@ -237,6 +239,33 @@ def get_formatted_template(port, path, request_method, data):
                     if item['sample_response']:
                         result += '\n\nSample Response: \n'
                         result += json.dumps(item['sample_response'], indent=4, sort_keys=True)
+                '''
+                # Process one or more samples if available
+                if 'samples' in item:
+                    samples = item['samples']
+                    for sample in samples:
+                        # Sample Request (optional)
+                        if 'sample_request' in sample:
+                            if sample['sample_request']:
+                                result += '\n\nSample Request: \n'
+                                result += sample['sample_request']
+                                #result += json.dumps(item['sample_request'], indent=4, sort_keys=True)
+
+                        # Sample Data (optional)
+                        if 'sample_data' in sample:
+                            if sample['sample_data']:
+                                result += '\n\nSample Data: \n'
+                                result += json.dumps(sample['sample_data'], indent=4, sort_keys=True)
+
+                        # Sample Response (optional)
+                        if 'sample_response' in sample:
+                            if sample['sample_response']:
+                                result += '\n\nSample Response: \n'
+                                result += json.dumps(sample['sample_response'], indent=4, sort_keys=True)
+
+
+
+
 
                 if result:
                     results.append(result)

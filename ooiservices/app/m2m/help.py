@@ -81,6 +81,9 @@ def m2m_handler_help(path):
     transfer_header_fields = ['Date', 'Content-Type']
     request_method = 'GET'
     valid_keywords = ['asset', 'streams', 'annotation', 'anno', 'sensor', 'sensor/inv']
+    valid_port_keywords = {12587: ['all', 'asset', 'asset', 'cal', 'calibration', 'deployment', 'deployments',
+                                   'event', 'events', 'cruise', 'cruises']}
+
     string_valid_ports = []
     try:
         if debug: print '\n debug -- m2m GET HELP entered...'
@@ -108,7 +111,11 @@ def m2m_handler_help(path):
         # 'http://localhost:5000/api/m2m/help/12580'
         elif path in string_valid_ports:
             if debug: print '\n debug -- General help requested for port: %s' % path
-            help_response_data = get_help(int(path), path, request_method=None, json_result=json_help)
+            if path == '12587':
+                help_response_data = json_get_help_file(path)
+            else:
+                help_response_data = get_help(int(path), path, request_method=None,
+                                          json_result=json_help)
             if not help_response_data:
                 help_response_data = 'No help information available at this time.'
             return jsonify({'message': help_response_data, 'status_code': 200}), 200
@@ -134,8 +141,13 @@ def m2m_handler_help(path):
                     print '\n debug -- Get keywords for port(%s)... ' % port
             if keyword in valid_keywords:
                 if debug: print '\n debug -- Valid keyword: ', keyword
-            if port in string_valid_ports and keyword in valid_keywords:
+            if port in string_valid_ports and keyword in valid_port_keywords[int(port)]:
                 if debug: print '\n debug -- Valid port (%s) and keyword: %s' % (port, keyword)
+                help_response_data = get_help(int(port), path, request_method=None,
+                                              json_result=json_help, keyword=keyword)
+                if not help_response_data:
+                    help_response_data = 'No help information available at this time.'
+                return jsonify({'message': help_response_data, 'status_code': 200}), 200
 
         return jsonify({'message': 'help entered, path: '+ path, 'status_code': 200}), 200
         

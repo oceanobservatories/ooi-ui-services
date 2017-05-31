@@ -3,20 +3,29 @@
 from ooiservices.app.m2m.help_data_12575 import get_help_data_12575
 from ooiservices.app.m2m.help_data_12576 import get_help_data_12576
 from ooiservices.app.m2m.help_data_12577 import get_help_data_12577
+from ooiservices.app.m2m.help_data_12578 import get_help_data_12578
 from ooiservices.app.m2m.help_data_12580 import get_help_data_12580
 from ooiservices.app.m2m.help_data_12586 import get_help_data_12586
 from ooiservices.app.m2m.help_data_12587_asset import get_help_data_12587_asset
 from ooiservices.app.m2m.help_data_12587_events import get_help_data_12587_events
+from ooiservices.app.m2m.help_data_12589 import get_help_data_12589
 
 
-
-def get_help_data(port):
+def get_help_data(port, keyword=None):
     """
     Data stores of information to be presented when a help request is made. Indexed by port.
     For each port there is a list of dictionaries associated with various requests supported on that port.
-    Supported ports(7): 12575, 12576, 12577, 12578, 12580, 12586, 12587
+    Supported ports(8): 12575, 12576, 12577, 12578, 12580, 12586, 12587, 12589
     """
+    debug = True
     help_data = []
+    valid_port_keywords = {12587: ['all', 'asset', 'asset', 'cal', 'calibration', 'deployment', 'deployments',
+                                   'event', 'events', 'cruise', 'cruises']}
+
+    if debug:
+        print '\n debug -- get_help_data entered...'
+        print '\n keyword: ', keyword
+        print '\n port: ', port
 
     # (12575) Preload
     if port == 12575:
@@ -30,6 +39,10 @@ def get_help_data(port):
     elif port == 12577:
         help_data = get_help_data_12577()
 
+    # (12578) QC
+    elif port == 12578:
+        help_data = get_help_data_12578()
+
     # (12580) Annotations
     elif port == 12580:
         help_data = get_help_data_12580()
@@ -40,17 +53,35 @@ def get_help_data(port):
 
     # (12587) Asset Management
     elif port == 12587:
+        results = []
         help_data = get_help_data_12587_asset()
         help_data += get_help_data_12587_events()
+        if keyword in valid_port_keywords[port]:
+            if keyword != 'all':
+                keyword = normalize_keyword(keyword)
+                for item in help_data:
+                    if keyword in item['endpoint']:
+                        results.append(item)
+                help_data = results
 
+    # (12589) Ingestion
+    elif port == 12589:
+        help_data = get_help_data_12589()
 
-
-    else:
-        help = {
-         12578: []
-        }
-        if port in help:
-            help_data = help[port]
-
-    print '\n debug ======= type(help_data): ', str(type(help_data))
     return help_data
+
+
+def normalize_keyword(keyword):
+
+    if keyword == 'assets':
+        keyword = 'asset'
+    elif keyword == 'event':
+        keyword = 'events'
+    elif keyword == 'deployments':
+        keyword = 'deployment'
+    elif keyword == 'cruises':
+        keyword = 'cruise'
+    elif keyword == 'calibration':
+        keyword = 'cal'
+
+    return keyword

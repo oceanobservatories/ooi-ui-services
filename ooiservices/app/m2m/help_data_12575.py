@@ -22,34 +22,36 @@ def get_help_data_12575():
                                   'valid_values': None,
                                   'default': None
                                 }],
-                        'sample_request': 'parameter/100',
-                        'sample_response': {
-                              "name" : "ass_sig_wave_period",
-                              "display_name" : "Auto-Spectrum Statistics - Significant Wave Period",
-                              "standard_name" : None,
-                              "description" : None,
-                              "id" : 100,
-                              "data_product_identifier" : None,
-                              "precision" : 4,
-                              "fill_value" : {
-                                "value" : "-9999999"
-                              },
-                              "unit" : {
-                                "value" : "s"
-                              },
-                              "data_level" : None,
-                              "code_set" : None,
-                              "value_encoding" : {
-                                "value" : "float32"
-                              },
-                              "parameter_type" : {
-                                "value" : "quantity"
-                              },
-                              "parameter_function" : None,
-                              "data_product_type" : None,
-                              "dimensions" : [ ],
-                              "parameter_function_map" : None
-                            }
+                        'samples': [{
+                                    'sample_request': 'parameter/100',
+                                    'sample_response': {
+                                          "name" : "ass_sig_wave_period",
+                                          "display_name" : "Auto-Spectrum Statistics - Significant Wave Period",
+                                          "standard_name" : None,
+                                          "description" : None,
+                                          "id" : 100,
+                                          "data_product_identifier" : None,
+                                          "precision" : 4,
+                                          "fill_value" : {
+                                            "value" : "-9999999"
+                                          },
+                                          "unit" : {
+                                            "value" : "s"
+                                          },
+                                          "data_level" : None,
+                                          "code_set" : None,
+                                          "value_encoding" : {
+                                            "value" : "float32"
+                                          },
+                                          "parameter_type" : {
+                                            "value" : "quantity"
+                                          },
+                                          "parameter_function" : None,
+                                          "data_product_type" : None,
+                                          "dimensions" : [ ],
+                                          "parameter_function_map" : None
+                                        }
+                                    }]
                     },
                     {
                         'root': 'stream',
@@ -67,8 +69,9 @@ def get_help_data_12575():
                                   'default': None
                                 }
                         ],
-                        'sample_request': 'stream/506',
-                        'sample_response': {
+                        'samples': [{
+                                    'sample_request': 'stream/506',
+                                    'sample_response': {
                                               "name" : "cg_cpm_eng_cpm",
                                               "id" : 506,
                                               "time_parameter" : 7,
@@ -109,6 +112,7 @@ def get_help_data_12575():
                                                               }],
                                               "dependencies" : [ ]
                                             }
+                                    }]
                     },
                     {
                         'root': 'stream',
@@ -126,48 +130,50 @@ def get_help_data_12575():
                                   'default': None
                                 }
                         ],
-                        'sample_request': 'stream/byname/cg_cpm_eng_cpm',
-                        'sample_response': {
-                                              "name" : "cg_cpm_eng_cpm",
-                                              "id" : 506,
-                                              "time_parameter" : 7,
-                                              "binsize_minutes" : 20160,
-                                              "stream_type" : {
-                                                "value" : "Engineering"
-                                              },
-                                              "stream_content" : {
-                                                "value" : "CPM Controller Status Data"
-                                              },
-                                              "description" : None,
-                                              "parameters" : [ {
-                                                                "name" : "time",
-                                                                "display_name" : "Time, UTC",
-                                                                "standard_name" : "time",
-                                                                "description" : "Time, UTC",
-                                                                "id" : 7,
-                                                                "data_product_identifier" : None,
-                                                                "precision" : 0,
-                                                                "fill_value" : {
-                                                                  "value" : "-9999999"
-                                                                },
-                                                                "unit" : {
-                                                                  "value" : "seconds since 1900-01-01"
-                                                                },
-                                                                "data_level" : None,
-                                                                "code_set" : None,
-                                                                "value_encoding" : {
-                                                                  "value" : "float64"
-                                                                },
-                                                                "parameter_type" : {
-                                                                  "value" : "quantity"
-                                                                },
-                                                                "parameter_function" : None,
-                                                                "data_product_type" : None,
-                                                                "dimensions" : [ ],
-                                                                "parameter_function_map" : None
-                                                              }],
-                                              "dependencies" : [ ]
-                                            }
+                        'samples': [{
+                                'sample_request': 'stream/byname/cg_cpm_eng_cpm',
+                                'sample_response': {
+                                                      "name" : "cg_cpm_eng_cpm",
+                                                      "id" : 506,
+                                                      "time_parameter" : 7,
+                                                      "binsize_minutes" : 20160,
+                                                      "stream_type" : {
+                                                        "value" : "Engineering"
+                                                      },
+                                                      "stream_content" : {
+                                                        "value" : "CPM Controller Status Data"
+                                                      },
+                                                      "description" : None,
+                                                      "parameters" : [ {
+                                                                        "name" : "time",
+                                                                        "display_name" : "Time, UTC",
+                                                                        "standard_name" : "time",
+                                                                        "description" : "Time, UTC",
+                                                                        "id" : 7,
+                                                                        "data_product_identifier" : None,
+                                                                        "precision" : 0,
+                                                                        "fill_value" : {
+                                                                          "value" : "-9999999"
+                                                                        },
+                                                                        "unit" : {
+                                                                          "value" : "seconds since 1900-01-01"
+                                                                        },
+                                                                        "data_level" : None,
+                                                                        "code_set" : None,
+                                                                        "value_encoding" : {
+                                                                          "value" : "float64"
+                                                                        },
+                                                                        "parameter_type" : {
+                                                                          "value" : "quantity"
+                                                                        },
+                                                                        "parameter_function" : None,
+                                                                        "data_product_type" : None,
+                                                                        "dimensions" : [ ],
+                                                                        "parameter_function_map" : None
+                                                                      }],
+                                                      "dependencies" : [ ]
+                                                    }
+                                    }]
                     }
 
                 ]

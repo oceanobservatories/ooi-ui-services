@@ -136,8 +136,10 @@ def get_help_data_12586():
                                   'default': None
                                 }
                             ],
-                'sample_request': 'vocab/inv/CE01ISSM/MFC31',
-                'sample_response': ["00-CPMENG000"]
+                'samples': [{
+                                'sample_request': 'vocab/inv/CE01ISSM/MFC31',
+                                'sample_response': ["00-CPMENG000"]
+                            }]
             },
             {
                 'root': 'vocab',
@@ -168,20 +170,22 @@ def get_help_data_12586():
                                   'default': None
                                 }
                             ],
-                'sample_request': 'vocab/inv/CE01ISSM/MFC31/00-CPMENG000',
-                'sample_response': [{
-                                      "@class" : ".VocabRecord",
-                                      "model" : "Communications and Power Manager",
-                                      "manufacturer" : "WHOI",
-                                      "vocabId" : 3,
-                                      "refdes" : "CE01ISSM-MFC31-00-CPMENG000",
-                                      "instrument" : "Platform Controller",
-                                      "tocL1" : "Coastal Endurance",
-                                      "tocL2" : "Oregon Inshore Surface Mooring",
-                                      "tocL3" : "Seafloor Multi-Function Node (MFN)",
-                                      "mindepth" : 25.0,
-                                      "maxdepth" : 25.0
-                                    }]
+                'samples': [{
+                            'sample_request': 'vocab/inv/CE01ISSM/MFC31/00-CPMENG000',
+                            'sample_response': [{
+                                                  "@class" : ".VocabRecord",
+                                                  "model" : "Communications and Power Manager",
+                                                  "manufacturer" : "WHOI",
+                                                  "vocabId" : 3,
+                                                  "refdes" : "CE01ISSM-MFC31-00-CPMENG000",
+                                                  "instrument" : "Platform Controller",
+                                                  "tocL1" : "Coastal Endurance",
+                                                  "tocL2" : "Oregon Inshore Surface Mooring",
+                                                  "tocL3" : "Seafloor Multi-Function Node (MFN)",
+                                                  "mindepth" : 25.0,
+                                                  "maxdepth" : 25.0
+                                                }]
+                            }]
             }
         ]
     return help_data

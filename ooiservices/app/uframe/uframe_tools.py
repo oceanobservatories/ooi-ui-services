@@ -933,7 +933,6 @@ def uframe_get_cruise_by_event_id(event_id):
         # Get base url with port and timeouts.
         url_base, timeout, timeout_read = get_uframe_assets_info()
         url = '/'.join([url_base, get_events_url_base(), str(event_id)])
-
         # Get cruise [event] information from uframe.
         payload = requests.get(url, timeout=(timeout, timeout_read))
         if payload.status_code != 200:
@@ -1619,49 +1618,6 @@ def uframe_get_sites_for_array(rd):
         message = 'Failed to get sensor inventory for \'%s\'. ' % rd
         current_app.logger.info(message)
         return []
-
-
-'''
-def uframe_get_platforms_for_site(rd):
-    """
-    Get /sensor/inv and process for platforms for site name provided. (Used by status)
-    For a site reference designator (subsite), get list of platforms (subsite-node).
-    """
-    check = False
-    result = []
-    try:
-        if not rd or rd is None or len(rd) != 8:
-            message = 'Invalid site (\'%s\') provided for platforms from uframe sensor inventory.' % rd
-            current_app.logger.info(message)
-            return []
-        base_url, timeout, timeout_read = get_uframe_info()
-        url = '/'.join([base_url, rd])
-        if check: print '\n check -- %s' % url
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        if response.status_code != 200:
-            message = 'Failed to get sensor inventory for \'%s\'. ' % rd
-            raise Exception(message)
-        if response.content:
-            nodes = json.loads(response.content)
-            if nodes:
-                for node in nodes:
-                    tmp = '-'.join([rd, node])
-                    if tmp not in result:
-                        result.append(tmp)
-        return result
-    except ConnectionError:
-        message = 'Error: ConnectionError getting uframe sensor inventory for \'%s\'. ' % rd
-        current_app.logger.info(message)
-        return []
-    except Timeout:
-        message = 'Error: Timeout getting uframe sensor inventory for \'%s\'. ' % rd
-        current_app.logger.info(message)
-        return []
-    except:
-        message = 'Failed to get sensor inventory for \'%s\'. ' % rd
-        current_app.logger.info(message)
-        return []
-'''
 
 
 # Get nodes for a site reference designator

@@ -1,17 +1,20 @@
 #!/usr/bin/env python
 
+from ooiservices.app.uframe.common_tools import get_supported_qcflags
 
 def get_help_data_12580():
     """
     Annotation help.
     Data store of information to be presented when a help request is made for port 12580.
     Returns a list of dictionaries associated with various requests supported on that port.
-    """
+
     qcflag_values = ['NOT_OPERATIONAL', 'NOT_AVAILABLE', 'PENDING_INGEST',
                      'NOT_EVALUATED', 'SUSPECT', 'FAIL', 'PASS']
+    """
+    qcflag_values = get_supported_qcflags()
     help_data = [
                     {
-                        'root': 'anno/find',
+                        'root': 'anno',
                         'endpoint': 'anno/find',
                         'method': 'GET',
                         'permission_required': False,
@@ -50,44 +53,49 @@ def get_help_data_12580():
                                   'default': None
                                 }
                             ],
-                        'sample_request': 'http://uframe-test.intra.oceanobservatories.org:12580/anno/find',
-                        'sample_data': {'beginDT': 1374274800000, 'endDT': 1481546694325, 'method': u'telemetered',
-                                        'stream': u'flord_m_glider_instrument', 'refdes': u'GP05MOAS-GL365-01-FLORDM000'
-                                    },
-                        'sample_response': [
-                            {
-                                "@class": ".AnnotationRecord",
-                                "annotation": "Create annotation for SSRSPACC-F10NA-F10-8",
-                                "beginDT": 1491412013000,
-                                "endDT": 1492468785000,
-                                "exclusionFlag": False,
-                                "id": 80,
-                                "method": "streamed",
-                                "node": "F10NA",
-                                "parameters": [],
-                                "qcFlag": None,
-                                "sensor": "F10-8",
-                                "source": "admin@ooi.rutgers.edu",
-                                "stream": "shore_station_force_10_network_port_data",
-                                "subsite": "SSRSPACC"
-                            },
-                            {
-                                "@class": ".AnnotationRecord",
-                                "annotation": "Create annotation for SSRSPACC-F10NA-F10-8",
-                                "beginDT": 1491412013000,
-                                "endDT": 1492468785000,
-                                "exclusionFlag": False,
-                                "id": 81,
-                                "method": "streamed",
-                                "node": "F10NA",
-                                "parameters": [],
-                                "qcFlag": None,
-                                "sensor": "F10-8",
-                                "source": "admin@ooi.rutgers.edu",
-                                "stream": "shore_station_force_10_network_port_data",
-                                "subsite": "SSRSPACC"
-                            }
-                        ]
+                        'samples': [{
+                                    'sample_request': 'anno/find',
+                                    'sample_data': {'beginDT': 1374274800000,
+                                                    'endDT': 1481546694325,
+                                                    'method': u'telemetered',
+                                                    'stream': u'flord_m_glider_instrument',
+                                                    'refdes': u'GP05MOAS-GL365-01-FLORDM000'
+                                                },
+                                    'sample_response': [
+                                                {
+                                                    "@class": ".AnnotationRecord",
+                                                    "annotation": "Create annotation for SSRSPACC-F10NA-F10-8",
+                                                    "beginDT": 1491412013000,
+                                                    "endDT": 1492468785000,
+                                                    "exclusionFlag": False,
+                                                    "id": 80,
+                                                    "method": "streamed",
+                                                    "node": "F10NA",
+                                                    "parameters": [],
+                                                    "qcFlag": None,
+                                                    "sensor": "F10-8",
+                                                    "source": "admin@ooi.rutgers.edu",
+                                                    "stream": "shore_station_force_10_network_port_data",
+                                                    "subsite": "SSRSPACC"
+                                                },
+                                                {
+                                                    "@class": ".AnnotationRecord",
+                                                    "annotation": "Create annotation for SSRSPACC-F10NA-F10-8",
+                                                    "beginDT": 1491412013000,
+                                                    "endDT": 1492468785000,
+                                                    "exclusionFlag": False,
+                                                    "id": 81,
+                                                    "method": "streamed",
+                                                    "node": "F10NA",
+                                                    "parameters": [],
+                                                    "qcFlag": None,
+                                                    "sensor": "F10-8",
+                                                    "source": "admin@ooi.rutgers.edu",
+                                                    "stream": "shore_station_force_10_network_port_data",
+                                                    "subsite": "SSRSPACC"
+                                                }
+                                            ]
+                        }]
 
                     },
                     {
@@ -178,26 +186,28 @@ def get_help_data_12580():
                                   'default': False
                                 }
                             ],
-                        'sample_request': 'anno/65',
-                        'sample_data': {
-                                        "node": "F10NA",
-                                        "endDT": 1492117939000,
-                                        "stream": "shore_station_force_10_network_port_data",
-                                        "annotation": "M2M Update annotation for SSRSPACC-F10NA-F10-8 (verfied).",
-                                        "@class": ".AnnotationRecord",
-                                        "beginDT": 1491412013000,
-                                        "parameters": None,
-                                        "subsite": "SSRSPACC",
-                                        "source": "admin@ooi.rutgers.edu",
-                                        "exclusionFlag": False,
-                                        "sensor": "F10-8",
-                                        "method": "streamed"
-                                        },
-                        'sample_response': {
-                                                "id": 65,
-                                                "message": "Element updated successfully.",
-                                                "statusCode": "OK"
-                                            }
+                        'samples': [{
+                                    'sample_request': 'anno/65',
+                                    'sample_data': {
+                                                    "node": "F10NA",
+                                                    "endDT": 1492117939000,
+                                                    "stream": "shore_station_force_10_network_port_data",
+                                                    "annotation": "M2M Update annotation for SSRSPACC-F10NA-F10-8 (verfied).",
+                                                    "@class": ".AnnotationRecord",
+                                                    "beginDT": 1491412013000,
+                                                    "parameters": None,
+                                                    "subsite": "SSRSPACC",
+                                                    "source": "admin@ooi.rutgers.edu",
+                                                    "exclusionFlag": False,
+                                                    "sensor": "F10-8",
+                                                    "method": "streamed"
+                                                    },
+                                    'sample_response': {
+                                                            "id": 65,
+                                                            "message": "Element updated successfully.",
+                                                            "statusCode": "OK"
+                                                        }
+                        }]
                     },
                     {
                         'root': 'anno',
@@ -287,27 +297,29 @@ def get_help_data_12580():
                                   'default': False
                                 }
                             ],
-                        'sample_request': 'anno',
-                        'sample_data': {
-                                        "@class": ".AnnotationRecord",
-                                        "method": "streamed",
-                                        "annotation": "Create annotation for SSRSPACC-F10NA-F10-8",
-                                        "node": "F10NA",
-                                        "stream": "shore_station_force_10_network_port_data",
-                                        "beginDT": 1491412013000,
-                                        "endDT": 1492468785000,
-                                        "subsite": "SSRSPACC",
-                                        "sensor": "F10-8",
-                                        "exclusionFlag": False,
-                                        "source": "admin@ooi.rutgers.edu",
-                                        "qcFlag": "SUSPECT",
-                                        "parameters": None
-                                        },
-                        'sample_response': {
-                                "id": 82,
-                                "message": "Element created successfully.",
-                                "statusCode": "CREATED"
-                            }
+                        'samples': [{
+                            'sample_request': 'anno',
+                            'sample_data': {
+                                            "@class": ".AnnotationRecord",
+                                            "method": "streamed",
+                                            "annotation": "Create annotation for SSRSPACC-F10NA-F10-8",
+                                            "node": "F10NA",
+                                            "stream": "shore_station_force_10_network_port_data",
+                                            "beginDT": 1491412013000,
+                                            "endDT": 1492468785000,
+                                            "subsite": "SSRSPACC",
+                                            "sensor": "F10-8",
+                                            "exclusionFlag": False,
+                                            "source": "admin@ooi.rutgers.edu",
+                                            "qcFlag": "SUSPECT",
+                                            "parameters": None
+                                            },
+                            'sample_response': {
+                                                    "id": 82,
+                                                    "message": "Element created successfully.",
+                                                    "statusCode": "CREATED"
+                                                }
+                        }]
 
                     }
                 ]
