@@ -9,7 +9,6 @@ def get_help_data_12587_events():
     """
     help_data = [
         {
-            'category': 'events',
             'root': 'events',
             'endpoint': 'events',
             'method': 'GET',
@@ -39,7 +38,6 @@ def get_help_data_12587_events():
                         }]
         },
         {
-            'category': 'events',
             'root': 'events',
             'endpoint': 'events/{id}',
             'method': 'GET',
@@ -76,7 +74,6 @@ def get_help_data_12587_events():
                         }]
         },
         {
-            'category': 'events',
             'root': 'events',
             'endpoint': 'events/deployment/inv',
             'method': 'GET',
@@ -90,7 +87,6 @@ def get_help_data_12587_events():
                         }]
         },
         {
-            'category': 'events',
             'root': 'events',
             'endpoint': 'events/deployment/inv/{subsite}',
             'method': 'GET',
@@ -111,7 +107,6 @@ def get_help_data_12587_events():
                         }]
         },
         {
-            'category': 'events',
             'root': 'events',
             'endpoint': 'events/deployment/inv/{subsite}/{node}',
             'method': 'GET',
@@ -139,7 +134,6 @@ def get_help_data_12587_events():
                         }]
         },
         {
-            'category': 'events',
             'root': 'events',
             'endpoint': 'events/deployment/inv/{subsite}/{node}/{sensor}',
             'method': 'GET',
@@ -173,7 +167,6 @@ def get_help_data_12587_events():
             }]
         },
         {
-            'category': 'events',
             'root': 'events',
             'endpoint': 'events/deployment/inv/{subsite}/{node}/{sensor}/{deploymentNumber}',
             'method': 'GET',
@@ -344,7 +337,6 @@ def get_help_data_12587_events():
             }]
         },
         {
-            'category': 'events',
             'root': 'events',
             'endpoint': 'events/deployment/query',
             'method': 'GET',
@@ -520,7 +512,6 @@ def get_help_data_12587_events():
             }]
         },
         {
-            'category': 'events',
             'root': 'events',
             'endpoint': 'events/cruise/inv',
             'method': 'GET',
@@ -534,7 +525,6 @@ def get_help_data_12587_events():
                         }]
         },
         {
-            'category': 'events',
             'root': 'events',
             'endpoint': 'events/cruise/inv/{subsite}',
             'method': 'GET',
@@ -556,7 +546,6 @@ def get_help_data_12587_events():
             }]
         },
         {
-            'category': 'events',
             'root': 'events',
             'endpoint': 'events/cruise/rec/{uniqueCruiseId}',
             'method': 'GET',
@@ -593,7 +582,6 @@ def get_help_data_12587_events():
                 }]
             },
             {
-                'category': 'events',
                 'root': 'events',
                 'endpoint': 'events/cruise/deployments/{uniqueCruiseId}',
                 'method': 'GET',

@@ -12,7 +12,6 @@ def get_help_data_12587_asset():
     """
     help_data = [
                     {
-                        'category': 'asset',
                         'root': 'asset',
                         'endpoint': 'asset',
                         'method': 'GET',
@@ -26,7 +25,6 @@ def get_help_data_12587_asset():
                                     }]
                     },
                     {
-                        'category': 'asset',
                         'root': 'asset',
                         'endpoint': 'asset/{id}',
                         'method': 'GET',
@@ -86,7 +84,6 @@ def get_help_data_12587_asset():
                                     }]
                     },
                     {
-                        'category': 'asset',
                         'root': 'asset',
                         'endpoint': 'asset',
                         'method': 'GET',
@@ -146,7 +143,6 @@ def get_help_data_12587_asset():
                                     }]
                     },
                     {
-                        'category': 'asset',
                         'root': 'asset',
                         'endpoint': 'asset',
                         'method': 'GET',
@@ -206,7 +202,6 @@ def get_help_data_12587_asset():
                         }]
                     },
                     {
-                        'category': 'asset',
                         'root': 'asset',
                         'endpoint': 'asset',
                         'method': 'GET',
@@ -266,7 +261,6 @@ def get_help_data_12587_asset():
                                     }]
                     },
                     {
-                        'category': 'asset',
                         'root': 'asset/deployments',
                         'endpoint': 'asset/deployments',
                         'method': 'GET',
@@ -335,7 +329,6 @@ def get_help_data_12587_asset():
                                     }]
                     },
                     {
-                        'category': 'asset',
                         'root': 'asset/cal',
                         'endpoint': 'asset/cal',
                         'method': 'GET',
@@ -433,7 +426,6 @@ def get_help_data_12587_asset():
                         }]
                     },
                     {
-                        'category': 'asset',
                         'root': 'asset/cal',
                         'endpoint': 'asset/cal',
                         'method': 'GET',
@@ -532,7 +524,6 @@ def get_help_data_12587_asset():
 
                     },
                     {
-                        'category': 'asset',
                         'root': 'asset/cal',
                         'endpoint': 'asset/cal',
                         'method': 'GET',

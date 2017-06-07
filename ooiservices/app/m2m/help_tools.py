@@ -1,15 +1,6 @@
 #!/usr/bin/env python
 
-import requests
-
-from flask import Response
-from flask import current_app, jsonify
-from flask import request
-from requests.exceptions import ConnectionError, Timeout
-from werkzeug.datastructures import MultiDict
-from ooiservices.app.m2m import m2m as api
-from ooiservices.app.models import User
-
+from flask import current_app
 import json
 import os
 
@@ -20,34 +11,11 @@ from ooiservices.app.m2m.exceptions import InvalidPortException, InvalidPathExce
 
 def build_url(path, request_method='GET', scope_names=None):
     """
-    Given an M2M request path, build the corresponding UFrame URL
-    Paths must conform to the following specification:
-    <UFRAME PORT>/<UFRAME URL>
-    :param path: input path
-    :return: URL
-    """
-    debug = False
-    """
-    try:
-        port, path = path.split('/', 1)
-        port = int(port)
-
-        help_request = False
-        if 'help/' in path:
-            help_request = True
-            path = path.replace('help/', '')
-
-    except ValueError:
-        raise InvalidPathException(path)
+    Given an M2M request path, build the corresponding uframe url.
+    Verify permissions for port, request type and scope provided.
+    Paths must conform to the following specification: <UFRAME PORT>/<UFRAME URL>
     """
     port, path, help_request = get_port_path_help(path)
-    if debug:
-        print '\n debug -- port: ', port
-        print '\n debug -- path: ', path
-        print '\n debug -- help_request: ', help_request
-    if help_request:
-        if debug: print '\n debug -- Help was requested for (%s) %s...' % (request_method, path)
-
     uframe_host = current_app.config['UFRAME_HOST']
     allowed_ports = current_app.config['UFRAME_ALLOWED_M2M_PORTS']
     post_allowed_ports = current_app.config['UFRAME_ALLOWED_M2M_PORTS_POST']
@@ -78,48 +46,27 @@ def build_url(path, request_method='GET', scope_names=None):
 # Help requests
 #-----------------------------------------------
 def get_port_path_help(path):
-    debug = False
     try:
-        if debug:
-            print '\n debug -- entered get_port_path_help...'
-            print '\n debug -- path: ', path
         port, path = path.split('/', 1)
         port = int(port)
-
-        if debug:
-            print '\n debug -- entered get_port_path_help...'
-            print '\n debug -- port: ', port
-            print '\n debug -- path: ', path
-
         help_request = False
         if 'help/' in path:
-            if debug: print '\n debug -- this is a help request...'
             help_request = True
             path = path.replace('help/', '')
         return port, path, help_request
     except ValueError:
-        print '\n debug -- Exception (get_port_path_help): ', path
         raise InvalidPathException(path)
 
 
 def get_help(port, path, request_method, json_result=False, keyword=None):
     """ Get specific help information for a port, path and request type.
     """
-    debug = True
     result = []
     separator = '\n==========\n'
     try:
-        if debug:
-            print '\n debug -- Help request...'
-            print '\n debug -- port: ', port
-            print '\n debug -- path: ', path
-            print '\n debug -- keyword: ', keyword
-            print '\n debug -- request_method: ', request_method
-
         port_data = get_help_data(port, keyword)
         if json_result:
             return port_data
-
         if port_data:
             for item in port_data:
                 if request_method is None:
@@ -136,38 +83,23 @@ def get_help(port, path, request_method, json_result=False, keyword=None):
                         results += separator
                         results += res + '\n'
                 else:
-                    if debug: print '\n debug ***** result: %r' % result
                     results += result[0]
-
         return results
-
     except Exception as err:
         message = str(err)
-        print '\n debug -- Exception (get_help): ', message
         raise Exception(message)
 
 
 def formatted_help(port, path, request_method, data):
+    """ Process raw help data into human readable help output.
     """
-    Process raw help data into human readable help output.
-    """
-    debug = False
-    if debug:
-        print '\n debug -- formatted_help entered...'
-        print '\n debug -- port: ', port
-        print '\n debug -- path: ', path
-        print '\n debug -- request_method: ', request_method
-
     try:
         if not data:
             return None
-        if debug: print '\n data(%d): %s' % (len(data), data)
         result = get_formatted_template(port, path, request_method, data)
         return result
-
     except Exception as err:
         message = str(err)
-        print '\n debug -- Exception (formatted_help): ', message
         raise Exception(message)
 
 
@@ -175,28 +107,18 @@ def formatted_help(port, path, request_method, data):
 # Data for help request (move to database with vocab like interface)
 #----------------------------------------------------------------------
 def get_formatted_template(port, path, request_method, data):
-    debug = False
-    separator = '\n=====\n'
     m2m_root = 'http://host/api/m2m'
     try:
-        if debug: print '\n debug -- get_formatted_template entered...'
         uframe_host = current_app.config['UFRAME_HOST']
         base_url = 'http://%s:%d' % (uframe_host, port)
-        url =  '/'.join((base_url, path))
-        if debug:
-            print '\n debug -- uframe_host: ', uframe_host
-            print '\n debug -- base_url: ', base_url
-            print '\n debug -- url: ', url
-
+        url = '/'.join((base_url, path))
         results = []
         # If help data to be processed....
         if data is not None:
             for item in data:
                 result = ''
                 # Data description
-                #enhanced_endpoint = 'http://ui-server-address/api/m2m/%s/%s' % (port, item['endpoint'])
                 enhanced_endpoint = '/'.join([m2m_root, str(port), item['endpoint']])
-                if debug: print '\n debug -- enhanced_endpoint: ', enhanced_endpoint
                 if item['description'] is not None:
                     result += 'M2M %s Request (Syntax): %s \n\nDescription: %s' % (item['method'],
                                                                                    enhanced_endpoint,
@@ -214,33 +136,11 @@ def get_formatted_template(port, path, request_method, data):
 
                 # Data Format
                 if item['data_format'] is not None:
-                    #formatted__parameters = format_parameters(item['data_format'])
-                    #result += '\n\nParameters: \n\tName\t\t\tData Type\tDescription'
                     result += '\n\nParameters: \n'
                     formatted__parameters = format_parameters(item['data_format'])
                     result += formatted__parameters
 
-                '''
-                # Sample Request (optional)
-                if 'sample_request' in item:
-                    if item['sample_request']:
-                        result += '\n\nSample Request: \n'
-                        result += item['sample_request']
-                        #result += json.dumps(item['sample_request'], indent=4, sort_keys=True)
-
-                # Sample Data (optional)
-                if 'sample_data' in item:
-                    if item['sample_data']:
-                        result += '\n\nSample Data: \n'
-                        result += json.dumps(item['sample_data'], indent=4, sort_keys=True)
-
-                # Sample Response (optional)
-                if 'sample_response' in item:
-                    if item['sample_response']:
-                        result += '\n\nSample Response: \n'
-                        result += json.dumps(item['sample_response'], indent=4, sort_keys=True)
-                '''
-                # Process one or more samples if available
+                # Process one or more samples if available (samples are optional)
                 if 'samples' in item:
                     samples = item['samples']
                     for sample in samples:
@@ -249,7 +149,6 @@ def get_formatted_template(port, path, request_method, data):
                             if sample['sample_request']:
                                 result += '\n\nSample Request: \n'
                                 result += sample['sample_request']
-                                #result += json.dumps(item['sample_request'], indent=4, sort_keys=True)
 
                         # Sample Data (optional)
                         if 'sample_data' in sample:
@@ -263,10 +162,6 @@ def get_formatted_template(port, path, request_method, data):
                                 result += '\n\nSample Response: \n'
                                 result += json.dumps(sample['sample_response'], indent=4, sort_keys=True)
 
-
-
-
-
                 if result:
                     results.append(result)
 
@@ -274,25 +169,21 @@ def get_formatted_template(port, path, request_method, data):
         else:
             result = 'M2M %s Request: %s \n\nDescription: None' % (request_method, url)
             result += '\n\nNo help information available at this time.'
-            #results = result
             results.append(result)
-        if debug: print '\n debug -- Returning results(%d): %s' % (len(results), results)
         return results
     except Exception as err:
         raise Exception(str(err))
 
 
 def format_parameters(parameters):
-    """
-    Returns a string of formatted parameters; 3 columns: Name, Data Type, and Description
+    """ Returns a string of formatted parameters; 3 columns: Name, Data Type, and Description
     """
     result = None
     try:
         if parameters:
             result = ''
-        #---
         template = "  {0:20}|{1:15}|{2:35}" # column widths: 20, 15, 35
-        result += template.format("Name", "Data Type", "Description")# header
+        result += template.format("Name", "Data Type", "Description")   # header
         result += '\n'
         for item in parameters:
             if 'valid_values' in item and item['valid_values'] is not None:
@@ -305,9 +196,6 @@ def format_parameters(parameters):
             else:
                 result += template.format(item['name'], item['type'], item['description'])
             result += '\n'
-        #---
-        #for item in parameters:
-        #    result += '\n\t%s\t\t\t%s\t\t%s' % (item['name'], item['type'], item['description'])
         return result
     except Exception as err:
         raise Exception(str(err))
@@ -316,16 +204,12 @@ def format_parameters(parameters):
 # Read data from file
 #===========================================
 def read_store(filename):
+    """ Open filename, read data, close file and return data
     """
-    Open filename, read data, close file and return data
-    """
-    debug = True
     APP_ROOT = os.path.dirname(os.path.abspath(__file__))   # refers to application_top
     data_path = os.path.join(APP_ROOT, '..', '..', 'app', 'm2m', 'help')
-    if debug: print '\n debug -- help - read_store entered, data_path: ', data_path
     try:
         tmp = "/".join([data_path, filename])
-        if debug: print '\n debug -- tmp: ', tmp
         f = open(tmp, 'rb')
         data = f.read()
         f.close()
@@ -334,8 +218,7 @@ def read_store(filename):
         raise Exception('%s' % err.message)
 
 def read_store2(filename):
-    """
-    open filename, read data, close file and return data
+    """ Open filename, read data and split on /r, close file and return data
     """
     APP_ROOT = os.path.dirname(os.path.abspath(__file__))   # refers to application_top
     data_path = os.path.join(APP_ROOT, '..', '..', 'app', 'm2m', 'help')
@@ -354,9 +237,7 @@ def json_get_help_file(port):
     results = ''
     if port is None:
         port = 'general'
-
     filename = "_".join(['help', port])
-    print '\n debug -- filename: ', filename
     try:
         data = read_store2(filename)
         for line in data:

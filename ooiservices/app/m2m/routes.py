@@ -9,7 +9,6 @@ from requests.exceptions import ConnectionError, Timeout
 from werkzeug.datastructures import MultiDict
 from ooiservices.app.m2m import m2m as api
 from ooiservices.app.models import User
-
 from ooiservices.app.m2m.help_tools import build_url, get_port_path_help, get_help
 from ooiservices.app.m2m.exceptions import BadM2MException
 
@@ -17,37 +16,32 @@ from ooiservices.app.m2m.exceptions import BadM2MException
 @api.route('/', methods=['GET'], defaults={'path': ''})
 @api.route('/<path:path>', methods=['GET'])
 def m2m_handler(path):
+    """ Issue GET request to uframe server.
     """
-    :param path:
-    :return:
-    """
-    debug = True
     transfer_header_fields = ['Date', 'Content-Type']
     request_method = 'GET'
     try:
-        if debug: print '\n debug -- m2m GET entered...'
         # Determine if help request, if so return help information.
         port, updated_path, help_request = get_port_path_help(path)
         if help_request:
-            if debug: print '\n debug -- Help was requested for (%s) %s...' % (request_method, path)
             help_response_data = get_help(port, updated_path, request_method)
-            if debug: print '\n debug -- help_response_data: ', help_response_data
             if not help_response_data:
                 help_response_data = 'No help information available at this time.'
             return jsonify({'message': help_response_data, 'status_code': 200}), 200
 
         if request.data:
             data = request.data
-            if debug: print '\n debug -- m2m GET data provided...'
         else:
             data = None
-        #current_app.logger.info(path)
+
+        # Verify user information has been provide in request and has permission for the request submitted.
         user = User.get_user_from_token(request.authorization['username'], request.authorization['password'])
         if user:
-            if debug: print '\n debug -- m2m GET - have user...'
             params = MultiDict(request.args)
             params['user'] = user.user_name
             params['email'] = user.email
+
+            # Build and issue request to uframe server.
             url = build_url(path)
             timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
             timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
@@ -55,7 +49,6 @@ def m2m_handler(path):
                 response = requests.get(url, timeout=(timeout, timeout_read), params=params, stream=True)
             else:
                 response = requests.get(url, timeout=(timeout, timeout_read), params=params, stream=True, data=data)
-            if debug: print '\n debug -- m2m GET - After request has been made...status_code: ', response.status_code
             headers = dict(response.headers)
             headers = {k: headers[k] for k in headers if k in transfer_header_fields}
             return Response(response.iter_content(1024), response.status_code, headers)
@@ -81,26 +74,26 @@ def m2m_handler(path):
 @api.route('/', methods=['POST'], defaults={'path': ''})
 @api.route('/<path:path>', methods=['POST'])
 def m2m_handler_post(path):
+    """ Issue POST request to uframe server.
     """
-    """
-    debug = True
     transfer_header_fields = ['Date', 'Content-Type']
     request_method = 'POST'
     try:
         # Determine if help request, if so return help information.
         port, updated_path, help_request = get_port_path_help(path)
         if help_request:
-            if debug: print '\n debug -- Help was requested for (%s) %s...' % (request_method, path)
             help_response_data = get_help(port, updated_path, request_method)
-            if debug: print '\n debug -- help_response_data: ', help_response_data
             if not help_response_data:
                 help_response_data = 'No help information available at this time.'
             return jsonify({'message': help_response_data, 'status_code': 200}), 200
-        #current_app.logger.info(path)
+
+        # Check request data - required for POST
         if not request.data:
             message = 'No request data provided for POST.'
             current_app.logger.info(message)
             return jsonify({'message': message, 'status_code': 401}), 401
+
+        # Verify user information has been provide in request and has permission for the request submitted.
         user = User.get_user_from_token(request.authorization['username'], request.authorization['password'])
         if user:
             scopes = user.scopes
@@ -110,6 +103,8 @@ def m2m_handler_post(path):
             params = MultiDict(request.args)
             params['user'] = user.user_name
             params['email'] = user.email
+
+            # Build and issue POST request to uframe server.
             url = build_url(path, request_method='POST', scope_names=scope_names)
             timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
             timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
@@ -141,27 +136,26 @@ def m2m_handler_post(path):
 @api.route('/', methods=['PUT'], defaults={'path': ''})
 @api.route('/<path:path>', methods=['PUT'])
 def m2m_handler_put(path):
-    """
+    """ Issue PUT request to uframe server.
     """
     transfer_header_fields = ['Date', 'Content-Type']
     request_method = 'PUT'
-    debug = True
     try:
         # Determine if help request, if so return help information.
         port, updated_path, help_request = get_port_path_help(path)
         if help_request:
-            if debug: print '\n debug -- Help was requested for (%s) %s...' % (request_method, path)
             help_response_data = get_help(port, updated_path, request_method)
-            if debug: print '\n debug -- help_response_data: ', help_response_data
             if not help_response_data:
                 help_response_data = 'No help information available at this time.'
             return jsonify({'message': help_response_data, 'status_code': 200}), 200
 
-        #current_app.logger.info(path)
+        # Check request data - required for PUT
         if not request.data:
             message = 'No request data provided on PUT.'
             current_app.logger.info(message)
             return jsonify({'message': message, 'status_code': 401}), 401
+
+        # Verify user information has been provide in request and has permission for the request submitted.
         user = User.get_user_from_token(request.authorization['username'], request.authorization['password'])
         if user:
             scopes = user.scopes
@@ -171,6 +165,8 @@ def m2m_handler_put(path):
             params = MultiDict(request.args)
             params['user'] = user.user_name
             params['email'] = user.email
+
+            # Build and issue PUT request to uframe server.
             url = build_url(path, request_method='PUT', scope_names=scope_names)
             timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
             timeout_read = current_app.config['UFRAME_TIMEOUT_READ']

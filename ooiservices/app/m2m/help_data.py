@@ -8,7 +8,9 @@ from ooiservices.app.m2m.help_data_12580 import get_help_data_12580
 from ooiservices.app.m2m.help_data_12586 import get_help_data_12586
 from ooiservices.app.m2m.help_data_12587_asset import get_help_data_12587_asset
 from ooiservices.app.m2m.help_data_12587_events import get_help_data_12587_events
-from ooiservices.app.m2m.help_data_12589 import get_help_data_12589
+from ooiservices.app.m2m.help_data_12587_status import get_help_data_12587_status
+#from ooiservices.app.m2m.help_data_12589 import get_help_data_12589
+from ooiservices.app.m2m.common import valid_port_keywords
 
 
 def get_help_data(port, keyword=None):
@@ -17,15 +19,7 @@ def get_help_data(port, keyword=None):
     For each port there is a list of dictionaries associated with various requests supported on that port.
     Supported ports(8): 12575, 12576, 12577, 12578, 12580, 12586, 12587, 12589
     """
-    debug = True
     help_data = []
-    valid_port_keywords = {12587: ['all', 'asset', 'asset', 'cal', 'calibration', 'deployment', 'deployments',
-                                   'event', 'events', 'cruise', 'cruises']}
-
-    if debug:
-        print '\n debug -- get_help_data entered...'
-        print '\n keyword: ', keyword
-        print '\n port: ', port
 
     # (12575) Preload
     if port == 12575:
@@ -56,6 +50,7 @@ def get_help_data(port, keyword=None):
         results = []
         help_data = get_help_data_12587_asset()
         help_data += get_help_data_12587_events()
+        help_data += get_help_data_12587_status()
         if keyword in valid_port_keywords[port]:
             if keyword != 'all':
                 keyword = normalize_keyword(keyword)
@@ -65,8 +60,8 @@ def get_help_data(port, keyword=None):
                 help_data = results
 
     # (12589) Ingestion
-    elif port == 12589:
-        help_data = get_help_data_12589()
+    #elif port == 12589:
+    #    help_data = get_help_data_12589()
 
     return help_data
 
