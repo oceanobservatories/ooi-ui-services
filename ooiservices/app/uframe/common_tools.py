@@ -525,6 +525,12 @@ def operational_status_display_values():
     return values
 
 
+def get_supported_qcflags():
+    # Get all qcflag enuermation values for annotations.
+    result = ['NOT_OPERATIONAL', 'NOT_AVAILABLE', 'PENDING_INGEST', 'NOT_EVALUATED', 'SUSPECT', 'FAIL', 'PASS']
+    result.sort()
+    return result
+
 def get_array_locations():
     arrays_patch = {'CE': {'latitude': 44.37, 'longitude': -124.95},
                     'GP': {'latitude': 49.9795, 'longitude': -144.254},
@@ -642,6 +648,7 @@ def convert_from_utc(u):
 
 def ut(d):
     return calendar.timegm(d.timetuple())
+
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Location dictionary processing for Assets and Deployments
