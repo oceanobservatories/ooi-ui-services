@@ -29,11 +29,17 @@ def build_url(path, request_method='GET', scope_names=None):
         if port == 12580:
             if 'annotate' not in scope_names:
                 raise InvalidScopeException(port, request_method)
+        if port == 12589:
+            if 'ingest' not in scope_names:
+                raise InvalidScopeException(port, request_method)
     elif request_method == 'PUT':
         if port not in put_allowed_ports:
             raise InvalidMethodException(port, request_method)
         if port == 12580:
             if 'annotate' not in scope_names:
+                raise InvalidScopeException(port, request_method)
+        if port == 12589:
+            if 'ingest' not in scope_names:
                 raise InvalidScopeException(port, request_method)
     else:
         raise InvalidMethodException(port, request_method)
