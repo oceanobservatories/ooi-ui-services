@@ -235,46 +235,56 @@ class UserTestCase(unittest.TestCase):
         # Expected user_scopes
         user_scopes_data = \
             {
-            "user_scopes": [
-                {
-                    "id": 1,
-                    "scope_description": None,
-                    "scope_name": "user_admin"
+                "user_scopes": [
+                    {
+                        "id": 1,
+                        "scope_description": None,
+                        "scope_name": "annotate_admin"
                     },
-                {
-                    "id": 2,
-                    "scope_description": None,
-                    "scope_name": "command_control"
+                    {
+                        "id": 2,
+                        "scope_description": None,
+                        "scope_name": "user_admin"
                     },
-                {
-                    "id": 3,
-                    "scope_description": None,
-                    "scope_name": "annotate"
+                    {
+                        "id": 3,
+                        "scope_description": None,
+                        "scope_name": "sys_admin"
                     },
-                {
-                    "id": 4,
-                    "scope_description": None,
-                    "scope_name": "asset_manager"
+                    {
+                        "id": 4,
+                        "scope_description": None,
+                        "scope_name": "ingest"
                     },
-                {
-                    "id": 5,
-                    "scope_description": None,
-                    "scope_name": "sys_admin"
+                    {
+                        "id": 5,
+                        "scope_description": None,
+                        "scope_name": "annotate"
                     },
-                {
-                    "id": 6,
-                    "scope_description": None,
-                    "scope_name": "redmine"
+                    {
+                        "id": 6,
+                        "scope_description": None,
+                        "scope_name": "asset_manager"
                     },
-                {
-                    "id": 7,
-                    "scope_description": None,
-                    "scope_name": "data_manager"
+                    {
+                        "id": 7,
+                        "scope_description": None,
+                        "scope_name": "command_control"
                     },
-                {
-                    "id": 8,
-                    "scope_description": None,
-                    "scope_name": "organization"
+                    {
+                        "id": 8,
+                        "scope_description": None,
+                        "scope_name": "redmine"
+                    },
+                    {
+                        "id": 9,
+                        "scope_description": None,
+                        "scope_name": "data_manager"
+                    },
+                    {
+                        "id": 10,
+                        "scope_description": None,
+                        "scope_name": "organization"
                     }
                 ]
             }
