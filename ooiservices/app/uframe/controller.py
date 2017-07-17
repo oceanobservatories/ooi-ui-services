@@ -381,12 +381,21 @@ def get_netcdf(stream, ref, start_time, end_time, dpa_flag, provenance, annotati
 
     user = request.args.get('user', '')
     email = request.args.get('email', '')
+    pdids = request.args.get('parameters', '')
+    if debug: print '\n debug -- pdids: ', pdids
     if dpa_flag == '0':
         query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s&user=%s&email=%s' % \
                 (start_time, end_time, provenance, annotations, user, email)
     else:
         query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s&execDPA=true&user=%s&email=%s' % \
                 (start_time, end_time, provenance, annotations, user, email)
+
+    # Add [optional] selected parameters (identified by comma separated int ids; for example: '12,25,3795')
+    # Send to uframe as '&parameters=12,25,3795'.
+    if pdids:
+        query += '&parameters=%s' % pdids
+        if debug: print '\n debug -- query: ', query
+
     query += '&format=application/netcdf'
     uframe_url, timeout, timeout_read = get_uframe_info()
     url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
