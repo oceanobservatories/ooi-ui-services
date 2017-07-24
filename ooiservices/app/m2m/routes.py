@@ -11,6 +11,7 @@ from ooiservices.app.m2m import m2m as api
 from ooiservices.app.models import User
 from ooiservices.app.m2m.help_tools import build_url, get_port_path_help, get_help
 from ooiservices.app.m2m.exceptions import BadM2MException
+import json
 
 
 @api.route('/', methods=['GET'], defaults={'path': ''})
@@ -18,6 +19,8 @@ from ooiservices.app.m2m.exceptions import BadM2MException
 def m2m_handler(path):
     """ Issue GET request to uframe server.
     """
+    debug = False
+    if debug: print '\n debug -- Entered m2m GET ...'
     transfer_header_fields = ['Date', 'Content-Type']
     request_method = 'GET'
     try:
@@ -49,6 +52,11 @@ def m2m_handler(path):
                 response = requests.get(url, timeout=(timeout, timeout_read), params=params, stream=True)
             else:
                 response = requests.get(url, timeout=(timeout, timeout_read), params=params, stream=True, data=data)
+            if debug: print '\n debug-- response.status_code: ', response.status_code
+            if response.status_code != 200:
+                tmp = json.loads(response.text)
+                message = tmp['message']
+                return jsonify({'message': message, 'status_code': response.status_code}), response.status_code
             headers = dict(response.headers)
             headers = {k: headers[k] for k in headers if k in transfer_header_fields}
             return Response(response.iter_content(1024), response.status_code, headers)
@@ -60,11 +68,11 @@ def m2m_handler(path):
         current_app.logger.info(e.message)
         return jsonify({'message': e.message, 'status_code': 403}), 403
     except ConnectionError:
-        message = 'ConnectionError for get uframe contents.'
+        message = 'ConnectionError when getting annotation data from uframe.'
         current_app.logger.info(message)
         return jsonify({'message': message, 'status_code': 500}), 500
     except Timeout:
-        message = 'Timeout for get uframe contents.'
+        message = 'Timeout when getting annotation data from uframe.'
         current_app.logger.info(message)
         return jsonify({'message': message, 'status_code': 500}), 500
     except Exception as err:
@@ -76,6 +84,8 @@ def m2m_handler(path):
 def m2m_handler_post(path):
     """ Issue POST request to uframe server.
     """
+    debug = True
+    if debug: print '\n debug -- Entered m2m POST...'
     transfer_header_fields = ['Date', 'Content-Type']
     request_method = 'POST'
     try:
@@ -93,9 +103,14 @@ def m2m_handler_post(path):
             current_app.logger.info(message)
             return jsonify({'message': message, 'status_code': 401}), 401
 
+        if debug: print '\n debug -- m2m POST request.data: ', request.data
+
         # Verify user information has been provide in request and has permission for the request submitted.
+        if debug: print '\n debug -- POST - before get user...'
         user = User.get_user_from_token(request.authorization['username'], request.authorization['password'])
+        if debug: print '\n debug -- POST - after get user...'
         if user:
+            if debug: print '\n debug -- POST - have user...'
             scopes = user.scopes
             scope_names = []
             for s in scopes:
@@ -106,15 +121,22 @@ def m2m_handler_post(path):
 
             # Build and issue POST request to uframe server.
             url = build_url(path, request_method='POST', scope_names=scope_names)
+            if debug: print '\n debug -- m2m POST url: ', url
             timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
             timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
             response = requests.post(url, timeout=(timeout, timeout_read), params=params, stream=True,
                                      data=request.data,
                                      headers={'Accept': 'application/json', 'Content-Type': 'application/json'})
+            if debug: print '\n debug-- response.status_code: ', response.status_code
+            if response.status_code != 201:
+                tmp = json.loads(response.text)
+                message = tmp['message']
+                return jsonify({'message': message, 'status_code': response.status_code}), response.status_code
             headers = dict(response.headers)
             headers = {k: headers[k] for k in headers if k in transfer_header_fields}
             return Response(response.iter_content(1024), response.status_code, headers)
         else:
+            if debug: print '\n debug -- POST - do not have user...'
             message = 'Authentication failed.'
             current_app.logger.info(message)
             return jsonify({'message': message, 'status_code': 401}), 401
@@ -122,11 +144,11 @@ def m2m_handler_post(path):
         current_app.logger.info(e.message)
         return jsonify({'message': e.message, 'status_code': 403}), 403
     except ConnectionError:
-        message = 'ConnectionError for get uframe contents.'
+        message = 'ConnectionError during POST annotation data to uframe.'
         current_app.logger.info(message)
         return jsonify({'message': message, 'status_code': 500}), 500
     except Timeout:
-        message = 'Timeout for get uframe contents.'
+        message = 'Timeout during POST annotation data to uframe.'
         current_app.logger.info(message)
         return jsonify({'message': message, 'status_code': 500}), 500
     except Exception as e:
@@ -138,6 +160,8 @@ def m2m_handler_post(path):
 def m2m_handler_put(path):
     """ Issue PUT request to uframe server.
     """
+    debug = False
+    if debug: print '\n debug -- Entered m2m PUT...'
     transfer_header_fields = ['Date', 'Content-Type']
     request_method = 'PUT'
     try:
@@ -173,6 +197,11 @@ def m2m_handler_put(path):
             response = requests.put(url, timeout=(timeout, timeout_read), params=params, stream=True,
                                     data=request.data,
                                     headers={'Accept': 'application/json', 'Content-Type': 'application/json'})
+            if debug: print '\n debug-- response.status_code: ', response.status_code
+            if response.status_code != 200:
+                tmp = json.loads(response.text)
+                message = tmp['message']
+                return jsonify({'message': message, 'status_code': response.status_code}), response.status_code
             headers = dict(response.headers)
             headers = {k: headers[k] for k in headers if k in transfer_header_fields}
             return Response(response.iter_content(1024), response.status_code, headers)
@@ -184,11 +213,11 @@ def m2m_handler_put(path):
         current_app.logger.info(e.message)
         return jsonify({'message': e.message, 'status_code': 403}), 403
     except ConnectionError:
-        message = 'ConnectionError for get uframe contents.'
+        message = 'ConnectionError during PUT annotation data to uframe.'
         current_app.logger.info(message)
         return jsonify({'message': message, 'status_code': 500}), 500
     except Timeout:
-        message = 'Timeout for get uframe contents.'
+        message = 'Timeout during PUT annotation data to uframe.'
         current_app.logger.info(message)
         return jsonify({'message': message, 'status_code': 500}), 500
     except Exception as e:

@@ -525,11 +525,21 @@ def operational_status_display_values():
     return values
 
 
+uframe_annotation_qcflags = ['not_operational', 'not_available', 'pending_ingest', 'not_evaluated', 'suspect', 'fail', 'pass']
+uframe_annotation_qcflags_display_values = ['Not Operational', 'Not Available', 'Pending Ingest', 'Not Evaluated', 'Suspect', 'Fail', 'Pass']
+annotation_qcflags_map = dict(zip(uframe_annotation_qcflags_display_values, uframe_annotation_qcflags))
 def get_supported_qcflags():
-    # Get all qcflag enuermation values for annotations.
-    result = ['NOT_OPERATIONAL', 'NOT_AVAILABLE', 'PENDING_INGEST', 'NOT_EVALUATED', 'SUSPECT', 'FAIL', 'PASS']
+    # Get all qcflag enumeration values for annotations.
+    result = uframe_annotation_qcflags
     result.sort()
     return result
+
+
+def get_qcflags_map():
+    # Get all qcflag enumeration values for annotations.
+    result = annotation_qcflags_map
+    return result
+
 
 def get_array_locations():
     arrays_patch = {'CE': {'latitude': 44.37, 'longitude': -124.95},

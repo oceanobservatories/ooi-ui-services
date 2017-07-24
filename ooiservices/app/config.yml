@@ -79,12 +79,15 @@ COMMON: &common
       - 12580
       - 12586
       - 12587
+      - 12589
 
     UFRAME_ALLOWED_M2M_PORTS_POST:
       - 12580
+      - 12589
 
     UFRAME_ALLOWED_M2M_PORTS_PUT:
       - 12580
+      - 12589
 
     #Red Mine values should be left alone on test servers and set to the production settings on the production server
     REDMINE_KEY: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx

@@ -15,6 +15,8 @@ from ooiservices.app.decorators import scope_required
 from ooiservices.app.main import api
 from ooiservices.app.uframe.config import (get_uframe_timeout_info, get_annotations_base_url, _uframe_headers)
 from ooiservices.app.main.errors import bad_request
+from ooiservices.app.uframe.common_tools import get_qcflags_map
+import json
 
 
 unix_epoch = parse_date('1970-01-01T00:00:00.000Z')
@@ -73,7 +75,8 @@ def millis_to_timestamp(millis):
     """
     try:
         if (isinstance(millis, int) or isinstance(millis, long)) and millis > 0:
-            return datetime.utcfromtimestamp(millis / 1000.0)
+            #return datetime.utcfromtimestamp(millis / 1000.0)
+            return millis
         else:
             return None
     except Exception as err:
@@ -166,6 +169,7 @@ def get_annotations():
     http://uframe:12580/anno/find?beginDT=1417796700008
     &endDT=1471258860094&method=telemetered&stream=fdchp_a_dcl_instrument&refdes=GS01SUMO-SBD12-08-FDCHPA000
     """
+    debug = False
     try:
         method_stream = request.args.get('stream_name')
         method, stream = method_stream.split('_')
@@ -182,12 +186,18 @@ def get_annotations():
             'beginDT': startdate,
             'endDT': enddate
         }
+        if debug:
+            print '\n debug -- GET annotations...'
+            print '\n debug -- url: ', url
+            print '\n debug -- params: ', params
         # Using default request timeouts, get annotations from uframe with parameters
         timeout, timeout_read = get_uframe_timeout_info()
         r = requests.get(url, timeout=(timeout, timeout_read), params=params)
         data = r.json()
+        if debug: print '\n debug -- uframe GET output: ', json.dumps(data, indent=4, sort_keys=True)
         if r.status_code == 200:
             result = [remap_uframe_to_ui(record) for record in data]
+            if debug: print '\n debug -- ui GET output: ', result
             return jsonify({'annotations': result}), 201
         else:
             return jsonify(data), r.status_code
@@ -205,20 +215,66 @@ def process_annotation_response(response):
 @auth.login_required
 @scope_required('annotate')
 def create_annotation():
-    """ Create a new annotation object; response specifying success or failure
+    """ Create a new annotation object; response specifying success or failure.
     """
+    debug = False
     try:
+        if debug: print '\n debug -- Create annotation...'
         data = request.get_json()
+        if debug: print '\n debug -- Request data: ', data
         if 'source' not in data:
             data['source'] = None
         if 'parameters' in data and not data['parameters']:
             data['parameters'] = None
+        '''
+        if debug:
+            print '\n debug -- (before) data: ', data
+            data = {'beginDT': '2017-04-11T13:43:39.000Z',
+                    'stream_name': 'telemetered_flord-g-ctdbp-p-dcl-instrument',
+                    'endDT': '2017-06-14T13:43:00.000Z',
+                    'parameters': None,
+                    'referenceDesignator': 'GA01SUMO-RII11-02-FLORDG032',
+                    'comment': 'test',
+                    'annotation': 'test',
+                    'source': 'admin@ooi.rutgers.edu',
+                    'instrument_name': '',
+                    'method': 'telemetered_flord-g-ctdbp-p-dcl-instrument'}
+        '''
+        '''
+        if debug: print '\n debug -- (hard coded) data: ', data
+        # Partial seconds.
+        print '\n debug -- (before) data: ', data
+        data = {'beginDT': '2016-06-01T12:40:04.108Z',
+                'stream_name': 'telemetered_metbk-a-dcl-instrument',
+                'endDT': '2017-04-09T14:12:04.000Z',
+                'parameters': None,
+                'referenceDesignator': 'GI01SUMO-SBD11-06-METBKA000',
+                'comment': 'Force test create annotation. (partial seconds)',
+                'annotation': 'Force test create annotation. (partial seconds)',
+                'source': 'admin@ooi.rutgers.edu',
+                'instrument_name': 'XHXHXHXHXHXHX',
+                'method': 'telemetered-XHXHXHXHXHXHX'}
+        '''
+        if debug: print '\n debug -- (before) data: ', data
         data = remap_ui_to_uframe(data)
+        if debug: print '\n debug -- (after) data: ', data
         if validate_anno_record(data):
+            if debug: print '\n debug -- valid anno record data...'
             timeout, timeout_read = get_uframe_timeout_info()
             response = requests.post(get_annotations_base_url(), json=data, timeout=(timeout, timeout_read))
+            if debug:
+                print '\n debug -- response.status_code: ', response.status_code
+                print '\n debug -- response.text: ', json.loads(response.text)
             if response.status_code != 201:
-                message = 'Failed to create new annotation.'
+                message = 'Failed to create new annotation'
+                if response.text:
+                    temp = json.loads(response.text)
+                    if debug:
+                        print '\n debug -- temp: ', temp
+                        print '\n debug -- type(temp): ', type(temp)
+                    if 'message' in temp:
+                        if debug: print '\n debug -- temp[message]: ', temp['message']
+                        message += '; %s' % str(temp['message'])
                 raise Exception(message)
             return response.text, response.status_code, dict(response.headers)
             #return process_annotation_response(requests.post(get_annotations_base_url(), json=data, timeout=10))
@@ -227,6 +283,7 @@ def create_annotation():
             return bad_request(message)
     except Exception as err:
         message = str(err)
+        if debug: print '\n debug -- exception: ', message
         return bad_request(message)
 
 
@@ -248,7 +305,11 @@ def edit_annotation(annotation_id):
             timeout, timeout_read = get_uframe_timeout_info()
             response = requests.put(url, json=data, timeout=(timeout, timeout_read))
             if response.status_code != 200:
-                message = 'Failed to update annotation.'
+                message = 'Failed to update annotation'
+                if response.text:
+                    temp = json.loads(response.text)
+                    if 'message' in temp:
+                        message += '; %s' % str(temp['message'])
                 raise Exception(message)
             return response.text, response.status_code, dict(response.headers)
             #return process_annotation_response(requests.put(url, json=data, timeout=10))
@@ -285,6 +346,17 @@ def delete_annotation(id):
     except Timeout:
         message = 'Timeout deleting annotation id %d.' % id
         return bad_request(message)
+    except Exception as err:
+        message = str(err.message)
+        return bad_request(message)
+
+
+# Return a list of all valid qcflag values for annotations.
+@api.route('/annotation/qcflags', methods=['GET'])
+def get_annotation_qcflags():
+    try:
+        qcflags = get_qcflags_map()
+        return jsonify({'qcflags': qcflags}), 200
     except Exception as err:
         message = str(err.message)
         return bad_request(message)

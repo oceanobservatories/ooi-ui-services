@@ -254,6 +254,50 @@ def get_stream_model_data(reference_designator, stream_method, stream):
         return bad_request(message)
 
 
+@api.route('/stream/parameters/<string:reference_designator>/<string:stream_method>/<string:stream>', methods=['GET'])
+def get_stream_parameters(reference_designator, stream_method, stream):
+    """ Get stream name and pdid; return dictionary of key/value pairs.
+    Used by UI client to return netcdf request arg by selected parameter id values (new parameters argument)
+    (sample: &parameters=3795,3796 for netcdf request arguments on netcdf download.)
+    Sample request:
+    http://localhost:4000/uframe/stream/parameters/GA01SUMO-RII11-02-FLORDG032/telemetered/flord_g_ctdbp_p_dcl_instrument
+    Sample response:
+    {
+      "parameters": {
+        "Chlorophyll-A Measurement (V)": 3796,
+        "Chlorophyll-a Concentration (ug L-1)": 22,
+        "Date and Time String (1)": 93,
+        "Driver Timestamp, UTC (seconds since 1900-01-01)": 11,
+        "Ingestion Timestamp, UTC (seconds since 1900-01-01)": 863,
+        "Internal Timestamp, UTC (seconds since 1900-01-01)": 12,
+        "Optical Backscatter Measurement (V)": 3795,
+        "Port Timestamp, UTC (seconds since 1900-01-01)": 10,
+        "Preferred Timestamp (1)": 16,
+        "Time, UTC (seconds since 1900-01-01)": 7,
+        "Total Volume Scattering Coefficient (m-1 sr-1)": 24
+      }
+    }
+    """
+    try:
+        key_value_map = {}
+        stream_content = get_stream_for_stream_model(reference_designator, stream_method, stream)
+        if stream_content and stream_content is not None:
+            keys = stream_content['parameter_display_name']
+            values = stream_content['parameter_id']
+            int_values = []
+            for value in values:
+                value = value.replace('pd', '')
+                int_value = int(value)
+                int_values.append(int_value)
+            key_value_map = dict(zip(keys, int_values))
+
+        return jsonify({'parameters': key_value_map}), 200
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
+
+
 @api.route('/disabled_streams', methods=['GET', 'POST'])
 @api.route('/disabled_streams/<int:id>', methods=['DELETE'])
 def disabled_streams(id=None):

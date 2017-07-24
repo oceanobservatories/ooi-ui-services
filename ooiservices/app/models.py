@@ -1126,7 +1126,9 @@ class UserScope(db.Model, DictSerializableMixin):
             'command_control',
             'organization',
             'sys_admin',
-            'data_manager'
+            'data_manager',
+            'annotate_admin',
+            'ingest'
             }
         for s in scopes:
             scope = UserScope.query.filter_by(scope_name=s).first()
@@ -1434,39 +1436,3 @@ class DisabledStreams(db.Model):
         disabled_by = json_post.get('disabledBy')
         return DisabledStreams(ref_des=ref_des, stream_name=stream_name,
                                disabled_by=disabled_by)
-
-"""
-class VocabNames(db.Model):
-    ''' M@Campbell - 12/21/2015 '''
-
-    __tablename__ = 'vocabnames'
-    __table_args__ = {u'schema': __schema__}
-
-    id = db.Column(db.Integer, primary_key=True)
-    reference_designator = db.Column(db.Text, unique=True, nullable=False)
-    level_one = db.Column(db.Text)
-    level_two = db.Column(db.Text)
-    level_three = db.Column(db.Text)
-    level_four = db.Column(db.Text)
-
-    def to_json(self):
-        json_vocab_names = {
-            'referenceDesignator': self.referenceDesignator,
-            'levelOne': self.level_one,
-            'levelTwo': self.level_two,
-            'levelThree': self.level_three,
-            'levelFour': self.level_four
-            }
-        return json_vocab_names
-
-    @staticmethod
-    def from_json(json_post):
-        reference_designator = json_post.get('referenceDesignator')
-        level_one = json_post.get('levelOne')
-        level_two = json_post.get('levelTwo')
-        level_three = json_post.get('levelThree')
-        level_four = json_post.get('level_four')
-        return VocabNames(reference_designator=reference_designator, level_one=level_one,
-                          level_two=level_two, level_three=level_three,
-                          level_four=level_four)
-"""
