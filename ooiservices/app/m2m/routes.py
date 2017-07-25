@@ -84,7 +84,7 @@ def m2m_handler(path):
 def m2m_handler_post(path):
     """ Issue POST request to uframe server.
     """
-    debug = True
+    debug = False
     if debug: print '\n debug -- Entered m2m POST...'
     transfer_header_fields = ['Date', 'Content-Type']
     request_method = 'POST'
@@ -218,6 +218,108 @@ def m2m_handler_put(path):
         return jsonify({'message': message, 'status_code': 500}), 500
     except Timeout:
         message = 'Timeout during PUT annotation data to uframe.'
+        current_app.logger.info(message)
+        return jsonify({'message': message, 'status_code': 500}), 500
+    except Exception as e:
+        return jsonify({'message': e.message, 'status_code': 500}), 500
+
+
+@api.route('/', methods=['DELETE'], defaults={'path': ''})
+@api.route('/<path:path>', methods=['DELETE'])
+def m2m_handler_delete(path):
+    """ Issue DELETE request to uframe server.
+    """
+    debug = False
+    if debug: print '\n debug -- Entered m2m DELETE...'
+    transfer_header_fields = ['Date', 'Content-Type']
+    request_method = 'DELETE'
+    try:
+        # Determine if help request, if so return help information.
+        port, updated_path, help_request = get_port_path_help(path)
+        if help_request:
+            help_response_data = get_help(port, updated_path, request_method)
+            if not help_response_data:
+                help_response_data = 'No help information available at this time.'
+            return jsonify({'message': help_response_data, 'status_code': 200}), 200
+
+
+        # Check request data - get annotation to be deleted and review/compare source with current user.
+
+        """
+        if not request.data:
+            message = 'No request data provided on DELETE.'
+            current_app.logger.info(message)
+            return jsonify({'message': message, 'status_code': 401}), 401
+        """
+        # http://uframe-3-test.intra.oceanobservatories.org:12580/anno/466
+
+        # Verify user information has been provide in request and has permission for the request submitted.
+        user = User.get_user_from_token(request.authorization['username'], request.authorization['password'])
+        if user:
+            scopes = user.scopes
+            scope_names = []
+            for s in scopes:
+                scope_names.append(s.scope_name)
+            params = MultiDict(request.args)
+            params['user'] = user.user_name
+            params['email'] = user.email
+
+            # Build and issue DELETE request to uframe server.
+            url = build_url(path, request_method='DELETE', scope_names=scope_names)
+            if debug: print '\n debug -- m2m DELETE url: ', url
+            timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
+            timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
+
+            # Issue GET on url, if successful, compare source to params['user'] and params['email']
+            if debug:
+                print '\n debug -- scope_names: ', scope_names
+                print '\n debug -- params[user]: ', params['user']
+                print '\n debug -- params[email]: ', params['email']
+            try:
+                response = requests.get(url, timeout=(timeout, timeout_read))
+            except Exception as err:
+                message = str(err)
+                if debug: print '\n Exception on GET: ', message
+                message = 'Failed to GET annotation by id as required to process DELETE request.'
+                raise Exception(message)
+            if response.status_code == 200:
+                check_data = response.json()
+                if debug:
+                    print '\n debug -- check_data[source]: ', check_data['source']
+
+                # Verify if override required due to source field value.
+                if check_data['source'] != params['user']:
+                    if 'annotate_admin' not in scope_names:
+                        message = 'The user (%s) does not have permission to delete this annotation.' % params['user']
+                        if debug: print '\n debug: message: ', message
+                        return jsonify({'message': message, 'status_code': 409}), 409
+            else:
+                if debug: print '\n debug -- GET status code: ', response.status_code
+
+            # Issue DELETE on url
+            response = requests.delete(url, timeout=(timeout, timeout_read),
+                                        headers={'Accept': 'application/json', 'Content-Type': 'application/json'})
+            if debug: print '\n debug-- response.status_code: ', response.status_code
+            if response.status_code != 200:
+                tmp = json.loads(response.text)
+                message = tmp['message']
+                return jsonify({'message': message, 'status_code': response.status_code}), response.status_code
+            headers = dict(response.headers)
+            headers = {k: headers[k] for k in headers if k in transfer_header_fields}
+            return Response(response.iter_content(1024), response.status_code, headers)
+        else:
+            message = 'Authentication failed.'
+            current_app.logger.info(message)
+            return jsonify({'message': message, 'status_code': 401}), 401
+    except BadM2MException as e:
+        current_app.logger.info(e.message)
+        return jsonify({'message': e.message, 'status_code': 403}), 403
+    except ConnectionError:
+        message = 'ConnectionError during DELETE annotation data to uframe.'
+        current_app.logger.info(message)
+        return jsonify({'message': message, 'status_code': 500}), 500
+    except Timeout:
+        message = 'Timeout during DELETE annotation data to uframe.'
         current_app.logger.info(message)
         return jsonify({'message': message, 'status_code': 500}), 500
     except Exception as e:

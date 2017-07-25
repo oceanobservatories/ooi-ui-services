@@ -14,7 +14,7 @@ def get_help_data_12576():
                 'endpoint': 'sensor/inv',
                 'method': 'GET',
                 'permission_required': False,
-                'description': 'Returns a list of available subsites from the sensor inventory.',
+                'description': 'Get platforms (subsites). Returns a list of available subsites from the sensor inventory.',
                 'data_required': False,
                 'data_format': None,
                 'samples': [{
@@ -50,7 +50,7 @@ def get_help_data_12576():
                 'endpoint': 'sensor/inv/{subsite}/{node}',
                 'method': 'GET',
                 'permission_required': False,
-                'description': 'Returns a list of sensors for a subsite and node from the sensor inventory.',
+                'description': 'Get sensors for a subsite-node. Returns a list of sensors for a subsite and node from the sensor inventory.',
                 'data_required': True,
                 'data_format': [
                         { 'name': 'subsite',
@@ -77,7 +77,7 @@ def get_help_data_12576():
                 'endpoint': 'sensor/inv/{subsite}/{node}/{sensor}',
                 'method': 'GET',
                 'permission_required': False,
-                'description': 'Returns a list of stream methods for a sensor.',
+                'description': 'Get all instrument methods. Returns a list of stream methods for a sensor.',
                 'data_required': True,
                 'data_format': [
                         { 'name': 'subsite',
@@ -109,7 +109,7 @@ def get_help_data_12576():
                 'endpoint': 'sensor/inv/{subsite}/{node}/{sensor}/metadata',
                 'method': 'GET',
                 'permission_required': False,
-                'description': 'Returns a metadata dictionary with the parameters and times for a sensor.',
+                'description': 'Get instrument metadata. Returns a metadata dictionary with the parameters and times for a sensor.',
                 'data_required': True,
                 'data_format': [
                         { 'name': 'subsite',
@@ -137,7 +137,7 @@ def get_help_data_12576():
                 'endpoint': 'sensor/inv/{subsite}/{node}/{sensor}/metadata/times',
                 'method': 'GET',
                 'permission_required': False,
-                'description': 'Returns a list of dictionaries, each containing the stream name, method and begin and end times for a sensor.',
+                'description': 'Get instrument metadata times. Returns a list of dictionaries, each containing the stream name, method and begin and end times for a sensor.',
                 'data_required': True,
                 'data_format': [
                         { 'name': 'subsite',
@@ -193,7 +193,7 @@ def get_help_data_12576():
                 'endpoint': 'sensor/inv/{subsite}/{node}/{sensor}/<method>',
                 'method': 'GET',
                 'permission_required': False,
-                'description': 'Returns a list of available streams for an instrument and method.',
+                'description': 'Get instrument methods. Returns a list of available streams for an instrument and method.',
                 'data_required': True,
                 'data_format': [
                         { 'name': 'subsite',
@@ -362,7 +362,7 @@ def get_help_data_12576():
                 'endpoint': 'sensor/inv/toc',
                 'method': 'GET',
                 'permission_required': False,
-                'description': 'Returns a dictionary of parameters_by_stream, parameter_definitions and ' +
+                'description': 'Get toc. Returns a dictionary of parameters_by_stream, parameter_definitions and ' +
                                'list of instruments (The sample response content is abbreviated.)',
                 'data_required': False,
                 'data_format': None,

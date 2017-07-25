@@ -89,6 +89,9 @@ COMMON: &common
       - 12580
       - 12589
 
+    UFRAME_ALLOWED_M2M_PORTS_DELETE:
+      - 12580
+
     #Red Mine values should be left alone on test servers and set to the production settings on the production server
     REDMINE_KEY: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     REDMINE_URL: 'https://redmine-asa.ooi.rutgers.edu' #'https://uframe-cm.ooi.rutgers.edu'

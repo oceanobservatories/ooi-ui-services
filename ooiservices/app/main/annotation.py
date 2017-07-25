@@ -169,7 +169,6 @@ def get_annotations():
     http://uframe:12580/anno/find?beginDT=1417796700008
     &endDT=1471258860094&method=telemetered&stream=fdchp_a_dcl_instrument&refdes=GS01SUMO-SBD12-08-FDCHPA000
     """
-    debug = False
     try:
         method_stream = request.args.get('stream_name')
         method, stream = method_stream.split('_')
@@ -186,18 +185,12 @@ def get_annotations():
             'beginDT': startdate,
             'endDT': enddate
         }
-        if debug:
-            print '\n debug -- GET annotations...'
-            print '\n debug -- url: ', url
-            print '\n debug -- params: ', params
         # Using default request timeouts, get annotations from uframe with parameters
         timeout, timeout_read = get_uframe_timeout_info()
         r = requests.get(url, timeout=(timeout, timeout_read), params=params)
         data = r.json()
-        if debug: print '\n debug -- uframe GET output: ', json.dumps(data, indent=4, sort_keys=True)
         if r.status_code == 200:
             result = [remap_uframe_to_ui(record) for record in data]
-            if debug: print '\n debug -- ui GET output: ', result
             return jsonify({'annotations': result}), 201
         else:
             return jsonify(data), r.status_code
@@ -219,61 +212,32 @@ def create_annotation():
     """
     debug = False
     try:
-        if debug: print '\n debug -- Create annotation...'
         data = request.get_json()
-        if debug: print '\n debug -- Request data: ', data
         if 'source' not in data:
             data['source'] = None
         if 'parameters' in data and not data['parameters']:
             data['parameters'] = None
-        '''
-        if debug:
-            print '\n debug -- (before) data: ', data
-            data = {'beginDT': '2017-04-11T13:43:39.000Z',
-                    'stream_name': 'telemetered_flord-g-ctdbp-p-dcl-instrument',
-                    'endDT': '2017-06-14T13:43:00.000Z',
-                    'parameters': None,
-                    'referenceDesignator': 'GA01SUMO-RII11-02-FLORDG032',
-                    'comment': 'test',
-                    'annotation': 'test',
-                    'source': 'admin@ooi.rutgers.edu',
-                    'instrument_name': '',
-                    'method': 'telemetered_flord-g-ctdbp-p-dcl-instrument'}
-        '''
-        '''
-        if debug: print '\n debug -- (hard coded) data: ', data
-        # Partial seconds.
-        print '\n debug -- (before) data: ', data
-        data = {'beginDT': '2016-06-01T12:40:04.108Z',
-                'stream_name': 'telemetered_metbk-a-dcl-instrument',
-                'endDT': '2017-04-09T14:12:04.000Z',
-                'parameters': None,
-                'referenceDesignator': 'GI01SUMO-SBD11-06-METBKA000',
-                'comment': 'Force test create annotation. (partial seconds)',
-                'annotation': 'Force test create annotation. (partial seconds)',
-                'source': 'admin@ooi.rutgers.edu',
-                'instrument_name': 'XHXHXHXHXHXHX',
-                'method': 'telemetered-XHXHXHXHXHXHX'}
-        '''
-        if debug: print '\n debug -- (before) data: ', data
+        else:
+            parameters = []
+            str_parameters = data['parameters']
+            str_list = str_parameters.split(",")
+            for p in str_list:
+                parameters.append(int(p))
+            data['parameters'] = parameters
+            if debug: print '\n debug -- parameters: %r' % parameters
+        if 'exclusionFlag' not in data:
+            data['exclusionFlag'] = False
+        elif data['exclusionFlag'] is None:
+            data['exclusionFlag'] = False
         data = remap_ui_to_uframe(data)
-        if debug: print '\n debug -- (after) data: ', data
         if validate_anno_record(data):
-            if debug: print '\n debug -- valid anno record data...'
             timeout, timeout_read = get_uframe_timeout_info()
             response = requests.post(get_annotations_base_url(), json=data, timeout=(timeout, timeout_read))
-            if debug:
-                print '\n debug -- response.status_code: ', response.status_code
-                print '\n debug -- response.text: ', json.loads(response.text)
             if response.status_code != 201:
                 message = 'Failed to create new annotation'
                 if response.text:
                     temp = json.loads(response.text)
-                    if debug:
-                        print '\n debug -- temp: ', temp
-                        print '\n debug -- type(temp): ', type(temp)
                     if 'message' in temp:
-                        if debug: print '\n debug -- temp[message]: ', temp['message']
                         message += '; %s' % str(temp['message'])
                 raise Exception(message)
             return response.text, response.status_code, dict(response.headers)
@@ -283,7 +247,6 @@ def create_annotation():
             return bad_request(message)
     except Exception as err:
         message = str(err)
-        if debug: print '\n debug -- exception: ', message
         return bad_request(message)
 
 
@@ -293,10 +256,19 @@ def create_annotation():
 def edit_annotation(annotation_id):
     """ Update an existing annotation.
     """
+    debug = False
     try:
         data = request.get_json()
         if 'parameters' in data and not data['parameters']:
             data['parameters'] = None
+        else:
+            parameters = []
+            str_parameters = data['parameters']
+            str_list = str_parameters.split(",")
+            for p in str_list:
+                parameters.append(int(p))
+            data['parameters'] = parameters
+            if debug: print '\n debug -- parameters: %r' % parameters
         data = remap_ui_to_uframe(data)
         if 'source' not in data:
             data['source'] = None
@@ -324,7 +296,6 @@ def edit_annotation(annotation_id):
         return bad_request(message)
 
 
-# The request method should be changed to be 'DELETE' rather than 'GET'.
 @api.route('/annotation/delete/<int:id>', methods=['GET'])
 @auth.login_required
 @scope_required('annotate')
