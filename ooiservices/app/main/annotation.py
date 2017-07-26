@@ -169,11 +169,17 @@ def get_annotations():
     http://uframe:12580/anno/find?beginDT=1417796700008
     &endDT=1471258860094&method=telemetered&stream=fdchp_a_dcl_instrument&refdes=GS01SUMO-SBD12-08-FDCHPA000
     """
+    debug = False
     try:
+        if debug: print '\n debug -- Entered GET annotations...'
         method_stream = request.args.get('stream_name')
-        method, stream = method_stream.split('_')
-        method = method.replace('-', '_')
-        stream = stream.replace('-', '_')
+        if debug: print '\n debug -- method_stream: ', method_stream
+        if method_stream is not None:
+            method, stream = method_stream.split('_')
+            method = method.replace('-', '_')
+            stream = stream.replace('-', '_')
+        else:
+            return jsonify({'annotations': []}), 204
         startdate = timestamp_to_millis(request.args.get('startdate'))
         enddate = timestamp_to_millis(request.args.get('enddate'))
         refdes = request.args.get('reference_designator')
@@ -185,10 +191,14 @@ def get_annotations():
             'beginDT': startdate,
             'endDT': enddate
         }
+        if debug:
+            print '\n debug -- url: ', url
+            print '\n debug -- params: ', params
         # Using default request timeouts, get annotations from uframe with parameters
         timeout, timeout_read = get_uframe_timeout_info()
         r = requests.get(url, timeout=(timeout, timeout_read), params=params)
         data = r.json()
+        if debug: print '\n debug -- data: ', data
         if r.status_code == 200:
             result = [remap_uframe_to_ui(record) for record in data]
             return jsonify({'annotations': result}), 201
@@ -215,14 +225,17 @@ def create_annotation():
         data = request.get_json()
         if 'source' not in data:
             data['source'] = None
-        if 'parameters' in data and not data['parameters']:
+        if 'parameters' in data and ((not data['parameters']) or (data['parameters'] is None)):
+            if debug: print '\n debug -- No parameters, set to None.'
             data['parameters'] = None
         else:
             parameters = []
             str_parameters = data['parameters']
             str_list = str_parameters.split(",")
-            for p in str_list:
-                parameters.append(int(p))
+            if str_list and str_list is not None:
+                if debug: print '\n debug -- str_list: %r' % str_list
+                for p in str_list:
+                    parameters.append(int(p))
             data['parameters'] = parameters
             if debug: print '\n debug -- parameters: %r' % parameters
         if 'exclusionFlag' not in data:
@@ -259,14 +272,16 @@ def edit_annotation(annotation_id):
     debug = False
     try:
         data = request.get_json()
-        if 'parameters' in data and not data['parameters']:
+        if 'parameters' in data and (not data['parameters'] or data['parameters']is None):
             data['parameters'] = None
         else:
             parameters = []
             str_parameters = data['parameters']
             str_list = str_parameters.split(",")
-            for p in str_list:
-                parameters.append(int(p))
+            if str_list and str_list is not None:
+                if debug: print '\n debug -- str_list: %r' % str_list
+                for p in str_list:
+                    parameters.append(int(p))
             data['parameters'] = parameters
             if debug: print '\n debug -- parameters: %r' % parameters
         data = remap_ui_to_uframe(data)
