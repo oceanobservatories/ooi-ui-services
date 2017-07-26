@@ -26,7 +26,8 @@ from ooiservices.app.uframe.event_tools import (_get_events_by_uid, _get_all_eve
 from ooiservices.app.uframe.events_create_update import (create_event_type, update_event_type)
 from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types, get_supported_asset_types,
                                                  event_edit_phase_values, get_event_types_by_asset_type,
-                                                 operational_status_display_values, get_uframe_asset_type)
+                                                 operational_status_display_values, get_uframe_asset_type,
+                                                 get_status_map)
 import json
 
 
@@ -49,6 +50,13 @@ def get_operational_status_values():
     """ Get all operational status values supported in uframe asset web services.
     """
     return jsonify({'operational_status_values': operational_status_display_values()})
+
+
+@api.route('/events/operational_status_map', methods=['GET'])
+def get_operational_status_map():
+    """ Get operational status map supported in uframe asset web services.
+    """
+    return jsonify({'operational_status_map': get_status_map()})
 
 
 @api.route('/events/tabs/<string:asset_type>', methods=['GET'])
