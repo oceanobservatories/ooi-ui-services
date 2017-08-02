@@ -37,7 +37,8 @@ COMMON: &common
     UFRAME_URL_BASE:        '/sensor/inv'
     UFRAME_TOC:             '/sensor/inv/toc'
     UFRAME_ANNOTATION_BASE: '/anno'
-    UFRAME_VOCAB_URL:        'http://localhost:12586'
+    UFRAME_VOCAB_URL:       'http://localhost:12586'
+    UFRAME_DA_URL:          'http://localhost:9000'
 
     # Asset Management: Assets, Events, Deployments, Cruises, Resources, Calibration and Status
     UFRAME_ASSETS_URL:       'http://localhost:12587'

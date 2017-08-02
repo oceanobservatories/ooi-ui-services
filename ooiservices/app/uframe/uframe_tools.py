@@ -12,7 +12,8 @@ from ooiservices.app.uframe.config import (get_uframe_deployments_info, get_even
                                            get_uframe_events_info, get_url_info_cruises_rec,
                                            get_url_info_deployments_inv, get_deployments_url_base,
                                            get_url_info_status_query, get_uframe_toc_url,
-                                           get_url_info_stream_byname, get_uframe_info, get_url_info_stream_parameters)
+                                           get_url_info_stream_byname, get_uframe_info, get_url_info_stream_parameters,
+                                           get_url_da_info, get_uframe_timeout_info)
 from ooiservices.app.uframe.common_tools import deployment_edit_phase_values
 
 import requests
@@ -539,10 +540,12 @@ def get_assets_from_uframe():
 def uframe_get_asset_by_id(id):
     """ Get asset from uframe by asset id.
     """
+    debug = False
     try:
         # Get uframe asset
         uframe_url, timeout, timeout_read = get_uframe_assets_info()
         url = '/'.join([uframe_url, get_assets_url_base(), str(id)])
+        if debug: print '\n debug -- uframe_get_asset_by_id url: ', url
         payload = requests.get(url, timeout=(timeout, timeout_read), headers=headers())
         if payload.status_code != 200:
             message = 'Failed to get asset (id: %d) from uframe.' % id
@@ -1251,7 +1254,7 @@ def get_deployments_digest_by_uid(uid, editPhase='ALL'):
     http://host:port/asset/deployments/N00123?editphase=ALL (default)
     http://host:port/asset/deployments/N00123?editphase=OPERATIONAL
     """
-    check = False
+    check = True
     try:
         # Get uframe deployments by uid.
         uframe_url, timeout, timeout_read = get_uframe_assets_info()
@@ -1407,7 +1410,6 @@ def uframe_get_parameters():
     """ Get all stream parameters.
     # http://host:12575/parameter
     """
-    debug = False
     check = False
     try:
         # Get uframe stream by stream name.
@@ -1464,14 +1466,18 @@ def uframe_get_instrument_metadata_parameters(rd):
         raise Exception(message)
 
 
-def uframe_get_instrument_metadata_times(rd):
+def uframe_get_instrument_metadata_times(rd, partition=False):
     """ Returns the uFrame metadata times for a reference designator.
     """
+    debug = False
     result = []
     try:
         mooring, platform, instrument = rd.split('-', 2)
         uframe_url, timeout, timeout_read = get_uframe_info()
         url = "/".join([uframe_url, mooring, platform, instrument, 'metadata', 'times'])
+        if partition:
+            url += '?partition=true'
+        if debug: print '\n debug -- url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
             message = 'Failed to get metadata times for \'%s\'. ' % rd
@@ -1526,7 +1532,7 @@ def uframe_get_status_by_rd(rd=None):
         }
     ]
 
-    http://host:12587/status/inv/GA01SUMO/SBD12/04-PCO2AA000
+    http://host:12587/status/query/GA01SUMO/SBD12/04-PCO2AA000
     [
         {
           "rd" : "GA01SUMO-SBD12-04-PCO2AA000",
@@ -1566,6 +1572,7 @@ def uframe_get_status_by_rd(rd=None):
         if response.status_code != 200:
             return None
         results = json.loads(response.content)
+        if debug: print '\n debug -- results: ', results
         return results
     except ConnectionError:
         message = 'Error: ConnectionError getting uframe status for reference designator: %s' % rd
@@ -1725,6 +1732,36 @@ def get_uframe_streams():
         current_app.logger.info(message)
         return []
 
+
+# Get data availability from uframe for reference designator and parameters.
+def uframe_get_da_by_rd(rd, params=None):
+    """ Get asset from uframe by asset id.
+    """
+    debug = False
+    try:
+        # Get uframe asset
+        timeout, timeout_read = get_uframe_timeout_info()
+        url = '/'.join([get_url_da_info(), 'available', rd])
+        if debug: print '\n debug -- uframe_get_da_by_rd url: ', url
+        response = requests.get(url, timeout=(timeout, timeout_read), headers=headers(), params=params)
+        if response.status_code != 200:
+            message = 'Failed to get data availability from uframe for reference designator: %s.' % rd
+            current_app.logger.info(message)
+            raise Exception(message)
+        asset = response.json()
+        return asset
+    except ConnectionError:
+        message = 'ConnectionError getting data availability from uframe for reference designator: %s.' % rd
+        #current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Timeout getting data availability from uframe for reference designator: %s.' % rd
+        #current_app.logger.info(message)
+        raise Exception(message)
+    except Exception as err:
+        message = str(err)
+        #current_app.logger.info(message)
+        raise Exception(message)
 
 
 
