@@ -85,15 +85,41 @@ def millis_to_timestamp(millis):
         return None
 
 
-def remap_uframe_to_ui(anno_record):
+def remap_uframe_to_ui(anno_record, rd_type=None):
     """ Remap the annotation record with a reference designator and human-readable timestamps.
     """
+    debug = False
     try:
-        method = anno_record['method']
-        stream = anno_record['stream']
-        method = '' if method is None else method.replace('_', '-')
-        stream = '' if stream is None else stream.replace('_', '-')
-        anno_record['stream_name'] = '_'.join((method, stream))
+        if debug:
+            print '\n debug -- Entered remap_uframe_to_ui...'
+            print '\n\t debug -- rd_type: ', rd_type
+            print '\n\t debug -- anno_record: ', anno_record
+        if rd_type == 'sensor':
+            method = anno_record['method']
+            stream = anno_record['stream']
+            if debug:
+                print '\n\t debug -- method: *%r*' % method
+                print '\n\t debug -- stream: *%r*' % stream
+            #method = '' if method is None else method.replace('_', '-')
+            #stream = '' if stream is None else stream.replace('_', '-')
+            if method and method is not None:
+                method = str(method).replace('_', '-')
+            if stream and stream is not None:
+                stream = str(stream).replace('_', '-')
+            if debug:
+                print '\n\t debug -- method: *%r*' % method
+                print '\n\t debug -- stream: *%r*' % stream
+            if stream is not None and method is not None:
+                if debug: print '\n\t debug -- Before join...'
+                anno_record['stream_name'] = '_'.join((method, stream))
+                if debug: print '\n\t debug -- stream_name: %r' % anno_record['stream_name']
+            else:
+                anno_record['stream_name'] = None
+                if debug:
+                    print '\n\t debug -- stream_name is None for a sensor!!!!  ***************'
+                    print '\n\t debug -- method: %r' % method
+                    print '\n\t debug -- stream: %r' % stream
+
         anno_record['referenceDesignator'] = get_refdes(anno_record)
         anno_record['beginDT'] = millis_to_timestamp(anno_record.get('beginDT'))
         anno_record['endDT'] = millis_to_timestamp(anno_record.get('endDT'))
@@ -103,24 +129,62 @@ def remap_uframe_to_ui(anno_record):
         raise Exception(message)
 
 
-def remap_ui_to_uframe(anno_record):
+def remap_ui_to_uframe(anno_record, rd_type=None):
     try:
-        subsite, node, sensor = get_refdes_parts(anno_record)
-        stream_name = anno_record['stream_name']
-        if '_' in stream_name:
-            method, stream = stream_name.split('_')
-            method = method.replace('-', '_')
-            stream = stream.replace('-', '_')
-        else:
-            method = None
-            stream = None
-        anno_record['subsite'] = subsite
-        anno_record['node'] = node
-        anno_record['sensor'] = sensor
-        anno_record['beginDT'] = timestamp_to_millis(anno_record['beginDT'])
-        anno_record['endDT'] = timestamp_to_millis(anno_record['endDT'])
-        anno_record['method'] = method
-        anno_record['stream'] = stream
+        if rd_type == 'sensor':
+            subsite, node, sensor = get_refdes_parts(anno_record)
+            stream_name = anno_record['stream_name']
+            if '_' in stream_name:
+                method, stream = stream_name.split('_')
+                method = method.replace('-', '_')
+                stream = stream.replace('-', '_')
+            else:
+                method = None
+                stream = None
+            anno_record['subsite'] = subsite
+            anno_record['node'] = node
+            anno_record['sensor'] = sensor
+            anno_record['beginDT'] = timestamp_to_millis(anno_record['beginDT'])
+            anno_record['endDT'] = timestamp_to_millis(anno_record['endDT'])
+            anno_record['method'] = method
+            anno_record['stream'] = stream
+            anno_record['@class'] = '.AnnotationRecord'
+        elif rd_type == 'subsite':
+            result = {}
+            result['@class'] = '.AnnotationRecord'
+            result['subsite'] = anno_record['subsite']
+            result['beginDT'] = timestamp_to_millis(anno_record['beginDT'])
+            result['endDT'] = timestamp_to_millis(anno_record['endDT'])
+            result['referenceDesignator'] = anno_record['subsite']
+            result['annotation'] = anno_record['annotation']
+            result['method'] = anno_record['method']
+            result['source'] = anno_record['source']
+            result['qcFlag'] =  anno_record['qcFlag']
+            result['exclusionFlag'] = anno_record['exclusionFlag']
+            result['stream'] = None
+            result['node'] = None
+            result['sensor'] = None
+            result['stream'] = None
+            result['stream_name'] = None
+            anno_record = result
+        elif rd_type == 'node':
+            result = {}
+            result['@class'] = '.AnnotationRecord'
+            result['referenceDesignator'] = anno_record['referenceDesignator']
+            result['beginDT'] = timestamp_to_millis(anno_record['beginDT'])
+            result['endDT'] = timestamp_to_millis(anno_record['endDT'])
+            result['annotation'] = anno_record['annotation']
+            result['method'] = anno_record['method']
+            result['source'] = anno_record['source']
+            result['qcFlag'] =  anno_record['qcFlag']
+            result['exclusionFlag'] = anno_record['exclusionFlag']
+            result['subsite'] = anno_record['subsite']
+            result['node'] = anno_record['node']
+            result['sensor'] = None
+            result['stream'] = None
+            result['stream_name'] = None
+            anno_record = result
+
         anno_record['@class'] = '.AnnotationRecord'
         return anno_record
     except Exception as err:
@@ -170,10 +234,9 @@ def get_annotations():
     &endDT=1471258860094&method=telemetered&stream=fdchp_a_dcl_instrument&refdes=GS01SUMO-SBD12-08-FDCHPA000
     """
     debug = False
+
     try:
-        if debug: print '\n debug -- Entered GET annotations...'
         method_stream = request.args.get('stream_name')
-        if debug: print '\n debug -- method_stream: ', method_stream
         if method_stream is not None:
             method, stream = method_stream.split('_')
             method = method.replace('-', '_')
@@ -183,6 +246,9 @@ def get_annotations():
         startdate = timestamp_to_millis(request.args.get('startdate'))
         enddate = timestamp_to_millis(request.args.get('enddate'))
         refdes = request.args.get('reference_designator')
+        if debug: print '\n debug -- refdes: %r' % refdes
+        rd_type = get_rd_type(str(refdes))
+        if debug: print '\n debug -- rd_type: ', rd_type
         url = '/'.join((get_annotations_base_url(), 'find'))
         params = {
             'refdes': refdes,
@@ -191,16 +257,15 @@ def get_annotations():
             'beginDT': startdate,
             'endDT': enddate
         }
-        if debug:
-            print '\n debug -- url: ', url
-            print '\n debug -- params: ', params
+        if debug: print '\n debug -- params: %r' % params
         # Using default request timeouts, get annotations from uframe with parameters
         timeout, timeout_read = get_uframe_timeout_info()
         r = requests.get(url, timeout=(timeout, timeout_read), params=params)
         data = r.json()
-        if debug: print '\n debug -- data: ', data
         if r.status_code == 200:
-            result = [remap_uframe_to_ui(record) for record in data]
+            if debug: print '\n debug -- Good status code...'
+            result = [remap_uframe_to_ui(record, rd_type) for record in data]
+            if debug: print '\n debug -- result: ', result
             return jsonify({'annotations': result}), 201
         else:
             return jsonify(data), r.status_code
@@ -220,29 +285,22 @@ def process_annotation_response(response):
 def create_annotation():
     """ Create a new annotation object; response specifying success or failure.
     """
-    debug = False
     try:
         data = request.get_json()
+        rd = str(data['referenceDesignator'])
+        rd_type = get_rd_type(rd)
+        if rd_type == 'sensor':
+            if 'parameters' in data and ((not data['parameters']) or (data['parameters'] is None)):
+                data['parameters'] = None
+            else:
+                data['parameters'] = get_parameters(data['parameters'][:])
         if 'source' not in data:
             data['source'] = None
-        if 'parameters' in data and ((not data['parameters']) or (data['parameters'] is None)):
-            if debug: print '\n debug -- No parameters, set to None.'
-            data['parameters'] = None
-        else:
-            parameters = []
-            str_parameters = data['parameters']
-            str_list = str_parameters.split(",")
-            if str_list and str_list is not None:
-                if debug: print '\n debug -- str_list: %r' % str_list
-                for p in str_list:
-                    parameters.append(int(p))
-            data['parameters'] = parameters
-            if debug: print '\n debug -- parameters: %r' % parameters
         if 'exclusionFlag' not in data:
             data['exclusionFlag'] = False
         elif data['exclusionFlag'] is None:
             data['exclusionFlag'] = False
-        data = remap_ui_to_uframe(data)
+        data = remap_ui_to_uframe(data, rd_type)
         if validate_anno_record(data):
             timeout, timeout_read = get_uframe_timeout_info()
             response = requests.post(get_annotations_base_url(), json=data, timeout=(timeout, timeout_read))
@@ -271,20 +329,20 @@ def edit_annotation(annotation_id):
     """
     debug = False
     try:
+        # Get request data.
         data = request.get_json()
-        if 'parameters' in data and (not data['parameters'] or data['parameters']is None):
-            data['parameters'] = None
-        else:
-            parameters = []
-            str_parameters = data['parameters']
-            str_list = str_parameters.split(",")
-            if str_list and str_list is not None:
-                if debug: print '\n debug -- str_list: %r' % str_list
-                for p in str_list:
-                    parameters.append(int(p))
-            data['parameters'] = parameters
-            if debug: print '\n debug -- parameters: %r' % parameters
-        data = remap_ui_to_uframe(data)
+
+        # Get referenceDesignator and determine if subsite, susbite-node or subsite-node-sensor.
+        rd = str(data['referenceDesignator'])
+        rd_type = get_rd_type(rd)
+        if rd_type == 'sensor':
+            if debug: print '\n debug -- parameters: %r' % data['parameters']
+            if 'parameters' in data and (not data['parameters'] or data['parameters']is None):
+                data['parameters'] = None
+            else:
+                data['parameters'] = get_parameters(data['parameters'][:])
+
+        data = remap_ui_to_uframe(data, rd_type)
         if 'source' not in data:
             data['source'] = None
         if validate_anno_record(data):
@@ -309,6 +367,50 @@ def edit_annotation(annotation_id):
     except Exception as err:
         message = 'Failed to update annotation: ' + str(err)
         return bad_request(message)
+
+
+def get_rd_type(rd):
+    try:
+        rd_type = None
+        if rd and rd is not None:
+            len_rd = len(str(rd))
+
+            if len_rd == 8:
+                rd_type = 'subsite'
+            elif len_rd == 14:
+                rd_type = 'node'
+            elif len_rd > 14 and len(rd) <= 27:
+                rd_type = 'sensor'
+
+        if rd_type is None:
+            message = 'Unknown or malformed reference designator (%s).' % rd
+            raise Exception(message)
+        return rd_type
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+def get_parameters(params):
+    debug = False
+    parameters = []
+    try:
+        if debug: print '\n debug -- get_parameters -- params: %r' % params
+        if params and params is not None:
+            if debug: print '\n debug -- Have params: %r' % params
+            params = str(params)
+            if debug: print '\n debug -- Have str(params): %r' % params
+            str_list = params.split(",")
+            if debug: print '\n debug -- After split: %r' % str_list
+            if str_list and str_list is not None:
+                for p in str_list:
+                    if p and p is not None and p != 'null':
+                        if debug: print '\n debug -- p: %r' % p
+                        parameters.append(int(p))
+        return parameters
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
 
 
 @api.route('/annotation/delete/<int:id>', methods=['GET'])

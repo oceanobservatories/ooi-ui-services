@@ -1254,7 +1254,7 @@ def get_deployments_digest_by_uid(uid, editPhase='ALL'):
     http://host:port/asset/deployments/N00123?editphase=ALL (default)
     http://host:port/asset/deployments/N00123?editphase=OPERATIONAL
     """
-    check = True
+    check = False
     try:
         # Get uframe deployments by uid.
         uframe_url, timeout, timeout_read = get_uframe_assets_info()
