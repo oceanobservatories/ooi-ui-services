@@ -15,4 +15,4 @@ from ooiservices.app.uframe import controller, data, subscribe, vocab, config, c
     assets, asset_tools, assets_remote_resources, asset_cache_tools, assets_validate_fields, assets_create_update,\
     events, event_tools, events_validate_fields, events_create_update, \
     deployments, deployment_tools, cruises, cruise_tools, \
-    status, status_tools, images, image_tools, support
+    status, status_tools, images, image_tools, support, data_availability

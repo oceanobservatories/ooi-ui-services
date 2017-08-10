@@ -8,6 +8,18 @@ from ooiservices.app.m2m.help_data import get_help_data
 from ooiservices.app.m2m.exceptions import InvalidPortException, InvalidPathException, \
     InvalidMethodException, InvalidScopeException
 
+def get_m2m_ports():
+    try:
+        uframe_host = current_app.config['UFRAME_HOST']
+        get_ports = current_app.config['UFRAME_ALLOWED_M2M_PORTS']
+        post_ports = current_app.config['UFRAME_ALLOWED_M2M_PORTS_POST']
+        put_ports = current_app.config['UFRAME_ALLOWED_M2M_PORTS_PUT']
+        delete_ports = current_app.config['UFRAME_ALLOWED_M2M_PORTS_DELETE']
+        return uframe_host, get_ports, post_ports, put_ports, delete_ports
+    except Exception as err:
+        message = 'Undefined configuration variable for m2m port selection; ' + str(err)
+        raise Exception(message)
+
 
 def build_url(path, request_method='GET', scope_names=None):
     """
@@ -15,16 +27,28 @@ def build_url(path, request_method='GET', scope_names=None):
     Verify permissions for port, request type and scope provided.
     Paths must conform to the following specification: <UFRAME PORT>/<UFRAME URL>
     """
+    debug = False
+    # Get configuration and request information.
     port, path, help_request = get_port_path_help(path)
-    uframe_host = current_app.config['UFRAME_HOST']
-    allowed_ports = current_app.config['UFRAME_ALLOWED_M2M_PORTS']
-    post_allowed_ports = current_app.config['UFRAME_ALLOWED_M2M_PORTS_POST']
-    put_allowed_ports = current_app.config['UFRAME_ALLOWED_M2M_PORTS_PUT']
+    uframe_host, get_ports, post_ports, put_ports, delete_ports = get_m2m_ports()
+
+    if debug:
+        print '\n debug: uframe_host: ', uframe_host
+        print '\n debug: request_method: ', request_method
+    #- - - - - - - - - - - - - - - - - - - - - -
+    # GET requests
+    #- - - - - - - - - - - - - - - - - - - - - -
     if request_method == 'GET':
-        if port not in allowed_ports:
+        # Verify the port is available for GET requests.
+        if port not in get_ports:
             raise InvalidPortException(port)
+
+    #- - - - - - - - - - - - - - - - - - - - - -
+    # POST requests
+    #- - - - - - - - - - - - - - - - - - - - - -
     elif request_method == 'POST':
-        if port not in post_allowed_ports:
+        # Verify the port is available for POST requests.
+        if port not in post_ports:
             raise InvalidMethodException(port, request_method)
         if port == 12580:
             if 'annotate' not in scope_names:
@@ -32,14 +56,40 @@ def build_url(path, request_method='GET', scope_names=None):
         if port == 12589:
             if 'ingest' not in scope_names:
                 raise InvalidScopeException(port, request_method)
+
+    #- - - - - - - - - - - - - - - - - - - - - -
+    # PUT requests
+    #- - - - - - - - - - - - - - - - - - - - - -
     elif request_method == 'PUT':
-        if port not in put_allowed_ports:
+        # Verify the port is available for PUT requests.
+        if port not in put_ports:
             raise InvalidMethodException(port, request_method)
+
+        # For each port available in put_ports, verify required permission for each port.
+        # Annotations.
         if port == 12580:
+            # Verify permission valid and available for user to perform request method.
             if 'annotate' not in scope_names:
                 raise InvalidScopeException(port, request_method)
+        # Ingestion.
         if port == 12589:
+            # Verify permission valid and available for user to perform request method.
             if 'ingest' not in scope_names:
+                raise InvalidScopeException(port, request_method)
+
+    #- - - - - - - - - - - - - - - - - - - - - -
+    # DELETE requests
+    #- - - - - - - - - - - - - - - - - - - - - -
+    elif request_method == 'DELETE':
+        if debug: print '\n debug -- build_url delete....'
+        # Verify the port is available for DELETE requests.
+        if port not in delete_ports:
+            raise InvalidMethodException(port, request_method)
+        # Annotations.
+        if port == 12580:
+            if debug: print '\n debug -- build_url delete port ok...'
+            # Verify permission valid and available for user to perform request method.
+            if 'annotate' not in scope_names and 'annotate_admin' not in scope_names:
                 raise InvalidScopeException(port, request_method)
     else:
         raise InvalidMethodException(port, request_method)
@@ -206,11 +256,12 @@ def format_parameters(parameters):
     except Exception as err:
         raise Exception(str(err))
 
+
 #===========================================
 # Read data from file
 #===========================================
 def read_store(filename):
-    """ Open filename, read data, close file and return data
+    """ Open filename, read data, close file and return data.
     """
     APP_ROOT = os.path.dirname(os.path.abspath(__file__))   # refers to application_top
     data_path = os.path.join(APP_ROOT, '..', '..', 'app', 'm2m', 'help')
@@ -222,6 +273,7 @@ def read_store(filename):
         return data
     except Exception, err:
         raise Exception('%s' % err.message)
+
 
 def read_store2(filename):
     """ Open filename, read data and split on /r, close file and return data

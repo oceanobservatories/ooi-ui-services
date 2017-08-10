@@ -524,6 +524,10 @@ def operational_status_display_values():
     values = ui_status_display_values
     return values
 
+def get_status_map():
+    result = display_status_value_to_uframe_level_map
+    return result
+
 
 uframe_annotation_qcflags = ['not_operational', 'not_available', 'pending_ingest', 'not_evaluated', 'suspect', 'fail', 'pass']
 uframe_annotation_qcflags_display_values = ['Not Operational', 'Not Available', 'Pending Ingest', 'Not Evaluated', 'Suspect', 'Fail', 'Pass']

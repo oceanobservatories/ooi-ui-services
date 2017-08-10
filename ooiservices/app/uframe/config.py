@@ -673,6 +673,19 @@ def get_uframe_plot_timeout():
         raise Exception(message)
 
 
+def get_url_da_info():
+    """ Get complete url to query uframe status ('uframe-host:12587/status/query')
+    """
+    try:
+        result = current_app.config['UFRAME_DA_URL']
+
+        return result
+    except:
+        message = 'Unable to locate UFRAME_DA_URL in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Common utility functions
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

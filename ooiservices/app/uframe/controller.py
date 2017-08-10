@@ -283,124 +283,219 @@ def get_uframe_multi_stream_contents(stream1_dict, stream2_dict, start_time, end
 @auth.login_required
 @api.route('/get_csv/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>', methods=['GET'])
 def get_csv(stream, ref, start_time, end_time, dpa_flag):
+    """ Download data in csv format.
+    """
     debug = False
     mooring = None
     platform = None
     instrument = None
     stream_type = None
-    try:
-        if debug:
-            print '\n debug -- =============================================='
-            print '\n debug -- =============================================='
-            print '\n debug -- Entered /get_csv - get_csv...'
-        mooring, platform, instrument = ref.split('-', 2)
-        stream_type, stream = stream.split('_', 1)
-        stream_type = stream_type.replace('-','_')
-        stream = stream.replace('-','_')
-        GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_csv&ea=%s&el=%s' % \
-                 ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
-        urllib2.urlopen(GA_URL)
-    except KeyError:
-        pass
+    if debug:
+        print '\n debug -- =============================================='
+        print '\n debug -- =============================================='
+        print '\n debug -- Entered /get_csv - get_csv...'
 
-    uframe_url, timeout, timeout_read = get_uframe_info()
-    user = request.args.get('user', '')
-    email = request.args.get('email', '')
-    if dpa_flag == '0':
-        query = '?beginDT=%s&endDT=%s&user=%s&email=%s' % (start_time, end_time, user, email)
-    else:
-        query = '?beginDT=%s&endDT=%s&execDPA=true&user=%s&email=%s' % (start_time, end_time, user, email)
-    query += '&format=application/csv'
-    url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
-    current_app.logger.info('***** url: ' + url)
-    response = requests.get(url, timeout=(timeout, timeout_read))
-    return response.text, response.status_code
+    try:
+        try:
+            mooring, platform, instrument = ref.split('-', 2)
+            stream_type, stream = stream.split('_', 1)
+            stream_type = stream_type.replace('-','_')
+            stream = stream.replace('-','_')
+            GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_csv&ea=%s&el=%s' % \
+                     ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
+            urllib2.urlopen(GA_URL)
+        except KeyError:
+            pass
+
+        # Get uframe configuration items.
+        uframe_url, timeout, timeout_read = get_uframe_info()
+
+        # Get request arguments
+        user = request.args.get('user', '')
+        email = request.args.get('email', '')
+
+        # Verify a user value has been provided
+        if not user:
+            message = 'The user parameter value provided was empty.'
+            raise Exception(message)
+
+        # Verify an email has been provided
+        if not email:
+            message = 'The email parameter value provided was empty.'
+            raise Exception(message)
+
+        # Build query string
+        if dpa_flag == '0':
+            query = '?beginDT=%s&endDT=%s&user=%s&email=%s' % (start_time, end_time, user, email)
+        else:
+            query = '?beginDT=%s&endDT=%s&execDPA=true&user=%s&email=%s' % (start_time, end_time, user, email)
+        query += '&format=application/csv'
+        url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
+        current_app.logger.info('***** url: ' + url)
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        return response.text, response.status_code
+    except ConnectionError:
+        message = 'ConnectionError requesting json download from uframe.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Timeout requesting json download from uframe.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Exception as err:
+        message = str(err)
+        return message, 400
 
 
 @auth.login_required
 @api.route('/get_json/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>/<string:provenance>/<string:annotations>', methods=['GET'])
 def get_json(stream, ref, start_time, end_time, dpa_flag, provenance, annotations):
+    """ Download data in json format.  Optional provenance and annotations flags.
+    """
     debug = False
     mooring = None
     platform = None
     instrument = None
     stream_type = None
-    try:
-        if debug:
+    if debug:
             print '\n debug -- =============================================='
             print '\n debug -- =============================================='
             print '\n debug -- Entered /get_json - get_json...'
-        mooring, platform, instrument = ref.split('-', 2)
-        stream_type, stream = stream.split('_', 1)
-        stream_type = stream_type.replace('-', '_')
-        stream = stream.replace('-', '_')
-        GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_json&ea=%s&el=%s' % \
-                 ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
-        urllib2.urlopen(GA_URL)
-    except KeyError:
-        pass
+    try:
+        # Determine stream type, stream name, mooring, platform and instrument.
+        try:
+            mooring, platform, instrument = ref.split('-', 2)
+            stream_type, stream = stream.split('_', 1)
+            stream_type = stream_type.replace('-', '_')
+            stream = stream.replace('-', '_')
+            GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_json&ea=%s&el=%s' % \
+                     ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
+            urllib2.urlopen(GA_URL)
+        except KeyError:
+            pass
 
-    uframe_url, timeout, timeout_read = get_uframe_info()
-    user = request.args.get('user', '')
-    email = request.args.get('email', '')
-    if dpa_flag == '0':
-        query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s&user=%s&email=%s' % \
-                (start_time, end_time, provenance, annotations, user, email)
-    else:
-        query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s&execDPA=true&user=%s&email=%s' % \
-                (start_time, end_time, provenance, annotations, user, email)
-    query += '&format=application/json'
-    url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
-    current_app.logger.info('***** url: ' + url)
-    response = requests.get(url, timeout=(timeout, timeout_read))
-    return response.text, response.status_code
+        # Get request arguments
+        user = request.args.get('user', '')
+        email = request.args.get('email', '')
+        # Verify a user value has been provided
+        if not user:
+            message = 'The user parameter value provided was empty.'
+            raise Exception(message)
+
+        # Verify an email has been provided
+        if not email:
+            message = 'The email parameter value provided was empty.'
+            raise Exception(message)
+
+        # Build query string
+        if dpa_flag == '0':
+            query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s&user=%s&email=%s' % \
+                    (start_time, end_time, provenance, annotations, user, email)
+        else:
+            query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s&execDPA=true&user=%s&email=%s' % \
+                    (start_time, end_time, provenance, annotations, user, email)
+
+        query += '&format=application/json'
+
+        # Get uframe configuration items.
+        uframe_url, timeout, timeout_read = get_uframe_info()
+
+        # Build uframe request url and execute
+        url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
+        current_app.logger.info('***** url: ' + url)
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        return response.text, response.status_code
+
+    except ConnectionError:
+        message = 'ConnectionError requesting json download from uframe.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Timeout requesting json download from uframe.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Exception as err:
+        message = str(err)
+        return message, 400
 
 
 @auth.login_required
 @api.route('/get_netcdf/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>/<string:provenance>/<string:annotations>', methods=['GET'])
 def get_netcdf(stream, ref, start_time, end_time, dpa_flag, provenance, annotations):
+    """ Download data in netcdf format. Optional provenance and annotations flags.
+    """
     debug = False
     mooring = None
     platform = None
     instrument = None
     stream_type = None
     try:
-        if debug:
-            print '\n debug -- =============================================='
-            print '\n debug -- =============================================='
-            print '\n debug -- Entered /get_netcdf - get_netcdf...'
-        mooring, platform, instrument = ref.split('-', 2)
-        stream_type, stream = stream.split('_', 1)
-        stream_type = stream_type.replace('-', '_')
-        stream = stream.replace('-', '_')
-        GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_netcdf&ea=%s&el=%s' % \
-                 ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
-        urllib2.urlopen(GA_URL)
-    except KeyError:
-        pass
+        # Determine stream type, stream name, mooring, platform and instrument.
+        try:
+            mooring, platform, instrument = ref.split('-', 2)
+            stream_type, stream = stream.split('_', 1)
+            stream_type = stream_type.replace('-', '_')
+            stream = stream.replace('-', '_')
+            GA_URL = current_app.config['GOOGLE_ANALYTICS_URL']+'&ec=download_netcdf&ea=%s&el=%s' % \
+                     ('-'.join([mooring, platform, instrument, stream]), '-'.join([start_time, end_time]))
+            urllib2.urlopen(GA_URL)
+        except KeyError:
+            pass
 
-    user = request.args.get('user', '')
-    email = request.args.get('email', '')
-    pdids = request.args.get('parameters', '')
-    if debug: print '\n debug -- pdids: ', pdids
-    if dpa_flag == '0':
-        query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s&user=%s&email=%s' % \
-                (start_time, end_time, provenance, annotations, user, email)
-    else:
-        query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s&execDPA=true&user=%s&email=%s' % \
-                (start_time, end_time, provenance, annotations, user, email)
+        # Get request arguments
+        user = request.args.get('user', '')
+        email = request.args.get('email', '')
+        #pdids = request.args.get('parameters', '')
+        #if debug: print '\n debug -- pdids: ', pdids
 
-    # Add [optional] selected parameters (identified by comma separated int ids; for example: '12,25,3795')
-    # Send to uframe as '&parameters=12,25,3795'.
-    if pdids:
-        query += '&parameters=%s' % pdids
-        if debug: print '\n debug -- query: ', query
+        # Verify a user value has been provided
+        if not user:
+            message = 'The user parameter value provided was empty.'
+            raise Exception(message)
 
-    query += '&format=application/netcdf'
-    uframe_url, timeout, timeout_read = get_uframe_info()
-    url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
-    response = requests.get(url, timeout=(timeout, timeout_read))
-    return response.text, response.status_code
+        # Verify an email has been provided
+        if not email:
+            message = 'The email parameter value provided was empty.'
+            raise Exception(message)
+
+        # Build query string
+        if dpa_flag == '0':
+            query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s&user=%s&email=%s' % \
+                    (start_time, end_time, provenance, annotations, user, email)
+        else:
+            query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s&execDPA=true&user=%s&email=%s' % \
+                    (start_time, end_time, provenance, annotations, user, email)
+
+        '''
+        # Add [optional] selected parameters (identified by comma separated int ids; for example: '12,25,3795')
+        # Send to uframe as '&parameters=12,25,3795'.
+        if pdids:
+            query += '&parameters=%s' % pdids
+            if debug: print '\n debug -- query: ', query
+        '''
+
+        query += '&format=application/netcdf'
+
+        # Get uframe configuration items.
+        uframe_url, timeout, timeout_read = get_uframe_info()
+
+        # Build uframe request url and execute
+        url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
+        current_app.logger.info('***** url: ' + url)
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        return response.text, response.status_code
+
+    except ConnectionError:
+        message = 'ConnectionError requesting netcdf download from uframe.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Timeout requesting netcdf download from uframe.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Exception as err:
+        message = str(err)
+        return message, 400
 
 
 def get_process_profile_data(stream, instrument, xvar, yvar):
