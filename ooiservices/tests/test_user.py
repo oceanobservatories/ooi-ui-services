@@ -211,9 +211,19 @@ class UserTestCase(unittest.TestCase):
         self.assertTrue(response.status_code == 200)
 
     #Test [GET] /user_scopes - 'main.get_user_scopes'
-    @skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
     def test_get_user_scope_route(self):
-
+        """
+        1       user_admin
+        2       command_control
+        3       annotate
+        4       asset_manager
+        5       sys_admin
+        6       redmine
+        7       data_manager
+        8       organization
+        9       annotate_admin
+        10      ingest
+        """
 
         headers = self.get_api_headers('admin', 'test')
 
@@ -237,55 +247,56 @@ class UserTestCase(unittest.TestCase):
         user_scopes_data = \
             {
                 "user_scopes": [
+
                     {
                         "id": 1,
-                        "scope_description": None,
-                        "scope_name": "annotate_admin"
-                    },
-                    {
-                        "id": 2,
                         "scope_description": None,
                         "scope_name": "user_admin"
                     },
                     {
-                        "id": 3,
-                        "scope_description": None,
-                        "scope_name": "sys_admin"
-                    },
-                    {
-                        "id": 4,
-                        "scope_description": None,
-                        "scope_name": "ingest"
-                    },
-                    {
-                        "id": 5,
-                        "scope_description": None,
-                        "scope_name": "annotate"
-                    },
-                    {
-                        "id": 6,
-                        "scope_description": None,
-                        "scope_name": "asset_manager"
-                    },
-                    {
-                        "id": 7,
+                        "id": 2,
                         "scope_description": None,
                         "scope_name": "command_control"
                     },
                     {
-                        "id": 8,
+                        "id": 3,
+                        "scope_description": None,
+                        "scope_name": "annotate"
+                    },
+                    {
+                        "id": 4,
+                        "scope_description": None,
+                        "scope_name": "asset_manager"
+                    },
+                    {
+                        "id": 5,
+                        "scope_description": None,
+                        "scope_name": "sys_admin"
+                    },
+                    {
+                        "id": 6,
                         "scope_description": None,
                         "scope_name": "redmine"
                     },
                     {
-                        "id": 9,
+                        "id": 7,
                         "scope_description": None,
                         "scope_name": "data_manager"
                     },
                     {
-                        "id": 10,
+                        "id": 8,
                         "scope_description": None,
                         "scope_name": "organization"
+                    },
+                    {
+                        "id": 9,
+                        "scope_description": None,
+                        "scope_name": "annotate_admin"
+                    },
+                    {
+                        "id": 10,
+                        "scope_description": None,
+                        "scope_name": "ingest"
                     }
                 ]
             }
