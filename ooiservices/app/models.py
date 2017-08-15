@@ -1118,18 +1118,18 @@ class UserScope(db.Model, DictSerializableMixin):
 
     @staticmethod
     def insert_scopes():
-        scopes = {
-            'redmine',
-            'asset_manager',
+        scopes = [
             'user_admin',
-            'annotate',
             'command_control',
-            'organization',
+            'annotate',
+            'asset_manager',
             'sys_admin',
+            'redmine',
             'data_manager',
+            'organization',
             'annotate_admin',
             'ingest'
-            }
+            ]
         for s in scopes:
             scope = UserScope.query.filter_by(scope_name=s).first()
             if scope is None:
