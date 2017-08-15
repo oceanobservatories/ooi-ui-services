@@ -211,6 +211,7 @@ class UserTestCase(unittest.TestCase):
         self.assertTrue(response.status_code == 200)
 
     #Test [GET] /user_scopes - 'main.get_user_scopes'
+    @skipIf(os.getenv('TRAVIS'), 'Skip if testing from Travis CI.')
     def test_get_user_scope_route(self):
 
 
