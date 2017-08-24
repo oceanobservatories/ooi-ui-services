@@ -43,11 +43,11 @@ def m2m_handler(path):
             params = MultiDict(request.args)
             params['user'] = user.user_name
             params['email'] = user.email
-
             # Build and issue request to uframe server.
             url = build_url(path)
             timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
             timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
+            if debug: print '\n debug -- GET params: ', params
             if data is None:
                 response = requests.get(url, timeout=(timeout, timeout_read), params=params, stream=True)
             else:
@@ -106,11 +106,8 @@ def m2m_handler_post(path):
         if debug: print '\n debug -- m2m POST request.data: ', request.data
 
         # Verify user information has been provide in request and has permission for the request submitted.
-        if debug: print '\n debug -- POST - before get user...'
         user = User.get_user_from_token(request.authorization['username'], request.authorization['password'])
-        if debug: print '\n debug -- POST - after get user...'
         if user:
-            if debug: print '\n debug -- POST - have user...'
             scopes = user.scopes
             scope_names = []
             for s in scopes:
@@ -121,11 +118,17 @@ def m2m_handler_post(path):
 
             # Build and issue POST request to uframe server.
             url = build_url(path, request_method='POST', scope_names=scope_names)
+            if debug: print '\n debug -- (before) request.data: ', request.data
+            request_data = json.loads(request.data)
+            if port == 12589:
+                request_data[u'username'] = user.user_name
+                if debug:
+                    print '\n debug -- (updated) request_data: %r' % request_data
             if debug: print '\n debug -- m2m POST url: ', url
             timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
             timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
             response = requests.post(url, timeout=(timeout, timeout_read), params=params, stream=True,
-                                     data=request.data,
+                                     data=json.dumps(request_data),
                                      headers={'Accept': 'application/json', 'Content-Type': 'application/json'})
             if debug: print '\n debug-- response.status_code: ', response.status_code
             if response.status_code != 201:
@@ -192,10 +195,17 @@ def m2m_handler_put(path):
 
             # Build and issue PUT request to uframe server.
             url = build_url(path, request_method='PUT', scope_names=scope_names)
+            if debug: print '\n debug -- (before) request.data: ', request.data
+            request_data = json.loads(request.data)
+            if port == 12589:
+                request_data[u'username'] = user.user_name
+                if debug:
+                    print '\n debug -- (updated) request_data: ', request_data
+            if debug: print '\n debug -- m2m PUT url: ', url
             timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
             timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
             response = requests.put(url, timeout=(timeout, timeout_read), params=params, stream=True,
-                                    data=request.data,
+                                    data=json.dumps(request_data),
                                     headers={'Accept': 'application/json', 'Content-Type': 'application/json'})
             if debug: print '\n debug-- response.status_code: ', response.status_code
             if response.status_code != 200:
@@ -242,9 +252,7 @@ def m2m_handler_delete(path):
                 help_response_data = 'No help information available at this time.'
             return jsonify({'message': help_response_data, 'status_code': 200}), 200
 
-
         # Check request data - get annotation to be deleted and review/compare source with current user.
-
         """
         if not request.data:
             message = 'No request data provided on DELETE.'
