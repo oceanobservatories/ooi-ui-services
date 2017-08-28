@@ -8,34 +8,98 @@ Routes:
 """
 __author__ = 'Edna Donoughe'
 
-from flask import request, jsonify, current_app
-from ooiservices.app.main.authentication import auth
-from ooiservices.app.decorators import scope_required
-from ooiservices.app.main.errors import (bad_request, conflict, internal_server_error)
+from flask import jsonify, current_app
+from ooiservices.app.main.errors import bad_request
 from ooiservices.app.uframe import uframe as api
-from ooiservices.app.uframe.asset_tools import (verify_cache, _get_asset, _get_ui_asset_by_uid)
-from ooiservices.app.uframe.event_tools import _get_events_by_id
-from ooiservices.app.uframe.assets_create_update import (_create_asset, _update_asset)
-from ooiservices.app.uframe.common_tools import (asset_edit_phase_values, boolean_values, get_asset_types_for_display,
-                                                 get_supported_asset_types_for_display)
 from ooiservices.app.uframe.uframe_tools import uframe_get_da_by_rd
-from operator import itemgetter
-import json
-
-from ooiservices.app.uframe.asset_tools import assets_query_geojson
 
 
 # Get data availability for reference designator.
 @api.route('/available/<string:rd>', methods=['GET'])
 def get_da_by_rd(rd):
-    """ Get events for asset id. Optional type=[[event_type][,event_type, ...]]
-    Sample requests:
-        http://localhost:4000/uframe/da/CE02SHBP-LJ01D-06-CTDBPN106
+    """ Get data availability for an instrument reference designator.
+    Sample request: http://localhost:4000/uframe/da/CE02SHBP-LJ01D-06-CTDBPN106
+    Sample response:
+    {u'availability':
+                    [
+                        {
+                            u'data': [
+                                    [u'2014-04-17 20:45:00', u'Deployment: 1', u'2014-08-16 22:30:00'],
+                                    [u'2014-10-10 17:45:00', u'Deployment: 2', u'2015-04-12 00:30:00'],
+                                    [u'2015-06-03 17:15:00', u'Deployment: 3', u'2015-10-07 00:00:00'],
+                                    [u'2015-10-08 12:02:00', u'Deployment: 4', u'2016-05-10 15:22:00'],
+                                    [u'2016-05-18 15:44:00', u'Deployment: 5', u'2016-10-02 20:15:00'],
+                                    [u'2016-09-30 16:45:00', u'Deployment: 6', u'2017-04-17 19:45:00'],
+                                    [u'2017-04-19 04:18:00', u'Deployment: 7', u'2017-08-16 15:20:48']],
+                            u'categories': {
+                                        u'Deployment: 1': {u'color': u'#0073cf'},
+                                        u'Deployment: 2': {u'color': u'#cf5c00'},
+                                        u'Deployment: 3': {u'color': u'#0073cf'},
+                                        u'Deployment: 4': {u'color': u'#cf5c00'},
+                                        u'Deployment: 5': {u'color': u'#0073cf'},
+                                        u'Deployment: 6': {u'color': u'#cf5c00'},
+                                        u'Deployment: 7': {u'color': u'#0073cf'}},
+                            u'measure': u'Deployments'
+                        },
+                        {   u'data': [
+                                    [u'2014-04-17 20:45:00', u'Missing', u'2014-08-16 22:30:00'],
+                                    [u'2014-10-10 17:45:00', u'Missing', u'2015-04-12 00:30:00'],
+                                    [u'2015-06-03 17:15:00', u'Missing', u'2015-10-07 00:00:00'],
+                                    [u'2015-10-08 12:02:00', u'Missing', u'2016-05-10 15:22:00'],
+                                    [u'2016-05-18 15:44:00', u'Missing', u'2016-09-30 18:30:11'],
+                                    [u'2016-09-30 18:30:11', u'Present', u'2016-10-02 20:15:00'],
+                                    [u'2016-09-30 16:45:00', u'Missing', u'2016-09-30 18:30:11'],
+                                    [u'2016-09-30 18:30:11', u'Present', u'2016-10-13 03:32:56'],
+                                    [u'2016-10-13 03:32:56', u'Missing', u'2016-10-16 06:28:02'],
+                                    [u'2016-10-16 06:28:02', u'Present', u'2017-01-03 18:30:10'],
+                                    [u'2017-01-03 18:30:10', u'Missing', u'2017-01-05 18:28:01'],
+                                    [u'2017-01-05 18:28:01', u'Present', u'2017-01-19 09:30:10'],
+                                    [u'2017-01-19 09:30:10', u'Missing', u'2017-04-17 19:45:00'],
+                                    [u'2017-04-19 04:18:00', u'Missing', u'2016-09-30 18:30:11'],
+                                    [u'2017-04-19 04:18:00', u'Present', u'2016-10-13 03:32:56'],
+                                    [u'2017-04-19 04:18:00', u'Missing', u'2016-10-16 06:28:02'],
+                                    [u'2017-04-19 04:18:00', u'Present', u'2017-01-03 18:30:10'],
+                                    [u'2017-04-19 04:18:00', u'Missing', u'2017-01-05 18:28:01'],
+                                    [u'2017-04-19 04:18:00', u'Present', u'2017-01-19 09:30:10'],
+                                    [u'2017-04-19 04:18:00', u'Missing', u'2017-04-19 06:30:08'],
+                                    [u'2017-04-19 06:30:08', u'Present', u'2017-08-15 12:33:55'],
+                                    [u'2017-08-15 12:33:55', u'Missing', u'2017-08-16 15:20:48']],
+                            u'categories': {
+                                    u'Not Expected': {u'color': u'#ffffff'},
+                                    u'Present': {u'color': u'#5cb85c'},
+                                    u'Missing': {u'color': u'#d9534d'}},
+                            u'measure': u'telemetered mopak_o_dcl_accel'
+                        }
+                    ]
+    }
     """
     try:
         # Get data availability for reference designator and optional params.
-        # params = request.args.get('params')
+        #params = request.args.get('params', None)
         da = uframe_get_da_by_rd(rd, None)
+
+        # Post process color selections.
+        present_color = u'#0073cf'  # blue, used for Deployments.
+        light_grey = u"#D3D3D3"     # used for streams which are missing. dark_grey = u"A9A9A9"
+        data = da['availability']
+        if data:
+            for line in data:
+
+                # Get categories.
+                categories = line['categories']
+
+                # Determine type of time line and process colors in categories.
+                if 'measure' in line:
+                    # If Deployments - set all color to be the same.
+                    if line['measure'] == 'Deployments':
+                        for k,v in categories.iteritems():
+                            categories[k][u"color"] = present_color
+                    # Else if streams, set Missing to be a light grey color.
+                    else:
+                        for k,v in categories.iteritems():
+                            if k == 'Missing':
+                                categories[k][u"color"] = light_grey
+
         return jsonify(da)
     except Exception as err:
         message = str(err)
