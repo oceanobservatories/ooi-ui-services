@@ -10,6 +10,7 @@ from ooiservices.app.m2m.help_data_12587_asset import get_help_data_12587_asset
 from ooiservices.app.m2m.help_data_12587_events import get_help_data_12587_events
 from ooiservices.app.m2m.help_data_12587_status import get_help_data_12587_status
 #from ooiservices.app.m2m.help_data_12589 import get_help_data_12589
+from ooiservices.app.m2m.help_data_12590 import get_help_data_12590
 from ooiservices.app.m2m.common import valid_port_keywords
 
 
@@ -17,7 +18,7 @@ def get_help_data(port, keyword=None):
     """
     Data stores of information to be presented when a help request is made. Indexed by port.
     For each port there is a list of dictionaries associated with various requests supported on that port.
-    Supported ports(8): 12575, 12576, 12577, 12578, 12580, 12586, 12587, 12589
+    Supported ports(9): 12575, 12576, 12577, 12578, 12580, 12586, 12587, [12589], 12590
     """
     help_data = []
 
@@ -62,6 +63,10 @@ def get_help_data(port, keyword=None):
     # (12589) Ingestion
     #elif port == 12589:
     #    help_data = get_help_data_12589()
+
+    elif port == 12590:
+        help_data = get_help_data_12590()
+
 
     return help_data
 

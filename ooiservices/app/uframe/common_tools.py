@@ -104,14 +104,17 @@ def is_platform(rd):
 def is_instrument(rd):
     """ Verify reference designator is a valid instrument reference designator. Return True or False
     """
+    debug = True
     result = False
     try:
+        if debug: print '\n debug -- uframe/common_tools/is_instrument entered...'
         # Check rd is not empty or None
         if not rd or rd is None:
             return False
 
         # Check rd length equals rd length after trim (catch malformed reference designators)
         len_rd = len(rd)
+        if debug: print '\n debug -- rd: %r' % rd
         if len(rd) != len(rd.strip()):
             message = 'Instrument reference designator is malformed \'%s\'. ' % rd
             current_app.logger.info(message)
@@ -128,7 +131,7 @@ def is_instrument(rd):
         return result
 
     except Exception as err:
-        message = str(err)
+        message = str(err.message)
         current_app.logger.info(message)
         return result
 
@@ -244,15 +247,26 @@ def get_image_thumbnail_route():
     # Original '/api/uframe/get_cam_image/', new '/api/uframe/get_image_thumbnail/'
     return '/api/uframe/get_cam_image/'
 
+def rds_get_supported_array_codes():
+    # Used when processing large format data from raw data server.
+    # Note: Only those arrays which support normalized folder structure on the raw data
+    # server shall be included here.
+    return ['RS', 'CE']
+
+
+def get_linx_support_array_codes():
+    # Used when processing data from raw data server for large format index.
+    return ['RS', 'CE', 'CP']
+
 
 # Get years where data is provided on the raw data server.
-def get_supported_years():
+def rds_get_supported_years():
     # The years where data is provided on the raw data server.
     return ['2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017']
 
 
 # Get valid months to be used when searching the raw data server.
-def get_valid_months():
+def rds_get_valid_months():
     # The valid months to be used when searching the raw data server.
     return ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']
 
@@ -263,14 +277,15 @@ def get_valid_extensions():
     return ['.png', '.mseed', '.raw', '.mov', '.mp4']
 
 
-# Get valid extensions.
-def get_supported_sensor_types():
-    # The valid file extensions to be used when searching/working with the raw data server.
+# Get supported extensions.
+def rds_get_supported_sensor_types():
+    # The supported sensor types to be used when searching/working with the raw data server.
     return ['-HYD', '-CAMDS', '-CAMHD', '-ZPL']
 
 
-def get_supported_folder_types():
-    # The valid file extensions to be used when searching/working with the raw data server.
+# Get supported folder types.
+def rds_get_supported_folder_types():
+    # The supported folder types to be used when searching/working with the raw data server.
     return ['HY', 'CAMDS', 'CAMHD', 'ZPL']
 
 
@@ -281,7 +296,7 @@ def get_extensions_by_sensor_type(sensor_type):
     extensions = []
 
     # If unknown sensor_type, return None.
-    if sensor_type not in get_supported_sensor_types():
+    if sensor_type not in rds_get_supported_sensor_types():
         return None
 
     # Get list of extensions for each sensor_type.
@@ -294,6 +309,48 @@ def get_extensions_by_sensor_type(sensor_type):
     elif sensor_type == '-ZPL':
         extensions = ['.raw', '.png']
     return extensions
+
+# Complete lists...
+#valid_extensions = ['.mseed', '.png', '.raw', '.mov', '.mp4']
+#valid_sensor_types = ['CAMDS', 'CAMHD', 'ZPL', 'HYDBB', 'HYDLF', 'OBS']
+
+# Sprint 10
+valid_extensions = ['.png']
+valid_sensor_types = ['CAMDS']
+
+def rds_get_valid_sensor_types():
+    return valid_sensor_types
+
+
+def rds_get_valid_extensions():
+    return valid_extensions
+
+
+def rds_get_sensor_type(rd):
+    """
+    For reference designator, determine sensor type to process.
+    """
+    sensor_type = None
+    try:
+        for type in valid_sensor_types:
+            check_type = '-' + type
+            if check_type in rd:
+                sensor_type = type
+                break
+        return sensor_type
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+# Gallery info link root for display. (Consider moving to config file.)
+def rds_get_instrument_info_url_root():
+    return "http://oceanobservatories.org/instruments/"
+
+# Gallery site link root for display. (Consider moving to config file.)
+def rds_get_instrument_site_url_root():
+    return "http://oceanobservatories.org/site/"
+
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Common definitions - assets
@@ -767,3 +824,33 @@ def scrub_list(data):
         message = err.message
         current_app.logger.info(message)
         return result
+
+
+'''
+def get_rd(data):
+    """
+    Process uframe reference designator dictionary to get reference designator.
+    """
+    debug = True
+    rd = None
+    try:
+        if debug: print '\n debug -- Entered common_tools::get_rd: ', data
+        if data and data is not None:
+            if isinstance(data, dict):
+                subsite = data['subsite']
+                node = data['node']
+                sensor = data['sensor']
+                if subsite is not None and node is None:
+                    rd = subsite
+                elif subsite is not None and node is not None:
+                    rd = '-'.join([subsite, node])
+
+                if rd is not None and sensor is not None:
+                    rd = '-'.join([rd, sensor])
+            else:
+                rd = data
+        return rd
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+'''

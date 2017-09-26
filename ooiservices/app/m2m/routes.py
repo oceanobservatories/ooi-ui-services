@@ -68,11 +68,11 @@ def m2m_handler(path):
         current_app.logger.info(e.message)
         return jsonify({'message': e.message, 'status_code': 403}), 403
     except ConnectionError:
-        message = 'ConnectionError when getting annotation data from uframe.'
+        message = 'ConnectionError when getting data from uframe.'
         current_app.logger.info(message)
         return jsonify({'message': message, 'status_code': 500}), 500
     except Timeout:
-        message = 'Timeout when getting annotation data from uframe.'
+        message = 'Timeout when getting data from uframe.'
         current_app.logger.info(message)
         return jsonify({'message': message, 'status_code': 500}), 500
     except Exception as err:
@@ -147,11 +147,11 @@ def m2m_handler_post(path):
         current_app.logger.info(e.message)
         return jsonify({'message': e.message, 'status_code': 403}), 403
     except ConnectionError:
-        message = 'ConnectionError during POST annotation data to uframe.'
+        message = 'ConnectionError during POST data to uframe.'
         current_app.logger.info(message)
         return jsonify({'message': message, 'status_code': 500}), 500
     except Timeout:
-        message = 'Timeout during POST annotation data to uframe.'
+        message = 'Timeout during POST data to uframe.'
         current_app.logger.info(message)
         return jsonify({'message': message, 'status_code': 500}), 500
     except Exception as e:
@@ -223,11 +223,11 @@ def m2m_handler_put(path):
         current_app.logger.info(e.message)
         return jsonify({'message': e.message, 'status_code': 403}), 403
     except ConnectionError:
-        message = 'ConnectionError during PUT annotation data to uframe.'
+        message = 'ConnectionError during PUT data to uframe.'
         current_app.logger.info(message)
         return jsonify({'message': message, 'status_code': 500}), 500
     except Timeout:
-        message = 'Timeout during PUT annotation data to uframe.'
+        message = 'Timeout during PUT data to uframe.'
         current_app.logger.info(message)
         return jsonify({'message': message, 'status_code': 500}), 500
     except Exception as e:
@@ -237,7 +237,7 @@ def m2m_handler_put(path):
 @api.route('/', methods=['DELETE'], defaults={'path': ''})
 @api.route('/<path:path>', methods=['DELETE'])
 def m2m_handler_delete(path):
-    """ Issue DELETE request to uframe server.
+    """ Issue DELETE request to uframe server - only supports annotations at this time. (port 12580)
     """
     debug = False
     if debug: print '\n debug -- Entered m2m DELETE...'
@@ -298,7 +298,7 @@ def m2m_handler_delete(path):
                 # Verify if override required due to source field value.
                 if check_data['source'] != params['user']:
                     if 'annotate_admin' not in scope_names:
-                        message = 'The user (%s) does not have permission to delete this annotation.' % params['user']
+                        message = 'The user (%s) does not have permission to delete this item.' % params['user']
                         if debug: print '\n debug: message: ', message
                         return jsonify({'message': message, 'status_code': 409}), 409
             else:
@@ -323,11 +323,11 @@ def m2m_handler_delete(path):
         current_app.logger.info(e.message)
         return jsonify({'message': e.message, 'status_code': 403}), 403
     except ConnectionError:
-        message = 'ConnectionError during DELETE annotation data to uframe.'
+        message = 'ConnectionError during DELETE data request to uframe.'
         current_app.logger.info(message)
         return jsonify({'message': message, 'status_code': 500}), 500
     except Timeout:
-        message = 'Timeout during DELETE annotation data to uframe.'
+        message = 'Timeout during DELETE data request to uframe.'
         current_app.logger.info(message)
         return jsonify({'message': message, 'status_code': 500}), 500
     except Exception as e:

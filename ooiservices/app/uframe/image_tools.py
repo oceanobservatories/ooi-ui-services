@@ -18,14 +18,14 @@ from StringIO import StringIO
 
 from ooiservices.app import cache
 from ooiservices.app.uframe.config import get_cache_timeout
-from ooiservices.app.uframe.common_tools import get_image_thumbnail_route
+from ooiservices.app.uframe.common_tools import (get_image_thumbnail_route, rds_get_supported_years,
+                                                 rds_get_supported_array_codes)
 from ooiservices.app.uframe.config import (get_uframe_timeout_info, get_image_camera_store_url_base,
                                            get_image_store_url_base)
 import requests
 import requests.adapters
 import requests.exceptions
 from requests.exceptions import (ConnectionError, Timeout)
-#from ooiservices.app.uframe.common_tools import (get_supported_years, get_valid_months, get_supported_sensor_types)
 
 
 # Get existing thumbnails and return dictionary to populate cam_images cache. (This does not build thumbnails).
@@ -77,7 +77,7 @@ def _get_cam_images():
         },
     """
     debug = False
-    time = True
+    time = False
     total_count = 0
     image_list = []
     try:
@@ -263,10 +263,10 @@ def get_data_image_list():
 def _compile_cam_images():
     """ Build thumbnails for available image files; generate list of dictionaries for images.
     """
-    debug = False
+    debug = True
     verbose = True
-    time = True
-    max_count = 250
+    time = False
+    max_count = 2500
     total_count = 0
     process_count = 0
     already_processed_count = 0
@@ -604,14 +604,24 @@ def _compile_large_format_index():
     if debug: print '\n Raw Data Server --  url_root: ', url_root
 
     # Processing filters.
-    array_codes = ['RS', 'CE', 'CP']
-    years_processed = ['2017', '2016', '2015', '2014', '2013', '2012', '2011', '2010', '2009']
+    #array_codes = ['RS', 'CE', 'CP']
+    array_codes = rds_get_supported_array_codes()
+    #years_processed = ['2017', '2016', '2015', '2014', '2013', '2012', '2011', '2010', '2009']
+    years_processed = rds_get_supported_years()
     filetypes_to_check = ['-HYD','-ZPL', '-OBS', '-CAMDS', '-CAMHD' ]
     extensions_to_check = ['.mseed', '.png', '.raw', '.mp4', '.mov']
 
     # Processing subfolders.
     subfolder_filestypes = ['HYD', 'ZPL', 'OBS', 'CAMDS', 'CAMHD']
     subfolder_extensions = ['.mseed', '.png', '.raw', '.mp4', '.mov']
+
+    #- - - - - - - - - - - - - - - - - - -
+    #Sprint 10
+    filetypes_to_check = ['CAMDS' ]
+    extensions_to_check = ['.png']
+    subfolder_filestypes = ['CAMDS']
+    subfolder_extensions = ['.png']
+
     try:
         if debug: print '\n debug -- Entered _compile_large_format_index...'
         if time:
@@ -841,16 +851,38 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
     if debug: print '\n TESTING --  url_root: ', url_root
 
     # Filters to limit processing for initial release.
-    array_codes = ['RS', 'CE']
-    years_processed = ['2017', '2016']
+    #array_codes = ['RS', 'CE']
+    #years_processed = ['2017', '2016']
 
     # Initial release until data mining has UI target defined for sensor specific displays.
-    filetypes_to_check = ['-ZPL', '-CAMDS' ]
+    #filetypes_to_check = ['-ZPL', '-CAMDS' ]
+    #extensions_to_check = ['.png']
+
+    # Master/complete list
+    #array_codes = ['RS']
+    #array_codes = ['RS', 'CE']
+    array_codes = rds_get_supported_array_codes()
+    #years_processed = ['2017', '2016', '2015']
+    #years_processed = ['2017', '2016', '2015', '2014', '2013', '2012', '2011', '2010', '2009']
+    years_processed = rds_get_supported_years()
+
+    #filetypes_to_check = ['-CAMDS', '-CAMHD']
+    filetypes_to_check = ['-HYD', '-OBS', '-CAMDS', '-CAMHD', '-ZPL']
+    #extensions_to_check = ['.png']
+    extensions_to_check = ['.mseed', '.png', '.mp4', '.mov', '.raw']
+    # Processing subfolders.
+    subfolder_filestypes = ['HYD', 'ZPL', 'OBS', 'CAMDS', 'CAMHD']
+    subfolder_extensions = ['.mseed', '.png', '.raw', '.mp4', '.mov']
+
+
+
+    filetypes_to_check = ['CAMDS']
     extensions_to_check = ['.png']
     try:
         if debug: print '\n debug -- Entered _compile_large_format_files...'
         if time:
             print '\nCompiling large format files'
+            print '\t-- Arrays processed: ', array_codes
             print '\t-- Years processed: ', years_processed
             print '\t-- Sensor types processed: ', filetypes_to_check
             print '\t-- Extensions checked: ', extensions_to_check
@@ -948,6 +980,9 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
                     subfolder_url = base_url + rd + item
 
                     node_subfolders, node_file_list = _get_subfolder_list(subfolder_url, None)
+                    #node_subfolders, node_file_list = _get_subfolder_list(month_url,
+                    #                                                      filetypes=subfolder_filestypes,
+                    #                                                      extensions=subfolder_extensions)
                     if node_file_list:
                         if debug: print '\n debug -- ***** (node subfolder search) %s file_list(%d): %s' % \
                             (item, len(node_file_list), node_file_list)
@@ -1240,15 +1275,18 @@ def _get_subfolder_list(url, filetypes=None, extensions=None):
     filetypes_to_check = ['HY', 'ZPL', 'CAMDS', 'CAMHD', 'OBS']
     extensions_to_check = ['.png', '.raw', '.mseed', '.mp4', '.mov']
     """
-
+    #subfolder_filestypes = ['HYD', 'ZPL', 'OBS', 'CAMDS', 'CAMHD']
+    #subfolder_extensions = ['.mseed', '.png', '.raw', '.mp4', '.mov']
     # Set filetypes and extensions to check.
     if filetypes is None:
-        filetypes_to_check = ['ZPL', 'CAMDS']
+        filetypes_to_check = ['CAMDS']
+        #filetypes_to_check = ['HY', 'ZPL', 'CAMDS', 'CAMHD', 'OBS']
     else:
         filetypes_to_check = filetypes
 
     if extensions is None:
         extensions_to_check = ['.png']
+        #extensions_to_check = ['.png', '.raw', '.mseed', '.mp4', '.mov']
     else:
         extensions_to_check = extensions
 
@@ -1258,7 +1296,8 @@ def _get_subfolder_list(url, filetypes=None, extensions=None):
         if debug:
             print '\n debug -- Entered _get_subfolder_list...', url
         timeout, timeout_read = get_uframe_timeout_info()
-        r = requests.get(url, timeout=(timeout, timeout_read))
+        extended_timeout_read = timeout_read * 10
+        r = requests.get(url, timeout=(timeout, extended_timeout_read))
         if debug: print '\n debug -- r.status_code: ', r.status_code
         soup = BeautifulSoup(r.content, "html.parser")
         ss = soup.findAll('a')
