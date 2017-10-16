@@ -39,6 +39,8 @@ COMMON: &common
     UFRAME_ANNOTATION_BASE: '/anno'
     UFRAME_VOCAB_URL:       'http://localhost:12586'
     UFRAME_DA_URL:          'http://localhost:9000'
+    UFRAME_VERSIONS_URL:     'http://localhost:12590'
+    UFRAME_VERSIONS:         'versions'
 
     # Asset Management: Assets, Events, Deployments, Cruises, Resources, Calibration and Status
     UFRAME_ASSETS_URL:       'http://localhost:12587'
@@ -81,6 +83,7 @@ COMMON: &common
       - 12586
       - 12587
       - 12589
+      - 12590
 
     UFRAME_ALLOWED_M2M_PORTS_POST:
       - 12580

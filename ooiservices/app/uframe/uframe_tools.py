@@ -13,8 +13,9 @@ from ooiservices.app.uframe.config import (get_uframe_deployments_info, get_even
                                            get_url_info_deployments_inv, get_deployments_url_base,
                                            get_url_info_status_query, get_uframe_toc_url,
                                            get_url_info_stream_byname, get_uframe_info, get_url_info_stream_parameters,
-                                           get_url_da_info, get_uframe_timeout_info)
+                                           get_url_da_info, get_uframe_timeout_info, get_uframe_versions_url)
 from ooiservices.app.uframe.common_tools import deployment_edit_phase_values
+
 
 import requests
 from requests.exceptions import (ConnectionError, Timeout)
@@ -963,13 +964,17 @@ def uframe_get_deployments_by_cruise_id(cruise_id, type=None):
         http://uframe-host:12587/events/cruise/deployments/CP-2016-0001?phase=all           [all=deploy+recover]
         http://uframe-host:12587/events/cruise/deployments/CP-2016-0001?phase=deploy
         http://uframe-host:12587/events/cruise/deployments/CP-2016-0001?phase=recover
+
+        http://uframe-test.intra.oceanobservatories.org:12587/events/cruise/deployments/AT-26-29?type=recover
     """
+    check = False
     try:
         base_url, timeout, timeout_read = get_url_info_cruises()
         _cruise_id = (urllib.quote(cruise_id, ''))
         url = '/'.join([base_url, 'deployments', _cruise_id])
         if type is not None and type:
             url += '?type=' + type
+        if check: print '\n check -- url: ', url
         payload = requests.get(url, timeout=(timeout, timeout_read))
 
         # If no content, return empty result
@@ -1080,9 +1085,11 @@ def uframe_get_deployment_inv_nodes(subsite):
 def uframe_get_deployment_inv_sensors(subsite, node):
     """
     """
+    check = False
     try:
         base_url, timeout, timeout_read = get_url_info_deployments_inv()
         url = '/'.join([base_url, subsite, node])
+        if check: print '\n check -- url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
             message = 'Unable to get uframe deployment inventory for subsite \'%s\' and node \'%s\'.' % (subsite, node)
@@ -1253,6 +1260,33 @@ def get_deployments_digest_by_uid(uid, editPhase='ALL'):
     """
     http://host:port/asset/deployments/N00123?editphase=ALL (default)
     http://host:port/asset/deployments/N00123?editphase=OPERATIONAL
+
+    http://uframe-test.intra.oceanobservatories.org:12587/asset/deployments/ATAPL-71403-00002
+    [
+        {
+          "startTime" : 1408863300000,
+          "depth" : null,
+          "node" : "DP01A",
+          "subsite" : "RS01SBPD",
+          "sensor" : "00-ENG000000",
+          "deploymentNumber" : 1,
+          "eventId" : 2275,
+          "versionNumber" : 1,
+          "latitude" : 44.52732,
+          "longitude" : -125.3801,
+          "editPhase" : "OPERATIONAL",
+          "orbitRadius" : null,
+          "waterDepth" : 2901.0,
+          "mooring_uid" : "ATAPL-71403-00002",
+          "node_uid" : null,
+          "sensor_uid" : "ATAPL-71553-00204",
+          "deployCruiseIdentifier" : "TN-313",
+          "recoverCruiseIdentifier" : null,
+          "endTime" : 1411430400000
+        },
+
+        Note, to get the asset for the uid, use:
+        http://uframe-test.intra.oceanobservatories.org:12587/asset?uid=ATAPL-71403-00002
     """
     check = False
     try:
@@ -1432,7 +1466,6 @@ def uframe_get_parameters():
     except Exception as err:
         message = str(err)
         raise Exception(message)
-
 
 
 def uframe_get_instrument_metadata_parameters(rd):
@@ -1737,12 +1770,10 @@ def get_uframe_streams():
 def uframe_get_da_by_rd(rd, params=None):
     """ Get asset from uframe by asset id.
     """
-    debug = False
     try:
         # Get uframe asset
         timeout, timeout_read = get_uframe_timeout_info()
         url = '/'.join([get_url_da_info(), 'available', rd])
-        if debug: print '\n debug -- uframe_get_da_by_rd url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read), headers=headers(), params=params)
         if response.status_code != 200:
             message = 'Failed to get data availability from uframe for reference designator: %s.' % rd
@@ -1761,6 +1792,47 @@ def uframe_get_da_by_rd(rd, params=None):
     except Exception as err:
         message = str(err)
         #current_app.logger.info(message)
+        raise Exception(message)
+
+
+def uframe_get_versions(component=None):
+    """
+    Return version information, for component if provided.
+    https://redmine.oceanobservatories.org/projects/ooi/wiki/Version_Service
+    """
+    check = False
+    result = []
+    try:
+        url, timeout, timeout_read = get_uframe_versions_url()
+        if component is not None:
+            url = '/'.join([url, component, 'latest'])
+        if check: print '\n check -- url: ', url
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Failed to get uframe versions information.'
+            raise Exception(message)
+        if response.content:
+            result = json.loads(response.content)
+        return result
+    except ConnectionError:
+        message = 'Error: ConnectionError getting uframe versions information'
+        if component is not None:
+            message += ' for component %s.' % component
+        else:
+            message += '.'
+        current_app.logger.info(message)
+        raise Exception(message)
+    except Timeout:
+        message = 'Error: Timeout getting getting uframe versions information'
+        if component is not None:
+            message += ' for component %s.' % component
+        else:
+            message += '.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+    except Exception as err:
+        message = str(err)
         raise Exception(message)
 
 

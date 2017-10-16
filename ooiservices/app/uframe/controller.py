@@ -424,7 +424,7 @@ def get_json(stream, ref, start_time, end_time, dpa_flag, provenance, annotation
 def get_netcdf(stream, ref, start_time, end_time, dpa_flag, provenance, annotations):
     """ Download data in netcdf format. Optional provenance and annotations flags.
     """
-    debug = False
+    debug = True
     mooring = None
     platform = None
     instrument = None
@@ -445,8 +445,8 @@ def get_netcdf(stream, ref, start_time, end_time, dpa_flag, provenance, annotati
         # Get request arguments
         user = request.args.get('user', '')
         email = request.args.get('email', '')
-        #pdids = request.args.get('parameters', '')
-        #if debug: print '\n debug -- pdids: ', pdids
+        pdids = request.args.get('parameters', '')
+        if debug: print '\n debug -- pdids: %r' % pdids
 
         # Verify a user value has been provided
         if not user:
@@ -466,13 +466,11 @@ def get_netcdf(stream, ref, start_time, end_time, dpa_flag, provenance, annotati
             query = '?beginDT=%s&endDT=%s&include_provenance=%s&include_annotations=%s&execDPA=true&user=%s&email=%s' % \
                     (start_time, end_time, provenance, annotations, user, email)
 
-        '''
         # Add [optional] selected parameters (identified by comma separated int ids; for example: '12,25,3795')
         # Send to uframe as '&parameters=12,25,3795'.
         if pdids:
             query += '&parameters=%s' % pdids
             if debug: print '\n debug -- query: ', query
-        '''
 
         query += '&format=application/netcdf'
 
@@ -858,6 +856,7 @@ def get_svg_plot(instrument, stream):
                     message = 'No data returned for stream %s and instrument %s, y-var: %s and x-var: %s' % \
                                             (stream[0], instrument[0], yvar, xvar)
                     raise Exception(message)
+                if debug: print '\n debug -- Back from fetching data for %s' % plot_layout
 
             # Multiple instruments.
             elif len(instrument) > 1:

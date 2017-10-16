@@ -687,6 +687,22 @@ def get_url_da_info():
 
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Uframe versions
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+def get_uframe_versions_url():
+    """ Get uframe url for versions.
+    """
+    try:
+        timeout, timeout_read = get_uframe_timeout_info()
+        url = '/'.join([current_app.config['UFRAME_VERSIONS_URL'], current_app.config['UFRAME_VERSIONS']])
+        return url, timeout, timeout_read
+    except:
+        message = 'Unable to locate UFRAME_VERSIONS_URL or UFRAME_VERSIONS value in configuration file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Common utility functions
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # uframe timeout information
