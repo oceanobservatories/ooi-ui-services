@@ -6,6 +6,11 @@ virtualenv:
 services:
   - memcached
   - redis-server
+addons:
+  postgresql: 9.6
+  apt:
+    packages:
+    - postgresql-9.6-postgis-2.3
 env:
   - PYTHONPATH=.
 before_install:
