@@ -424,7 +424,7 @@ def get_json(stream, ref, start_time, end_time, dpa_flag, provenance, annotation
 def get_netcdf(stream, ref, start_time, end_time, dpa_flag, provenance, annotations):
     """ Download data in netcdf format. Optional provenance and annotations flags.
     """
-    debug = True
+    debug = False
     mooring = None
     platform = None
     instrument = None
@@ -775,6 +775,9 @@ def get_svg_plot(instrument, stream):
     xvar = request.args.get('xvar', 'time')
     yvar = request.args.get('yvar', None)
 
+    if debug:
+        print '\n debug -- xvar: ', xvar
+        print '\n debug -- yvar: ', yvar
     # Prevent processing if yvar is None due to poorly formed request.
     if yvar is None:
         message = 'Invalid client request, the yvar is empty or null.'
@@ -835,6 +838,7 @@ def get_svg_plot(instrument, stream):
     # Get data.
     #- - - - - - - - - - - - - - - -
     try:
+        stacked = False
         # Depth Profile
         if plot_layout == "depthprofile":
             data = get_process_profile_data(stream[0], instrument[0], yvar[0], xvar[0])
@@ -847,10 +851,12 @@ def get_svg_plot(instrument, stream):
                 # Plot types 'stacked' or '3d_scatter' add more data. (Review sparse data presentation.)
                 if plot_layout == 'stacked':
                     number_of_data_points = 2000
+                    number_of_data_points = 1000    # debug
+                    stacked = True
                 elif plot_layout == '3d_scatter':
                     number_of_data_points = 8000
                 # Get data from uframe.
-                data = get_max_data(stream[0], instrument[0], yvar, xvar, number_of_data_points)
+                data = get_max_data(stream[0], instrument[0], yvar, xvar, number_of_data_points, stacked=True)
                 #data['number_of_data_points'] = number_of_data_points
                 if not data or data is None:
                     message = 'No data returned for stream %s and instrument %s, y-var: %s and x-var: %s' % \
@@ -934,6 +940,23 @@ def get_svg_plot(instrument, stream):
             print '\n debug -- calling generate plot....for ', plot_layout
 
         # Generate plot. The plot type/format is provided in plot options.
+        """
+        resp_data = {'x': x,
+                     'y': y,
+                     'data_length': len(data),
+                     'x_field': xfields,
+                     'x_units': x_units,
+                     'y_field': yfields,
+                     'y_units': y_units,
+                     'dt_units': 'seconds since 1900-01-01 00:00:00',
+                     'qaqc': qaqc
+                     }
+        """
+        if debug:
+            print '\n debug -- Calling GENERATE PLOT...'
+            print '\n debug -- plot_options: ', json.dumps(plot_options, indent=4, sort_keys=True)
+            print '\n debug -- len(data[x_fields]): ', len(data['x_field'])
+            print '\n debug -- len(data[y_fields]): ', len(data['y_field'])
         buf = generate_plot(data, plot_options)
 
         # Return resulting svg or png plot to UI.
@@ -958,7 +981,7 @@ def get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, str
     """
     from ooiservices.app.uframe.common_tools import dump_dict
     debug = False
-    timing = False
+    timing = True
     rd = None
     number_of_data_points = request_data_points
     try:
@@ -1178,10 +1201,13 @@ def get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, str
 
 
 # Get uframe data.
-def get_max_data(stream, instrument, yfields, xfields, number_of_data_points=1000, include_time=True):
+def get_max_data(stream, instrument, yfields, xfields, number_of_data_points=1000, include_time=True, stacked=False):
+    """
+    yfields and xfields are a list of parameter names.
+    """
     from collections import OrderedDict
     from ooiservices.app.uframe.common_tools import to_bool_str
-    from ooiservices.app.uframe.data import new_find_parameter_ids
+    from ooiservices.app.uframe.data import new_find_parameter_ids, new_find_parameter_ids_stacked
     debug = False
     data = []
     try:
@@ -1191,12 +1217,33 @@ def get_max_data(stream, instrument, yfields, xfields, number_of_data_points=100
             print '\n debug -- Step 1 -- (get_max_data) have data, review data......'
             print '\n debug -- instrument: ', instrument
             print '\n debug -- stream: ', stream
+            print '\n debug -- yfields: ', yfields
+            print '\n debug -- xfields: ', xfields
+            print '\n debug -- stacked: ', stacked
+
         mooring, platform, sensor = instrument.split('-', 2)
         #stream_value = stream[:]
         stream_type, stream = stream.split('_')
         stream = stream.replace('-', '_')
         stream_type = stream_type.replace('-', '_')
-        parameter_ids, y_units, x_units, units_mapping = new_find_parameter_ids(instrument, stream, yfields, xfields)
+        if not stacked:
+            parameter_ids, y_units, x_units, units_mapping = new_find_parameter_ids(instrument, stream, yfields, xfields)
+        else:
+            if debug: print '\n debug -- Get parameter information for stacked plot........................'
+            parameter_ids, y_units, x_units, units_mapping, parameter_names = new_find_parameter_ids_stacked(instrument,
+                                                                                stream,
+                                                                                yfields, xfields,
+                                                                                stacked=stacked)
+            yfields = parameter_names
+            if debug:
+                print '\n debug -- xfields(%d): %s' % (len(xfields), xfields)
+                print '\n debug -- yfields(%d): %s' % (len(yfields), yfields)
+                print '\n debug -- parameter_names(%d): %s' % (len(parameter_names),  parameter_names)
+                print '\n debug -- x_units(%d): %s' % (len(x_units), x_units)
+                print '\n debug -- y_units(%d): %s' % (len(y_units), y_units)
+                print '\n debug -- units_mapping(%d): %s' % (len(units_mapping), units_mapping)
+
+        if debug: print '\n debug -- parameter_ids: ', parameter_ids
         # Get start and end dates; if not provided raise exception.
         st_date = None
         ed_date = None

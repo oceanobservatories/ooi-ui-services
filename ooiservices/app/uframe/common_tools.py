@@ -104,7 +104,7 @@ def is_platform(rd):
 def is_instrument(rd):
     """ Verify reference designator is a valid instrument reference designator. Return True or False
     """
-    debug = True
+    debug = False
     result = False
     try:
         if debug: print '\n debug -- uframe/common_tools/is_instrument entered...'

@@ -70,7 +70,190 @@ def new_find_parameter_ids(reference_designator, stream, y_parameters, x_paramet
                 if str_each in all_units:
                     units_mapping[str_each] = all_units[str_each]
 
+        '''
+        if stacked and 'ZPLSC' in reference_designator:
+
+            # If ZPLSC and stacked, evaluate yfield to determine if contains 'zplsc_values', if so,
+            # (1) determine the channel number,
+            # (2) get params for stream
+            # (3) fetch parameter 'zplsc_depth_range_channel_#' for channel_number
+            # (4) append parameter name to yfields list.
+
+            print '\n debug -- ZPLSC in new_find_parameter_ids - STACKED is True! ********************'
+
+            found_channel_number = False
+            str_channel_number = None
+            if y_parameters:
+                for each in y_parameters:
+                    str_each = str(each)
+                    if debug: print '\n debug -- (y) str_each: ', str_each
+                    if 'zplsc_values' in str_each:
+                        if debug: print '\n debug -- Must lookup channel number in name...'
+                        tmp_channel = each.rsplit('_', 1)
+                        if debug: print '\n debug -- tmp_channel: ', tmp_channel
+                        tmp_channel = tmp_channel[::-1]
+                        _channel_number = tmp_channel[0]
+                        if debug: print '\n debug -- _channel_number: %r' % _channel_number
+                        str_channel_number = str(_channel_number)
+                        if debug: print '\n debug -- str_channel_number: %r' % str_channel_number
+                        if not str_channel_number:
+                            message = 'Failed to process channel number for ZPLSC parameter %s.' % str_each
+                            message += 'Unable to obtain the necessary parameter data for ZPLSC stacked plot request.'
+                            raise Exception(message)
+                        found_channel_number = True
+                        break
+
+            found_depth_parameter = False
+            find_parameter = None
+            if y_parameters and found_channel_number and str_channel_number is not None:
+                find_parameter = '_'.join(['zplsc_depth_range_channel', str_channel_number])
+                if debug: print '\n debug -- Looking to find parameter: ', find_parameter
+                for each in parameters:
+                    str_each = str(each['name'])
+                    if debug: print '\n debug -- (y) parameter_name : ', str_each
+
+                    if str_each == find_parameter:
+                        if debug: print '\n debug -- Located parameter: %s' % find_parameter
+                        if str_each in parameter_dict:
+                            parameter_ids.append(parameter_dict[str_each])
+                            parameter_names.append(each)
+                        if str_each in all_units:
+                            y_units.append(all_units[str_each])
+                        if str_each in all_units:
+                            units_mapping[str_each] = all_units[str_each]
+                        found_depth_parameter = True
+                        break
+            if not found_depth_parameter or find_parameter is None:
+                message = 'Failed to obtain depth range parameter for ZPLSC parameter %s.' % find_parameter
+                message += 'Unable to obtain the necessary parameter data for ZPLSC stacked plot request.'
+                raise Exception(message)
+        '''
         return parameter_ids, y_units, x_units, units_mapping
+    except ConnectionError:
+        message = 'Error: ConnectionError getting uframe instrument metadata parameters.'
+        raise Exception(message)
+    except Timeout:
+        message = 'Error: Timeout getting uframe instrument metadata parameters.'
+        raise Exception(message)
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+def new_find_parameter_ids_stacked(reference_designator, stream, y_parameters, x_parameters, stacked=False):
+    """
+    Using stream parameters information from preload.
+    Prepare list of x and y parameters by reference designator.
+    {
+      "display_name": "Seawater Conductivity",
+      "id": "pd1",
+      "name": "conductivity",
+      "parameter_type": "quantity",
+      "particleKey": "conductivity",
+      "type": "float",
+      "unit": "S m-1",
+      "shape": "scalar"
+    },
+    """
+    debug = False
+    try:
+        if debug: print '\n debug -- (new_find_parameter_ids_stacked) reference_designator: ', reference_designator
+        parameters = get_stream_parameters(stream, reference_designator)
+        if parameters is None:
+            message = 'Failed to get uframe parameters for reference designator %s, stream \'%s\'.' % \
+                      (reference_designator, stream)
+            raise Exception(message)
+        parameter_dict = {}
+        parameter_ids = []
+        all_units = {}
+        y_units = []
+        x_units = []
+        parameter_names = []
+
+        units_mapping = {}
+        for each in parameters:
+            parameter_dict[each['particleKey']] = each['id']
+            all_units[each['particleKey']] = each['unit']
+
+        if x_parameters:
+            for each in x_parameters:
+                str_each = str(each)
+                if str_each in parameter_dict:
+                    parameter_ids.append((parameter_dict[str_each]))
+                    #parameter_names.append(each)
+                if str_each in all_units:
+                    x_units.append(all_units[str_each])
+                if str_each in all_units:
+                    units_mapping[str_each] = all_units[str_each]
+        if y_parameters:
+            for each in y_parameters:
+                str_each = str(each)
+                if str_each in parameter_dict:
+                    parameter_ids.append(parameter_dict[str_each])
+                    parameter_names.append(each)
+                if str_each in all_units:
+                    y_units.append(all_units[str_each])
+                if str_each in all_units:
+                    units_mapping[str_each] = all_units[str_each]
+
+        if stacked and 'ZPLSC' in reference_designator:
+
+            # If ZPLSC and stacked, evaluate yfield to determine if contains 'zplsc_values', if so,
+            # (1) determine the channel number,
+            # (2) get params for stream
+            # (3) fetch parameter 'zplsc_depth_range_channel_#' for channel_number
+            # (4) append parameter name to yfields list.
+
+            print '\n debug -- ZPLSC in new_find_parameter_ids - STACKED is True! ********************'
+
+            found_channel_number = False
+            str_channel_number = None
+            if y_parameters:
+                for each in y_parameters:
+                    str_each = str(each)
+                    if debug: print '\n debug -- (y) str_each: ', str_each
+                    if 'zplsc_values' in str_each:
+                        if debug: print '\n debug -- Must lookup channel number in name...'
+                        tmp_channel = each.rsplit('_', 1)
+                        if debug: print '\n debug -- tmp_channel: ', tmp_channel
+                        tmp_channel = tmp_channel[::-1]
+                        _channel_number = tmp_channel[0]
+                        if debug: print '\n debug -- _channel_number: %r' % _channel_number
+                        str_channel_number = str(_channel_number)
+                        if debug: print '\n debug -- str_channel_number: %r' % str_channel_number
+                        if not str_channel_number:
+                            message = 'Failed to process channel number for ZPLSC parameter %s.' % str_each
+                            message += 'Unable to obtain the necessary parameter data for ZPLSC stacked plot request.'
+                            raise Exception(message)
+                        found_channel_number = True
+                        break
+
+            found_depth_parameter = False
+            find_parameter = None
+            if y_parameters and found_channel_number and str_channel_number is not None:
+                find_parameter = '_'.join(['zplsc_depth_range_channel', str_channel_number])
+                if debug: print '\n debug -- Looking to find parameter: ', find_parameter
+                for each in parameters:
+                    str_each = str(each['name'])
+                    if debug: print '\n debug -- (y) parameter_name : ', str_each
+
+                    if str_each == find_parameter:
+                        if debug: print '\n debug -- Located parameter: %s' % find_parameter
+                        if str_each in parameter_dict:
+                            parameter_ids.append(parameter_dict[str_each])
+                            parameter_names.append(each['particleKey'])
+                        if str_each in all_units:
+                            y_units.append(all_units[str_each])
+                        if str_each in all_units:
+                            units_mapping[str_each] = all_units[str_each]
+                        found_depth_parameter = True
+                        break
+            if not found_depth_parameter or find_parameter is None:
+                message = 'Failed to obtain depth range parameter for ZPLSC parameter %s.' % find_parameter
+                message += 'Unable to obtain the necessary parameter data for ZPLSC stacked plot request.'
+                raise Exception(message)
+
+        return parameter_ids, y_units, x_units, units_mapping, parameter_names
     except ConnectionError:
         message = 'Error: ConnectionError getting uframe instrument metadata parameters.'
         raise Exception(message)

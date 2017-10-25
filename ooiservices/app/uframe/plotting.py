@@ -346,6 +346,7 @@ def generate_plot(data, plot_options):
         if debug:
             print '\n debug -- Plotting Stacked Title: ', data['title']
             print '\n debug -- Plotting Stacked (Label) data[y_field][0]: ', data['y_field'][0]
+            print '\n debug -- Plotting Stacked (Label) len(data[y_field]): ', len(data['y_field'])
             print '\n debug -- Plotting Stacked data[stream_name]: ', data['stream_name']
 
         #- - - - - - - - - - - - - - - - - - -
@@ -354,6 +355,7 @@ def generate_plot(data, plot_options):
         if debug: print '\n debug -- Plotting  Stacked: Get time...'
         time = mdates.date2num(data['x']['time'])
         plot_parameter = data['y_field'][0]
+
         if isinstance(data['y'][plot_parameter][0], list):
             if debug:
                 print '\n debug -- Plotting  Stacked: Get z...'
@@ -361,15 +363,15 @@ def generate_plot(data, plot_options):
                 print '\n debug -- Plotting Stacked: Parameter type \'%s\': %s ' % \
                                         (plot_parameter, str(type(data['y'][plot_parameter])))
                 print '\n debug -- Plotting Stacked: Number of data items: %d' % len(data['y'][plot_parameter])
-                print '\n debug -- Plotting Stacked: [0]: ', data['y'][plot_parameter][0]
-                print '\n debug -- Plotting Stacked: [1]: ', data['y'][plot_parameter][1]
+                #print '\n debug -- Plotting Stacked: [0]: ', data['y'][plot_parameter][0]
+                #print '\n debug -- Plotting Stacked: [1]: ', data['y'][plot_parameter][1]
                 print '\n debug -- Plotting Stacked: len(data[y][plot_parameter]): ', len(data['y'][plot_parameter])
 
             # Original
             z = np.array(data['y'][data['y_field'][0]])
             if '-SPKIR' in reference_designator:
                 if debug:
-                    print '\n debug -- Dealing with SPKIR.....'
+                    print '\n debug -- Dealing with SPKIR.....', reference_designator
                     print '\n debug -- SPIKR - type(z): ', str(type(z))
                     print '\n debug -- SPKIR - np.arange(len(z[0]))[::-1]: ', np.arange(len(z[0]))[::-1]
                 ooi_plots.plot_stacked_time_series_spkir(fig, ax, time, np.arange(len(z[0]))[::-1], z.transpose(),
@@ -379,9 +381,62 @@ def generate_plot(data, plot_options):
                                            title_font=title_font,
                                            axis_font=axis_font,
                                            tick_font=tick_font)
+            elif '-ZPLSC' in reference_designator:
+                depth_parameter = data['y_field'][1]
+                if debug:
+                    print '\n debug ---------------------------------------------------------------'
+                    print '\n debug -- Dealing with ZPLSC.....', reference_designator
+                    print '\n debug -- ZPLSC - type(z): ', str(type(z))
+                    print '\n debug -- ZPLSC - np.arange(len(z[0]))[::-1]: ', np.arange(len(z[0]))[::-1]
+                    print '\n debug -- ZPLSC - np.arange(len(z[0])): ', np.arange(len(z[0]))
 
+                    #depth_parameter = data['y_field'][1]
+                    print '\n debug -- Plotting Stacked: depth_parameter: ', depth_parameter
+                    print '\n debug -- Plotting Stacked: len(data[y][depth_parameter]): ', len(data['y'][depth_parameter])
+
+                #stacked_depth_ranges = np.array(data['y'][data['y_field'][1]])
+                print '\n debug -- Plotting Stacked: (BEFORE) depth_parameter [0]: ', data['y'][depth_parameter][0][0:20]
+                stacked_depth_ranges = np.array(data['y'][depth_parameter][:])
+                print '\n debug -- Plotting Stacked: (AFTER) depth_parameter [0]: ', data['y'][depth_parameter][0][0:20]
+                reverse = np.arange(len(stacked_depth_ranges[0]))[::-1]
+                normal = np.arange(len(stacked_depth_ranges[0]))
+                if debug:
+                    print '\n debug -- Dealing with stacked_depth_ranges.....'
+                    print '\n debug -- Plotting Stacked: depth_parameter [0]: ', data['y'][depth_parameter][0][0:20]
+                    print '\n debug -- Plotting Stacked: stacked_depth_ranges [0]: ', stacked_depth_ranges[0][0:20]
+                    print '\n debug -- ZPLSC - type(stacked_depth_ranges): ', str(type(stacked_depth_ranges))
+                    print '\n debug -- ZPLSC - np.arange(len(stacked_depth_ranges[0]))[::-1]: ', reverse
+                    print '\n debug -- ZPLSC - np.arange(len(stacked_depth_ranges[0])): ', normal
+
+                ooi_plots.plot_stacked_time_series_zplsc(fig, ax, time, np.arange(len(z[0]))[::-1], z.transpose(),
+                                                         stacked_depth_ranges,
+                                           title=data['title'],
+                                           ylabel='Depth',
+                                           cbar_title=label,
+                                           title_font=title_font,
+                                           axis_font=axis_font,
+                                           tick_font=tick_font)
+                """
+                ooi_plots.plot_stacked_time_series_zplsc(fig, ax, time, np.arange(len(z[0]))[::-1], z.transpose(),
+                                                         stacked_depth_ranges,
+                                           title=data['title'],
+                                           ylabel='Depth',
+                                           cbar_title=label,
+                                           title_font=title_font,
+                                           axis_font=axis_font,
+                                           tick_font=tick_font)
+                """
+                """
+                ooi_plots.plot_stacked_time_series_zplsc(fig, ax, time, np.arange(len(z[0]))[::-1], z.transpose(),
+                                           title=data['title'],
+                                           ylabel='Depth',
+                                           cbar_title=label,
+                                           title_font=title_font,
+                                           axis_font=axis_font,
+                                           tick_font=tick_font)
+                """
             else:
-                #print '\n debug -- NOT dealing with SPKIR......(ADCP)...'
+                print '\n debug -- NOT dealing with SPKIR......(ADCP)...'
                 ooi_plots.plot_stacked_time_series(fig, ax, time, np.arange(len(z[0]))[::-1], z.transpose(),
                                            title=data['title'],
                                            ylabel='Bin #',

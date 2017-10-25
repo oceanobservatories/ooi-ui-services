@@ -54,8 +54,13 @@ def m2m_handler(path):
                 response = requests.get(url, timeout=(timeout, timeout_read), params=params, stream=True, data=data)
             if debug: print '\n debug-- response.status_code: ', response.status_code
             if response.status_code != 200:
-                tmp = json.loads(response.text)
-                message = tmp['message']
+                if response.text:
+                    if debug: print '\n debug -- bad status code processing...response.text: %r' % response.text
+                    message = json.loads(response.text)
+                    if debug: print '\n debug -- message: %r' % message
+                else:
+                    if debug: print '\n debug -- bad status code processing...'
+                    message = 'No response.text content received from uframe.'
                 return jsonify({'message': message, 'status_code': response.status_code}), response.status_code
             headers = dict(response.headers)
             headers = {k: headers[k] for k in headers if k in transfer_header_fields}
@@ -76,7 +81,7 @@ def m2m_handler(path):
         current_app.logger.info(message)
         return jsonify({'message': message, 'status_code': 500}), 500
     except Exception as err:
-        return jsonify({'message': err.message, 'status_code': 500}), 500
+        return jsonify({'message': err.message, 'status_code': 400}), 400
 
 
 @api.route('/', methods=['POST'], defaults={'path': ''})
@@ -132,8 +137,15 @@ def m2m_handler_post(path):
                                      headers={'Accept': 'application/json', 'Content-Type': 'application/json'})
             if debug: print '\n debug-- response.status_code: ', response.status_code
             if response.status_code != 201:
-                tmp = json.loads(response.text)
-                message = tmp['message']
+                #tmp = json.loads(response.text)
+                #message = tmp['message']
+                if response.text:
+                    if debug: print '\n debug -- bad status code processing...response.text: %r' % response.text
+                    message = json.loads(response.text)
+                    if debug: print '\n debug -- message: %r' % message
+                else:
+                    if debug: print '\n debug -- bad status code processing...'
+                    message = 'No response.text content received from uframe.'
                 return jsonify({'message': message, 'status_code': response.status_code}), response.status_code
             headers = dict(response.headers)
             headers = {k: headers[k] for k in headers if k in transfer_header_fields}
@@ -155,7 +167,7 @@ def m2m_handler_post(path):
         current_app.logger.info(message)
         return jsonify({'message': message, 'status_code': 500}), 500
     except Exception as e:
-        return jsonify({'message': e.message, 'status_code': 500}), 500
+        return jsonify({'message': e.message, 'status_code': 400}), 400
 
 
 @api.route('/', methods=['PUT'], defaults={'path': ''})
@@ -209,8 +221,15 @@ def m2m_handler_put(path):
                                     headers={'Accept': 'application/json', 'Content-Type': 'application/json'})
             if debug: print '\n debug-- response.status_code: ', response.status_code
             if response.status_code != 200:
-                tmp = json.loads(response.text)
-                message = tmp['message']
+                #tmp = json.loads(response.text)
+                #message = tmp['message']
+                if response.text:
+                    if debug: print '\n debug -- bad status code processing...response.text: %r' % response.text
+                    message = json.loads(response.text)
+                    if debug: print '\n debug -- message: %r' % message
+                else:
+                    if debug: print '\n debug -- bad status code processing...'
+                    message = 'No response.text content received from uframe.'
                 return jsonify({'message': message, 'status_code': response.status_code}), response.status_code
             headers = dict(response.headers)
             headers = {k: headers[k] for k in headers if k in transfer_header_fields}
@@ -231,7 +250,7 @@ def m2m_handler_put(path):
         current_app.logger.info(message)
         return jsonify({'message': message, 'status_code': 500}), 500
     except Exception as e:
-        return jsonify({'message': e.message, 'status_code': 500}), 500
+        return jsonify({'message': e.message, 'status_code': 400}), 400
 
 
 @api.route('/', methods=['DELETE'], defaults={'path': ''})
@@ -309,8 +328,16 @@ def m2m_handler_delete(path):
                                         headers={'Accept': 'application/json', 'Content-Type': 'application/json'})
             if debug: print '\n debug-- response.status_code: ', response.status_code
             if response.status_code != 200:
-                tmp = json.loads(response.text)
-                message = tmp['message']
+                #tmp = json.loads(response.text)
+                #message = tmp['message']
+                #return jsonify({'message': message, 'status_code': response.status_code}), response.status_code
+                if response.text:
+                    if debug: print '\n debug -- bad status code processing...response.text: %r' % response.text
+                    message = json.loads(response.text)
+                    if debug: print '\n debug -- message: %r' % message
+                else:
+                    if debug: print '\n debug -- bad status code processing...'
+                    message = 'No response.text content received from uframe.'
                 return jsonify({'message': message, 'status_code': response.status_code}), response.status_code
             headers = dict(response.headers)
             headers = {k: headers[k] for k in headers if k in transfer_header_fields}
@@ -331,4 +358,4 @@ def m2m_handler_delete(path):
         current_app.logger.info(message)
         return jsonify({'message': message, 'status_code': 500}), 500
     except Exception as e:
-        return jsonify({'message': e.message, 'status_code': 500}), 500
+        return jsonify({'message': e.message, 'status_code': 400}), 400

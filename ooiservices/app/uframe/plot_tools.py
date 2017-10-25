@@ -130,18 +130,18 @@ class OOIPlots(object):
                                  cbar_title='', title_font={}, axis_font={}, tick_font = {},
                                  **kwargs):
 
-        #print '\n debug -- plot_stacked_time_series entered...'
+        print '\n debug -- plot_stacked_time_series entered...'
         if not title_font:
             title_font = title_font_default
         if not axis_font:
             axis_font = axis_font_default
 
         # Mask NaN items in z
-        #print '\n debug -- plot_stacked_time_series - Mask NaN items in z'
+        print '\n debug -- plot_stacked_time_series - Mask NaN items in z'
         z = np.ma.array(z, mask=np.isnan(z))
 
         # create a limit for the colorbar that disregards outliers
-        #print '\n debug -- plot_stacked_time_series - create a limit for the colorbar that disregards outliers...'
+        print '\n debug -- plot_stacked_time_series - create a limit for the colorbar that disregards outliers...'
         lim = float("%2.2f" % np.nanpercentile(abs(z), 95))
 
         # Test...
@@ -177,7 +177,7 @@ class OOIPlots(object):
     def plot_stacked_time_series_spkir(self, fig, ax, x, y, z, title='', ylabel='',
                                  cbar_title='', title_font={}, axis_font={}, tick_font = {},
                                  **kwargs):
-
+        print '\n debug -- plot_stacked_time_series_spkir entered...'
         if not title_font:
             title_font = title_font_default
         if not axis_font:
@@ -214,6 +214,105 @@ class OOIPlots(object):
         plt.tight_layout()
 
 
+    def plot_stacked_time_series_zplsc(self, fig, ax, x, y, z, stacked_depth_ranges, title='', ylabel='',
+                                 cbar_title='', title_font={}, axis_font={}, tick_font = {},
+                                 **kwargs):
+        debug = False
+        if debug:
+            print '\n *************************************************************'
+            print '\n\t debug -- plot_stacked_time_series_zplsc Entered...'
+        if not title_font:
+            title_font = title_font_default
+        if not axis_font:
+            axis_font = axis_font_default
+
+        if debug:
+            # {'color': 'k', 'width': 1, 'labelsize': 10, 'axis': 'both'}
+            print '\n\t debug -- tick_font: ', tick_font
+            print '\n\t debug -- Plotting Stacked: stacked_depth_ranges [0]: ', stacked_depth_ranges[0][0:20]
+
+        # Mask NaN items in z
+        z = np.ma.array(z, mask=np.isnan(z))
+        _depths = np.ma.array(stacked_depth_ranges, mask=np.isnan(stacked_depth_ranges))
+        if debug:
+            print '\n\t debug -- _depths.min(): ', _depths.min()
+            print '\n\t debug -- _depths.max(): ', _depths.max()
+            print '\n\t debug -- len(_depths): ', len(_depths)
+            print '\n\t debug -- type(_depths): ', type(_depths)
+            print '\n\t debug -- len(x): ', len(x)
+            print '\n\t debug -- type(x): ', type(x)
+            print '\n\t debug -- len(y): ', len(y)
+            print '\n\t debug -- type(y): ', type(y)
+            print '\n\t debug -- len(stacked_depth_ranges): ', len(stacked_depth_ranges)
+            print '\n\t debug -- type(stacked_depth_ranges): ', type(stacked_depth_ranges)
+            print '\n\t debug -- stacked_depth_ranges.min(): ', stacked_depth_ranges.min()
+            print '\n\t debug -- stacked_depth_ranges.max(): ', stacked_depth_ranges.max()
+
+        h = plt.pcolormesh(x, y, z, **kwargs)
+        #h = plt.pcolormesh(x, stacked_depth_ranges, z, **kwargs)
+
+        if debug: print '\n debug -- after plt.colormesh...'
+        if ylabel:
+            ax.set_ylabel(ylabel.replace("_", " "), **axis_font)
+        if title:
+            ax.set_title(title.replace("_", " "), **title_font)
+
+        if debug:
+            print '\n debug *****************************************'
+            print '\n debug -- x.min(): ', x.min()
+            print '\n debug -- x.max(): ', x.max()
+            print '\n debug -- y.min(): ', y.min()
+            print '\n debug -- y.max(): ', y.max()
+            print '\n debug -- z.min(): ', z.min()
+            print '\n debug -- z.max(): ', z.max()
+            print '\n debug *****************************************'
+
+        plt.axis([x.min(), x.max(), y.min(), y.max()])
+        #plt.xticks(visible=False)
+        #plt.axis([x.min(), x.max(), stacked_depth_ranges.max(), stacked_depth_ranges.min()])
+        #plt.axis([x.min(), x.max(), y.max(), y.min(), z.min(), z.max()])  # Test flip left axis
+        ax.xaxis_date()
+        date_list = mdates.num2date(x)
+        self.get_time_label(ax, date_list)
+        fig.autofmt_xdate()
+
+        # Inverts left vertical axis only
+        ax.invert_yaxis()
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes('right', size='3%', pad=0.05)
+        cbar = plt.colorbar(h, cax=cax)
+
+
+        '''
+        # Test...
+        lim = float("%2.2f" % np.nanpercentile(abs(z), 90))
+        h = plt.pcolormesh(x, y, z, vmin=-lim, vmax=lim, cmap='RdBu', shading='gouraud', **kwargs)
+        lax = divider.append_axes('left', size='3%', pad=0.05)
+        lbar = plt.colorbar(h, cax=lax, ticks=_depths, orientation='vertical')
+
+        #cbar = plt.colorbar(lax, ticks=_depths, orientation='vertical')
+        #cbar.ax.set_xticklabels(['Low', 'Medium', 'High'])  # horizontal colorbar
+
+        #cbar.ax.invert_yaxis()     # Flips right axis color bar and labels (if used)
+        '''
+
+        if cbar_title:
+            cbar.ax.set_ylabel(cbar_title.replace("_", " "), **axis_font)
+        #---------
+        ax.grid(True)
+        if tick_font:
+            ax.tick_params(**tick_font)
+        """
+        ax.tick_params(
+            axis='y',          # changes apply to the y-axis
+            which='both',      # both major and minor ticks are affected
+            bottom='off',      # ticks along the bottom edge are off
+            top='off',         # ticks along the top edge are off
+            labelbottom='off') # labels along the bottom edge are off
+        """
+        plt.tight_layout()
+
+
     def plot_stacked_time_series_image(self, fig, ax, x, y, z, title='', ylabel='',
                                        cbar_title='', title_font={}, axis_font={}, tick_font = {},
                                        **kwargs):
@@ -221,7 +320,7 @@ class OOIPlots(object):
         This plot is a stacked time series that uses NonUniformImage with regualrly spaced ydata from
         a linear interpolation. Designed to support FRF ADCP data.
         '''
-        #print '\n debug -- plot_stacked_time_series_image entered...'
+        print '\n debug -- plot_stacked_time_series_image entered...'
         if not title_font:
             title_font = title_font_default
         if not axis_font:

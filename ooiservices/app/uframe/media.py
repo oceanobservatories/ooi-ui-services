@@ -413,7 +413,7 @@ def media_get_last_date(rd):
 # Get first and last_date from large format data for reference designator..
 @api.route('/media/get_data_bounds/<string:rd>', methods=['GET'])
 def media_get_data_bounds(rd):
-    """ Get string first date and last date from /da/map.
+    """ Get first date and last date for reference designator.
     Request: http://localhost:4000/uframe/media/get_data_bounds/CE02SHBP-MJ01C-08-CAMDSB107
     Response:
     {
@@ -672,6 +672,7 @@ def media_get_da_map_for_rd(rd):
 def media_get_da_for_rd_years(rd):
     """ Get all large format index file indices for reference designator, year and month.
 
+    Get [list of] years of available data for reference designator.
     Request: http://localhost:4000/uframe/media/CE02SHBP-MJ01C-08-CAMDSB107/da/years
     Response:
     {
@@ -728,11 +729,12 @@ def media_get_da_for_rd_years(rd):
         return bad_request(message)
 
 
-# Get [list of] months of available data or reference designator and year.
+# Get [list of] months of available data for reference designator and year.
 @api.route('/media/<string:rd>/da/<string:year>')
 def media_get_da_for_rd_year(rd, year):
     """ Get all large format file indices for reference designator, year and month.
 
+    Get [list of] months of available data for reference designator and year.
     Request: http://localhost:4000/uframe/media/CE02SHBP-MJ01C-08-CAMDSB107/da/2015
     Response:
     {
@@ -799,6 +801,7 @@ def media_get_da_for_rd_year(rd, year):
 def media_get_da_for_rd_years_months(rd, year, month):
     """ Get available for reference designator, year and month.
 
+    Get [list of] days of available data for reference designator, year and month.
     http://localhost:4000/uframe/media/CE02SHBP-MJ01C-08-CAMDSB107/da/2015/08
     {
       "days": [
@@ -1122,12 +1125,14 @@ def media_get_files_for_rd_year(rd, year):
 '''
 
 
-# Get data for specific date (yyyy-mm-dd).
+# Get data for reference designator and specific date (yyyy-mm-dd).
 @api.route('/media/<string:rd>/date/<string:data_date>', methods=['GET'])
 def media_get_day(rd, data_date):
     """ Get data slice for date from rd/da/map; process for sensor type identified in rd.
 
+    Get data for reference designator and specific date (yyyy-mm-dd).
     Request: http://localhost:4000/uframe/media/CE02SHBP-MJ01C-08-CAMDSB107/date/2015-08-18
+    Response:
     {
       "media": [
         {
@@ -1192,7 +1197,7 @@ def media_get_day(rd, data_date):
         return bad_request(message)
 
 
-# Get data slice, provide start and end date.
+# Get data slice for reference designator, provide start and end date.
 @api.route('/media/<string:rd>/range/<string:start>/<string:end>', methods=['GET'])
 def media_get_data_slice_with_dates(rd, start, end):
     """ Get data slice, provide start and end date, (using start/end values from rd/da/map).
@@ -1238,8 +1243,7 @@ def media_get_data_slice_with_dates(rd, start, end):
           ],
         . . .
 
-    Request:
-        http://localhost:4000/uframe/media/RS01SUM2-MJ01B-05-CAMDSB103/range/2015-12-07/2016-01-05
+    Request: http://localhost:4000/uframe/media/RS01SUM2-MJ01B-05-CAMDSB103/range/2015-12-07/2016-01-05
     Response:
     {
       "media": [

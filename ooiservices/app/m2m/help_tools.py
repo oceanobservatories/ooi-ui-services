@@ -57,6 +57,10 @@ def build_url(path, request_method='GET', scope_names=None):
             if 'ingest' not in scope_names:
                 raise InvalidScopeException(port, request_method)
 
+        if port == 12591:
+            if 'ingest_calibration' not in scope_names:
+                raise InvalidScopeException(port, request_method)
+
     #- - - - - - - - - - - - - - - - - - - - - -
     # PUT requests
     #- - - - - - - - - - - - - - - - - - - - - -
