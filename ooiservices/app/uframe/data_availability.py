@@ -74,9 +74,17 @@ def get_da_by_rd(rd):
     }
     """
     try:
+
+        from ooiservices.app.uframe.stream_tools import get_stream_name_byname
+        debug = False
+
+        if debug: print '\n debug -- Entered get_da_by_rd...'
         # Get data availability for reference designator and optional params.
-        #params = request.args.get('params', None)
         da = uframe_get_da_by_rd(rd, None)
+        if 'availability' in da:
+            if not da['availability']:
+                if debug: print '\n debug -- Nothing returned for availability, return...'
+                return jsonify(da), 401
 
         # Post process color selections.
         present_color = u'#0073cf'  # blue, used for Deployments.
@@ -99,6 +107,24 @@ def get_da_by_rd(rd):
                         for k,v in categories.iteritems():
                             if k == 'Missing':
                                 categories[k][u"color"] = light_grey
+
+            # 12858 English labels for stream names in time lines.
+            if debug: print '\n debug -- post processing stream names...'
+            for item in data:
+                if 'measure' in item:
+                    if item['measure'] == 'Deployments':
+                        continue
+                    combo_stream_name = item['measure']
+                    method, stream = combo_stream_name.rsplit(' ', 1)
+                    if debug:
+                        print '\n debug -- combo_stream_name: ', combo_stream_name
+                        print '\n\t debug -- method: ', method
+                        print '\n\t debug -- stream: ', stream
+                    display_name = get_stream_name_byname(stream)
+                    if not display_name or display_name is None:
+                        display_name = stream
+                    if debug: print '\n debug -- display_name: ', display_name
+                    item['measure'] = method + ' - ' + display_name
 
         return jsonify(da)
     except Exception as err:
