@@ -84,6 +84,7 @@ COMMON: &common
       - 12587
       - 12589
       - 12590
+      - 12571
 
     UFRAME_ALLOWED_M2M_PORTS_POST:
       - 12580

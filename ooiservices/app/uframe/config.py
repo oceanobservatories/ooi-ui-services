@@ -674,11 +674,10 @@ def get_uframe_plot_timeout():
 
 
 def get_url_da_info():
-    """ Get complete url to query uframe status ('uframe-host:12587/status/query')
+    """ Get complete url to query uframe data availability ('uframe-host:9000')
     """
     try:
         result = current_app.config['UFRAME_DA_URL']
-
         return result
     except:
         message = 'Unable to locate UFRAME_DA_URL in config file.'

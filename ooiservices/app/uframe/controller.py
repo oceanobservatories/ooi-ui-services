@@ -313,6 +313,7 @@ def get_csv(stream, ref, start_time, end_time, dpa_flag):
         # Get request arguments
         user = request.args.get('user', '')
         email = request.args.get('email', '')
+        pdids = request.args.get('parameters', '')
 
         # Verify a user value has been provided
         if not user:
@@ -330,6 +331,13 @@ def get_csv(stream, ref, start_time, end_time, dpa_flag):
         else:
             query = '?beginDT=%s&endDT=%s&execDPA=true&user=%s&email=%s' % (start_time, end_time, user, email)
         query += '&format=application/csv'
+
+        # Add [optional] selected parameters (identified by comma separated int ids; for example: '12,25,3795')
+        # Send to uframe as '&parameters=12,25,3795'.
+        if pdids:
+            query += '&parameters=%s' % pdids
+            if debug: print '\n debug -- query: ', query
+
         url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
         current_app.logger.info('***** url: ' + url)
         response = requests.get(url, timeout=(timeout, timeout_read))
@@ -377,6 +385,7 @@ def get_json(stream, ref, start_time, end_time, dpa_flag, provenance, annotation
         # Get request arguments
         user = request.args.get('user', '')
         email = request.args.get('email', '')
+        pdids = request.args.get('parameters', '')
         # Verify a user value has been provided
         if not user:
             message = 'The user parameter value provided was empty.'
@@ -396,6 +405,12 @@ def get_json(stream, ref, start_time, end_time, dpa_flag, provenance, annotation
                     (start_time, end_time, provenance, annotations, user, email)
 
         query += '&format=application/json'
+
+        # Add [optional] selected parameters (identified by comma separated int ids; for example: '12,25,3795')
+        # Send to uframe as '&parameters=12,25,3795'.
+        if pdids:
+            query += '&parameters=%s' % pdids
+            if debug: print '\n debug -- query: ', query
 
         # Get uframe configuration items.
         uframe_url, timeout, timeout_read = get_uframe_info()
@@ -754,6 +769,7 @@ def get_svg_plot(instrument, stream):
         print '\n debug -- stream: ', stream
 
     # Make a list out of instrument.
+    request_rd = instrument                     # ZPLSC
     instrument = instrument.split(',')
     #instrument.append(instrument[0])
 
@@ -850,8 +866,11 @@ def get_svg_plot(instrument, stream):
                 if debug: print '\n debug -- Branch 1...'
                 # Plot types 'stacked' or '3d_scatter' add more data. (Review sparse data presentation.)
                 if plot_layout == 'stacked':
-                    number_of_data_points = 2000
-                    number_of_data_points = 1000    # debug
+                    if 'ZPLSC' in request_rd:
+                        number_of_data_points = 4000    # use 4000
+                    else:
+                        number_of_data_points = 2000
+                    #number_of_data_points = 1000    # debug
                     stacked = True
                 elif plot_layout == '3d_scatter':
                     number_of_data_points = 8000
@@ -981,7 +1000,7 @@ def get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, str
     """
     from ooiservices.app.uframe.common_tools import dump_dict
     debug = False
-    timing = True
+    timing = False
     rd = None
     number_of_data_points = request_data_points
     try:
@@ -1011,6 +1030,15 @@ def get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, str
             print '\n debug -- platform: ', platform
             print '\n debug -- sensor: ', instrument
             print '\n debug -- parameter_ids: ', parameter_ids
+
+            # ZPLSC FORCED time change for testing
+            print '\n debug ** Forcing begin and end date time values for testing.................... '
+            print '\n\t debug -- start_time: ', start_time
+            print '\n\t debug -- end_time: ', end_time
+            start_time = '2016-05-01T00:05:33.000Z'
+            end_time = '2016-05-01T23:53:19.000Z'
+            print '\n\t debug -- beginDT: ', start_time
+            print '\n\t debug -- endDT: ', end_time
 
         if not parameter_ids:
             message = 'Unable to plot without parameter ids.'
@@ -1054,8 +1082,11 @@ def get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, str
                     t1 = time.time()
                     total = t1-t0
                     idx += 1
-                    if content_length > TOO_BIG:
-                        message = '[max] Data request greater than 15MB.'
+
+                    # ZPLSC testing....
+                    #if content_length > TOO_BIG:
+                    if content_length > TOO_BIG and (total > TOTAL_SECONDS):
+                        message = '[max] Data request greater than 15MB AND exceeded total seconds....'
                         print message
                         if dataBlock:
                             idx_c = dataBlock.rfind('}, \n  {')
@@ -1107,6 +1138,7 @@ def get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, str
                 if debug:
                     print '\n debug -- len(dataBlock): ', len(dataBlock)
                     print '\n debug -- type(dataBlock): ', str(type(dataBlock))
+                    print '\n debug -- dataBlock[-100:]: %r' % dataBlock[-100:]
                 idx_c = dataBlock.rfind("}\n]")
                 if debug: print '\n debug -- Step B...'
                 if idx_c == -1:
@@ -1220,6 +1252,7 @@ def get_max_data(stream, instrument, yfields, xfields, number_of_data_points=100
             print '\n debug -- yfields: ', yfields
             print '\n debug -- xfields: ', xfields
             print '\n debug -- stacked: ', stacked
+            print '\n debug -- number_of_data_points: ', number_of_data_points
 
         mooring, platform, sensor = instrument.split('-', 2)
         #stream_value = stream[:]
@@ -1230,6 +1263,12 @@ def get_max_data(stream, instrument, yfields, xfields, number_of_data_points=100
             parameter_ids, y_units, x_units, units_mapping = new_find_parameter_ids(instrument, stream, yfields, xfields)
         else:
             if debug: print '\n debug -- Get parameter information for stacked plot........................'
+            for yfield in yfields:
+                if 'zplsc_depth_range_channel' in yfield:
+                    if debug: print '\n debug -- zplsc_depth_range_channel selected for stacked plot, error.'
+                    message = 'Select a parameter other than the depth range channel for this plot.'
+                    current_app.logger.info(message)
+                    raise Exception(message)
             parameter_ids, y_units, x_units, units_mapping, parameter_names = new_find_parameter_ids_stacked(instrument,
                                                                                 stream,
                                                                                 yfields, xfields,

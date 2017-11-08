@@ -1779,18 +1779,20 @@ def uframe_get_da_by_rd(rd, params=None):
         response = requests.get(url, timeout=(timeout, timeout_read), headers=headers(), params=params)
         if response.status_code != 200:
             message = 'Failed to get data availability from uframe for reference designator: %s.' % rd
-            current_app.logger.info(message)
             raise Exception(message)
         asset = response.json()
         return asset
     except ConnectionError:
         message = 'ConnectionError getting data availability from uframe for reference designator: %s.' % rd
+        current_app.logger.info(message)
         raise Exception(message)
     except Timeout:
         message = 'Timeout getting data availability from uframe for reference designator: %s.' % rd
+        current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
         message = str(err)
+        current_app.logger.info(message)
         raise Exception(message)
 
 

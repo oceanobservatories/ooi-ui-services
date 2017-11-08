@@ -213,6 +213,213 @@ class OOIPlots(object):
             ax.tick_params(**tick_font)
         plt.tight_layout()
 
+    '''
+    def plot_stacked_time_series_zplsc(self, fig, ax, x, y, z, stacked_depth_ranges, title='', ylabel='',
+                                 cbar_title='', title_font={}, axis_font={}, tick_font = {},
+                                 **kwargs):
+        debug = True
+        if debug:
+            print '\n *************************************************************'
+            print '\n\t debug -- plot_stacked_time_series_zplsc Entered...'
+        if not title_font:
+            title_font = title_font_default
+        if not axis_font:
+            axis_font = axis_font_default
+
+        if debug:
+            # {'color': 'k', 'width': 1, 'labelsize': 10, 'axis': 'both'}
+            print '\n\t debug -- tick_font: ', tick_font
+            print '\n\t debug -- Plotting Stacked: stacked_depth_ranges [0]: ', stacked_depth_ranges[0][0:20]
+
+        if debug:
+            print '\n debug -- Initial type of z type(z): ', type(z)
+            print '\n debug -- z.min(): ', z.min()
+            print '\n debug -- z.max(): ', z.max()
+
+
+
+        # Mask NaN items in z
+        z = np.ma.array(z, mask=np.isnan(z))
+
+        # Get min/max for y (5/95)
+        lim_max = float("%2.2f" % np.nanpercentile(abs(z), 95))
+        lim_min = float("%2.2f" % np.nanpercentile(abs(z), 5))
+        if z.min() < 0:
+            lim_max = -lim_max
+        if z.max() < 0:
+            lim_min = -lim_min
+        if debug:
+            print '\n debug -- ----------------------- New Limits -------------------'
+            print '\n debug -- lim_min: ', lim_min
+            print '\n debug -- lim_max: ', lim_max
+            print '\n debug -- ------------------------------------------------------'
+
+
+
+        """
+        lim = float("%2.2f" % np.nanpercentile(abs(z), 90))     # testing - added to test
+
+        # Test
+        min_lim = float("%2.2f" % z.min())
+        max_lim = float("%2.2f" % z.max())
+        int_lim_min = int(round(min_lim))
+        int_lim_max = int(round(max_lim))
+        if debug:
+            print '\n debug -- z min/max ......................'
+            print '\n debug -- z.min(): ', z.min()
+            print '\n debug -- z.max(): ', z.max()
+            print '\n debug -- min_lim: ', min_lim
+            print '\n debug -- max_lim: ', max_lim
+            print '\n debug -- int_lim_min: ', int_lim_min
+            print '\n debug -- int_lim_max: ', int_lim_max
+
+        if debug:
+            print '\n debug -- New limit values for plotting.......'
+            if lim is None or not lim:
+                if debug: print '\n debug -- lim is empty or None!   CHECK'
+                print '\n debug -- type(lim): ', type(lim)
+                print '\n debug -- lim: ', lim
+                print '\n debug -- -lim: ', -lim
+        """
+
+        """
+        # Depth processing for additional y axis (left side of plot)
+        _depths = np.ma.array(stacked_depth_ranges, mask=np.isnan(stacked_depth_ranges))
+        if debug:
+            print '\n\t debug -- _depths.min(): ', _depths.min()
+            print '\n\t debug -- _depths.max(): ', _depths.max()
+            print '\n\t debug -- len(_depths): ', len(_depths)
+            print '\n\t debug -- type(_depths): ', type(_depths)
+            print '\n\t debug -- len(x): ', len(x)
+            print '\n\t debug -- type(x): ', type(x)
+            print '\n\t debug -- len(y): ', len(y)
+            print '\n\t debug -- type(y): ', type(y)
+            print '\n\t debug -- len(stacked_depth_ranges): ', len(stacked_depth_ranges)
+            print '\n\t debug -- type(stacked_depth_ranges): ', type(stacked_depth_ranges)
+            print '\n\t debug -- stacked_depth_ranges.min(): ', stacked_depth_ranges.min()
+            print '\n\t debug -- stacked_depth_ranges.max(): ', stacked_depth_ranges.max()
+        """
+
+        #h = plt.pcolormesh(x, y, z, **kwargs)          Original
+
+        ## Working with depth value for min max (wrong)
+        ##vertical_min = 0.36126
+        ##vertical_max = 30.26704
+        ##h = plt.pcolormesh(x, y, z, vmin=vertical_min, vmax=vertical_max, **kwargs)
+
+        ## Working with values from rene
+        #vertical_min = -150
+        #vertical_max = -10
+        #h = plt.pcolormesh(x, y, z, vmin=vertical_min, vmax=vertical_max, **kwargs)
+
+        """
+        z_copy = z.copy()
+        if debug:
+            print '\n debug -- Initial type of z_copy type(z_copy): ', type(z_copy)
+            print '\n debug -- z_copy.min(): ', z_copy.min()
+            print '\n debug -- z_copy.max(): ', z_copy.max()
+        if debug:
+            print '\n debug -----------------------------------------------------------------'
+            print '\n debug -- Creating new test_z 90 percent....'
+
+        test_z = np.nanpercentile(z_copy, q=[90], axis=-1)
+        if debug:
+            print '\n debug -- test_z.min(): ', test_z.min()
+            print '\n debug -- test_z.max(): ', test_z.max()
+
+
+            #ma_test_z = np.ma.array(test_z, mask=np.isnan(test_z))
+            #print '\n debug -- after masking nan for ma_test_z....type(ma_test_z): ', type(ma_test_z)
+            #print '\n debug -- ma_test_z.min(): ', ma_test_z.min()
+            #print '\n debug -- ma_test_z.max(): ', ma_test_z.max()
+
+        """
+        """
+        # Using z 90 value min/max debug -- (test_z.min(): 73.5799163818, test_z.max():  1.03166353703)
+        test_z_min_lim = float("%2.2f" % test_z.min())
+        test_z_max_lim = float("%2.2f" % test_z.max())
+        int_lim_min = int(round(test_z_min_lim))
+        int_lim_max = int(round(test_z_max_lim))
+        if debug:
+            print '\n debug -- int_lim_min: ', int_lim_min
+            print '\n debug -- int_lim_max: ', int_lim_max
+            #print '\n debug -- len(test_z): ', len(test_z)
+            #print '\n debug -- len(test_z): ', len(z)
+        #h = plt.pcolormesh(x, y, z, vmin=int_lim_min, vmax=int_lim_max, **kwargs)
+        """
+        h = plt.pcolormesh(x, y, z, vmin=lim_min, vmax=lim_max, **kwargs)
+        #h = plt.pcolormesh(x, y, z, vmin=z.min(), vmax=z.max(), **kwargs)
+
+        # Using z value min/max (z.min():  -106.308227539, z.max():  1.46598482132)
+        #h = plt.pcolormesh(x, y, z, vmin=z.min(), vmax=z.max(), **kwargs)
+
+        # old incorrect -lim/lim
+        ###h = plt.pcolormesh(x, y, z, vmin=-lim, vmax=lim, **kwargs)
+        ###h = plt.pcolormesh(x, stacked_depth_ranges, z, **kwargs)
+
+        if debug: print '\n debug -- after plt.colormesh...'
+        if ylabel:
+            ax.set_ylabel(ylabel.replace("_", " "), **axis_font)
+        if title:
+            ax.set_title(title.replace("_", " "), **title_font)
+
+        if debug:
+            print '\n debug *****************************************'
+            print '\n debug -- x.min(): ', x.min()
+            print '\n debug -- x.max(): ', x.max()
+            print '\n debug -- y.min(): ', y.min()
+            print '\n debug -- y.max(): ', y.max()
+            print '\n debug -- z.min(): ', z.min()
+            print '\n debug -- z.max(): ', z.max()
+            print '\n debug *****************************************'
+
+        # Test remove
+        plt.axis([x.min(), x.max(), y.min(), y.max()])
+
+        #plt.xticks(visible=False)
+        #plt.axis([x.min(), x.max(), stacked_depth_ranges.max(), stacked_depth_ranges.min()])
+        #plt.axis([x.min(), x.max(), y.max(), y.min(), z.min(), z.max()])  # Test flip left axis
+        ax.xaxis_date()
+        date_list = mdates.num2date(x)
+        self.get_time_label(ax, date_list)
+        fig.autofmt_xdate()
+
+        # Inverts left vertical axis only
+        ax.invert_yaxis()
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes('right', size='3%', pad=0.05)
+        cbar = plt.colorbar(h, cax=cax)
+
+
+        """
+        # Test...
+        lim = float("%2.2f" % np.nanpercentile(abs(z), 90))
+        h = plt.pcolormesh(x, y, z, vmin=-lim, vmax=lim, cmap='RdBu', shading='gouraud', **kwargs)
+        lax = divider.append_axes('left', size='3%', pad=0.05)
+        lbar = plt.colorbar(h, cax=lax, ticks=_depths, orientation='vertical')
+
+        #cbar = plt.colorbar(lax, ticks=_depths, orientation='vertical')
+        #cbar.ax.set_xticklabels(['Low', 'Medium', 'High'])  # horizontal colorbar
+
+        #cbar.ax.invert_yaxis()     # Flips right axis color bar and labels (if used)
+        """
+
+        if cbar_title:
+            cbar.ax.set_ylabel(cbar_title.replace("_", " "), **axis_font)
+        #---------
+        ax.grid(True)
+        if tick_font:
+            ax.tick_params(**tick_font)
+        """
+        ax.tick_params(
+            axis='y',          # changes apply to the y-axis
+            which='both',      # both major and minor ticks are affected
+            bottom='off',      # ticks along the bottom edge are off
+            top='off',         # ticks along the top edge are off
+            labelbottom='off') # labels along the bottom edge are off
+        """
+        plt.tight_layout()
+    '''
 
     def plot_stacked_time_series_zplsc(self, fig, ax, x, y, z, stacked_depth_ranges, title='', ylabel='',
                                  cbar_title='', title_font={}, axis_font={}, tick_font = {},
@@ -231,8 +438,30 @@ class OOIPlots(object):
             print '\n\t debug -- tick_font: ', tick_font
             print '\n\t debug -- Plotting Stacked: stacked_depth_ranges [0]: ', stacked_depth_ranges[0][0:20]
 
+        if debug:
+            print '\n debug -- Initial type of z type(z): ', type(z)
+            print '\n debug -- z.min(): ', z.min()
+            print '\n debug -- z.max(): ', z.max()
+
         # Mask NaN items in z
         z = np.ma.array(z, mask=np.isnan(z))
+
+        # Get min/max for y (5/95)
+        lim_max = float("%2.2f" % np.nanpercentile(abs(z), 95))
+        lim_min = float("%2.2f" % np.nanpercentile(abs(z), 5))
+        if z.min() < 0:
+            lim_max = -lim_max
+        if z.max() < 0:
+            lim_min = -lim_min
+        if debug:
+            print '\n debug -- ----------------------- New Limits -------------------'
+            print '\n debug -- lim_min: ', lim_min
+            print '\n debug -- lim_max: ', lim_max
+            print '\n debug -- ------------------------------------------------------'
+
+
+        """
+        # Depth processing for additional y axis (left side of plot)
         _depths = np.ma.array(stacked_depth_ranges, mask=np.isnan(stacked_depth_ranges))
         if debug:
             print '\n\t debug -- _depths.min(): ', _depths.min()
@@ -247,9 +476,30 @@ class OOIPlots(object):
             print '\n\t debug -- type(stacked_depth_ranges): ', type(stacked_depth_ranges)
             print '\n\t debug -- stacked_depth_ranges.min(): ', stacked_depth_ranges.min()
             print '\n\t debug -- stacked_depth_ranges.max(): ', stacked_depth_ranges.max()
+        """
 
-        h = plt.pcolormesh(x, y, z, **kwargs)
-        #h = plt.pcolormesh(x, stacked_depth_ranges, z, **kwargs)
+        #h = plt.pcolormesh(x, y, z, **kwargs)          Original
+
+        ## Working with depth value for min max (wrong)
+        ##vertical_min = 0.36126
+        ##vertical_max = 30.26704
+        ##h = plt.pcolormesh(x, y, z, vmin=vertical_min, vmax=vertical_max, **kwargs)
+
+        ## Working with values from rene
+        #vertical_min = -150
+        #vertical_max = -10
+        #h = plt.pcolormesh(x, y, z, vmin=vertical_min, vmax=vertical_max, **kwargs)
+
+
+        h = plt.pcolormesh(x, y, z, vmin=lim_min, vmax=lim_max, **kwargs)
+        #h = plt.pcolormesh(x, y, z, vmin=z.min(), vmax=z.max(), **kwargs)
+
+        # Using z value min/max (z.min():  -106.308227539, z.max():  1.46598482132)
+        #h = plt.pcolormesh(x, y, z, vmin=z.min(), vmax=z.max(), **kwargs)
+
+        # old incorrect -lim/lim
+        ###h = plt.pcolormesh(x, y, z, vmin=-lim, vmax=lim, **kwargs)
+        ###h = plt.pcolormesh(x, stacked_depth_ranges, z, **kwargs)
 
         if debug: print '\n debug -- after plt.colormesh...'
         if ylabel:
@@ -267,7 +517,9 @@ class OOIPlots(object):
             print '\n debug -- z.max(): ', z.max()
             print '\n debug *****************************************'
 
+        # Test remove
         plt.axis([x.min(), x.max(), y.min(), y.max()])
+
         #plt.xticks(visible=False)
         #plt.axis([x.min(), x.max(), stacked_depth_ranges.max(), stacked_depth_ranges.min()])
         #plt.axis([x.min(), x.max(), y.max(), y.min(), z.min(), z.max()])  # Test flip left axis
@@ -282,34 +534,12 @@ class OOIPlots(object):
         cax = divider.append_axes('right', size='3%', pad=0.05)
         cbar = plt.colorbar(h, cax=cax)
 
-
-        '''
-        # Test...
-        lim = float("%2.2f" % np.nanpercentile(abs(z), 90))
-        h = plt.pcolormesh(x, y, z, vmin=-lim, vmax=lim, cmap='RdBu', shading='gouraud', **kwargs)
-        lax = divider.append_axes('left', size='3%', pad=0.05)
-        lbar = plt.colorbar(h, cax=lax, ticks=_depths, orientation='vertical')
-
-        #cbar = plt.colorbar(lax, ticks=_depths, orientation='vertical')
-        #cbar.ax.set_xticklabels(['Low', 'Medium', 'High'])  # horizontal colorbar
-
-        #cbar.ax.invert_yaxis()     # Flips right axis color bar and labels (if used)
-        '''
-
         if cbar_title:
             cbar.ax.set_ylabel(cbar_title.replace("_", " "), **axis_font)
         #---------
         ax.grid(True)
         if tick_font:
             ax.tick_params(**tick_font)
-        """
-        ax.tick_params(
-            axis='y',          # changes apply to the y-axis
-            which='both',      # both major and minor ticks are affected
-            bottom='off',      # ticks along the bottom edge are off
-            top='off',         # ticks along the top edge are off
-            labelbottom='off') # labels along the bottom edge are off
-        """
         plt.tight_layout()
 
 

@@ -395,9 +395,9 @@ def generate_plot(data, plot_options):
                     print '\n debug -- Plotting Stacked: len(data[y][depth_parameter]): ', len(data['y'][depth_parameter])
 
                 #stacked_depth_ranges = np.array(data['y'][data['y_field'][1]])
-                print '\n debug -- Plotting Stacked: (BEFORE) depth_parameter [0]: ', data['y'][depth_parameter][0][0:20]
+                if debug: print '\n debug -- Plotting Stacked: (BEFORE) depth_parameter [0]: ', data['y'][depth_parameter][0][0:20]
                 stacked_depth_ranges = np.array(data['y'][depth_parameter][:])
-                print '\n debug -- Plotting Stacked: (AFTER) depth_parameter [0]: ', data['y'][depth_parameter][0][0:20]
+                if debug: print '\n debug -- Plotting Stacked: (AFTER) depth_parameter [0]: ', data['y'][depth_parameter][0][0:20]
                 reverse = np.arange(len(stacked_depth_ranges[0]))[::-1]
                 normal = np.arange(len(stacked_depth_ranges[0]))
                 if debug:
@@ -409,13 +409,13 @@ def generate_plot(data, plot_options):
                     print '\n debug -- ZPLSC - np.arange(len(stacked_depth_ranges[0])): ', normal
 
                 ooi_plots.plot_stacked_time_series_zplsc(fig, ax, time, np.arange(len(z[0]))[::-1], z.transpose(),
-                                                         stacked_depth_ranges,
-                                           title=data['title'],
-                                           ylabel='Depth',
-                                           cbar_title=label,
-                                           title_font=title_font,
-                                           axis_font=axis_font,
-                                           tick_font=tick_font)
+                                                               stacked_depth_ranges,
+                                                               title=data['title'],
+                                                               ylabel='',
+                                                               cbar_title=label,
+                                                               title_font=title_font,
+                                                               axis_font=axis_font,
+                                                               tick_font=tick_font)
                 """
                 ooi_plots.plot_stacked_time_series_zplsc(fig, ax, time, np.arange(len(z[0]))[::-1], z.transpose(),
                                                          stacked_depth_ranges,
