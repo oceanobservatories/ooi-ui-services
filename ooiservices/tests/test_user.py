@@ -297,6 +297,11 @@ class UserTestCase(unittest.TestCase):
                         "id": 10,
                         "scope_description": None,
                         "scope_name": "ingest"
+                    },
+                    {
+                        "id": 11,
+                        "scope_description": None,
+                        "scope_name": "ingest_calibration"
                     }
                 ]
             }
