@@ -136,9 +136,6 @@ def m2m_handler_post(path):
                 request_data = None
                 params_ = MultiDict()
                 params_['user'] = user.user_name
-                if 'file' not in params:
-                    message = 'To POST a calibration ingest request, ensure the params dict keyword is \'file\'. '
-                    raise Exception(message)
 
             # Add username for general ingestion requests.
             if port == 12589:
@@ -177,9 +174,7 @@ def m2m_handler_post(path):
                 # Write data received to temporary file.
                 target = open(tmp_file, 'wb')
                 try:
-                    data1 = params['file']
-                    encoded_data = base64.decodestring(data1)
-                    target.write(encoded_data)
+                    target.write(request.data)
                     target.close()
                 except Exception as err:
                     message = str(err)
