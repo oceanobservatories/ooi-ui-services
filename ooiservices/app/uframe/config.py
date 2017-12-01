@@ -685,6 +685,19 @@ def get_url_da_info():
         raise Exception(message)
 
 
+def get_m2m_tmp_directory():
+    """
+    Get temporary directory for m2m calibration ingest files. (UFRAME_M2M_TEMP)
+    """
+    try:
+        result = current_app.config['UFRAME_M2M_TEMP']
+        return result
+    except:
+        message = 'Unable to locate UFRAME_M2M_TEMP in config file.'
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Uframe versions
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

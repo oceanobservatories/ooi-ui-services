@@ -74,6 +74,7 @@ COMMON: &common
 
     # M2M
     UFRAME_HOST:            'localhost'
+    UFRAME_M2M_TEMP:        'local-directory/tmp/'
     UFRAME_ALLOWED_M2M_PORTS:
       - 12575
       - 12576
