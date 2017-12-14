@@ -153,7 +153,7 @@ def create_user():
     data = json.loads(request.data)
     #add user to db
     role_mapping = {
-        1: ['annotate', 'asset_manager', 'user_admin', 'redmine', 'annotate_admin', 'ingest'], # Administrator
+        1: ['annotate', 'asset_manager', 'user_admin', 'redmine', 'annotate_admin', 'ingest', 'ingest_calibration'], # Administrator
         2: ['annotate', 'asset_manager'],                          # Marine Operator
         3: []                                                      # Science User
     }

@@ -1770,28 +1770,29 @@ def get_uframe_streams():
 def uframe_get_da_by_rd(rd, params=None):
     """ Get asset from uframe by asset id.
     """
+    debug = False
     try:
         # Get uframe asset
         timeout, timeout_read = get_uframe_timeout_info()
         url = '/'.join([get_url_da_info(), 'available', rd])
+        if debug: print '\n debug -- uframe_get_da_by_rd: url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read), headers=headers(), params=params)
         if response.status_code != 200:
             message = 'Failed to get data availability from uframe for reference designator: %s.' % rd
-            current_app.logger.info(message)
             raise Exception(message)
         asset = response.json()
         return asset
     except ConnectionError:
         message = 'ConnectionError getting data availability from uframe for reference designator: %s.' % rd
-        #current_app.logger.info(message)
+        current_app.logger.info(message)
         raise Exception(message)
     except Timeout:
         message = 'Timeout getting data availability from uframe for reference designator: %s.' % rd
-        #current_app.logger.info(message)
+        current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
         message = str(err)
-        #current_app.logger.info(message)
+        current_app.logger.info(message)
         raise Exception(message)
 
 
@@ -1806,35 +1807,111 @@ def uframe_get_versions(component=None):
         url, timeout, timeout_read = get_uframe_versions_url()
         if component is not None:
             url = '/'.join([url, component, 'latest'])
-        if check: print '\n check -- url: ', url
+        if check: print '\n (uframe_get_versions) check -- url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
-            message = 'Failed to get uframe versions information.'
+            message = 'Failed to get uframe latest version.'
             raise Exception(message)
         if response.content:
             result = json.loads(response.content)
         return result
     except ConnectionError:
-        message = 'Error: ConnectionError getting uframe versions information'
+        message = 'Error: ConnectionError getting uframe latest version'
         if component is not None:
             message += ' for component %s.' % component
         else:
             message += '.'
-        current_app.logger.info(message)
         raise Exception(message)
     except Timeout:
-        message = 'Error: Timeout getting getting uframe versions information'
+        message = 'Error: Timeout getting getting uframe latest version'
         if component is not None:
             message += ' for component %s.' % component
         else:
             message += '.'
-        current_app.logger.info(message)
         raise Exception(message)
 
     except Exception as err:
         message = str(err)
         raise Exception(message)
 
+
+def uframe_get_versions_list(component=None):
+    """
+    Return version information, for component if provided.
+    https://redmine.oceanobservatories.org/projects/ooi/wiki/Version_Service
+    """
+    check = False
+    result = []
+    try:
+        if component is None:
+            message = 'A component is required to get uframe list of versions for the component.'
+            raise Exception(message)
+        url, timeout, timeout_read = get_uframe_versions_url()
+        url = '/'.join([url, component])
+        if check: print '\n (uframe_get_versions_list) check -- url: ', url
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Failed to get uframe component %s versions.' % component
+            raise Exception(message)
+        if response.content:
+            result = json.loads(response.content)
+        return result
+    except ConnectionError:
+        message = 'Error: ConnectionError getting uframe component %s versions.' % component
+        raise Exception(message)
+    except Timeout:
+        message = 'Error: Timeout getting getting uframe component %s versions.' % component
+        raise Exception(message)
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
+def uframe_get_component_version(component=None, version=None):
+    """
+    Return component version details for component and version provided.
+    https://redmine.oceanobservatories.org/projects/ooi/wiki/Version_Service
+    http://uframe-test.intra.oceanobservatories.org:12590/versions/uFrame/1.2.7
+    {
+      "component" : "uFrame",
+      "version" : "1.2.7",
+      "release" : "2017-09-00",
+      "notes" : [ "Develop a strategy for separately deploying uFrame software on test systems. (12557)", "Prevent creating/updating annotations where beginDT > endDT. (12509)", "Add support for open-ended annotations. (11444)", "Add virtual streams to stream and partition metadata on ingest. (12488)", "Handle \"PD\" prefix in alert filter pdIds. (12172)", "Enhance ingestion logging in EDEX. (12618)", "Uncabled_ingest mode unable to start. (12581)", "Gracefully handle error in Sensor Inventory Service TOC endpoint. (12546)", "Fix DOI SQL Errors on uframe-test and production. (12580)", "Add version endpoint. (12497)" ]
+    }
+    """
+    check = False
+    result = []
+    try:
+        # Check input values.
+        if component is None:
+            message = 'A valid component is required to obtain release information.'
+            raise Exception(message)
+        if version is None:
+            message = 'A valid version is required to obtain release information for component \'%s\'.' % component
+            raise Exception(message)
+
+        url, timeout, timeout_read = get_uframe_versions_url()
+        url = '/'.join([url, component, version])
+        if check: print '\n (uframe_get_component_version) check -- url: ', url
+        response = requests.get(url, timeout=(timeout, timeout_read))
+        if response.status_code != 200:
+            message = 'Failed to get uframe release information'
+            message += ' for component %s and version %s.' % (component, version)
+            raise Exception(message)
+        if response.content:
+            result = json.loads(response.content)
+        return result
+    except ConnectionError:
+        message = 'Error: ConnectionError getting uframe release information'
+        message += ' for component %s and version %s.' % (component, version)
+        raise Exception(message)
+    except Timeout:
+        message = 'Error: Timeout getting getting uframe release information'
+        message += ' for component %s and version %s.' % (component, version)
+        raise Exception(message)
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
 
 
 

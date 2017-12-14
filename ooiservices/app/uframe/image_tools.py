@@ -199,10 +199,11 @@ def get_data_image_list():
     }
 
     """
-    debug = False
+    debug = True
     image_list = []
     filter_on_year = True
-    years_processed = ['2017', '2016']
+    years_processed = rds_get_supported_years()     #['2016']
+    arrays_processed = rds_get_supported_array_codes()
     try:
         if debug: print '\n debug -- Entered get_data_image_list...'
         large_format_cache = cache.get('large_format')
@@ -217,8 +218,13 @@ def get_data_image_list():
 
         for rd in rds:
             rd = str(rd)
+
+            if rd[0:2] not in arrays_processed:
+                print '\n\t -- Skip processing of %s, not in arrays processed.(%s)' % (rd, arrays_processed)
+                continue
             years = large_format_cache[rd].keys()
-            years.sort(reverse=True)
+            #years.sort(reverse=True)
+            years.sort()
             if debug: print '\n\t -- Reference designator: %s years: %s' % (rd, years)
 
             for year in years:
@@ -265,8 +271,8 @@ def _compile_cam_images():
     """
     debug = True
     verbose = True
-    time = False
-    max_count = 2500
+    time = True
+    max_count = 7500
     total_count = 0
     process_count = 0
     already_processed_count = 0
@@ -354,7 +360,7 @@ def _compile_cam_images():
                         failed_count += 1
                         message = 'Failed to get image \'%s\' from server; exception: %s' % (image_item['url'], str(err))
                         error_messages.append(message)
-                        failed_count += 1
+                        #failed_count += 1
                         continue
 
                     # Add information for image thumbnail.
@@ -368,7 +374,8 @@ def _compile_cam_images():
                     image_list.append(item)
                     if thumbnail and debug: print '\n Processed image item...'
 
-                    if total_count >= max_count or total_count >= available_count:
+                    if total_count >= max_count or process_count >= available_count:  # or total_count >= available_count:
+                        print '\n debug -- Break encoutered....'
                         break
                 except Exception as err:
                     message = 'Unknown error occurred during processing: %s' % str(err)
@@ -597,7 +604,10 @@ def get_large_format_rds():
 def _compile_large_format_index():
     """ Get indexed information from server for time span of sensor resources.
     """
+    from ooiservices.app.uframe.common_tools import (rds_get_supported_sensor_types, get_valid_extensions,
+                                                     rds_get_supported_folder_types)
     debug = False
+    debug_detail = False
     verbose = False
     time = True
     url_root = get_image_camera_store_url_base().rstrip('/')
@@ -617,15 +627,16 @@ def _compile_large_format_index():
 
     #- - - - - - - - - - - - - - - - - - -
     #Sprint 10
-    filetypes_to_check = ['CAMDS' ]
-    extensions_to_check = ['.png']
-    subfolder_filestypes = ['CAMDS']
-    subfolder_extensions = ['.png']
+    filetypes_to_check = rds_get_supported_sensor_types()           #['-CAMDS' ]
+    extensions_to_check = get_valid_extensions()                    #['.png']
+    subfolder_filestypes = rds_get_supported_folder_types()         #['CAMDS']
+    subfolder_extensions = get_valid_extensions()                   #['.png']
 
     try:
         if debug: print '\n debug -- Entered _compile_large_format_index...'
         if time:
             print '\nCompiling large format index'
+            print '\t-- Arrays processed: ', array_codes
             print '\t-- Years processed: ', years_processed
             print '\t-- Sensor types processed: ', filetypes_to_check
             print '\t-- Extensions checked: ', extensions_to_check
@@ -675,8 +686,13 @@ def _compile_large_format_index():
             #-----------------------------------------------
             # Limit to those arrays identified in array_codes.
             rd = s.attrs['href']
-            process = False
+            #process = False
             if rd and len(rd) == 9 or len(rd) == 15:
+
+                # Verify in arrays to be processed, if not continue
+                if rd[0:2] not in array_codes:
+                    continue
+
                 if len(rd) == 9:
                     subsite = rd.rstrip('/')
                     if debug: print '\n debug -- Subsite: ', subsite
@@ -684,15 +700,15 @@ def _compile_large_format_index():
                     platform = rd.rstrip('/')
                     if debug: print '\n debug -- Platform: ', platform
 
-                if rd[0:2] in array_codes:
-                    process = True
-            if not process:
-                continue
+                #if rd[0:2] in array_codes:
+                #    process = True
+            #if not process:
+            #    continue
             #-----------------------------------------------
             #- - - - - - - - - - - - - - - - - - - - - - -
             # Level 1 - subsite processing
             #- - - - - - - - - - - - - - - - - - - - - - -
-            if verbose: print '\n\t---- Processing root element %s...' % rd
+            if verbose or debug: print '\n\t---- Processing root element %s...' % rd
             d_url = base_url + s.attrs['href']
             subfolders, file_list = _get_subfolder_list(d_url,
                                                         filetypes=subfolder_filestypes,
@@ -709,19 +725,19 @@ def _compile_large_format_index():
                     continue
 
                 # Determine if item is a folder link or file
-                if debug: print '\n debug -- item: ', item
+                if debug_detail: print '\n\t debug -- item: ', item
                 if '/' not in item:
-                    if debug: print '\n debug -- item %s is not a folder.' % item
+                    if debug: print '\n\t debug -- item %s is not a folder.' % item
                     continue
 
-                if verbose: print '\t\t---- %s Processing item: %s...' % (rd, item)
+                if verbose or debug: print '\t\t---- %s Processing item: %s...' % (rd, item)
                 subfolder_url = base_url + rd + item
-
+                if debug_detail: print '\t\t debug ---- subfolder_url: %s ' % subfolder_url
                 node_subfolders, node_file_list = _get_subfolder_list(subfolder_url,
                                                                       filetypes=subfolder_filestypes,
                                                                       extensions=subfolder_extensions)
                 if node_file_list:
-                    if debug:
+                    if debug_detail:
                         print '\n debug -- ***** (node subfolder search) %s file_list(%d): %s' % \
                         (item, len(node_file_list), node_file_list)
 
@@ -729,7 +745,7 @@ def _compile_large_format_index():
                 # Level 3 - processing sensor information
                 #- - - - - - - - - - - - - - - - - - - - - - -
                 if node_subfolders:
-                    if debug:
+                    if debug_detail:
                         print '\n\t debug -- (node subfolder search) %s subfolders(%d): %s' % \
                           (item, len(node_subfolders), node_subfolders)
 
@@ -745,24 +761,24 @@ def _compile_large_format_index():
                         #================
                         # https://rawdata.oceanobservatories.org/files/CE02SHBP/LJ01D/11-HYDBBA106/
                         node_folder_url = subfolder_url + node_item
-                        if debug: print '\n debug *** node_folder_url: ', node_folder_url
+                        if debug_detail: print '\n debug *** node_folder_url: ', node_folder_url
 
                         # Define reference designator
                         junk = node_folder_url.replace(base_url, '')
                         junk = junk.rstrip('/')
                         ref_des = str(junk.replace('/', '-'))
-                        if debug: print '\n ====== ref_des: ', ref_des
+                        if debug_detail: print '\n ====== ref_des: ', ref_des
 
                         # Process year/month/day subfolders...
                         detail_subfolders, detail_file_list = _get_subfolder_list(node_folder_url,
                                                                                   filetypes=subfolder_filestypes,
                                                                                   extensions=subfolder_extensions)
-                        if debug:
+                        if debug_detail:
                             if detail_file_list:
                                 print '\ndebug --*** (node detail_file_list search) %s file_list(%d): %s' % \
                                     (item, len(detail_file_list), detail_file_list)
                         if detail_subfolders:
-                            if debug:
+                            if debug_detail:
                                 print '\n\tdebug -- (node detail_subfolders search) %s subfolders(%d): %s' % \
                                   (item, len(detail_subfolders), detail_subfolders)
                                 print '\ndebug -- detail_subfolders (years): ', detail_subfolders
@@ -775,15 +791,15 @@ def _compile_large_format_index():
                                 #=======================================
                                 # Remove to process all years
                                 year_tmp = year.rstrip('/')
-                                if debug: print '\n debug -- year_tmp: ', year_tmp
                                 if year_tmp not in years_processed:
                                     continue
+                                if debug_detail: print '\n debug -- year_tmp: ', year_tmp
                                 #=======================================
                                 year_url = node_folder_url + year
                                 months_subfolders, months_file_list = _get_subfolder_list(year_url,
                                                                                           filetypes=subfolder_filestypes,
                                                                                           extensions=subfolder_extensions)
-                                if debug: print '\n debug -- detail_subfolders (years): ', months_subfolders
+                                if debug_detail: print '\n debug -- detail_subfolders (years): ', months_subfolders
 
                                 # Process months.
                                 if months_subfolders:
@@ -792,12 +808,12 @@ def _compile_large_format_index():
                                         days_subfolders, days_file_list = _get_subfolder_list(month_url,
                                                                                               filetypes=subfolder_filestypes,
                                                                                               extensions=subfolder_extensions)
-                                        if debug: print '\n debug -- days_subfolders: ', days_subfolders
+                                        if debug_detail: print '\n debug -- days_subfolders: ', days_subfolders
 
                                         # Process days.
                                         if days_subfolders:
                                             _days_subfolders = [str(day.rstrip('/')) for day in days_subfolders]
-                                            if debug: print '\n ref_des (regular): ', ref_des
+                                            if debug_detail: print '\n ref_des (regular): ', ref_des
                                             # Add date to item
                                             _year = year.rstrip('/')
                                             _month = month.rstrip('/')
@@ -814,7 +830,9 @@ def _compile_large_format_index():
         if data_dict and data_dict is not None:
             cache.delete('large_format_inx')
             cache.set('large_format_inx', data_dict, timeout=get_cache_timeout())
-        print '\n Number of items in large_format_inx cache(%d): %s' % (len(data_dict), data_dict.keys())
+        result_keys = data_dict.keys()
+        result_keys.sort()
+        print '\n Number of items in large_format_inx cache(%d): %s' % (len(data_dict), result_keys)
         if debug: print '\n debug -- Exit _compile_large_format_index...'
         return data_dict
     except Exception as err:
@@ -836,7 +854,10 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
     https://rawdata.oceanobservatories.org/files/RS01SBPS/PC01A/07-CAMDSC102/2016/05/27/RS01SBPS-PC01A-07-CAMDSC102_20160527T215459,693.png
 
     """
+    from ooiservices.app.uframe.common_tools import (rds_get_supported_sensor_types, get_valid_extensions)
     debug = False
+    debug_trace = False
+    debug_details = False
     verbose = False
     time = True
 
@@ -874,10 +895,10 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
     subfolder_filestypes = ['HYD', 'ZPL', 'OBS', 'CAMDS', 'CAMHD']
     subfolder_extensions = ['.mseed', '.png', '.raw', '.mp4', '.mov']
 
-
-
     filetypes_to_check = ['CAMDS']
     extensions_to_check = ['.png']
+    filetypes_to_check = rds_get_supported_sensor_types()
+    extensions_to_check = get_valid_extensions()
     try:
         if debug: print '\n debug -- Entered _compile_large_format_files...'
         if time:
@@ -928,7 +949,7 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
         current_year = datetime.utcnow().strftime('%Y')
         current_month = datetime.utcnow().strftime('%m')
         current_day = datetime.utcnow().strftime('%d')
-        if debug:
+        if debug_trace:
             print '\n debug -- year: ', current_year
             print '\n debug -- month: ', current_month
             print '\n debug -- day: ', current_day
@@ -941,7 +962,7 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
                 if len_href == 9 or len_href == 15 or len_href == 28:
                     ss_reduced.append(s)
 
-        if debug: print '\n debug -- The root folder items: ', len(ss_reduced)
+        if debug_trace: print '\n debug -- The root folder items: ', len(ss_reduced)
         for s in ss_reduced:
             #-----------------------------------------------
             # Limit to those arrays identified in array_codes.
@@ -950,10 +971,10 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
             if rd and len(rd) == 9 or len(rd) == 15:
                 if len(rd) == 9:
                     subsite = rd.rstrip('/')
-                    if debug: print '\n debug -- Subsite: ', subsite
+                    if debug_details: print '\n debug -- Subsite: ', subsite
                 else:
                     platform = rd.rstrip('/')
-                    if debug: print '\n debug -- Platform: ', platform
+                    if debug_details: print '\n debug -- Platform: ', platform
                 if rd[0:2] in array_codes:
                     process = True
             if not process:
@@ -961,20 +982,20 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
             #-----------------------------------------------
 
             # Level 1 - subsite processing
-            if verbose: print '\n\t---- Processing root element %s...' % rd
+            if verbose or debug_trace: print '\n\t---- Processing root element %s...' % rd
             d_url = base_url+s.attrs['href']
             subfolders, file_list = _get_subfolder_list(d_url, None)
-            if debug:
+            if debug_trace:
                 print '\n debug -- subfolders(%d): %s' % (len(subfolders), subfolders)
 
             if not subfolders:
                 continue
 
             # Level 2 - node processing
-            if debug: print '\n debug -- Now walking subfolders...'
+            if debug_details: print '\n debug -- Now walking subfolders...'
             for item in subfolders:
                 # Determine if item is a folder link or file
-                if debug: print '\n debug -- item: ', item
+                if debug_details: print '\n debug -- item: ', item
                 if '/' in item:
                     if verbose: print '\t\t---- %s Processing item: %s...' % (rd, item)
                     subfolder_url = base_url + rd + item
@@ -984,12 +1005,12 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
                     #                                                      filetypes=subfolder_filestypes,
                     #                                                      extensions=subfolder_extensions)
                     if node_file_list:
-                        if debug: print '\n debug -- ***** (node subfolder search) %s file_list(%d): %s' % \
+                        if debug_details: print '\n debug -- ***** (node subfolder search) %s file_list(%d): %s' % \
                             (item, len(node_file_list), node_file_list)
 
                     # Level 3 - processing sensor information
                     if node_subfolders:
-                        if debug: print '\n\t debug -- (node subfolder search) %s subfolders(%d): %s' % \
+                        if debug_details: print '\n\t debug -- (node subfolder search) %s subfolders(%d): %s' % \
                               (item, len(node_subfolders), node_subfolders)
 
                         for node_item in node_subfolders:
@@ -1004,44 +1025,44 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
                                 continue
                             #================
                             node_folder_url = subfolder_url + node_item
-                            if debug: print '\n debug *** node_folder_url: ', node_folder_url
+                            if debug_details: print '\n debug *** node_folder_url: ', node_folder_url
                             detail_subfolders, detail_file_list = _get_subfolder_list(node_folder_url, None)
 
                             if detail_file_list:
-                                if debug: print '\ndebug --*** (node detail_file_list search) %s file_list(%d): %s' % \
+                                if debug_details: print '\ndebug --*** (node detail_file_list search) %s file_list(%d): %s' % \
                                     (item, len(detail_file_list), detail_file_list)
                             if detail_subfolders:
-                                if debug: print '\n\tdebug -- (node detail_subfolders search) %s subfolders(%d): %s' % \
+                                if debug_details: print '\n\tdebug -- (node detail_subfolders search) %s subfolders(%d): %s' % \
                                       (item, len(detail_subfolders), detail_subfolders)
-                                if debug: print '\ndebug -- detail_subfolders (years): ', detail_subfolders
+                                if debug_details: print '\ndebug -- detail_subfolders (years): ', detail_subfolders
 
                                 # Process years (detail_subfolders is years)
                                 for year in detail_subfolders:
                                     #=======================================
                                     # Remove to process all years
                                     year_tmp = year.rstrip('/')
-                                    if debug: print '\n debug -- year_tmp: ', year_tmp
+                                    if debug_details: print '\n debug -- year_tmp: ', year_tmp
                                     if year_tmp not in years_processed:
                                         continue
                                     #=======================================
                                     year_url = node_folder_url + year
-                                    if debug: print '\n debug -- year_url: ', year_url
+                                    if debug_details: print '\n debug -- year_url: ', year_url
                                     months_subfolders, months_file_list = _get_subfolder_list(year_url, None)
-                                    if debug: print '\n debug -- detail_subfolders (years): ', months_subfolders
+                                    if debug_details: print '\n debug -- detail_subfolders (years): ', months_subfolders
 
                                     if months_subfolders:
                                         for month in months_subfolders:
                                             month_url = year_url + month
-                                            if debug: print '\n debug -- month_url: ', month_url
+                                            if debug_details: print '\n debug -- month_url: ', month_url
                                             days_subfolders, days_file_list = _get_subfolder_list(month_url, None)
-                                            if debug: print '\n debug -- days_subfolders: ', days_subfolders
+                                            if debug_details: print '\n debug -- days_subfolders: ', days_subfolders
                                             if days_subfolders:
                                                 for day in days_subfolders:
                                                     day_url = month_url + day
-                                                    if debug: print '\n debug -- day_url: ', day_url
+                                                    if debug_details: print '\n debug -- day_url: ', day_url
                                                     day_folders, day_file_list = _get_subfolder_list(day_url, None)
                                                     if day_file_list and day_file_list is not None:
-                                                        if debug:
+                                                        if debug_details:
                                                             print '\n debug -- day_file_list(%d): %s' % \
                                                                         (len(day_file_list), day_file_list)
                                                         """
@@ -1071,16 +1092,16 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
                                                                         # 'OO-HYVM2--YDH-2015-12-16T10:35:00.000000.png'
                                                                         # Get dt, let filename_rd be created below.
                                                                         dt_chunk = filename.replace('.png', '')
-                                                                        if debug: print '\n dt_check (no ext): ', dt_chunk
+                                                                        if debug_details: print '\n dt_check (no ext): ', dt_chunk
                                                                         dt_chunk = dt_chunk.split('--YDH-')
-                                                                        if debug: print '\n len(dt_check): ', len(dt_chunk)
+                                                                        if debug_details: print '\n len(dt_check): ', len(dt_chunk)
                                                                         dt = urllib.unquote(dt_chunk[1]).decode('utf8')
-                                                                        if debug: print '\n Initial dt: ', dt
+                                                                        if debug_details: print '\n Initial dt: ', dt
                                                                         dt = dt.replace('-', '')
                                                                         dt = dt.replace(':', '')
-                                                                        if debug: print '\n debug -- before adding Z...', dt
+                                                                        if debug_details: print '\n debug -- before adding Z...', dt
                                                                         dt += 'Z'
-                                                                        if debug: print '\n HY filename png, dt: ', dt
+                                                                        if debug_details: print '\n HY filename png, dt: ', dt
 
                                                                     elif '_' not in filename:
                                                                         continue
@@ -1119,18 +1140,18 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
                                                                     #dt = urllib.unquote(date).decode('utf8')
 
                                                                 elif ext == '.mseed':
-                                                                    if debug:
+                                                                    if debug_details:
                                                                         print '\n Processing mseed...'
                                                                         print '\n Processing filename: ', filename
                                                                     # OO-HYVM2--YDH.2015-09-03T23:53:17.272250.mseed
                                                                     ref = filename.split(ext)[0].split('.')
-                                                                    if debug: print '\n debug -- len(ref): ', len(ref)
+                                                                    if debug_details: print '\n debug -- len(ref): ', len(ref)
                                                                     date = None
                                                                     if len(ref) == 3:
                                                                         # 2015
                                                                         # OO-HYVM2--YDH.2015-09-04T00:40:00.000000.mseed
                                                                         #if debug:
-                                                                        if debug: print '\n MSEED file -- BAD-- split len 3!---', \
+                                                                        if debug_details: print '\n MSEED file -- BAD-- split len 3!---', \
                                                                         filename
                                                                         date = ref[1] + ref[2] + 'Z'
                                                                         dt = urllib.unquote(date).decode('utf8')
@@ -1143,7 +1164,7 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
                                                                                 #print '\n debug -- [-] GOOD MSEED DATE: ', date
                                                                             else:
                                                                                 date = ref[0] + '.' + ref[1] + 'Z'
-                                                                                if debug: print '\n debug -- [-] BAD MSEED DATE: ', date
+                                                                                if debug_details: print '\n debug -- [-] BAD MSEED DATE: ', date
                                                                         elif '--YDH.' in ref[0]:
                                                                             tmp = ref[0].split('--YDH.')
                                                                             if len(tmp) == 2:
@@ -1151,9 +1172,9 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
                                                                                 #print '\n debug -- [.] GOOD MSEED DATE: ', date
                                                                             else:
                                                                                 date = ref[0] + '.' + ref[1] + 'Z'
-                                                                                if debug: print '\n debug -- [.] BAD MSEED DATE: ', date
+                                                                                if debug_details: print '\n debug -- [.] BAD MSEED DATE: ', date
                                                                         if date is None:
-                                                                            if debug: print '\n MSEED Eject - date is None for: ', filename
+                                                                            if debug_details: print '\n MSEED Eject - date is None for: ', filename
                                                                         dt = urllib.unquote(date).decode('utf8')
                                                                     else:
                                                                         split = ref[0].split('-')
@@ -1172,7 +1193,7 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
 
                                                                 #=========================================
                                                                 # Create item
-                                                                if debug:
+                                                                if debug_details:
                                                                     print '\n before create item...'
                                                                     print '\n before create item, filename: ', filename
                                                                     print '\n before create item, day_url: ', day_url
@@ -1185,7 +1206,7 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
                                                                 item = {'url': _url,
                                                                         'filename': urllib.unquote(filename).decode('utf8'),
                                                                         'datetime': dt.replace('-', '').replace(':', '')}
-                                                                if debug: print '\n after create item: ', item
+                                                                if debug_details: print '\n after create item: ', item
                                                                 # Add extension type
                                                                 item['ext'] = ext
 
@@ -1196,32 +1217,32 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
                                                                     #print '\n should not be in here for HY png files...'
                                                                     item['rd'] = str(filename_rd)
                                                                     ref_des = filename_rd
-                                                                    if debug:
+                                                                    if debug_details:
                                                                         print '\n debug -- filename_rd: ', filename_rd
                                                                     if len(ref_des) != 8 and len(ref_des) != 27 and \
                                                                         len(ref_des) != 14:
-                                                                        if debug:
+                                                                        if debug_details:
                                                                             print '\n debug -- SUSPECT rd(%d): %s', \
                                                                                 (len(ref_des), ref_des)
                                                                 else:
-                                                                    if debug: print '\n debug -- else branch, filename: ', filename
+                                                                    if debug_details: print '\n debug -- else branch, filename: ', filename
                                                                     junk = node_folder_url.replace(base_url, '')
                                                                     junk = junk.rstrip('/')
                                                                     junk = junk.replace('/','-')
-                                                                    if debug: print '\n ====== junk: ', junk
+                                                                    if debug_details: print '\n ====== junk: ', junk
                                                                     ref_des = junk
                                                                     item['rd'] = junk[:]
-                                                                    if debug: print '\n ref_des (regular): ', ref_des
+                                                                    if debug_details: print '\n ref_des (regular): ', ref_des
 
                                                                 # Add date to item
-                                                                if debug: print '\n debug: year: ', year
+                                                                if debug_details: print '\n debug: year: ', year
                                                                 _year = year.rstrip('/') #[:-1]
-                                                                if debug: print '\n debug: month: ', month
+                                                                if debug_details: print '\n debug: month: ', month
                                                                 _month = month.rstrip('/') #[:-1]
-                                                                if debug: print '\n debug: day: ', day
+                                                                if debug_details: print '\n debug: day: ', day
                                                                 _day = day.rstrip('/') #[:-1]
                                                                 item['date'] = '-'.join([_year, _month, _day])
-                                                                if debug:
+                                                                if debug_details:
                                                                     print '\n debug -- _year: ', _year
                                                                     print '\n debug -- _month: ', _month
                                                                     print '\n debug -- _day: ', _day
@@ -1241,7 +1262,7 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
 
                                                                 # If build on previous cache, then not a duplicate item.
                                                                 data_dict[ref_des][_year][_month][_day].append(item)
-                                                                if debug: print '\n debug -- Step 6...'
+                                                                if debug_details: print '\n debug -- Step 6...'
                 else:
                     if debug: print '\n debug -- item %s is not a folder.' % item
                     continue
@@ -1255,7 +1276,9 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
             cache.delete('large_format')
             if verbose: print '\n set large_format cache...'
             cache.set('large_format', data_dict, timeout=get_cache_timeout())
-        if verbose: print '\n\t-- Number of items in large_format cache(%d): %s' % (len(data_dict), data_dict.keys())
+        result_keys = data_dict.keys()
+        result_keys.sort()
+        print '\n\t-- Number of items in large_format cache(%d): %s' % (len(data_dict), result_keys)
         if debug: print '\n debug -- Exit _compile_large_format_files...'
         return data_dict
     except Exception as err:
@@ -1270,31 +1293,43 @@ def _get_subfolder_list(url, filetypes=None, extensions=None):
     """ Get url folder content and process the list of data links.
     """
     debug = False
-    """
-    # Master/complete list
-    filetypes_to_check = ['HY', 'ZPL', 'CAMDS', 'CAMHD', 'OBS']
-    extensions_to_check = ['.png', '.raw', '.mseed', '.mp4', '.mov']
-    """
-    #subfolder_filestypes = ['HYD', 'ZPL', 'OBS', 'CAMDS', 'CAMHD']
-    #subfolder_extensions = ['.mseed', '.png', '.raw', '.mp4', '.mov']
-    # Set filetypes and extensions to check.
-    if filetypes is None:
-        filetypes_to_check = ['CAMDS']
-        #filetypes_to_check = ['HY', 'ZPL', 'CAMDS', 'CAMHD', 'OBS']
-    else:
-        filetypes_to_check = filetypes
+    from ooiservices.app.uframe.common_tools import rds_get_supported_folder_types, get_valid_extensions
 
-    if extensions is None:
-        extensions_to_check = ['.png']
-        #extensions_to_check = ['.png', '.raw', '.mseed', '.mp4', '.mov']
-    else:
-        extensions_to_check = extensions
-
-    # base_url is used for exception messages only (timeout or connection errors)
-    base_url = get_image_camera_store_url_base()
+    if debug:
+        print '\n\t debug -- Entered _get_subfolder_list...'
+        print '\n\t debug -- filetypes: ', filetypes
+        print '\n\t debug -- extensions: ', extensions
+    base_url = None
     try:
+        """
+        # Master/complete list
+        filetypes_to_check = ['HY', 'ZPL', 'CAMDS', 'CAMHD', 'OBS']
+        extensions_to_check = ['.png', '.raw', '.mseed', '.mp4', '.mov']
+        """
+        #subfolder_filestypes = ['HYD', 'ZPL', 'OBS', 'CAMDS', 'CAMHD']
+        #subfolder_extensions = ['.mseed', '.png', '.raw', '.mp4', '.mov']
+        # Set filetypes and extensions to check.
+        if filetypes is None:
+            filetypes_to_check = rds_get_supported_folder_types()
+            #filetypes_to_check = ['CAMDS']
+            #filetypes_to_check = ['HY', 'ZPL', 'CAMDS', 'CAMHD', 'OBS']
+        else:
+            filetypes_to_check = filetypes
+
+        if extensions is None:
+            extensions_to_check = get_valid_extensions()
+            #extensions_to_check = ['.png']
+            #extensions_to_check = ['.png', '.raw', '.mseed', '.mp4', '.mov']
+        else:
+            extensions_to_check = extensions
+
+        # base_url is used for exception messages only (timeout or connection errors)
+        base_url = get_image_camera_store_url_base()
+
         if debug:
-            print '\n debug -- Entered _get_subfolder_list...', url
+            print '\n\t debug ==========================================='
+            print '\n\t debug -- filetypes_to_check: ', filetypes_to_check
+            print '\n\t debug -- extensions_to_check: ', extensions_to_check
         timeout, timeout_read = get_uframe_timeout_info()
         extended_timeout_read = timeout_read * 10
         r = requests.get(url, timeout=(timeout, extended_timeout_read))
@@ -1307,18 +1342,31 @@ def _get_subfolder_list(url, filetypes=None, extensions=None):
         file_list = []
         for s in ss:
             if 'href' in s.attrs:
-                if debug: print ' (1) s.attrs[href]: ', s.attrs['href']
+                if debug: print ' (1) s.attrs[href]: %r' % s.attrs['href']
+                if ';' in s.attrs['href'] or 'files' in s.attrs['href'] or '=' in s.attrs['href']:
+                    if debug: print '\n debug -- s.attrs[href] has ; or files or = ....so continue...'
+                    continue
+
                 if ';' not in s.attrs['href'] and 'files' not in s.attrs['href'] and '=' not in s.attrs['href']:
 
-                    if '/' in s.attrs['href'] and not './' in s.attrs['href']:
-                        if debug: print '\n debug -- folder...'
+                    # Is it a folder?
+                    if ('/' in s.attrs['href']) and ('./' not in s.attrs['href']):
+                        if debug:
+                            print '\n debug -- folder...'
+                            print '\n debug -- s.attrs[href]): ', s.attrs['href']
                         subfolders.append(s.attrs['href'])
+                        if debug: print '\n debug -- After append to subfolders...'
+
+                    # Process as a file...
                     else:
+                        if debug: print '\n debug -- in the else branch...'
                         working_attrs = (str(s.attrs['href']))[:]
+                        if debug: print '\n debug -- working_attrs: ', working_attrs
                         if './' in working_attrs:
                             working_attrs = working_attrs.replace('./', '')
                             if debug: print '\t debug -- file (corrected): ', working_attrs
 
+                        if debug: print '\n debug -- filter by filetype...'
                         # Filter by file type.
                         good_filetype = False
                         for filetype in filetypes_to_check:
@@ -1343,7 +1391,7 @@ def _get_subfolder_list(url, filetypes=None, extensions=None):
         if debug:
             if file_list:
                 print '\n Returning a file list: ', file_list
-
+                print '\n Returning subfolders: ', subfolders
         return subfolders, file_list
 
     except ConnectionError:

@@ -1128,7 +1128,8 @@ class UserScope(db.Model, DictSerializableMixin):
             'data_manager',
             'organization',
             'annotate_admin',
-            'ingest'
+            'ingest',
+            'ingest_calibration'
             ]
         for s in scopes:
             scope = UserScope.query.filter_by(scope_name=s).first()

@@ -104,7 +104,7 @@ def is_platform(rd):
 def is_instrument(rd):
     """ Verify reference designator is a valid instrument reference designator. Return True or False
     """
-    debug = True
+    debug = False
     result = False
     try:
         if debug: print '\n debug -- uframe/common_tools/is_instrument entered...'
@@ -251,18 +251,21 @@ def rds_get_supported_array_codes():
     # Used when processing large format data from raw data server.
     # Note: Only those arrays which support normalized folder structure on the raw data
     # server shall be included here.
-    return ['RS', 'CE']
+    result = ['RS', 'CE',]
+    return result
 
 
 def get_linx_support_array_codes():
     # Used when processing data from raw data server for large format index.
-    return ['RS', 'CE', 'CP']
+    result = ['RS', 'CE']
+    return result
 
 
 # Get years where data is provided on the raw data server.
 def rds_get_supported_years():
     # The years where data is provided on the raw data server.
-    return ['2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017']
+    result = ['2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017']
+    return result
 
 
 # Get valid months to be used when searching the raw data server.
@@ -274,19 +277,25 @@ def rds_get_valid_months():
 # Get valid extensions.
 def get_valid_extensions():
     # The valid file extensions to be used when searching/working with the raw data server.
-    return ['.png', '.mseed', '.raw', '.mov', '.mp4']
+    result = ['.png', '.mseed', '.raw', '.mov', '.mp4', '.dat']
+    result = ['.png']
+    return result
 
 
 # Get supported extensions.
 def rds_get_supported_sensor_types():
     # The supported sensor types to be used when searching/working with the raw data server.
-    return ['-HYD', '-CAMDS', '-CAMHD', '-ZPL']
+    result = ['-HYD', '-CAMDS', '-CAMHD', '-ZPL', '-OBS']
+    result = ['-CAMDS']
+    return result
 
 
 # Get supported folder types.
 def rds_get_supported_folder_types():
     # The supported folder types to be used when searching/working with the raw data server.
-    return ['HY', 'CAMDS', 'CAMHD', 'ZPL']
+    result = ['HY', 'CAMDS', 'CAMHD', 'ZPL', 'OBS']
+    result = ['CAMDS']
+    return result
 
 
 # Get extensions for a sensor type.
@@ -308,15 +317,17 @@ def get_extensions_by_sensor_type(sensor_type):
         extensions = ['.mov', '.mp4']
     elif sensor_type == '-ZPL':
         extensions = ['.raw', '.png']
+    elif sensor_type == '-OBS':
+        extensions = ['.raw', '.png', '.dat']
     return extensions
 
 # Complete lists...
 #valid_extensions = ['.mseed', '.png', '.raw', '.mov', '.mp4']
 #valid_sensor_types = ['CAMDS', 'CAMHD', 'ZPL', 'HYDBB', 'HYDLF', 'OBS']
 
-# Sprint 10
-valid_extensions = ['.png']
-valid_sensor_types = ['CAMDS']
+# Sprint 10 - Used in large file index
+valid_extensions = get_valid_extensions()
+valid_sensor_types = rds_get_supported_sensor_types()
 
 def rds_get_valid_sensor_types():
     return valid_sensor_types
