@@ -19,7 +19,9 @@ from StringIO import StringIO
 from ooiservices.app import cache
 from ooiservices.app.uframe.config import get_cache_timeout
 from ooiservices.app.uframe.common_tools import (get_image_thumbnail_route, rds_get_supported_years,
-                                                 rds_get_supported_array_codes)
+                                                 rds_get_supported_array_codes,
+                                                 rds_get_all_supported_sensor_types,
+                                                 get_extensions_by_sensor_type)
 from ooiservices.app.uframe.config import (get_uframe_timeout_info, get_image_camera_store_url_base,
                                            get_image_store_url_base)
 import requests
@@ -173,9 +175,9 @@ def _get_cam_images():
 
 
 def get_data_image_list():
-    """ Get list of image items (in 'large_format' cache) for thumbnail processing.
+    """ Get list of image items (in partitioned cache) for thumbnail processing.
 
-    Processing following content from 'large_format':
+    Processing following content from all partitioned caches supporting .png.:
     {
     "RS01SBPS-PC01A-07-CAMDSC": {
       "2016": {
@@ -199,16 +201,21 @@ def get_data_image_list():
     }
 
     """
-    debug = True
+    debug = False
     image_list = []
     filter_on_year = True
-    years_processed = rds_get_supported_years()     #['2016']
+    years_processed = rds_get_supported_years()
     arrays_processed = rds_get_supported_array_codes()
     try:
         if debug: print '\n debug -- Entered get_data_image_list...'
-        large_format_cache = cache.get('large_format')
-        if not large_format_cache or large_format_cache is None or 'error' in large_format_cache:
-            if debug: print '\n debug -- large_format_cache failed to return information: '
+        sensor_types = get_sensor_types_with_png()
+        if not sensor_types:
+            message = 'No sensor types returned supporting extension \'.png\'.'
+            raise Exception(message)
+        if debug: print '\n debug -- Consolidated cache processing for sensor_types: ', sensor_types
+        large_format_cache = get_consolidated_cache(sensor_types)
+        if not large_format_cache or large_format_cache is None:
+            if debug: print '\n debug -- Consolidated cache processing failed to return information.'
             return None
         else:
             rds = large_format_cache.keys()
@@ -264,15 +271,61 @@ def get_data_image_list():
         current_app.logger.info(message)
         raise Exception(message)
 
+def get_sensor_types_with_png():
+    """
+    Review list of all sensor type and based on extensions for each, return list of
+    sensor types which support '.png'. Review when adding '.jpg'.
+    """
+    debug = False
+    sensor_types = []
+    try:
+        all_sensor_types = rds_get_all_supported_sensor_types()
+        for check in all_sensor_types:
+            extensions = get_extensions_by_sensor_type(check)
+            if '.png' in extensions:
+                if check not in sensor_types:
+                    sensor_types.append(check)
+        if debug: print '\n debug -- Sensor types supporting png processing: ', sensor_types
+        return sensor_types
+    except Exception as err:
+        message = str(err)
+        if debug: print '\n debug -- Exception get_sensor_types_with_png...', message
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_consolidated_cache(sensor_types):
+    debug = False
+    data = {}
+    try:
+        if debug: print '\n debug -- Get consolidated cache for sensor types: ', sensor_types
+        if not sensor_types or sensor_types is None:
+            message = 'No sensor types provided for consolidated cache processing.'
+            raise Exception(message)
+
+        for sensor in sensor_types:
+            if debug: print '\n debug -- Getting cache for sensor type: ', sensor
+            cache_data = get_cache_by_sensor_type(sensor)
+            if cache_data and cache_data is not None:
+                for item in cache_data:
+                    if debug: print '\n debug -- Add item to cache: ', item
+                    data[item] = cache_data[item]
+        return data
+    except Exception as err:
+        message = str(err)
+        if debug: print '\n debug -- Exception get_consolidated_cache...', message
+        current_app.logger.info(message)
+        raise Exception(message)
+
 
 # Build thumbnails and populate cam_images cache. (Used in tasks for 'cam_images' cache.)
 def _compile_cam_images():
     """ Build thumbnails for available image files; generate list of dictionaries for images.
     """
-    debug = True
+    debug = False
     verbose = True
     time = True
-    max_count = 7500
+    max_count = 10000
     total_count = 0
     process_count = 0
     already_processed_count = 0
@@ -426,6 +479,7 @@ def _compile_cam_images():
         raise Exception(message)
 
 
+# Tag for cache partitioning, index
 def get_timespan_for_index_rd(rd):
     """ Get latest start and end times for a reference designator in the index rds.
     Returns dictionary with start and end values.
@@ -513,6 +567,7 @@ def get_timespan_for_index_rd(rd):
         raise Exception(message)
 
 
+# Tag for cache partitioning, regression testing.
 def get_index_rds():
     """ Get reference designators from raw data server index.
 
@@ -552,6 +607,7 @@ def get_index_rds():
         raise Exception(message)
 
 
+# Tag for cache partitioning regression testing.
 def get_rds_index():
     """ Get raw data server index cache, return.
     """
@@ -568,362 +624,267 @@ def get_rds_index():
         return None
 
 
-def get_large_format_rds():
-    """ Get reference designators from raw data server large format files cache.
-    {
-      "reference_designators": [
-        "CE02SHBP-MJ01C-07-ZPLSCB101",
-        "CE02SHBP-MJ01C-08-CAMDSB107",
-        "CE04OSBP-LV01C-06-CAMDSB106",
-        "CE04OSPS-PC01B-05-ZPLSCB102",
-        "RS01SBPS-PC01A-07-CAMDSC102",
-        "RS01SBPS-PC01A-08-HYDBBA103",
-        "RS01SLBS-LJ01A-09-HYDBBA102",
-        "RS01SUM2-MJ01B-05-CAMDSB103",
-        "RS03INT1-MJ03C-05-CAMDSB303"
-      ]
-    }
+def _compile_large_format_index():
+    """
+    Wrapper function to preserve tasks.py interfaces and deployment instructions during sprint 12.
     """
     debug = False
     try:
-        large_format = cache.get('large_format')
-        if not large_format or large_format is None or 'error' in large_format:
-            if debug: print '\n No large_format cache available.'
-            return []
-        rds = [str(key) for key in large_format.keys()]
-        if rds:
-            rds.sort()
-        return rds
+        data_dict = build_complete_rds_cache_index()
+        return data_dict
+
     except Exception as err:
         message = str(err)
+        if debug: print '\n debug -- Exception constructing large format index...', message
         current_app.logger.info(message)
         raise Exception(message)
 
 
-# Compile large format index information from raw data server. (Used in tasks.)
-def _compile_large_format_index():
-    """ Get indexed information from server for time span of sensor resources.
+def _compile_large_format_files():
     """
-    from ooiservices.app.uframe.common_tools import (rds_get_supported_sensor_types, get_valid_extensions,
-                                                     rds_get_supported_folder_types)
+    Wrapper function to preserve tasks.py interfaces and deployment instructions during sprint 12.
+    """
     debug = False
-    debug_detail = False
-    verbose = False
-    time = True
-    url_root = get_image_camera_store_url_base().rstrip('/')
-    if debug: print '\n Raw Data Server --  url_root: ', url_root
-
-    # Processing filters.
-    #array_codes = ['RS', 'CE', 'CP']
-    array_codes = rds_get_supported_array_codes()
-    #years_processed = ['2017', '2016', '2015', '2014', '2013', '2012', '2011', '2010', '2009']
-    years_processed = rds_get_supported_years()
-    filetypes_to_check = ['-HYD','-ZPL', '-OBS', '-CAMDS', '-CAMHD' ]
-    extensions_to_check = ['.mseed', '.png', '.raw', '.mp4', '.mov']
-
-    # Processing subfolders.
-    subfolder_filestypes = ['HYD', 'ZPL', 'OBS', 'CAMDS', 'CAMHD']
-    subfolder_extensions = ['.mseed', '.png', '.raw', '.mp4', '.mov']
-
-    #- - - - - - - - - - - - - - - - - - -
-    #Sprint 10
-    filetypes_to_check = rds_get_supported_sensor_types()           #['-CAMDS' ]
-    extensions_to_check = get_valid_extensions()                    #['.png']
-    subfolder_filestypes = rds_get_supported_folder_types()         #['CAMDS']
-    subfolder_extensions = get_valid_extensions()                   #['.png']
-
     try:
-        if debug: print '\n debug -- Entered _compile_large_format_index...'
-        if time:
-            print '\nCompiling large format index'
-            print '\t-- Arrays processed: ', array_codes
-            print '\t-- Years processed: ', years_processed
-            print '\t-- Sensor types processed: ', filetypes_to_check
-            print '\t-- Extensions checked: ', extensions_to_check
-        start = datetime.now()
-        if time: print '\t-- Start time: ', start
+        data_dict = drive_rds_cache_builds()
+        return data_dict
 
-        # Get file link/information from image server.
+    except Exception as err:
+        message = str(err)
+        if debug: print '\n debug -- Exception compiling all partitioned caches...', message
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+# Get subfolder contents and file_list for folder.
+def _get_subfolder_list(url, filetypes=None, extensions=None):
+    """ Get url folder content and process the list of data links.
+    """
+    debug = False
+    debug_summary = False
+    from ooiservices.app.uframe.common_tools import rds_get_supported_folder_types, get_valid_extensions
+
+    if debug:
+        print '\n\t debug -- Entered _get_subfolder_list...'
+        print '\n\t debug -- filetypes: ', filetypes
+        print '\n\t debug -- extensions: ', extensions
+    base_url = None
+    try:
+        """
+        # Master/complete list
+        filetypes_to_check = ['HY', 'ZPL', 'CAMDS', 'CAMHD', 'OBS']
+        extensions_to_check = ['.png', '.raw', '.mseed', '.mp4', '.mov']
+        """
+        #subfolder_filestypes = ['HYD', 'ZPL', 'OBS', 'CAMDS', 'CAMHD']
+        #subfolder_extensions = ['.mseed', '.png', '.raw', '.mp4', '.mov']
+        # Set filetypes and extensions to check.
+        if filetypes is None:
+            filetypes_to_check = rds_get_supported_folder_types()
+            #filetypes_to_check = ['CAMDS']
+            #filetypes_to_check = ['HY', 'ZPL', 'CAMDS', 'CAMHD', 'OBS']
+        else:
+            filetypes_to_check = filetypes
+
+        if extensions is None:
+            extensions_to_check = get_valid_extensions()
+            #extensions_to_check = ['.png']
+            #extensions_to_check = ['.png', '.raw', '.mseed', '.mp4', '.mov']
+        else:
+            extensions_to_check = extensions
+
+        #print '\n debug -- extensions being checked: ', extensions_to_check
+        # base_url is used for exception messages only (timeout or connection errors)
         base_url = get_image_camera_store_url_base()
-        timeout, timeout_read = get_uframe_timeout_info()
-        r = requests.get(base_url, timeout=(timeout, timeout_read))
 
-        # Process returned content for links.
+        if debug:
+            print '\n\t debug ==========================================='
+            print '\n\t debug -- filetypes_to_check: ', filetypes_to_check
+            print '\n\t debug -- extensions_to_check: ', extensions_to_check
+        timeout, timeout_read = get_uframe_timeout_info()
+        extended_timeout_read = timeout_read * 10
+        r = requests.get(url, timeout=(timeout, extended_timeout_read))
+        if debug: print '\n debug -- r.status_code: ', r.status_code
         soup = BeautifulSoup(r.content, "html.parser")
         ss = soup.findAll('a')
-
-        """
-        # Get any data previously cached.
-        data_dict = {}
-        large_format_cache = cache.get('large_format')
-        if large_format_cache or large_format_cache is not None and 'error not in large_format_cache':
-            if debug: print '\n Some data already cached...'
-            data_dict = large_format_cache
-            if debug: print '\n len(data_dict): ', len(data_dict)
-        """
-        data_dict = {}
-
-        # Get the current date to use to check against the data server
-        current_year = datetime.utcnow().strftime('%Y')
-        current_month = datetime.utcnow().strftime('%m')
-        current_day = datetime.utcnow().strftime('%d')
-        if debug:
-            print '\n debug -- year: ', current_year
-            print '\n debug -- month: ', current_month
-            print '\n debug -- day: ', current_day
-
-
-        # Get root entry (either subsite or subsite-node).
-        ss_reduced = []
+        if debug: print '\n debug -- len(ss): ', len(ss)
+        #url_list = []
+        subfolders = []
+        file_list = []
         for s in ss:
             if 'href' in s.attrs:
-                len_href = len(s.attrs['href'])
-                if len_href == 9 or len_href == 15 or len_href == 28:
-                    ss_reduced.append(s)
-        ss_reduced.sort()
-        if debug: print '\n debug -- The root folder items: ', len(ss_reduced)
-        for s in ss_reduced:
-            #-----------------------------------------------
-            # Limit to those arrays identified in array_codes.
-            rd = s.attrs['href']
-            #process = False
-            if rd and len(rd) == 9 or len(rd) == 15:
-
-                # Verify in arrays to be processed, if not continue
-                if rd[0:2] not in array_codes:
+                if debug: print ' (1) s.attrs[href]: %r' % s.attrs['href']
+                if ';' in s.attrs['href'] or 'files' in s.attrs['href'] or '=' in s.attrs['href']:
+                    if debug: print '\n debug -- s.attrs[href] has ; or files or = ....so continue...'
                     continue
 
-                if len(rd) == 9:
-                    subsite = rd.rstrip('/')
-                    if debug: print '\n debug -- Subsite: ', subsite
-                else:
-                    platform = rd.rstrip('/')
-                    if debug: print '\n debug -- Platform: ', platform
+                if ';' not in s.attrs['href'] and 'files' not in s.attrs['href'] and '=' not in s.attrs['href']:
 
-                #if rd[0:2] in array_codes:
-                #    process = True
-            #if not process:
-            #    continue
-            #-----------------------------------------------
-            #- - - - - - - - - - - - - - - - - - - - - - -
-            # Level 1 - subsite processing
-            #- - - - - - - - - - - - - - - - - - - - - - -
-            if verbose or debug: print '\n\t---- Processing root element %s...' % rd
-            d_url = base_url + s.attrs['href']
-            subfolders, file_list = _get_subfolder_list(d_url,
-                                                        filetypes=subfolder_filestypes,
-                                                        extensions=subfolder_extensions)
-            if not subfolders:
-                continue
+                    # Is it a folder?
+                    if ('/' in s.attrs['href']) and ('./' not in s.attrs['href']):
+                        if debug:
+                            print '\n debug -- folder...'
+                            print '\n debug -- s.attrs[href]): ', s.attrs['href']
+                        subfolders.append(s.attrs['href'])
+                        if debug: print '\n debug -- After append to subfolders...'
 
-            #- - - - - - - - - - - - - - - - - - - - - - -
-            # Level 2 - node processing
-            #- - - - - - - - - - - - - - - - - - - - - - -
-            for item in subfolders:
-                # If not a possible reference designator node/, continue.
-                if len(item) != 6:
-                    continue
+                    # Process as a file...
+                    else:
+                        if debug: print '\n debug -- in the else branch...'
+                        working_attrs = (str(s.attrs['href']))[:]
+                        if debug: print '\n debug -- working_attrs: ', working_attrs
+                        if './' in working_attrs:
+                            working_attrs = working_attrs.replace('./', '')
+                            if debug: print '\t debug -- file (corrected): ', working_attrs
 
-                # Determine if item is a folder link or file
-                if debug_detail: print '\n\t debug -- item: ', item
-                if '/' not in item:
-                    if debug: print '\n\t debug -- item %s is not a folder.' % item
-                    continue
-
-                if verbose or debug: print '\t\t---- %s Processing item: %s...' % (rd, item)
-                subfolder_url = base_url + rd + item
-                if debug_detail: print '\t\t debug ---- subfolder_url: %s ' % subfolder_url
-                node_subfolders, node_file_list = _get_subfolder_list(subfolder_url,
-                                                                      filetypes=subfolder_filestypes,
-                                                                      extensions=subfolder_extensions)
-                if node_file_list:
-                    if debug_detail:
-                        print '\n debug -- ***** (node subfolder search) %s file_list(%d): %s' % \
-                        (item, len(node_file_list), node_file_list)
-
-                #- - - - - - - - - - - - - - - - - - - - - - -
-                # Level 3 - processing sensor information
-                #- - - - - - - - - - - - - - - - - - - - - - -
-                if node_subfolders:
-                    if debug_detail:
-                        print '\n\t debug -- (node subfolder search) %s subfolders(%d): %s' % \
-                          (item, len(node_subfolders), node_subfolders)
-
-                    for node_item in node_subfolders:
-                        #==================
-                        ok_to_go = False
-                        for check in filetypes_to_check:
-                            if check in node_item:
-                                ok_to_go = True
+                        if debug: print '\n debug -- filter by filetype...'
+                        # Filter by file type.
+                        good_filetype = False
+                        for filetype in filetypes_to_check:
+                            if debug: print '\n debug -- ****** Checking filetype: ', filetype
+                            if filetype in working_attrs:
+                                if debug: print '\n debug -- Good filetype: %s in %s' % (filetype, working_attrs)
+                                good_filetype = True
                                 break
-                        if not ok_to_go:
+                            else:
+                                if debug: print '\n Bad filetype %s in %s' % (filetype, working_attrs)
+                                continue
+                        if not good_filetype:
                             continue
-                        #================
-                        # https://rawdata.oceanobservatories.org/files/CE02SHBP/LJ01D/11-HYDBBA106/
-                        node_folder_url = subfolder_url + node_item
-                        if debug_detail: print '\n debug *** node_folder_url: ', node_folder_url
+                        if debug: print '\t debug -- Ok filetype: ', working_attrs
 
-                        # Define reference designator
-                        junk = node_folder_url.replace(base_url, '')
-                        junk = junk.rstrip('/')
-                        ref_des = str(junk.replace('/', '-'))
-                        if debug_detail: print '\n ====== ref_des: ', ref_des
+                        # Filter by file extension.
+                        for ext in extensions_to_check:
+                            #print '\n debug -- Checking ext %s...' % ext
+                            #print '\n s.attrs[href]: ', s.attrs['href']
+                            if ext in s.attrs['href']:
+                                if working_attrs not in file_list and working_attrs and working_attrs is not None:
+                                    file_list.append(working_attrs)
+                                    break
+        if debug_summary:
+            if file_list:
+                print '\n Returning a file list: ', file_list
+                print '\n Returning subfolders: ', subfolders
+        return subfolders, file_list
 
-                        # Process year/month/day subfolders...
-                        detail_subfolders, detail_file_list = _get_subfolder_list(node_folder_url,
-                                                                                  filetypes=subfolder_filestypes,
-                                                                                  extensions=subfolder_extensions)
-                        if debug_detail:
-                            if detail_file_list:
-                                print '\ndebug --*** (node detail_file_list search) %s file_list(%d): %s' % \
-                                    (item, len(detail_file_list), detail_file_list)
-                        if detail_subfolders:
-                            if debug_detail:
-                                print '\n\tdebug -- (node detail_subfolders search) %s subfolders(%d): %s' % \
-                                  (item, len(detail_subfolders), detail_subfolders)
-                                print '\ndebug -- detail_subfolders (years): ', detail_subfolders
-
-                            if ref_des not in data_dict:
-                                data_dict[ref_des] = {}
-
-                            # Process years (detail_subfolders is years)
-                            for year in detail_subfolders:
-                                #=======================================
-                                # Remove to process all years
-                                year_tmp = year.rstrip('/')
-                                if year_tmp not in years_processed:
-                                    continue
-                                if debug_detail: print '\n debug -- year_tmp: ', year_tmp
-                                #=======================================
-                                year_url = node_folder_url + year
-                                months_subfolders, months_file_list = _get_subfolder_list(year_url,
-                                                                                          filetypes=subfolder_filestypes,
-                                                                                          extensions=subfolder_extensions)
-                                if debug_detail: print '\n debug -- detail_subfolders (years): ', months_subfolders
-
-                                # Process months.
-                                if months_subfolders:
-                                    for month in months_subfolders:
-                                        month_url = year_url + month
-                                        days_subfolders, days_file_list = _get_subfolder_list(month_url,
-                                                                                              filetypes=subfolder_filestypes,
-                                                                                              extensions=subfolder_extensions)
-                                        if debug_detail: print '\n debug -- days_subfolders: ', days_subfolders
-
-                                        # Process days.
-                                        if days_subfolders:
-                                            _days_subfolders = [str(day.rstrip('/')) for day in days_subfolders]
-                                            if debug_detail: print '\n ref_des (regular): ', ref_des
-                                            # Add date to item
-                                            _year = year.rstrip('/')
-                                            _month = month.rstrip('/')
-                                            if _year not in data_dict[ref_des]:
-                                                data_dict[ref_des][_year] = {}
-                                            if _month not in data_dict[ref_des][_year]:
-                                                #data_dict[ref_des][_year][_month] = {}
-                                                data_dict[ref_des][_year][_month] = _days_subfolders
-
-        end = datetime.now()
-        if time:
-            print '\t-- End time:   ', end
-            print '\t-- Time to compile large format index: %s' % str(end - start)
-        if data_dict and data_dict is not None:
-            cache.delete('large_format_inx')
-            cache.set('large_format_inx', data_dict, timeout=get_cache_timeout())
-        result_keys = data_dict.keys()
-        result_keys.sort()
-        print '\n Number of items in large_format_inx cache(%d): %s' % (len(data_dict), result_keys)
-        if debug: print '\n debug -- Exit _compile_large_format_index...'
-        return data_dict
+    except ConnectionError:
+        message = 'ConnectionError getting data files for: %s' % url.replace(base_url, '/')
+        print '\t** %s' % message
+        return [], []
+    except Timeout:
+        message = 'Timeout getting data files, url: %s' % url.replace(base_url, '/')
+        print '\t** %s' % message
+        return [], []
     except Exception as err:
         message = str(err)
-        if debug: print '\n debug -- Exception _compile_large_format_index...', message
+        if debug: print '\n debug -- Exception _get_subfolder_list...', message
+        current_app.logger.info(message)
+        return [], []
+
+
+# Build out thumbnails for 'cam_images' and populate 'cam_images' cache.
+def _build_cam_images():
+    """ Create new thumbnail images based on large format index.
+    """
+    try:
+        print '\n-- Generating thumbnails for cam_images cache...'
+        data = _compile_cam_images()
+        if not data or data is None:
+            data = []
+        return data
+    except Exception as err:
+        message = str(err)
         current_app.logger.info(message)
         raise Exception(message)
 
 
-# Compile large format image information from raw data server. (Used in tasks.)
-def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
-    """ Get indexed information from server.
+def _get_server_cam_images():
+    """ Get cam images, if not cached retrieve cache and return results, else empty list or exception raised.
+    """
+    try:
+        cached = cache.get('cam_images')
+        if cached and cached is not None and 'error' not in cached:
+            data = cached
+        else:
+            data = _get_cam_images()
+            if data and data is not None and 'error' not in data:
+                cache.set('cam_images', data, timeout=get_cache_timeout())
+        if not data or data is None:
+            data = []
+        return data
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
 
-    [Under review] Optional arguments are for testing ONLY:
-        ref_des: Pass in a reference designator to only retrieve those results
-        date_str: Pass in a date string (yyyy-mm-dd) to only get data from a specific day
 
-    Example where png exists:
-    https://rawdata.oceanobservatories.org/files/RS01SBPS/PC01A/07-CAMDSC102/2016/05/27/RS01SBPS-PC01A-07-CAMDSC102_20160527T215459,693.png
+#===================================================================================
+# Compile OSMOI information from raw data server. (Used in tasks.)
+def _compile_rds_files_OSMOI():
+    """ Get indexed information from raw data server for OSMOI instruments only.
+
+    Example where data exists for non-standard folder structure of OSMOI data:
+    Deviations from standard folder structures:
+        1. Sensor folder does not contain port '##-OSMOIA101'
+        2. First subfolder is YYY_deployment rather than YY
+        3. Second subfolders are 'metadata' and 'results', not a list of months.
+        4. No days provided as subfolders.
+        5. File naming conventions in metadat and results folder differ in the same folder (i.e. not consistent)
+
+    https://rawdata.oceanobservatories.org/files/RS01SUM2/MJ01B/OSMOIA101/2014_deployment/metadata/
+    https://rawdata.oceanobservatories.org/files/RS01SUM2/MJ01B/OSMOIA101/2014_deployment/results/
+
+    File extensions: file extensions - '.jpg', '.pdf', '.xlsx'
+
+    Sample file lists:
+    ['OSMOIA101_20140902T143401_UTC_Image_ver_1-00.jpg',
+    'OSMOIA101_20140902T144932_UTC_Image_ver_1-00.jpg',
+    'OSMOIA101_20140902_UTC_Analytical_Methods_ver_1-00.pdf',
+    'OSMOIA101_20140902_UTC_Image_Catalog_ver_1-00.xlsx',
+    'OSMOIA101_20140902_UTC_Recovery_Notes_ver_1-00.pdf',
+    'OSMOIA101_20140909T034403_UTC_Image_ver_1-00.jpg',
+    'OSMOIA101_20150714T175226_UTC_Image_ver_1-00.jpg',
+    'OSMOIA101_20150714T175957_UTC_Image_ver_1-00.jpg']
+
+    ['OSMOIA101_20140902T143401_UTC_Image_ver_1-00.jpg',
+    'OSMOIA101_20140902T144932_UTC_Image_ver_1-00.jpg',
+    'OSMOIA101_20140909T034403_UTC_Image_ver_1-00.jpg',
+    'OSMOIA101_20150714T175226_UTC_Image_ver_1-00.jpg',
+    'OSMOIA101_20150714T175957_UTC_Image_ver_1-00.jpg']
 
     """
-    from ooiservices.app.uframe.common_tools import (rds_get_supported_sensor_types, get_valid_extensions)
+    from ooiservices.app.uframe.common_tools import (rds_get_supported_sensor_types_osmoi,
+                                                     get_extensions_by_sensor_type,
+                                                     rds_get_supported_platforms_osmoi)
     debug = False
     debug_trace = False
     debug_details = False
     verbose = False
     time = True
 
-    """
-    # Master/complete list
-    #filetypes_to_check = ['-HYD', '-OBS', '-CAMDS', '-CAMHD', '-ZPL']
-    #extensions_to_check = ['.mseed', '.png', '.mp4', '.mov', '.raw']
-    """
+    subfolder_level_1 = '_deployment'
+    subfolder_level_2 = ['metadata', 'results']
+    supported_platforms = rds_get_supported_platforms_osmoi()
 
     # Used during processing of various file extension values.
     url_root = get_image_camera_store_url_base().rstrip('/')
     if debug: print '\n TESTING --  url_root: ', url_root
 
-    # Filters to limit processing for initial release.
-    #array_codes = ['RS', 'CE']
-    #years_processed = ['2017', '2016']
-
-    # Initial release until data mining has UI target defined for sensor specific displays.
-    #filetypes_to_check = ['-ZPL', '-CAMDS' ]
-    #extensions_to_check = ['.png']
-
-    # Master/complete list
-    #array_codes = ['RS']
-    #array_codes = ['RS', 'CE']
+    # Filters to limit processing for OSMOI.
     array_codes = rds_get_supported_array_codes()
-    #years_processed = ['2017', '2016', '2015']
-    #years_processed = ['2017', '2016', '2015', '2014', '2013', '2012', '2011', '2010', '2009']
+    if 'RS' not in array_codes:
+        return {}
     years_processed = rds_get_supported_years()
-
-    #filetypes_to_check = ['-CAMDS', '-CAMHD']
-    filetypes_to_check = ['-HYD', '-OBS', '-CAMDS', '-CAMHD', '-ZPL']
-    #extensions_to_check = ['.png']
-    extensions_to_check = ['.mseed', '.png', '.mp4', '.mov', '.raw']
-    # Processing subfolders.
-    subfolder_filestypes = ['HYD', 'ZPL', 'OBS', 'CAMDS', 'CAMHD']
-    subfolder_extensions = ['.mseed', '.png', '.raw', '.mp4', '.mov']
-
-    filetypes_to_check = ['CAMDS']
-    extensions_to_check = ['.png']
-    filetypes_to_check = rds_get_supported_sensor_types()
-    extensions_to_check = get_valid_extensions()
+    filetypes_to_check = rds_get_supported_sensor_types_osmoi()
+    extensions_to_check = get_extensions_by_sensor_type('OSMOI')
     try:
-        if debug: print '\n debug -- Entered _compile_large_format_files...'
+        if debug: print '\n debug -- Entered _compile_rds_files_OSMOI...'
         if time:
-            print '\nCompiling large format files'
+            print '\n    Compiling OSMOI files from raw data server'
             print '\t-- Arrays processed: ', array_codes
             print '\t-- Years processed: ', years_processed
             print '\t-- Sensor types processed: ', filetypes_to_check
             print '\t-- Extensions checked: ', extensions_to_check
         start = datetime.now()
         if time: print '\t-- Start time: ', start
-
-        """
-        # Left over from prototype implementation, review and update or remove.
-        testing = False
-        test_year = None
-        test_month = None
-        test_day = None
-        if test_ref_des is not None and test_date_str is not None:
-            testing = True
-            # Get the date we're looking for
-            date = test_date_str.split('-')
-            test_year = date[0]
-            test_month = date[1]
-            test_day = date[2]
-        """
 
         # Get file link/information from image server.
         base_url = get_image_camera_store_url_base()
@@ -933,26 +894,7 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
         # Process returned content for links.
         soup = BeautifulSoup(r.content, "html.parser")
         ss = soup.findAll('a')
-
-        """
-        # Get any data previously cached.
         data_dict = {}
-        large_format_cache = cache.get('large_format')
-        if large_format_cache or large_format_cache is not None and 'error not in large_format_cache':
-            if debug: print '\n Some data already cached...'
-            data_dict = large_format_cache
-            if debug: print '\n len(data_dict): ', len(data_dict)
-        """
-        data_dict = {}
-
-        # Get the current date to use to check against the data server
-        current_year = datetime.utcnow().strftime('%Y')
-        current_month = datetime.utcnow().strftime('%m')
-        current_day = datetime.utcnow().strftime('%d')
-        if debug_trace:
-            print '\n debug -- year: ', current_year
-            print '\n debug -- month: ', current_month
-            print '\n debug -- day: ', current_day
 
         # Get root entry (either subsite or subsite-node).
         ss_reduced = []
@@ -971,10 +913,13 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
             if rd and len(rd) == 9 or len(rd) == 15:
                 if len(rd) == 9:
                     subsite = rd.rstrip('/')
-                    if debug_details: print '\n debug -- Subsite: ', subsite
+                    if debug_details: print ' debug -- Subsite: ', subsite
+                    if subsite not in supported_platforms:
+                        continue
                 else:
                     platform = rd.rstrip('/')
-                    if debug_details: print '\n debug -- Platform: ', platform
+                    if debug_details: print ' debug -- Platform: ', platform
+                    continue    # Do not process platforms at this time.
                 if rd[0:2] in array_codes:
                     process = True
             if not process:
@@ -988,19 +933,25 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
             if debug_trace:
                 print '\n debug -- subfolders(%d): %s' % (len(subfolders), subfolders)
 
-            if not subfolders:
+            if not subfolders or subfolders is None:
                 continue
 
-            # Level 2 - node processing
+            # Level 2 - Node processing
             if debug_details: print '\n debug -- Now walking subfolders...'
             for item in subfolders:
+
                 # Determine if item is a folder link or file
                 if debug_details: print '\n debug -- item: ', item
+                if len(item) != 6:
+                    if debug_details: print '-- debug -- item: %s not valid for processing.' % item
+                    continue
                 if '/' in item:
                     if verbose: print '\t\t---- %s Processing item: %s...' % (rd, item)
                     subfolder_url = base_url + rd + item
 
+                    if debug: print '\n debug -- subfolder_url: ', subfolder_url
                     node_subfolders, node_file_list = _get_subfolder_list(subfolder_url, None)
+                    if debug: print '\n debug -- After processing subfolder_url: ', subfolder_url
                     #node_subfolders, node_file_list = _get_subfolder_list(month_url,
                     #                                                      filetypes=subfolder_filestypes,
                     #                                                      extensions=subfolder_extensions)
@@ -1014,6 +965,7 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
                               (item, len(node_subfolders), node_subfolders)
 
                         for node_item in node_subfolders:
+
                             #==================
                             ok_to_go = False
                             for check in filetypes_to_check:
@@ -1036,8 +988,407 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
                                       (item, len(detail_subfolders), detail_subfolders)
                                 if debug_details: print '\ndebug -- detail_subfolders (years): ', detail_subfolders
 
+                                # OSMOI folder structure rule check
+                                found_level_1_folder = False
+                                folder_year = None
+                                for folder_check in detail_subfolders:
+                                    str_folder_check = str(folder_check)
+                                    if debug: print '\n debug -- Processing folder_check: %r' % folder_check
+                                    if subfolder_level_1 in str_folder_check:
+                                        if debug:
+                                            print '\n debug -- found level 1 key...'
+                                            print '\n debug -- \'%s\' in \'%s\'...' % (subfolder_level_1, str_folder_check)
+                                        folder_year = str_folder_check.replace(subfolder_level_1, '')
+                                        folder_year = folder_year.rstrip('/')
+                                        if debug: print '\n debug -- Folder year from foldername: ', folder_year
+                                        found_level_1_folder = True
+                                    else:
+                                        if debug:
+                                            print '\n debug -- Did not find level 1 key...'
+                                            print '\n debug -- Unable to locate %s in detail_subfolders: %s, continue' % \
+                                                        (subfolder_level_1, detail_subfolders)
+                                        continue
+
+                                if not found_level_1_folder or folder_year is None:
+                                    if debug: print '\n debug -- Unable to locate level key or folder year is None; continue'
+                                    continue
+
+                                # Process years (detail_subfolders is years)
+                                for year in detail_subfolders:      # 'YYYY_deployment'
+
+                                    if debug:
+                                        print '\n debug -- Processing \'YYYY_deployment\' in detail_subfolders...%r' % year
+                                    # OSMOI folder structure rule check
+                                    if subfolder_level_1 not in year:
+                                        if debug: print '\n debug -- Unable to locate %s in year: %s, continue' % \
+                                                        (subfolder_level_1, year)
+                                        continue
+                                    if debug: print '\n debug -- before replace.....'
+                                    folder_year = year.replace(subfolder_level_1,'')
+                                    if debug: print '\n debug -- Folder year from foldername: ', folder_year
+
+                                    #=======================================
+                                    # Remove to process all years
+                                    #year_tmp = year.rstrip('/')
+                                    year_tmp = folder_year.rstrip('/')
+                                    if debug_details: print '\n debug -- year_tmp: ', year_tmp
+                                    if year_tmp not in years_processed:
+                                        continue
+                                    #=======================================
+                                    year_url = node_folder_url + year
+                                    if debug_details: print '\n debug -- year_url: ', year_url
+                                    months_subfolders, months_file_list = _get_subfolder_list(year_url, None)
+                                    if debug_details:
+                                        print '\n debug -- detail_subfolders (months): ', months_subfolders
+                                        print '\n debug =============================================================='
+                                    if months_subfolders:
+                                        for month in months_subfolders:
+                                            if debug_details: print '\n debug -- month: %r' % month
+                                            month_url = year_url + month
+                                            if debug_details: print '\n debug -- month_url: ', month_url
+                                            days_subfolders, days_file_list = _get_subfolder_list(month_url,
+                                                                                                  filetypes=filetypes_to_check,
+                                                                                                  extensions=extensions_to_check) #None)
+
+                                            if not days_file_list:
+                                                continue
+
+                                            for filename in days_file_list:
+                                                if debug: print '\n debug ------------ Processing filename: ', filename
+                                                sensor, _dt, junk = filename.split('_', 2)
+                                                node = item.rstrip('/')
+
+                                                # If port not provided, added placeholder for reference designator.
+                                                #if len(sensor) == 9 and '-' not in sensor:
+                                                #    sensor = 'XX-' + sensor
+                                                ref_des = '-'.join([subsite, node, sensor])
+
+                                                # Process file datetime based on extension.
+                                                ext = None
+                                                for extension in extensions_to_check:
+                                                    if extension in filename:
+                                                        ext = extension
+                                                        break
+                                                if ext == '.jpg':
+                                                    dt = _dt + '.000Z'
+                                                elif ext in ['.pdf', '.xlsx']:
+                                                    dt = _dt + 'T000000.000Z'
+                                                if debug_details:
+                                                    print '\n debug -- days_subfolders: ', days_subfolders
+                                                    print '\n debug -- days_file_list(%d): %s' % (len(days_file_list),days_file_list)
+                                                    print '\n debug -- Subsite: ', subsite
+                                                    print '\n debug -- Node: ', node
+                                                    print '\n debug -- ref_des: ', ref_des
+                                                    print '\n debug -- sensor: ', sensor
+                                                    print '\n debug -- _dt: ', _dt
+                                                    print '\n debug -- dt: ', dt
+                                                    print '\n debug -- junk: ', junk
+                                                    print '\n debug -- tmp_year: ', year_tmp
+
+                                                _year = _dt[0:4]
+                                                _month = _dt[4:6]
+                                                _day = _dt[6:8]
+
+                                                _url = urllib.unquote(month_url).decode('utf8')
+                                                if url_root in _url:
+                                                    _url = _url.replace(url_root, '')
+                                                    _url = _url.replace(filename, '')
+
+                                                tmp_item = {'url': _url,
+                                                        'filename': filename,
+                                                        'datetime': dt,
+                                                        'ext': ext}
+
+                                                # Add extension type
+                                                #if debug_details: print '\n after create tmp_item: ', tmp_item
+
+                                                if ref_des not in data_dict:
+                                                    data_dict[str(ref_des)] = {}
+                                                if _year not in data_dict[ref_des]:
+                                                    data_dict[ref_des][_year] = {}
+                                                if _month not in data_dict[ref_des][_year]:
+                                                    data_dict[ref_des][_year][_month] = {}
+                                                if _day not in data_dict[ref_des][_year][_month]:
+                                                    data_dict[ref_des][_year][_month][_day] = []
+
+                                                # Add date to item
+                                                _year = _year.rstrip('/')
+                                                _month = _month.rstrip('/')
+                                                _day = _day.rstrip('/')
+                                                tmp_item['date'] = '-'.join([_year, _month, _day])
+                                                tmp_item['rd'] = ref_des
+
+                                                # If build on previous cache, then not a duplicate item.
+                                                data_dict[ref_des][_year][_month][_day].append(tmp_item)
+
+
+                else:
+                    if debug: print '\n debug -- item %s is not a folder.' % item
+                    continue
+
+        end = datetime.now()
+        if time:
+            print '\t-- End time:   ', end
+            print '\t-- Time to compile rds files OSMOI: %s' % str(end - start)
+        if data_dict and data_dict is not None:
+            if verbose: print '\n delete large_format cache...'
+            cache.delete('rds_OSMOI')
+            if verbose: print '\n set large_format cache...'
+            cache.set('rds_OSMOI', data_dict, timeout=get_cache_timeout())
+        result_keys = data_dict.keys()
+        result_keys.sort()
+        print '\n\t-- Number of items in large_format cache(%d): %s' % (len(data_dict), result_keys)
+        if debug: print '\n debug -- Exit _compile_rds_files_OSMOI...'
+        return data_dict
+    except Exception as err:
+        message = str(err)
+        if debug: print '\n debug -- Exception _compile_rds_files_OSMOI: ', message
+        current_app.logger.info(message)
+        raise Exception(message)
+
+#=====================================================================================
+#
+# Partitioned caches.
+#
+#=====================================================================================
+def drive_rds_cache_builds():
+    """
+    Replace _compile_large_format_files with this function.
+    Rename this function to be '_compile_large_format_files' to prevent tasks.py changes. (maybe)
+    """
+    from ooiservices.app.uframe.common_tools import (get_valid_extensions,
+                                                     get_extensions_by_sensor_type,
+                                                     get_supported_folder_types,
+                                                     rds_get_all_supported_sensor_types,
+                                                     rds_get_nonstandard_sensor_types)
+    debug = False
+    data_dict = {}
+    try:
+        if debug: print 'Entered drive_rds_cache_builds...'
+        array_codes = rds_get_supported_array_codes()
+        years_processed = rds_get_supported_years()
+        filetypes_to_check = rds_get_all_supported_sensor_types()
+        all_valid_extensions = get_valid_extensions()
+
+        print '\n Complete cache builds for raw data server in progress...'
+        print '\t-- Arrays processed: ', array_codes
+        print '\t-- Years processed: ', years_processed
+        print '\t-- Sensor types processed: ', filetypes_to_check
+        print '\t-- All valid extensions: ', all_valid_extensions
+
+        for sensor_type in filetypes_to_check:
+            if debug: print '\n -- Processing sensor type \'%s\'' % sensor_type
+
+            # Verify sensor_type provided one of all supported sensor types, otherwise continue.
+            if sensor_type not in rds_get_all_supported_sensor_types():
+                message = 'Sensor type (%s) processing requested, but not currently enabled.' % sensor_type
+                current_app.logger.info(message)
+                continue
+
+            # # Get harvested data. (OSMOI)
+            if sensor_type in rds_get_nonstandard_sensor_types():
+                if sensor_type == 'OSMOI':
+                    data_dict = _compile_rds_files_OSMOI()
+                    if data_dict and data_dict is not None:
+                        if debug: print '\n\t-- Successfully processed %s cache.' % sensor_type.replace('-','')
+                    else:
+                        if debug: print '\n\t** No %s cache produced.' % sensor_type.replace('-','')
+
+            # Get harvested data. (CAMDS, ZPL, HYD)
+            else:
+                extensions_to_check = get_extensions_by_sensor_type(sensor_type)
+                supported_folder_types = get_supported_folder_types(sensor_type)
+                data_dict = _compile_rds_caches_by_sensor(array_codes,
+                                              years_processed,
+                                              [sensor_type], #filetypes_to_check,
+                                              extensions_to_check,
+                                              supported_folder_types)
+                if data_dict and data_dict is not None:
+                    if debug: print '\n\t-- Successfully processed %s cache.' % sensor_type.replace('-','')
+                else:
+                    if debug: print '\n\t** No %s cache produced.' % sensor_type.replace('-','')
+
+        return data_dict
+    except Exception as err:
+        message = str(err)
+        if debug: print '\n debug -- Exception drive_rds_cache_builds...', message
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+# Compile rds caches by sensor from raw data server..
+def _compile_rds_caches_by_sensor(array_codes, years_processed, filetypes_to_check, extensions_to_check,
+                                  subfolder_filestypes):
+    """ Get indexed information from server.
+
+    [Under review] Optional arguments are for testing ONLY:
+        ref_des: Pass in a reference designator to only retrieve those results
+        date_str: Pass in a date string (yyyy-mm-dd) to only get data from a specific day
+
+    Example where png exists:
+    https://rawdata.oceanobservatories.org/files/RS01SBPS/PC01A/07-CAMDSC102/2016/05/27/RS01SBPS-PC01A-07-CAMDSC102_20160527T215459,693.png
+
+    """
+    debug = False
+    debug_trace = False
+    debug_details = False
+    verbose = False
+    time = True
+
+    # Used during processing of various file extension values.
+    url_root = get_image_camera_store_url_base().rstrip('/')
+    if debug: print '\n TESTING --  url_root: ', url_root
+
+    sensor_type = filetypes_to_check
+    if sensor_type == ['-ZPL'] and 'CE' not in array_codes:
+        return {}
+    if sensor_type == ['-OBS'] and 'RS' not in array_codes:
+        return {}
+
+    # Lock down broad band hydrophone years processed temporarily.
+    if sensor_type == ['-HYD']:
+        years_processed = ['2016']
+
+    # Lock down ZPL years processed temporarily.
+    if sensor_type == ['-ZPL']:
+        years_processed = ['2016', '2017']
+
+    try:
+        if debug: print '\n debug -- Entered _compile_rds_caches_by_sensor...'
+        if time:
+            print '\n    Compiling cache for ', filetypes_to_check[0].replace('-','')
+            print '\t-- Arrays processed: ', array_codes
+            print '\t-- Years processed: ', years_processed
+            print '\t-- Sensor types processed: ', filetypes_to_check
+            print '\t-- Extensions checked: ', extensions_to_check
+            print '\t-- Subfolder filetypes to check: ', subfolder_filestypes
+
+        if verbose: print '\n Determine cache destination...'
+        cache_destination = get_target_cache_by_sensor_type(sensor_type)
+
+        start = datetime.now()
+        if time: print '\t-- Start time: ', start
+
+        # Get file link/information from image server.
+        base_url = get_image_camera_store_url_base()
+        timeout, timeout_read = get_uframe_timeout_info()
+        r = requests.get(base_url, timeout=(timeout, timeout_read))
+
+        # Process returned content for links.
+        soup = BeautifulSoup(r.content, "html.parser")
+        ss = soup.findAll('a')
+        data_dict = {}
+
+        # Get the current date to use to check against the data server
+        current_year = datetime.utcnow().strftime('%Y')
+        current_month = datetime.utcnow().strftime('%m')
+        current_day = datetime.utcnow().strftime('%d')
+
+        # Get root entry (either subsite or subsite-node).
+        ss_reduced = []
+        for s in ss:
+            if 'href' in s.attrs:
+                len_href = len(s.attrs['href'])
+                if len_href == 9 or len_href == 15 or len_href == 28:
+                    ss_reduced.append(s)
+
+        if debug_trace: print '\n debug -- The root folder items: ', len(ss_reduced)
+        for s in ss_reduced:
+            #-----------------------------------------------
+            # Limit to those arrays identified in array_codes.
+            rd = s.attrs['href']
+            process = False
+            if rd and len(rd) == 9 or len(rd) == 15:
+                if len(rd) == 9:
+                    subsite = rd.rstrip('/')
+                    if debug_details: print ' debug -- Subsite: ', subsite
+                else:
+                    platform = rd.rstrip('/')
+                    if debug_details: print ' debug -- Platform: ', platform
+                    continue    # Not processing platforms at this time.
+
+                if rd[0:2] in array_codes:
+                    process = True
+            if not process:
+                continue
+            #-----------------------------------------------
+
+            # Level 1 - subsite processing
+            if verbose or debug_trace: print '\n\t---- Processing root element %s...' % rd
+            d_url = base_url+s.attrs['href']
+            subfolders, file_list = _get_subfolder_list(d_url,
+                                                        filetypes=subfolder_filestypes,
+                                                        extensions=extensions_to_check)
+            if debug_trace:
+                print '\n debug -- subfolders(%d): %s' % (len(subfolders), subfolders)
+
+            if not subfolders or subfolders is None:
+                continue
+
+            # Level 2 - node processing
+            if debug_details: print '\n debug -- Now walking subfolders...'
+            for item in subfolders:
+
+                if len(item) != 6:
+                    if debug_trace: print '-- debug_trace -- Skip processing folder: ', item
+                    continue
+                # Determine if item is a folder link or file
+                if debug_details: print '\n debug -- item: ', item
+                if '/' in item:
+                    if verbose: print '\t\t---- %s Processing item: %s...' % (rd, item)
+                    subfolder_url = base_url + rd + item
+
+                    #node_subfolders, node_file_list = _get_subfolder_list(subfolder_url, None)
+                    node_subfolders, node_file_list = _get_subfolder_list(subfolder_url,
+                                                                          filetypes=subfolder_filestypes,
+                                                                          extensions=extensions_to_check)
+                    if node_file_list:
+                        if debug_details: print '\n debug -- ***** (node subfolder search) %s file_list(%d): %s' % \
+                            (item, len(node_file_list), node_file_list)
+
+                    if not node_subfolders or node_subfolders is None:
+                        continue
+
+                    # Level 3 - processing sensor information
+                    if node_subfolders:
+                        if debug_details: print '\n\t debug -- (node subfolder search) %s subfolders(%d): %s' % \
+                              (item, len(node_subfolders), node_subfolders)
+
+                        if debug: print '\n Checking subfolders against list filetypes_to_check: ', filetypes_to_check
+                        for node_item in node_subfolders:
+                            if debug_details: print '\n\t Check node_item: ', node_item
+                            #==================
+                            ok_to_go = False
+                            for check in filetypes_to_check:
+                                if debug_details: print '\n\t Check: ', check
+                                if check in node_item:
+                                    ok_to_go = True
+                                    break
+
+                            if not ok_to_go:
+                                if debug: print '\t -- node_item %s does not contain filetypes_to_check (%s), cont' % \
+                                                (node_item, filetypes_to_check)
+                                continue
+                            #================
+
+                            node_folder_url = subfolder_url + node_item
+                            if debug_details: print '\n debug *** node_folder_url: ', node_folder_url
+                            detail_subfolders, detail_file_list = _get_subfolder_list(node_folder_url,
+                                                                                      filetypes=subfolder_filestypes,
+                                                                                      extensions=extensions_to_check)
+
+                            if detail_file_list:
+                                if debug_details: print '\ndebug --*** (node detail_file_list search) %s file_list(%d): %s' % \
+                                    (item, len(detail_file_list), detail_file_list)
+                            if detail_subfolders:
+                                if debug_details: print '\n\tdebug -- (node detail_subfolders search) %s subfolders(%d): %s' % \
+                                      (item, len(detail_subfolders), detail_subfolders)
+                                if debug_details: print '\ndebug -- detail_subfolders (years): ', detail_subfolders
+
+
                                 # Process years (detail_subfolders is years)
                                 for year in detail_subfolders:
+
                                     #=======================================
                                     # Remove to process all years
                                     year_tmp = year.rstrip('/')
@@ -1047,20 +1398,29 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
                                     #=======================================
                                     year_url = node_folder_url + year
                                     if debug_details: print '\n debug -- year_url: ', year_url
-                                    months_subfolders, months_file_list = _get_subfolder_list(year_url, None)
-                                    if debug_details: print '\n debug -- detail_subfolders (years): ', months_subfolders
-
+                                    months_subfolders, months_file_list = _get_subfolder_list(year_url,
+                                                                                              filetypes=subfolder_filestypes,
+                                                                                              extensions=extensions_to_check)
+                                    if debug_details:
+                                        print '\n debug -- detail_subfolders (months): ', months_subfolders
+                                        print '\n debug =============================================================='
                                     if months_subfolders:
                                         for month in months_subfolders:
+                                            if debug_details: print '\n debug -- month: %r' % month
                                             month_url = year_url + month
                                             if debug_details: print '\n debug -- month_url: ', month_url
-                                            days_subfolders, days_file_list = _get_subfolder_list(month_url, None)
+                                            days_subfolders, days_file_list = _get_subfolder_list(month_url,
+                                                                                                  filetypes=subfolder_filestypes,
+                                                                          extensions=extensions_to_check)
                                             if debug_details: print '\n debug -- days_subfolders: ', days_subfolders
+
                                             if days_subfolders:
                                                 for day in days_subfolders:
                                                     day_url = month_url + day
                                                     if debug_details: print '\n debug -- day_url: ', day_url
-                                                    day_folders, day_file_list = _get_subfolder_list(day_url, None)
+                                                    day_folders, day_file_list = _get_subfolder_list(day_url,
+                                                                                                     filetypes=subfolder_filestypes,
+                                                                          extensions=extensions_to_check)
                                                     if day_file_list and day_file_list is not None:
                                                         if debug_details:
                                                             print '\n debug -- day_file_list(%d): %s' % \
@@ -1072,7 +1432,13 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
                                                         u'RS01SBPS-PC01A-07-CAMDSC102_20161129T001539,005Z.png',
                                                         u'RS01SBPS-PC01A-07-CAMDSC102_20161129T004534,523Z.png', ...]
                                                         """
+                                                        """
+                                                        PREST (.dat)
+                                                        PRESTB102_10.33.8.9_2101_20170810T2306_UTC.dat
+                                                        """
+                                                        if debug_details: print '\n debug -- Processing day_file_list...'
                                                         for filename in day_file_list:
+                                                            if debug_details: print '\n debug -- Process file: ', filename
                                                             if not filename or filename is None:
                                                                 print '\n bad filename in day_file_list...%r' % filename
                                                                 continue
@@ -1084,6 +1450,7 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
                                                                     ext = extension
                                                                     break
                                                             if ext is not None:
+                                                                if debug_details: print '\n debug -- Processing ext: %r' % ext
                                                                 if ext == '.png':
                                                                     is_hy_file = False
                                                                     if '--YDH-' in filename:
@@ -1235,12 +1602,9 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
                                                                     if debug_details: print '\n ref_des (regular): ', ref_des
 
                                                                 # Add date to item
-                                                                if debug_details: print '\n debug: year: ', year
-                                                                _year = year.rstrip('/') #[:-1]
-                                                                if debug_details: print '\n debug: month: ', month
-                                                                _month = month.rstrip('/') #[:-1]
-                                                                if debug_details: print '\n debug: day: ', day
-                                                                _day = day.rstrip('/') #[:-1]
+                                                                _year = year.rstrip('/')
+                                                                _month = month.rstrip('/')
+                                                                _day = day.rstrip('/')
                                                                 item['date'] = '-'.join([_year, _month, _day])
                                                                 if debug_details:
                                                                     print '\n debug -- _year: ', _year
@@ -1270,175 +1634,214 @@ def _compile_large_format_files(): #test_ref_des=None, test_date_str=None):
         end = datetime.now()
         if time:
             print '\n\t-- End time:   ', end
-            print '\t-- Time to compile large format files: %s' % str(end - start)
+            print '\t-- Time to compile information for cache: %s' % str(end - start)
+
+        # Populate cache for sensor type.
         if data_dict and data_dict is not None:
-            if verbose: print '\n delete large_format cache...'
-            cache.delete('large_format')
-            if verbose: print '\n set large_format cache...'
-            cache.set('large_format', data_dict, timeout=get_cache_timeout())
+            if verbose: print '\n delete ', cache_destination
+            cache.delete(cache_destination)
+            if verbose: print '\n set ', cache_destination
+            cache.set(cache_destination, data_dict, timeout=get_cache_timeout())
+
         result_keys = data_dict.keys()
         result_keys.sort()
-        print '\n\t-- Number of items in large_format cache(%d): %s' % (len(data_dict), result_keys)
-        if debug: print '\n debug -- Exit _compile_large_format_files...'
+        print '\n\t-- Number of items in %s cache(%d): %s' % (cache_destination, len(result_keys), result_keys)
+        if debug: print '\n debug -- Exit _compile_rds_caches_by_sensor...'
         return data_dict
     except Exception as err:
         message = str(err)
-        if debug: print '\n debug -- Exception _compile_large_format_files...', message
+        if debug: print '\n debug -- Exception _compile_rds_caches_by_sensor...', message
         current_app.logger.info(message)
         raise Exception(message)
 
 
-# Get subfolder contents and file_list for folder.
-def _get_subfolder_list(url, filetypes=None, extensions=None):
-    """ Get url folder content and process the list of data links.
+def get_target_cache_by_sensor_type(sensor_type):
+    debug = False
+    try:
+        cache_root = 'rds_'
+        sensor = sensor_type[0].replace('-','')
+        target_cache = cache_root + sensor
+        if debug: print '\n Cache file for sensor type \'%s\': %s' % (sensor_type[0], target_cache)
+        return target_cache
+
+    except Exception as err:
+        message = str(err)
+        if debug: print '\n debug -- Exception get_target_cache_by_sensor_type...', message
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_cache_by_sensor_type(sensor_type):
+    debug = False
+    try:
+        cache_name = get_target_cache_by_sensor_type([sensor_type])
+        if debug: print '\n Cache name for sensor type \'%s\': %s' % (cache_name, cache_name)
+        cache_data = cache.get(cache_name)
+        if not cache_data:
+            message = 'The cache (%s) for sensor type \'%s\' is not available.' % (cache_name, sensor_type)
+            current_app.logger.info(message)
+            return None
+        return cache_data
+
+    except Exception as err:
+        message = str(err)
+        if debug: print '\n debug -- Exception get_cache_by_sensor_type...', message
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_index_from_cache(sensor_type):
+    debug = False
+    try:
+        cache_name = get_target_cache_by_sensor_type([sensor_type])
+        if debug: print '\n Cache name for sensor type \'%s\': %s' % (cache_name, cache_name)
+        cache_data = cache.get(cache_name)
+        if not cache_data:
+            message = 'The cache (%s)for sensor type \'%s\' is not available.' % (cache_name, sensor_type)
+            raise Exception(message)
+        cache_index = process_index_for_cache(cache_data)
+        return cache_index
+
+    except Exception as err:
+        message = str(err)
+        if debug: print '\n debug -- Exception get_index_from_cache...', message
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def process_index_for_cache(cache_data):
+    import json
+    debug = False
+    index_data = {}
+    try:
+        if not cache_data or cache_data is None:
+            message = 'No cache data provided for processing the index.'
+            raise Exception(message)
+
+        cache_keys = cache_data.keys()
+        for key in cache_keys:
+            index_data[key] = {}
+
+        for rd in cache_keys:
+            years = cache_data[rd].keys()
+            if not years:
+                continue
+            for year in years:
+                index_data[rd][year] = {}
+                months = cache_data[rd][year].keys()
+                if not months:
+                    continue
+                for month in months:
+                    days = cache_data[rd][year][month].keys()
+                    index_data[rd][year][month] = days
+
+        if debug: print '\n cache_index: \n', json.dumps(index_data, indent=4, sort_keys=True)
+        return index_data
+
+    except Exception as err:
+        message = str(err)
+        if debug: print '\n debug -- Exception process_index_for_cache...', message
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def build_complete_rds_cache_index():
+    """
+    Builds and populates large_format_inx cache from partitioned cache for sensors.
+    """
+    from ooiservices.app.uframe.common_tools import (rds_get_all_supported_sensor_types)
+    debug = False
+    index_dict = {}
+    try:
+        if debug: print 'Entered build_complete_rds_cache_index...'
+        filetypes_to_check = rds_get_all_supported_sensor_types()
+        if debug: print '\t-- Sensor types processed: ', filetypes_to_check
+        for sensor_type in filetypes_to_check:
+            if debug: print '\n Processing sensor type %s' % sensor_type
+            # Get harvested data.
+            cache_index = get_index_from_cache(sensor_type)
+            if not cache_index or cache_index is None:
+                continue
+            cache_keys = cache_index.keys()
+            if debug: print '\n debug cache_keys(%d): %s ' % (len(cache_keys), cache_keys)
+            for rd in cache_keys:
+                if debug: print '\n debug -- Adding rd: ', rd
+                if rd not in index_dict:
+                    index_dict[rd] = cache_index[rd]
+        if index_dict and index_dict is not None:
+            cache.delete('large_format_inx')
+            cache.set('large_format_inx', index_dict, timeout=get_cache_timeout())
+        if debug: print '\n debug -- References designators: ', index_dict.keys()
+        return index_dict
+    except Exception as err:
+        message = str(err)
+        if debug: print '\n debug -- Exception build_complete_rds_cache_index...', message
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_cache_by_rd(rd=None):
+    """
+    Get partitioned cache for a specific reference designator.
     """
     debug = False
-    from ooiservices.app.uframe.common_tools import rds_get_supported_folder_types, get_valid_extensions
-
-    if debug:
-        print '\n\t debug -- Entered _get_subfolder_list...'
-        print '\n\t debug -- filetypes: ', filetypes
-        print '\n\t debug -- extensions: ', extensions
-    base_url = None
     try:
-        """
-        # Master/complete list
-        filetypes_to_check = ['HY', 'ZPL', 'CAMDS', 'CAMHD', 'OBS']
-        extensions_to_check = ['.png', '.raw', '.mseed', '.mp4', '.mov']
-        """
-        #subfolder_filestypes = ['HYD', 'ZPL', 'OBS', 'CAMDS', 'CAMHD']
-        #subfolder_extensions = ['.mseed', '.png', '.raw', '.mp4', '.mov']
-        # Set filetypes and extensions to check.
-        if filetypes is None:
-            filetypes_to_check = rds_get_supported_folder_types()
-            #filetypes_to_check = ['CAMDS']
-            #filetypes_to_check = ['HY', 'ZPL', 'CAMDS', 'CAMHD', 'OBS']
-        else:
-            filetypes_to_check = filetypes
+        if debug: print '\n debug -- Entered get_cache_by_rd...'
+        # If rd is None, return None.
+        if not rd or rd is None:
+            message = '*** Request to return cache with empty or null rd parameter.'
+            current_app.logger.info(message)
+            return None
 
-        if extensions is None:
-            extensions_to_check = get_valid_extensions()
-            #extensions_to_check = ['.png']
-            #extensions_to_check = ['.png', '.raw', '.mseed', '.mp4', '.mov']
-        else:
-            extensions_to_check = extensions
+        sensor_type = get_sensor_type_from_rd(rd)
+        cache_data = get_cache_by_sensor_type(sensor_type)
+        if debug: print '\n debug -- Exit get_cache_by_rd...'
+        return cache_data
 
-        # base_url is used for exception messages only (timeout or connection errors)
-        base_url = get_image_camera_store_url_base()
-
-        if debug:
-            print '\n\t debug ==========================================='
-            print '\n\t debug -- filetypes_to_check: ', filetypes_to_check
-            print '\n\t debug -- extensions_to_check: ', extensions_to_check
-        timeout, timeout_read = get_uframe_timeout_info()
-        extended_timeout_read = timeout_read * 10
-        r = requests.get(url, timeout=(timeout, extended_timeout_read))
-        if debug: print '\n debug -- r.status_code: ', r.status_code
-        soup = BeautifulSoup(r.content, "html.parser")
-        ss = soup.findAll('a')
-        if debug: print '\n debug -- len(ss): ', len(ss)
-        #url_list = []
-        subfolders = []
-        file_list = []
-        for s in ss:
-            if 'href' in s.attrs:
-                if debug: print ' (1) s.attrs[href]: %r' % s.attrs['href']
-                if ';' in s.attrs['href'] or 'files' in s.attrs['href'] or '=' in s.attrs['href']:
-                    if debug: print '\n debug -- s.attrs[href] has ; or files or = ....so continue...'
-                    continue
-
-                if ';' not in s.attrs['href'] and 'files' not in s.attrs['href'] and '=' not in s.attrs['href']:
-
-                    # Is it a folder?
-                    if ('/' in s.attrs['href']) and ('./' not in s.attrs['href']):
-                        if debug:
-                            print '\n debug -- folder...'
-                            print '\n debug -- s.attrs[href]): ', s.attrs['href']
-                        subfolders.append(s.attrs['href'])
-                        if debug: print '\n debug -- After append to subfolders...'
-
-                    # Process as a file...
-                    else:
-                        if debug: print '\n debug -- in the else branch...'
-                        working_attrs = (str(s.attrs['href']))[:]
-                        if debug: print '\n debug -- working_attrs: ', working_attrs
-                        if './' in working_attrs:
-                            working_attrs = working_attrs.replace('./', '')
-                            if debug: print '\t debug -- file (corrected): ', working_attrs
-
-                        if debug: print '\n debug -- filter by filetype...'
-                        # Filter by file type.
-                        good_filetype = False
-                        for filetype in filetypes_to_check:
-                            if debug: print '\n debug -- ****** Checking filetype: ', filetype
-                            if filetype in working_attrs:
-                                if debug: print '\n debug -- Good filetype: %s in %s' % (filetype, working_attrs)
-                                good_filetype = True
-                                break
-                            else:
-                                if debug: print '\n Bad filetype %s in %s' % (filetype, working_attrs)
-                                continue
-                        if not good_filetype:
-                            continue
-                        if debug: print '\t debug -- Ok filetype: ', working_attrs
-
-                        # Filter by file extension.
-                        for ext in extensions_to_check:
-                            if ext in s.attrs['href']:
-                                if working_attrs not in file_list and working_attrs and working_attrs is not None:
-                                    file_list.append(working_attrs)
-                                    break
-        if debug:
-            if file_list:
-                print '\n Returning a file list: ', file_list
-                print '\n Returning subfolders: ', subfolders
-        return subfolders, file_list
-
-    except ConnectionError:
-        message = 'ConnectionError getting data files for: %s' % url.replace(base_url, '/')
-        print '\t** %s' % message
-        return [], []
-    except Timeout:
-        message = 'Timeout getting data files, url: %s' % url.replace(base_url, '/')
-        print '\t** %s' % message
-        return [], []
     except Exception as err:
         message = str(err)
-        if debug: print '\n debug -- Exception _get_subfolder_list...', message
-        current_app.logger.info(message)
-        return [], []
-
-
-# Build out thumbnails for 'cam_images' and populate 'cam_images' cache.
-def _build_cam_images():
-    """ Create new thumbnail images based on large format index.
-    """
-    try:
-        print '\n-- Generating thumbnails for cam_images cache...'
-        data = _compile_cam_images()
-        if not data or data is None:
-            data = []
-        return data
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
         raise Exception(message)
 
 
-def _get_server_cam_images():
-    """ Get cam images, if not cached retrieve cache and return results, else empty list or exception raised.
-    """
+def get_sensor_type_from_rd(rd):
+    from ooiservices.app.uframe.common_tools import (rds_get_all_supported_sensor_types)
+    debug = False
     try:
-        cached = cache.get('cam_images')
-        if cached and cached is not None and 'error' not in cached:
-            data = cached
-        else:
-            data = _get_cam_images()
-            if data and data is not None and 'error' not in data:
-                cache.set('cam_images', data, timeout=get_cache_timeout())
-        if not data or data is None:
-            data = []
-        return data
+        # If rd is None, return None.
+        if not rd or rd is None:
+            message = '*** Request to return cache with empty or null rd parameter.'
+            current_app.logger.info(message)
+            return None
+
+        # Get sensor type from reference designator.
+        if len(rd) <= 14:
+            message = '*** Incomplete sensor reference designator provided (%s).' % rd
+            current_app.logger.info(message)
+            return None
+
+        subsite, node, sensor = rd.split('-', 2)
+        if debug:
+            print '\n debug -- Processing rd: %s for sensor type.' % rd
+            print '\n debug -- sensor to check: %s' % sensor
+
+        valid_sensor_types = rds_get_all_supported_sensor_types()
+        sensor_type = None
+        for valid_type in valid_sensor_types:
+            if '-' in valid_type:
+                check = valid_type.replace('-','')
+            else:
+                check = valid_type
+            if debug: print '\n debug -- looking for check: %s in sensor: %s' % (check, sensor)
+            if check in sensor:
+                sensor_type = check
+                break
+
+        if sensor_type is None:
+            message = '*** Unable to determine sensor type from reference designator (%s).' % rd
+            current_app.logger.info(message)
+            return None
+
+        return sensor_type
     except Exception as err:
         message = str(err)
         raise Exception(message)

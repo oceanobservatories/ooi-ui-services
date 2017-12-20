@@ -83,6 +83,27 @@ def build_toc_reference_designators():
 
 
 # Support only route.
+# (large_format) Build 'large_format' files.
+# curl -H "Content-Type: application/json" -X GET localhost:4000/uframe/build_large_format_files
+@api.route('/build_large_format_files', methods=['GET'])
+def build_uframe_large_format_files():
+    """ Index all various types of large format files from data server. Returns true for success.
+    """
+    from ooiservices.app.uframe.image_tools import _compile_large_format_files
+    success = False
+    try:
+        data = _compile_large_format_files()
+        if data and data is not None:
+            success = True
+        print '\n Number of items in large_format files(%d): %s' % (len(data.keys()), data.keys())
+        return jsonify({'build_large_format_files': success}), 200
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
+
+
+# Support only route.
 # (large_format_inx) Returns list of reference designators from raw data server index.
 # curl -H "Content-Type: application/json" -X GET localhost:4000/uframe/build_large_format_index
 @api.route('/build_large_format_index', methods=['GET'])
@@ -96,26 +117,6 @@ def build_large_format_index():
         current_app.logger.info(message)
         return bad_request(message)
 
-
-# Support only route.
-# (large_format) Build 'large_format' files.
-# curl -H "Content-Type: application/json" -X GET localhost:4000/uframe/build_large_format_files
-@api.route('/build_large_format_files', methods=['GET'])
-def build_uframe_large_format_files():
-    """ Index all various types of large format files from data server. Returns true for success.
-    """
-    from ooiservices.app.uframe.image_tools import _compile_large_format_files
-    success = False
-    try:
-        data = _compile_large_format_files()
-        if data and data is not None:
-            success = True
-        print '\n Number of items in large_format files(%d): %s' % (len(data), data.keys())
-        return jsonify({'build_large_format_files': success}), 200
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        return bad_request(message)
 
 # Support only route.
 # (cam_images) Build thumbnails for camera images.

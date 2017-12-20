@@ -27,7 +27,7 @@ from ooiservices.app.main.errors import bad_request
 from ooiservices.app.uframe.media_tools import (_get_media_for_rd, validate_year_month, validate_year,
                                                  _get_base_url_thumbnails, _get_base_url_raw_data,
                                                  get_large_format_index)
-from ooiservices.app.uframe.common_tools import (rds_get_sensor_type, rds_get_valid_sensor_types,
+from ooiservices.app.uframe.common_tools import (rds_get_sensor_type, rds_get_all_supported_sensor_types,
                                                  rds_get_instrument_info_url_root, rds_get_instrument_site_url_root)
 from ooiservices.app.uframe.media_tools import (get_large_format_for_rd, get_large_format_index_for_rd,
                                                 get_file_list_for_large_format_data, fetch_media_for_rd)
@@ -164,12 +164,24 @@ def media_get_instruments_by_sensor_type(sensor_type):
     {
       "instruments": []
     }
+    http://localhost:4000/uframe/media/get_instrument_list/OSMOI
+    {
+      "instruments": [
+        "RS01SUM2-MJ01B-OSMOIA101",
+        "RS03ASHS-MJ03B-OSMOIA301"
+      ]
+    }
     """
     try:
         # Get valid sensor types.
-        valid_sensor_types = rds_get_valid_sensor_types()
-        if sensor_type not in valid_sensor_types:
-            message = 'Invalid sensor type (%s), not one of valid sensor types: %s' % (sensor_type, valid_sensor_types)
+        #valid_sensor_types = rds_get_valid_sensor_types()
+        valid_sensor_types = rds_get_all_supported_sensor_types()
+        msg_valid_sensors = []
+        for s in valid_sensor_types:
+            msg_valid_sensors.append(s.replace('-',''))
+        if sensor_type not in valid_sensor_types and sensor_type not in msg_valid_sensors:
+
+            message = 'Invalid sensor type (%s), not one of valid sensor types: %s' % (sensor_type, msg_valid_sensors)
             raise Exception(message)
 
         # Get large format index and retrieve instrument list available.
@@ -234,11 +246,18 @@ def media_get_instrument_information_link_by_sensor_type(sensor_type):
     {
       "instrument_information_url": "http://oceanobservatories.org/instrument-class/obsbb/"
     }
+    http://localhost:4000/uframe/media/get_instrument_information_link/OSMOI
+    {
+      "instrument_information_url": "http://oceanobservatories.org/instrument-series/osmoia/"
+    }
     """
     try:
         # Get valid sensor types.
-        valid_sensor_types = rds_get_valid_sensor_types()
-        if sensor_type not in valid_sensor_types:
+        valid_sensor_types = rds_get_all_supported_sensor_types()
+        msg_valid_sensors = []
+        for s in valid_sensor_types:
+            msg_valid_sensors.append(s.replace('-',''))
+        if sensor_type not in valid_sensor_types and sensor_type not in msg_valid_sensors:
             message = 'Invalid sensor type (%s), not one of valid sensor types: %s' % (sensor_type, valid_sensor_types)
             raise Exception(message)
 
@@ -248,6 +267,10 @@ def media_get_instrument_information_link_by_sensor_type(sensor_type):
         if sensor_type and sensor_type is not None:
             if sensor_type == 'ZPL':
                 suffix = 'zpls'
+            elif sensor_type == 'OBS':
+                suffix = 'obsbb'
+            elif sensor_type == 'OSMOI':
+                suffix = 'osmoia'
             else:
                 suffix = sensor_type.lower()
             url = root_url + suffix
@@ -288,6 +311,10 @@ def media_get_instrument_site_link(rd):
     http://localhost:4000/uframe/media/get_instrument_site_link/CE04OSBP-LJ01C-11-HYDBBA105
     {
       "instrument_site_url": "http://oceanobservatories.org/site/ce04osbp"
+    }
+    http://localhost:4000/uframe/media/get_instrument_site_link/RS01SUM2-MJ01B-OSMOIA101
+    {
+      "instrument_site_url": "http://oceanobservatories.org/site/rs01sum2"
     }
     """
     try:
@@ -341,6 +368,10 @@ def media_get_instrument_rds_link(rd):
     http://localhost:4000/uframe/media/get_instrument_rds_link/CE04OSBP-LJ01C-11-HYDBBA105
     {
       "instrument_rds_url": "https://rawdata.oceanobservatories.org/files/CE04OSBP/LJ01C/11-HYDBBA105"
+    }
+    http://localhost:4000/uframe/media/get_instrument_rds_link/RS01SUM2-MJ01B-OSMOIA101
+    {
+      "instrument_rds_url": "https://rawdata.oceanobservatories.org/files/RS01SUM2/MJ01B/OSMOIA101"
     }
     """
     try:
@@ -420,6 +451,15 @@ def media_get_data_bounds(rd):
       "bounds": {
         "first_date": "2009-12-07",
         "last_date": "2016-10-03"
+      }
+    }
+
+    Request: http://localhost:4000/uframe/media/get_data_bounds/RS01SUM2-MJ01B-OSMOIA101
+    Response:
+    {
+      "bounds": {
+        "first_date": "2014-09-02",
+        "last_date": "2015-07-14"
       }
     }
     """
@@ -636,6 +676,24 @@ def media_get_da_map_for_rd(rd):
         }
       . . .
     }
+
+    Request: http://localhost:4000/uframe/media/RS01SUM2-MJ01B-OSMOIA101/da/map
+    Response:
+    {
+      "map": {
+        "2014": {
+          "09": [
+            2,
+            9
+          ]
+        },
+        "2015": {
+          "07": [
+            14
+          ]
+        }
+      }
+    }
     """
     try:
         # Get large format index data..
@@ -704,6 +762,16 @@ def media_get_da_for_rd_years(rd):
         2017
       ]
     }
+
+    Request:  http://localhost:4000/uframe/media/RS01SUM2-MJ01B-OSMOIA101/da/years
+    Response:
+    {
+      "years": [
+        2014,
+        2015
+      ]
+    }
+
     """
     try:
         # Get large format index data..
@@ -767,6 +835,13 @@ def media_get_da_for_rd_year(rd, year):
         12
       ]
     }
+    http://localhost:4000/uframe/media/RS01SUM2-MJ01B-OSMOIA101/da/2014
+    {
+      "months": [
+        9
+      ]
+    }
+
     """
     try:
         _year = validate_year(year)
@@ -848,6 +923,14 @@ def media_get_da_for_rd_years_months(rd, year, month):
     }
     http://localhost:4000/uframe/media/RS01SBPS-PC01A-08-HYDBBA103/da/2015/10
     http://localhost:4000/uframe/media/RS01SBPS-PC01A-08-HYDBBA103/da/2015/09
+
+    http://localhost:4000/uframe/media/RS01SUM2-MJ01B-OSMOIA101/da/2014/09
+    {
+      "days": [
+        2,
+        9
+      ]
+    }
     """
     result = None
     try:
@@ -1125,6 +1208,7 @@ def media_get_files_for_rd_year(rd, year):
 '''
 
 
+# Modified.
 # Get data for reference designator and specific date (yyyy-mm-dd).
 @api.route('/media/<string:rd>/date/<string:data_date>', methods=['GET'])
 def media_get_day(rd, data_date):
@@ -1176,17 +1260,61 @@ def media_get_day(rd, data_date):
         . . .
       ]
     }
+
+    Request: http://localhost:4000/uframe/media/RS01SUM2-MJ01B-OSMOIA101/date/2014-09-02
+    {
+      "media": [
+        {
+          "baseUrl": "/api/uframe/get_cam_image/",
+          "data_link": null,
+          "date": "2014-09-02",
+          "datetime": "20140902T143401.000Z",
+          "filename": "OSMOIA101_20140902T143401_UTC_Image_ver_1-00.jpg",
+          "reference_designator": "RS01SUM2-MJ01B-OSMOIA101",
+          "thumbnail": "ooiservices/cam_images/imageNotFound404.png",
+          "url": "https://rawdata.oceanobservatories.org/files/RS01SUM2/MJ01B/OSMOIA101/2014_deployment/metadata/OSMOIA101_20140902T143401_UTC_Image_ver_1-00.jpg"
+        },
+        {
+          "baseUrl": "/api/uframe/get_cam_image/",
+          "data_link": null,
+          "date": "2014-09-02",
+          "datetime": "20140902T144932.000Z",
+          "filename": "OSMOIA101_20140902T144932_UTC_Image_ver_1-00.jpg",
+          "reference_designator": "RS01SUM2-MJ01B-OSMOIA101",
+          "thumbnail": "ooiservices/cam_images/imageNotFound404.png",
+          "url": "https://rawdata.oceanobservatories.org/files/RS01SUM2/MJ01B/OSMOIA101/2014_deployment/metadata/OSMOIA101_20140902T144932_UTC_Image_ver_1-00.jpg"
+        },
+        {
+          "baseUrl": "/api/uframe/get_cam_image/",
+          "data_link": "https://rawdata.oceanobservatories.org/files/RS01SUM2/MJ01B/OSMOIA101/2014_deployment/metadata/OSMOIA101_20140902_UTC_Analytical_Methods_ver_1-00.pdf",
+          "date": "2014-09-02",
+          "datetime": "20140902T000000.000Z",
+          "filename": "OSMOIA101_20140902_UTC_Analytical_Methods_ver_1-00.pdf",
+          "reference_designator": "RS01SUM2-MJ01B-OSMOIA101",
+          "thumbnail": "ooiservices/cam_images/imageNotFound404.png",
+          "url": null
+        }
+      ]
+    }
     """
+    import json
+    debug = False
     try:
         # Get large format cache
         data = get_large_format_for_rd(rd)
 
+        if data is None:
+            message = 'No cache data available for reference designator: %s' % rd
+            raise Exception(message)
+
         # Get date from large format cache.
         data_slice = _get_data_day(data, data_date)
+        if debug: print '\n debug -- data_slice: %s' % json.dumps(data_slice, indent=4, sort_keys=True)
 
         # Determine sensor type using reference designator.
         sensor_type = rds_get_sensor_type(rd)
         result = get_file_list_for_large_format_data(data_slice, rd, sensor_type)
+        if debug: print '\n debug -- result: %s' % json.dumps(result, indent=4, sort_keys=True)
 
         # For data segment, process for media output.
         media = fetch_media_for_rd(result, rd)
@@ -1519,7 +1647,76 @@ def media_get_data_slice_with_dates(rd, start, end):
         }
       ]
     }
+
+    Request: http://localhost:4000/uframe/media/RS01SUM2-MJ01B-05-CAMDSB103/range/2015-12-07/2016-01-05
+    Response:
+    {
+      "media": [
+        {
+          "baseUrl": "/api/uframe/get_cam_image/",
+          "data_link": null,
+          "date": "2014-09-02",
+          "datetime": "20140902T143401.000Z",
+          "filename": "OSMOIA101_20140902T143401_UTC_Image_ver_1-00.jpg",
+          "reference_designator": "RS01SUM2-MJ01B-OSMOIA101",
+          "thumbnail": "ooiservices/cam_images/imageNotFound404.png",
+          "url": "https://rawdata.oceanobservatories.org/files/RS01SUM2/MJ01B/OSMOIA101/2014_deployment/metadata/OSMOIA101_20140902T143401_UTC_Image_ver_1-00.jpg"
+        },
+        {
+          "baseUrl": "/api/uframe/get_cam_image/",
+          "data_link": null,
+          "date": "2014-09-02",
+          "datetime": "20140902T144932.000Z",
+          "filename": "OSMOIA101_20140902T144932_UTC_Image_ver_1-00.jpg",
+          "reference_designator": "RS01SUM2-MJ01B-OSMOIA101",
+          "thumbnail": "ooiservices/cam_images/imageNotFound404.png",
+          "url": "https://rawdata.oceanobservatories.org/files/RS01SUM2/MJ01B/OSMOIA101/2014_deployment/metadata/OSMOIA101_20140902T144932_UTC_Image_ver_1-00.jpg"
+        },
+        {
+          "baseUrl": "/api/uframe/get_cam_image/",
+          "data_link": "https://rawdata.oceanobservatories.org/files/RS01SUM2/MJ01B/OSMOIA101/2014_deployment/metadata/OSMOIA101_20140902_UTC_Analytical_Methods_ver_1-00.pdf",
+          "date": "2014-09-02",
+          "datetime": "20140902T000000.000Z",
+          "filename": "OSMOIA101_20140902_UTC_Analytical_Methods_ver_1-00.pdf",
+          "reference_designator": "RS01SUM2-MJ01B-OSMOIA101",
+          "thumbnail": "ooiservices/cam_images/imageNotFound404.png",
+          "url": null
+        },
+        {
+          "baseUrl": "/api/uframe/get_cam_image/",
+          "data_link": null,
+          "date": "2014-09-09",
+          "datetime": "20140909T034403.000Z",
+          "filename": "OSMOIA101_20140909T034403_UTC_Image_ver_1-00.jpg",
+          "reference_designator": "RS01SUM2-MJ01B-OSMOIA101",
+          "thumbnail": "ooiservices/cam_images/imageNotFound404.png",
+          "url": "https://rawdata.oceanobservatories.org/files/RS01SUM2/MJ01B/OSMOIA101/2014_deployment/metadata/OSMOIA101_20140909T034403_UTC_Image_ver_1-00.jpg"
+        },
+        {
+          "baseUrl": "/api/uframe/get_cam_image/",
+          "data_link": null,
+          "date": "2015-07-14",
+          "datetime": "20150714T175226.000Z",
+          "filename": "OSMOIA101_20150714T175226_UTC_Image_ver_1-00.jpg",
+          "reference_designator": "RS01SUM2-MJ01B-OSMOIA101",
+          "thumbnail": "ooiservices/cam_images/imageNotFound404.png",
+          "url": "https://rawdata.oceanobservatories.org/files/RS01SUM2/MJ01B/OSMOIA101/2014_deployment/metadata/OSMOIA101_20150714T175226_UTC_Image_ver_1-00.jpg"
+        },
+        {
+          "baseUrl": "/api/uframe/get_cam_image/",
+          "data_link": null,
+          "date": "2015-07-14",
+          "datetime": "20150714T175957.000Z",
+          "filename": "OSMOIA101_20150714T175957_UTC_Image_ver_1-00.jpg",
+          "reference_designator": "RS01SUM2-MJ01B-OSMOIA101",
+          "thumbnail": "ooiservices/cam_images/imageNotFound404.png",
+          "url": "https://rawdata.oceanobservatories.org/files/RS01SUM2/MJ01B/OSMOIA101/2014_deployment/metadata/OSMOIA101_20150714T175957_UTC_Image_ver_1-00.jpg"
+        }
+      ]
+    }
     """
+    debug = False
+    import json
     try:
         # Validate start and end format (yyyy-mm-dd, bwe: '2015-12-07', '2016-01-05')
         data = get_large_format_for_rd(rd)
@@ -1527,10 +1724,12 @@ def media_get_data_slice_with_dates(rd, start, end):
             message = 'Data is not defined (empty or null), unable to fulfill get_data_slice request.'
             return bad_request(message)
         data_slice = get_range_data(data, start, end)
+        if debug: print '\n debug -- data_slice: ', json.dumps(data_slice, indent=4, sort_keys=True)
 
         # Determine sensor type using reference designator.
         sensor_type = rds_get_sensor_type(rd)
         result = get_file_list_for_large_format_data(data_slice, rd, sensor_type)
+        if debug: print '\n debug -- result: ', json.dumps(result, indent=4, sort_keys=True)
 
         # for data segment, process for media output.
         media = fetch_media_for_rd(result, rd)

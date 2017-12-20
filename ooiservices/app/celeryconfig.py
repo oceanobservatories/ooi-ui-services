@@ -9,7 +9,7 @@ CELERYBEAT_SCHEDULE = {
         },
     'get-large-format-index-every': {
         'task': 'tasks.compile_large_format_index',
-        'schedule': crontab(minute=15, hour=2),
+        'schedule': crontab(minute=15, hour=6),
         'args': (),
         },
     'get-cam-images-every': {

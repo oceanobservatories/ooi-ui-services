@@ -23,6 +23,28 @@ from ooiservices.app.uframe.image_tools import _get_server_cam_images
 @api.route('/get_cam_images', methods=['GET'])
 def get_uframe_cam_images():
     """ Get list of all available images.
+    {
+      "cam_images": [
+        {
+          "baseUrl": "/api/uframe/get_cam_image/",
+          "date": "2016-11-30",
+          "datetime": "20161130T224535.573Z",
+          "filename": "RS01SBPS-PC01A-07-CAMDSC102_20161130T224535_573Z_thumbnail.png",
+          "reference_designator": "RS01SBPS-PC01A-07-CAMDSC102",
+          "thumbnail": "ooiservices/cam_images/RS01SBPS-PC01A-07-CAMDSC102_20161130T224535_573Z_thumbnail.png",
+          "url": "https://rawdata.oceanobservatories.org/files//RS01SBPS/PC01A/07-CAMDSC102/2016/11/30/RS01SBPS-PC01A-07-CAMDSC102_20161130T224535,573Z.png"
+        },
+        {
+          "baseUrl": "/api/uframe/get_cam_image/",
+          "date": "2016-08-12",
+          "datetime": "20160812T235025.625Z",
+          "filename": "CE02SHBP-MJ01C-08-CAMDSB107_20160812T235025_625_thumbnail.png",
+          "reference_designator": "CE02SHBP-MJ01C-08-CAMDSB107",
+          "thumbnail": "ooiservices/cam_images/CE02SHBP-MJ01C-08-CAMDSB107_20160812T235025_625_thumbnail.png",
+          "url": "https://rawdata.oceanobservatories.org/files//CE02SHBP/MJ01C/08-CAMDSB107/2016/08/12/CE02SHBP-MJ01C-08-CAMDSB107_20160812T235025,625.png"
+        },
+        ...
+    }
     """
     try:
         data = _get_server_cam_images()
