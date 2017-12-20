@@ -867,7 +867,7 @@ def get_svg_plot(instrument, stream):
                 # Plot types 'stacked' or '3d_scatter' add more data. (Review sparse data presentation.)
                 if plot_layout == 'stacked':
                     if 'ZPLSC' in request_rd:
-                        number_of_data_points = 4000    # use 4000
+                        number_of_data_points = 8000    # use 4000
                     else:
                         number_of_data_points = 2000
                     #number_of_data_points = 1000    # debug
