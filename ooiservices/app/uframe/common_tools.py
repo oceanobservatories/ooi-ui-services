@@ -254,17 +254,10 @@ def rds_get_supported_array_codes():
     result = ['CE', 'RS']
     return result
 
-
-def get_linx_support_array_codes():
-    # Used when processing data from raw data server for large format index.
-    result = ['CE', 'RS']
-    return result
-
-
 # Get years where data is provided on the raw data server.
 def rds_get_supported_years():
     # The years where data is provided on the raw data server.
-    result = ['2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017']
+    result = ['2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018']
     return result
 
 
@@ -907,7 +900,7 @@ def get_rd(data):
     """
     Process uframe reference designator dictionary to get reference designator.
     """
-    debug = True
+    debug = False
     rd = None
     try:
         if debug: print '\n debug -- Entered common_tools::get_rd: ', data

@@ -510,7 +510,7 @@ def get_assets_from_uframe():
         start = dt.datetime.now()
         if time: print '\t-- Start time: ', start
         uframe_url, timeout, timeout_read = get_uframe_assets_info()
-        timeout_extended = timeout_read * 3
+        timeout_extended = timeout_read * 5
         url = '/'.join([uframe_url, get_assets_url_base()])
         response = requests.get(url, timeout=(timeout, timeout_extended))
         end = dt.datetime.now()
@@ -556,15 +556,12 @@ def uframe_get_asset_by_id(id):
         return asset
     except ConnectionError:
         message = 'ConnectionError getting asset (id: %d) from uframe.' % id
-        #current_app.logger.info(message)
         raise Exception(message)
     except Timeout:
         message = 'Timeout getting asset (id: %d) from uframe.' % id
-        #current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
         message = str(err)
-        #current_app.logger.info(message)
         raise Exception(message)
 
 
@@ -593,15 +590,12 @@ def uframe_get_asset_by_uid(uid):
         return asset
     except ConnectionError:
         message = 'ConnectionError getting asset (uid %s) from uframe.' % uid
-        current_app.logger.info(message)
         raise Exception(message)
     except Timeout:
         message = 'Timeout getting asset (uid %s) from uframe.' % uid
-        current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
         message = str(err)
-        current_app.logger.info(message)
         raise Exception(message)
 
 
@@ -624,15 +618,12 @@ def uframe_get_remote_resource_by_id(id):
         return remote_resource
     except ConnectionError:
         message = 'ConnectionError getting remote resource (uid %d) from uframe.' % id
-        current_app.logger.info(message)
         raise Exception(message)
     except Timeout:
         message = 'Timeout getting remote resource (uid %d) from uframe.' % id
-        current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
         message = str(err)
-        current_app.logger.info(message)
         raise Exception(message)
 
 
@@ -669,11 +660,9 @@ def uframe_update_asset(asset):
 
     except ConnectionError:
         message = 'Error: ConnectionError during uframe asset update(id: %d)' % id
-        current_app.logger.info(message)
         raise Exception(message)
     except Timeout:
         message = 'Error: Timeout during during uframe asset update (id: %d)' % id
-        current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
         message = str(err)
@@ -735,11 +724,9 @@ def uframe_create_asset(asset):
         return new_asset
     except ConnectionError:
         message = 'Error: ConnectionError during uframe asset create.'
-        current_app.logger.info(message)
         raise Exception(message)
     except Timeout:
         message = 'Error: Timeout during during uframe asset create.'
-        current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
         message = str(err)
@@ -1261,7 +1248,7 @@ def get_deployments_digest_by_uid(uid, editPhase='ALL'):
     http://host:port/asset/deployments/N00123?editphase=ALL (default)
     http://host:port/asset/deployments/N00123?editphase=OPERATIONAL
 
-    http://uframe-test.intra.oceanobservatories.org:12587/asset/deployments/ATAPL-71403-00002
+    http://host:port/asset/deployments/ATAPL-71403-00002
     [
         {
           "startTime" : 1408863300000,
@@ -1286,7 +1273,7 @@ def get_deployments_digest_by_uid(uid, editPhase='ALL'):
         },
 
         Note, to get the asset for the uid, use:
-        http://uframe-test.intra.oceanobservatories.org:12587/asset?uid=ATAPL-71403-00002
+        http://host:port/asset?uid=ATAPL-71403-00002
     """
     check = False
     try:
@@ -1306,11 +1293,9 @@ def get_deployments_digest_by_uid(uid, editPhase='ALL'):
         return digest
     except ConnectionError:
         message = 'Error: ConnectionError getting deployments for asset uid \'%s\'.' % uid
-        current_app.logger.info(message)
         raise Exception(message)
     except Timeout:
         message = 'Error: Timeout getting deployments for asset uid \'%s\'.' % uid
-        current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
         message = str(err)

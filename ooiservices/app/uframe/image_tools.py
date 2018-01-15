@@ -870,6 +870,8 @@ def _compile_rds_files_OSMOI():
 
     # Filters to limit processing for OSMOI.
     array_codes = rds_get_supported_array_codes()
+
+    # Currently OSMOI sensors only available for cabled array.
     if 'RS' not in array_codes:
         return {}
     years_processed = rds_get_supported_years()
@@ -1245,14 +1247,15 @@ def _compile_rds_caches_by_sensor(array_codes, years_processed, filetypes_to_che
     if sensor_type == ['-OBS'] and 'RS' not in array_codes:
         return {}
 
+    """
     # Lock down broad band hydrophone years processed temporarily.
     if sensor_type == ['-HYD']:
-        years_processed = ['2016']
+        years_processed = ['2017', '2018']
 
     # Lock down ZPL years processed temporarily.
     if sensor_type == ['-ZPL']:
-        years_processed = ['2016', '2017']
-
+        years_processed = ['2016', '2017', '2018']
+    """
     try:
         if debug: print '\n debug -- Entered _compile_rds_caches_by_sensor...'
         if time:
@@ -1409,18 +1412,20 @@ def _compile_rds_caches_by_sensor(array_codes, years_processed, filetypes_to_che
                                             if debug_details: print '\n debug -- month: %r' % month
                                             month_url = year_url + month
                                             if debug_details: print '\n debug -- month_url: ', month_url
-                                            days_subfolders, days_file_list = _get_subfolder_list(month_url,
-                                                                                                  filetypes=subfolder_filestypes,
-                                                                          extensions=extensions_to_check)
+                                            days_subfolders, days_file_list = \
+                                                _get_subfolder_list(month_url,
+                                                                    filetypes=subfolder_filestypes,
+                                                                    extensions=extensions_to_check)
                                             if debug_details: print '\n debug -- days_subfolders: ', days_subfolders
 
                                             if days_subfolders:
                                                 for day in days_subfolders:
                                                     day_url = month_url + day
                                                     if debug_details: print '\n debug -- day_url: ', day_url
-                                                    day_folders, day_file_list = _get_subfolder_list(day_url,
-                                                                                                     filetypes=subfolder_filestypes,
-                                                                          extensions=extensions_to_check)
+                                                    day_folders, day_file_list = \
+                                                        _get_subfolder_list(day_url,
+                                                                            filetypes=subfolder_filestypes,
+                                                                            extensions=extensions_to_check)
                                                     if day_file_list and day_file_list is not None:
                                                         if debug_details:
                                                             print '\n debug -- day_file_list(%d): %s' % \
@@ -1436,7 +1441,9 @@ def _compile_rds_caches_by_sensor(array_codes, years_processed, filetypes_to_che
                                                         PREST (.dat)
                                                         PRESTB102_10.33.8.9_2101_20170810T2306_UTC.dat
                                                         """
+
                                                         if debug_details: print '\n debug -- Processing day_file_list...'
+                                                        # Process files for a given day.
                                                         for filename in day_file_list:
                                                             if debug_details: print '\n debug -- Process file: ', filename
                                                             if not filename or filename is None:
@@ -1449,6 +1456,8 @@ def _compile_rds_caches_by_sensor(array_codes, years_processed, filetypes_to_che
                                                                 if extension in filename:
                                                                     ext = extension
                                                                     break
+
+                                                            # Get datetime by ext type, from filename.
                                                             if ext is not None:
                                                                 if debug_details: print '\n debug -- Processing ext: %r' % ext
                                                                 if ext == '.png':
@@ -1559,7 +1568,8 @@ def _compile_rds_caches_by_sensor(array_codes, years_processed, filetypes_to_che
                                                                     continue
 
                                                                 #=========================================
-                                                                # Create item
+                                                                # Create item dictionary with elements:
+                                                                #   'url','filename','datetime','ext','rd', date
                                                                 if debug_details:
                                                                     print '\n before create item...'
                                                                     print '\n before create item, filename: ', filename
@@ -1574,10 +1584,11 @@ def _compile_rds_caches_by_sensor(array_codes, years_processed, filetypes_to_che
                                                                         'filename': urllib.unquote(filename).decode('utf8'),
                                                                         'datetime': dt.replace('-', '').replace(':', '')}
                                                                 if debug_details: print '\n after create item: ', item
-                                                                # Add extension type
+
+                                                                # Add extension type to item
                                                                 item['ext'] = ext
 
-                                                                # Reference designator
+                                                                # Add reference designator to item
                                                                 #ref_des = ref[0]
                                                                 if (ext == '.png' or ext == '.raw') \
                                                                         and filename_rd is not None:
@@ -1625,6 +1636,8 @@ def _compile_rds_caches_by_sensor(array_codes, years_processed, filetypes_to_che
                                                                     data_dict[ref_des][_year][_month][_day] = []
 
                                                                 # If build on previous cache, then not a duplicate item.
+                                                                # Check item[datetime] for item before appending.
+                                                                # If datetime, verify if same ext - if so, continue.
                                                                 data_dict[ref_des][_year][_month][_day].append(item)
                                                                 if debug_details: print '\n debug -- Step 6...'
                 else:
@@ -1659,11 +1672,10 @@ def get_target_cache_by_sensor_type(sensor_type):
     debug = False
     try:
         cache_root = 'rds_'
-        sensor = sensor_type[0].replace('-','')
+        sensor = sensor_type[0].replace('-', '')
         target_cache = cache_root + sensor
         if debug: print '\n Cache file for sensor type \'%s\': %s' % (sensor_type[0], target_cache)
         return target_cache
-
     except Exception as err:
         message = str(err)
         if debug: print '\n debug -- Exception get_target_cache_by_sensor_type...', message
@@ -1682,7 +1694,6 @@ def get_cache_by_sensor_type(sensor_type):
             current_app.logger.info(message)
             return None
         return cache_data
-
     except Exception as err:
         message = str(err)
         if debug: print '\n debug -- Exception get_cache_by_sensor_type...', message
@@ -1697,15 +1708,14 @@ def get_index_from_cache(sensor_type):
         if debug: print '\n Cache name for sensor type \'%s\': %s' % (cache_name, cache_name)
         cache_data = cache.get(cache_name)
         if not cache_data:
-            message = 'The cache (%s)for sensor type \'%s\' is not available.' % (cache_name, sensor_type)
-            raise Exception(message)
+            message = 'Warning: The cache (%s) for sensor type \'%s\' is not available.' % (cache_name, sensor_type)
+            current_app.logger.info(message)
+            return None
         cache_index = process_index_for_cache(cache_data)
         return cache_index
-
     except Exception as err:
         message = str(err)
         if debug: print '\n debug -- Exception get_index_from_cache...', message
-        current_app.logger.info(message)
         raise Exception(message)
 
 
@@ -1747,7 +1757,7 @@ def process_index_for_cache(cache_data):
 
 def build_complete_rds_cache_index():
     """
-    Builds and populates large_format_inx cache from partitioned cache for sensors.
+    Builds and populates large_format_inx cache from partitioned sensor caches.
     """
     from ooiservices.app.uframe.common_tools import (rds_get_all_supported_sensor_types)
     debug = False
@@ -1792,12 +1802,10 @@ def get_cache_by_rd(rd=None):
             message = '*** Request to return cache with empty or null rd parameter.'
             current_app.logger.info(message)
             return None
-
         sensor_type = get_sensor_type_from_rd(rd)
         cache_data = get_cache_by_sensor_type(sensor_type)
         if debug: print '\n debug -- Exit get_cache_by_rd...'
         return cache_data
-
     except Exception as err:
         message = str(err)
         raise Exception(message)

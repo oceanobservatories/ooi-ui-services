@@ -9,7 +9,7 @@ def get_help_data_12591():
     help_data = [
                     {
                         'root': 'ingest',
-                        'endpoint': 'ingestrequest',
+                        'endpoint': 'ingest/cal',
                         'method': 'POST',
                         'permission_required': True,
                         'description': 'Create a calibration ingest record.',
@@ -18,32 +18,36 @@ def get_help_data_12591():
                             [
                                 { 'name': 'username',
                                   'type': 'str',
-                                  'description': 'The username responsible for the ingestrequest.',
+                                  'description': 'The username responsible for the calibration ingestion request.',
                                   'valid_values': None,
                                   'default': None
                                 },
-                                { 'name': 'options',
-                                  'type': 'dict',
-                                  'description': 'Ingestion options: \'csvName\'(str), \'maxNumFiles\'(int), ' +
-                                                 '\'checkExistingFiles\'(bool), \'beginFileDate\'(str), ' +
-                                                 '\'endFileDate\'(str)',
+                                { 'name': 'data',
+                                  'type': 'binary',
+                                  'description': 'The binary contents of calibration ingestion spreadsheet.',
                                   'valid_values': None,
                                   'default': None
                                 }
                             ],
                         'samples': [{
-                            'sample_request': 'ingestrequest',
+                            'sample_request': 'ingest/cal',
                             'sample_data': {
-                                            "username": "ms804",
-                                            "state": "STAGE",
-                                            "options": {"csvName":"CE01ISSP_D00001_ingest",
-                                                       "maxNumFiles":6,
-                                                       "checkExistingFiles":"false",
-                                                       "beginFileDate":"2013-04-06",
-                                                       "endFileDate":"2017-04-06"},
-                                            "recurring": "true"
+                                            "username": "ooiusername",
+                                            "data": 'binary_contents_of_xlsx_cal_ingest_spreadsheet_provided_here',
+
                                             },
-                            'sample_response': None
+                            'sample_response': {
+                                    "message": [
+                                        "EVENTA: Processing sheet [Asset_Cal_Info]:starting",
+                                        "EVENTA: Attempt to add duplicate calibration data {[CC_scale_factor1:CALIBRATION_DATA:1411776000000:null]",
+                                        "EVENTA: Attempt to add duplicate calibration data {[CC_scale_factor3:CALIBRATION_DATA:1411776000000:null]",
+                                        "EVENTA: Attempt to add duplicate calibration data {[CC_scale_factor2:CALIBRATION_DATA:1411776000000:null]",
+                                        "EVENTA: Attempt to add duplicate calibration data {[CC_scale_factor4:CALIBRATION_DATA:1411776000000:null]",
+                                        "EVENTA: Calibration data added for sensor uid=ATAPL-58315-00002",
+                                        "EVENTA: Processing sheet [Asset_Cal_Info]:complete"
+                                    ],
+                                    "status_code": 202
+                                }
                         }]
 
                     }
