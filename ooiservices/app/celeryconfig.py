@@ -39,12 +39,12 @@ CELERYBEAT_SCHEDULE = {
         },
     'get-uid_digests': {
         'task': 'tasks.compile_uid_digests',
-        'schedule': crontab(minute=30, hour=1),
+        'schedule': crontab(minute=30, hour='1,11,15'),
         'args': (),
         },
     'get-asset-information': {
         'task': 'tasks.compile_asset_information',
-        'schedule': crontab(minute=30, hour=4),
+        'schedule': crontab(minute=30, hour='4,12,16'),
         'args': (),
         },
     }
