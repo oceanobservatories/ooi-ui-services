@@ -270,27 +270,27 @@ def rds_get_valid_months():
 # Get valid extensions.
 def get_valid_extensions():
     # The valid file extensions to be used when searching/working with the raw data server.
-    result = ['.png', '.mseed', '.raw']                     #, '.mov', '.mp4', '.dat']
+    result = ['.png', '.raw']                     #, '.mseed', '.mov', '.mp4', '.dat']
     return result
 
 
 # Get supported sensor types.
 def rds_get_supported_sensor_types():
     # The supported sensor types to be used when searching/working with the raw data server.
-    result = ['-CAMDS', '-ZPL', '-HYD']                     # , '-CAMHD']
+    result = ['-CAMDS', '-ZPL']                     # , '-HYD', '-CAMHD']
     return result
 
 # Get ALL supported sensor types (standard or not); used for partitioned cache processing.
 def rds_get_all_supported_sensor_types():
     # The supported sensor types to be used when searching/working with the raw data server.
-    result = ['OSMOI', '-CAMDS', '-ZPL', '-HYD']            # , '-CAMHD']
+    result = ['OSMOI', '-CAMDS', '-ZPL']            # , '-HYD', '-CAMHD']
     return result
 
 
 # Get supported folder types.
 def rds_get_supported_folder_types():
     # The supported folder types to be used when searching/working with the raw data server.
-    result = ['HY', 'CAMDS', 'ZPL']                         # ,'CAMHD']
+    result = ['CAMDS', 'ZPL']                         # 'HY', ,'CAMHD']
     return result
 
 
