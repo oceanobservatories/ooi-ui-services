@@ -159,10 +159,19 @@ class OOIPlots(object):
 
         # Test...
         #h = plt.pcolormesh(x, y, z, vmin=-lim, vmax=lim, cmap='RdBu', shading='gouraud', **kwargs)
+        # Switch plot color map and limits if plotting units of dB or not.
         if 'dB' in plot_units:
             h = plt.pcolormesh(x, y, z, vmin=lim_min, vmax=lim_max, shading='gouraud', **kwargs)
         else:
-            h = plt.pcolormesh(x, y, z, vmin=lim_min, vmax=lim_max, cmap='RdBu', shading='gouraud', **kwargs)
+            # h = plt.pcolormesh(x, y, z, vmin=lim_min, vmax=lim_max, cmap='RdBu', shading='gouraud', **kwargs)
+            # Use absolute value of either lim_min or lim_max, which ever is larger for neg/pos limits.
+            abs_lim_min = abs(lim_min)
+            abs_lim_max = abs(lim_max)
+            if abs_lim_min > abs_lim_max:
+                abs_lim = abs_lim_min
+            else:
+                abs_lim = abs_lim_max
+            h = plt.pcolormesh(x, y, z, vmin=-abs_lim, vmax=abs_lim, cmap='RdBu', shading='gouraud', **kwargs)
         #h = plt.pcolormesh(x, y, z, **kwargs)
 
         if ylabel:
