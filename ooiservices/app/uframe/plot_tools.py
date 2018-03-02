@@ -146,24 +146,24 @@ class OOIPlots(object):
 
         # create a limit for the colorbar that disregards outliers
         if _debug: print '\n debug -- plot_stacked_time_series - create a limit for the colorbar that disregards outliers...'
-        lim = float("%2.2f" % np.nanpercentile(abs(z), 95))
-        if _debug: print '\n debug -- plot_tools -- lim: ', lim
+        #lim = float("%2.2f" % np.nanpercentile(abs(z), 95))
+        #if _debug: print '\n debug -- plot_tools -- lim: ', lim
 
         lim_min = float("%2.2f" % np.nanpercentile(abs(z), 2))
         lim_max = float("%2.2f" % np.nanpercentile(abs(z), 97))
         if _debug:
             print '\n debug -- plot_tools -- lim_min: ', lim_min
             print '\n debug -- plot_tools -- lim_max: ', lim_max
-
             print '\n debug -- plot_tools -- ylabel: ', ylabel
 
-        # Test...
+        # 2016-12 code for 95th percentile
         #h = plt.pcolormesh(x, y, z, vmin=-lim, vmax=lim, cmap='RdBu', shading='gouraud', **kwargs)
+
         # Switch plot color map and limits if plotting units of dB or not.
         if 'dB' in plot_units:
             h = plt.pcolormesh(x, y, z, vmin=lim_min, vmax=lim_max, shading='gouraud', **kwargs)
         else:
-            # h = plt.pcolormesh(x, y, z, vmin=lim_min, vmax=lim_max, cmap='RdBu', shading='gouraud', **kwargs)
+            #h = plt.pcolormesh(x, y, z, vmin=lim_min, vmax=lim_max, cmap='RdBu', shading='gouraud', **kwargs)
             # Use absolute value of either lim_min or lim_max, which ever is larger for neg/pos limits.
             abs_lim_min = abs(lim_min)
             abs_lim_max = abs(lim_max)
@@ -172,8 +172,8 @@ class OOIPlots(object):
             else:
                 abs_lim = abs_lim_max
             h = plt.pcolormesh(x, y, z, vmin=-abs_lim, vmax=abs_lim, cmap='RdBu', shading='gouraud', **kwargs)
-        #h = plt.pcolormesh(x, y, z, **kwargs)
 
+        #h = plt.pcolormesh(x, y, z, **kwargs)
         if ylabel:
             ax.set_ylabel(ylabel.replace("_", " "), **axis_font)
         if title:

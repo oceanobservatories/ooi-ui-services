@@ -26,6 +26,7 @@ def get_uframe_glider_track():
     """ Get glider tracks.
     """
     try:
+        """
         cached = cache.get('glider_tracks')
         will_reset_cache = False
         will_update_using_cache = False
@@ -44,8 +45,9 @@ def get_uframe_glider_track():
 
             if "error" not in data:
                 cache.set('glider_tracks', data, timeout=get_cache_timeout())
-
-        return jsonify({"gliders":data})
+        """
+        data = None
+        return jsonify({"gliders": data})
     except requests.exceptions.ConnectionError as e:
         error = "Error: Cannot connect to uframe.  %s" % e
         print error

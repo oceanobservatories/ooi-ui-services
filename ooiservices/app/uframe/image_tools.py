@@ -15,15 +15,24 @@ import PIL
 from PIL import Image
 from PIL import ImageFile
 from StringIO import StringIO
+import json
 
 from ooiservices.app import cache
 from ooiservices.app.uframe.config import get_cache_timeout
 from ooiservices.app.uframe.common_tools import (get_image_thumbnail_route, rds_get_supported_years,
-                                                 rds_get_supported_array_codes,
-                                                 rds_get_all_supported_sensor_types,
-                                                 get_extensions_by_sensor_type)
+                                                 rds_get_supported_array_codes, rds_get_all_supported_sensor_types,
+                                                 get_extensions_by_sensor_type, get_valid_extensions,
+                                                 get_supported_folder_types, rds_get_nonstandard_sensor_types)
 from ooiservices.app.uframe.config import (get_uframe_timeout_info, get_image_camera_store_url_base,
                                            get_image_store_url_base)
+from ooiservices.app.uframe.config import get_rds_base_url
+from ooiservices.app.uframe.rds_common_tools import (get_target_cache_by_sensor_type, _get_subfolder_list,
+                                                     add_nav_urls_to_cache)
+from ooiservices.app.uframe.rds_tools import (_compile_rds_files_FLOBN, _compile_rds_files_THSP,
+                                                  _compile_rds_files_TRHP, _compile_rds_files_MASSP,
+                                                  _compile_rds_files_PPS, _compile_rds_files_RAS,
+                                                  _compile_rds_files_PREST, _compile_rds_files_HPIES,
+                                                  _compile_rds_files_TMPSF)
 import requests
 import requests.adapters
 import requests.exceptions
@@ -656,130 +665,6 @@ def _compile_large_format_files():
         raise Exception(message)
 
 
-# Get subfolder contents and file_list for folder.
-def _get_subfolder_list(url, filetypes=None, extensions=None):
-    """ Get url folder content and process the list of data links.
-    """
-    debug = False
-    debug_summary = False
-    from ooiservices.app.uframe.common_tools import rds_get_supported_folder_types, get_valid_extensions
-
-    if debug:
-        print '\n\t debug -- Entered _get_subfolder_list...'
-        print '\n\t debug -- filetypes: ', filetypes
-        print '\n\t debug -- extensions: ', extensions
-    base_url = None
-    try:
-        """
-        # Master/complete list
-        filetypes_to_check = ['HY', 'ZPL', 'CAMDS', 'CAMHD', 'OBS']
-        extensions_to_check = ['.png', '.raw', '.mseed', '.mp4', '.mov']
-        """
-        #subfolder_filestypes = ['HYD', 'ZPL', 'OBS', 'CAMDS', 'CAMHD']
-        #subfolder_extensions = ['.mseed', '.png', '.raw', '.mp4', '.mov']
-        # Set filetypes and extensions to check.
-        if filetypes is None:
-            filetypes_to_check = rds_get_supported_folder_types()
-            #filetypes_to_check = ['CAMDS']
-            #filetypes_to_check = ['HY', 'ZPL', 'CAMDS', 'CAMHD', 'OBS']
-        else:
-            filetypes_to_check = filetypes
-
-        if extensions is None:
-            extensions_to_check = get_valid_extensions()
-            #extensions_to_check = ['.png']
-            #extensions_to_check = ['.png', '.raw', '.mseed', '.mp4', '.mov']
-        else:
-            extensions_to_check = extensions
-
-        #print '\n debug -- extensions being checked: ', extensions_to_check
-        # base_url is used for exception messages only (timeout or connection errors)
-        base_url = get_image_camera_store_url_base()
-
-        if debug:
-            print '\n\t debug ==========================================='
-            print '\n\t debug -- filetypes_to_check: ', filetypes_to_check
-            print '\n\t debug -- extensions_to_check: ', extensions_to_check
-        timeout, timeout_read = get_uframe_timeout_info()
-        extended_timeout_read = timeout_read * 10
-        r = requests.get(url, timeout=(timeout, extended_timeout_read))
-        if debug: print '\n debug -- r.status_code: ', r.status_code
-        soup = BeautifulSoup(r.content, "html.parser")
-        ss = soup.findAll('a')
-        if debug: print '\n debug -- len(ss): ', len(ss)
-        #url_list = []
-        subfolders = []
-        file_list = []
-        for s in ss:
-            if 'href' in s.attrs:
-                if debug: print ' (1) s.attrs[href]: %r' % s.attrs['href']
-                if ';' in s.attrs['href'] or 'files' in s.attrs['href'] or '=' in s.attrs['href']:
-                    if debug: print '\n debug -- s.attrs[href] has ; or files or = ....so continue...'
-                    continue
-
-                if ';' not in s.attrs['href'] and 'files' not in s.attrs['href'] and '=' not in s.attrs['href']:
-
-                    # Is it a folder?
-                    if ('/' in s.attrs['href']) and ('./' not in s.attrs['href']):
-                        if debug:
-                            print '\n debug -- folder...'
-                            print '\n debug -- s.attrs[href]): ', s.attrs['href']
-                        subfolders.append(s.attrs['href'])
-                        if debug: print '\n debug -- After append to subfolders...'
-
-                    # Process as a file...
-                    else:
-                        if debug: print '\n debug -- in the else branch...'
-                        working_attrs = (str(s.attrs['href']))[:]
-                        if debug: print '\n debug -- working_attrs: ', working_attrs
-                        if './' in working_attrs:
-                            working_attrs = working_attrs.replace('./', '')
-                            if debug: print '\t debug -- file (corrected): ', working_attrs
-
-                        if debug: print '\n debug -- filter by filetype...'
-                        # Filter by file type.
-                        good_filetype = False
-                        for filetype in filetypes_to_check:
-                            if debug: print '\n debug -- ****** Checking filetype: ', filetype
-                            if filetype in working_attrs:
-                                if debug: print '\n debug -- Good filetype: %s in %s' % (filetype, working_attrs)
-                                good_filetype = True
-                                break
-                            else:
-                                if debug: print '\n Bad filetype %s in %s' % (filetype, working_attrs)
-                                continue
-                        if not good_filetype:
-                            continue
-                        if debug: print '\t debug -- Ok filetype: ', working_attrs
-
-                        # Filter by file extension.
-                        for ext in extensions_to_check:
-                            #print '\n debug -- Checking ext %s...' % ext
-                            #print '\n s.attrs[href]: ', s.attrs['href']
-                            if ext in s.attrs['href']:
-                                if working_attrs not in file_list and working_attrs and working_attrs is not None:
-                                    file_list.append(working_attrs)
-                                    break
-        if debug_summary:
-            if file_list:
-                print '\n Returning a file list: ', file_list
-                print '\n Returning subfolders: ', subfolders
-        return subfolders, file_list
-
-    except ConnectionError:
-        message = 'ConnectionError getting data files for: %s' % url.replace(base_url, '/')
-        print '\t** %s' % message
-        return [], []
-    except Timeout:
-        message = 'Timeout getting data files, url: %s' % url.replace(base_url, '/')
-        print '\t** %s' % message
-        return [], []
-    except Exception as err:
-        message = str(err)
-        if debug: print '\n debug -- Exception _get_subfolder_list...', message
-        current_app.logger.info(message)
-        return [], []
-
 
 # Build out thumbnails for 'cam_images' and populate 'cam_images' cache.
 def _build_cam_images():
@@ -819,7 +704,8 @@ def _get_server_cam_images():
 #===================================================================================
 # Compile OSMOI information from raw data server. (Used in tasks.)
 def _compile_rds_files_OSMOI():
-    """ Get indexed information from raw data server for OSMOI instruments only.
+    """ Get indexed information from raw data server for OSMOI instruments only. Osmosis-Based Water Sampler
+        RS01SUM2-MJ01B-00-OSMOIA101, 	RS03ASHS-MJ03B-00-OSMOIA301
 
     Example where data exists for non-standard folder structure of OSMOI data:
     Deviations from standard folder structures:
@@ -850,35 +736,93 @@ def _compile_rds_files_OSMOI():
     'OSMOIA101_20150714T175226_UTC_Image_ver_1-00.jpg',
     'OSMOIA101_20150714T175957_UTC_Image_ver_1-00.jpg']
 
+    Build out cache:
+    {
+      "rds_OSMOI": {
+        "RS01SUM2-MJ01B-00-OSMOIA101": {
+          "2014": {
+            "09": {
+              "02": [
+                {
+                  "date": "2014-09-02",
+                  "datetime": "20140902T143401.000Z",
+                  "ext": ".jpg",
+                  "filename": "OSMOIA101_20140902T143401_UTC_Image_ver_1-00.jpg",
+                  "nav_url": "/RS01SUM2/MJ01B/OSMOIA101/",
+                  "rd": "RS01SUM2-MJ01B-00-OSMOIA101",
+                  "url": "/RS01SUM2/MJ01B/OSMOIA101/2014_deployment/metadata/"
+                },
+                {
+                  "date": "2014-09-02",
+                  "datetime": "20140902T144932.000Z",
+                  "ext": ".jpg",
+                  "filename": "OSMOIA101_20140902T144932_UTC_Image_ver_1-00.jpg",
+                  "nav_url": "/RS01SUM2/MJ01B/OSMOIA101/",
+                  "rd": "RS01SUM2-MJ01B-00-OSMOIA101",
+                  "url": "/RS01SUM2/MJ01B/OSMOIA101/2014_deployment/metadata/"
+                },
+                {
+                  "date": "2014-09-02",
+                  "datetime": "20140902T000000.000Z",
+                  "ext": ".pdf",
+                  "filename": "OSMOIA101_20140902_UTC_Analytical_Methods_ver_1-00.pdf",
+                  "nav_url": "/RS01SUM2/MJ01B/OSMOIA101/",
+                  "rd": "RS01SUM2-MJ01B-00-OSMOIA101",
+                  "url": "/RS01SUM2/MJ01B/OSMOIA101/2014_deployment/metadata/"
+                },
+
+    {
+      "rds_nav_urls": {
+        "OSMOI": {
+          "RS01SUM2-MJ01B-00-OSMOIA101": "https://rawdata.oceanobservatories.org/files/RS01SUM2/MJ01B/OSMOIA101/",
+          "RS03ASHS-MJ03B-00-OSMOIA301": "https://rawdata.oceanobservatories.org/files/RS03ASHS/MJ03B/OSMOIA301/"
+        }
+      }
+    }
+
     """
     from ooiservices.app.uframe.common_tools import (rds_get_supported_sensor_types_osmoi,
-                                                     get_extensions_by_sensor_type,
                                                      rds_get_supported_platforms_osmoi)
     debug = False
     debug_trace = False
     debug_details = False
-    verbose = False
     time = True
 
-    subfolder_level_1 = '_deployment'
-    subfolder_level_2 = ['metadata', 'results']
-    supported_platforms = rds_get_supported_platforms_osmoi()
-
-    # Used during processing of various file extension values.
-    url_root = get_image_camera_store_url_base().rstrip('/')
-    if debug: print '\n TESTING --  url_root: ', url_root
-
-    # Filters to limit processing for OSMOI.
-    array_codes = rds_get_supported_array_codes()
-
-    # Currently OSMOI sensors only available for cabled array.
-    if 'RS' not in array_codes:
-        return {}
-    years_processed = rds_get_supported_years()
-    filetypes_to_check = rds_get_supported_sensor_types_osmoi()
-    extensions_to_check = get_extensions_by_sensor_type('OSMOI')
     try:
-        if debug: print '\n debug -- Entered _compile_rds_files_OSMOI...'
+        timeout, timeout_read = get_uframe_timeout_info()
+
+        #Supported reference designators.
+        reference_designator_SUM2 = 'RS01SUM2-MJ01B-00-OSMOIA101'
+        reference_designator_ASHS = 'RS03ASHS-MJ03B-00-OSMOIA301'
+
+        work_nav_urls = {}
+        work_nav_urls[reference_designator_SUM2] = None
+        work_nav_urls[reference_designator_ASHS] = None
+
+        # Get cache_destination.
+        # Determine cache destination.
+        cache_destination = get_target_cache_by_sensor_type(['OSMOI'])
+
+        # Get rds_nav_urls cache.
+        rds_base_url = get_rds_base_url()
+
+        subfolder_level_1 = '_deployment'
+        subfolder_level_2 = ['metadata', 'results']
+        supported_platforms = rds_get_supported_platforms_osmoi()
+
+        # Used during processing of various file extension values.
+        url_root = get_image_camera_store_url_base().rstrip('/')
+
+        # Filters to limit processing for OSMOI.
+        array_codes = rds_get_supported_array_codes()
+
+        # Currently OSMOI sensors only available for cabled array.
+        if 'RS' not in array_codes:
+            return {}
+        years_processed = rds_get_supported_years()
+        filetypes_to_check = rds_get_supported_sensor_types_osmoi()
+        extensions_to_check = get_extensions_by_sensor_type('OSMOI')
+
         if time:
             print '\n    Compiling OSMOI files from raw data server'
             print '\t-- Arrays processed: ', array_codes
@@ -890,10 +834,9 @@ def _compile_rds_files_OSMOI():
 
         # Get file link/information from image server.
         base_url = get_image_camera_store_url_base()
-        timeout, timeout_read = get_uframe_timeout_info()
-        r = requests.get(base_url, timeout=(timeout, timeout_read))
 
-        # Process returned content for links.
+        # Get and process returned content for links.
+        r = requests.get(base_url, timeout=(timeout, timeout_read))
         soup = BeautifulSoup(r.content, "html.parser")
         ss = soup.findAll('a')
         data_dict = {}
@@ -906,7 +849,6 @@ def _compile_rds_files_OSMOI():
                 if len_href == 9 or len_href == 15 or len_href == 28:
                     ss_reduced.append(s)
 
-        if debug_trace: print '\n debug -- The root folder items: ', len(ss_reduced)
         for s in ss_reduced:
             #-----------------------------------------------
             # Limit to those arrays identified in array_codes.
@@ -915,59 +857,34 @@ def _compile_rds_files_OSMOI():
             if rd and len(rd) == 9 or len(rd) == 15:
                 if len(rd) == 9:
                     subsite = rd.rstrip('/')
-                    if debug_details: print ' debug -- Subsite: ', subsite
                     if subsite not in supported_platforms:
                         continue
                 else:
-                    platform = rd.rstrip('/')
-                    if debug_details: print ' debug -- Platform: ', platform
-                    continue    # Do not process platforms at this time.
+                    continue
                 if rd[0:2] in array_codes:
                     process = True
             if not process:
                 continue
             #-----------------------------------------------
-
             # Level 1 - subsite processing
-            if verbose or debug_trace: print '\n\t---- Processing root element %s...' % rd
+            if debug_trace: print '\n\t---- Processing root element %s...' % rd
             d_url = base_url+s.attrs['href']
             subfolders, file_list = _get_subfolder_list(d_url, None)
-            if debug_trace:
-                print '\n debug -- subfolders(%d): %s' % (len(subfolders), subfolders)
-
             if not subfolders or subfolders is None:
                 continue
 
             # Level 2 - Node processing
             if debug_details: print '\n debug -- Now walking subfolders...'
             for item in subfolders:
-
                 # Determine if item is a folder link or file
-                if debug_details: print '\n debug -- item: ', item
                 if len(item) != 6:
-                    if debug_details: print '-- debug -- item: %s not valid for processing.' % item
                     continue
                 if '/' in item:
-                    if verbose: print '\t\t---- %s Processing item: %s...' % (rd, item)
                     subfolder_url = base_url + rd + item
-
-                    if debug: print '\n debug -- subfolder_url: ', subfolder_url
                     node_subfolders, node_file_list = _get_subfolder_list(subfolder_url, None)
-                    if debug: print '\n debug -- After processing subfolder_url: ', subfolder_url
-                    #node_subfolders, node_file_list = _get_subfolder_list(month_url,
-                    #                                                      filetypes=subfolder_filestypes,
-                    #                                                      extensions=subfolder_extensions)
-                    if node_file_list:
-                        if debug_details: print '\n debug -- ***** (node subfolder search) %s file_list(%d): %s' % \
-                            (item, len(node_file_list), node_file_list)
-
                     # Level 3 - processing sensor information
                     if node_subfolders:
-                        if debug_details: print '\n\t debug -- (node subfolder search) %s subfolders(%d): %s' % \
-                              (item, len(node_subfolders), node_subfolders)
-
                         for node_item in node_subfolders:
-
                             #==================
                             ok_to_go = False
                             for check in filetypes_to_check:
@@ -979,36 +896,19 @@ def _compile_rds_files_OSMOI():
                                 continue
                             #================
                             node_folder_url = subfolder_url + node_item
-                            if debug_details: print '\n debug *** node_folder_url: ', node_folder_url
+                            nav_url = '/' + node_folder_url.replace(base_url, '')
                             detail_subfolders, detail_file_list = _get_subfolder_list(node_folder_url, None)
-
-                            if detail_file_list:
-                                if debug_details: print '\ndebug --*** (node detail_file_list search) %s file_list(%d): %s' % \
-                                    (item, len(detail_file_list), detail_file_list)
                             if detail_subfolders:
-                                if debug_details: print '\n\tdebug -- (node detail_subfolders search) %s subfolders(%d): %s' % \
-                                      (item, len(detail_subfolders), detail_subfolders)
-                                if debug_details: print '\ndebug -- detail_subfolders (years): ', detail_subfolders
-
                                 # OSMOI folder structure rule check
                                 found_level_1_folder = False
                                 folder_year = None
                                 for folder_check in detail_subfolders:
                                     str_folder_check = str(folder_check)
-                                    if debug: print '\n debug -- Processing folder_check: %r' % folder_check
                                     if subfolder_level_1 in str_folder_check:
-                                        if debug:
-                                            print '\n debug -- found level 1 key...'
-                                            print '\n debug -- \'%s\' in \'%s\'...' % (subfolder_level_1, str_folder_check)
                                         folder_year = str_folder_check.replace(subfolder_level_1, '')
                                         folder_year = folder_year.rstrip('/')
-                                        if debug: print '\n debug -- Folder year from foldername: ', folder_year
                                         found_level_1_folder = True
                                     else:
-                                        if debug:
-                                            print '\n debug -- Did not find level 1 key...'
-                                            print '\n debug -- Unable to locate %s in detail_subfolders: %s, continue' % \
-                                                        (subfolder_level_1, detail_subfolders)
                                         continue
 
                                 if not found_level_1_folder or folder_year is None:
@@ -1025,44 +925,32 @@ def _compile_rds_files_OSMOI():
                                         if debug: print '\n debug -- Unable to locate %s in year: %s, continue' % \
                                                         (subfolder_level_1, year)
                                         continue
-                                    if debug: print '\n debug -- before replace.....'
-                                    folder_year = year.replace(subfolder_level_1,'')
-                                    if debug: print '\n debug -- Folder year from foldername: ', folder_year
+                                    folder_year = year.replace(subfolder_level_1, '')
 
                                     #=======================================
                                     # Remove to process all years
-                                    #year_tmp = year.rstrip('/')
                                     year_tmp = folder_year.rstrip('/')
-                                    if debug_details: print '\n debug -- year_tmp: ', year_tmp
                                     if year_tmp not in years_processed:
                                         continue
                                     #=======================================
                                     year_url = node_folder_url + year
-                                    if debug_details: print '\n debug -- year_url: ', year_url
                                     months_subfolders, months_file_list = _get_subfolder_list(year_url, None)
-                                    if debug_details:
-                                        print '\n debug -- detail_subfolders (months): ', months_subfolders
-                                        print '\n debug =============================================================='
                                     if months_subfolders:
                                         for month in months_subfolders:
                                             if debug_details: print '\n debug -- month: %r' % month
                                             month_url = year_url + month
                                             if debug_details: print '\n debug -- month_url: ', month_url
-                                            days_subfolders, days_file_list = _get_subfolder_list(month_url,
-                                                                                                  filetypes=filetypes_to_check,
-                                                                                                  extensions=extensions_to_check) #None)
-
+                                            days_subfolders, days_file_list = \
+                                                        _get_subfolder_list(month_url,
+                                                                            filetypes=filetypes_to_check,
+                                                                            extensions=extensions_to_check)
                                             if not days_file_list:
                                                 continue
 
+                                            # Processing files.
                                             for filename in days_file_list:
-                                                if debug: print '\n debug ------------ Processing filename: ', filename
                                                 sensor, _dt, junk = filename.split('_', 2)
                                                 node = item.rstrip('/')
-
-                                                # If port not provided, added placeholder for reference designator.
-                                                #if len(sensor) == 9 and '-' not in sensor:
-                                                #    sensor = 'XX-' + sensor
                                                 ref_des = '-'.join([subsite, node, sensor])
 
                                                 # Process file datetime based on extension.
@@ -1075,17 +963,8 @@ def _compile_rds_files_OSMOI():
                                                     dt = _dt + '.000Z'
                                                 elif ext in ['.pdf', '.xlsx']:
                                                     dt = _dt + 'T000000.000Z'
-                                                if debug_details:
-                                                    print '\n debug -- days_subfolders: ', days_subfolders
-                                                    print '\n debug -- days_file_list(%d): %s' % (len(days_file_list),days_file_list)
-                                                    print '\n debug -- Subsite: ', subsite
-                                                    print '\n debug -- Node: ', node
-                                                    print '\n debug -- ref_des: ', ref_des
-                                                    print '\n debug -- sensor: ', sensor
-                                                    print '\n debug -- _dt: ', _dt
-                                                    print '\n debug -- dt: ', dt
-                                                    print '\n debug -- junk: ', junk
-                                                    print '\n debug -- tmp_year: ', year_tmp
+                                                else:
+                                                    continue
 
                                                 _year = _dt[0:4]
                                                 _month = _dt[4:6]
@@ -1103,7 +982,15 @@ def _compile_rds_files_OSMOI():
 
                                                 # Add extension type
                                                 #if debug_details: print '\n after create tmp_item: ', tmp_item
-
+                                                if 'SUM2' in subsite:
+                                                    actual_reference_designator = reference_designator_SUM2
+                                                    work_nav_urls[reference_designator_SUM2] = rds_base_url + nav_url
+                                                elif 'ASHS' in subsite:
+                                                    actual_reference_designator = reference_designator_ASHS
+                                                    work_nav_urls[reference_designator_ASHS] = rds_base_url + nav_url
+                                                else:
+                                                    continue
+                                                ref_des = actual_reference_designator
                                                 if ref_des not in data_dict:
                                                     data_dict[str(ref_des)] = {}
                                                 if _year not in data_dict[ref_des]:
@@ -1125,7 +1012,7 @@ def _compile_rds_files_OSMOI():
 
 
                 else:
-                    if debug: print '\n debug -- item %s is not a folder.' % item
+                    # Item is not a folder.
                     continue
 
         end = datetime.now()
@@ -1133,20 +1020,20 @@ def _compile_rds_files_OSMOI():
             print '\t-- End time:   ', end
             print '\t-- Time to compile rds files OSMOI: %s' % str(end - start)
         if data_dict and data_dict is not None:
-            if verbose: print '\n delete large_format cache...'
-            cache.delete('rds_OSMOI')
-            if verbose: print '\n set large_format cache...'
-            cache.set('rds_OSMOI', data_dict, timeout=get_cache_timeout())
+            cache.delete(cache_destination)
+            cache.set(cache_destination, data_dict, timeout=get_cache_timeout())
+
+        # Process navigation urls.
+        add_nav_urls_to_cache(work_nav_urls, 'OSMOI')
         result_keys = data_dict.keys()
         result_keys.sort()
         print '\n\t-- Number of items in large_format cache(%d): %s' % (len(data_dict), result_keys)
-        if debug: print '\n debug -- Exit _compile_rds_files_OSMOI...'
         return data_dict
     except Exception as err:
         message = str(err)
-        if debug: print '\n debug -- Exception _compile_rds_files_OSMOI: ', message
         current_app.logger.info(message)
         raise Exception(message)
+
 
 #=====================================================================================
 #
@@ -1158,11 +1045,6 @@ def drive_rds_cache_builds():
     Replace _compile_large_format_files with this function.
     Rename this function to be '_compile_large_format_files' to prevent tasks.py changes. (maybe)
     """
-    from ooiservices.app.uframe.common_tools import (get_valid_extensions,
-                                                     get_extensions_by_sensor_type,
-                                                     get_supported_folder_types,
-                                                     rds_get_all_supported_sensor_types,
-                                                     rds_get_nonstandard_sensor_types)
     debug = False
     data_dict = {}
     try:
@@ -1187,28 +1069,110 @@ def drive_rds_cache_builds():
                 current_app.logger.info(message)
                 continue
 
-            # # Get harvested data. (OSMOI)
+            # # Get harvested data.
             if sensor_type in rds_get_nonstandard_sensor_types():
+                # 11473 OSMOI - Osmosis-Based Water Sampler
                 if sensor_type == 'OSMOI':
                     data_dict = _compile_rds_files_OSMOI()
-                    if data_dict and data_dict is not None:
-                        if debug: print '\n\t-- Successfully processed %s cache.' % sensor_type.replace('-','')
-                    else:
-                        if debug: print '\n\t** No %s cache produced.' % sensor_type.replace('-','')
 
-            # Get harvested data. (CAMDS, ZPL, HYD)
+                # 12000 FLOBN - Benthic Fluid Flow (C and M series)
+                elif sensor_type == 'FLOBN':
+                    data_dict = _compile_rds_files_FLOBN()
+
+                # 12000 THSP - Hydrothermal Vent Fluid In-situ Chemistry
+                elif sensor_type == 'THSP':
+                    extensions_to_check = get_extensions_by_sensor_type(sensor_type)
+                    supported_folder_types = get_supported_folder_types(sensor_type)
+                    data_dict = _compile_rds_files_THSP(array_codes,
+                                                  years_processed,
+                                                  [sensor_type],
+                                                  extensions_to_check,
+                                                  supported_folder_types)
+
+                # 12000 TRHP - Hydrothermal Vent Fluid Temperature and Resistivity
+                elif sensor_type == 'TRHP':
+                    extensions_to_check = get_extensions_by_sensor_type(sensor_type)
+                    supported_folder_types = get_supported_folder_types(sensor_type)
+                    data_dict = _compile_rds_files_TRHP(array_codes,
+                                                  years_processed,
+                                                  [sensor_type],
+                                                  extensions_to_check,
+                                                  supported_folder_types)
+
+                # 12000 MASSP - Mass Spectrometer
+                elif sensor_type == 'MASSP':
+                    extensions_to_check = get_extensions_by_sensor_type(sensor_type)
+                    supported_folder_types = get_supported_folder_types(sensor_type)
+                    data_dict = _compile_rds_files_MASSP(array_codes,
+                                                  years_processed,
+                                                  [sensor_type],
+                                                  extensions_to_check,
+                                                  supported_folder_types)
+
+                # 12000 PPSDN - Particulate DNA Sampler
+                elif sensor_type == 'PPS':
+                    extensions_to_check = get_extensions_by_sensor_type(sensor_type)
+                    supported_folder_types = ['RASFLA301_PPS']
+                    data_dict = _compile_rds_files_PPS(array_codes,
+                                                  years_processed,
+                                                  [sensor_type],
+                                                  extensions_to_check,
+                                                  supported_folder_types)
+
+                # 12000 RASFL - Hydrothermal Vent Fluid Interactive Sampler
+                elif sensor_type == 'RAS':
+                    extensions_to_check = get_extensions_by_sensor_type(sensor_type)
+                    supported_folder_types = ['RASFLA301_RAS']
+                    data_dict = _compile_rds_files_RAS(array_codes,
+                                                  years_processed,
+                                                  [sensor_type],
+                                                  extensions_to_check,
+                                                  supported_folder_types)
+
+                # 12000 PREST - Tidal Seafloor Pressure
+                elif sensor_type == 'PREST':
+                    extensions_to_check = get_extensions_by_sensor_type(sensor_type)
+                    supported_folder_types = get_supported_folder_types(sensor_type)
+                    data_dict = _compile_rds_files_PREST(array_codes,
+                                                  years_processed,
+                                                  [sensor_type],
+                                                  extensions_to_check,
+                                                  supported_folder_types)
+
+                # 12000 HPIES - Horizontal Electric Field, Pressure, and Inverted Echo Sounder
+                elif sensor_type == 'HPIES':
+                    extensions_to_check = get_extensions_by_sensor_type(sensor_type)
+                    supported_folder_types = get_supported_folder_types(sensor_type)
+                    data_dict = _compile_rds_files_HPIES(array_codes,
+                                                  years_processed,
+                                                  [sensor_type],
+                                                  extensions_to_check,
+                                                  supported_folder_types)
+
+                # 12000 TMPSF - Diffuse Vent Fluid 3-D Temperature Array
+                elif sensor_type == 'TMPSF':
+                    extensions_to_check = get_extensions_by_sensor_type(sensor_type)
+                    supported_folder_types = get_supported_folder_types(sensor_type)
+                    data_dict = _compile_rds_files_TMPSF(array_codes,
+                                                  years_processed,
+                                                  [sensor_type],
+                                                  extensions_to_check,
+                                                  supported_folder_types)
+
+            # CAMDS, ZPL, HYD
             else:
                 extensions_to_check = get_extensions_by_sensor_type(sensor_type)
                 supported_folder_types = get_supported_folder_types(sensor_type)
                 data_dict = _compile_rds_caches_by_sensor(array_codes,
                                               years_processed,
-                                              [sensor_type], #filetypes_to_check,
+                                              [sensor_type],
                                               extensions_to_check,
                                               supported_folder_types)
+            if debug:
                 if data_dict and data_dict is not None:
-                    if debug: print '\n\t-- Successfully processed %s cache.' % sensor_type.replace('-','')
+                    print '\n\t-- Successfully processed %s cache.' % sensor_type.replace('-','')
                 else:
-                    if debug: print '\n\t** No %s cache produced.' % sensor_type.replace('-','')
+                    print '\n\t** No %s cache produced.' % sensor_type.replace('-','')
 
         return data_dict
     except Exception as err:
@@ -1266,7 +1230,7 @@ def _compile_rds_caches_by_sensor(array_codes, years_processed, filetypes_to_che
             print '\t-- Extensions checked: ', extensions_to_check
             print '\t-- Subfolder filetypes to check: ', subfolder_filestypes
 
-        if verbose: print '\n Determine cache destination...'
+        # Determine cache destination...'
         cache_destination = get_target_cache_by_sensor_type(sensor_type)
 
         start = datetime.now()
@@ -1281,11 +1245,6 @@ def _compile_rds_caches_by_sensor(array_codes, years_processed, filetypes_to_che
         soup = BeautifulSoup(r.content, "html.parser")
         ss = soup.findAll('a')
         data_dict = {}
-
-        # Get the current date to use to check against the data server
-        current_year = datetime.utcnow().strftime('%Y')
-        current_month = datetime.utcnow().strftime('%m')
-        current_day = datetime.utcnow().strftime('%d')
 
         # Get root entry (either subsite or subsite-node).
         ss_reduced = []
@@ -1315,15 +1274,13 @@ def _compile_rds_caches_by_sensor(array_codes, years_processed, filetypes_to_che
             if not process:
                 continue
             #-----------------------------------------------
-
             # Level 1 - subsite processing
             if verbose or debug_trace: print '\n\t---- Processing root element %s...' % rd
             d_url = base_url+s.attrs['href']
             subfolders, file_list = _get_subfolder_list(d_url,
                                                         filetypes=subfolder_filestypes,
                                                         extensions=extensions_to_check)
-            if debug_trace:
-                print '\n debug -- subfolders(%d): %s' % (len(subfolders), subfolders)
+            if debug_trace: print '\n debug -- subfolders(%d): %s' % (len(subfolders), subfolders)
 
             if not subfolders or subfolders is None:
                 continue
@@ -1373,13 +1330,11 @@ def _compile_rds_caches_by_sensor(array_codes, years_processed, filetypes_to_che
                                                 (node_item, filetypes_to_check)
                                 continue
                             #================
-
                             node_folder_url = subfolder_url + node_item
                             if debug_details: print '\n debug *** node_folder_url: ', node_folder_url
                             detail_subfolders, detail_file_list = _get_subfolder_list(node_folder_url,
                                                                                       filetypes=subfolder_filestypes,
                                                                                       extensions=extensions_to_check)
-
                             if detail_file_list:
                                 if debug_details: print '\ndebug --*** (node detail_file_list search) %s file_list(%d): %s' % \
                                     (item, len(detail_file_list), detail_file_list)
@@ -1388,10 +1343,8 @@ def _compile_rds_caches_by_sensor(array_codes, years_processed, filetypes_to_che
                                       (item, len(detail_subfolders), detail_subfolders)
                                 if debug_details: print '\ndebug -- detail_subfolders (years): ', detail_subfolders
 
-
                                 # Process years (detail_subfolders is years)
                                 for year in detail_subfolders:
-
                                     #=======================================
                                     # Remove to process all years
                                     year_tmp = year.rstrip('/')
@@ -1651,43 +1604,41 @@ def _compile_rds_caches_by_sensor(array_codes, years_processed, filetypes_to_che
 
         # Populate cache for sensor type.
         if data_dict and data_dict is not None:
-            if verbose: print '\n delete ', cache_destination
             cache.delete(cache_destination)
-            if verbose: print '\n set ', cache_destination
             cache.set(cache_destination, data_dict, timeout=get_cache_timeout())
 
         result_keys = data_dict.keys()
         result_keys.sort()
         print '\n\t-- Number of items in %s cache(%d): %s' % (cache_destination, len(result_keys), result_keys)
-        if debug: print '\n debug -- Exit _compile_rds_caches_by_sensor...'
         return data_dict
     except Exception as err:
         message = str(err)
-        if debug: print '\n debug -- Exception _compile_rds_caches_by_sensor...', message
         current_app.logger.info(message)
         raise Exception(message)
 
 
-def get_target_cache_by_sensor_type(sensor_type):
-    debug = False
+def get_rds_nav_urls_cache_by_sensor_type(sensor_type):
+    result = None
     try:
-        cache_root = 'rds_'
-        sensor = sensor_type[0].replace('-', '')
-        target_cache = cache_root + sensor
-        if debug: print '\n Cache file for sensor type \'%s\': %s' % (sensor_type[0], target_cache)
-        return target_cache
+        cache_name = 'rds_nav_urls'
+        cache_data = cache.get(cache_name)
+        if not cache_data:
+            message = 'Warning: The rds_nav_urls cache (%s) for sensor type \'%s\' is not available.' % (cache_name, sensor_type)
+            current_app.logger.info(message)
+            return None
+
+        if sensor_type in cache_data:
+            result = cache_data[sensor_type]
+        return result
     except Exception as err:
         message = str(err)
-        if debug: print '\n debug -- Exception get_target_cache_by_sensor_type...', message
         current_app.logger.info(message)
         raise Exception(message)
 
 
 def get_cache_by_sensor_type(sensor_type):
-    debug = False
     try:
         cache_name = get_target_cache_by_sensor_type([sensor_type])
-        if debug: print '\n Cache name for sensor type \'%s\': %s' % (cache_name, cache_name)
         cache_data = cache.get(cache_name)
         if not cache_data:
             message = 'The cache (%s) for sensor type \'%s\' is not available.' % (cache_name, sensor_type)
@@ -1696,16 +1647,13 @@ def get_cache_by_sensor_type(sensor_type):
         return cache_data
     except Exception as err:
         message = str(err)
-        if debug: print '\n debug -- Exception get_cache_by_sensor_type...', message
         current_app.logger.info(message)
         raise Exception(message)
 
 
 def get_index_from_cache(sensor_type):
-    debug = False
     try:
         cache_name = get_target_cache_by_sensor_type([sensor_type])
-        if debug: print '\n Cache name for sensor type \'%s\': %s' % (cache_name, cache_name)
         cache_data = cache.get(cache_name)
         if not cache_data:
             message = 'Warning: The cache (%s) for sensor type \'%s\' is not available.' % (cache_name, sensor_type)
@@ -1715,13 +1663,25 @@ def get_index_from_cache(sensor_type):
         return cache_index
     except Exception as err:
         message = str(err)
-        if debug: print '\n debug -- Exception get_index_from_cache...', message
+        raise Exception(message)
+
+
+def get_rds_nav_urls_cache(sensor_type):
+    try:
+        cache_name = get_target_cache_by_sensor_type([sensor_type])
+        cache_data = cache.get(cache_name)
+        if not cache_data:
+            message = 'Warning: The cache (%s) for sensor type \'%s\' is not available.' % (cache_name, sensor_type)
+            current_app.logger.info(message)
+            return None
+        cache_index = process_index_for_cache(cache_data)
+        return cache_index
+    except Exception as err:
+        message = str(err)
         raise Exception(message)
 
 
 def process_index_for_cache(cache_data):
-    import json
-    debug = False
     index_data = {}
     try:
         if not cache_data or cache_data is None:
@@ -1745,12 +1705,10 @@ def process_index_for_cache(cache_data):
                     days = cache_data[rd][year][month].keys()
                     index_data[rd][year][month] = days
 
-        if debug: print '\n cache_index: \n', json.dumps(index_data, indent=4, sort_keys=True)
         return index_data
 
     except Exception as err:
         message = str(err)
-        if debug: print '\n debug -- Exception process_index_for_cache...', message
         current_app.logger.info(message)
         raise Exception(message)
 
@@ -1759,33 +1717,24 @@ def build_complete_rds_cache_index():
     """
     Builds and populates large_format_inx cache from partitioned sensor caches.
     """
-    from ooiservices.app.uframe.common_tools import (rds_get_all_supported_sensor_types)
-    debug = False
     index_dict = {}
     try:
-        if debug: print 'Entered build_complete_rds_cache_index...'
         filetypes_to_check = rds_get_all_supported_sensor_types()
-        if debug: print '\t-- Sensor types processed: ', filetypes_to_check
         for sensor_type in filetypes_to_check:
-            if debug: print '\n Processing sensor type %s' % sensor_type
             # Get harvested data.
             cache_index = get_index_from_cache(sensor_type)
             if not cache_index or cache_index is None:
                 continue
             cache_keys = cache_index.keys()
-            if debug: print '\n debug cache_keys(%d): %s ' % (len(cache_keys), cache_keys)
             for rd in cache_keys:
-                if debug: print '\n debug -- Adding rd: ', rd
                 if rd not in index_dict:
                     index_dict[rd] = cache_index[rd]
         if index_dict and index_dict is not None:
             cache.delete('large_format_inx')
             cache.set('large_format_inx', index_dict, timeout=get_cache_timeout())
-        if debug: print '\n debug -- References designators: ', index_dict.keys()
         return index_dict
     except Exception as err:
         message = str(err)
-        if debug: print '\n debug -- Exception build_complete_rds_cache_index...', message
         current_app.logger.info(message)
         raise Exception(message)
 
@@ -1794,9 +1743,7 @@ def get_cache_by_rd(rd=None):
     """
     Get partitioned cache for a specific reference designator.
     """
-    debug = False
     try:
-        if debug: print '\n debug -- Entered get_cache_by_rd...'
         # If rd is None, return None.
         if not rd or rd is None:
             message = '*** Request to return cache with empty or null rd parameter.'
@@ -1804,7 +1751,6 @@ def get_cache_by_rd(rd=None):
             return None
         sensor_type = get_sensor_type_from_rd(rd)
         cache_data = get_cache_by_sensor_type(sensor_type)
-        if debug: print '\n debug -- Exit get_cache_by_rd...'
         return cache_data
     except Exception as err:
         message = str(err)
@@ -1812,8 +1758,6 @@ def get_cache_by_rd(rd=None):
 
 
 def get_sensor_type_from_rd(rd):
-    from ooiservices.app.uframe.common_tools import (rds_get_all_supported_sensor_types)
-    debug = False
     try:
         # If rd is None, return None.
         if not rd or rd is None:
@@ -1828,18 +1772,13 @@ def get_sensor_type_from_rd(rd):
             return None
 
         subsite, node, sensor = rd.split('-', 2)
-        if debug:
-            print '\n debug -- Processing rd: %s for sensor type.' % rd
-            print '\n debug -- sensor to check: %s' % sensor
-
         valid_sensor_types = rds_get_all_supported_sensor_types()
         sensor_type = None
         for valid_type in valid_sensor_types:
             if '-' in valid_type:
-                check = valid_type.replace('-','')
+                check = valid_type.replace('-', '')
             else:
                 check = valid_type
-            if debug: print '\n debug -- looking for check: %s in sensor: %s' % (check, sensor)
             if check in sensor:
                 sensor_type = check
                 break

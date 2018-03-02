@@ -191,9 +191,10 @@ def get_cache_by_key(key):
     from ooiservices.app import cache
     debug = False
     valid_cache_keys = ['assets_dict', 'asset_list', 'rd_digests', 'uid_digests', 'rd_digests_dict',
-     'stream_list', 'vocab_dict', 'vocab_codes', 'toc_rds',
+     'stream_list', 'vocab_dict', 'vocab_codes', 'toc_rds', 'instrument_list',
      'large_format_inx', 'rds_ZPL', 'rds_HYD', 'rds_CAMDS', 'rds_OSMOI',
-     'cam_images']
+     'rds_THSP', 'rds_TRHP', 'rds_MASSP', 'rds_PPS', 'rds_RAS', 'rds_PREST', 'rds_FLOBN', 'rds_HPIES', 'rds_TMPSF',
+     'cam_images', 'rds_nav_urls']
     try:
         if debug: print '\n-- Get %s cache...' % key
 
@@ -233,7 +234,7 @@ def store_cache_by_key(key):
     from ooiservices.app.uframe.config import get_cache_timeout
     debug = False
     valid_cache_keys = ['assets_dict', 'asset_list', 'rd_digests', 'uid_digests', 'rd_digests_dict',
-     'stream_list', 'vocab_dict', 'vocab_codes', 'toc_rds',
+     'stream_list', 'vocab_dict', 'vocab_codes', 'toc_rds', 'instrument_list',
      'large_format_inx', 'rds_ZPL', 'rds_HYD', 'rds_CAMDS', 'rds_OSMOI',
      'cam_images']
     try:
@@ -332,7 +333,7 @@ def load_cache_by_key(key):
     from ooiservices.app.uframe.config import get_cache_timeout
     debug = False
     valid_cache_keys = ['assets_dict', 'asset_list', 'rd_digests', 'uid_digests', 'rd_digests_dict',
-     'stream_list', 'vocab_dict', 'vocab_codes', 'toc_rds',
+     'stream_list', 'vocab_dict', 'vocab_codes', 'toc_rds', 'instrument_list',
      'large_format_inx', 'rds_ZPL', 'rds_HYD', 'rds_CAMDS', 'rds_OSMOI',
      'cam_images']
     try:
@@ -382,9 +383,10 @@ def load_all_cache_from_files():
     from ooiservices.app import cache
     from ooiservices.app.uframe.config import get_cache_timeout
     valid_cache_keys = ['assets_dict', 'asset_list', 'rd_digests', 'uid_digests', 'rd_digests_dict',
-     'stream_list', 'vocab_dict', 'vocab_codes', 'toc_rds',
+     'stream_list', 'vocab_dict', 'vocab_codes', 'toc_rds', 'instrument_list',
      'large_format_inx', 'rds_ZPL', 'rds_HYD', 'rds_CAMDS', 'rds_OSMOI',
-     'cam_images']
+     'rds_THSP', 'rds_TRHP', 'rds_MASSP', 'rds_PPS', 'rds_RAS', 'rds_PREST', 'rds_FLOBN', 'rds_HPIES', 'rds_TMPSF',
+     'cam_images', 'rds_nav_urls']
     result = False
     try:
         if debug: print '\n-- Load all cache from files...'
@@ -439,9 +441,10 @@ def store_all_cache_in_files():
     from ooiservices.app import cache
     debug = False
     valid_cache_keys = ['assets_dict', 'asset_list', 'rd_digests', 'uid_digests', 'rd_digests_dict',
-     'stream_list', 'vocab_dict', 'vocab_codes', 'toc_rds',
+     'stream_list', 'vocab_dict', 'vocab_codes', 'toc_rds', 'instrument_list',
      'large_format_inx', 'rds_ZPL', 'rds_HYD', 'rds_CAMDS', 'rds_OSMOI',
-     'cam_images']
+     'rds_THSP', 'rds_TRHP', 'rds_MASSP', 'rds_PPS', 'rds_RAS', 'rds_PREST', 'rds_FLOBN', 'rds_HPIES', 'rds_TMPSF',
+     'cam_images', 'rds_nav_urls']
     result = False
     try:
         print '\n-- Store all cache from files...'
@@ -465,3 +468,44 @@ def store_all_cache_in_files():
         message = str(err)
         current_app.logger.info(message)
         return bad_request(message)
+
+
+# curl -H "Content-Type: application/json" -X GET localhost:4000/uframe/build_rds_streams
+@api.route('/build_rds_streams', methods=['GET'])
+def build_rds_streams():
+    """
+    Constructs cache index for all supported sensors by utilizing rds_[SENSORTYPE] caches.
+    (Same as build_large_format_index)
+    """
+    debug = False
+    from ooiservices.app.uframe.stream_tools_rds import (build_rds_streams)
+    try:
+        if debug: print '\n-- Build rds streams...'
+        result = build_rds_streams()
+        return jsonify({'complete_cache_index': result}), 200
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
+
+
+# curl -H "Content-Type: application/json" -X GET localhost:4000/uframe/build_rds_streams
+@api.route('/get_asset', methods=['GET'])
+def check_assets():
+    """
+    Constructs cache index for all supported sensors by utilizing rds_[SENSORTYPE] caches.
+    (Same as build_large_format_index)
+    """
+    debug = False
+    from ooiservices.app.uframe.stream_tools_rds import (build_rds_streams)
+    try:
+        if debug: print '\n-- Build rds streams...'
+        result = build_rds_streams()
+        return jsonify({'complete_cache_index': result}), 200
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
+
+
+

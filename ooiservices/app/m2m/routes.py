@@ -51,8 +51,11 @@ def m2m_handler(path):
             # Get uframe timeout values for requests.
             timeout, timeout_read = get_uframe_timeout_info()
 
+            # Perform GET request.
             if debug: print '\n debug -- GET params: ', params
             if data is None:
+                timeout = timeout * 2
+                timeout_read = timeout_read * 3
                 response = requests.get(url, timeout=(timeout, timeout_read), params=params, stream=True)
             else:
                 response = requests.get(url, timeout=(timeout, timeout_read), params=params, stream=True, data=data)
@@ -90,7 +93,7 @@ def m2m_handler(path):
 def m2m_handler_post(path):
     """ Issue POST request to uframe server.
     """
-    debug = True
+    debug = False
     if debug: print '\n debug -- Entered m2m POST...'
     transfer_header_fields = ['Date', 'Content-Type']
     request_method = 'POST'

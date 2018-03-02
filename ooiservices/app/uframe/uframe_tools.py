@@ -503,6 +503,7 @@ def uframe_put_event(event_type, id, data):
 def get_assets_from_uframe():
     """ Get all assets from uframe.
     """
+    extend_timeout = True
     time = True
     try:
         # Get uframe connect and timeout information
@@ -510,7 +511,10 @@ def get_assets_from_uframe():
         start = dt.datetime.now()
         if time: print '\t-- Start time: ', start
         uframe_url, timeout, timeout_read = get_uframe_assets_info()
-        timeout_extended = timeout_read * 5
+        timeout_extended = timeout_read
+        if extend_timeout:
+            timeout_extended = timeout_read * 5
+            timeout = timeout * 3
         url = '/'.join([uframe_url, get_assets_url_base()])
         response = requests.get(url, timeout=(timeout, timeout_extended))
         end = dt.datetime.now()
@@ -1248,28 +1252,28 @@ def get_deployments_digest_by_uid(uid, editPhase='ALL'):
     http://host:port/asset/deployments/N00123?editphase=ALL (default)
     http://host:port/asset/deployments/N00123?editphase=OPERATIONAL
 
-    http://host:port/asset/deployments/ATAPL-71403-00002
+    http://host:port/asset/deployments/CGCON-GLDRCP-00376?editphase=ALL
     [
         {
-          "startTime" : 1408863300000,
+          "startTime" : 1412638080000,
           "depth" : null,
-          "node" : "DP01A",
-          "subsite" : "RS01SBPD",
+          "latitude" : 39.83333,
+          "longitude" : -70.70833,
+          "node" : "GL376",
           "sensor" : "00-ENG000000",
+          "subsite" : "CP05MOAS",
           "deploymentNumber" : 1,
-          "eventId" : 2275,
+          "node_uid" : "CGVEH-GLDRCP-00376",
+          "mooring_uid" : "CGVCP-05MOAS-00000",
+          "sensor_uid" : "CGCON-GLDRCP-00376",
+          "deployCruiseIdentifier" : "KN-222",
+          "recoverCruiseIdentifier" : "KN-224",
+          "endTime" : 1418428800000,
           "versionNumber" : 1,
-          "latitude" : 44.52732,
-          "longitude" : -125.3801,
           "editPhase" : "OPERATIONAL",
+          "eventId" : 2798,
           "orbitRadius" : null,
-          "waterDepth" : 2901.0,
-          "mooring_uid" : "ATAPL-71403-00002",
-          "node_uid" : null,
-          "sensor_uid" : "ATAPL-71553-00204",
-          "deployCruiseIdentifier" : "TN-313",
-          "recoverCruiseIdentifier" : null,
-          "endTime" : 1411430400000
+          "waterDepth" : null
         },
 
         Note, to get the asset for the uid, use:
@@ -1360,10 +1364,14 @@ def get_toc_information():
     """ Get toc information from uframe. If exception, log error and return empty list.
     """
     extended_read = True
+    check = False
     try:
         url, timeout, timeout_read = get_uframe_toc_url()
+        if check:
+            print '\n check -- get_uframe_toc_url: ', url
         if extended_read:
             timeout_read = timeout_read * 3
+            timeout = timeout * 2
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code == 200:
             toc = response.json()
@@ -1378,14 +1386,14 @@ def get_toc_information():
         return result
     except ConnectionError:
         message = 'ConnectionError for get_toc_information'
-        current_app.logger.info(message)
+        #current_app.logger.info(message)
         raise Exception(message)
     except Timeout:
         message = 'Timeout for get_toc_information'
-        current_app.logger.info(message)
+        #current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
-        current_app.logger.info(str(err))
+        #current_app.logger.info(str(err))
         return []
 
 
@@ -1410,11 +1418,11 @@ def uframe_get_stream_byname(stream):
         return stream
     except ConnectionError:
         message = 'Error: ConnectionError getting uframe stream name %s.' % stream
-        current_app.logger.info(message)
+        #current_app.logger.info(message)
         raise Exception(message)
     except Timeout:
         message = 'Error: Timeout getting uframe stream name %s.' % stream
-        current_app.logger.info(message)
+        #current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
         message = str(err)
@@ -1442,11 +1450,11 @@ def uframe_get_parameters():
         return parameters
     except ConnectionError:
         message = 'Error: ConnectionError getting uframe parameters.'
-        current_app.logger.info(message)
+        #current_app.logger.info(message)
         raise Exception(message)
     except Timeout:
         message = 'Error: Timeout getting uframe parameters.'
-        current_app.logger.info(message)
+        #current_app.logger.info(message)
         raise Exception(message)
     except Exception as err:
         message = str(err)

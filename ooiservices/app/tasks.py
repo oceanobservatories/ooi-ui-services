@@ -18,7 +18,7 @@ celery.config_from_object('ooiservices.app.celeryconfig')
 
 from ooiservices.app.main.c2 import _compile_c2_toc
 from ooiservices.app.uframe.vocab import compile_vocab
-from ooiservices.app.uframe.stream_tools import get_stream_list
+from ooiservices.app.uframe.stream_tools import (get_stream_list, get_instrument_list)
 from ooiservices.app.uframe.status_tools import get_uid_digests
 from ooiservices.app.uframe.asset_tools import verify_cache
 from ooiservices.app.uframe.toc_tools import compile_toc_reference_designators
@@ -134,7 +134,7 @@ def compile_vocabulary():
         current_app.logger.warning(message)
 
 
-# (stream_list)
+# (stream_list and instrument_list)
 @celery.task(name='tasks.compile_streams')
 def compile_streams():
     try:
@@ -142,6 +142,8 @@ def compile_streams():
             print '[+] Starting stream cache reset...'
             cache = Cache(config={'CACHE_TYPE': 'redis', 'CACHE_REDIS_DB': 0})
             cache.init_app(current_app)
+
+            # Compile stream cache ('stream_list')
             streams = get_stream_list(refresh=True)
             if streams and streams is not None and 'error' not in streams:
                 stream_cache = cache.get('stream_list')
@@ -151,8 +153,19 @@ def compile_streams():
                     message = '[-] Failed to reset stream cache.\n'
                     print message
                     raise Exception(message)
+
+            # Compile instruments cache ('instrument_list')
+            instruments = get_instrument_list(refresh=True)
+            if instruments and instruments is not None and 'error' not in instruments:
+                instrument_cache = cache.get('instrument_list')
+                if instrument_cache and instrument_cache is not None and 'error' not in instrument_cache:
+                    print '[+] Instrument cache reset.'
+                else:
+                    message = '[-] Failed to reset instrument cache.\n'
+                    print message
+                    raise Exception(message)
     except Exception as err:
-        message = 'Exception compile_streams exception: %s' % err.message
+        message = 'Exception compiling instrument_list or stream_list cache: %s' % err.message
         current_app.logger.warning(message)
 
 

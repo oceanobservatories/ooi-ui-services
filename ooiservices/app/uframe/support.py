@@ -10,7 +10,26 @@ from flask import (jsonify, current_app)
 from ooiservices.app import cache
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.errors import (internal_server_error, bad_request)
-from ooiservices.app.uframe.stream_tools import get_stream_list
+from ooiservices.app.uframe.stream_tools import (get_stream_list, get_instrument_list)
+
+# Support only route.
+# curl -H "Content-Type: application/json" -X GET localhost:4000/uframe/build_uid_cache
+@api.route('/build_uid_cache', methods=['GET'])
+def build_uid_cache():
+    """ Force update of asset information.
+    """
+    from ooiservices.app.uframe.status_tools import get_uid_digests
+    try:
+        uid_digests = get_uid_digests(refresh=True)
+        print '\n Completed compiling uid digests information.'
+        print '\n Number of digests: ', len(uid_digests)
+        result = {'result': 'Done'}
+        return jsonify(result), 200
+
+    except Exception as err:
+        message = 'Exception processing build_assets_cache: %s' % str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
 
 
 # Support only route.
@@ -57,6 +76,36 @@ def build_stream_cache():
             if stream_cache and stream_cache is not None and "error" not in stream_cache:
                 success = True
         return jsonify({'build_stream_cache': success}), 200
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
+
+
+# Support only route.
+# curl -H "Content-Type: application/json" -X GET localhost:4000/uframe/build_instrument_list
+@api.route('/build_instrument_list')
+def build_instrument_cache():
+    """ Force instrument_list cache build. (Instruments currently (celery) set to build every hour on the hour.)
+    Responses:
+        Success:
+        {
+          "build_instrument_cache": true
+        }
+
+        Failure:
+        {
+          "build_instrument_cache": false
+        }
+    """
+    success = False
+    try:
+        instruments = get_instrument_list(refresh=True)
+        if instruments and instruments is not None and 'error' not in instruments:
+            instrument_cache = cache.get('instrument_list')
+            if instrument_cache and instrument_cache is not None and "error" not in instrument_cache:
+                success = True
+        return jsonify({'build_instrument_list': success}), 200
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
