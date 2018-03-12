@@ -5,7 +5,7 @@ ooiservices/app/main/data.py
 Support for generating sample data
 '''
 
-from flask import request, current_app
+from flask import request
 from collections import OrderedDict
 from ooiservices.app.uframe.common_tools import to_bool_str
 from ooiservices.app.uframe.stream_tools import get_stream_parameters
@@ -138,10 +138,11 @@ def new_find_parameter_ids_stacked(reference_designator, stream, y_parameters, x
                 if str_each in all_units:
                     units_mapping[str_each] = all_units[str_each]
 
+        # Specific check for ZPLSC plot requests.
         if stacked and 'ZPLSC' in reference_designator:
 
-            # If ZPLSC and stacked, evaluate yfield to determine if contains 'zplsc_values', if so,
-            # (1) determine the channel number,
+            # If ZPLSC and stacked, evaluate yfield to determine if contains 'zplsc_values', if so:
+            # (1) determine the channel number
             # (2) get params for stream
             # (3) fetch parameter 'zplsc_depth_range_channel_#' for channel_number
             # (4) append parameter name to yfields list.
@@ -262,7 +263,6 @@ def get_multistream_data(instrument1, instrument2, stream1, stream2, var1, var2)
     except Exception as err:
         message = str(err)
         if debug: print '\n (data.py:get_multistream_data) Exception: %s' % message
-        #current_app.logger.exception(message)
         raise Exception(message)
 
 
@@ -316,7 +316,6 @@ def get_simple_data(stream, instrument, yfields, xfields, include_time=True):
     except Exception as err:
         message = str(err)
         if debug: print '\n (data.py:get_simple_data) Exception: %s' % message
-        #current_app.logger.exception(message)
         raise Exception(message)
 
 
@@ -355,15 +354,12 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
                 message = 'Failed to get data from uframe, status code: %d' % status_code
                 if data is not None:
                     if debug: print '\n debug -- get_data: data: ', data
-                #current_app.logger.exception(message)
                 raise Exception(message)
             if not data or data is None:
                 message = 'No data returned for stream %s and instrument %s.' % (stream[0], instrument[0])
-                #current_app.logger.exception(message)
                 raise Exception(message)
         else:
             message = 'Please define start and end dates.'
-            #current_app.logger.exception(message)
             raise Exception(message)
 
     except Exception as err:
@@ -377,31 +373,26 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
 
         if "pk" not in data[0]:
             message = 'Primary information (pk) not available.'
-            #current_app.logger.exception(message)
             raise Exception(message)
 
         for xfield in xfields:
             if xfield == 'time':
                 if "time" not in data[0]:
                     message = 'Time variable not available for x field.'
-                    #current_app.logger.exception(message)
                     raise Exception(message)
             else:
                 if xfield not in data[0]:
                     message = 'Requested data (%s) not available' % xfield
-                    #current_app.logger.exception(message)
                     raise Exception(message)
 
         for yfield in yfields:
             if yfield == 'time':
                 if "time" not in data[0]:
                     message = 'Time variable not available for y field.'
-                    #current_app.logger.exception(message)
                     raise Exception(message)
             else:
                 if yfield not in data[0]:
                     message = 'Requested data (%s) not available' % yfield
-                    #current_app.logger.exception(message)
                     raise Exception(message)
 
         # Initialize the data dicts
@@ -462,6 +453,5 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
         return resp_data
     except Exception as err:
         message = str(err.message)
-        #print '\n (data.py::get_data) exception: message: ', message
         raise Exception(message)
 

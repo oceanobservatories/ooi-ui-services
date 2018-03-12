@@ -708,6 +708,7 @@ def get_profile_data(mooring, platform, instrument, stream_type, stream, paramet
 @api.route('/get_profiles/<string:stream>/<string:instrument>', methods=['GET'])
 def get_profiles(stream, instrument):
     debug = False
+    content_headers = {}
     try:
         if debug:
             print '\n debug -- =============================================='
@@ -867,15 +868,15 @@ def get_svg_plot(instrument, stream):
                 # Plot types 'stacked' or '3d_scatter' add more data. (Review sparse data presentation.)
                 if plot_layout == 'stacked':
                     if 'ZPLSC' in request_rd:
-                        number_of_data_points = 4000    # use 4000
+                        number_of_data_points = 8000
                     else:
                         number_of_data_points = 2000
-                    #number_of_data_points = 1000    # debug
                     stacked = True
                 elif plot_layout == '3d_scatter':
-                    number_of_data_points = 8000
+                    number_of_data_points = 2000
+
                 # Get data from uframe.
-                data = get_max_data(stream[0], instrument[0], yvar, xvar, number_of_data_points, stacked=True)
+                data = get_max_data(stream[0], instrument[0], yvar, xvar, number_of_data_points, stacked=stacked)
                 #data['number_of_data_points'] = number_of_data_points
                 if not data or data is None:
                     message = 'No data returned for stream %s and instrument %s, y-var: %s and x-var: %s' % \
@@ -896,7 +897,6 @@ def get_svg_plot(instrument, stream):
                 data = []
     except Exception as err:
         message = str(err)
-        #current_app.logger.info(message)
         return bad_request(message)
 
     if not data:
@@ -1275,6 +1275,7 @@ def get_max_data(stream, instrument, yfields, xfields, number_of_data_points=100
                                                                                 stacked=stacked)
             yfields = parameter_names
             if debug:
+                print '\n debug -- Stacked plot...'
                 print '\n debug -- xfields(%d): %s' % (len(xfields), xfields)
                 print '\n debug -- yfields(%d): %s' % (len(yfields), yfields)
                 print '\n debug -- parameter_names(%d): %s' % (len(parameter_names),  parameter_names)
@@ -1282,7 +1283,12 @@ def get_max_data(stream, instrument, yfields, xfields, number_of_data_points=100
                 print '\n debug -- y_units(%d): %s' % (len(y_units), y_units)
                 print '\n debug -- units_mapping(%d): %s' % (len(units_mapping), units_mapping)
 
-        if debug: print '\n debug -- parameter_ids: ', parameter_ids
+        if debug:
+            print '\n debug -- parameter_ids: ', parameter_ids
+            print '\n debug -- x_units(%d): %s' % (len(x_units), x_units)
+            print '\n debug -- y_units(%d): %s' % (len(y_units), y_units)
+            print '\n debug -- units_mapping(%d): %s' % (len(units_mapping), units_mapping)
+
         # Get start and end dates; if not provided raise exception.
         st_date = None
         ed_date = None
@@ -1416,62 +1422,6 @@ def get_max_data(stream, instrument, yfields, xfields, number_of_data_points=100
 
 
 '''
-# Deprecate or move to uframe_tools.py
-# todo: Return exception in consistent manner.
-def get_uframe_streams(mooring, platform, instrument, stream_type):
-    """ Get a list of all the streams.
-    """
-    try:
-        uframe_url, timeout, timeout_read = get_uframe_info()
-        url = '/'.join([uframe_url, mooring, platform, instrument, stream_type])
-        current_app.logger.info("GET %s", url)
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        return response
-    except ConnectionError:
-        message = 'ConnectionError getting uframe streams.'
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout:
-        message = 'Timeout getting uframe streams.'
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Exception as err:
-        message = str(err)
-        #return internal_server_error('uframe connection cannot be made.' + str(e.message))
-        return internal_server_error(message)
-
-
-# todo: Return exception in consistent manner.
-def get_uframe_stream(mooring, platform, instrument, stream):
-    """ Get a list the reference designators for the streams.
-    """
-    try:
-        uframe_url, timeout, timeout_read = get_uframe_info()
-        url = "/".join([uframe_url, mooring, platform, instrument, stream])
-        current_app.logger.info("GET %s", url)
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        return response
-    except ConnectionError:
-        message = 'ConnectionError getting uframe stream.'
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout:
-        message = 'Timeout getting uframe stream.'
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Exception as e:
-        #return internal_server_error('uframe connection cannot be made.' + str(e.message))
-        return _response_internal_server_error(str(e))
-'''
-
-'''
-def combine_stream_name(mooring, platform, instrument, stream_type, stream):
-    first_part = '-'.join([mooring, platform, instrument])
-    all_of_it = '_'.join([first_part, stream_type, stream])
-    return all_of_it
-'''
-
-'''
 # Deprecate.
 @api.route('/antelope_acoustic/list', methods=['GET'])
 def get_acoustic_datalist():
@@ -1512,9 +1462,4 @@ def get_acoustic_datalist():
         return result
     else:
         return jsonify(results=data)
-'''
-
-'''
-def make_cache_key():
-    return urlencode(request.args)
 '''

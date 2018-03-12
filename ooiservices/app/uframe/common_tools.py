@@ -251,20 +251,13 @@ def rds_get_supported_array_codes():
     # Used when processing large format data from raw data server.
     # Note: Only those arrays which support normalized folder structure on the raw data
     # server shall be included here.
-    result = ['RS', 'CE',]
+    result = ['CE', 'RS']
     return result
-
-
-def get_linx_support_array_codes():
-    # Used when processing data from raw data server for large format index.
-    result = ['RS', 'CE']
-    return result
-
 
 # Get years where data is provided on the raw data server.
 def rds_get_supported_years():
     # The years where data is provided on the raw data server.
-    result = ['2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017']
+    result = ['2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018']
     return result
 
 
@@ -277,26 +270,57 @@ def rds_get_valid_months():
 # Get valid extensions.
 def get_valid_extensions():
     # The valid file extensions to be used when searching/working with the raw data server.
-    result = ['.png', '.mseed', '.raw', '.mov', '.mp4', '.dat']
-    result = ['.png']
+    result = ['.png', '.raw']                     #, '.mseed', '.mov', '.mp4', '.dat']
     return result
 
 
-# Get supported extensions.
+# Get supported sensor types.
 def rds_get_supported_sensor_types():
     # The supported sensor types to be used when searching/working with the raw data server.
-    result = ['-HYD', '-CAMDS', '-CAMHD', '-ZPL', '-OBS']
-    result = ['-CAMDS']
+    result = ['-CAMDS', '-ZPL']                     # , '-HYD', '-CAMHD']
+    return result
+
+# Get ALL supported sensor types (standard or not); used for partitioned cache processing.
+def rds_get_all_supported_sensor_types():
+    # The supported sensor types to be used when searching/working with the raw data server.
+    result = ['OSMOI', '-CAMDS', '-ZPL']            # , '-HYD', '-CAMHD']
     return result
 
 
 # Get supported folder types.
 def rds_get_supported_folder_types():
     # The supported folder types to be used when searching/working with the raw data server.
-    result = ['HY', 'CAMDS', 'CAMHD', 'ZPL', 'OBS']
-    result = ['CAMDS']
+    result = ['CAMDS', 'ZPL']                         # 'HY', ,'CAMHD']
     return result
 
+
+# ========================================================
+# OSMOI Get supported sensor types.
+def rds_get_nonstandard_sensor_types():
+    # The supported sensor types to be used when searching/working with the raw data server.
+    result = ['OSMOI']                                      # 'PREST'
+    return result
+
+# OSMOI Get supported extensions.
+def rds_get_supported_sensor_types_osmoi():
+    # The supported sensor classes to be used when searching/working with OSMOI and the raw data server.
+    result = ['OSMOI']
+    return result
+
+
+# OSMOI Get supported folder types.
+def rds_get_supported_folder_types_osmoi():
+    # The supported folder types to be used when searching/working with OSMOI and the raw data server.
+    result = ['OSMOI']
+    return result
+
+
+# OSMOI Get supported platforms.
+def rds_get_supported_platforms_osmoi():
+    # The supported platforms to be used when searching/working with OSMOI and the raw data server.
+    result = ['RS01SUM2', 'RS03ASHS']
+    return result
+# ========================================================
 
 # Get extensions for a sensor type.
 def get_extensions_by_sensor_type(sensor_type):
@@ -305,7 +329,7 @@ def get_extensions_by_sensor_type(sensor_type):
     extensions = []
 
     # If unknown sensor_type, return None.
-    if sensor_type not in rds_get_supported_sensor_types():
+    if sensor_type not in rds_get_supported_sensor_types() and sensor_type not in rds_get_nonstandard_sensor_types():
         return None
 
     # Get list of extensions for each sensor_type.
@@ -317,17 +341,48 @@ def get_extensions_by_sensor_type(sensor_type):
         extensions = ['.mov', '.mp4']
     elif sensor_type == '-ZPL':
         extensions = ['.raw', '.png']
-    elif sensor_type == '-OBS':
+    elif sensor_type == '-OBS':                                     # Removed from processing, no rds data
         extensions = ['.raw', '.png', '.dat']
+    elif sensor_type == 'OSMOI':
+        extensions = ['.jpg', '.pdf', '.xlsx']       # 'xlsx'
+    elif sensor_type == 'PREST':
+        extensions = ['.dat']
+    return extensions
+
+# Get extensions for a sensor type.
+def get_supported_folder_types(sensor_type):
+    # The valid file extensions to be used when searching/working with the raw data server for a specific sensor_type.
+    # Check if a known sensor type has been provided.
+    extensions = []
+
+    # If unknown sensor_type, return None.
+    if sensor_type not in rds_get_supported_sensor_types() and sensor_type not in rds_get_nonstandard_sensor_types():
+        return None
+
+    # Get list of extensions for each sensor_type.
+    if sensor_type == '-HYD':
+        extensions = ['HY']
+    elif sensor_type == '-CAMDS':
+        extensions = ['CAMDS']
+    elif sensor_type == '-CAMHD':
+        extensions = ['CAMHD']
+    elif sensor_type == '-ZPL':
+        extensions = ['ZPL']
+    elif sensor_type == '-OBS':                                     # Removed from processing, no rds data
+        extensions = ['OBS']
+    elif sensor_type == 'OSMOI':
+        extensions = ['OSMOI']       # 'xlsx'
+    elif sensor_type == 'PREST':
+        extensions = ['PREST']
     return extensions
 
 # Complete lists...
-#valid_extensions = ['.mseed', '.png', '.raw', '.mov', '.mp4']
-#valid_sensor_types = ['CAMDS', 'CAMHD', 'ZPL', 'HYDBB', 'HYDLF', 'OBS']
+#valid_extensions = ['.mseed', '.png', '.raw', '.mov', '.mp4', '.pdf', '.xlsx', '.jpg']
+#valid_sensor_types = ['CAMDS', 'CAMHD', 'ZPL', 'HYD', 'OSMOI']
 
 # Sprint 10 - Used in large file index
 valid_extensions = get_valid_extensions()
-valid_sensor_types = rds_get_supported_sensor_types()
+valid_sensor_types = rds_get_all_supported_sensor_types()
 
 def rds_get_valid_sensor_types():
     return valid_sensor_types
@@ -344,7 +399,10 @@ def rds_get_sensor_type(rd):
     sensor_type = None
     try:
         for type in valid_sensor_types:
-            check_type = '-' + type
+            if '-' not in type:
+                check_type = '-' + type
+            else:
+                check_type = type
             if check_type in rd:
                 sensor_type = type
                 break
@@ -842,7 +900,7 @@ def get_rd(data):
     """
     Process uframe reference designator dictionary to get reference designator.
     """
-    debug = True
+    debug = False
     rd = None
     try:
         if debug: print '\n debug -- Entered common_tools::get_rd: ', data

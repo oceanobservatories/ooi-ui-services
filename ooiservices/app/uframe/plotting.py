@@ -91,7 +91,7 @@ def generate_plot(data, plot_options):
         """
         Plot time series data
         """
-        print '\n-- Plotting Time Series'
+        if debug: print '\n-- Plotting Time Series'
 
         # Define some plot parameters
         kwargs = dict(linewidth=1.5,
@@ -103,7 +103,7 @@ def generate_plot(data, plot_options):
 
         # First check if we have a multiple stream data
         if isinstance(data, list):
-            print '\n-- Plotting Multiple Streams'
+            if debug: print '\n-- Plotting Multiple Streams'
             ooi_plots.plot_multiple_streams(fig, ax, data, colors,
                                             title_font=title_font,
                                             axis_font=axis_font,
@@ -185,7 +185,7 @@ def generate_plot(data, plot_options):
         """
         Plot depth profiles (overlay)
         """
-        print '\n-- Plotting Depth Profile'
+        if debug: print '\n-- Plotting Depth Profile'
 
         # Define some plot parameters
         kwargs = dict(linewidth=1.5, alpha=0.7)
@@ -239,7 +239,7 @@ def generate_plot(data, plot_options):
         """
         Plot a Temperature-Salinity diagram
         """
-        print '\n-- Plotting T-S Diagram'
+        if debug: print '\n-- Plotting T-S Diagram'
 
         # Define some plot parameters
         kwargs = dict(color='r', marker='o')
@@ -274,7 +274,7 @@ def generate_plot(data, plot_options):
         """
         Plot magnitude and direction as a time series on a quiver plot
         """
-        print '\n-- Plotting Quiver'
+        if debug: print '\n-- Plotting Quiver'
 
         # color='#0000FF',
         # edgecolors='#000000',
@@ -325,9 +325,10 @@ def generate_plot(data, plot_options):
         data.keys(): ['x_field', 'height', 'qaqc', 'y_units', 'y_field', 'dt_units', 'stream_name',
                       'title', 'data_length', 'width', 'x_units', 'y', 'x']
 
-        sample: http://localhost:5000/data_access/#GI01SUMO-RII11-02-ADCPSN010/telemetered_adcps-jln-stc-instrument
+        sample: http://server:5000/data_access/#GI01SUMO-RII11-02-ADCPSN010/telemetered_adcps-jln-stc-instrument
         """
-        if debug:
+        _debug = False
+        if _debug:
             print '\n-- Plotting  Stacked'
             print '\n-- Plotting  Stacked - reference designator: ', reference_designator
         #- - - - - - - - - - - - - - - - - - -
@@ -343,7 +344,7 @@ def generate_plot(data, plot_options):
         else:
             # If no stream_name, default to system parameter name and units
             label = data['y_field'][0] + " (" + data['y_units'][0] + ")"
-        if debug:
+        if _debug:
             print '\n debug -- Plotting Stacked Title: ', data['title']
             print '\n debug -- Plotting Stacked (Label) data[y_field][0]: ', data['y_field'][0]
             print '\n debug -- Plotting Stacked (Label) len(data[y_field]): ', len(data['y_field'])
@@ -352,12 +353,16 @@ def generate_plot(data, plot_options):
         #- - - - - - - - - - - - - - - - - - -
         # Get time component
         #- - - - - - - - - - - - - - - - - - -
-        if debug: print '\n debug -- Plotting  Stacked: Get time...'
+        if _debug:  print '\n debug -- Plotting  Stacked: Get time...'
         time = mdates.date2num(data['x']['time'])
         plot_parameter = data['y_field'][0]
+        plot_units = data['y_units'][0]
+        if _debug:
+            print '\n debug -- plot_parameter: ', plot_parameter
+            print '\n debug -- plot_units: ', plot_units
 
         if isinstance(data['y'][plot_parameter][0], list):
-            if debug:
+            if _debug:
                 print '\n debug -- Plotting  Stacked: Get z...'
                 print '\n debug -- Plotting Stacked: Parameter \'%s\' available in data[y].' % plot_parameter
                 print '\n debug -- Plotting Stacked: Parameter type \'%s\': %s ' % \
@@ -370,7 +375,7 @@ def generate_plot(data, plot_options):
             # Original
             z = np.array(data['y'][data['y_field'][0]])
             if '-SPKIR' in reference_designator:
-                if debug:
+                if _debug:
                     print '\n debug -- Dealing with SPKIR.....', reference_designator
                     print '\n debug -- SPIKR - type(z): ', str(type(z))
                     print '\n debug -- SPKIR - np.arange(len(z[0]))[::-1]: ', np.arange(len(z[0]))[::-1]
@@ -383,7 +388,7 @@ def generate_plot(data, plot_options):
                                            tick_font=tick_font)
             elif '-ZPLSC' in reference_designator:
                 depth_parameter = data['y_field'][1]
-                if debug:
+                if _debug:
                     print '\n debug ---------------------------------------------------------------'
                     print '\n debug -- Dealing with ZPLSC.....', reference_designator
                     print '\n debug -- ZPLSC - type(z): ', str(type(z))
@@ -395,12 +400,12 @@ def generate_plot(data, plot_options):
                     print '\n debug -- Plotting Stacked: len(data[y][depth_parameter]): ', len(data['y'][depth_parameter])
 
                 #stacked_depth_ranges = np.array(data['y'][data['y_field'][1]])
-                if debug: print '\n debug -- Plotting Stacked: (BEFORE) depth_parameter [0]: ', data['y'][depth_parameter][0][0:20]
+                if _debug:  print '\n debug -- Plotting Stacked: (BEFORE) depth_parameter [0]: ', data['y'][depth_parameter][0][0:20]
                 stacked_depth_ranges = np.array(data['y'][depth_parameter][:])
-                if debug: print '\n debug -- Plotting Stacked: (AFTER) depth_parameter [0]: ', data['y'][depth_parameter][0][0:20]
+                if _debug:  print '\n debug -- Plotting Stacked: (AFTER) depth_parameter [0]: ', data['y'][depth_parameter][0][0:20]
                 reverse = np.arange(len(stacked_depth_ranges[0]))[::-1]
                 normal = np.arange(len(stacked_depth_ranges[0]))
-                if debug:
+                if _debug:
                     print '\n debug -- Dealing with stacked_depth_ranges.....'
                     print '\n debug -- Plotting Stacked: depth_parameter [0]: ', data['y'][depth_parameter][0][0:20]
                     print '\n debug -- Plotting Stacked: stacked_depth_ranges [0]: ', stacked_depth_ranges[0][0:20]
@@ -416,37 +421,19 @@ def generate_plot(data, plot_options):
                                                                title_font=title_font,
                                                                axis_font=axis_font,
                                                                tick_font=tick_font)
-                """
-                ooi_plots.plot_stacked_time_series_zplsc(fig, ax, time, np.arange(len(z[0]))[::-1], z.transpose(),
-                                                         stacked_depth_ranges,
-                                           title=data['title'],
-                                           ylabel='Depth',
-                                           cbar_title=label,
-                                           title_font=title_font,
-                                           axis_font=axis_font,
-                                           tick_font=tick_font)
-                """
-                """
-                ooi_plots.plot_stacked_time_series_zplsc(fig, ax, time, np.arange(len(z[0]))[::-1], z.transpose(),
-                                           title=data['title'],
-                                           ylabel='Depth',
-                                           cbar_title=label,
-                                           title_font=title_font,
-                                           axis_font=axis_font,
-                                           tick_font=tick_font)
-                """
             else:
-                print '\n debug -- NOT dealing with SPKIR......(ADCP)...'
+                if _debug: print '\n debug -- NOT dealing with SPKIR......(ADCP)...'
                 ooi_plots.plot_stacked_time_series(fig, ax, time, np.arange(len(z[0]))[::-1], z.transpose(),
                                            title=data['title'],
                                            ylabel='Bin #',
                                            cbar_title=label,
                                            title_font=title_font,
                                            axis_font=axis_font,
-                                           tick_font=tick_font)
+                                           tick_font=tick_font,
+                                           plot_units=plot_units)
 
         else:
-            if debug:
+            if _debug:
                 print '\n debug -- Plotting  Stacked: str(type(data[y][plot_parameter])): ', \
                                                                       str(type(data['y'][plot_parameter]))
             message = 'Unable to provide binned pseudo color plot for %s at this time.' % reference_designator
@@ -455,10 +442,9 @@ def generate_plot(data, plot_options):
     elif plot_layout == '3d_scatter':
         """
         Plot 3d scatter plot
-
-        note: review the use of following: ax.xaxis.get_major_locator()._nbins = 5
+        Note: review the use of following: ax.xaxis.get_major_locator()._nbins = 5
         """
-        print '\n-- Plotting 3D Scatter'
+        if debug: print '\n-- Plotting 3D Scatter'
 
         stream_name = None
         if 'stream_name' in data:
@@ -522,7 +508,7 @@ def generate_plot(data, plot_options):
         """
         Plot rose
         """
-        print '\n-- Plotting Rose'
+        if debug: print '\n-- Plotting Rose'
 
         # Need to create new fig and axes here
         plt.close(fig)

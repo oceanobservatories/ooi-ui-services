@@ -14,10 +14,10 @@ from ooiservices.app import cache
 from ooiservices.app.uframe.common_tools import (rds_get_supported_years, rds_get_valid_months,
                                                  rds_get_valid_sensor_types,
                                                  rds_get_supported_sensor_types, rds_get_sensor_type,
-                                                 rds_get_valid_extensions)
+                                                 rds_get_valid_extensions, rds_get_all_supported_sensor_types)
 from ooiservices.app.uframe.config import (get_image_camera_store_url_base, get_image_store_url_base)
 from requests.exceptions import (ConnectionError, Timeout)
-from ooiservices.app.uframe.image_tools import (_compile_large_format_files, _compile_large_format_index)
+from ooiservices.app.uframe.image_tools import (build_complete_rds_cache_index)
 
 '''
 from bs4 import BeautifulSoup
@@ -262,6 +262,8 @@ def _get_media_for_rd(rd=None, year=None, month=None):
         raise Exception(message)
 
 
+# Modified.
+# Tag for cache partitioning.
 def new_get_data_image_list(reference_designator=None, year=None, month=None, sensor_type=None, extensions=None):
     """ Get list of image items for thumbnail processing using 'large_format' cache.
     Review (future): list of years, use of extensions.
@@ -295,15 +297,18 @@ def new_get_data_image_list(reference_designator=None, year=None, month=None, se
             . . .]
 
     """
+    from ooiservices.app.uframe.image_tools import (get_cache_by_rd)
     debug = False
     details = False
     #sensor_types = ['-HYD', '-CAMDS', '-CAMHD', '-ZPL']
     #valid_extensions = ['.mseed', '.png', '.raw', '.mov', '.mp4']
-    sensor_types = rds_get_supported_sensor_types()
+    sensor_types = rds_get_all_supported_sensor_types()
     valid_extensions = rds_get_valid_extensions()
     image_list = []
     tmp_dts = []
     filter_on_year = True
+
+    years_processed = rds_get_supported_years()
     years_processed = ['2017', '2016']
 
     filter_on_rd = False
@@ -359,8 +364,9 @@ def new_get_data_image_list(reference_designator=None, year=None, month=None, se
             if filter_on_sensor_type:
                 print '\n debug -- (new_get_data_image_list) Filter on sensor type: ', filter_sensor_type
 
-        # Get reference data
-        large_format_cache = cache.get('large_format')
+        # Get data for reference designator.
+        large_format_cache = get_cache_by_rd(reference_designator)
+        #large_format_cache = cache.get('large_format')
         if not large_format_cache or large_format_cache is None or 'error' in large_format_cache:
             if debug: print '\n debug -- large_format_cache failed to return information: '
             return None
@@ -547,37 +553,17 @@ def validate_year(year):
         raise Exception(message)
 
 
-def get_large_format():
-    try:
-        cached = cache.get('large_format')
-        if cached:
-            data = cached
-            if not data or 'error' in data:
-                message = 'Failed to retrieve large_format cache with success.'
-                raise Exception(message)
-        else:
-            print '\n Compiling large format files...'
-            data = _compile_large_format_files()
-        return data
-    except Exception as err:
-        message = str(err)
-        current_app.logger.info(message)
-        raise Exception(message)
-
-
+# Tag for cache partitioning
 def get_large_format_for_rd(rd=None):
+    from ooiservices.app.uframe.image_tools import (get_cache_by_rd)
     debug = False
     result = {}
     try:
-        cached = cache.get('large_format')
-        if cached:
-            data = cached
-            if not data or 'error' in data:
-                message = 'Failed to retrieve large_format cache with success.'
-                raise Exception(message)
-        else:
-            print '\n Compiling large format files...'
-            data = _compile_large_format_files()
+        data = get_cache_by_rd(rd)
+        if not data or data is None:
+            message = '*** Request for %d cache returned empty or null result.' % rd
+            current_app.logger.info(message)
+            return None
 
         if debug: print '\n Number of items in large_format cache(%d): %r' % (len(data), data.keys())
         keys = [str(key) for key in data.keys()]
@@ -602,14 +588,11 @@ def get_file_list_for_large_format_data(lfd, rd, sensor_type):
     """
     debug = False
     details = False
-    #sensor_types = ['-HYD', '-CAMDS', '-CAMHD', '-ZPL']
-    #valid_extensions = ['.mseed', '.png', '.raw', '.mov', '.mp4']
     valid_extensions = rds_get_valid_extensions()
 
     image_list = []
     tmp_dts = []
     filter_on_year = True
-    #years_processed = ['2017', '2016']
     years_processed = rds_get_supported_years()
 
     filter_on_rd = False
@@ -617,15 +600,13 @@ def get_file_list_for_large_format_data(lfd, rd, sensor_type):
     filter_on_sensor_type = False
     filter_sensor_type = None
 
-    # Sprint 10
-    #sensor_types = ['-HYD', '-CAMDS', '-ZPL']
-    #valid_sensor_types = ['CAMDS', 'CAMHD', 'ZPL', 'HYDBB', 'HYDLF']
-    valid_sensor_types = rds_get_valid_sensor_types()
+    valid_sensor_types = rds_get_all_supported_sensor_types()
     try:
         if debug: print '\n debug -- Entered get_file_list_for_large_format_data for: %s, sensor_type: %s' % (rd,
                                                                                                               sensor_type)
         if sensor_type not in valid_sensor_types:
             message = 'Invalid sensor type (%s) received; valid sensor types: %s' % (sensor_type, valid_sensor_types)
+            if debug: print '\n debug -- invalid sensor types: %s' % message
             raise Exception(message)
 
         if debug: print '\n debug -- type(lfd) %r' % type(lfd)
@@ -716,6 +697,8 @@ def get_file_list_for_large_format_data(lfd, rd, sensor_type):
 
             #image_list.sort(key=lambda x: (x['rd']))
             #image_list.sort(key=lambda x: (x['date']), reverse=True)
+            #import json
+            #print '\n debug -- %s' % json.dumps(image_list, indent=4, sort_keys=True)
             image_list.sort(key=lambda x: (x['date']))
 
         return image_list
@@ -761,7 +744,7 @@ def fetch_media_for_rd(data_list, rd):
         if data_list:
             if debug: print '\n Number of items available to process: ', len(data_list)
 
-            # Add the media item to the to the folder cache.
+            # Add the media item to the folder cache.
             completed = []
             for media_item in data_list:
                 try:
@@ -822,6 +805,36 @@ def fetch_media_for_rd(data_list, rd):
                     elif '.mseed' in media_item['filename']:
                         if debug: print '\t debug -- processing image (.mseed) file...'
                         ext = '.mseed'
+                        check_data_link = True
+                        data_link = url[:]
+                        url = None
+                        if debug: print '\t debug -- processing data_link: %s' % data_link
+                    elif '.jpg' in media_item['filename']:
+                        if debug: print '\t debug -- processing image (.jpg) file...'
+                        ext = '.jpg'
+                        new_filename = media_item['filename'].replace('.jpg', '_thumbnail.jpg')
+                        # Remove comma and and use underscore.
+                        new_filename = new_filename.replace(',', '_')
+                        new_filepath = get_image_store_url_base() + '/' + new_filename[:]
+
+                        if filename not in completed and os.path.isfile(new_filepath):
+                            have_thumbnail = True
+                            thumbnail_path = new_filepath
+                            #completed.append(filename)
+                        else:
+                            if debug:
+                                print '\t ***** debug -- (jpg) Thumbnail not found: %s' % new_filepath
+                            thumbnail_path = None
+                    elif '.pdf' in media_item['filename']:
+                        if debug: print '\t debug -- processing image (.pdf) file...'
+                        ext = '.pdf'
+                        check_data_link = True
+                        data_link = url[:]
+                        url = None
+                        if debug: print '\t debug -- processing data_link: %s' % data_link
+                    elif '.xlsx' in media_item['filename']:
+                        if debug: print '\t debug -- processing image (.xlxs) file...'
+                        ext = '.xlxs'
                         check_data_link = True
                         data_link = url[:]
                         url = None
@@ -1006,7 +1019,7 @@ def get_large_format_index_for_rd(rd=None):
                 raise Exception(message)
         else:
             print '\n Compiling large format_index...'
-            data = _compile_large_format_index()
+            data = build_complete_rds_cache_index()
 
         if debug: print '\n Number of items in large_format cache(%d): %r' % (len(data), data.keys())
         keys = [str(key) for key in data.keys()]
@@ -1098,7 +1111,7 @@ def get_large_format_index():
                 raise Exception(message)
         else:
             print '\n Compiling large format_index...'
-            data = _compile_large_format_index()
+            data = build_complete_rds_cache_index()
 
         if debug: print '\n Number of items in large_format_inx cache(%d): %r' % (len(data), data.keys())
         return data
@@ -1201,3 +1214,6 @@ def _get_large_format_files_by_rd(rd, date_str):
         raise Exception(message)
     #======================================================
 '''
+
+
+
