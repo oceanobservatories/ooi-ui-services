@@ -284,15 +284,16 @@ def rds_get_supported_sensor_types():
 # Get ALL supported sensor types (standard or not); used for partitioned cache processing.
 def rds_get_all_supported_sensor_types():
     # The supported sensor types to be used when searching/working with the raw data server.
-    result = ['OSMOI', 'THSP', 'TRHP', 'MASSP', 'PPS', 'RAS', 'PREST', 'FLOBN', 'HPIES', 'TMPSF',
-              '-CAMDS', '-ZPL']                                                                     #, '-HYD']
+    # 'THSP', 'TRHP', 'HPIES', 'TMPSF', 'PREST',
+    result = ['OSMOI',  'MASSP', 'PPS', 'RAS',  'FLOBN', '-CAMDS', '-ZPL']                                                                     #, '-HYD']
     return result
 
 
 # Get supported folder types.
 def rds_get_supported_folder_types():
     # The supported folder types to be used when searching/working with the raw data server.
-    result = ['CAMDS', 'ZPL', 'THSP', 'TRHP', 'MASSP', 'PREST', 'FLOBN', 'HPIES', 'TMPSF']  #,'HY'] # ,'CAMHD']
+    # 'THSP', 'TRHP', 'HPIES', 'TMPSF', 'PREST', #,'HY'] # ,'CAMHD']
+    result = ['CAMDS', 'ZPL',  'MASSP',  'FLOBN']
     return result
 
 
@@ -300,7 +301,8 @@ def rds_get_supported_folder_types():
 # OSMOI Get supported non-standard sensor types.
 def rds_get_nonstandard_sensor_types():
     # The supported sensor types to be used when searching/working with the raw data server.
-    result = ['OSMOI', 'THSP', 'TRHP', 'MASSP', 'PPS', 'RAS', 'PREST', 'FLOBN', 'HPIES', 'TMPSF']
+    # 'THSP', 'TRHP', 'PREST', , 'HPIES', 'TMPSF'
+    result = ['OSMOI', 'MASSP', 'PPS', 'RAS', 'FLOBN']
     return result
 
 
@@ -818,7 +820,8 @@ def timestamp_to_string(time_float):
 # and-back-again-pair-of-time-conversion (url continued from previous line)
 # Convert a unix time u to a datetime object d, and vice versa
 def convert_from_utc(u):
-    return dt.utcfromtimestamp(u)
+    #return dt.utcfromtimestamp(u)
+    return dt.datetime.utcfromtimestamp(u)
 
 
 def ut(d):
