@@ -85,6 +85,7 @@ def _get_cruise_deployments(event_id, type):
             if result is not None:
                 abridged_deployments.append(result)
 
+        """
         # (10506) Mobile assets should return maxdepth for depth.
         results = []
         for deploy in abridged_deployments:
@@ -95,6 +96,8 @@ def _get_cruise_deployments(event_id, type):
                             deploy['depth'] = vocab_dict[deploy['rd']]['maxdepth']
             results.append(deploy)
         return results
+        """
+        return abridged_deployments
 
     except Exception as err:
         message = str(err)

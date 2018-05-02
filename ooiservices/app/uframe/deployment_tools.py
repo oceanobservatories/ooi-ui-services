@@ -473,11 +473,12 @@ def _get_deployments_by_rd(rd):
             if not ui_deployment or ui_deployment is None:
                 continue
 
+            """
             # (10506) Add maxdepth as depth for mobile assets (MOAS)
             if 'MOAS' in ui_deployment['rd']:
                 if ui_deployment['rd'] in vocab_dict:
                     ui_deployment['depth'] = vocab_dict[ui_deployment['rd']]['maxdepth']
-
+            """
             ui_deployments.append(ui_deployment)
         return ui_deployments
 
@@ -502,6 +503,7 @@ def _get_deployments_digest_by_uid(uid):
             message = 'Failed to get deployments from uframe for uid \'%s\' .' % uid
             raise Exception(message)
 
+        """
         # (10506) Check for mobile assets and use maxdepth as depth for mobile assets (MOAS).
         # Note: the maxdepth value used across current and past deployments will be the current
         # maxdepth setting from vocabulary for the reference designator.
@@ -513,6 +515,8 @@ def _get_deployments_digest_by_uid(uid):
                         uframe_deployment['depth'] = vocab_dict[rd]['maxdepth']
             results.append(uframe_deployment)
         return results
+        """
+        return uframe_deployments
     except Exception as err:
         message = str(err)
         raise Exception(message)

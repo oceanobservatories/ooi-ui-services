@@ -10,13 +10,82 @@ from flask import (jsonify, request, current_app)
 from ooiservices.app import db
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.errors import (internal_server_error, bad_request)
-from ooiservices.app.uframe.stream_tools import (get_stream_list, get_stream_for_stream_model)
+from ooiservices.app.uframe.stream_tools import (get_stream_list, get_streams_for_rd, get_stream_for_stream_model)
 from operator import itemgetter
 from copy import deepcopy
 from ooiservices.app.uframe.common_tools import iso_to_timestamp
 from ooiservices.app.models import DisabledStreams
 
+from ooiservices.app.uframe.stream_tools import get_instrument_list
 
+@api.route('/instrument_list')
+def get_instruments_list():
+    """
+    12529. Get list of instrument for data catalog.
+    """
+    try:
+        retval = get_instrument_list()
+        print '\n debug -- instrument_list: %d' % len(retval)
+        if not retval or retval is None:
+            message = 'The instrument list did not return a value.'
+            return bad_request(message)
+        return jsonify(instruments=retval)
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
+
+
+@api.route('/streams_for/<string:rd>')
+def get_streams_for(rd):
+    """
+    12529. Get all streams for a reference designator.
+    Remove depth, water_depth, latitude and longitude once review of proposed changes has been completed.
+
+    http://localhost:4000/uframe/streams_for/CE01ISSM-MFD35-00-DCLENG000
+    {
+      "streams": [
+        {
+          "array_name": "Coastal Endurance",
+          "assembly_name": "Seafloor Multi-Function Node (MFN)",
+          "depth": 25.0,
+          "display_name": "Data Concentrator Logger (DCL)",
+          "end": "2017-05-12T03:33:46.923Z",
+          "iris_enabled": false,
+          "latitude": 44.65833,
+          "long_display_name": "Coastal Endurance Oregon Inshore Surface Mooring - Seafloor Multi-Function Node (MFN) - Data Concentrator Logger (DCL)",
+          "longitude": -124.09583,
+          "platform_name": "Oregon Inshore Surface Mooring",
+          "rds_enabled": false,
+          "reference_designator": "CE01ISSM-MFD35-00-DCLENG000",
+          "site_name": "Oregon Inshore Surface Mooring",
+          "start": "2016-09-30T17:20:18.821Z",
+          "stream": "cg_dcl_eng_dcl_dlog_status",
+          "stream_dataset": "Engineering",
+          "stream_display_name": "Data Logger Status",
+          "stream_method": "telemetered",
+          "stream_name": "telemetered_cg-dcl-eng-dcl-dlog-status",
+          "stream_type": "telemetered",
+          "water_depth": 25.0
+        },
+        ...
+      ]
+    }
+    """
+    try:
+        """
+        rd = 'GS01SUMO-RII11-02-ADCPSN010'
+        rd = 'CE01ISSM-MFC31-00-CPMENG000'
+        rd = 'CE01ISSM-MFD35-00-DCLENG000'
+        """
+        retval = get_streams_for_rd(rd)
+        return jsonify(streams=retval)
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
+
+# Deprecate
 @api.route('/stream')
 def get_streams_list():
     """ Get streams (list of dictionaries); used in the data catalog.

@@ -270,36 +270,41 @@ def rds_get_valid_months():
 # Get valid extensions.
 def get_valid_extensions():
     # The valid file extensions to be used when searching/working with the raw data server.
-    result = ['.png', '.raw']                     #, '.mseed', '.mov', '.mp4', '.dat']
+    result = ['.png', '.raw', '.dat']                       # '.mseed',     #, '.mov', '.mp4', '.dat']
     return result
 
 
 # Get supported sensor types.
 def rds_get_supported_sensor_types():
     # The supported sensor types to be used when searching/working with the raw data server.
-    result = ['-CAMDS', '-ZPL']                     # , '-HYD', '-CAMHD']
+    result = ['-CAMDS', '-ZPL']              # , '-HYD']                     # , '-CAMHD']
     return result
+
 
 # Get ALL supported sensor types (standard or not); used for partitioned cache processing.
 def rds_get_all_supported_sensor_types():
     # The supported sensor types to be used when searching/working with the raw data server.
-    result = ['OSMOI', '-CAMDS', '-ZPL']            # , '-HYD', '-CAMHD']
+    # 'THSP', 'TRHP', 'HPIES', 'TMPSF', 'PREST',
+    result = ['OSMOI',  'MASSP', 'PPS', 'RAS',  'FLOBN', '-CAMDS', '-ZPL']                                                                     #, '-HYD']
     return result
 
 
 # Get supported folder types.
 def rds_get_supported_folder_types():
     # The supported folder types to be used when searching/working with the raw data server.
-    result = ['CAMDS', 'ZPL']                         # 'HY', ,'CAMHD']
+    # 'THSP', 'TRHP', 'HPIES', 'TMPSF', 'PREST', #,'HY'] # ,'CAMHD']
+    result = ['CAMDS', 'ZPL',  'MASSP',  'FLOBN']
     return result
 
 
 # ========================================================
-# OSMOI Get supported sensor types.
+# OSMOI Get supported non-standard sensor types.
 def rds_get_nonstandard_sensor_types():
     # The supported sensor types to be used when searching/working with the raw data server.
-    result = ['OSMOI']                                      # 'PREST'
+    # 'THSP', 'TRHP', 'PREST', , 'HPIES', 'TMPSF'
+    result = ['OSMOI', 'MASSP', 'PPS', 'RAS', 'FLOBN']
     return result
+
 
 # OSMOI Get supported extensions.
 def rds_get_supported_sensor_types_osmoi():
@@ -322,6 +327,7 @@ def rds_get_supported_platforms_osmoi():
     return result
 # ========================================================
 
+
 # Get extensions for a sensor type.
 def get_extensions_by_sensor_type(sensor_type):
     # The valid file extensions to be used when searching/working with the raw data server for a specific sensor_type.
@@ -341,15 +347,32 @@ def get_extensions_by_sensor_type(sensor_type):
         extensions = ['.mov', '.mp4']
     elif sensor_type == '-ZPL':
         extensions = ['.raw', '.png']
-    elif sensor_type == '-OBS':                                     # Removed from processing, no rds data
+    elif sensor_type == '-OBS':                                     # Removed from processing, no rds data?
         extensions = ['.raw', '.png', '.dat']
     elif sensor_type == 'OSMOI':
-        extensions = ['.jpg', '.pdf', '.xlsx']       # 'xlsx'
+        extensions = ['.jpg', '.pdf', '.xlsx']
+    elif sensor_type == 'FLOBN':
+        extensions = ['.jpg', '.pdf', '.xlsx']
     elif sensor_type == 'PREST':
+        extensions = ['.dat']
+    elif sensor_type == 'THSP':
+        extensions = ['.dat']
+    elif sensor_type == 'TRHP':
+        extensions = ['.dat']
+    elif sensor_type == 'MASSP':
+        extensions = ['.dat']
+    elif sensor_type == 'PPS':
+        extensions = ['.dat']
+    elif sensor_type == 'RAS':
+        extensions = ['.dat']
+    elif sensor_type == 'HPIES':
+        extensions = ['.dat']
+    elif sensor_type == 'TMPSF':
         extensions = ['.dat']
     return extensions
 
-# Get extensions for a sensor type.
+
+# Get supported folder types for a [standard] sensor type.
 def get_supported_folder_types(sensor_type):
     # The valid file extensions to be used when searching/working with the raw data server for a specific sensor_type.
     # Check if a known sensor type has been provided.
@@ -371,9 +394,23 @@ def get_supported_folder_types(sensor_type):
     elif sensor_type == '-OBS':                                     # Removed from processing, no rds data
         extensions = ['OBS']
     elif sensor_type == 'OSMOI':
-        extensions = ['OSMOI']       # 'xlsx'
+        extensions = ['OSMOI']
     elif sensor_type == 'PREST':
         extensions = ['PREST']
+    elif sensor_type == 'TMPSF':
+        extensions = ['TMPSF']
+    elif sensor_type == 'THSP':
+        extensions = ['THSP']
+    elif sensor_type == 'TRHP':
+        extensions = ['TRHP']
+    elif sensor_type == 'HPIES':
+        extensions = ['HPIES']
+    elif sensor_type == 'MASSP':
+        extensions = ['MASSP']
+    elif sensor_type == 'PPS':
+        extensions = ['PPS']
+    elif sensor_type == 'RAS':
+        extensions = ['RAS']
     return extensions
 
 # Complete lists...
@@ -783,7 +820,8 @@ def timestamp_to_string(time_float):
 # and-back-again-pair-of-time-conversion (url continued from previous line)
 # Convert a unix time u to a datetime object d, and vice versa
 def convert_from_utc(u):
-    return dt.utcfromtimestamp(u)
+    #return dt.utcfromtimestamp(u)
+    return dt.datetime.utcfromtimestamp(u)
 
 
 def ut(d):

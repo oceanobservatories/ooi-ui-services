@@ -16,5 +16,5 @@ from ooiservices.app.uframe import controller, data, subscribe, vocab, config, c
     events, event_tools, events_validate_fields, events_create_update, \
     deployments, deployment_tools, cruises, cruise_tools, versions, \
     status, status_tools, images, image_tools, support, \
-    media, media_tools, data_availability, gallery_tools, \
+    media, media_tools, data_availability, gallery_tools, rds_common_tools, rds_tools, \
     support_development

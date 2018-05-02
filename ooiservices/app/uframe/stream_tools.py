@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Support for uframe stream interface, functions utilized for stream information.
+Support for uframe stream interface, functions utilized for instrument and stream information.
 """
 __author__ = 'Edna Donoughe'
 
@@ -22,6 +22,7 @@ def dfs_streams():
     """ Compile a list of streams from uframe data.
     """
     from ooiservices.app.uframe.status_tools import get_rd_digests_dict
+    from ooiservices.app.uframe.stream_tools_rds import get_rds_link
     debug = False
     try:
         retval = []
@@ -97,7 +98,6 @@ def dfs_streams():
                     data_dict['water_depth'] = water_depth
 
                     # Get vocabulary items for response.
-                    #array, subsite, platform, sensor, long_display_name = get_vocab_name_collection(ref)
                     processing_rs = False
                     if rd[:2] == 'RS':
                         processing_rs = True
@@ -145,9 +145,13 @@ def dfs_streams():
                             if suffix is None:
                                 data_dict['rds_enabled'] = False
                             else:
-                                link = '/'.join([rds_base_url, suffix])
-                                data_dict['rds_enabled'] = True
-                                data_dict['rds_link'] = link
+                                link = get_rds_link(rd)
+                                if link is None:
+                                    data_dict['rds_enabled'] = False
+                                else:
+                                    data_dict['rds_enabled'] = True
+                                    data_dict['rds_link'] = link
+
 
                 except Exception as err:
                     message = str(err)
@@ -191,6 +195,7 @@ def dfs_streams():
                 retval = retval + rds_streams
                 if debug: print '\n-- New RDS streams: %s' % len(rds_streams)
                 if debug: print '\n-- Number of streams with RDS: %d ...' % len(retval)
+
         return retval
     except Exception as err:
         message = '[dfs_streams] Exception: %s' % str(err)
@@ -234,6 +239,347 @@ def get_stream_list(refresh=False):
         message = str(err)
         current_app.logger.info(message)
         raise Exception(message)
+
+
+# Get instrument_list.
+def get_instrument_list(toc=None, refresh=False):
+    """ Get 'stream_list' from cache; if not cached, get and set cache.
+    """
+    time = True
+    try:
+        instrument_list_cached = cache.get('instrument_list')
+        if refresh or not instrument_list_cached or instrument_list_cached is None or 'error' in instrument_list_cached:
+            if time: print '\nCompiling instrument list'
+            try:
+                start = dt.datetime.now()
+                if time: print '\t-- Start time: ', start
+                instrument_list = dfs_instruments()
+                end = dt.datetime.now()
+                if time:
+                    print '\t-- End time:   ', end
+                    print '\t-- Time to get instrument list: %s' % str(end - start)
+            except Exception as err:
+                message = str(err)
+                raise Exception(message)
+
+            if instrument_list and instrument_list is not None:
+                cache.delete('instrument_list')
+                cache.set('instrument_list', instrument_list, timeout=get_cache_timeout())
+                if time:
+                    print 'Completed compiling instrument list'
+            else:
+                message = 'instrument_list failed to return value, error.'
+                current_app.logger.info(message)
+        else:
+            instrument_list = instrument_list_cached
+        return instrument_list
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_streams_for_rd(rd):
+    """
+    For a specific reference designator in data catalog, get the list of stream dictionaries.
+    Remove latitude, longitude, water_depth, [deployment] depth
+    """
+    debug = False
+    try:
+        """
+        rd = 'GS01SUMO-RII11-02-ADCPSN010'
+        rd = 'CE01ISSM-MFC31-00-CPMENG000'
+        rd = 'CE01ISSM-MFD35-00-DCLENG000'
+        """
+        if debug: print '\n debug -- Entered get_streams_for_rd...', rd
+
+        stream_list = get_stream_list()
+        streams = [element for element in stream_list if element['reference_designator'] == rd]
+        #if debug:
+        #    if streams:
+        #        import json
+        #        print '\n debug -- streams(%d): %s' % (len(streams), json.dumps(streams, indent=4, sort_keys=True))
+
+        if streams:
+            if debug: print '\n debug -- processing the streams for: %s' % rd
+        else:
+            if debug: print '\n debug -- NO streams for: %s' % rd
+
+        results = []
+        for stream in streams:
+            stream.pop('array_name', None)
+            stream.pop('assembly_name', None)
+            stream.pop('display_name', None)
+            stream.pop('iris_enabled', None)
+            stream.pop('long_display_name', None)
+            stream.pop('platform_name', None)
+            stream.pop('rds_enabled', None)
+            stream.pop('site_name', None)
+            stream.pop('longitude', None)
+            stream.pop('latitude', None)
+            stream.pop('depth', None)
+            stream.pop('water_depth', None)
+            stream.pop('reference_designator', None)
+
+
+
+            results.append(stream)
+            if debug:
+                import json
+                print '\n debug -- results(%d): %s' % (len(results), json.dumps(stream, indent=4, sort_keys=True))
+            #del stream['longitude']
+            #del stream['latitude']
+            #del stream['depth']
+            #del stream['water_depth']
+        if debug:
+            if results:
+                import json
+                print '\n debug -- results(%d): %s' % (len(results), json.dumps(results, indent=4, sort_keys=True))
+        return results
+    except Exception as err:
+        message = str(err)
+        if debug: print '\n debug -- exception in get_streams_for_rd: ', message
+        current_app.logger.info(message)
+        return {}
+
+
+def dfs_instruments(toc=None):
+    """ Compile a list of instruments for data catalog.
+
+    Current dicts in response list:
+    {
+      "array_name": "Cabled Axial Seamount",
+      "assembly_name": "Medium-Power JBox (MJ03B)",
+      "depth": 1544.4,
+      "display_name": "Short-Period Ocean Bottom Seismometer",
+      "end": "2018-02-01T00:00:00.000Z",
+      "iris_enabled": true,
+      "iris_link": "http://ds.iris.edu/mda/OO/AXAS2",
+      "latitude": 45.93377,
+      "long_display_name": "Cabled Axial Seamount ASHES Vent Field - Medium-Power JBox (MJ03B) - Short-Period Ocean Bottom Seismometer",
+      "longitude": -130.0141,
+      "platform_name": "ASHES Vent Field",
+      "reference_designator": "RS03ASHS-MJ03B-05-OBSSPA302",
+      "site_name": "ASHES Vent Field",
+      "start": "2014-08-01T00:00:00.000Z",
+      "stream": null,
+      "stream_dataset": "",
+      "stream_display_name": null,
+      "stream_method": null,
+      "stream_name": null,
+      "stream_type": null,
+      "water_depth": 1545.0
+    }
+
+
+    Removing stream elements:
+      "stream": null,
+      "stream_dataset": "",
+      "stream_display_name": null,
+      "stream_method": null,
+      "stream_name": null,
+      "stream_type": null,
+
+    This returns dictionary with 15 entries:
+    {
+      "array_name": "Coastal Endurance",
+      "assembly_name": "Seafloor Multi-Function Node (MFN)",
+      "depth": 25.0,
+      "display_name": "Bio-acoustic Sonar (Coastal)",
+      "end": "2016-10-01T23:57:15.630Z",
+      "iris_enabled": false,
+      "latitude": 44.65628,
+      "long_display_name": "Coastal Endurance Oregon Inshore Surface Mooring - Seafloor Multi-Function Node (MFN) - Bio-acoustic Sonar (Coastal)",
+      "longitude": -124.09522,
+      "platform_name": "Oregon Inshore Surface Mooring",
+      "rds_enabled": false,
+      "reference_designator": "CE01ISSM-MFD37-07-ZPLSCC000",
+      "site_name": "Oregon Inshore Surface Mooring",
+      "start": "2016-05-01T00:05:33.640Z",
+      "water_depth": 25.0
+    },
+    """
+    from ooiservices.app.uframe.status_tools import get_rd_digests_dict
+    from ooiservices.app.uframe.stream_tools_rds import get_rds_link
+    debug = False
+    try:
+        # IRIS processing check.
+        is_iris_enabled = False
+        iris_rds = get_iris_rds()
+        iris_base_url = get_iris_base_url()
+        if iris_enabled():
+            is_iris_enabled = True
+
+        # RDS processing check.
+        is_rds_enabled = False
+        rds_rds = get_rds_rds()
+        if rds_enabled():
+            is_rds_enabled = True
+
+        # Get reference dictionaries once.
+        rd_digests_dict = get_rd_digests_dict()
+        vocab_dict = get_vocab()
+
+        retval = []
+        if toc is None:
+            if debug: print '\n debug -- Started processing toc...'
+            toc = process_uframe_toc()
+            if debug: print '\n debug -- Completed processing toc...'
+        if not toc or toc is None:
+            message = 'The uframe toc response is empty, unable to return stream information.'
+            raise Exception(message)
+
+        # For each instrument, get cumulative start, end times
+        for instrument in toc:
+
+            data_dict = {}
+            rd = instrument['reference_designator']
+            data_dict['reference_designator'] = rd
+            get_instrument_begin_and_end_times(instrument)
+            data_dict['start'] = instrument['start']
+            data_dict['end'] = instrument['end']
+
+            # Get deployment information from asset management.
+            latitude, longitude, depth, water_depth = get_stream_deployment_info(rd, rd_digests_dict)
+            data_dict['latitude'] = latitude
+            data_dict['longitude'] = longitude
+            data_dict['depth'] = depth
+            data_dict['water_depth'] = water_depth
+
+            # Get vocabulary items for response.
+            processing_rs = False
+            if rd[:2] == 'RS':
+                processing_rs = True
+            if not vocab_dict or vocab_dict is None:
+                array = rd[:2]
+                subsite = rd[:8]
+                platform = rd[:14]
+                sensor = rd
+                long_display_name = rd
+            else:
+                if not processing_rs:
+                    array = get_display_name_by_rd(rd[:2])
+                else:
+                    array = get_rs_array_name_by_rd(rd[:8])
+                subsite = get_display_name_by_rd(rd[:8])
+                platform = get_display_name_by_rd(rd[:14])
+                sensor = get_display_name_by_rd(rd)
+                long_display_name = get_long_display_name_by_rd(rd)
+            data_dict['array_name'] = array
+            data_dict['display_name'] = sensor
+            data_dict['assembly_name'] = platform
+            data_dict['site_name'] = subsite
+            data_dict['platform_name'] = subsite
+            data_dict['long_display_name'] = long_display_name
+            if data_dict:
+                retval.append(data_dict)
+
+            #- - - - - - - - - - - - - - - - - - - - - - - - -
+            # If IRIS, process IRIS components
+            #- - - - - - - - - - - - - - - - - - - - - - - - -
+            if is_iris_enabled:
+                if rd not in iris_rds:
+                    data_dict['iris_enabled'] = False
+                else:
+                    station = get_iris_station(rd)
+                    if station is None:
+                        data_dict['iris_enabled'] = False
+                    else:
+                        link = '/'.join([iris_base_url, station])
+                        data_dict['iris_enabled'] = True
+                        data_dict['iris_link'] = link
+
+            #- - - - - - - - - - - - - - - - - - - - - - - - -
+            # If Raw Data Server, process components
+            #- - - - - - - - - - - - - - - - - - - - - - - - -
+            if is_rds_enabled:
+                if rd not in rds_rds:
+                    data_dict['rds_enabled'] = False
+                else:
+                    suffix = get_rds_suffix(rd)
+                    if suffix is None:
+                        data_dict['rds_enabled'] = False
+                    else:
+                        link = get_rds_link(rd)
+                        if link is None:
+                            data_dict['rds_enabled'] = False
+                        else:
+                            data_dict['rds_enabled'] = True
+                            data_dict['rds_link'] = link
+
+        #====================================
+        # If IRIS enabled, update return val for IRIS
+        if is_iris_enabled:
+            # Make a list of IRIS streams to add to current list
+            if debug: print '\n-- Build iris streams...'
+            iris_streams = build_iris_streams()
+
+            # Add new IRIS streams to stream list
+            if iris_streams:
+                if debug: print '\n-- Number of streams before IRIS: %d ...' % len(retval)
+                retval = retval + iris_streams
+                if debug:
+                    print '\n-- New IRIS streams: %s' % len(iris_streams)
+                    print '\n-- Number of streams with IRIS: %d ...' % len(retval)
+
+        #====================================
+        # If Raw Data Server enabled, update retval
+        if is_rds_enabled:
+            # Make a list of IRIS streams to add to current list
+            if debug: print '\n-- Build rds streams...'
+            rds_streams = build_rds_streams()
+
+            # Add new IRIS streams to stream list
+            if rds_streams:
+                if debug: print '\n-- Number of streams before RDS: %d ...' % len(retval)
+                retval = retval + rds_streams
+                if debug:
+                    print '\n-- New RDS streams: %s' % len(rds_streams)
+                    print '\n-- Number of streams with RDS: %d ...' % len(retval)
+
+        if debug:
+            import json
+            print '\n debug -- instrument_list(%d): %s' % (len(retval), json.dumps(retval, indent=4, sort_keys=True))
+        return retval
+    except Exception as err:
+        message = '[dfs_instruments] Exception: %s' % str(err)
+        current_app.logger.info(message)
+        raise Exception(message)
+
+
+def get_instrument_begin_and_end_times(instrument):
+    """
+    Used for cumulative start end times for instrument record in data catalog.
+    """
+    debug = False
+    start = None
+    end = None
+    from operator import itemgetter
+    try:
+        # Process list of streams.
+        try:
+            starts = sorted(instrument['streams'], key=itemgetter('beginTime'))
+            ends = sorted(instrument['streams'], key=itemgetter('endTime'), reverse=True)
+            start = starts[0]['beginTime']
+            end = ends[0]['endTime']
+        except KeyError as e:
+            print '[data_streams_in_instrument] Error parsing stream on key: %s' % str(e)
+        except Exception as err:
+            message = 'Exception: %s' % str(err)
+            current_app.logger.info(message)
+
+        if debug:
+            print '\n Earliest stream start time: ', start
+            print '\n Latest stream end time: ', end
+
+        instrument['start'] = start
+        instrument['end'] = end
+        return
+    except KeyError as e:
+            print '[data_streams_in_instrument] Error parsing stream on key: %s' % str(e)
+    except Exception as err:
+        message = 'Exception: %s' % str(err)
+        current_app.logger.info(message)
 
 
 def new_data_streams_in_instrument(instrument, streams):

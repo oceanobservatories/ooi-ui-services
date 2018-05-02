@@ -50,11 +50,14 @@ def _get_status_sites(rd):
     """ For a specific array, get all sites with status.
     Sample request: http://localhost:4000/uframe/status/sites/CE
     """
+    debug = False
     time = False
     try:
+        if debug: print '\n debug -- Entered _get_status_sites...'
         # Verify rd is a valid reference designator for an array.
         if not rd or rd is None:
             message = 'Provide an array code.'
+            if debug: print '\n debug -- ', message
             raise Exception(message)
         if len(rd) != 2: # or not is_array(rd):
             message = 'Provide a valid array code.'
@@ -94,10 +97,13 @@ def _get_status_platforms(rd):
     """ Get status for all platforms associated with a specific site.
     """
     results = []
+    debug = False
     try:
+        if debug: print '\n debug -- Entered _get_status_platforms...'
         # Verify reference designator is proper form and valid for system.
         if not rd or rd is None:
             message = 'Provide a valid reference designator for a site.'
+            if debug: print '\n debug -- ', message
             raise Exception(message)
         if len(rd) != 8:
             message = 'Provide a valid site code.'
@@ -127,11 +133,14 @@ def _get_status_platforms(rd):
 def _get_status_instrument(rd):
     """ Get instrument status.
     """
+    debug = False
     results = []
     try:
+        if debug: print '\n debug -- Entered _get_status_instrument...'
         # Check if rd is empty, None or an invalid format; if so, raise exception
         if not rd or rd is None:
             message = 'Provide an array code.'
+            if debug: print '\n debug -- ', message
             raise Exception(message)
         if len(rd) <=14 or len(rd) > 27:
             message = 'Provide a valid instrument code.'
@@ -1247,6 +1256,7 @@ def get_deployments_digests(uid):
             #digests.sort(key=lambda x: (-x['deploymentNumber'], -x['versionNumber'], -x['startTime']))
             #digests.sort(key=lambda x: (x['deploymentNumber'], x['versionNumber'], x['startTime']), reverse=True)
             digests.sort(key=lambda x: (x['startTime'], x['deploymentNumber'], x['versionNumber'], x['startTime']), reverse=True)
+            #digests.sort(key=lambda x: (x['startTime'], x['deploymentNumber'], x['versionNumber']), reverse=True)
         except Exception as err:
             print '\n get_deployments_digests : errors: ', str(err)
             pass
@@ -1688,6 +1698,7 @@ def get_uid_digests(refresh=False):
 def build_uid_digests_cache():
     """ Full construction of 'uid_digest' cache.
     """
+    import json
     debug = False
     uid_digests = {}
     #uid_digests_operational = {}
@@ -1702,9 +1713,9 @@ def build_uid_digests_cache():
         if debug: print '\n debug -- Completed getting assets from uframe...'
 
         # Get vocabulary dictionary once.
-        vocab_dict = get_vocab()
+        #vocab_dict = get_vocab()
 
-        #count_items = 0
+        count_items = 0
         for asset in uframe_assets:
 
             asset_type = None
@@ -1731,22 +1742,37 @@ def build_uid_digests_cache():
             if asset_id is None or asset_uid is None or asset_type is None:
                 continue
 
+            if debug:
+                print '\n debug ================================================================================='
+                if asset_uid == 'CGINS-FLORTO-01349':
+                    print '\n debug ================================= LOOK AT THIS ONE ==============================='
+                print '\n\tdebug -- Processing: id/uid/type: %s/%s/%s' % (asset_id, asset_uid, asset_type)
             # Get current deployment digest for asset uid; if None, continue.
             #digest, digest_operational = get_last_deployment_digest(asset_uid)      # Changed 11-29-2016 editPhase
             digest = get_last_deployment_digest(asset_uid)
+            if debug: print '\n\tdebug -- Digest Received: %s' % json.dumps(digest, indent=4, sort_keys=True)
             if digest is None or not digest or len(digest) == 0:
                 continue
             digest['id'] = asset_id
             digest['reference_designator'] = get_rd_from_uid_digest(asset_type, digest)
 
+            """
             # (10506) For mobile assets report depth as maximum depth value provided in vocabulary.
             if 'MOAS' in digest['reference_designator']:
                 if digest['reference_designator'] in vocab_dict:
                     tmp = vocab_dict[digest['reference_designator']]
                     if 'maxdepth' in tmp:
                         digest['depth'] = tmp['maxdepth']
+            """
+            #uid_digests[asset['uid']] = digest     #
 
-            uid_digests[asset['uid']] = digest
+            if debug:
+                if asset_uid in uid_digests:
+                    print '\n************* Warning: UID: %s already exists in uid_digests!!' % asset_uid
+                    print '\n************* Existing digest: %s' % json.dumps(uid_digests[asset_uid], indent=4, sort_keys=True)
+            uid_digests[asset_uid] = digest
+
+            if debug: print '\n\tdebug -- Digest: %s' % json.dumps(digest, indent=4, sort_keys=True)
 
             """
             # Check and add operational digest information.
@@ -1756,11 +1782,12 @@ def build_uid_digests_cache():
             digest_operational['reference_designator'] = get_rd_from_uid_digest(asset_type, digest_operational)
             uid_digests_operational[asset['uid']] = digest_operational
             """
-            #count_items += 1
-            #print '\n count: ', count_items
+            count_items += 1
+            if debug:
+                print '\n count: ', count_items
 
-            #if len(uid_digests) > 10:
-            #    break
+                #if len(uid_digests) > 10:
+                #    break
         if debug:
             print '\n debug -- len(uid_digests): ', len(uid_digests)
 

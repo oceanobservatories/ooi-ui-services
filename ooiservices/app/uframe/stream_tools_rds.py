@@ -51,17 +51,53 @@ def get_rds_suffix(rd):
         return None
 
 
+def get_rds_link(rd):
+    from ooiservices.app.uframe.image_tools import get_sensor_type_from_rd, get_rds_nav_urls_cache_by_sensor_type
+    from ooiservices.app.uframe.common_tools import rds_get_nonstandard_sensor_types
+    debug = False
+    try:
+        if debug: print '\n debug -- Entered get_rds_link: ', rd
+        base_url = get_rds_base_url()
+        link = base_url
+        suffix = get_rds_suffix(rd)
+
+        sensors_no_ports = rds_get_nonstandard_sensor_types()
+        sensor_type = get_sensor_type_from_rd(rd)
+        if debug: print '\t debug -- sensor_type: ', sensor_type
+
+        # Define the navigation link.
+        if sensor_type not in sensors_no_ports:
+            link = '/'.join([link, suffix])
+        else:
+            link = None
+            if debug: print '\n debug -- Processing special rds external link for sensor type: ', sensor_type
+            sensor_url_cache = get_rds_nav_urls_cache_by_sensor_type(sensor_type)
+            if sensor_url_cache is None:
+                link = None
+            else:
+                if debug: print '\n debug -- looking for %s in sensor_url_cache' % rd
+                if rd in sensor_url_cache:
+                    link = sensor_url_cache[rd]
+                    if debug: print '\n debug -- Found link from cache!!!! ', link
+
+        return link
+    except Exception as err:
+        message = str(err)
+        raise Exception(message)
+
+
 def get_rds_data(rd):
     """ Get available Raw Data Server specific data.
     """
+    from ooiservices.app.uframe.image_tools import get_sensor_type_from_rd, get_rds_nav_urls_cache_by_sensor_type
+    from ooiservices.app.uframe.common_tools import rds_get_nonstandard_sensor_types
+    debug = False
     try:
         if rd not in get_rds_rds():
             return None
 
-        base_url = get_rds_base_url()
-        link = base_url
         suffix = get_rds_suffix(rd)
-        link = '/'.join([link, suffix])
+        link = get_rds_link(rd)
         result = {'dc': False,
                 'iris': False,
                 'end': '2599-12-31T00:00:00.000Z',
@@ -119,6 +155,7 @@ def build_rds_streams():
     debug = False
     streams = []
     try:
+        if debug: print '\n debug -- Entered build_rds_streams......'
         # Get available Raw Data Server reference designators.
         rds_rds = get_rds_rds()
 
@@ -169,8 +206,11 @@ def build_rds_streams():
             stream['water_depth'] = water_depth
 
             # Populate Raw Data Server data.
-            stream['rds_enabled'] = True
-            stream['rds_link'] = data['rds_link']
+            if data['rds_link'] is not None:
+                stream['rds_enabled'] = True
+                stream['rds_link'] = data['rds_link']
+            else:
+                stream['rds_enabled'] = False
 
             # Get start and end dates from raw data server index.
             start = None

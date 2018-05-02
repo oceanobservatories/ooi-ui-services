@@ -78,6 +78,7 @@ def cache_list(key=None):
 
         # clear out this for garbage collection of flask_cache ref
         temp_list = None
+        flask_cache.sort(key=lambda x: (x['key']))
 
         return jsonify({'results': flask_cache})
 
@@ -93,7 +94,7 @@ def cache_list(key=None):
 
             # we'll discard all previous celery jobs, so new ones can be queued up.
             # Note, this does NOT issue a cache reload.  It simply removes any
-            # backloged tasks.  Keep it tight, like a tiger.
+            # backloged tasks.
             if output == 1:
                 discard_all()
 

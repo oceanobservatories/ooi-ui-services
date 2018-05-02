@@ -1032,11 +1032,6 @@ def get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, str
             print '\n debug -- parameter_ids: ', parameter_ids
 
             # ZPLSC FORCED time change for testing
-            print '\n debug ** Forcing begin and end date time values for testing.................... '
-            print '\n\t debug -- start_time: ', start_time
-            print '\n\t debug -- end_time: ', end_time
-            start_time = '2016-05-01T00:05:33.000Z'
-            end_time = '2016-05-01T23:53:19.000Z'
             print '\n\t debug -- beginDT: ', start_time
             print '\n\t debug -- endDT: ', end_time
 
