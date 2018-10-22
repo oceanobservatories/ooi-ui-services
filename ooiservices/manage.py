@@ -12,8 +12,8 @@ if os.environ.get('FLASK_COVERAGE'):
     COV = coverage.coverage(branch=True,include=basedir + '/app/*')
     COV.start()
 from ooiservices.app import create_app, db
-from flask.ext.script import Manager, Shell, Server, prompt_bool
-from flask.ext.migrate import Migrate, MigrateCommand
+from flask_script import Manager, Shell, Server, prompt_bool
+from flask_migrate import Migrate, MigrateCommand
 
 from ooiservices.app.models import User, UserScope, UserScopeLink, DisabledStreams
 from datetime import datetime
@@ -325,7 +325,7 @@ def rebuild_schema(schema, schema_owner, save_users, save_disabled_streams, admi
                 db.session.add(new_user)
                 db.engine.execute("SELECT nextval('ooiui.users_id_seq')")
                 db.session.commit()
-            except sqlalchemy.exc.IntegrityError, exc:
+            except sqlalchemy.exc.IntegrityError as exc:
                 app.logger.info('Failure: rebuild_schema failed: ')
                 reason = exc.message
                 app.logger.info('Cause: ' + reason)
@@ -347,7 +347,7 @@ def rebuild_schema(schema, schema_owner, save_users, save_disabled_streams, admi
                 db.session.add(new_user_scope_link)
                 db.engine.execute("SELECT nextval('ooiui.user_scope_link_id_seq')")
                 db.session.commit()
-            except sqlalchemy.exc.IntegrityError, exc:
+            except sqlalchemy.exc.IntegrityError as exc:
                 app.logger.info('Failure: rebuild_schema failed: ')
                 reason = exc.message
                 app.logger.info('Cause: ' + reason)
@@ -434,7 +434,7 @@ def load_data(sql_file):
             db.session.execute(f.read())
             db.session.commit()
             app.logger.info('Success: Bulk data loaded from file: ' + sql_file)
-        except sqlalchemy.exc.IntegrityError, exc:
+        except sqlalchemy.exc.IntegrityError as exc:
             app.logger.info('Failure: Bulk data NOT loaded from file: ' + sql_file)
             reason = exc.message
             app.logger.info('Cause: ' + reason)

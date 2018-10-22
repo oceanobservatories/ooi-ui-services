@@ -4,7 +4,7 @@ API Authentication
 '''
 
 from flask import g, jsonify, request, redirect, url_for
-from flask.ext.httpauth import HTTPBasicAuth
+from flask_httpauth import HTTPBasicAuth
 from ooiservices.app import db
 from ooiservices.app.models import User
 from ooiservices.app.main import api
@@ -15,6 +15,7 @@ import requests
 auth = HTTPBasicAuth()
 
 import uuid; str(uuid.uuid4().get_hex().upper()[0:6])
+
 
 @auth.verify_password
 def verify_password(email_or_token, password):

@@ -3,7 +3,7 @@ __author__ = 'M@Campbell'
 
 from ooiservices.app import create_celery_app
 from flask.globals import current_app
-from flask.ext.cache import Cache
+from flask_cache import Cache
 from ooiservices.app.uframe.config import get_cache_timeout
 
 
