@@ -203,7 +203,7 @@ class UserTestCase(unittest.TestCase):
     #For route: /user/<string:id>
     def test_get_user_route(self):
         #Test unauthorized
-        response = self.client.get(url_for('main.get_user',id=1), content_type='application/json')
+        response = self.client.get(url_for('main.get_user',id=1), headers=self.get_api_headers('admin', 'testbad'))
         self.assertTrue(response.status_code == 401)
 
         #Test authorized
@@ -226,9 +226,10 @@ class UserTestCase(unittest.TestCase):
         """
 
         headers = self.get_api_headers('admin', 'test')
+        headers_fail = self.get_api_headers('admin', 'testbad')
 
         #Test unauthorized
-        response = self.client.get(url_for('main.get_user_scopes'), content_type='application/json')
+        response = self.client.get(url_for('main.get_user_scopes'), headers=headers_fail)
         self.assertTrue(response.status_code == 401)
 
         UserScope.insert_scopes()
