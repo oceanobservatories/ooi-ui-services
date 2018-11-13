@@ -10,9 +10,9 @@ if os.environ.get('FLASK_COVERAGE'):
     COV = coverage.coverage(branch=True,include=basedir + '/ooiservices/app/*')
     COV.start()
 from ooiservices.app import create_app, db
-from flask.ext.script import Manager, Shell, Server, prompt_bool
-from flask.ext.migrate import Migrate, MigrateCommand
-import flask.ext.whooshalchemy as whooshalchemy
+from flask_script import Manager, Shell, Server, prompt_bool
+from flask_migrate import Migrate, MigrateCommand
+import flask_whooshalchemy as whooshalchemy
 from ooiservices.app.models import PlatformDeployment, User, UserScope, UserScopeLink
 from datetime import datetime
 

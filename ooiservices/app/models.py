@@ -9,10 +9,10 @@ __author__ = 'M@Campbell'
 from sqlalchemy.sql import expression
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app
-from flask.ext.sqlalchemy import BaseQuery
+from flask_sqlalchemy import BaseQuery
 from ooiservices.app import db, login_manager
-from flask.ext.security import UserMixin, RoleMixin
-from flask_security.utils import encrypt_password, verify_password as fs_verify_password
+from flask_security import UserMixin, RoleMixin
+from flask_security.utils import hash_password, verify_password as fs_verify_password
 from werkzeug.security import check_password_hash
 from wtforms import ValidationError
 from geoalchemy2.types import Geometry
@@ -1328,7 +1328,7 @@ class User(UserMixin, db.Model):
 
     @password.setter
     def password(self, plaintext):
-        self._password = encrypt_password(plaintext)
+        self._password = hash_password(plaintext)
 
     def verify_password(self, password):
         try:
