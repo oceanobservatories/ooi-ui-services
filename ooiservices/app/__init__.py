@@ -27,7 +27,7 @@ from flask_login import LoginManager
 from flask_environments import Environments
 from flask_caching import Cache
 from flask_security import  Security, SQLAlchemyUserDatastore
-from flask_wtf.csrf import CsrfProtect
+from flask_wtf.csrf import CSRFProtect
 from sqlalchemy_searchable import make_searchable
 from flask_redis import FlaskRedis as Redis
 from flask_cors import CORS
@@ -41,7 +41,7 @@ login_manager.session_protection = 'strong'
 cache = Cache()
 db = SQLAlchemy()
 make_searchable()
-csrf = CsrfProtect()
+csrf = CSRFProtect()
 redis_store = Redis()
 cors = CORS()
 sio = None
