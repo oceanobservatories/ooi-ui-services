@@ -251,5 +251,5 @@ def check_valid_email():
             return json.dumps({'email': user_id})
 
     except Exception as ex:
-        current_app.logger.exception("Error checking valid email." + ex.message)
+        # current_app.logger.exception("Error checking valid email." + ex.message)
         return json.dumps({'email': ''})
