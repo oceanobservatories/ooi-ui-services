@@ -1242,7 +1242,7 @@ class User(UserMixin, db.Model):
         last_name = json.get('last_name')
         role = json.get('role_name')
         organization_id = json.get('organization_id')
-        email_opt_in = json.get('email_opt_in')
+        email_opt_in = bool(json.get('email_opt_in'))
         other_organization = json.get('other_organization')
         vocation = json.get('vocation')
         country = json.get('country')
