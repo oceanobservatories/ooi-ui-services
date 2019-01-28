@@ -257,7 +257,14 @@ def rds_get_supported_array_codes():
 # Get years where data is provided on the raw data server.
 def rds_get_supported_years():
     # The years where data is provided on the raw data server.
-    result = ['2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018']
+    start_date = 2009 # The earliest data available in the OOI system
+    now = dt.datetime.now()
+    end_date = now.year
+    result = [str(start_date)]
+    while start_date <= end_date:
+        result.append(str(start_date))
+        start_date = start_date + 1
+    # result = ['2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019']
     return result
 
 

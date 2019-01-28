@@ -24,7 +24,10 @@ def get_instruments_list():
     12529. Get list of instrument for data catalog.
     """
     try:
-        retval = get_instrument_list()
+        refresh = False
+        if request.args.get('refresh') and request.args.get('refresh') == "true":
+            refresh = True
+        retval = get_instrument_list(refresh=refresh)
         print '\n debug -- instrument_list: %d' % len(retval)
         if not retval or retval is None:
             message = 'The instrument list did not return a value.'
