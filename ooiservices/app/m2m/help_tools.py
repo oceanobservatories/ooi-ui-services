@@ -43,6 +43,10 @@ def build_url(path, request_method='GET', scope_names=None):
         if port not in get_ports:
             raise InvalidPortException(port)
 
+        if port == 12592:
+            if 'data_manager' not in scope_names:
+                raise InvalidScopeException(port, request_method)
+
     #- - - - - - - - - - - - - - - - - - - - - -
     # POST requests
     #- - - - - - - - - - - - - - - - - - - - - -
@@ -59,6 +63,10 @@ def build_url(path, request_method='GET', scope_names=None):
 
         if port == 12591:
             if 'ingest_calibration' not in scope_names:
+                raise InvalidScopeException(port, request_method)
+
+        if port == 12592:
+            if 'data_manager' not in scope_names:
                 raise InvalidScopeException(port, request_method)
 
     #- - - - - - - - - - - - - - - - - - - - - -
@@ -81,6 +89,10 @@ def build_url(path, request_method='GET', scope_names=None):
             if 'ingest' not in scope_names:
                 raise InvalidScopeException(port, request_method)
 
+        if port == 12592:
+            if 'data_manager' not in scope_names:
+                raise InvalidScopeException(port, request_method)
+
     #- - - - - - - - - - - - - - - - - - - - - -
     # DELETE requests
     #- - - - - - - - - - - - - - - - - - - - - -
@@ -89,11 +101,16 @@ def build_url(path, request_method='GET', scope_names=None):
         # Verify the port is available for DELETE requests.
         if port not in delete_ports:
             raise InvalidMethodException(port, request_method)
+        
         # Annotations.
         if port == 12580:
             if debug: print '\n debug -- build_url delete port ok...'
             # Verify permission valid and available for user to perform request method.
             if 'annotate' not in scope_names and 'annotate_admin' not in scope_names:
+                raise InvalidScopeException(port, request_method)
+
+        if port == 12592:
+            if 'data_manager' not in scope_names:
                 raise InvalidScopeException(port, request_method)
     else:
         raise InvalidMethodException(port, request_method)
