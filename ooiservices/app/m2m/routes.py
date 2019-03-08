@@ -45,8 +45,13 @@ def m2m_handler(path):
             params = MultiDict(request.args)
             params['user'] = user.user_name
             params['email'] = user.email
+
+            scopes = user.scopes
+            scope_names = []
+            for s in scopes:
+                scope_names.append(s.scope_name)
             # Build and issue request to uframe server.
-            url = build_url(path)
+            url = build_url(path, request_method="GET", scope_names=scope_names)
 
             # Get uframe timeout values for requests.
             timeout, timeout_read = get_uframe_timeout_info()

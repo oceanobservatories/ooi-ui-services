@@ -50,7 +50,7 @@ def get_rds_suffix(rd):
     except Exception:
         return None
 
-
+# TODO:
 def get_rds_link(rd):
     from ooiservices.app.uframe.image_tools import get_sensor_type_from_rd, get_rds_nav_urls_cache_by_sensor_type
     from ooiservices.app.uframe.common_tools import rds_get_nonstandard_sensor_types
@@ -61,25 +61,26 @@ def get_rds_link(rd):
         link = base_url
         suffix = get_rds_suffix(rd)
 
-        sensors_no_ports = rds_get_nonstandard_sensor_types()
-        sensor_type = get_sensor_type_from_rd(rd)
-        if debug: print '\t debug -- sensor_type: ', sensor_type
+        # sensors_no_ports = rds_get_nonstandard_sensor_types()
+        # sensor_type = get_sensor_type_from_rd(rd)
+        # if debug: print '\t debug -- sensor_type: ', sensor_type
+        #
+        # # Define the navigation link.
+        # if sensor_type not in sensors_no_ports:
+        #     link = '/'.join([link, suffix])
+        # else:
+        #     link = None
+        #     if debug: print '\n debug -- Processing special rds external link for sensor type: ', sensor_type
+        #     sensor_url_cache = get_rds_nav_urls_cache_by_sensor_type(sensor_type)
+        #     if sensor_url_cache is None:
+        #         link = None
+        #     else:
+        #         if debug: print '\n debug -- looking for %s in sensor_url_cache' % rd
+        #         if rd in sensor_url_cache:
+        #             link = sensor_url_cache[rd]
+        #             if debug: print '\n debug -- Found link from cache!!!! ', link
 
-        # Define the navigation link.
-        if sensor_type not in sensors_no_ports:
-            link = '/'.join([link, suffix])
-        else:
-            link = None
-            if debug: print '\n debug -- Processing special rds external link for sensor type: ', sensor_type
-            sensor_url_cache = get_rds_nav_urls_cache_by_sensor_type(sensor_type)
-            if sensor_url_cache is None:
-                link = None
-            else:
-                if debug: print '\n debug -- looking for %s in sensor_url_cache' % rd
-                if rd in sensor_url_cache:
-                    link = sensor_url_cache[rd]
-                    if debug: print '\n debug -- Found link from cache!!!! ', link
-
+        link = '/'.join([link, suffix])
         return link
     except Exception as err:
         message = str(err)
@@ -110,7 +111,7 @@ def get_rds_data(rd):
         message = str(err)
         raise Exception(message)
 
-
+# TODO
 def build_rds_streams():
     """ Create stream dictionary for a raw data server reference designator.
     Use deployment information, if available, for latitude, longitude, depth, water depth,

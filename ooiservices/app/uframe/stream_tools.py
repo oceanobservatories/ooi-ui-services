@@ -16,6 +16,7 @@ from ooiservices.app.uframe.uframe_tools import (uframe_get_stream_byname, ufram
 from ooiservices.app.uframe.vocab import (get_vocab, get_display_name_by_rd, get_rs_array_name_by_rd,
                                           get_long_display_name_by_rd)
 import datetime as dt
+import requests
 
 
 def dfs_streams():
@@ -23,7 +24,7 @@ def dfs_streams():
     """
     from ooiservices.app.uframe.status_tools import get_rd_digests_dict
     from ooiservices.app.uframe.stream_tools_rds import get_rds_link
-    debug = False
+    debug = True
     try:
         retval = []
         streams = []
@@ -137,20 +138,25 @@ def dfs_streams():
                                 data_dict['iris_link'] = link
 
                     # If Raw Data Server, process components
+                    # TODO
                     if is_rds_enabled:
-                        if rd not in rds_rds:
+                        # if rd not in rds_rds:
+                        #     data_dict['rds_enabled'] = False
+                        # else:
+                        suffix = get_rds_suffix(rd)
+                        if suffix is None:
                             data_dict['rds_enabled'] = False
                         else:
-                            suffix = get_rds_suffix(rd)
-                            if suffix is None:
+                            link = get_rds_link(rd)
+                            r = requests.head(link)
+                            if debug: print '\n-- Checking RDS link status for %s...' % link
+                            if debug: print '%s' % r.status_code
+
+                            if link is None or (r.status_code != 200 and r.status_code !=301):
                                 data_dict['rds_enabled'] = False
                             else:
-                                link = get_rds_link(rd)
-                                if link is None:
-                                    data_dict['rds_enabled'] = False
-                                else:
-                                    data_dict['rds_enabled'] = True
-                                    data_dict['rds_link'] = link
+                                data_dict['rds_enabled'] = True
+                                data_dict['rds_link'] = link
 
 
                 except Exception as err:
@@ -493,19 +499,23 @@ def dfs_instruments(toc=None):
             # If Raw Data Server, process components
             #- - - - - - - - - - - - - - - - - - - - - - - - -
             if is_rds_enabled:
-                if rd not in rds_rds:
+                # if rd not in rds_rds:
+                #     data_dict['rds_enabled'] = False
+                # else:
+                suffix = get_rds_suffix(rd)
+                if suffix is None:
                     data_dict['rds_enabled'] = False
                 else:
-                    suffix = get_rds_suffix(rd)
-                    if suffix is None:
+                    link = get_rds_link(rd)
+                    r = requests.head(link)
+                    if debug: print '\n-- Checking RDS link status for %s...' % link
+                    if debug: print '%s' % r.status_code
+
+                    if link is None or (r.status_code != 200 and r.status_code != 301):
                         data_dict['rds_enabled'] = False
                     else:
-                        link = get_rds_link(rd)
-                        if link is None:
-                            data_dict['rds_enabled'] = False
-                        else:
-                            data_dict['rds_enabled'] = True
-                            data_dict['rds_link'] = link
+                        data_dict['rds_enabled'] = True
+                        data_dict['rds_link'] = link
 
         #====================================
         # If IRIS enabled, update return val for IRIS
@@ -766,7 +776,8 @@ def get_stream_for_stream_model(reference_designator, stream_method, stream):
         parameters = get_stream_parameters(stream, reference_designator)    # changed
         if parameters is None:
             message = 'Failed to get uframe parameters for %s, stream \'%s\'.' % (reference_designator, stream)
-            raise Exception(message)
+            current_app.logger.info(message)
+            # raise Exception(message)
 
         # Add parameter information to stream dictionary.
         variables = []

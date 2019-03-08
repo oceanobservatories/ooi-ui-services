@@ -1712,7 +1712,7 @@ def process_index_for_cache(cache_data):
         current_app.logger.info(message)
         raise Exception(message)
 
-
+# TODO
 def build_complete_rds_cache_index():
     """
     Builds and populates large_format_inx cache from partitioned sensor caches.

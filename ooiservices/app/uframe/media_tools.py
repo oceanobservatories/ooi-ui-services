@@ -19,7 +19,7 @@ from ooiservices.app.uframe.config import (get_image_camera_store_url_base, get_
 from requests.exceptions import (ConnectionError, Timeout)
 from ooiservices.app.uframe.image_tools import (build_complete_rds_cache_index)
 
-'''
+
 from bs4 import BeautifulSoup
 import PIL
 from PIL import Image
@@ -28,7 +28,7 @@ from StringIO import StringIO
 import requests
 import requests.adapters
 import requests.exceptions
-'''
+
 
 # Get file path to thumbnail images on server.
 def _get_base_url_thumbnails():
@@ -1148,7 +1148,7 @@ def get_sensor_type_for_rd(rd):
         raise Exception(message)
 '''
 
-'''
+
 # Under review.
 # Compile large format image information from image server. (Used in tasks for 'large_format' cache.)
 def _get_large_format_files_by_rd(rd, date_str):
@@ -1213,7 +1213,7 @@ def _get_large_format_files_by_rd(rd, date_str):
         message = str(err)
         raise Exception(message)
     #======================================================
-'''
+
 
 
 
