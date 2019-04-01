@@ -314,6 +314,7 @@ def get_csv(stream, ref, start_time, end_time, dpa_flag):
         user = request.args.get('user', '')
         email = request.args.get('email', '')
         pdids = request.args.get('parameters', '')
+        estimate_only = request.args.get('estimate_only', 'false')
 
         # Verify a user value has been provided
         if not user:
@@ -336,7 +337,12 @@ def get_csv(stream, ref, start_time, end_time, dpa_flag):
         # Send to uframe as '&parameters=12,25,3795'.
         if pdids:
             query += '&parameters=%s' % pdids
-            if debug: print '\n debug -- query: ', query
+
+        # Add the estimate_only parameter to the query if supplied
+        if estimate_only:
+            query += '&estimate_only=%s' % estimate_only
+
+        if debug: print '\n debug -- query: ', query
 
         url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
         current_app.logger.info('***** url: ' + url)
@@ -386,6 +392,7 @@ def get_json(stream, ref, start_time, end_time, dpa_flag, provenance, annotation
         user = request.args.get('user', '')
         email = request.args.get('email', '')
         pdids = request.args.get('parameters', '')
+        estimate_only = request.args.get('estimate_only', 'false')
         # Verify a user value has been provided
         if not user:
             message = 'The user parameter value provided was empty.'
@@ -410,7 +417,12 @@ def get_json(stream, ref, start_time, end_time, dpa_flag, provenance, annotation
         # Send to uframe as '&parameters=12,25,3795'.
         if pdids:
             query += '&parameters=%s' % pdids
-            if debug: print '\n debug -- query: ', query
+
+        # Add the estimate_only parameter to the query if supplied
+        if estimate_only:
+            query += '&estimate_only=%s' % estimate_only
+
+        if debug: print '\n debug -- query: ', query
 
         # Get uframe configuration items.
         uframe_url, timeout, timeout_read = get_uframe_info()
@@ -461,6 +473,10 @@ def get_netcdf(stream, ref, start_time, end_time, dpa_flag, provenance, annotati
         user = request.args.get('user', '')
         email = request.args.get('email', '')
         pdids = request.args.get('parameters', '')
+        estimate_only = request.args.get('estimate_only', 'false')
+        if debug: print '\n debug -- estimate_only: %r' % estimate_only
+        if debug: print '\n debug -- request.args: %r' % request.args
+
         if debug: print '\n debug -- pdids: %r' % pdids
 
         # Verify a user value has been provided
@@ -485,7 +501,12 @@ def get_netcdf(stream, ref, start_time, end_time, dpa_flag, provenance, annotati
         # Send to uframe as '&parameters=12,25,3795'.
         if pdids:
             query += '&parameters=%s' % pdids
-            if debug: print '\n debug -- query: ', query
+
+        # Add the estimate_only parameter to the query if supplied
+        if estimate_only:
+            query += '&estimate_only=%s' % estimate_only
+
+        if debug: print '\n debug -- query: ', query
 
         query += '&format=application/netcdf'
 
