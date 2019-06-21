@@ -33,6 +33,7 @@ from ooiservices.app.uframe.media_tools import (get_large_format_for_rd, get_lar
                                                 get_file_list_for_large_format_data, fetch_media_for_rd)
 from ooiservices.app.uframe.gallery_tools import (get_range_data, _get_data_day, _get_date_bound)
 from ooiservices.app.uframe.config import get_rds_base_url
+from ooiservices.app.uframe.vocab import (get_display_name_by_rd, get_vocab_dict_by_rd)
 
 """
 Populate sensor type page...
@@ -1734,6 +1735,27 @@ def media_get_data_slice_with_dates(rd, start, end):
         # for data segment, process for media output.
         media = fetch_media_for_rd(result, rd)
         return jsonify({'media': media})
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
+
+
+# Get display name and vocab for a reference designator
+@api.route('/media/get_display_name/<string:ref_des>', methods=['GET'])
+def media_get_display_name_by_rd(ref_des):
+    """ Get display name and vocab.
+    Request: http://localhost:4000/uframe/media/get_display_name
+    Response:
+    {
+      "display_name": "Bio-acoustic Sonar (Coastal)",
+      "vocab": {}
+    }
+    """
+    try:
+        data = get_display_name_by_rd(ref_des)
+        data2 = get_vocab_dict_by_rd(ref_des)
+        return jsonify({'display_name': data, 'vocab': data2})
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
