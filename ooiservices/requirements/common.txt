@@ -25,7 +25,7 @@ itsdangerous==0.24
 six==1.10.0
 ipython==4.2.0
 numpy>=1.9.0
-netCDF4==1.1.1
+netCDF4>=1.1.1
 psycopg2==2.7.3.2
 py==1.4.25
 pytest==2.6.3
