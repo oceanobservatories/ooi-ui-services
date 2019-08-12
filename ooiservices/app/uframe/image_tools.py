@@ -334,7 +334,7 @@ def _compile_cam_images():
     debug = False
     verbose = True
     time = True
-    max_count = 10000
+    max_count = 100000
     total_count = 0
     process_count = 0
     already_processed_count = 0

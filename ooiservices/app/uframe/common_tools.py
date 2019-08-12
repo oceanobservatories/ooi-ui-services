@@ -284,7 +284,7 @@ def get_valid_extensions():
 # Get supported sensor types.
 def rds_get_supported_sensor_types():
     # The supported sensor types to be used when searching/working with the raw data server.
-    result = ['-CAMDS', '-ZPL']              # , '-HYD']                     # , '-CAMHD']
+    result = ['-CAMDS', '-ZPL', '-CAMHD']              # , '-HYD']                     # , '-CAMHD']
     return result
 
 
@@ -300,7 +300,7 @@ def rds_get_all_supported_sensor_types():
 def rds_get_supported_folder_types():
     # The supported folder types to be used when searching/working with the raw data server.
     # 'THSP', 'TRHP', 'HPIES', 'TMPSF', 'PREST', #,'HY'] # ,'CAMHD']
-    result = ['CAMDS', 'ZPL',  'MASSP',  'FLOBN']
+    result = ['CAMDS', 'ZPL',  'MASSP',  'FLOBN', 'CAMHD']
     return result
 
 
