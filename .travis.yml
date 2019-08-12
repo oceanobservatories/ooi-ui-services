@@ -22,6 +22,7 @@ before_install:
 install:
   - pip install -r ooiservices/requirements/dev.txt
 before_script:
+  - sudo apt-get install postgresql-9.6-postgis-2.3 postgis -y -q
   - python ooiservices/manage.py deploy -p test
 script:
   - python ooiservices/manage.py test --coverage
