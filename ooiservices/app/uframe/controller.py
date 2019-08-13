@@ -770,8 +770,8 @@ def get_data_api(stream, instrument, yvar, xvar):
         title = instrument
         if instrument and instrument is not None and len(instrument) > 8:
             title = get_display_name_by_rd(instrument)
-        resp_data, units = get_simple_data(stream, instrument, yvar, xvar)
-        return jsonify(data=resp_data, units=units, title=title)
+        resp_data, units, query_url = get_simple_data(stream, instrument, yvar, xvar)
+        return jsonify(data=resp_data, units=units, title=title, query_url=query_url)
     except Exception as err:
         message = str(err)
         return bad_request(message)
@@ -1111,7 +1111,7 @@ def get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, str
                                 dataBlock += '} ]'
                                 result = json.loads(dataBlock)
                                 if debug: print '\n debug -- len(result): ', len(result)
-                                return result, 200
+                                return result, 200, url
                             else:
                                 raise Exception(message)
                         else:
@@ -1132,7 +1132,7 @@ def get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, str
                                 if debug: print '\n debug -- step 3...', dataBlock[-100:]
                                 result = json.loads(dataBlock)
                                 if debug: print '\n debug -- step 4...', idx_c
-                                return result, 200
+                                return result, 200, url
                             else:
                                 if debug: print '\n debug -- idx_c == -1...'
                                 if debug: print '\n debug -- error message: ', message
@@ -1209,7 +1209,7 @@ def get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, str
                     if timing:
                         print '\t-- End time:   ', end
                         print '\t-- Time to get stream list: %s' % str(end - start)
-                    return result, 200
+                    return result, 200, url
                 else:
                     if debug: print '\n debug -- Step D...', idx_c
 
@@ -1225,7 +1225,7 @@ def get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, str
                 if timing:
                     print '\t-- End time:   ', end
                     print '\t-- Time to get stream list: %s' % str(end - start)
-                return result, 200
+                return result, 200, url
 
         except Exception as err:
             message = str(err)

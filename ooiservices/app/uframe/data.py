@@ -302,13 +302,13 @@ def get_simple_data(stream, instrument, yfields, xfields, include_time=True):
                 dpa_flag = '0'
 
             # Get uframe data and check return code.
-            data, status_code = get_uframe_plot_contents_chunked_max_data(mooring, platform, sensor,
+            data, status_code, query_url = get_uframe_plot_contents_chunked_max_data(mooring, platform, sensor,
                                                                           stream_type, stream,
                                                                           st_date, ed_date, dpa_flag, parameter_ids)
             if status_code != 200:
                 message = 'Failed to get uframe plot contents chunked. Status code: ', status_code
                 raise Exception(message)
-            return data, units_mapping
+            return data, units_mapping, query_url
         else:
             message = 'Define start and end dates.'
             raise Exception(message)
@@ -348,7 +348,7 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
             else:
                 dpa_flag = "0"
 
-            data, status_code = get_uframe_plot_contents_chunked_max_data(mooring, platform, sensor, stream_type,
+            data, status_code, query_url = get_uframe_plot_contents_chunked_max_data(mooring, platform, sensor, stream_type,
                                                                  stream, st_date, ed_date, dpa_flag, parameter_ids)
             if status_code != 200:
                 message = 'Failed to get data from uframe, status code: %d' % status_code
@@ -447,7 +447,8 @@ def get_data(stream, instrument, yfields, xfields, include_time=True):
                      'y_field': yfields,
                      'y_units': y_units,
                      'dt_units': 'seconds since 1900-01-01 00:00:00',
-                     'qaqc': qaqc
+                     'qaqc': qaqc,
+                     'query_url': query_url
                      }
 
         return resp_data
