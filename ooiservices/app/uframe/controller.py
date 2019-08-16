@@ -601,7 +601,7 @@ def get_profile_data(mooring, platform, instrument, stream_type, stream, paramet
                 dpa_flag = request.args['dpa_flag']
             else:
                 dpa_flag = '0'
-            data, status_code = get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument,
+            data, status_code, query_url = get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument,
                                                                           stream_type, stream, st_date, ed_date,
                                                                           dpa_flag, parameter_ids)
         else:
@@ -1327,7 +1327,7 @@ def get_max_data(stream, instrument, yfields, xfields, number_of_data_points=100
             dpa_flag = '0'
 
         # Get data from uframe.
-        data, status_code = get_uframe_plot_contents_chunked_max_data(mooring, platform, sensor, stream_type,
+        data, status_code, query_url = get_uframe_plot_contents_chunked_max_data(mooring, platform, sensor, stream_type,
                                                              stream, st_date, ed_date, dpa_flag, parameter_ids,
                                                              number_of_data_points)
         if status_code != 200:
