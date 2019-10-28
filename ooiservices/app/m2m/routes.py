@@ -44,7 +44,15 @@ def m2m_handler(path):
         if user:
             params = MultiDict(request.args)
             params['user'] = user.user_name
-            params['email'] = user.email
+
+            # Handle the option to reject async response email=none scenario
+            if 'email' in params:
+                if params['email'].lower() == 'none' or params['email'] is None:
+                    params['email'] = 'none'
+                else:
+                    params['email'] = user.email
+            else:
+                params['email'] = user.email
 
             scopes = user.scopes
             scope_names = []
