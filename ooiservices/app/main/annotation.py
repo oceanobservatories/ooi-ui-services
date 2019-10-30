@@ -6,6 +6,7 @@ __author__ = 'M@Campbell'
 
 
 from datetime import datetime
+import time
 import requests
 from requests.exceptions import (ConnectionError, Timeout)
 from flask import (jsonify, request, current_app)
@@ -244,7 +245,8 @@ def get_annotations():
         else:
             return jsonify({'annotations': []}), 204
         startdate = timestamp_to_millis(request.args.get('startdate'))
-        enddate = timestamp_to_millis(request.args.get('enddate'))
+        # Make the end date not the stream end time but rather the current request time
+        enddate = timestamp_to_millis(time.mktime(datetime.utcnow().timetuple())*1000)
         refdes = request.args.get('reference_designator')
         if debug: print '\n debug -- refdes: %r' % refdes
         rd_type = get_rd_type(str(refdes))
@@ -260,8 +262,10 @@ def get_annotations():
         if debug: print '\n debug -- params: %r' % params
         # Using default request timeouts, get annotations from uframe with parameters
         timeout, timeout_read = get_uframe_timeout_info()
+        if debug: print '\n debug -- url: ', url
         r = requests.get(url, timeout=(timeout, timeout_read), params=params)
         data = r.json()
+        if debug: print '\n debug -- data length: ', len(data)
         if r.status_code == 200:
             if debug: print '\n debug -- Good status code...'
             result = [remap_uframe_to_ui(record, rd_type) for record in data]
