@@ -4,6 +4,7 @@ Mixture of route endpoints and supporting functions.
 """
 
 from flask import (jsonify, request, current_app)
+from ooiservices.app.models import User
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.main.errors import bad_request
@@ -280,8 +281,8 @@ def get_uframe_multi_stream_contents(stream1_dict, stream2_dict, start_time, end
         raise Exception(message)
 
 
-@auth.login_required
 @api.route('/get_csv/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>', methods=['GET'])
+@auth.login_required
 def get_csv(stream, ref, start_time, end_time, dpa_flag):
     """ Download data in csv format.
     """
@@ -310,9 +311,11 @@ def get_csv(stream, ref, start_time, end_time, dpa_flag):
         # Get uframe configuration items.
         uframe_url, timeout, timeout_read = get_uframe_info()
 
+        # Enforce usage of logged-in user_name and email as part of @auth.login_required
+        user = User.user_name
+        email = User.email
+
         # Get request arguments
-        user = request.args.get('user', '')
-        email = request.args.get('email', '')
         pdids = request.args.get('parameters', '')
         estimate_only = request.args.get('estimate_only', 'false')
 
@@ -361,8 +364,8 @@ def get_csv(stream, ref, start_time, end_time, dpa_flag):
         return message, 400
 
 
-@auth.login_required
 @api.route('/get_json/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>/<string:provenance>/<string:annotations>', methods=['GET'])
+@auth.login_required
 def get_json(stream, ref, start_time, end_time, dpa_flag, provenance, annotations):
     """ Download data in json format.  Optional provenance and annotations flags.
     """
@@ -388,9 +391,11 @@ def get_json(stream, ref, start_time, end_time, dpa_flag, provenance, annotation
         except KeyError:
             pass
 
+        # Enforce usage of logged-in user_name and email as part of @auth.login_required
+        user = User.user_name
+        email = User.email
+
         # Get request arguments
-        user = request.args.get('user', '')
-        email = request.args.get('email', '')
         pdids = request.args.get('parameters', '')
         estimate_only = request.args.get('estimate_only', 'false')
         # Verify a user value has been provided
@@ -446,8 +451,8 @@ def get_json(stream, ref, start_time, end_time, dpa_flag, provenance, annotation
         return message, 400
 
 
-@auth.login_required
 @api.route('/get_netcdf/<string:stream>/<string:ref>/<string:start_time>/<string:end_time>/<string:dpa_flag>/<string:provenance>/<string:annotations>', methods=['GET'])
+@auth.login_required
 def get_netcdf(stream, ref, start_time, end_time, dpa_flag, provenance, annotations):
     """ Download data in netcdf format. Optional provenance and annotations flags.
     """
@@ -469,9 +474,11 @@ def get_netcdf(stream, ref, start_time, end_time, dpa_flag, provenance, annotati
         except KeyError:
             pass
 
+        # Enforce usage of logged-in user_name and email as part of @auth.login_required
+        user = User.user_name
+        email = User.email
+
         # Get request arguments
-        user = request.args.get('user', '')
-        email = request.args.get('email', '')
         pdids = request.args.get('parameters', '')
         estimate_only = request.args.get('estimate_only', 'false')
         if debug: print '\n debug -- estimate_only: %r' % estimate_only
