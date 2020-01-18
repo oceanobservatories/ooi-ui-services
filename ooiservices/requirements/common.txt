@@ -29,7 +29,7 @@ netCDF4>=1.1.1
 psycopg2==2.7.3.2
 py==1.4.25
 pytest==2.6.3
-requests==2.12.4
+requests==2.20.0
 geojson==1.0.9
 -e git+https://github.com/lukecampbell/geoalchemy2.git@master#egg=geoalchemy2
 wsgiref==0.1.2
