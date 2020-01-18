@@ -7,14 +7,12 @@ __author__ = 'M@Campbell'
 
 import unittest
 import json
-import re
 import os
 from unittest import skipIf
 from base64 import b64encode
-from flask import url_for, jsonify
+from flask import url_for
 from ooiservices.app import create_app, db
-from ooiservices.app.models import User, UserScope, UserScopeLink, Organization
-from collections import OrderedDict
+from ooiservices.app.models import User, UserScope, Organization
 
 '''
 These tests are additional to the normal testing performed by coverage; each of
@@ -49,7 +47,7 @@ class UserTestCaseRedmine(unittest.TestCase):
             'Content-Type': 'application/json'
         }
     #all user test cases
-    def test_create_user_route(self):
+    def _test_create_user_route(self):
         '''
         create user
         '''
@@ -87,7 +85,7 @@ class UserTestCaseRedmine(unittest.TestCase):
 
     #Test [PUT] /user/<int:id> - 'main.put_user'; admin priv required
     # this tests for the users in the db and requires redmine to insert into db
-    def test_put_user_changes(self):
+    def _test_put_user_changes(self):
         '''
         test ability to create new user and change scopes and/or active status of new user
         '''
@@ -205,7 +203,7 @@ class UserTestCase(unittest.TestCase):
     #For route: /user/<string:id>
     def test_get_user_route(self):
         #Test unauthorized
-        response = self.client.get(url_for('main.get_user',id=1), content_type='application/json')
+        response = self.client.get(url_for('main.get_user',id=1), headers=self.get_api_headers('admin', 'testbad'))
         self.assertTrue(response.status_code == 401)
 
         #Test authorized
@@ -214,12 +212,24 @@ class UserTestCase(unittest.TestCase):
 
     #Test [GET] /user_scopes - 'main.get_user_scopes'
     def test_get_user_scope_route(self):
-
+        """
+        1       user_admin
+        2       command_control
+        3       annotate
+        4       asset_manager
+        5       sys_admin
+        6       redmine
+        7       data_manager
+        8       organization
+        9       annotate_admin
+        10      ingest
+        """
 
         headers = self.get_api_headers('admin', 'test')
+        headers_fail = self.get_api_headers('admin', 'testbad')
 
         #Test unauthorized
-        response = self.client.get(url_for('main.get_user_scopes'), content_type='application/json')
+        response = self.client.get(url_for('main.get_user_scopes'), headers=headers_fail)
         self.assertTrue(response.status_code == 401)
 
         UserScope.insert_scopes()
@@ -237,46 +247,62 @@ class UserTestCase(unittest.TestCase):
         # Expected user_scopes
         user_scopes_data = \
             {
-            "user_scopes": [
-                {
-                    "id": 1,
-                    "scope_description": None,
-                    "scope_name": "user_admin"
+                "user_scopes": [
+
+                    {
+                        "id": 1,
+                        "scope_description": None,
+                        "scope_name": "user_admin"
                     },
-                {
-                    "id": 2,
-                    "scope_description": None,
-                    "scope_name": "command_control"
+                    {
+                        "id": 2,
+                        "scope_description": None,
+                        "scope_name": "command_control"
                     },
-                {
-                    "id": 3,
-                    "scope_description": None,
-                    "scope_name": "annotate"
+                    {
+                        "id": 3,
+                        "scope_description": None,
+                        "scope_name": "annotate"
                     },
-                {
-                    "id": 4,
-                    "scope_description": None,
-                    "scope_name": "asset_manager"
+                    {
+                        "id": 4,
+                        "scope_description": None,
+                        "scope_name": "asset_manager"
                     },
-                {
-                    "id": 5,
-                    "scope_description": None,
-                    "scope_name": "sys_admin"
+                    {
+                        "id": 5,
+                        "scope_description": None,
+                        "scope_name": "sys_admin"
                     },
-                {
-                    "id": 6,
-                    "scope_description": None,
-                    "scope_name": "redmine"
+                    {
+                        "id": 6,
+                        "scope_description": None,
+                        "scope_name": "redmine"
                     },
-                {
-                    "id": 7,
-                    "scope_description": None,
-                    "scope_name": "data_manager"
+                    {
+                        "id": 7,
+                        "scope_description": None,
+                        "scope_name": "data_manager"
                     },
-                {
-                    "id": 8,
-                    "scope_description": None,
-                    "scope_name": "organization"
+                    {
+                        "id": 8,
+                        "scope_description": None,
+                        "scope_name": "organization"
+                    },
+                    {
+                        "id": 9,
+                        "scope_description": None,
+                        "scope_name": "annotate_admin"
+                    },
+                    {
+                        "id": 10,
+                        "scope_description": None,
+                        "scope_name": "ingest"
+                    },
+                    {
+                        "id": 11,
+                        "scope_description": None,
+                        "scope_name": "ingest_calibration"
                     }
                 ]
             }

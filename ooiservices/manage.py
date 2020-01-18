@@ -12,14 +12,16 @@ if os.environ.get('FLASK_COVERAGE'):
     COV = coverage.coverage(branch=True,include=basedir + '/app/*')
     COV.start()
 from ooiservices.app import create_app, db
-from flask.ext.script import Manager, Shell, Server, prompt_bool
-from flask.ext.migrate import Migrate, MigrateCommand
-import flask.ext.whooshalchemy as whooshalchemy
-from ooiservices.app.models import PlatformDeployment, User, UserScope, UserScopeLink, DisabledStreams
+from flask_script import Manager, Shell, Server, prompt_bool
+from flask_migrate import Migrate, MigrateCommand
+
+from ooiservices.app.models import User, UserScope, UserScopeLink, DisabledStreams
 from datetime import datetime
 import sqlalchemy.exc
 import codecs
-
+from ooiservices.app.main.user import id_generator
+# from ooiservices.app.main.user import PlatformDeployment,
+#import flask.ext.whooshalchemy as whooshalchemy
 import yaml
 if os.path.exists(os.path.join(basedir, '/app/config_local.yml')):
     with open(basedir + '/app/config_local.yml', 'r') as f:
@@ -32,8 +34,8 @@ env = doc['ENV_NAME']
 app = create_app(env)
 manager = Manager(app)
 migrate = Migrate(app,db)
-app.config['WHOOSH_BASE'] = 'ooiservices/whoosh_index'
-whooshalchemy.whoosh_index(app, PlatformDeployment)
+#app.config['WHOOSH_BASE'] = 'ooiservices/whoosh_index'
+#whooshalchemy.whoosh_index(app, PlatformDeployment)
 
 ##------------------------------------------------------------------
 ## M@Campbell 02/10/2015
@@ -45,6 +47,7 @@ whooshalchemy.whoosh_index(app, PlatformDeployment)
 #       > from ooiservices.manage import rebuild_index
 #       > rebuild_index(model_name)
 ##------------------------------------------------------------------
+'''
 def rebuild_index(model):
     import whoosh
     import flask_whooshalchemy
@@ -69,28 +72,29 @@ def rebuild_index(model):
             entry_count += 1
 
     app.logger.info("Rebuilt {0} {1} search index entries.".format(str(entry_count), model.__name__))
+'''
 
 def make_shell_context():
     from ooiservices.app.models import User, UserScope, UserScopeLink, Array
-    from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameter, Watch
-    from ooiservices.app.models import OperatorEvent
-    from ooiservices.app.models import Platformname, Instrumentname, Annotation, Organization
+    from ooiservices.app.models import Annotation, Organization, OperatorEvent, Watch
     from ooiservices.app.models import SystemEvent, SystemEventDefinition, UserEventNotification
 
+    #from ooiservices.app.models import Stream, StreamParameter
+    # InstrumentDeployment, PlatformDeployment, Platformname, Instrumentname
+    # "InstrumentDeployment": InstrumentDeployment,
+    # "PlatformDeployment": PlatformDeployment,
+    # "Platformname": Platformname,
+    # "Instrumentname": Instrumentname,
+    # "Stream": Stream,
+    # "StreamParameter": StreamParameter,
     ctx = {"app": app,
            "db": db,
            "User": User,
            "UserScope": UserScope,
            "UserScopeLink": UserScopeLink,
            "Array": Array,
-           "PlatformDeployment": PlatformDeployment,
-           "InstrumentDeployment": InstrumentDeployment,
-           "Stream": Stream,
            "Watch": Watch,
            "OperatorEvent": OperatorEvent,
-           "StreamParameter": StreamParameter,
-           "Platformname": Platformname,
-           "Instrumentname": Instrumentname,
            "Annotation": Annotation,
            "Organization": Organization,
            "SystemEvent": SystemEvent,
@@ -151,9 +155,8 @@ def test(coverage=False, testmodule=None):
 @manager.option('-p', '--password', required=True)
 @manager.option('-u', '--psqluser', default='postgres')
 def deploy(password, production, psqluser):
-    from flask.ext.migrate import upgrade
-    from ooiservices.app.models import User, UserScope, UserScopeLink, Array, Organization
-    from ooiservices.app.models import PlatformDeployment, InstrumentDeployment, Stream, StreamParameterLink
+    #from flask.ext.migrate import upgrade
+    from ooiservices.app.models import User, UserScope
     from sh import psql
     if production:
         app.logger.info('Creating PRODUCTION Database')
@@ -187,8 +190,8 @@ def deploy(password, production, psqluser):
         app.logger.info('Populating Production Database . . .')
         with open('db/ooiui_schema_data.sql') as f:
             psql('-U', psqluser, 'ooiuiprod', _in=f)
-        with open('db/ooiui_params_streams_data.sql') as h:
-            psql('-U', psqluser, 'ooiuiprod', _in=h)
+        #with open('db/ooiui_params_streams_data.sql') as h:
+        #    psql('-U', psqluser, 'ooiuiprod', _in=h)
         # with open('db/ooiui_vocab.sql') as i:
         #     psql('-U', psqluser, 'ooiuiprod', _in=i)
         app.logger.info('Production Database loaded.')
@@ -196,8 +199,8 @@ def deploy(password, production, psqluser):
         app.logger.info('Populating Dev Database . . .')
         with open('db/ooiui_schema_data.sql') as f:
             psql('-U', psqluser, 'ooiuidev', _in=f)
-        with open('db/ooiui_params_streams_data.sql') as h:
-            psql('-U', psqluser, 'ooiuidev', _in=h)
+        #with open('db/ooiui_params_streams_data.sql') as h:
+        #    psql('-U', psqluser, 'ooiuidev', _in=h)
         # with open('db/ooiui_vocab.sql') as i:
         #     psql('-U', psqluser, 'ooiuidev', _in=i)
         app.logger.info('Dev Database loaded.')
@@ -207,7 +210,7 @@ def deploy(password, production, psqluser):
     if not os.getenv('TRAVIS'):
         UserScope.insert_scopes()
         app.logger.info('Insert default user, name: admin')
-        User.insert_user(password=password)
+        User.insert_user(password=password,api_user_name='api_user_name',api_user_token='api_user_token')
         admin = User.query.first()
         admin.scopes.append(UserScope.query.filter_by(scope_name='user_admin').first())
         admin.scopes.append(UserScope.query.filter_by(scope_name='sys_admin').first())
@@ -227,7 +230,9 @@ def deploy(password, production, psqluser):
 @manager.option('-al', '--last_name', required=False)
 @manager.option('-ae', '--email', required=False)
 @manager.option('-ao', '--org_name', required=False)
-def rebuild_schema(schema, schema_owner, save_users, save_disabled_streams, admin_username, admin_password, first_name, last_name, email, org_name):
+@manager.option('-in', '--api_user_name', required=False)
+@manager.option('-it', '--api_user_token', required=False)
+def rebuild_schema(schema, schema_owner, save_users, save_disabled_streams, admin_username, admin_password, first_name, last_name, email, org_name, api_user_name, api_user_token):
     """
     Creates the OOI UI Services schema based on models.py
     :usage: python manage.py rebuild_schema --schema ooiui --schema_owner postgres --save_users False --save_disabled_streams True --admin_username admin --admin_password password --first_name Default --last_name Admin --email defaultadmin@ooi.rutgers.edu --org_name Rutgers
@@ -258,13 +263,9 @@ def rebuild_schema(schema, schema_owner, save_users, save_disabled_streams, admi
     load_data('ooiui_schema_data.sql')
     db.session.commit()
 
-    app.logger.info('Loading params data into database')
-    load_data(sql_file='ooiui_params_streams_data.sql')
-    db.session.commit()
-
-    # app.logger.info('Loading new vocab data into database')
-    # load_data(sql_file='ooiui_vocab.sql')
-    db.session.commit()
+    #app.logger.info('Loading params data into database')
+    #load_data(sql_file='ooiui_params_streams_data.sql')
+    #db.session.commit()
 
     if save_disabled_streams == 'True':
         app.logger.info('Re-populating disabledstreams table from backup schema')
@@ -311,10 +312,20 @@ def rebuild_schema(schema, schema_owner, save_users, save_disabled_streams, admi
                 new_user.vocation = getattr(sresult, 'vocation', '')
                 new_user.country = getattr(sresult, 'country', '')
                 new_user.state = getattr(sresult, 'state', '')
+                aun = getattr(sresult, 'api_user_name', '')
+                aut = getattr(sresult, 'api_user_token', '')
+                if aun is not None and len(aun) > 0:
+                    new_user.api_user_name = aun
+                else:
+                    new_user.api_user_name = 'OOIAPI-'+id_generator()
+                if aut is not None and len(aut) > 0:
+                    new_user.api_user_token = aut
+                else:
+                    new_user.api_user_token = id_generator()
                 db.session.add(new_user)
                 db.engine.execute("SELECT nextval('ooiui.users_id_seq')")
                 db.session.commit()
-            except sqlalchemy.exc.IntegrityError, exc:
+            except sqlalchemy.exc.IntegrityError as exc:
                 app.logger.info('Failure: rebuild_schema failed: ')
                 reason = exc.message
                 app.logger.info('Cause: ' + reason)
@@ -336,7 +347,7 @@ def rebuild_schema(schema, schema_owner, save_users, save_disabled_streams, admi
                 db.session.add(new_user_scope_link)
                 db.engine.execute("SELECT nextval('ooiui.user_scope_link_id_seq')")
                 db.session.commit()
-            except sqlalchemy.exc.IntegrityError, exc:
+            except sqlalchemy.exc.IntegrityError as exc:
                 app.logger.info('Failure: rebuild_schema failed: ')
                 reason = exc.message
                 app.logger.info('Cause: ' + reason)
@@ -368,7 +379,19 @@ def rebuild_schema(schema, schema_owner, save_users, save_disabled_streams, admi
         if org_name is None:
             app.logger.info('Admin org_name set to: Rutgers')
             org_name = 'Rutgers'
-        add_admin_user(username=admin_username, password=admin_password, first_name=first_name, last_name=last_name, email=email, org_name=org_name)
+        if api_user_name is None:
+            api_user_name = 'OOIAPI-ADMIN'
+        if api_user_token is None:
+            api_user_token = id_generator()
+        add_admin_user(
+            username=admin_username,
+            password=admin_password,
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            org_name=org_name,
+            api_user_name=api_user_name,
+            api_user_token=api_user_token)
 
 
 @manager.option('-u', '--username', required=True)
@@ -377,7 +400,9 @@ def rebuild_schema(schema, schema_owner, save_users, save_disabled_streams, admi
 @manager.option('-l', '--last_name', required=True)
 @manager.option('-e', '--email', required=True)
 @manager.option('-o', '--org_name', required=True)
-def add_admin_user(username, password, first_name, last_name, email, org_name):
+@manager.option('-in', '--api_user_name', required=False)
+@manager.option('-it', '--api_user_token', required=False)
+def add_admin_user(username, password, first_name, last_name, email, org_name, api_user_name, api_user_token):
     '''
     Creates a 'user_admin' scoped user using the supplied username and password
     :param username:
@@ -385,7 +410,7 @@ def add_admin_user(username, password, first_name, last_name, email, org_name):
     :return:
     '''
     app.logger.info('Insert user_name: %s' % username)
-    User.insert_user(username=username, password=password, first_name=first_name, last_name=last_name, email=email, org_name=org_name)
+    User.insert_user(username=username, password=password, first_name=first_name, last_name=last_name, email=email, org_name=org_name, api_user_name=api_user_name, api_user_token=api_user_token)
     admin = User.query.filter_by(user_name=username).first()
     admin.scopes.append(UserScope.query.filter_by(scope_name='user_admin').first())
     admin.scopes.append(UserScope.query.filter_by(scope_name='sys_admin').first())
@@ -409,7 +434,7 @@ def load_data(sql_file):
             db.session.execute(f.read())
             db.session.commit()
             app.logger.info('Success: Bulk data loaded from file: ' + sql_file)
-        except sqlalchemy.exc.IntegrityError, exc:
+        except sqlalchemy.exc.IntegrityError as exc:
             app.logger.info('Failure: Bulk data NOT loaded from file: ' + sql_file)
             reason = exc.message
             app.logger.info('Cause: ' + reason)

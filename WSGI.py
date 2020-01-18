@@ -10,9 +10,9 @@ if os.environ.get('FLASK_COVERAGE'):
     COV = coverage.coverage(branch=True,include=basedir + '/ooiservices/app/*')
     COV.start()
 from ooiservices.app import create_app, db
-from flask.ext.script import Manager, Shell, Server, prompt_bool
-from flask.ext.migrate import Migrate, MigrateCommand
-import flask.ext.whooshalchemy as whooshalchemy
+from flask_script import Manager, Shell, Server, prompt_bool
+from flask_migrate import Migrate, MigrateCommand
+# import flask_whooshalchemy as whooshalchemy
 from ooiservices.app.models import PlatformDeployment, User, UserScope, UserScopeLink
 from datetime import datetime
 
@@ -28,8 +28,8 @@ env = doc['ENV_NAME']
 app = create_app(env)
 manager = Manager(app)
 migrate = Migrate(app,db)
-app.config['WHOOSH_BASE'] = 'ooiservices/whoosh_index'
-whooshalchemy.whoosh_index(app, PlatformDeployment)
+# app.config['WHOOSH_BASE'] = 'ooiservices/whoosh_index'
+# whooshalchemy.whoosh_index(app, PlatformDeployment)
 
 if __name__ == '__main__':
-    app.run(host='localhost:4001', debug=True)
+    app.run(host=app.config['HOST']+":"+str(app.config['PORT']), debug=True)

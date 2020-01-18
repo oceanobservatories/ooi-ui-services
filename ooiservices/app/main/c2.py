@@ -10,9 +10,12 @@ from ooiservices.app.decorators import scope_required
 from ooiservices.app.main import api
 from ooiservices.app.main.errors import bad_request
 from ooiservices.app.main.authentication import auth
-from ooiservices.app.uframe.vocab import get_display_name_by_rd, get_long_display_name_by_rd
+from ooiservices.app.uframe.vocab import get_display_name_by_rd
+from ooiservices.app.uframe.config import get_c2_uframe_info, get_c2_uframe_data_info # get_uframe_data_info,
 from ooiservices.app.models import Array
-import json, os
+
+import json
+import os
 import requests
 import requests.exceptions
 from requests.exceptions import ConnectionError, Timeout
@@ -73,7 +76,6 @@ def get_array_abstract(array_code):
     return response_dict
 
 
-#TODO get operational status from uframe
 @api.route('/c2/array/<string:array_code>/current_status_display', methods=['GET'])
 @auth.login_required
 @scope_required(u'command_control')
@@ -86,14 +88,10 @@ def c2_get_array_current_status_display(array_code):
     if not array:
         return bad_request('Unknown array (array_code: \'%s\')' % array_code)
 
+    # Gets new content for toc (from instrument/api) each time array is selected in Command and Control display
     toc = _compile_c2_toc()
-    if toc is not None:
+    if toc and toc is not None:
         cache.set('c2_toc', toc, timeout=CACHE_TIMEOUT)
-    """
-        print "[+] C2 toc cache reset..."
-    else:
-        print "[-] Error in C2 toc cache update"
-    """
 
     # Get data, add to output
     # get ordered set of platform_deployments for array.id
@@ -506,31 +504,6 @@ def c2_get_array_operational_status(reference_designator):
 #----------------------------------------------------
 #-- file based helpers for platform_display
 #----------------------------------------------------
-'''
-def c2_get_platform_operational_status(reference_designator):
-
-    #Get C2 platform status (string such as { "unknown" | "Online" | "Offline" }
-    #Errors:
-    #    bad_request('unknown platform_deployment (\'%s\')'
-    #    bad_request('Malformed streams data; not in valid json format. (\'%s\')'
-
-    status = 'Unknown'
-    platform_deployment = PlatformDeployment.query.filter_by(reference_designator=reference_designator).first()
-    if not platform_deployment:
-        return bad_request('unknown platform_deployment (\'%s\')' % reference_designator)
-    response_text = json_get_uframe_platform_operational_status(reference_designator)
-    if response_text:
-        try:
-            result = json.loads(response_text)
-        except:
-            return bad_request('Malformed operational status; not in valid json format. (\'%s\')' % reference_designator)
-        if result:
-            if len(result) == 1:
-                if 'id' in result[0] and 'status' in result[0]:
-                    if result[0]['id'] == reference_designator:
-                        status = result[0]['status']
-    return status
-'''
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # TODO Read notes here on migration from file based interface to uframe supported interface
 # C2 helper for file data (./ooiuiservices/tests/c2data/*)
@@ -607,8 +580,8 @@ def c2_get_instruments_status():
 
 @api.route('/c2/instrument/<string:reference_designator>/commands', methods=['GET'])
 @api.route('/c2/instrument/<string:reference_designator>/status', methods=['GET'])
-@auth.login_required
-@scope_required(u'command_control')
+#@auth.login_required
+#@scope_required(u'command_control')
 def c2_get_instrument_driver_status(reference_designator):
     """ Get the current overall state of the specified instrument (id is the instrument reference designator).
     If the query option "blocking" is specified as true, then this call will block until a state change,
@@ -747,7 +720,7 @@ def uframe_get_instruments_status():
     Sample: http://host:12572/instrument/api
     """
     try:
-        url, timeout, timeout_read = get_uframe_info()
+        url, timeout, timeout_read = get_c2_uframe_info()
         response = requests.get(url, timeout=(timeout, timeout_read))
         return response
     except Exception as err:
@@ -862,7 +835,7 @@ def uframe_get_instrument_driver_status(reference_designator):
     Sample: http://host:12572/instrument/api/reference_designator
     """
     try:
-        uframe_url, timeout, timeout_read = get_uframe_info()
+        uframe_url, timeout, timeout_read = get_c2_uframe_info()
         url = "/".join([uframe_url, reference_designator])
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response is None:
@@ -1098,7 +1071,7 @@ def uframe_get_instrument_driver_parameter_values(reference_designator, command)
     """ Return the uframe response of instrument command resource with payload provided for GET
     """
     try:
-        uframe_url, timeout, timeout_read = get_uframe_info()
+        uframe_url, timeout, timeout_read = get_c2_uframe_info()
         url = "/".join([uframe_url, reference_designator, command])
         response = requests.get(url, timeout=(timeout, timeout_read),
                                 data={'resource': json.dumps('DRIVER_PARAMETER_ALL')})
@@ -2113,7 +2086,8 @@ def get_uframe_stream_contents(mooring, platform, instrument, stream_type, strea
         # Always add a limit to query...
         query += '&limit=10'
 
-        uframe_url, timeout, timeout_read = get_uframe_data_info()
+        #uframe_url, timeout, timeout_read = get_uframe_data_info()
+        uframe_url, timeout, timeout_read = get_c2_uframe_data_info()
         rd = '-'.join([mooring, platform, instrument])
         url = "/".join([uframe_url, mooring, platform, instrument, stream_type, stream + query])
         response = requests.get(url, timeout=(timeout, timeout_read))
@@ -2142,7 +2116,7 @@ def _c2_get_instrument_metadata(reference_designator):
     """ Get metadata for reference designator.
 
     Sample uframe query to be made:
-    http://uframe-2-test.ooi.rutgers.edu:12576/sensor/inv/CP02PMCO/WFP01/01-VEL3DK000/metadata
+    http://host.edu:12576/sensor/inv/CP02PMCO/WFP01/01-VEL3DK000/metadata
 
     Receive:
     {
@@ -2176,7 +2150,8 @@ def _c2_get_instrument_metadata(reference_designator):
     }
     """
     try:
-        uframe_url, timeout, timeout_read = get_uframe_data_info()
+        #uframe_url, timeout, timeout_read = get_uframe_data_info()
+        uframe_url, timeout, timeout_read = get_c2_uframe_data_info()
         mooring, platform, instrument = reference_designator.split('-', 2)
         url = '/'.join([uframe_url, mooring, platform, instrument, 'metadata'])
         response = requests.get(url, timeout=(timeout, timeout_read))
@@ -2424,7 +2399,7 @@ def _uframe_post_instrument_driver_set(reference_designator, command, data):
     """
     debug = False
     try:
-        uframe_url, timeout, timeout_read = get_uframe_info()
+        uframe_url, timeout, timeout_read = get_c2_uframe_info()
         if 'CAMDS' in reference_designator:
             timeout = 10
             timeout_read = 200
@@ -2611,7 +2586,7 @@ def _c2_instrument_driver_execute(reference_designator, data):
             message = 'Failed to retrieve command (%s) timeout from status.' % command_name
             raise Exception(message)
 
-        # Get timeout from command dictionary and convert to milliseconds; default 60 seconds.
+        # Get timeout from command dictionary and convert to milliseconds; default 30 seconds.
         _timeout = _commands[command_name]['timeout']
         if _timeout:
             _timeout = _timeout * 1000
@@ -2862,7 +2837,7 @@ def uframe_get_instrument_driver_command(reference_designator, command):
     """ Return the uframe response of instrument command provided for GET
     """
     try:
-        uframe_url, timeout, timeout_read = get_uframe_info()
+        uframe_url, timeout, timeout_read = get_c2_uframe_info()
         url = "/".join([uframe_url, reference_designator, command])
         response = requests.get(url, timeout=(timeout, timeout_read))
         return response
@@ -2886,7 +2861,7 @@ def uframe_post_instrument_driver_command(reference_designator, command, suffix)
     Example of suffix = '?command=%22DRIVER_EVENT_STOP_AUTOSAMPLE%22&timeout=60000'
     """
     try:
-        uframe_url, timeout, timeout_read = get_uframe_info()
+        uframe_url, timeout, timeout_read = get_c2_uframe_info()
         url = "/".join([uframe_url, reference_designator, command])
         url = "?".join([url, suffix])
         response = requests.post(url, timeout=(timeout, timeout_read), headers=_post_headers())
@@ -2897,52 +2872,6 @@ def uframe_post_instrument_driver_command(reference_designator, command, suffix)
         raise Exception(message)
     except Timeout:
         message = 'Timeout for post instrument driver command.'
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Exception:
-        raise
-
-
-def get_uframe_info(type='instrument'):
-    """ Returns uframe instrument/api specific configuration information. (port 12572)
-    """
-    try:
-        if type == 'instrument':
-            uframe_url = "".join([current_app.config['UFRAME_INST_URL'], current_app.config['UFRAME_INST_BASE']])
-        else:
-            uframe_url = "".join([current_app.config['UFRAME_INST_URL'], current_app.config['UFRAME_PLAT_BASE']])
-        timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
-        timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
-        return uframe_url, timeout, timeout_read
-    except ConnectionError:
-        message = 'ConnectionError for instrument/api configuration values.'
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout:
-        message = 'Timeout for instrument/api configuration values.'
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Exception:
-        raise
-
-
-def get_uframe_data_info():
-    """ Returns uframe data configuration information. (port 12576)
-    """
-    try:
-        # Use C2 server for toc info
-        tmp_uframe_base = current_app.config['UFRAME_INST_URL']
-        uframe_base = tmp_uframe_base.replace('12572', '12576')
-        uframe_url = uframe_base + current_app.config['UFRAME_URL_BASE']
-        timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
-        timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
-        return uframe_url, timeout, timeout_read
-    except ConnectionError:
-        message = 'ConnectionError for command and control sensor/inv.'
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout:
-        message = 'Timeout for command and control sensor/inv.'
         current_app.logger.info(message)
         raise Exception(message)
     except Exception:
@@ -3044,81 +2973,6 @@ def _get_toc():
         current_app.logger.info(message)
         return None
 
-# Retain: deprecated, now using instruments (instrument/api) as toc data source rather than /sensor/inv port 12576.
-def _compile_c2_toc_standard():
-    """ Returns a toc dictionary of arrays, moorings, platforms and instruments from uframe data (port 12576).
-    Augmented by the UI database for vocabulary and arrays, returns json.
-
-    Note: was named _compile_c2_toc, but changed when we went with C2 toc
-    from instruments (instrument/api) and not data on 12576.
-    To retrieve C2 toc from data port (12576) use this function.
-    """
-    # Use instrument/api server for toc info
-    tmp_uframe_base = current_app.config['UFRAME_INST_URL']
-    uframe_base = tmp_uframe_base.replace('12572', '12576')
-    UFRAME_DATA = uframe_base + current_app.config['UFRAME_URL_BASE']
-    timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
-    timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
-    try:
-        toc = {}
-        mooring_list = []
-        platform_list = []
-        instrument_list = []
-        url = "/".join([UFRAME_DATA])
-        response = requests.get(url, timeout=(timeout, timeout_read))
-        if response.status_code != 200:
-            raise Exception('uframe connection cannot be made.')
-        moorings = response.json()
-        for mooring in moorings:
-            mooring_list.append({'reference_designator': mooring,
-                                 'array_code': mooring[:2],
-                                 'display_name': get_display_name_by_rd(mooring)
-                                 })
-            url = "/".join([UFRAME_DATA, mooring])
-            response = requests.get(url, timeout=(timeout, timeout_read))
-            if response.status_code == 200:
-                platforms = response.json()
-                for platform in platforms:
-                    platform_list.append({'reference_designator': "-".join([mooring, platform]),
-                                          'mooring_code': mooring,
-                                          'platform_code': platform,
-                                          'display_name': get_long_display_name_by_rd("-".join([mooring, platform]))
-                                          })
-                    url = "/".join([UFRAME_DATA, mooring, platform])
-                    response = requests.get(url, timeout=(timeout, timeout_read))
-                    if response.status_code == 200:
-                        instruments = response.json()
-                        for instrument in instruments:
-                            # Verify valid reference designator, if not skip
-                            reference_designator = _get_validate_instrument_rd(mooring, platform, instrument)
-                            if reference_designator is not None:
-                                instrument_list.append({'mooring_code': mooring,
-                                                        'platform_code': platform,
-                                                        'instrument_code': instrument,
-                                                        'reference_designator': reference_designator,
-                                                        'display_name': get_display_name_by_rd(reference_designator)
-                                                        })
-                arrays = Array.query.all()
-                toc['arrays'] = [array.to_json() for array in arrays]
-                toc['moorings'] = mooring_list
-                toc['platforms'] = platform_list
-                toc['instruments'] = instrument_list
-
-        return toc
-
-    except ConnectionError:
-        message = 'ConnectionError for _compile_c2_toc_standard.'
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Timeout:
-        message = 'Timeout for _compile_c2_toc_standard.'
-        current_app.logger.info(message)
-        raise Exception(message)
-    except Exception as err:
-        message = str(err.message)
-        current_app.logger.info(message)
-        return None
-
 
 def _get_validate_instrument_rd(mooring, platform, instrument):
     """ Verify an instrument reference designator is not malformed; if malformed, return None.
@@ -3142,7 +2996,7 @@ def _get_validate_instrument_rd(mooring, platform, instrument):
 
     rd = "-".join([mooring, platform, instrument])
     if rd:
-        if len(rd) != 27:
+        if len(rd) > 27 or len(rd) <=14:
             return None
         if not _instrument_has_streams(rd):
             return None
@@ -3458,7 +3312,6 @@ def _c2_get_instrument_driver_metadata(reference_designator):
         raise
 
 
-# todo development only (exercise _get_toc)
 @api.route('/c2/toc', methods=['GET'])
 @auth.login_required
 @scope_required(u'command_control')
@@ -3535,7 +3388,7 @@ def _compile_c2_toc():
             array_display_names[array.array_code] = array.display_name
 
         # Get list of instruments from instrument/api
-        uframe_url, timeout, timeout_read = get_uframe_info()
+        uframe_url, timeout, timeout_read = get_c2_uframe_info()
         response = requests.get(uframe_url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
             message = '(%d) Failed to get instrument/api list of instruments.' % response.status_code
@@ -3549,7 +3402,7 @@ def _compile_c2_toc():
             if len(rd) == 14:                   # platform
                 _mooring, _platform = rd.split('-')
                 _instrument = None
-            elif len(rd) == 27:                 # instrument
+            elif len(rd) > 15 and len(rd) <=27:                 # instrument
                 _mooring, _platform, _instrument = rd.split('-', 2)
             else:
                 # The rd is not a platform (14) or instrument (27), log issue and continue

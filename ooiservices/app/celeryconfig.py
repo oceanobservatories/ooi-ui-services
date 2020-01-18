@@ -1,24 +1,30 @@
 from celery.schedules import crontab
-
+CELERY_ENABLE_UTC = False
+CELERY_TIMEZONE = 'US/Eastern'
 CELERYBEAT_SCHEDULE = {
-    'get-assets-rd': {
-        'task': 'tasks.compile_asset_rds',
+    'get-large-format-files-every': {
+        'task': 'tasks.compile_large_format_files',
+        'schedule': crontab(minute=15, hour=23),
+        'args': (),
+        },
+    'get-large-format-index-every': {
+        'task': 'tasks.compile_large_format_index',
+        'schedule': crontab(minute=15, hour=6),
+        'args': (),
+        },
+    'get-cam-images-every': {
+        'task': 'tasks.compile_cam_images',
+        'schedule': crontab(minute=15, hour=3),
+        'args': (),
+        },
+    'get-c2-toc': {
+        'task': 'tasks.compile_c2_toc',
         'schedule': crontab(minute=0, hour='*/1'),
         'args': (),
         },
-    'get-assets': {
-        'task': 'tasks.compile_assets',
-        'schedule': crontab(minute=0, hour='*/2'),
-        'args': (),
-        },
-    'get-bad-assets': {
-        'task': 'tasks.compile_bad_assets',
-        'schedule': crontab(minute=0, hour='*/2'),
-        'args': (),
-        },
-    'get-vocabulary': {
-        'task': 'tasks.compile_vocabulary',
-        'schedule': crontab(minute=0, hour='*/8'),
+    'get-toc-rds': {
+        'task': 'tasks.compile_toc_rds',
+        'schedule': crontab(minute=45, hour='*/1'),
         'args': (),
         },
     'get-streams': {
@@ -26,24 +32,19 @@ CELERYBEAT_SCHEDULE = {
         'schedule': crontab(minute=0, hour='*/1'),
         'args': (),
         },
-    'get-events': {
-        'task': 'tasks.compile_events',
-        'schedule': crontab(minute=0, hour='*/1'),
+    'get-vocabulary': {
+        'task': 'tasks.compile_vocabulary',
+        'schedule': crontab(minute=15, hour=1),
         'args': (),
         },
-    'get-glider-traks-every': {
-        'task': 'tasks.compile_glider_tracks',
-        'schedule': crontab(minute=0, hour='*/8'),
+    'get-uid_digests': {
+        'task': 'tasks.compile_uid_digests',
+        'schedule': crontab(minute=30, hour=1),
         'args': (),
         },
-    'get-cam-images-every': {
-        'task': 'tasks.compile_cam_images',
-        'schedule': crontab(minute=0, hour='*/12'),
-        'args': (),
-        },
-    'get-c2-toc': {
-        'task': 'tasks.compile_c2_toc',
-        'schedule': crontab(minute=0, hour='*/1'),
+    'get-asset-information': {
+        'task': 'tasks.compile_asset_information',
+        'schedule': crontab(minute=30, hour=4),
         'args': (),
         },
     }

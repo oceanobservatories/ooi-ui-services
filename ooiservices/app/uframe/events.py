@@ -1,189 +1,177 @@
-from flask import request, jsonify, make_response, current_app
+
+"""
+Asset Management - Event routes.
+
+Routes:
+[GET]  /events/types              # Get all event types.
+[GET]  /events/types/supported    # Get all supported event types.
+[GET]  /events/<int:id>           # Get event by event id.
+[GET]  /events/uid/<string:uid>   # Get all events of all types for asset with uid.
+       /events/uid/<string:uid>?type=EventType   # Get all events for asset with uid, but only type(s) identified.
+       # Example: /uframe/events/uid/A00228?type=ATVENDOR
+       # Example: /uframe/events/uid/A00228?type=ATVENDOR,INTEGRATION
+
+[POST] /events                    # Create event.
+[PUT]  /events/<int:id>           # Update event.
+
+"""
+__author__ = 'Edna Donoughe'
+
+from flask import (jsonify, request, current_app)
+from ooiservices.app.main.errors import bad_request
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.authentication import auth
 from ooiservices.app.decorators import scope_required
-from ooiservices.app.uframe.assetController import get_events_by_ref_des
-from ooiservices.app.uframe.assetController import _uframe_headers,\
-    _compile_events
-from ooiservices.app import cache
-from copy import deepcopy
-
+from ooiservices.app.uframe.event_tools import (_get_events_by_uid, _get_all_events_by_uid)
+from ooiservices.app.uframe.events_create_update import (create_event_type, update_event_type)
+from ooiservices.app.uframe.common_tools import (get_event_types, get_supported_event_types, get_supported_asset_types,
+                                                 event_edit_phase_values, get_event_types_by_asset_type,
+                                                 operational_status_display_values, get_uframe_asset_type,
+                                                 get_status_map)
 import json
-import requests
-
-requests.adapters.DEFAULT_RETRIES = 2
-CACHE_TIMEOUT = 86400
 
 
-'''
- BEGIN Events CRUD methods.
-'''
+@api.route('/events/types', methods=['GET'])
+def get_event_type():
+    """ Get all valid event types supported in uframe asset web services.
+    """
+    return jsonify({'event_types': get_event_types()})
 
 
-@api.route('/events', methods=['GET'])
-def get_events():
-    '''
-    -- M@C 05/12/2015
-    Added to support event query on stream data.
-    '''
+@api.route('/events/types/supported', methods=['GET'])
+def get_supported_event_type():
+    """ Get all valid event types supported in uframe asset web services.
+    """
+    return jsonify({'event_types': get_supported_event_types()})
+
+
+@api.route('/events/operational_status_values', methods=['GET'])
+def get_operational_status_values():
+    """ Get all operational status values supported in uframe asset web services.
+    """
+    return jsonify({'operational_status_values': operational_status_display_values()})
+
+
+@api.route('/events/operational_status_map', methods=['GET'])
+def get_operational_status_map():
+    """ Get operational status map supported in uframe asset web services.
+    """
+    return jsonify({'operational_status_map': get_status_map()})
+
+
+@api.route('/events/tabs/<string:asset_type>', methods=['GET'])
+def get_event_tabs_by_asset_type(asset_type):
+    """ Get event tab names for an asset type.
+    Examples:
+        http://localhost:4000/uframe/events/tabs/Mooring
+        http://localhost:4000/uframe/events/tabs/Node
+        http://localhost:4000/uframe/events/tabs/Sensor
+        http://localhost:4000/uframe/events/tabs/Array
+        http://localhost:4000/uframe/events/tabs/notClassified
+        http://localhost:4000/uframe/events/tabs/Instrument
+        http://localhost:4000/uframe/events/tabs/Platform
+    """
+    tabs = []
+    uframe_asset_type = get_uframe_asset_type(asset_type)
+    if uframe_asset_type in get_supported_asset_types():
+        tabs = get_event_types_by_asset_type(uframe_asset_type)
+    return jsonify({'tabs': tabs})
+
+
+@api.route('/events/edit_phase_values', methods=['GET'])
+def get_event_edit_phase_values():
+    """ Get all event edit phase values supported in uframe asset web services.
+    """
+    return jsonify({'values': event_edit_phase_values()})
+
+
+@api.route('/events/uid/<string:uid>', methods=['GET'])
+def get_events_by_uid(uid):
+    """ Get list of events for asset with uid, filtered by optional type value(s). If error, log and raise.
+    """
     try:
-        '''
-        Listing GET request of all events.  This method is cached for 1 hour.
-        '''
-        data = {}
+        # Get uid and type
+        _type = request.args.get('type')
+        events = _get_events_by_uid(uid, _type)
+        return jsonify({'events': events})
 
-        cached = cache.get('event_list')
-        if cached:
-            data = cached
-
-        else:
-            url = current_app.config['UFRAME_ASSETS_URL']\
-                + '/%s' % 'events'
-
-            payload = requests.get(url)
-
-            data = payload.json()
-            if payload.status_code != 200:
-                return jsonify({"events": payload.json()}), payload.status_code
-
-            data = _compile_events(data)
-
-            if "error" not in data:
-                cache.set('event_list', data, timeout=CACHE_TIMEOUT)
-
-        if request.args.get('ref_des') and request.args.get('ref_des') != "":
-            ref_des = request.args.get('ref_des')
-            resp = get_events_by_ref_des(data, ref_des)
-            return resp
-
-        if request.args.get('search') and request.args.get('search') != "":
-            return_list = []
-            ven_set = []
-            ven_subset = []
-            search_term = str(request.args.get('search')).split()
-            search_set = set(search_term)
-            for subset in search_set:
-                if len(return_list) > 0:
-                    if len(ven_set) > 0:
-                        ven_set = deepcopy(ven_subset)
-                    else:
-                        ven_set = deepcopy(return_list)
-                    ven_subset = []
-                    for item in return_list:
-                        if subset.lower() in str(item['eventClass']).lower():
-                            ven_subset.append(item)
-                        elif subset.lower() in str(item['id']).lower():
-                            ven_subset.append(item)
-                        elif subset.lower() in str(item['startDate']).lower():
-                            ven_subset.append(item)
-                    data = ven_subset
-                else:
-                    for item in data:
-                        if subset.lower() in str(item['eventClass']).lower():
-                            return_list.append(item)
-                        elif subset.lower() in str(item['id']).lower():
-                            return_list.append(item)
-                        elif subset.lower() in str(item['startDate']).lower():
-                            return_list.append(item)
-                    data = return_list
-
-        result = jsonify({'events': data})
-        return result
-
-    except requests.exceptions.ConnectionError as e:
-        error = "Error: Cannot connect to uframe.  %s" % e
-        print error
-        return make_response(error, 500)
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
 
 
-@api.route('/events/<int:id>', methods=['GET'])
-def get_event(id):
-    '''
-    Object response for the GET(id) request.  This response is NOT cached.
-    '''
+@api.route('/events/uid/<string:uid>/all', methods=['GET'])
+def get_all_events_by_uid(uid):
+    """ Get list of all events for asset with uid.
+    """
     try:
-        data = {}
-        url = current_app.config['UFRAME_ASSETS_URL']\
-            + '/%s/%s' % ('events', id)
-        payload = requests.get(url)
-        data = payload.json()
-        if payload.status_code != 200:
-            return jsonify({"events": payload.json()}), payload.status_code
+        # Get uid and type
+        _type = request.args.get('type')
+        events = _get_all_events_by_uid(uid, _type)
+        return jsonify({'events': events})
 
-        try:
-            data['eventClass'] = data.pop('@class')
-        except (KeyError, TypeError):
-            pass
-
-        return jsonify(**data)
-
-    except requests.exceptions.ConnectionError as e:
-        error = "Error: Cannot connect to uframe.  %s" % e
-        print error
-        return make_response(error, 500)
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
 
 
+# Create event
+@auth.login_required
+@scope_required(u'asset_manager')
 @api.route('/events', methods=['POST'])
 def create_event():
-    '''
-    Create a new event, the return will be right from uframe if all goes well.
-    Either a success or an error message.
-    Login required.
-    '''
+    """ Create a new event. Returns event (dict) on success or error message.
+    """
     try:
-        data = json.loads(request.data)
-        url = current_app.config['UFRAME_ASSETS_URL']\
-            + '/%s/%s' % ('events', id)
-        data['@class'] = data.pop('eventClass')
-        response = requests.post(url,
-                                 data=json.dumps(data),
-                                 headers=_uframe_headers())
-        cache.delete('event_list')
-        return response.text, response.status_code
+        # Verify request data is provided, if not, raise exception.
+        if not request.data:
+            message = 'No request data provided in request to create an event.'
+            raise Exception(message)
 
-    except requests.exceptions.ConnectionError as e:
-        error = "Error: Cannot connect to uframe.  %s" % e
-        print error
-        return make_response(error, 500)
+        # Get request data
+        request_data = json.loads(request.data)
+        if not request_data:
+            message = 'Empty request data provided to create an event.'
+            raise Exception(message)
+
+        # Create event based on event type.
+        event = create_event_type(request_data)
+        result = jsonify({'event': event})
+        return result
+
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)
 
 
+# Update event.
+@auth.login_required
+@scope_required(u'asset_manager')
 @api.route('/events/<int:id>', methods=['PUT'])
 def update_event(id):
+    """ Update an existing event, returns event (dict) on success or error message.
+    """
     try:
-        data = json.loads(request.data)
-        url = current_app.config['UFRAME_ASSETS_URL']\
-            + '/%s/%s' % ('events', id)
-        data['@class'] = data.pop('eventClass')
-        response = requests.put(url,
-                                data=json.dumps(data),
-                                headers=_uframe_headers())
-        cache.delete('event_list')
-        return response.text, response.status_code
+        # Verify request data was provided for processing.
+        if not request.data:
+            message = 'No request data provided to update an event.'
+            raise Exception(message)
 
-    except requests.exceptions.ConnectionError as e:
-        error = "Error: Cannot connect to uframe.  %s" % e
-        print error
-        return make_response(error, 500)
+        # Get request data
+        request_data = json.loads(request.data)
+        if not request_data:
+            message = 'Empty request data provided to update an event.'
+            raise Exception(message)
 
+        # Create event based on event type.
+        event = update_event_type(id, request_data)
+        result = jsonify({'event': event})
+        return result
 
-@api.route('/events/<int:id>', methods=['DELETE'])
-def delete_event(id):
-    '''
-    Delete an existing event
-    '''
-    try:
-        url = current_app.config['UFRAME_ASSETS_URL']\
-            + '/%s/%s' % ('events', id)
-        response = requests.delete(url,
-                                   headers=_uframe_headers())
-        cache.delete('event_list')
-        return response.text, response.status_code
-
-    except requests.exceptions.ConnectionError as e:
-        error = "Error: Cannot connect to uframe.  %s" % e
-        print error
-        return make_response(error, 500)
-
-'''
-END Events CRUD methods.
-'''
+    except Exception as err:
+        message = str(err)
+        current_app.logger.info(message)
+        return bad_request(message)

@@ -9,13 +9,15 @@ from flask import jsonify, request, current_app, url_for, g
 from ooiservices.app.main import api
 from ooiservices.app import db, security
 from ooiservices.app.main.authentication import auth, verify_auth
-from ooiservices.app.models import User, UserScope, UserScopeLink
+from ooiservices.app.models import User, UserScope, UserScopeLink, AuditTable
 from ooiservices.app.decorators import scope_required
 from ooiservices.app.redmine.routes import redmine_login
 import json, smtplib, string
 import datetime as dt
 import pycountry
 from operator import itemgetter
+import string
+import random
 
 @api.route('/user/<int:id>', methods=['GET'])
 @auth.login_required
@@ -42,6 +44,8 @@ def put_user(id):
     vocation = data.get('vocation')
     country = data.get('country')
     state = data.get('state')
+    api_user_name = data.get('api_user_name')
+    api_user_token = data.get('api_user_token')
     changed = False
     if first_name is not None:
         user_account.first_name = first_name
@@ -67,11 +71,20 @@ def put_user(id):
     if state is not None:
         user_account.state = state
         changed = True
+    if api_user_name is not None:
+        user_account.api_user_name = api_user_name
+        changed = True
+    if api_user_token is not None:
+        user_account.api_user_token = api_user_token
+        changed = True
+        current_app.logger.info('User %s API token changed to %s by %s'%(user_name, user_account.api_user_token, g.current_user))
     if scopes is not None:
         valid_scopes = UserScope.query.filter(UserScope.scope_name.in_(scopes)).all()
         user_account.scopes = valid_scopes
         changed = True
-        current_app.logger.info('User %s scope(s) changed to %s'%(user_name, user_account.scopes))
+        scope_change_info = 'User %s scope(s) changed to %s by %s'%(user_name, user_account.scopes, g.current_user)
+        AuditTable.insert_audit_entry(audit_type=1, audit_user=g.current_user.id, audit_description=scope_change_info)
+        current_app.logger.info('User %s scope(s) changed to %s by %s'%(user_name, user_account.scopes, g.current_user))
 
     if active is not None:
         user_account.active = bool(active)
@@ -104,6 +117,11 @@ def send_activate_email(to):
     except:
         print "error sending mail"
 
+
+def id_generator(size=14, chars=string.ascii_uppercase + string.digits):
+    return ''.join(random.choice(chars) for _ in range(size))
+
+
 @api.route('/user_scopes')
 @auth.login_required
 def get_user_scopes():
@@ -135,7 +153,7 @@ def create_user():
     data = json.loads(request.data)
     #add user to db
     role_mapping = {
-        1: ['annotate', 'asset_manager', 'user_admin', 'redmine'], # Administrator
+        1: ['annotate', 'asset_manager', 'user_admin', 'redmine', 'annotate_admin', 'ingest', 'ingest_calibration'], # Administrator
         2: ['annotate', 'asset_manager'],                          # Marine Operator
         3: []                                                      # Science User
     }
@@ -146,32 +164,11 @@ def create_user():
         new_user = User.from_json(data)
         new_user.scopes = valid_scopes
         new_user.active = True
+        new_user.api_user_name = 'OOIAPI-'+id_generator()
+        new_user.api_user_token = 'TEMP-TOKEN-'+id_generator()
         db.session.add(new_user)
         db.session.commit()
     except Exception as e:
-        return jsonify(error=e.message), 409
-
-    try:
-        redmine = redmine_login()
-        organization = new_user.organization.organization_name
-        tmp = dt.datetime.now() + dt.timedelta(days=1)
-        due_date = dt.datetime.strftime(tmp, "%Y-%m-%d")
-        issue = redmine.issue.new()
-        issue.project_id = current_app.config['REDMINE_PROJECT_ID']
-        issue.subject = 'New User Registration for OOI UI: %s, %s' % (new_user.first_name, new_user.last_name)
-        issue.description = 'A new user has requested access to the OOI User Interface. Please review the application for %s, their role in the organization %s is %s and email address is %s' % (new_user.first_name, organization, new_user.role, new_user.email)
-        issue.priority_id = 1
-        issue.due_date = due_date
-        # Get the list of ticker Trackers
-        trackers = list(redmine.tracker.all())
-        # Find the REDMINE_TRACKER (like 'Support') and get the id
-        # This make a difference for field validation and proper tracker assignment
-        config_redmine_tracker = current_app.config['REDMINE_TRACKER']
-        tracker_id = [tracker.id for tracker in trackers if tracker.name == config_redmine_tracker][0]
-        issue.tracker_id = tracker_id
-        issue.save()
-    except Exception as e:
-        current_app.logger.exception("Failed to generate redmine issue for new user")
         return jsonify(error=e.message), 409
 
     return jsonify(new_user.to_json()), 201
@@ -240,3 +237,19 @@ def put_password():
     except Exception as ex:
         current_app.logger.exception("Error setting password." + ex.message)
         return
+
+
+@api.route('/user/check_valid_email', methods=['GET'])
+def check_valid_email():
+    try:
+        # print request.args.get('email')
+        user_account = User.query.filter_by(user_name=request.args.get('email')).first_or_404()
+        # print user_account
+        user_id = user_account.user_id
+        # print user_id
+        if user_id is not None:
+            return json.dumps({'email': user_id})
+
+    except Exception as ex:
+        # current_app.logger.exception("Error checking valid email." + ex.message)
+        return json.dumps({'email': ''})

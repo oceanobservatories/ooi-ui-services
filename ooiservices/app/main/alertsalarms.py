@@ -14,6 +14,7 @@ from ooiservices.app.main.errors import (conflict, bad_request)
 from ooiservices.app.main.notifications import handle_notifications
 from ooiservices.app.models import (SystemEventDefinition, SystemEvent, UserEventNotification, User)
 from ooiservices.app.uframe.assets import get_assets
+from ooiservices.app.uframe.config import get_uframe_alerts_info, get_uframe_info
 from sqlalchemy import desc
 
 import requests
@@ -27,6 +28,8 @@ import calendar
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #List all alerts and alarms
 @api.route('/alert_alarm', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'asset_manager')
 def get_alerts_alarms():
     """ Get all alert(s) and alarm(s) which match filter rules provided in request.args.
     Dynamically construct filters to query SystemEvent and SystemEventDefinitions.
@@ -59,8 +62,11 @@ def get_alerts_alarms_object():
             result = result_json
     return result
 
+
 #List an alert or alarm by id
 @api.route('/alert_alarm/<int:id>')
+#@auth.login_required
+#@scope_required(u'asset_manager')
 def get_alert_alarm(id):
     alert_alarm = SystemEvent.query.filter_by(id=id).first()
     if alert_alarm is None:
@@ -70,30 +76,37 @@ def get_alert_alarm(id):
 
 
 def get_asset_list():
+    debug = False
     data = get_assets(True, True)
     ref_list = []
     name_list = []
     for d in data:
-        if ('ref_des' in d) and (len(d['ref_des']) > 2) and ("-" in d['ref_des']):
-            split_ref = d['ref_des'].split('-')
-            if d['ref_des'] not in name_list and len(split_ref) > 1:
-                ref_list.append(d)
-                name_list.append(d['ref_des'])
-        else:
-            current_app.logger.info("Ref-Des not in asset")
+        if 'ref_des' in d:
+            if d['ref_des'] and d['ref_des'] is not None:
+                if ('ref_des' in d) and (len(d['ref_des']) > 2) and ('-' in d['ref_des']):
+                    split_ref = d['ref_des'].split('-')
+                    if d['ref_des'] not in name_list and len(split_ref) > 1:
+                        ref_list.append(d)
+                        name_list.append(d['ref_des'])
+                else:
+                    if debug: current_app.logger.info('ref_des not in assets.')
     return ref_list, name_list
 
+
 @api.route('/alert_alarm/status', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'asset_manager')
 def get_alert_alarm_status():
     """ Gets the alert alarm status for all available assets.
     """
+    debug = True
     #the actual alert alarms
     data = get_alerts_alarms_object()
     status_info = []
     status_outline = {}
 
     for d in data:
-        if d["acknowledged"] == False:
+        if d['acknowledged'] == False:
             ref_des = d['alert_alarm_definition']['reference_designator']
             if ref_des not in status_outline:
                 status_outline[ref_des] = d
@@ -101,7 +114,7 @@ def get_alert_alarm_status():
             else:
                 count = status_outline[ref_des]['count']
                 #figure out which one is higher
-                if d["event_type"] == "alarm":
+                if d['event_type'] == 'alarm':
                     status_outline[ref_des] = d
                 else:
                     pass
@@ -115,27 +128,25 @@ def get_alert_alarm_status():
     aa_def_list = []
 
     #alerts and alarms
-
     for aa_item in aa_def:
         if 'reference_designator' in aa_item:
-            #get the A/A definitions
+            #get the alert/alarm definitions
             if aa_item['reference_designator'] not in aa_def_list:
-                #used to identify halth sensors
+                #used to identify healthy sensors
                 aa_def_list.append(aa_item['reference_designator'])
             if aa_item['reference_designator'] not in assets_names:
-                #means an asset was in the A/A definition, that was not in the asset list returned
-                #create and add it so we can see the status, the TOC may not reflect this
-                print "Ref-Des not in asset name list: ERROR: appending", aa_item['reference_designator']
-
-                new_asset = {'ref_des':aa_item['reference_designator'],
-                             'hasDeploymentEvent' : True,
+                # means an asset was in the alert/alarm definition, that was not in the asset list returned
+                # create and add it so we can see the status, the TOC may not reflect this
+                if debug: print 'reference_designator not in asset name list: ERROR: appending', aa_item['reference_designator']
+                new_asset = {'ref_des': aa_item['reference_designator'],
+                             'hasDeploymentEvent': True,
                              'coordinates': [0, 0],
-                             'assetInfo': {"type":"Sensor",
-                                           "longName":aa_item['reference_designator'],
-                                           "instrumentClass": "Sensor",
-                                           "name":aa_item['reference_designator'],
-                                           "owner":"N/A",
-                                           "description":"N/A"
+                             'assetInfo': {'type': 'Sensor',
+                                           'longName': aa_item['reference_designator'],
+                                           'instrumentClass': 'Sensor',
+                                           'name': aa_item['reference_designator'],
+                                           'owner': 'N/A',
+                                           'description': 'N/A'
                               },
                             }
 
@@ -146,55 +157,58 @@ def get_alert_alarm_status():
                 aa_def_list.append(aa_item['reference_designator'])
                 assets_names.append(aa_item['reference_designator'])
 
-
     #use all the info to create status
     for asset in assets_dict:
         d = asset['ref_des']
+        if not d or d is None:
+            continue
 
-        if 'hasDeploymentEvent' in asset and asset['hasDeploymentEvent']:
-            #create inital entry
-            if 'manufactureInfo' in asset:
-                entry = {'reference_designator':d, "count":0,
-                        "event_type":'unknown',
-                        'coordinates':asset['coordinates'],
-                        'asset_type':asset['assetInfo']['type'],
-                        'longName':asset['assetInfo']['longName'],
-                        'name':asset['assetInfo']['name'],
-                        'instrumentClass':asset['assetInfo']['instrumentClass'],
-                        'manufacturer': asset['manufactureInfo']['manufacturer'],
-                        'modelNumber': asset['manufactureInfo']['modelNumber'],
-                        'serialNumber': asset['manufactureInfo']['serialNumber'],
-                        'owner': asset['assetInfo']['owner'],
-                        'description': asset['assetInfo']['description']}
-            else:
-                entry = {'reference_designator':d, "count":0,
-                        "event_type":'unknown',
-                        'coordinates':asset['coordinates'],
-                        'asset_type':asset['assetInfo']['type'],
-                        'longName':asset['assetInfo']['longName'],
-                        'name':asset['assetInfo']['name'],
-                        'instrumentClass':asset['assetInfo']['instrumentClass'],
-                        'manufacturer': 'N/A',
-                        'modelNumber': 'N/A',
-                        'serialNumber': 'N/A',
-                        'owner': asset['assetInfo']['owner'],
-                        'description': asset['assetInfo']['description']}
+        if 'deployment_numbers' in asset:
+            if asset['deployment_numbers']:
 
+                # Create initial entry
+                # Removed:
+                # 'coordinates': asset['coordinates'],
+                # 'coordinates': asset['coordinates'],
+                if 'manufactureInfo' in asset:
+                    entry = {'reference_designator': d, 'count': 0,
+                            'event_type': 'unknown',
+                            'asset_type': asset['assetType'],
+                            'longName': asset['assetInfo']['longName'],
+                            'name': asset['assetInfo']['name'],
+                            'instrumentClass': asset['assetType'],      # Wrong: The asset type is not the class.
+                            'manufacturer': asset['manufactureInfo']['manufacturer'],
+                            'modelNumber': asset['manufactureInfo']['modelNumber'],
+                            'serialNumber': asset['manufactureInfo']['serialNumber'],
+                            'owner': asset['assetInfo']['owner'],
+                            'description': asset['assetInfo']['description']}
+                else:
+                    entry = {'reference_designator': d, 'count': 0,
+                            'event_type': 'unknown',
+                            'asset_type': asset['assetType'],
+                            'longName': asset['assetInfo']['longName'],
+                            'name': asset['assetInfo']['name'],
+                            'instrumentClass': asset['assetType'],      # Wrong: The asset type is not the class.
+                            'manufacturer': 'N/A',
+                            'modelNumber': 'N/A',
+                            'serialNumber': 'N/A',
+                            'owner': asset['assetInfo']['owner'],
+                            'description': asset['assetInfo']['description']}
 
-            #use alert alarms status (alarm or alert)
-            if d in status_outline.keys():
-                entry["count"] = status_outline[d]['count']
-                entry["event_type"] = status_outline[d]["event_type"]
-            #healthly
-            elif d in aa_def_list:
-                #used to identify health sensors
-                entry["event_type"] = 'inactive'
-            #no status, unknown
-            else:
-                #nothing to do here
-                pass
+                # use alert alarms status (alarm or alert)
+                if d in status_outline.keys():
+                    entry['count'] = status_outline[d]['count']
+                    entry['event_type'] = status_outline[d]['event_type']
+                #healthly
+                elif d in aa_def_list:
+                    #used to identify health sensors
+                    entry['event_type'] = 'inactive'
+                #no status, unknown
+                else:
+                    #nothing to do here
+                    pass
 
-            status_info.append(entry)
+                status_info.append(entry)
     return jsonify({'alert_alarm':status_info})
 
 
@@ -249,7 +263,7 @@ def create_alert_alarm():
         offset = 2208988800
         uframe_float = data['event_time']
         ts_event_time = convert_from_utc(uframe_float - offset)
-        alert_alarm.event_time = dt.datetime.strftime(ts_event_time, "%Y-%m-%dT%H:%M:%S")
+        alert_alarm.event_time = dt.datetime.strftime(ts_event_time, '%Y-%m-%dT%H:%M:%S')
         alert_alarm.event_type = data['event_type']
         alert_alarm.event_response = data['event_response']
         alert_alarm.method = data['method']
@@ -317,7 +331,7 @@ def acknowledge_alert_alarm():
         # Update alert_alarm acknowledged, ack_by and ts_acknowledged
         alert_alarm.acknowledged = True
         alert_alarm.ack_by = ack_by
-        alert_alarm.ts_acknowledged = dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%dT%H:%M:%S")
+        alert_alarm.ts_acknowledged = dt.datetime.strftime(dt.datetime.now(), '%Y-%m-%dT%H:%M:%S')
         try:
             db.session.add(alert_alarm)
             db.session.commit()
@@ -386,6 +400,8 @@ def is_valid_alert_alarm_for_ack(data):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #List all alert and alarm definitions
 @api.route('/alert_alarm_definition', methods=['GET'])
+#@auth.login_required
+#@scope_required(u'asset_manager')
 def get_alerts_alarms_def():
     """ Get a list of alert or alarm definition(s).
     """
@@ -414,6 +430,8 @@ def get_alerts_alarms_def_object():
 
 #List an alerts and alarms definition by id
 @api.route('/alert_alarm_definition/<int:id>')
+#@auth.login_required
+#@scope_required(u'asset_manager')
 def get_alert_alarm_def(id):
     """ Get an alert or alarm definition by id.
     """
@@ -471,7 +489,7 @@ def create_alert_alarm_def():
         if alert_alarm_def.event_type == 'alert':
             alert_alarm_def.escalate_on = float(data['escalate_on'])
             alert_alarm_def.escalate_boundary = float(data['escalate_boundary'])
-        alert_alarm_def.created_time = dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%dT%H:%M:%S")
+        alert_alarm_def.created_time = dt.datetime.strftime(dt.datetime.now(), '%Y-%m-%dT%H:%M:%S')
         alert_alarm_def.uframe_filter_id = uframe_filter_id # Returned from POST to uFrame
         alert_alarm_def.ts_retired = None
         try:
@@ -537,7 +555,7 @@ def update_alert_alarm_def(id):
         # Verify SystemEventDefinition with this id exists
         alert_alarm_def = SystemEventDefinition.query.get(id)
         if alert_alarm_def is None:
-            message = "Invalid ID, alert_alarm_definition record not found"
+            message = 'Invalid ID, alert_alarm_definition record not found.'
             return bad_request(message)
         original_alert_alarm_def = alert_alarm_def
 
@@ -666,7 +684,7 @@ def delete_alert_alarm_definition(id):
                   % (alert_alarm_def.event_type, id)
         return bad_request(message)
     alert_alarm_def.retired = True
-    alert_alarm_def.ts_retired = dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%dT%H:%M:%S")
+    alert_alarm_def.ts_retired = dt.datetime.strftime(dt.datetime.now(), '%Y-%m-%dT%H:%M:%S')
     try:
         db.session.add(alert_alarm_def)
         db.session.commit()
@@ -992,9 +1010,9 @@ def to_bool(value):
     Possible True  values: 1, True, "1", "TRue", "yes", "y", "t"
     Possible False values: 0, False, None, [], {}, "", "0", "faLse", "no", "n", "f", 0.0, ...
     """
-    if str(value).lower() in ("yes", "y", "true",  "t", "1"):
+    if str(value).lower() in ('yes', 'y', 'true',  't', '1'):
         return True
-    if str(value).lower() in ("no",  "n", "false", "f", "0", "0.0", "", "none", "[]", "{}"):
+    if str(value).lower() in ('no',  'n', 'false', 'f', '0', '0.0', '', 'none', '[]', '{}'):
         return False
     raise Exception('Invalid value for boolean conversion: ' + str(value))
 
@@ -1173,7 +1191,7 @@ def delete_alertfilter(id):
     result = None
     try:
         uframe_url, timeout, timeout_read = get_uframe_alerts_info()
-        url = "/".join([uframe_url, 'alertfilters', str(id)])
+        url = '/'.join([uframe_url, 'alertfilters', str(id)])
         response = requests.delete(url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
             message = '(%r) Failed to execute alertfilter deletion (id: %d)' % (response.status_code, id)
@@ -1202,7 +1220,7 @@ def get_alertfilter(id):
     result = None
     try:
         uframe_url, timeout, timeout_read = get_uframe_alerts_info()
-        url = "/".join([uframe_url, 'alertfilters', str(id)])
+        url = '/'.join([uframe_url, 'alertfilters', str(id)])
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
             message = '(%d) Failed to get alertfilter from uframe' % response.status_code
@@ -1264,12 +1282,13 @@ def create_uframe_alertfilter_data(data):
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # Validate reference_designator length and set additional field (subsite, node and sensor)
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        if len(reference_designator) != 27:
+        if len(reference_designator) <=14 or len(reference_designator) > 27:
             raise Exception('reference_designator is malformed.')
         else:
             subsite = reference_designator[0:8]
             node = reference_designator[9:14]
-            sensor = reference_designator[15:27]
+            len_rd = len(reference_designator)
+            sensor = reference_designator[15:len_rd]
             subsite = subsite.replace(' ','')
             node = node.replace(' ','')
             sensor = sensor.replace(' ','')
@@ -1277,7 +1296,7 @@ def create_uframe_alertfilter_data(data):
         if not subsite or not node or not sensor:
             raise Exception('Required parameter (subsite, node or sensor) is empty or malformed.')
 
-        if len(subsite) != 8 or len(node) != 5 or len(sensor) != 12:
+        if len(subsite) != 8 or len(node) != 5 or len(sensor) > 12:
             message = 'One or more field(s), derived from reference_designator is malformed: subsite, node or sensor.'
             raise Exception(message)
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1320,22 +1339,6 @@ def ut(d):
     return calendar.timegm(d.timetuple())
 
 
-def get_uframe_alerts_info():
-    """ Get uframe alertalarm configuration information. """
-    uframe_url = current_app.config['UFRAME_ALERTS_URL']
-    timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
-    timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
-    return uframe_url, timeout, timeout_read
-
-
-def get_uframe_info():
-    """ Get uframe configuration information. (uframe_url, uframe timeout_connect and timeout_read.) """
-    uframe_url = current_app.config['UFRAME_URL'] + current_app.config['UFRAME_URL_BASE']
-    timeout = current_app.config['UFRAME_TIMEOUT_CONNECT']
-    timeout_read = current_app.config['UFRAME_TIMEOUT_READ']
-    return uframe_url, timeout, timeout_read
-
-
 def headers():
     """ Headers for uframe PUT and POST. """
     return {"Content-Type": "application/json"}
@@ -1372,7 +1375,7 @@ def uframe_acknowledge_alert_alarm(uframe_event_id, value):
     result = False
     try:
         uframe_url, timeout, timeout_read = get_uframe_alerts_info()
-        url = "/".join([uframe_url, 'alertalarms', 'ack'])
+        url = '/'.join([uframe_url, 'alertalarms', 'ack'])
         uframe_data = {}
         uframe_data['eventId'] = str(uframe_event_id)
         uframe_data['acknowledgedBy'] = str(value)
@@ -1399,15 +1402,14 @@ def uframe_acknowledge_alert_alarm(uframe_event_id, value):
 
 @api.route('/alert_alarm_instrument_available/<string:ref>', methods=['GET'])
 def uframe_instrument_available(ref):
-    """
-    Retrieve uframe metadata parameters for a specific instrument.
+    """ Retrieve uframe metadata parameters for a specific instrument.
     """
     results = None
     try:
         # Get instrument metadata
         mooring, platform, instrument = ref.split('-', 2)
         uframe_url, timeout, timeout_read = get_uframe_info()
-        url = "/".join([uframe_url, mooring, platform, instrument, 'metadata'])
+        url = '/'.join([uframe_url, mooring, platform, instrument, 'metadata'])
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
             return bad_request('(%d) Failure to retrieve metadata from uframe.' % response.status_code)
@@ -1446,7 +1448,7 @@ def uframe_get_instrument_metadata(ref):
         # Get instrument metadata
         mooring, platform, instrument = ref.split('-', 2)
         uframe_url, timeout, timeout_read = get_uframe_info()
-        url = "/".join([uframe_url, mooring, platform, instrument, 'metadata'])
+        url = '/'.join([uframe_url, mooring, platform, instrument, 'metadata'])
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code == 200:
             metadata = response.json()
@@ -1456,7 +1458,7 @@ def uframe_get_instrument_metadata(ref):
             return bad_request('Failure to compile response, metadata parameters is None.')
 
         # Get instrument methods
-        url = "/".join([uframe_url, mooring, platform, instrument])
+        url = '/'.join([uframe_url, mooring, platform, instrument])
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code == 200:
             methods = response.json()
@@ -1465,7 +1467,7 @@ def uframe_get_instrument_metadata(ref):
 
         # Get streams for each method (expects unique list of methods from uframe; no duplicates)
         for method in methods:
-            url = "/".join([uframe_url, mooring, platform, instrument, method])
+            url = '/'.join([uframe_url, mooring, platform, instrument, method])
             response = requests.get(url, timeout=(timeout, timeout_read))
             if response.status_code == 200:
                 streams_data = response.json()
@@ -1481,8 +1483,7 @@ def uframe_get_instrument_metadata(ref):
             streams_for_method = streams[str(method)]
             tmp[method] = {}
             for stream in streams_for_method:
-                key = "_".join([str(method), str(stream).replace('_', '-')])
-                #key = "_".join([str(method), str(stream)])
+                key = '_'.join([str(method), str(stream).replace('_', '-')])
                 list_of_parameters = []
                 for param in parameters:
                     if str(param['stream']) == str(stream):
@@ -1542,7 +1543,7 @@ def ack_alert_alarm_definition(definition_id):
             # Update alert_alarm acknowledged, ack_by and ts_acknowledged
             instance.acknowledged = True
             instance.ack_by = ack_by
-            instance.ts_acknowledged = dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%dT%H:%M:%S")
+            instance.ts_acknowledged = dt.datetime.strftime(dt.datetime.now(), '%Y-%m-%dT%H:%M:%S')
             try:
                 db.session.add(instance)
                 db.session.commit()
@@ -1733,10 +1734,6 @@ def get_alert_alarm_definitions_list(limit=None):
         if definitions is None:
             message = 'No alert or alarm definitions found; unable to retrieve triggered alerts and alarms.'
             raise Exception(message)
-
-        # Get list of definition ids
-        #for definition in definitions:
-        #    ids.append(definition.id)
 
         # For each definition, get SystemEvent(s) using definition id; order by descending SystemEvent id.
         for definition in definitions:

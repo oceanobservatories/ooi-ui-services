@@ -9,10 +9,10 @@ __author__ = 'M@Campbell'
 from sqlalchemy.sql import expression
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app
-from flask.ext.sqlalchemy import BaseQuery
+from flask_sqlalchemy import BaseQuery
 from ooiservices.app import db, login_manager
-from flask.ext.security import UserMixin, RoleMixin
-from flask_security.utils import encrypt_password, verify_password as fs_verify_password
+from flask_security import UserMixin, RoleMixin
+from flask_security.utils import hash_password, verify_password as fs_verify_password
 from werkzeug.security import check_password_hash
 from wtforms import ValidationError
 from geoalchemy2.types import Geometry
@@ -1078,6 +1078,35 @@ class UserScopeLink(db.Model):
         return '<User %r, Scope %r>' % (self.user_id, self.scope_id)
 
 
+class AuditTable(db.Model, DictSerializableMixin):
+    __tablename__ = 'audit_table'
+    __table_args__ = {u'schema': __schema__}
+
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime(True))
+    audit_type = db.Column(db.Integer)
+    audit_user = db.Column(db.Text, nullable=False)
+    audit_description = db.Column(db.Text, nullable=False)
+
+    @staticmethod
+    def insert_audit_entry(
+            audit_type=1,
+            audit_user="admin@ooi.rutgers.edu",
+            audit_description="No description."):
+        try:
+            audit_entry = AuditTable()
+            audit_entry.audit_type = audit_type
+            audit_entry.audit_user = audit_user
+            audit_entry.audit_description = audit_description
+            db.session.add(audit_entry)
+            db.session.commit()
+            current_app.logger.info('[+] New audit entry added: type=%s, user=%s, description=%s' % (audit_entry.audit_type, audit_entry.audit_user, audit_entry.audit_description))
+            return audit_entry
+        except Exception as e:
+            current_app.logger.info('[!] Error adding audit entry!')
+            current_app.logger.info('[!] %s' % e)
+            db.session.rollback()
+            raise
 
 class UserScope(db.Model, DictSerializableMixin):
     __tablename__ = 'user_scopes'
@@ -1089,16 +1118,19 @@ class UserScope(db.Model, DictSerializableMixin):
 
     @staticmethod
     def insert_scopes():
-        scopes = {
-            'redmine',
-            'asset_manager',
+        scopes = [
             'user_admin',
-            'annotate',
             'command_control',
-            'organization',
+            'annotate',
+            'asset_manager',
             'sys_admin',
-            'data_manager'
-            }
+            'redmine',
+            'data_manager',
+            'organization',
+            'annotate_admin',
+            'ingest',
+            'ingest_calibration'
+            ]
         for s in scopes:
             scope = UserScope.query.filter_by(scope_name=s).first()
             if scope is None:
@@ -1138,6 +1170,12 @@ class Role(db.Model, RoleMixin):
 
     # roles_users = db.relationship(u'RolesUsers')
 
+import string
+import random
+def id_generator(size=14, chars=string.ascii_uppercase + string.digits):
+    return ''.join(random.choice(chars) for _ in range(size))
+
+
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     __table_args__ = {u'schema': __schema__}
@@ -1164,6 +1202,8 @@ class User(UserMixin, db.Model):
     country = db.Column(db.Text)
     state = db.Column(db.Text)
     roles = db.relationship(u'Role', secondary=RolesUsers.__table__, backref=db.backref('users', lazy='dynamic'))
+    api_user_name = db.Column(db.Text)
+    api_user_token = db.Column(db.Text)
 
     def to_json(self):
         json_user = {
@@ -1183,7 +1223,9 @@ class User(UserMixin, db.Model):
             'other_organization' : self.other_organization,
             'vocation' : self.vocation,
             'country' : self.country,
-            'state' : self.state
+            'state' : self.state,
+            'api_user_name' : self.api_user_name,
+            'api_user_token' : self.api_user_token
         }
         if self.organization:
             json_user['organization'] = self.organization.organization_name
@@ -1200,11 +1242,13 @@ class User(UserMixin, db.Model):
         last_name = json.get('last_name')
         role = json.get('role_name')
         organization_id = json.get('organization_id')
-        email_opt_in = json.get('email_opt_in')
+        email_opt_in = bool(json.get('email_opt_in'))
         other_organization = json.get('other_organization')
         vocation = json.get('vocation')
         country = json.get('country')
         state = json.get('state')
+        api_user_name = json.get('api_user_name')
+        api_user_token = json.get('api_user_token')
 
         #Validate some of the field.
 
@@ -1227,7 +1271,9 @@ class User(UserMixin, db.Model):
                     other_organization=other_organization,
                     vocation=vocation,
                     country=country,
-                    state=state)
+                    state=state,
+                    api_user_name=api_user_name,
+                    api_user_token=api_user_token)
 
 
     @staticmethod
@@ -1238,7 +1284,9 @@ class User(UserMixin, db.Model):
                     email='FirstLast@somedomain.com',
                     org_name='RPS ASA',
                     phone_primary='8001234567',
-                    other_organization=None):
+                    other_organization=None,
+                    api_user_name=None,
+                    api_user_token=None):
         try:
             user = User()
             user.password = password
@@ -1256,6 +1304,14 @@ class User(UserMixin, db.Model):
             user.organization_id = org.id
             if org.id == 9:
                 user.other_organization = other_organization
+            if api_user_name:
+                user.api_user_name = api_user_name
+            else:
+                user.api_user_name = 'OOIAPI-'+id_generator()
+            if api_user_token:
+                user.api_user_token = api_user_token
+            else:
+                user.api_user_token = id_generator()
             db.session.add(user)
             db.session.commit()
             current_app.logger.info('[+] New user created: %s' % user.email)
@@ -1272,13 +1328,17 @@ class User(UserMixin, db.Model):
 
     @password.setter
     def password(self, plaintext):
-        self._password = encrypt_password(plaintext)
+        self._password = hash_password(plaintext)
 
     def verify_password(self, password):
         try:
             return check_password_hash(self._password, password)
         except TypeError:
             return fs_verify_password(password, self._password)
+
+    @staticmethod
+    def get_user_from_token(api_user_name, api_user_token):
+        return User.query.filter_by(api_user_name=api_user_name, api_user_token=api_user_token).first()
 
     def validate_email(self, field):
         if User.query.filter_by(email=field).first():
@@ -1377,39 +1437,3 @@ class DisabledStreams(db.Model):
         disabled_by = json_post.get('disabledBy')
         return DisabledStreams(ref_des=ref_des, stream_name=stream_name,
                                disabled_by=disabled_by)
-
-"""
-class VocabNames(db.Model):
-    ''' M@Campbell - 12/21/2015 '''
-
-    __tablename__ = 'vocabnames'
-    __table_args__ = {u'schema': __schema__}
-
-    id = db.Column(db.Integer, primary_key=True)
-    reference_designator = db.Column(db.Text, unique=True, nullable=False)
-    level_one = db.Column(db.Text)
-    level_two = db.Column(db.Text)
-    level_three = db.Column(db.Text)
-    level_four = db.Column(db.Text)
-
-    def to_json(self):
-        json_vocab_names = {
-            'referenceDesignator': self.referenceDesignator,
-            'levelOne': self.level_one,
-            'levelTwo': self.level_two,
-            'levelThree': self.level_three,
-            'levelFour': self.level_four
-            }
-        return json_vocab_names
-
-    @staticmethod
-    def from_json(json_post):
-        reference_designator = json_post.get('referenceDesignator')
-        level_one = json_post.get('levelOne')
-        level_two = json_post.get('levelTwo')
-        level_three = json_post.get('levelThree')
-        level_four = json_post.get('level_four')
-        return VocabNames(reference_designator=reference_designator, level_one=level_one,
-                          level_two=level_two, level_three=level_three,
-                          level_four=level_four)
-"""

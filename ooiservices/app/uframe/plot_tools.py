@@ -12,6 +12,7 @@ from matplotlib.ticker import FuncFormatter
 import seawater as sw
 from matplotlib.dates import datestr2num
 from matplotlib.image import NonUniformImage
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 axis_font_default = {'fontname': 'Calibri',
                      'size': '14',
@@ -40,7 +41,7 @@ class OOIPlots(object):
                 fmt = '%H:%M'
             label = x.strftime(fmt)
             return label
-        day_delta = (max(dates)-min(dates)).days
+        day_delta = (max(dates) - min(dates)).days
 
         if day_delta < 1:
             ax.xaxis.set_major_formatter(FuncFormatter(format_func))
@@ -54,15 +55,26 @@ class OOIPlots(object):
             ax.xaxis.set_major_locator(major)
             ax.xaxis.set_major_formatter(formt)
 
+    def add_annotation(self, ax):
+        """
+        This method adds annotation to the plot figure in the lower left corner next to the watermark
+        """
+        annotation = 'Color bar is set to +/- 95th percentile value'
+        ax.annotate(annotation, xy=(40, 0), xycoords='figure pixels',
+                    horizontalalignment='left', verticalalignment='bottom', fontsize=8, style='italic')
+
     def plot_time_series(self, fig, is_timeseries, ax, x, y, fill=False, title='', xlabel='', ylabel='',
                          title_font={}, axis_font={}, tick_font={}, scatter=False, qaqc=[], events={}, **kwargs):
 
+        _debug = False
+        if _debug: print '\n debug -- Entered plot_time_series...'
         if not title_font:
             title_font = title_font_default
         if not axis_font:
             axis_font = axis_font_default
 
         if scatter:
+            ppl.scatter(ax, x, y, **kwargs)
             ppl.scatter(ax, x, y, **kwargs)
         else:
             h = ppl.plot(ax, x, y, **kwargs)
@@ -82,9 +94,10 @@ class OOIPlots(object):
         if fill:
             miny = min(ax.get_ylim())
             if not scatter:
-                ax.fill_between(x, y, miny+1e-7, facecolor = h[0].get_color(), alpha=0.15)
+                ax.fill_between(x, y, miny + 1e-7, facecolor = h[0].get_color(), alpha=0.15)
             else:
-                ax.fill_between(x, y, miny+1e-7, facecolor = axis_font_default['color'], alpha=0.15)
+                #ax.fill_between(x, y, miny + 1e-7, facecolor = axis_font_default['color'], alpha=0.15)
+                ax.fill_between(x, y, miny + 1e-5, facecolor = axis_font_default['color'], alpha=0.15)
 
         if events:
             ylim = ax.get_ylim()
@@ -115,32 +128,240 @@ class OOIPlots(object):
 
     def plot_stacked_time_series(self, fig, ax, x, y, z, title='', ylabel='',
                                  cbar_title='', title_font={}, axis_font={}, tick_font = {},
+                                 plot_units='',
                                  **kwargs):
 
+        _debug = False
+        if _debug:
+            print '\n debug -- plot_stacked_time_series entered...'
+            print '\n debug -- plot_units: ', plot_units
         if not title_font:
             title_font = title_font_default
         if not axis_font:
             axis_font = axis_font_default
+
+        # Mask NaN items in z
+        if _debug: print '\n debug -- plot_stacked_time_series - Mask NaN items in z'
         z = np.ma.array(z, mask=np.isnan(z))
-        h = plt.pcolormesh(x, y, z, shading='gouraud', **kwargs)
-        # h = plt.pcolormesh(x, y, z, **kwargs)
+
+        # create a limit for the colorbar that disregards outliers
+        if _debug: print '\n debug -- plot_stacked_time_series - create a limit for the colorbar that disregards outliers...'
+        #lim = float("%2.2f" % np.nanpercentile(abs(z), 95))
+        #if _debug: print '\n debug -- plot_tools -- lim: ', lim
+
+        lim_min = float("%2.2f" % np.nanpercentile(abs(z), 2))
+        lim_max = float("%2.2f" % np.nanpercentile(abs(z), 97))
+        if _debug:
+            print '\n debug -- plot_tools -- lim_min: ', lim_min
+            print '\n debug -- plot_tools -- lim_max: ', lim_max
+            print '\n debug -- plot_tools -- ylabel: ', ylabel
+
+        # 2016-12 code for 95th percentile
+        #h = plt.pcolormesh(x, y, z, vmin=-lim, vmax=lim, cmap='RdBu', shading='gouraud', **kwargs)
+
+        # Switch plot color map and limits if plotting units of dB or not.
+        if 'dB' in plot_units:
+            h = plt.pcolormesh(x, y, z, vmin=lim_min, vmax=lim_max, shading='gouraud', **kwargs)
+        else:
+            #h = plt.pcolormesh(x, y, z, vmin=lim_min, vmax=lim_max, cmap='RdBu', shading='gouraud', **kwargs)
+            # Use absolute value of either lim_min or lim_max, which ever is larger for neg/pos limits.
+            abs_lim_min = abs(lim_min)
+            abs_lim_max = abs(lim_max)
+            if abs_lim_min > abs_lim_max:
+                abs_lim = abs_lim_min
+            else:
+                abs_lim = abs_lim_max
+            h = plt.pcolormesh(x, y, z, vmin=-abs_lim, vmax=abs_lim, cmap='RdBu', shading='gouraud', **kwargs)
+
+        #h = plt.pcolormesh(x, y, z, **kwargs)
         if ylabel:
             ax.set_ylabel(ylabel.replace("_", " "), **axis_font)
         if title:
             ax.set_title(title.replace("_", " "), **title_font)
+
         plt.axis([x.min(), x.max(), y.min(), y.max()])
         ax.xaxis_date()
         date_list = mdates.num2date(x)
         self.get_time_label(ax, date_list)
         fig.autofmt_xdate()
+
+        # Inverts left vertical axis only
         ax.invert_yaxis()
-        cbar = plt.colorbar(h)
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes('right', size='3%', pad=0.05)
+        cbar = plt.colorbar(h, cax=cax)
+        cbar.ax.invert_yaxis()
         if cbar_title:
-            cbar.ax.set_ylabel(cbar_title, **axis_font)
+            cbar.ax.set_ylabel(cbar_title.replace("_", " "), **axis_font)
         ax.grid(True)
         if tick_font:
             ax.tick_params(**tick_font)
         plt.tight_layout()
+        self.add_annotation(ax)
+
+
+    def plot_stacked_time_series_spkir(self, fig, ax, x, y, z, title='', ylabel='',
+                                 cbar_title='', title_font={}, axis_font={}, tick_font = {},
+                                 **kwargs):
+        _debug = False
+        if _debug: print '\n debug -- plot_stacked_time_series_spkir entered...'
+        if not title_font:
+            title_font = title_font_default
+        if not axis_font:
+            axis_font = axis_font_default
+
+        # Mask NaN items in z
+        z = np.ma.array(z, mask=np.isnan(z))
+        h = plt.pcolormesh(x, y, z, **kwargs)
+
+        if ylabel:
+            ax.set_ylabel(ylabel.replace("_", " "), **axis_font)
+        if title:
+            ax.set_title(title.replace("_", " "), **title_font)
+
+        plt.axis([x.min(), x.max(), y.min(), y.max()])
+        ax.xaxis_date()
+        date_list = mdates.num2date(x)
+        self.get_time_label(ax, date_list)
+        fig.autofmt_xdate()
+
+        # Inverts left vertical axis only
+        ax.invert_yaxis()
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes('right', size='3%', pad=0.05)
+        cbar = plt.colorbar(h, cax=cax)
+        cbar.ax.invert_yaxis()
+
+        if cbar_title:
+            cbar.ax.set_ylabel(cbar_title.replace("_", " "), **axis_font)
+        #---------
+        ax.grid(True)
+        if tick_font:
+            ax.tick_params(**tick_font)
+        plt.tight_layout()
+
+
+    def plot_stacked_time_series_zplsc(self, fig, ax, x, y, z, stacked_depth_ranges, title='', ylabel='',
+                                 cbar_title='', title_font={}, axis_font={}, tick_font = {},
+                                 **kwargs):
+        _debug = False
+        if _debug:
+            print '\n *************************************************************'
+            print '\n\t debug -- plot_stacked_time_series_zplsc Entered...'
+        if not title_font:
+            title_font = title_font_default
+        if not axis_font:
+            axis_font = axis_font_default
+
+        if _debug:
+            # {'color': 'k', 'width': 1, 'labelsize': 10, 'axis': 'both'}
+            print '\n\t debug -- tick_font: ', tick_font
+            print '\n\t debug -- Plotting Stacked: stacked_depth_ranges [0]: ', stacked_depth_ranges[0][0:20]
+
+        if _debug:
+            print '\n debug -- Initial type of z type(z): ', type(z)
+            print '\n debug -- z.min(): ', z.min()
+            print '\n debug -- z.max(): ', z.max()
+
+        # Mask NaN items in z
+        z = np.ma.array(z, mask=np.isnan(z))
+
+        # Get min/max for y (5/95)
+        lim_max = float("%2.2f" % np.nanpercentile(abs(z), 95))
+        lim_min = float("%2.2f" % np.nanpercentile(abs(z), 5))
+        if z.min() < 0:
+            lim_max = -lim_max
+        if z.max() < 0:
+            lim_min = -lim_min
+        if _debug:
+            print '\n debug -- ----------------------- New Limits -------------------'
+            print '\n debug -- lim_min: ', lim_min
+            print '\n debug -- lim_max: ', lim_max
+            print '\n debug -- ------------------------------------------------------'
+
+
+        """
+        # Depth processing for additional y axis (left side of plot)
+        _depths = np.ma.array(stacked_depth_ranges, mask=np.isnan(stacked_depth_ranges))
+        if debug:
+            print '\n\t debug -- _depths.min(): ', _depths.min()
+            print '\n\t debug -- _depths.max(): ', _depths.max()
+            print '\n\t debug -- len(_depths): ', len(_depths)
+            print '\n\t debug -- type(_depths): ', type(_depths)
+            print '\n\t debug -- len(x): ', len(x)
+            print '\n\t debug -- type(x): ', type(x)
+            print '\n\t debug -- len(y): ', len(y)
+            print '\n\t debug -- type(y): ', type(y)
+            print '\n\t debug -- len(stacked_depth_ranges): ', len(stacked_depth_ranges)
+            print '\n\t debug -- type(stacked_depth_ranges): ', type(stacked_depth_ranges)
+            print '\n\t debug -- stacked_depth_ranges.min(): ', stacked_depth_ranges.min()
+            print '\n\t debug -- stacked_depth_ranges.max(): ', stacked_depth_ranges.max()
+        """
+
+        #h = plt.pcolormesh(x, y, z, **kwargs)          Original
+
+        ## Working with depth value for min max (wrong)
+        ##vertical_min = 0.36126
+        ##vertical_max = 30.26704
+        ##h = plt.pcolormesh(x, y, z, vmin=vertical_min, vmax=vertical_max, **kwargs)
+
+        ## Working with values from rene
+        #vertical_min = -150
+        #vertical_max = -10
+        #h = plt.pcolormesh(x, y, z, vmin=vertical_min, vmax=vertical_max, **kwargs)
+
+
+        h = plt.pcolormesh(x, y, z, vmin=lim_min, vmax=lim_max, **kwargs)
+        #h = plt.pcolormesh(x, y, z, vmin=z.min(), vmax=z.max(), **kwargs)
+
+        # Using z value min/max (z.min():  -106.308227539, z.max():  1.46598482132)
+        #h = plt.pcolormesh(x, y, z, vmin=z.min(), vmax=z.max(), **kwargs)
+
+        # old incorrect -lim/lim
+        ###h = plt.pcolormesh(x, y, z, vmin=-lim, vmax=lim, **kwargs)
+        ###h = plt.pcolormesh(x, stacked_depth_ranges, z, **kwargs)
+
+        if _debug:  print '\n debug -- after plt.colormesh...'
+        if ylabel:
+            ax.set_ylabel(ylabel.replace("_", " "), **axis_font)
+        if title:
+            ax.set_title(title.replace("_", " "), **title_font)
+
+        if _debug:
+            print '\n debug *****************************************'
+            print '\n debug -- x.min(): ', x.min()
+            print '\n debug -- x.max(): ', x.max()
+            print '\n debug -- y.min(): ', y.min()
+            print '\n debug -- y.max(): ', y.max()
+            print '\n debug -- z.min(): ', z.min()
+            print '\n debug -- z.max(): ', z.max()
+            print '\n debug *****************************************'
+
+        # Test remove
+        plt.axis([x.min(), x.max(), y.min(), y.max()])
+
+        #plt.xticks(visible=False)
+        #plt.axis([x.min(), x.max(), stacked_depth_ranges.max(), stacked_depth_ranges.min()])
+        #plt.axis([x.min(), x.max(), y.max(), y.min(), z.min(), z.max()])  # Test flip left axis
+        ax.xaxis_date()
+        date_list = mdates.num2date(x)
+        self.get_time_label(ax, date_list)
+        fig.autofmt_xdate()
+
+        # Inverts left vertical axis only
+        ax.invert_yaxis()
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes('right', size='3%', pad=0.05)
+        cbar = plt.colorbar(h, cax=cax)
+
+        if cbar_title:
+            cbar.ax.set_ylabel(cbar_title.replace("_", " "), **axis_font)
+        #---------
+        ax.grid(True)
+        if tick_font:
+            ax.tick_params(**tick_font)
+        plt.tight_layout()
+
 
     def plot_stacked_time_series_image(self, fig, ax, x, y, z, title='', ylabel='',
                                        cbar_title='', title_font={}, axis_font={}, tick_font = {},
@@ -149,7 +370,8 @@ class OOIPlots(object):
         This plot is a stacked time series that uses NonUniformImage with regualrly spaced ydata from
         a linear interpolation. Designed to support FRF ADCP data.
         '''
-
+        _debug = False
+        if _debug: print '\n debug -- plot_stacked_time_series_image entered...'
         if not title_font:
             title_font = title_font_default
         if not axis_font:
@@ -247,8 +469,14 @@ class OOIPlots(object):
                   title='', title_font={}, legend_title='', normed=True,
                   opening=0.8, edgecolor='white', fontsize=8):
 
+        # Note:
+        # title_font_default:  {'color': 'black', 'fontname': 'Arial', 'verticalalignment': 'bottom',
+        # 'weight': 'bold', 'size': '18'}
         if not title_font:
             title_font = title_font_default
+
+        if title_font['size'] > 12:
+            title_font['size'] = 12
 
         fig, ax = self.new_axes(figsize)
         magnitude = magnitude[~np.isnan(magnitude)]
@@ -257,10 +485,24 @@ class OOIPlots(object):
         ax.bar(direction, magnitude, bins=bins, normed=normed, cmap=cmap,
                opening=opening, edgecolor=edgecolor, nsector=nsector)
 
-        self.set_legend(ax, legend_title, fontsize)
-        ax.set_title(title.replace("_", " "), **title_font)
+        #self.set_legend(ax, legend_title, fontsize)
+        self.rose_set_legend(ax, legend_title, fontsize)
+        ax.set_title(title, **title_font)
 
         return fig
+
+    def rose_set_legend(self, ax, label='', fontsize=8):
+        """Adjust the legend box."""
+         # Shrink current axis by 20%
+
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width * 0.7, box.height])
+
+        # Put a legend to the right of the current axis
+        l = ax.legend(title=label, loc='lower left', bbox_to_anchor=(1.05, 0), fontsize=12, fancybox=True)
+        plt.setp(l.get_title(), fontsize='x-small')
+        #plt.setp(l.get_texts(), fontsize=fontsize)
+        plt.setp(l.get_texts(), fontsize=10)
 
     def plot_1d_quiver(self, fig, ax, time, u, v, title='', ylabel='',
                        title_font={}, axis_font={}, tick_font={}, key_units='m/s',
@@ -474,7 +716,7 @@ class OOIPlots(object):
 
             if len(qaqc[key]) > 0:
                 bad_data = np.where(qaqc[key] > 0)
-                y_axis[ind].plot(xdata[key][bad_data], ydata[key][bad_data], 
+                y_axis[ind].plot(xdata[key][bad_data], ydata[key][bad_data],
                                  marker='o',
                                  mfc='none',
                                  linestyle='None',
@@ -601,7 +843,6 @@ class OOIPlots(object):
                                  mec='r')
 
             # Label the y-axis and set text color:
-
             # Been experimenting with other ways to handle tick labels with spines
             y_axis[ind].yaxis.get_major_formatter().set_useOffset(False)
 
@@ -635,9 +876,9 @@ class OOIPlots(object):
         sal = np.ma.array(sal, mask=np.isnan(sal))
         temp = np.ma.array(temp, mask=np.isnan(temp))
         if len(sal) != len(temp):
-            raise Exception('Sal and Temp arrays are not the same size!')
+            raise Exception('Sal and Temp arrays are not the same size.')
 
-        # Figure out boudaries (mins and maxs)
+        # Figure out boundaries (mins and maxs)
         smin = sal.min() - (0.01 * sal.min())
         smax = sal.max() + (0.01 * sal.max())
         tmin = temp.min() - (0.1 * temp.max())
@@ -650,7 +891,7 @@ class OOIPlots(object):
         # Create empty grid of zeros
         dens = np.zeros((ydim, xdim))
 
-        # Create temp and sal vectors of appropiate dimensions
+        # Create temp and sal vectors of appropriate dimensions.
         ti = np.linspace(1, ydim-1, ydim)+tmin
         si = np.linspace(1, xdim-1, xdim)*0.1+smin
 
@@ -677,27 +918,85 @@ class OOIPlots(object):
         plt.tight_layout()
 
     def plot_3d_scatter(self, fig, ax, x, y, z, title='', xlabel='', ylabel='', zlabel='',
-                        title_font={}, axis_font={}, tick_font={}):
+                        title_font={}, axis_font={}, tick_font={}, number_points=0):
 
+        # {'color': 'black', 'fontname': 'Calibri', 'weight': 'bold', 'size': 12}
         if not title_font:
             title_font = title_font_default
+        if title_font['size'] < 14:
+            title_font['size'] = 14
+
+        # Format {'fontname': 'Calibri', 'weight': 'bold', 'size': 10}
         if not axis_font:
             axis_font = axis_font_default
+        if axis_font['size'] < 12:
+            axis_font['size'] = 12
+        # Format tick font: {'color': 'k', 'width': 1, 'labelsize': 7, 'axis': 'both'}
 
+        """
+        print '\n debug -- plot_tools.py: 3d_scatter: xlabel: ', xlabel
+        print '\n debug -- plot_tools.py: 3d_scatter: ylabel: ', ylabel
+        print '\n debug -- plot_tools.py: 3d_scatter: zlabel: ', zlabel
+        x_display_label = None
+        if xlabel is not None:
+            x_display_label = xlabel[:]
+        """
+
+        # http://stackoverflow.com/questions/2051744/reverse-y-axis-in-pyplot
         cmap = plt.cm.jet
         h = plt.scatter(x, y, c=z, cmap=cmap)
-        ax.set_aspect(1./ax.get_data_ratio())  # make axes square
-        cbar = plt.colorbar(h, orientation='vertical', aspect=30, shrink=0.9)
+        ax = plt.gca()
+        """
+        print '\n ax.get_ylim(): ', ax.get_ylim()
+        print '\n ax.get_ylim()[::-1]: ', ax.get_ylim()[::-1]
+        """
+        ax.set_ylim(ax.get_ylim()[::-1])
+        # testing -- h = plt.scatter(x, y, c=z, cmap=cmap)
+
+        """
+        # original two lines
+        cmap = plt.cm.jet
+        h = ax.scatter(x, y, c=z, cmap=cmap)
+        """
+
+        if 'time' in xlabel.lower():
+            xlabel = None
+            ax.xaxis_date()
+            date_list = mdates.num2date(x)
+            self.get_time_label(ax, date_list)
+            fig.autofmt_xdate()
+
+        ax.set_aspect(1. / ax.get_data_ratio())  # make axes square
+        #cbar = plt.colorbar(h, orientation='vertical', aspect=30, shrink=0.76)
+        cbar = plt.colorbar(h, orientation='vertical', aspect=30, shrink=0.76)
+
+        """
+        if x_display_label:
+            ax.set_xlabel(x_display_label, labelpad=10, **axis_font)
 
         if xlabel:
             ax.set_xlabel(xlabel.replace("_", " "), labelpad=10, **axis_font)
+        """
         if ylabel:
             ax.set_ylabel(ylabel.replace("_", " "), labelpad=10, **axis_font)
         if zlabel:
-            cbar.ax.set_ylabel(zlabel.replace("_", " "), labelpad=10, **axis_font)
+            cbar.ax.set_ylabel(zlabel.replace("_", " "), **axis_font)
         if tick_font:
             ax.tick_params(**tick_font)
         if title:
             ax.set_title(title.replace("_", " "), **title_font)
+        if number_points:
+            nice_number = "{:,}".format(number_points)
+            message = 'Number of data points: %s' % nice_number
+            self.add_annotation_message(ax, message)
         ax.grid(True)
         plt.tight_layout()
+
+
+    def add_annotation_message(self, ax, message):
+        """
+        This method adds annotation to the plot figure in the lower left corner.
+        """
+        annotation = message
+        ax.annotate(annotation, xy=(40, 10), xycoords='figure pixels',
+                    horizontalalignment='left', verticalalignment='bottom', fontsize=8, style='italic')

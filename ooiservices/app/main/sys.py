@@ -10,6 +10,7 @@ from ooiservices.app.main import api
 from celery.task.control import discard_all
 import urllib
 import subprocess
+import redis
 
 
 @api.route('/list_routes', methods=['GET'])
@@ -33,7 +34,8 @@ def list_routes():
 
 @api.route('/cache_keys', methods=['GET'])
 @api.route('/cache_keys/<string:key>', methods=['DELETE'])
-def cache_list(key=None):
+@api.route('/cache_keys/<string:key>/<string:key_timeout>/<string:key_value>', methods=['POST'])
+def cache_list(key=None, key_value=None, key_timeout=None):
     '''
     @method GET:
         Returns this list of flask cache keys and their
@@ -44,18 +46,24 @@ def cache_list(key=None):
         Send a delete request passing in the name of the
         cache key that needs to be deleted.
         :return: JSON
+
+    @method PUT:
+        Send a PUT request passing the key:value and timeout (seconds).
+        :return JSON
     '''
     if request.method == 'GET':
-        # setup the container for the list of current cache items
-        flask_cache = []
+
+        redis_connection = redis.Redis.from_url(current_app.config['REDIS_URL'])
+
+        flask_cache = redis_connection.keys()
 
         # issue the command to get the list from redis
-        pipe_output = subprocess.Popen(['redis-cli', 'keys', '*'],
-                                       stdout=subprocess.PIPE)
-        output, err = pipe_output.communicate()
+        # pipe_output = subprocess.Popen(['redis-cli', 'keys', '*'],
+        #                                stdout=subprocess.PIPE)
+        # output, err = pipe_output.communicate()
 
         # the output is a string, so lets load it into the array
-        flask_cache = output.split('\n')
+        # flask_cache = output.split('\n')
 
         # we don't want to provide system keys, remove non "flask_cache"
         temp_list = []
@@ -70,14 +78,15 @@ def cache_list(key=None):
 
         # lets get the TTL of each of the keys
         for cache_key in flask_cache:
-            pipe_output = subprocess.Popen(['redis-cli', 'TTL',
-                                            cache_key['key']],
-                                           stdout=subprocess.PIPE)
-            output, err = pipe_output.communicate()
-            cache_key['TTL'] = output.split('\n')[0]
+            # pipe_output = subprocess.Popen(['redis-cli', 'TTL',
+            #                                 cache_key['key']],
+            #                                stdout=subprocess.PIPE)
+            output = redis_connection.ttl(cache_key['key'])
+            cache_key['TTL'] = output
 
         # clear out this for garbage collection of flask_cache ref
         temp_list = None
+        flask_cache.sort(key=lambda x: (x['key']))
 
         return jsonify({'results': flask_cache})
 
@@ -93,7 +102,7 @@ def cache_list(key=None):
 
             # we'll discard all previous celery jobs, so new ones can be queued up.
             # Note, this does NOT issue a cache reload.  It simply removes any
-            # backloged tasks.  Keep it tight, like a tiger.
+            # backloged tasks.
             if output == 1:
                 discard_all()
 
@@ -101,3 +110,16 @@ def cache_list(key=None):
 
         except Exception as e:
             return jsonify({'error': 'Exception in cache delete. %s' % e}), 500
+
+    elif request.method == 'POST':
+        try:
+            # perform the SETEX operation on the target host's redis server
+            # Usage: SETEX metadatabanner 604800 "true"
+            redis_connection = redis.Redis.from_url(current_app.config['REDIS_URL'])
+
+            redis_setex = redis_connection.setex(key, int(key_timeout), key_value)
+
+            return jsonify({'results': redis_setex}), 200
+
+        except Exception as e:
+            return jsonify({'error': 'Exception adding cache key. %s' % e}), 500

@@ -22,14 +22,14 @@ if async_mode is None:
 
 import os
 from flask import Flask, jsonify, url_for
-from flask.ext.sqlalchemy import SQLAlchemy
-from flask.ext.login import LoginManager
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager
 from flask_environments import Environments
-from flask.ext.cache import Cache
-from flask.ext.security import Security, SQLAlchemyUserDatastore
-from flask_wtf.csrf import CsrfProtect
+from flask_caching import Cache
+from flask_security import  Security, SQLAlchemyUserDatastore
+from flask_wtf.csrf import CSRFProtect
 from sqlalchemy_searchable import make_searchable
-from flask_redis import Redis
+from flask_redis import FlaskRedis as Redis
 from flask_cors import CORS
 
 
@@ -41,7 +41,7 @@ login_manager.session_protection = 'strong'
 cache = Cache()
 db = SQLAlchemy()
 make_searchable()
-csrf = CsrfProtect()
+csrf = CSRFProtect()
 redis_store = Redis()
 cors = CORS()
 sio = None
@@ -86,7 +86,7 @@ def create_app(config_name):
 
     # SSL
     if not app.debug and not app.testing and app.config['SSL_DISABLE']:
-        from flask.ext.sslify import SSLify
+        from flask_sslify import SSLify
         sslify = SSLify(app)
 
     # handle proxy server headers

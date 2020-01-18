@@ -4910,8 +4910,8 @@ class AlertAlarmTestCase(unittest.TestCase):
             return filter
         except:
             raise
-
-    def get_uframe_event(self, filter_id):
+    """
+    def get_uframe_event_aa(self, filter_id):
         # Using filterId, find eventId /alertalarms?acknowledged=false
         headers = self.get_api_headers('admin', 'test')
         event_id = None
@@ -4935,6 +4935,7 @@ class AlertAlarmTestCase(unittest.TestCase):
             return event_id
         except:
             raise
+    """
 
     def create_alert_alarm_definition_wo_notification(self, ref_def, event_type, uframe_filter_id, severity):
         # Note, creates a definition in test database only, just used to exercise SystemEventDefinition class
