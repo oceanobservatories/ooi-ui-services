@@ -19,10 +19,10 @@ from datetime import datetime
 import yaml
 if os.path.exists(os.path.join(basedir, '/ooiservices/app/config_local.yml')):
     with open(basedir + '/ooiservices/app/config_local.yml', 'r') as f:
-        doc = yaml.load(f)
+        doc = yaml.load(f, Loader=yaml.FullLoader)
 else:
     with open(basedir + '/ooiservices/app/config.yml', 'r') as f:
-        doc = yaml.load(f)
+        doc = yaml.load(f, Loader=yaml.FullLoader)
 env = doc['ENV_NAME']
 
 app = create_app(env)

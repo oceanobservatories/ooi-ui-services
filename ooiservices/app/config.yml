@@ -150,7 +150,7 @@ COMMON: &common
     SECURITY_REGISTERABLE : False
     SECURITY_RECOVERABLE : True
     SECURITY_TRACKABLE : False
-    SECURITY_PASSWORD_HASH : 'pbkdf2_sha512'
+    SECURITY_PASSWORD_HASH : 'sha512_crypt'
     SECURITY_PASSWORD_SALT : 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 
 
