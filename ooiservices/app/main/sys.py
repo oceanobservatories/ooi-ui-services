@@ -122,7 +122,7 @@ def cache_list(key=None, key_value=None, key_timeout=None):
             # Usage: SETEX metadatabanner 604800 "true"
             redis_connection = redis.Redis.from_url(current_app.config['REDIS_URL'])
 
-            redis_setex = redis_connection.setex(key, int(key_timeout), key_value)
+            redis_setex = redis_connection.setex(key, key_value, int(key_timeout))
 
             return jsonify({'results': redis_setex}), 200
 
