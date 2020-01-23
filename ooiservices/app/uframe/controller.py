@@ -3,7 +3,7 @@
 Mixture of route endpoints and supporting functions.
 """
 
-from flask import (jsonify, request, current_app)
+from flask import jsonify, request, current_app, url_for, g
 from ooiservices.app.models import User
 from ooiservices.app.uframe import uframe as api
 from ooiservices.app.main.authentication import auth
@@ -312,8 +312,20 @@ def get_csv(stream, ref, start_time, end_time, dpa_flag):
         uframe_url, timeout, timeout_read = get_uframe_info()
 
         # Enforce usage of logged-in user_name and email as part of @auth.login_required
-        user = User.user_name
-        email = User.email
+        try:
+            the_user = g.current_user.to_json()
+            if debug: print '\n debug -- user_name: %r' % the_user['user_name']
+            user = the_user['user_name']
+            email = the_user['email']
+            current_app.logger.info('***** get_netcdf user email: ' + email)
+
+            # TODO: Could add validation of supplied credentials as a security check
+            # user = request.args.get('user', '') == user
+            # email = request.args.get('email', '') == email
+        except Exception as user_ex:
+            message = 'Unable to retrieve logged-in user credentials'
+            current_app.logger.info(message)
+            raise Exception(message)
 
         # Get request arguments
         pdids = request.args.get('parameters', '')
@@ -392,8 +404,20 @@ def get_json(stream, ref, start_time, end_time, dpa_flag, provenance, annotation
             pass
 
         # Enforce usage of logged-in user_name and email as part of @auth.login_required
-        user = User.user_name
-        email = User.email
+        try:
+            the_user = g.current_user.to_json()
+            if debug: print '\n debug -- user_name: %r' % the_user['user_name']
+            user = the_user['user_name']
+            email = the_user['email']
+            current_app.logger.info('***** get_netcdf user email: ' + email)
+
+            # TODO: Could add validation of supplied credentials as a security check
+            # user = request.args.get('user', '') == user
+            # email = request.args.get('email', '') == email
+        except Exception as user_ex:
+            message = 'Unable to retrieve logged-in user credentials'
+            current_app.logger.info(message)
+            raise Exception(message)
 
         # Get request arguments
         pdids = request.args.get('parameters', '')
@@ -475,8 +499,20 @@ def get_netcdf(stream, ref, start_time, end_time, dpa_flag, provenance, annotati
             pass
 
         # Enforce usage of logged-in user_name and email as part of @auth.login_required
-        user = User.user_name
-        email = User.email
+        try:
+            the_user = g.current_user.to_json()
+            if debug: print '\n debug -- user_name: %r' % the_user['user_name']
+            user = the_user['user_name']
+            email = the_user['email']
+            current_app.logger.info('***** get_netcdf user email: ' + email)
+
+            # TODO: Could add validation of supplied credentials as a security check
+            # user = request.args.get('user', '') == user
+            # email = request.args.get('email', '') == email
+        except Exception as user_ex:
+            message = 'Unable to retrieve logged-in user credentials'
+            current_app.logger.info(message)
+            raise Exception(message)
 
         # Get request arguments
         pdids = request.args.get('parameters', '')
