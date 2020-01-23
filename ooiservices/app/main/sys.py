@@ -33,6 +33,7 @@ def list_routes():
 
 
 @api.route('/cache_keys', methods=['GET'])
+@api.route('/cache_keys/<string:key>', methods=['GET'])
 @api.route('/cache_keys/<string:key>', methods=['DELETE'])
 @api.route('/cache_keys/<string:key>/<string:key_timeout>/<string:key_value>', methods=['POST'])
 def cache_list(key=None, key_value=None, key_timeout=None):
@@ -67,11 +68,19 @@ def cache_list(key=None, key_value=None, key_timeout=None):
 
         # we don't want to provide system keys, remove non "flask_cache"
         temp_list = []
-        for cache_key in flask_cache:
-            if 'flask_cache' in cache_key:
-                temp_list.append({'key': cache_key,
-                                  'name': cache_key.split('_')[2]
-                                  })
+
+        if key:
+            for cache_key in flask_cache:
+                if key in cache_key:
+                    temp_list.append({'key': cache_key,
+                                      'name': cache_key.split('_')[2]
+                                      })
+        else:
+            for cache_key in flask_cache:
+                if 'flask_cache' in cache_key or 'custom_cache' in cache_key:
+                    temp_list.append({'key': cache_key,
+                                      'name': cache_key.split('_')[2]
+                                      })
 
         # assign the list to the main bin
         flask_cache = temp_list
@@ -83,6 +92,8 @@ def cache_list(key=None, key_value=None, key_timeout=None):
             #                                stdout=subprocess.PIPE)
             output = redis_connection.ttl(cache_key['key'])
             cache_key['TTL'] = output
+            val = redis_connection.get(cache_key['key'])
+            cache_key['value'] = val.lower()
 
         # clear out this for garbage collection of flask_cache ref
         temp_list = None
@@ -96,17 +107,11 @@ def cache_list(key=None, key_value=None, key_timeout=None):
             redis_key = key
 
             # perform the delete operation on the target host's redis server
-            pipe_output = subprocess.Popen(['redis-cli', 'del', redis_key],
-                                           stdout=subprocess.PIPE)
-            output, err = pipe_output.communicate()
+            redis_connection = redis.Redis.from_url(current_app.config['REDIS_URL'])
 
-            # we'll discard all previous celery jobs, so new ones can be queued up.
-            # Note, this does NOT issue a cache reload.  It simply removes any
-            # backloged tasks.
-            if output == 1:
-                discard_all()
+            redis_del = redis_connection.delete(redis_key)
 
-            return jsonify({'results': int(output)}), 200
+            return jsonify({'results': redis_del}), 200
 
         except Exception as e:
             return jsonify({'error': 'Exception in cache delete. %s' % e}), 500
@@ -117,7 +122,7 @@ def cache_list(key=None, key_value=None, key_timeout=None):
             # Usage: SETEX metadatabanner 604800 "true"
             redis_connection = redis.Redis.from_url(current_app.config['REDIS_URL'])
 
-            redis_setex = redis_connection.setex(key, int(key_timeout), key_value)
+            redis_setex = redis_connection.setex(key, key_value, int(key_timeout))
 
             return jsonify({'results': redis_setex}), 200
 

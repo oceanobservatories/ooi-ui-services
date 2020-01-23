@@ -23,12 +23,14 @@ from ooiservices.app.main.user import id_generator
 # from ooiservices.app.main.user import PlatformDeployment,
 #import flask.ext.whooshalchemy as whooshalchemy
 import yaml
+
+
 if os.path.exists(os.path.join(basedir, '/app/config_local.yml')):
     with open(basedir + '/app/config_local.yml', 'r') as f:
-        doc = yaml.load(f)
+        doc = yaml.load(f, Loader=yaml.FullLoader)
 else:
     with open(basedir + '/app/config.yml', 'r') as f:
-        doc = yaml.load(f)
+        doc = yaml.load(f, Loader=yaml.FullLoader)
 env = doc['ENV_NAME']
 
 app = create_app(env)
