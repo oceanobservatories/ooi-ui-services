@@ -115,7 +115,7 @@ def uframe_versions_component_release_notes(component=None):
             message += 'Please verify the component name provided is a valid component name.'
             raise Exception(message)
 
-        versions_list.sort(reverse=True)
+        versions_list.sort(key=lambda s: map(int, s.split('.')), reverse=True)
         for version in versions_list:
             result = uframe_get_component_version(component, version)
             if result and result is not None:
