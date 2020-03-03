@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/asascience-open/ooi-ui-services.svg?branch=master)](https://travis-ci.org/asascience-open/ooi-ui-services)
+[![Build Status](https://travis-ci.org/oceanobservatories/ooi-ui-services.svg?branch=master)](https://travis-ci.org/oceanobservatories/ooi-ui-services)
 
 ooi-ui-services
 ===============
