@@ -17,14 +17,14 @@ def get_iris_rds():
     result = [
             'RS03ASHS-MJ03B-06-OBSSPA301',
             'RS03ASHS-MJ03B-05-OBSSPA302',
-            'RS03AXBS-MJ03A-05-HYDLFA301',
+            # 'RS03AXBS-MJ03A-05-HYDLFA301',
             'RS03AXBS-MJ03A-05-OBSBBA303',
             'RS03CCAL-MJ03F-05-BOTPTA301',
-            'RS03CCAL-MJ03F-06-HYDLFA305',
+            # 'RS03CCAL-MJ03F-06-HYDLFA305',
             'RS03CCAL-MJ03F-06-OBSBBA301',
             'RS03ECAL-MJ03E-05-OBSSPA303',
             'RS03ECAL-MJ03E-06-BOTPTA302',
-            'RS03ECAL-MJ03E-09-HYDLFA304',
+            # 'RS03ECAL-MJ03E-09-HYDLFA304',
             'RS03ECAL-MJ03E-09-OBSBBA302',
             'RS03ECAL-MJ03E-08-OBSSPA304',
             'RS03INT2-MJ03D-06-BOTPTA303',
@@ -32,9 +32,9 @@ def get_iris_rds():
             'RS01SUM1-LJ01B-06-OBSSPA103',
             'RS01SUM1-LJ01B-07-OBSSPA102',
             'RS01SUM1-LJ01B-08-OBSSPA101',
-            'RS01SUM1-LJ01B-05-HYDLFA104',
+            # 'RS01SUM1-LJ01B-05-HYDLFA104',
             'RS01SUM1-LJ01B-05-OBSBBA101',
-            'RS01SLBS-MJ01A-05-HYDLFA101',
+            # 'RS01SLBS-MJ01A-05-HYDLFA101',
             'RS01SLBS-MJ01A-05-OBSBBA102'
             ]
     return result
@@ -76,11 +76,11 @@ def get_iris_station(rd):
         elif rd == 'RS03INT2-MJ03D-05-OBSSPA305':
             result = 'AXID1'
         elif rd == 'RS01SUM1-LJ01B-06-OBSSPA103':
-            result = 'HYS11'
+            result = 'HYS13'
         elif rd == 'RS01SUM1-LJ01B-07-OBSSPA102':
             result = 'HYS12'
         elif rd == 'RS01SUM1-LJ01B-08-OBSSPA101':
-            result = 'HYS13'
+            result = 'HYS11'
         elif rd == 'RS01SUM1-LJ01B-05-HYDLFA104':
             result = 'HYS14'
         elif rd == 'RS01SUM1-LJ01B-05-OBSBBA101':

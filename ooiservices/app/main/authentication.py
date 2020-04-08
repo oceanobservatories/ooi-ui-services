@@ -86,6 +86,8 @@ def oauth_callback(provider):
     # assign the response
     email, first_name, last_name = oauth.callback()
 
+    # TODO: CI Logon now says email, first and last name are optional,
+    #  which means we need to prompt the user to enter and validate their email at this point...
     if email is None:
         return unauthorized('Invalid credentials')
 

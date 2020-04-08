@@ -904,6 +904,7 @@ def get_stream_name_byname(stream):
     try:
         # Get stream display name.
         stream_display_name = None
+        is_science_stream = False
         stream_contents = uframe_get_stream_byname(stream)
         if not stream_contents or stream_contents is None:
             return None, None
@@ -913,7 +914,9 @@ def get_stream_name_byname(stream):
                     stream_display_name = stream_contents['stream_content']['value']
         if stream_display_name is None:
             stream_display_name = stream
-        return stream_display_name
+        if stream_contents['stream_type']['value'] == 'Science':
+            is_science_stream = True
+        return stream_display_name, is_science_stream
     except Exception as err:
         message = str(err)
         current_app.logger.info(message)
