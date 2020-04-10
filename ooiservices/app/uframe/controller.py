@@ -986,7 +986,7 @@ def get_svg_plot(instrument, stream):
             title = title.replace(' - ', '\n')
         if plot_layout == 'rose':
             # Get stream display name to be used in plotting title.
-            stream_display_name = get_stream_name_byname(tmp_stream_name)
+            stream_display_name = get_stream_name_byname(tmp_stream_name)[0]
             title = title + '\n' + stream_display_name
 
         data['title'] = title
@@ -1121,6 +1121,11 @@ def get_uframe_plot_contents_chunked_max_data(mooring, platform, instrument, str
         else:
             message = 'Unable to determine criteria for query, query undefined.'
             raise Exception(message)
+
+        # Checks if the stream is a science data stream, if not, adds require_deployment=False to the url parameters.
+        stream_is_science_data = get_stream_name_byname(stream)
+        if not stream_is_science_data[1]:
+            query = query + '&require_deployment=False'
 
         #- - - - - - - - - - - - - - - - - - -
         # Build url for data request.
