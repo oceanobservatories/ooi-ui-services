@@ -120,7 +120,7 @@ def get_da_by_rd(rd):
                         print '\n debug -- combo_stream_name: ', combo_stream_name
                         print '\n\t debug -- method: ', method
                         print '\n\t debug -- stream: ', stream
-                    display_name = get_stream_name_byname(stream)
+                    display_name = get_stream_name_byname(stream)[0]
                     if not display_name or display_name is None:
                         display_name = stream
                     if debug: print '\n debug -- display_name: ', display_name
