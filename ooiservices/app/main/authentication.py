@@ -5,6 +5,7 @@ API Authentication
 
 from flask import g, jsonify, request, redirect, url_for
 from flask_httpauth import HTTPBasicAuth
+from flask_security import login_user
 from ooiservices.app import db
 from ooiservices.app.models import User
 from ooiservices.app.main import api
@@ -46,7 +47,11 @@ def auth_error():
 @api.route('/token')
 @auth.login_required
 def get_token():
-    # print 'getting token'
+    debug = true
+    if debug:
+        print('getting token')
+        print(g.current_user)
+        print(g.token_used)
     if g.current_user.is_anonymous or g.token_used:
         return unauthorized('Invalid credentials')
     return jsonify({'token': g.current_user.generate_auth_token(
@@ -76,6 +81,7 @@ def oauth_authorize(provider):
 
 @api.route('/callback/<provider>')
 def oauth_callback(provider):
+    debug = False
     # rand_pass will be a new password every time a user logs in
     # with oauth.
     temp_pass = str(uuid.uuid4())
@@ -84,26 +90,60 @@ def oauth_callback(provider):
     oauth = OAuthSignIn.get_provider(provider)
 
     # assign the response
-    email, first_name, last_name = oauth.callback()
+    email, first_name, last_name, user_id, access_token = oauth.callback()
+    if debug:
+        print(email)
+        print(access_token)
+        email = None
 
     # TODO: CI Logon now says email, first and last name are optional,
     #  which means we need to prompt the user to enter and validate their email at this point...
-    if email is None:
+    if email is None and user_id is None:
+        print('Why did we get in here? Invalid credentials because no user_id or email was found.')
         return unauthorized('Invalid credentials')
 
     # see if this user already exists, and
     # and give the user a brand new password.
-    user = User.query.filter_by(email=email).first()
-    if user:
-        user.password = temp_pass
-
-    # if there is no user, create a new one and setup
-    # it's defaults and give it a new password.
+    if email is not None:
+        user = User.query.filter_by(email=email).first()
     else:
-        user = User.insert_user(password=temp_pass,
-                         username=email,
-                         email=email,
-                         first_name=first_name,
-                         last_name=last_name)
+        user = User.query.filter_by(user_id=user_id).first()
+    if debug:
+        print('user')
+        print(user)
+    
+    # Find existing user account using the email address
+    if user:
+        # Assign temporary password
+        user.password = temp_pass
+        if email is None:
+            # Assign the user_id given by CILogon if missing
+            user.user_id = user_id
+            user.user_name = user_id
+    else:
+        # This is a new user
+        # Create a new one and setup
+        # it's defaults and give it a new password.
+        if email is None and user.email is None:
+            # Using user_id to set up user since email wasn't supplied
+            user = User.insert_user(password=temp_pass,
+                                    username=user_id,
+                                    email=user_id,
+                                    user_id=user_id,
+                                    first_name='Anonymous',
+                                    last_name='Anonymous')
+        else:
+            user = User.insert_user(password=temp_pass,
+                                    username=email,
+                                    email=email,
+                                    user_id=user_id,
+                                    first_name=first_name,
+                                    last_name=last_name)
 
-    return jsonify({'uuid': temp_pass, 'username': email})
+    if email is None:
+        login_user(user, True)
+        return jsonify({'uuid': temp_pass, 'username': user_id, 'user_id': user_id, 'user_db_id': user.id})
+    else:
+        #login_user(user, True)
+        return jsonify({'uuid': temp_pass, 'username': email, 'user_id': user_id})
+

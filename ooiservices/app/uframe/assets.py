@@ -154,12 +154,19 @@ def create_asset():
 def update_asset(id):
     """ Update asset.
     """
+    debug = True
     try:
         if not request.data:
             message = 'No data provided to update asset %d.' % id
             raise Exception(message)
+        if debug:
+            print(request.data)
         data = json.loads(request.data)
+        if debug:
+            print(data)
         asset = _update_asset(id, data)
+        if debug:
+            print(asset)
         if not asset:
             message = 'Unable to get updated asset with asset id %d.' % id
             return conflict(message)

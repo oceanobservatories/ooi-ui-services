@@ -539,6 +539,11 @@ def transform_deployment_for_uframe(id, deployment, action=None):
         # Action 'update' specific check: verify event id in data is same as event id on PUT
         if action == 'update':
             if 'eventId' in converted_deployment:
+                if debug:
+                    print("converted_deployment['eventId']")
+                    print(converted_deployment['eventId'])
+                    print('id')
+                    print(id)
                 if converted_deployment['eventId'] != id:
                     message = 'The deployment event id provided in url does not match id provided in data.'
                     raise Exception(message)

@@ -439,13 +439,20 @@ def get_uframe_calibration_events_by_uid(id, uid):
 def uframe_put_event(event_type, id, data):
     """ Update event with id using data provided. Returns id from update
     """
+    debug = True
     try:
         #=================================
         # Get configuration url and timeout information, build request url.
         base_url, timeout, timeout_read = get_uframe_deployments_info()
         url = '/'.join([base_url, get_events_url_base(), str(id)])
         # Issue uframe PUT to update, process response status_code and content.
+        if debug:
+            print(url)
+            print(json.dumps(data))
+            print(headers)
         response = requests.put(url, data=json.dumps(data), headers=headers())
+        if debug:
+            print(response.request)
         if response.status_code != 200:
             if response.content is None:
                 message = 'Failed to create %s event in uframe.' % event_type
@@ -637,6 +644,7 @@ def uframe_update_asset(asset):
     """
     id = None
     uid = None
+    debug = True
     try:
         # Get asset id from asset data provided.
         if 'assetId' in asset:
@@ -653,6 +661,9 @@ def uframe_update_asset(asset):
         # Update asset in uframe.
         base_url, timeout, timeout_read = get_uframe_assets_info()
         url = '/'.join([base_url, get_assets_url_base(), str(id)])
+        if debug:
+            print('just before PUT')
+            print(asset)
         response = requests.put(url, data=json.dumps(asset), headers=headers())
         if response.status_code != 200:
             message = '(%d) Uframe failed to update asset (id/uid: %d/%s).' % (response.status_code, id, uid)
@@ -1333,7 +1344,7 @@ def get_rd_deployments(rd):
 
         # Build uframe url: host:port/events/deployment/query?refdes=XXXXXXXX
         url = '/'.join([uframe_url, get_deployments_url_base(), 'query'])
-        url += '?refdes=' + rd
+        url += '?refdes=' + rd + '&editphase=ALL'
         #url += '?refdes=' + rd + '&notes=true'
         if check: print '\n Check -- [get_rd_deployments] url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read))

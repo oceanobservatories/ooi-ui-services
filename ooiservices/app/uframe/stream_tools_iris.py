@@ -17,14 +17,14 @@ def get_iris_rds():
     result = [
             'RS03ASHS-MJ03B-06-OBSSPA301',
             'RS03ASHS-MJ03B-05-OBSSPA302',
-            # 'RS03AXBS-MJ03A-05-HYDLFA301',
+            'RS03AXBS-MJ03A-05-HYDLFA301',
             'RS03AXBS-MJ03A-05-OBSBBA303',
             'RS03CCAL-MJ03F-05-BOTPTA301',
-            # 'RS03CCAL-MJ03F-06-HYDLFA305',
+            'RS03CCAL-MJ03F-06-HYDLFA305',
             'RS03CCAL-MJ03F-06-OBSBBA301',
             'RS03ECAL-MJ03E-05-OBSSPA303',
             'RS03ECAL-MJ03E-06-BOTPTA302',
-            # 'RS03ECAL-MJ03E-09-HYDLFA304',
+            'RS03ECAL-MJ03E-09-HYDLFA304',
             'RS03ECAL-MJ03E-09-OBSBBA302',
             'RS03ECAL-MJ03E-08-OBSSPA304',
             'RS03INT2-MJ03D-06-BOTPTA303',
@@ -32,9 +32,9 @@ def get_iris_rds():
             'RS01SUM1-LJ01B-06-OBSSPA103',
             'RS01SUM1-LJ01B-07-OBSSPA102',
             'RS01SUM1-LJ01B-08-OBSSPA101',
-            # 'RS01SUM1-LJ01B-05-HYDLFA104',
+            'RS01SUM1-LJ01B-05-HYDLFA104',
             'RS01SUM1-LJ01B-05-OBSBBA101',
-            # 'RS01SLBS-MJ01A-05-HYDLFA101',
+            'RS01SLBS-MJ01A-05-HYDLFA101',
             'RS01SLBS-MJ01A-05-OBSBBA102'
             ]
     return result
@@ -114,7 +114,7 @@ def get_iris_data(rd):
         iris_link = '/'.join([base_url, station])
         if rd == 'RS03ASHS-MJ03B-06-OBSSPA301':
             # station: 'AXAS1'
-            result = {'dc': False,
+            result = {'dc': True,
                     'latitude': 45.933560,
                     'longitude': -129.999200,
                     'depth': 1529.0,
@@ -122,7 +122,7 @@ def get_iris_data(rd):
                      }
         elif rd == 'RS03ASHS-MJ03B-05-OBSSPA302':
             # station: 'AXAS2'
-            result = {'dc': False,
+            result = {'dc': True,
                     'latitude': 45.933770,
                     'longitude': -130.014100,
                     'depth': 1544.4,
@@ -131,7 +131,7 @@ def get_iris_data(rd):
 
         elif rd == 'RS03AXBS-MJ03A-05-HYDLFA301':
             # station: 'AXBA1'
-            result = {'dc': False,
+            result = {'dc': True,
                     'latitude': 45.820180,
                     'longitude': -129.736700,
                     'depth': 2607.2,
@@ -139,7 +139,7 @@ def get_iris_data(rd):
                      }
         elif rd == 'RS03AXBS-MJ03A-05-OBSBBA303':
             # station:  'AXBA1'
-            result = {'dc': False,
+            result = {'dc': True,
                     'latitude': 45.820180,
                     'longitude': -129.736700,
                     'depth': 2607.2,
@@ -155,7 +155,7 @@ def get_iris_data(rd):
                      }
         elif rd == 'RS03CCAL-MJ03F-06-HYDLFA305':
             # station:  'AXCC1'
-            result = {'dc': False,
+            result = {'dc': True,
                     'latitude': 45.954680,
                     'longitude': -130.008900,
                     'depth': 1528,
@@ -163,7 +163,7 @@ def get_iris_data(rd):
                      }
         elif rd == 'RS03CCAL-MJ03F-06-OBSBBA301':
             # station:  'AXCC1'
-            result = {'dc': False,
+            result = {'dc': True,
                     'latitude': 45.954680,
                     'longitude': -130.008900,
                     'depth': 1528,
@@ -171,7 +171,7 @@ def get_iris_data(rd):
                      }
         elif rd == 'RS03ECAL-MJ03E-05-OBSSPA303':
             # station: 'AXEC1'
-            result = {'dc': False,
+            result = {'dc': True,
                     'latitude': 45.949580,
                     'longitude': -129.979700,
                     'depth': 1512,
@@ -187,7 +187,7 @@ def get_iris_data(rd):
                      }
         elif rd == 'RS03ECAL-MJ03E-09-HYDLFA304':
             # station:  'AXEC2'
-            result = {'dc': False,
+            result = {'dc': True,
                     'latitude': 45.939670,
                     'longitude': -129.973800,
                     'depth': 1519,
@@ -195,7 +195,7 @@ def get_iris_data(rd):
                      }
         elif rd == 'RS03ECAL-MJ03E-09-OBSBBA302':
             # station:  'AXEC2'
-            result = {'dc': False,
+            result = {'dc': True,
                     'latitude': 45.939670,
                     'longitude': -129.973800,
                     'depth': 1519,
@@ -204,7 +204,7 @@ def get_iris_data(rd):
                      }
         elif rd == 'RS03ECAL-MJ03E-08-OBSSPA304':
             # station:  'AXEC3'
-            result = {'dc': False,
+            result = {'dc': True,
                     'latitude': 45.936070,
                     'longitude': -129.978500,
                     'depth': 1516,
@@ -220,7 +220,7 @@ def get_iris_data(rd):
                      }
         elif rd == 'RS03INT2-MJ03D-05-OBSSPA305':
             # station:  'AXID1'
-            result = {'dc': False,
+            result = {'dc': True,
                     'latitude': 45.925730,
                     'longitude': -129.978000,
                     'depth': 1527.5,
@@ -228,7 +228,7 @@ def get_iris_data(rd):
                     }
         elif rd == 'RS01SUM1-LJ01B-06-OBSSPA103':
             # station:  'HYS11'
-            result = {'dc': False,
+            result = {'dc': True,
                     'latitude': 44.573030,
                     'longitude': -125.152500,
                     'depth': 817.5,
@@ -236,7 +236,7 @@ def get_iris_data(rd):
                     }
         elif rd == 'RS01SUM1-LJ01B-07-OBSSPA102':
             # station: 'HYS12'
-            result = {'dc': False,
+            result = {'dc': True,
                     'latitude': 44.573200,
                     'longitude': -125.143900,
                     'depth': 788,
@@ -244,7 +244,7 @@ def get_iris_data(rd):
                      }
         elif rd == 'RS01SUM1-LJ01B-08-OBSSPA101':
             # station:  'HYS13'
-            result = {'dc': False,
+            result = {'dc': True,
                     'latitude': 44.567400,
                     'longitude': -125.144200,
                     'depth': 789,
@@ -252,7 +252,7 @@ def get_iris_data(rd):
                      }
         elif rd == 'RS01SUM1-LJ01B-05-HYDLFA104':
             # station:  'HYS14'
-            result = {'dc': False,
+            result = {'dc': True,
                     'latitude': 44.569120,
                     'longitude': -125.147900,
                     'depth': 784.7,
@@ -260,7 +260,7 @@ def get_iris_data(rd):
                      }
         elif rd == 'RS01SUM1-LJ01B-05-OBSBBA101':
             # station:  'HYS14'
-            result = {'dc': False,
+            result = {'dc': True,
                     'latitude': 44.569120,
                     'longitude': -125.147900,
                     'depth': 784.7,
@@ -268,14 +268,14 @@ def get_iris_data(rd):
                      }
         elif rd == 'RS01SLBS-MJ01A-05-HYDLFA101':
             # station:  'HYSB1'
-            result = {'dc': False,
+            result = {'dc': True,
                     'latitude': 44.509780,
                     'longitude': -125.405300,
                     'depth': 2920.5,
                     'start': '2014-08-01T00:00:00.000Z'}
         elif rd == 'RS01SLBS-MJ01A-05-OBSBBA102':
             # station:  'HYSB1'
-            result = {'dc': False,
+            result = {'dc': True,
                     'latitude': 44.509780,
                     'longitude': -125.405300,
                     'depth': 2920.5,
