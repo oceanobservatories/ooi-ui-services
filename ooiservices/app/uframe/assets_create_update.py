@@ -459,7 +459,7 @@ def transform_asset_for_uframe(id, asset, action=None):
                 uframe_asset['events'] = None
 
         uframe_asset['tense'] = 'UNKNOWN'
-        if deubg:
+        if debug:
             print('uframe_asset')
             print(uframe_asset)
         return uframe_asset
