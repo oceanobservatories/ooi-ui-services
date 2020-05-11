@@ -4283,7 +4283,7 @@ class AlertAlarmTestCase(unittest.TestCase):
             self.delete_alertfilters(filter_ids)
 
     def test_safe_to_delete_alert_alarm_definition(self):
-        debug = True
+        debug = False
         try:
             result = safe_to_delete_alert_alarm_definition(999)
             self.assertEquals(result, False)

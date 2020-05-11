@@ -59,7 +59,7 @@ class CILogonSignIn(OAuthSignIn):
         return json.loads(str(x))
 
     def callback(self):
-        debug = True
+        debug = False
         if debug:
             print 'Begin callback'
             print(request.args)

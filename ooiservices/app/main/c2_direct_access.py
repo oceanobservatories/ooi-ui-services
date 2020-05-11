@@ -847,7 +847,7 @@ def c2_instrument_get_lock(reference_designator):
 def c2_instrument_lock(reference_designator):
     """ Lock instrument.
     """
-    debug = True
+    debug = False
     rd = reference_designator
     #status = {}
     current_user_data = {"locked-by": "admin@ooi.rutgers.edu", "key": "admin@ooi.rutgers.edu"}
@@ -997,7 +997,7 @@ def get_lock_status(rd):
           "locked-by": null
         }
     """
-    debug = True
+    debug = False
     status = {}
     try:
         # Get instrument lock status from uframe

@@ -152,7 +152,7 @@ def _update_asset(id, data):
     """
     asset_type = None
     action = 'update'
-    debug = True
+    debug = False
     try:
         # Transform input data from UI into uframe format, get keys ()
         xasset = transform_asset_for_uframe(id, data, action='update')
@@ -263,7 +263,7 @@ def transform_asset_for_uframe(id, asset, action=None):
     """ Transform UI asset into uframe asset structure.
     """
     uframe_asset = {}
-    debug = True
+    debug = False
     try:
         verify_action(action)
 

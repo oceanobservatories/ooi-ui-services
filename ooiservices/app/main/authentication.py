@@ -47,7 +47,7 @@ def auth_error():
 @api.route('/token')
 @auth.login_required
 def get_token():
-    debug = True
+    debug = False
     if debug:
         print('getting token')
         print(g.current_user)

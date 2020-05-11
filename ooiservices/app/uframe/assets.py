@@ -154,7 +154,7 @@ def create_asset():
 def update_asset(id):
     """ Update asset.
     """
-    debug = True
+    debug = False
     try:
         if not request.data:
             message = 'No data provided to update asset %d.' % id

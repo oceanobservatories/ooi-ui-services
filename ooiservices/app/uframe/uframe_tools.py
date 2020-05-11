@@ -439,7 +439,7 @@ def get_uframe_calibration_events_by_uid(id, uid):
 def uframe_put_event(event_type, id, data):
     """ Update event with id using data provided. Returns id from update
     """
-    debug = True
+    debug = False
     try:
         #=================================
         # Get configuration url and timeout information, build request url.
@@ -644,7 +644,7 @@ def uframe_update_asset(asset):
     """
     id = None
     uid = None
-    debug = True
+    debug = False
     try:
         # Get asset id from asset data provided.
         if 'assetId' in asset:
