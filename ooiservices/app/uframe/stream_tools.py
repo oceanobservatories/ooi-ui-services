@@ -24,7 +24,7 @@ def dfs_streams():
     """
     from ooiservices.app.uframe.status_tools import get_rd_digests_dict
     from ooiservices.app.uframe.stream_tools_rds import get_rds_link
-    debug = True
+    debug = False
     try:
         retval = []
         streams = []

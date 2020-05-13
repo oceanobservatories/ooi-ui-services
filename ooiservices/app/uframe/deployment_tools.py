@@ -161,7 +161,7 @@ def get_rd_deployments(rd):
 
         # Build uframe url: host:port/events/deployment/query?refdes=XXXXXXXX
         url = '/'.join([uframe_url, get_deployments_url_base(), 'query'])
-        url += '?refdes=' + rd
+        url += '?refdes=' + rd + '&editphase=ALL'
         #url += '?refdes=' + rd + '&notes=true'
         if check: print '\n Check -- [get_rd_deployments] url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read))
@@ -210,7 +210,7 @@ def get_rd_deployments_with_notes(rd):
         # Build uframe url: host:port/events/deployment/query?refdes=XXXXXXXX
         url = '/'.join([uframe_url, get_deployments_url_base(), 'query'])
         #url += '?refdes=' + rd
-        url += '?refdes=' + rd + '&notes=true'
+        url += '?refdes=' + rd + '&notes=true' + '&editphase=ALL'
         if check: print '\n Check -- [get_rd_deployments] url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code != 200:
@@ -261,7 +261,7 @@ def get_rd_deployment(rd, deployment_number):
 
         # Build uframe url: host:port/events/deployment/query?refdes=XXXXXXXX
         url = '/'.join([uframe_url, get_deployments_url_base(), 'query'])
-        url += '?refdes=' + rd
+        url += '?refdes=' + rd + '&editphase=ALL'
         if check: print '\n Check -- [get_rd_deployments] url: ', url
         response = requests.get(url, timeout=(timeout, timeout_read))
         if response.status_code != 200:

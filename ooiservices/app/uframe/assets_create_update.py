@@ -152,9 +152,13 @@ def _update_asset(id, data):
     """
     asset_type = None
     action = 'update'
+    debug = False
     try:
         # Transform input data from UI into uframe format, get keys ()
         xasset = transform_asset_for_uframe(id, data, action='update')
+        if debug:
+            print('xasset')
+            print(xasset)
         xasset_keys = xasset.keys()
         xasset_keys.sort()
 
@@ -228,9 +232,15 @@ def _update_asset(id, data):
 
         # Update asset in uframe.
         modified_asset = uframe_update_asset(xasset)
+        if debug:
+            print('modified_asset')
+            print(modified_asset)
 
         # Format modified asset from uframe for UI.
         ui_asset = format_asset_for_ui(modified_asset)
+        if debug:
+            print('ui_asset')
+            print(ui_asset)
 
         # Minimize data for cache.
         asset_store = deepcopy(ui_asset)
@@ -253,6 +263,7 @@ def transform_asset_for_uframe(id, asset, action=None):
     """ Transform UI asset into uframe asset structure.
     """
     uframe_asset = {}
+    debug = False
     try:
         verify_action(action)
 
@@ -407,9 +418,14 @@ def transform_asset_for_uframe(id, asset, action=None):
         uframe_asset['dataSource'] = converted_asset['dataSource']
 
         # Set location.
+        if debug:
+            print(converted_asset['depth'])
         location = get_location_dict(converted_asset['latitude'], converted_asset['longitude'],
                                      converted_asset['depth'], converted_asset['orbitRadius'])
+        if debug:
+            print(location)
         uframe_asset['location'] = location
+        uframe_asset['depth'] = converted_asset['depth']
 
         # remoteResources, events and, when necessary, calibration
         if action == 'create':
@@ -443,6 +459,9 @@ def transform_asset_for_uframe(id, asset, action=None):
                 uframe_asset['events'] = None
 
         uframe_asset['tense'] = 'UNKNOWN'
+        if debug:
+            print('uframe_asset')
+            print(uframe_asset)
         return uframe_asset
 
     except Exception as err:

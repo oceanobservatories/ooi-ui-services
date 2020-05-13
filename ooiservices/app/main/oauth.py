@@ -59,15 +59,20 @@ class CILogonSignIn(OAuthSignIn):
         return json.loads(str(x))
 
     def callback(self):
-        print 'Begin callback'
+        debug = False
+        if debug:
+            print 'Begin callback'
+            print(request.args)
         if 'code' not in request.args:
             return None, None, None
-        print request.args['code'].rsplit('authzGrant', 1)[-1]
-        print 'code: ' + str(request.args['code'])
+        if debug:
+            print request.args['code'].rsplit('authzGrant', 1)[-1]
+            print 'code: ' + str(request.args['code'])
         data = {'code': str(request.args['code']),
                 'grant_type': 'authorization_code',
                 'redirect_uri': self.get_callback_url()}
-        print data
+        if debug:
+            print data
 
         oauth_session = self.service.get_auth_session(
             data=data,
@@ -78,8 +83,16 @@ class CILogonSignIn(OAuthSignIn):
         ci_logon_url = current_app.config['CILOGON_BASE_URL'] + '/oauth2/userinfo'
         me_profile = oauth_session.get(ci_logon_url,
                                        params={'format': 'json'}).json()
-        print 'End callback'
+        if debug:
+            print(me_profile)
+        client_id = oauth_session.client_id.split(':')[2].split('/')[2]
+        if debug:
+            print(client_id)
+            print 'End callback'
 
         return me_profile['email'], \
             me_profile['given_name'], \
-            me_profile['family_name']
+            me_profile['family_name'], \
+            client_id, \
+            oauth_session.access_token
+

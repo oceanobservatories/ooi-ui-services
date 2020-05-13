@@ -1282,6 +1282,7 @@ class User(UserMixin, db.Model):
                     first_name='First',
                     last_name='Last',
                     email='FirstLast@somedomain.com',
+                    user_id=None,
                     org_name='RPS ASA',
                     phone_primary='8001234567',
                     other_organization=None,
@@ -1294,7 +1295,10 @@ class User(UserMixin, db.Model):
             user.validate_email(email)
             user.user_name = username
             user.email = email
-            user.user_id = username
+            if user_id is None:
+                user.user_id = username
+            else:
+                user.user_id = user_id
             user.first_name = first_name
             user.last_name = last_name
             user.phone_primary = phone_primary
