@@ -117,8 +117,7 @@ def get_rs_array_name_by_rd(rd):
                 if rd in rs_array_codes:
                     name = rs_array_codes[rd]
         if name is None:
-            # TODO: name = 'Regional Cabled Array'
-            name = 'Cabled'
+            name = 'Regional Cabled Array'
 
         return name
     except Exception as err:
@@ -402,8 +401,7 @@ def compile_vocab():
         . . .
     }
     """
-    # TODO: array_names = {'RS': 'Regional Cabled Array'}
-    array_names = {'RS': 'Cabled'}
+    array_names = {'RS': 'Regional Cabled Array'}
     rs_array_names = {}
     results = {}        # vocabulary generated from uframe or COL vocab
     results_plus = {}   # additional vocabulary gleaned from original vocabulary source
@@ -513,10 +511,8 @@ def compile_vocab():
         # Additions added to results_plus; if results_plus, then combine result_plus into results.
         # Add default for Cabled
         if 'RS' not in results_plus:
-            # TODO: long_name = 'Regional Cabled Array'
-            #             name = 'Regional Cabled Array'
-            long_name = 'Cabled'
-            name = 'Cabled'
+            long_name = 'Regional Cabled Array'
+            name = 'Regional Cabled Array'
             results_plus['RS'] = {'long_name': long_name, 'name': name, 'id': 0}
 
         for vocab in vocabulary:
@@ -644,9 +640,8 @@ def create_vocabulary_codes(vocabs):
         "SF": "Shallow Profiler",
         "XX": "Bench Instrument"
     }
-    # TODO: 'RS': 'Regional Cabled Array'
     extra_arrays = {
-        'RS': 'Cabled'
+        'RS': 'Regional Cabled Array'
     }
     extra_subsites = {
         "ASPI": "ASPI"
