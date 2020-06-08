@@ -677,13 +677,17 @@ def process_stream_parameters_no_shapes(_parameters):
 
         for item in _parameters:
             parameter = {}
-            if 'name' in item:
-                if item['name'] is None or not item['name'] or len(item['name']) == 0:
-                    name = 'Unknown'
+            name = 'Unknown'
+
+            if 'netcdf_name' in item:
+                if item['netcdf_name'] is None or not item['netcdf_name'] or len(item['netcdf_name']) == 0:
+                    if 'name' in item:
+                        if item['name'] is None or not item['name'] or len(item['name']) == 0:
+                            name = 'Unknown'
+                        else:
+                            name = item['name']
                 else:
-                    name = item['name']
-            else:
-                name = 'Unknown'
+                    name = item['netcdf_name']
 
             # Populate parameter in dictionary
             parameter['name'] = name
@@ -996,13 +1000,17 @@ def process_stream_parameters(_parameters, stream, metadata_parameters):
         # Process parameters.
         for item in _parameters:
             parameter = {}
-            if 'name' in item:
-                if item['name'] is None or not item['name'] or len(item['name']) == 0:
-                    name = 'Unknown'
+            name = 'Unknown'
+
+            if 'netcdf_name' in item:
+                if item['netcdf_name'] is None or not item['netcdf_name'] or len(item['netcdf_name']) == 0:
+                    if 'name' in item:
+                        if item['name'] is None or not item['name'] or len(item['name']) == 0:
+                            name = 'Unknown'
+                        else:
+                            name = item['name']
                 else:
-                    name = item['name']
-            else:
-                name = 'Unknown'
+                    name = item['netcdf_name']
 
             # Populate parameter in dictionary
             parameter['name'] = name
