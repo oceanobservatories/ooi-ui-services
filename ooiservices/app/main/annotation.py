@@ -252,12 +252,14 @@ def get_annotations():
         rd_type = get_rd_type(str(refdes))
         if debug: print '\n debug -- rd_type: ', rd_type
         url = '/'.join((get_annotations_base_url(), 'find'))
+        # JDC - Commented out beginDT and endDT to show all annotations
+        # regardless of deployment or data bounds.
         params = {
             'refdes': refdes,
             'method': method,
             'stream': stream,
-            'beginDT': startdate,
-            'endDT': enddate
+            # 'beginDT': startdate,
+            # 'endDT': enddate
         }
         if debug: print '\n debug -- params: %r' % params
         # Using default request timeouts, get annotations from uframe with parameters
