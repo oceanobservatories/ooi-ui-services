@@ -39,7 +39,7 @@ Flask-Caching==1.4.0
 python-redmine==1.5.0
 celery==3.1.17
 gunicorn>=19.5.0
-matplotlib==1.4.2
+matplotlib
 prettyplotlib==0.1.7
 Flask-Cors==3.0.9
 seawater==3.3.2
@@ -48,7 +48,7 @@ SQLAlchemy-Searchable==0.10.6
 cmislib==0.5.1
 rauth==0.7.2
 BeautifulSoup4==4.3.2
-Pillow==8.3.2
+Pillow==6.2.2
 pycountry==1.19
 py-bcrypt==0.4
 tzlocal==1.2
