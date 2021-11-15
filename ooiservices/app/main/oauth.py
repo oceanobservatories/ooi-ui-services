@@ -43,9 +43,9 @@ class CILogonSignIn(OAuthSignIn):
         )
 
     def authorize(self):
-        print 'Inside authorize'
-        print self.get_callback_url()
-        print 'Outside authorize'
+        # print 'Inside authorize'
+        # print self.get_callback_url()
+        # print 'Outside authorize'
         return redirect(self.service.get_authorize_url(
             scope='openid profile email',
             response_type='code',
@@ -53,9 +53,9 @@ class CILogonSignIn(OAuthSignIn):
         )
 
     def custom_decoder(self, x):
-        print 'Inside custom_decoder'
-        print x
-        print 'Outside custom_decoder'
+        # print 'Inside custom_decoder'
+        # print x
+        # print 'Outside custom_decoder'
         return json.loads(str(x))
 
     def callback(self):
@@ -85,14 +85,17 @@ class CILogonSignIn(OAuthSignIn):
                                        params={'format': 'json'}).json()
         if debug:
             print(me_profile)
-        client_id = oauth_session.client_id.split(':')[2].split('/')[2]
+
+        # Use the CILogon 'sub' returned as the unique user_id
+        user_id = me_profile['sub']
+
         if debug:
-            print(client_id)
+            print(user_id)
             print 'End callback'
 
         return me_profile['email'], \
             me_profile['given_name'], \
             me_profile['family_name'], \
-            client_id, \
+            user_id, \
             oauth_session.access_token
 
