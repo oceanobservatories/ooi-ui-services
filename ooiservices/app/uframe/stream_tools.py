@@ -15,6 +15,8 @@ from ooiservices.app.uframe.stream_tools_rds import (get_rds_rds, build_rds_stre
 from ooiservices.app.uframe.uframe_tools import (uframe_get_stream_byname, uframe_get_instrument_metadata_parameters)
 from ooiservices.app.uframe.vocab import (get_vocab, get_display_name_by_rd, get_rs_array_name_by_rd,
                                           get_long_display_name_by_rd)
+from ooiservices.app.uframe.deployment_tools import (get_rd_deployments_with_notes)
+
 import datetime as dt
 import requests
 
@@ -627,14 +629,17 @@ def get_stream_deployment_info(rd, rd_digests_dict):
     depth = None
     water_depth = None
     try:
-        if rd_digests_dict and rd_digests_dict is not None:
-            if rd in rd_digests_dict:
-                digest = rd_digests_dict[rd]
-                if digest and digest is not None:
-                    latitude = digest['latitude']
-                    longitude = digest['longitude']
-                    depth = digest['depth']
-                    water_depth = digest['waterDepth']
+        # Use endpoint at api/m2m/12587/events/deployment/inv/<SUBSITE>/<NODE>/<INSTRUMENT>/-1
+        # and get the last one ordered by `deploymentNumber`
+        deployments = get_rd_deployments_with_notes(rd)
+        deployments.sort(key=lambda x: (x['deploymentNumber']), reverse=True)
+        if len(deployments) > 0 and deployments is not None:
+            deployment = deployments[0]
+            if deployment and deployment is not None:
+                latitude = deployment['location']['latitude']
+                longitude = deployment['location']['longitude']
+                depth = deployment['location']['depth']
+                water_depth = deployment['waterDepth']
 
             # Round to five decimal places is not None.
             if latitude and latitude is not None:
