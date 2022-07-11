@@ -1168,6 +1168,7 @@ def get_last_deployment_digest(uid):
     digest = None
     #digest_operational = None
     try:
+        # TODO: This is generally broken due to uid lookup pollution across deployed asset locations
         digests = get_deployments_digests(uid)
         #digests, digests_operational = get_deployments_digests(uid)
         if digests and digests is not None:
