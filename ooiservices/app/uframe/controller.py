@@ -15,6 +15,9 @@ from ooiservices.app.uframe.config import (get_uframe_info, get_uframe_url_info,
 from ooiservices.app.uframe.data import (get_data, get_simple_data, get_multistream_data)
 from ooiservices.app.uframe.stream_tools import get_stream_name_byname
 
+import matplotlib
+import matplotlib.pyplot as plt
+
 from urllib import urlencode
 import json
 import numpy as np
