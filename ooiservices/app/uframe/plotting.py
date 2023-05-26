@@ -2,7 +2,9 @@
 '''
     ooiservices/app/main/plotting.py
     Support for generating svg plots
-    '''
+'''
+import matplotlib
+matplotlib.use('Agg')
 from flask import request
 from netCDF4 import num2date
 from ooiservices.app.uframe.plot_tools import OOIPlots
@@ -78,7 +80,7 @@ def generate_plot(data, plot_options):
             if "time" == dataset['x_field'][0]:
                 data[idx]['x']['time'] = num2date(data[idx]['x']['time'], units='seconds since 1900-01-01 00:00:00', calendar='gregorian')
 
-    fig, ax = ppl.subplots(1, 1, figsize=(width, height))
+    fig, ax = plt.subplots(1, 1, figsize=(width, height))
 
     # Calculate the hypotenuse to determine appropriate font sizes
     hypot = np.sqrt(width**2 + height**2) - 4

@@ -5,7 +5,8 @@ from ooiservices.app import cache
 from netCDF4 import num2date
 import numpy as np
 import prettyplotlib as ppl
-from prettyplotlib import plt
+import matplotlib.pyplot as plt
+#from prettyplotlib import plt
 from ooiservices.app.uframe.windrose import WindroseAxes
 import matplotlib.dates as mdates
 from matplotlib.ticker import FuncFormatter
