@@ -716,13 +716,14 @@ def get_qcflags_map():
 
 
 def get_array_locations():
-    arrays_patch = {'CE': {'latitude': 44.37, 'longitude': -124.95},
-                    'GP': {'latitude': 49.9795, 'longitude': -144.254},
-                    'CP': {'latitude': 40.1, 'longitude': -70.88},
-                    'GA': {'latitude': -42.5073, 'longitude': -42.8905},
-                    'GI': {'latitude': 60.4582, 'longitude': -38.4407},
-                    'GS': {'latitude': -54.0814, 'longitude': -89.6652},
-                    'RS': {'latitude': 44.554, 'longitude': -125.352},
+    arrays_patch = {'CE0': {'latitude': 44.37, 'longitude': -124.95},
+                    'GP0': {'latitude': 49.9795, 'longitude': -144.254},
+                    'CP0': {'latitude': 40.1, 'longitude': -70.88},
+                    'CP1': {'latitude': 35.725, 'longitude': -74.853},
+                    'GA0': {'latitude': -42.5073, 'longitude': -42.8905},
+                    'GI0': {'latitude': 60.4582, 'longitude': -38.4407},
+                    'GS0': {'latitude': -54.0814, 'longitude': -89.6652},
+                    'RS0': {'latitude': 44.554, 'longitude': -125.352},
                    }
     return arrays_patch
 
