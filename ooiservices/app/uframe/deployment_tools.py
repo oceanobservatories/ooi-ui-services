@@ -427,13 +427,13 @@ def process_rds_for_names(rds, subsite=None, node=None):
 def get_vocab_info(rd):
     try:
         # Get array name
-        if rd[:2] == 'RS':
+        if rd[:3] == 'RS0':
             if len(rd) >= 8:
                 array = get_rs_array_name_by_rd(rd[:8])
             else:
-                array = get_display_name_by_rd(rd[:2])
+                array = get_display_name_by_rd(rd[:3])
         else:
-            array = get_display_name_by_rd(rd[:2])
+            array = get_display_name_by_rd(rd[:3])
 
         # Get name for reference designator from vocabulary.
         vocab_dict = get_vocab_dict_by_rd(rd)

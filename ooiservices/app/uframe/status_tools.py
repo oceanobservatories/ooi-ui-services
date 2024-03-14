@@ -114,7 +114,7 @@ def _get_status_platforms(rd):
             raise Exception(message)
         '''
         array_dict = get_vocabulary_arrays()
-        if rd[:2] not in array_dict:
+        if rd[:3] not in array_dict:
             message = 'Unknown array code (\'%s\') provided, unable to process request.' % rd
             raise Exception(message)
 
@@ -148,7 +148,7 @@ def _get_status_instrument(rd):
 
         # Verify array code is for a supported/known array; if not, raise exception.
         array_dict = get_vocabulary_arrays()
-        if rd[:2] not in array_dict:
+        if rd[:3] not in array_dict:
             message = 'Unknown array code (\'%s\') provided.' % rd
             raise Exception(message)
 

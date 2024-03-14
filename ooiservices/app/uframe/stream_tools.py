@@ -102,17 +102,17 @@ def dfs_streams():
 
                     # Get vocabulary items for response.
                     processing_rs = False
-                    if rd[:2] == 'RS':
+                    if rd[:3] == 'RS0':
                         processing_rs = True
                     if not vocab_dict or vocab_dict is None:
-                        array = rd[:2]
+                        array = rd[:3]
                         subsite = rd[:8]
                         platform = rd[:14]
                         sensor = rd
                         long_display_name = rd
                     else:
                         if not processing_rs:
-                            array = get_display_name_by_rd(rd[:2])
+                            array = get_display_name_by_rd(rd[:3])
                         else:
                             array = get_rs_array_name_by_rd(rd[:8])
                         subsite = get_display_name_by_rd(rd[:8])
@@ -456,17 +456,17 @@ def dfs_instruments(toc=None):
 
             # Get vocabulary items for response.
             processing_rs = False
-            if rd[:2] == 'RS':
+            if rd[:3] == 'RS0':
                 processing_rs = True
             if not vocab_dict or vocab_dict is None:
-                array = rd[:2]
+                array = rd[:3]
                 subsite = rd[:8]
                 platform = rd[:14]
                 sensor = rd
                 long_display_name = rd
             else:
                 if not processing_rs:
-                    array = get_display_name_by_rd(rd[:2])
+                    array = get_display_name_by_rd(rd[:3])
                 else:
                     array = get_rs_array_name_by_rd(rd[:8])
                 subsite = get_display_name_by_rd(rd[:8])

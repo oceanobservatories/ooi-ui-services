@@ -1647,7 +1647,7 @@ def uframe_get_sites_for_array(rd):
             sites = json.loads(response.content)
             if sites:
                 for site in sites:
-                    if site[:2] == rd:
+                    if site[:3] == rd:
                         result.append(site)
         return result
     except ConnectionError:

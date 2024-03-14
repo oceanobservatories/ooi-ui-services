@@ -842,7 +842,7 @@ def build_long_display_name(rd):
         # Build display name for instrument
         rs_code = None
         array_code = rd[:3]
-        if array_code == 'RS':
+        if array_code == 'RS0':
             is_rs = True
             rs_code = rd[:8]
 

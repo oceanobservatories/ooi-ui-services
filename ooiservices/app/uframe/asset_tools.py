@@ -604,10 +604,10 @@ def new_compile_assets(data, compile_all=False):
 
                         # Populate assetInfo - array and assembly
                         if len(ref_des) >= 8:
-                            if ref_des[:2] == 'RS':
+                            if ref_des[:3] == 'RS0':
                                 row['assetInfo']['array'] = get_rs_array_name_by_rd(ref_des[:8])
                             else:
-                                row['assetInfo']['array'] = get_display_name_by_rd(ref_des[:2])
+                                row['assetInfo']['array'] = get_display_name_by_rd(ref_des[:3])
                         if len(ref_des) >= 14:
                             row['assetInfo']['assembly'] = get_display_name_by_rd(ref_des[:14])
                     except Exception as err:
