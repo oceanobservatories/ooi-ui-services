@@ -139,18 +139,18 @@ def get_vocab_name_collection(rd):
             message = 'An instrument reference designator is required, \'%s\' provided.' % rd
             raise Exception(message)
 
-        if rd[:2] == 'RS':
+        if rd[:3] == 'RS0':
             processing_rs = True
         vocab_dict = get_vocab()
         if not vocab_dict or vocab_dict is None:
-            array = rd[:2]
+            array = rd[:3]
             subsite = rd[:8]
             platform = rd[:14]
             sensor = rd
             long_display_name = rd
         else:
             if not processing_rs:
-                array = get_display_name_by_rd(rd[:2])
+                array = get_display_name_by_rd(rd[:3])
             else:
                 array = get_rs_array_name_by_rd(rd[:8])
             subsite = get_display_name_by_rd(rd[:8])
@@ -401,7 +401,7 @@ def compile_vocab():
         . . .
     }
     """
-    array_names = {'RS': 'Regional Cabled Array'}
+    array_names = {'RS0': 'Regional Cabled Array'}
     rs_array_names = {}
     results = {}        # vocabulary generated from uframe or COL vocab
     results_plus = {}   # additional vocabulary gleaned from original vocabulary source
@@ -510,10 +510,10 @@ def compile_vocab():
         # Re-process for arrays and anything else which can be harvested for vocabulary display names.
         # Additions added to results_plus; if results_plus, then combine result_plus into results.
         # Add default for Cabled
-        if 'RS' not in results_plus:
+        if 'RS0' not in results_plus:
             long_name = 'Regional Cabled Array'
             name = 'Regional Cabled Array'
-            results_plus['RS'] = {'long_name': long_name, 'name': name, 'id': 0}
+            results_plus['RS0'] = {'long_name': long_name, 'name': name, 'id': 0}
 
         for vocab in vocabulary:
 
@@ -522,10 +522,10 @@ def compile_vocab():
             len_rd = len(rd)
             if len_rd > 8:
                 # Process array; note id set to 0
-                array_code = rd[:2]
+                array_code = rd[:3]
                 if array_code:
                     # For RS array names use 4 character designation when adding codes data
-                    if array_code =='RS':
+                    if array_code =='RS0':
                         if vocab['tocL1']:
                             key = rd[:8]
                             if key:
@@ -641,7 +641,7 @@ def create_vocabulary_codes(vocabs):
         "XX": "Bench Instrument"
     }
     extra_arrays = {
-        'RS': 'Regional Cabled Array'
+        'RS0': 'Regional Cabled Array'
     }
     extra_subsites = {
         "ASPI": "ASPI"
@@ -688,7 +688,7 @@ def create_vocabulary_codes(vocabs):
             # Process reference designator into components:
             #   array_code, subsite_code, node_code, instr_class, [temp vars: instr, port, instrument]
             # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-            array_code = rd[:2]
+            array_code = rd[:3]
             subsite_code = ''
             if subsite is not None:
                 subsite_code = subsite[4:8]
@@ -841,8 +841,8 @@ def build_long_display_name(rd):
 
         # Build display name for instrument
         rs_code = None
-        array_code = rd[:2]
-        if array_code == 'RS':
+        array_code = rd[:3]
+        if array_code == 'RS0':
             is_rs = True
             rs_code = rd[:8]
 

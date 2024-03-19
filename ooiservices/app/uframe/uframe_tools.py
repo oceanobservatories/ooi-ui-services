@@ -1595,7 +1595,7 @@ def uframe_get_status_by_rd(rd=None):
             elif len(rd) == 14:
                 site, node = rd.split('-')
                 uframe_rd = '/'.join([site, node])
-            elif len(rd) == 8 or len(rd) == 2:
+            elif len(rd) == 8 or len(rd) == 3:
                 uframe_rd = rd
             else:
                 message = 'The reference designator provided is malformed (\'%s\').' % rd
@@ -1647,7 +1647,7 @@ def uframe_get_sites_for_array(rd):
             sites = json.loads(response.content)
             if sites:
                 for site in sites:
-                    if site[:2] == rd:
+                    if site[:3] == rd:
                         result.append(site)
         return result
     except ConnectionError:

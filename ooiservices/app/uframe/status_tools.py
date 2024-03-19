@@ -59,7 +59,7 @@ def _get_status_sites(rd):
             message = 'Provide an array code.'
             if debug: print '\n debug -- ', message
             raise Exception(message)
-        if len(rd) != 2: # or not is_array(rd):
+        if len(rd) != 3: # or not is_array(rd):
             message = 'Provide a valid array code.'
             raise Exception(message)
 
@@ -114,7 +114,7 @@ def _get_status_platforms(rd):
             raise Exception(message)
         '''
         array_dict = get_vocabulary_arrays()
-        if rd[:2] not in array_dict:
+        if rd[:3] not in array_dict:
             message = 'Unknown array code (\'%s\') provided, unable to process request.' % rd
             raise Exception(message)
 
@@ -148,7 +148,7 @@ def _get_status_instrument(rd):
 
         # Verify array code is for a supported/known array; if not, raise exception.
         array_dict = get_vocabulary_arrays()
-        if rd[:2] not in array_dict:
+        if rd[:3] not in array_dict:
             message = 'Unknown array code (\'%s\') provided.' % rd
             raise Exception(message)
 
@@ -307,7 +307,7 @@ def get_status_sites(rd):
 
     if rd is None:
         return None
-    if len(rd) == 2:
+    if len(rd) == 3:
         pass
     else:
         return None
@@ -694,7 +694,7 @@ def get_site_sections(unique_list, return_list):
             raise Exception(message)
 
         # Get rd_array to determine if business rule apply.
-        rd_array = unique_list[0][:2]
+        rd_array = unique_list[0][:3]
         apply_multi_node_rule = False
         #special_node_codes = 'WF'
         special_node_codes = ['WF', 'GL']
